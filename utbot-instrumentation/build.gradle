@@ -1,0 +1,35 @@
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+dependencies {
+    implementation project(':utbot-framework-api')
+
+    implementation group: 'org.ow2.asm', name: 'asm', version: asm_version
+    implementation group: 'org.ow2.asm', name: 'asm-commons', version: asm_version
+    implementation group: 'com.esotericsoftware', name: 'kryo', version: kryo_version
+    // this is necessary for serialization of some collections
+    implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryo_serializers_version
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+
+
+    // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
+    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
+    implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
+}
+
+jar {
+    manifest {
+        attributes (
+                'Main-Class': 'org.utbot.instrumentation.process.ChildProcessKt',
+                'Premain-Class': 'org.utbot.instrumentation.agent.Agent',
+        )
+    }
+    from { configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+configurations {
+    instrumentationArchive
+}
+
+artifacts {
+    instrumentationArchive jar
+}

@@ -1,0 +1,11 @@
+BENCHMARK
+utbot-junit-contest/sample/sources
+utbot-junit-contest/sample/classes
+4
+utbot-junit-contest/src/main/resources/projects/antlr/antlr-4.7.2-complete.jar
+utbot-junit-contest/src/main/resources/projects/antlr/icu4j-64.2.jar
+utbot-junit-contest/src/main/resources/projects/custom/contest-utbot-jar-1.0.jar
+utbot-junit-contest/src/main/resources/projects/guava/guava-28.2-jre.jar
+1
+60
+com.google.common.primitives.Doubles

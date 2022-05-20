@@ -1,0 +1,54 @@
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+apply plugin: "java"
+
+configurations {
+    mlmodels
+}
+
+
+String classifier = System.getProperty('os.name').toLowerCase().split()[0] + "-x86_64"
+evaluationDependsOn(':utbot-framework')
+compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
+dependencies {
+    implementation(project(":utbot-framework"))
+    implementation(project(':utbot-instrumentation'))
+    implementation(project(':utbot-summary'))
+    testImplementation project(':utbot-sample')
+    testImplementation group: 'junit', name: 'junit', version: junit4_version
+
+    implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
+    implementation group: 'com.github.haifengl', name: 'smile-kotlin', version: '2.6.0'
+    implementation group: 'com.github.haifengl', name: 'smile-plot', version: '2.6.0'
+    implementation group: 'com.github.haifengl', name: 'smile-core', version: '2.6.0'
+    implementation group: 'com.github.haifengl', name: 'smile-interpolation', version: '2.6.0'
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
+
+    implementation group: 'org.bytedeco', name: 'arpack-ng', version: "3.7.0-1.5.4", classifier: "$classifier"
+    implementation group: 'org.bytedeco', name: 'openblas', version: "0.3.10-1.5.4", classifier: "$classifier"
+
+    implementation group: 'tech.tablesaw', name: 'tablesaw-core', version: '0.38.2'
+    implementation group: 'tech.tablesaw', name: 'tablesaw-jsplot', version: '0.38.2'
+
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
+
+    implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+
+    testCompile project(':utbot-framework').sourceSets.test.output
+}
+
+test {
+
+    useJUnitPlatform{
+       excludeTags 'Summary'
+    }
+
+}
+
+processResources {
+    configurations.mlmodels.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+        from(zipTree(artifact.getFile())) {
+            into "models"
+        }
+    }
+}

@@ -1,0 +1,554 @@
+package org.utbot.framework.codegen
+
+import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
+import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
+import org.utbot.framework.codegen.model.tree.CgClassId
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodeGenerationSettingBox
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
+import org.utbot.framework.plugin.api.util.booleanArrayClassId
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.builtinMethodId
+import org.utbot.framework.plugin.api.util.builtinStaticMethodId
+import org.utbot.framework.plugin.api.util.byteArrayClassId
+import org.utbot.framework.plugin.api.util.charArrayClassId
+import org.utbot.framework.plugin.api.util.doubleArrayClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.floatArrayClassId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.intArrayClassId
+import org.utbot.framework.plugin.api.util.longArrayClassId
+import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.shortArrayClassId
+import org.utbot.framework.plugin.api.util.voidClassId
+import java.io.File
+
+data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
+
+sealed class Import(internal val order: Int) : Comparable<Import> {
+    abstract val qualifiedName: String
+
+    override fun compareTo(other: Import) = importComparator.compare(this, other)
+}
+
+private val importComparator = compareBy<Import> { it.order }.thenBy { it.qualifiedName }
+
+data class StaticImport(val qualifierClass: String, val memberName: String) : Import(1) {
+    override val qualifiedName: String = "$qualifierClass.$memberName"
+}
+
+data class RegularImport(val packageName: String, val className: String) : Import(2) {
+    override val qualifiedName: String
+        get() = if (packageName.isNotEmpty()) "$packageName.$className" else className
+
+    // TODO: check without equals() and hashCode()
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as RegularImport
+
+        if (packageName != other.packageName) return false
+        if (className != other.className) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = packageName.hashCode()
+        result = 31 * result + className.hashCode()
+        return result
+    }
+}
+
+private const val TEST_NG_PACKAGE = "org.testng"
+private const val JUNIT4_PACKAGE = "org.junit"
+private const val JUNIT5_PACKAGE = "org.junit.jupiter.api"
+const val JUNIT5_PARAMETERIZED_PACKAGE = "org.junit.jupiter.params"
+
+//JUnit5 imports
+private const val TEST_NG_ASSERTIONS = "org.testng.Assert"
+private const val JUNIT5_ASSERTIONS = "org.junit.jupiter.api.Assertions"
+private const val JUNIT4_ASSERTIONS = "org.junit.Assert"
+
+fun junitByVersion(version: Int): TestFramework =
+    when (version) {
+        4 -> Junit4
+        5 -> Junit5
+        else -> error("Expected JUnit version 4 or 5, but got: $version")
+    }
+
+fun testFrameworkByName(testFramework: String): TestFramework =
+    when (testFramework) {
+        "junit4" -> Junit4
+        "junit5" -> Junit5
+        "testng" -> TestNg
+        else -> error("Unexpected test framework name: $testFramework")
+    }
+
+/**
+ * This feature allows to enable additional mockito-core settings required for static mocking.
+ * It is implemented via adding special file "MockMaker" into test project resources.
+ */
+sealed class StaticsMocking(
+    var isConfigured: Boolean = false,
+    override val displayName: String,
+    override val description: String = "Use static methods mocking"
+) : CodeGenerationSettingItem {
+    override fun toString(): String = displayName
+
+    // Get is mandatory because of the initialization order of the inheritors.
+    // Otherwise, in some cases we could get an incorrect value
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: StaticsMocking
+            get() = MockitoStaticMocking
+        override val allItems: List<StaticsMocking>
+            get() = listOf(NoStaticMocking, MockitoStaticMocking)
+    }
+}
+
+object NoStaticMocking : StaticsMocking(
+    displayName = "No static mocking",
+    description = "Don't use additional settings to mock static fields"
+)
+
+object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocking") {
+
+    val mockedStaticClassId = BuiltinClassId(
+        name = "org.mockito.MockedStatic",
+        canonicalName = "org.mockito.MockedStatic",
+        simpleName = "MockedStatic"
+    )
+
+    val mockedConstructionClassId = BuiltinClassId(
+        name = "org.mockito.MockedConstruction",
+        canonicalName = "org.mockito.MockedConstruction",
+        simpleName = "MockedConstruction"
+    )
+
+    val mockStaticMethodId = builtinStaticMethodId(
+        classId = mockitoClassId,
+        name = "mockStatic",
+        returnType = mockedStaticClassId,
+        arguments = arrayOf(objectClassId)
+    )
+
+    val mockConstructionMethodId = builtinStaticMethodId(
+        classId = mockitoClassId,
+        name = "mockConstruction",
+        returnType = mockedConstructionClassId,
+        // actually second argument is lambda
+        arguments = arrayOf(objectClassId, objectClassId)
+    )
+
+    val mockedStaticWhen = builtinMethodId(
+        classId = mockedStaticClassId,
+        name = "when",
+        returnType = ongoingStubbingClassId,
+        // argument type is actually a functional interface
+        arguments = arrayOf(objectClassId)
+    )
+
+    fun mockedStaticWhen(nullable: Boolean): MethodId = builtinMethodId(
+        classId = mockedStaticClassId,
+        name = "when",
+        returnType = CgClassId(ongoingStubbingClassId, isNullable = nullable),
+        // argument type is actually a functional interface
+        arguments = arrayOf(objectClassId)
+    )
+}
+
+sealed class TestFramework(
+    override val displayName: String,
+    override val description: String = "Use $displayName as test framework",
+) : CodeGenerationSettingItem {
+    var isInstalled: Boolean = false
+    abstract val mainPackage: String
+    abstract val assertionsClass: ClassId
+    abstract val testAnnotation: String
+    abstract val testAnnotationId: ClassId
+    abstract val testAnnotationFqn: String
+    abstract val parameterizedTestAnnotation: String
+    abstract val parameterizedTestAnnotationId: ClassId
+    abstract val parameterizedTestAnnotationFqn: String
+    abstract val methodSourceAnnotation: String
+    abstract val methodSourceAnnotationId: ClassId
+    abstract val methodSourceAnnotationFqn: String
+
+    val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
+
+    val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }
+
+    val assertDoubleEquals by lazy { assertionId("assertEquals", doubleClassId, doubleClassId, doubleClassId) }
+
+    val assertArrayEquals by lazy { assertionId("assertArrayEquals", Array<Any>::class.id, Array<Any>::class.id) }
+
+    val assertBooleanArrayEquals by lazy { assertionId("assertArrayEquals", booleanArrayClassId, booleanArrayClassId) }
+
+    val assertByteArrayEquals by lazy { assertionId("assertArrayEquals", byteArrayClassId, byteArrayClassId) }
+
+    val assertCharArrayEquals by lazy { assertionId("assertArrayEquals", charArrayClassId, charArrayClassId) }
+
+    val assertShortArrayEquals by lazy { assertionId("assertArrayEquals", shortArrayClassId, shortArrayClassId) }
+
+    val assertIntArrayEquals by lazy { assertionId("assertArrayEquals", intArrayClassId, intArrayClassId) }
+
+    val assertLongArrayEquals by lazy { assertionId("assertArrayEquals", longArrayClassId, longArrayClassId) }
+
+    val assertFloatArrayEquals by lazy { assertionId("assertArrayEquals", floatArrayClassId, floatArrayClassId, floatClassId) }
+
+    val assertDoubleArrayEquals by lazy { assertionId("assertArrayEquals", doubleArrayClassId, doubleArrayClassId, doubleClassId) }
+
+    val assertNull by lazy { assertionId("assertNull", objectClassId) }
+
+    val assertFalse by lazy { assertionId("assertFalse", booleanClassId) }
+
+    val assertTrue by lazy { assertionId("assertTrue", booleanClassId) }
+
+    val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
+
+    private fun assertionId(name: String, vararg params: ClassId): MethodId =
+        builtinStaticMethodId(assertionsClass, name, voidClassId, *params)
+
+    abstract fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String
+    ): List<String>
+
+    override fun toString() = displayName
+
+    // Get is mandatory because of the initialization order of the inheritors.
+    // Otherwise, in some cases we could get an incorrect value, i.e. allItems = [null, JUnit5, TestNg]
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: TestFramework get() = Junit5
+        override val allItems: List<TestFramework> get() = listOf(Junit4, Junit5, TestNg)
+        val parametrizedDefaultItem: TestFramework get() = Junit5
+    }
+}
+
+object TestNg : TestFramework(displayName = "TestNG") {
+    override val mainPackage: String = TEST_NG_PACKAGE
+    override val testAnnotation: String = "@$mainPackage.Test"
+    override val testAnnotationFqn: String = "$mainPackage.Test"
+
+    override val parameterizedTestAnnotation: String = "@$mainPackage.Test"
+    override val parameterizedTestAnnotationFqn: String = "@$mainPackage.Test"
+    override val methodSourceAnnotation: String = "@$mainPackage.DataProvider"
+    override val methodSourceAnnotationFqn: String = "@$mainPackage.DataProvider"
+
+    internal const val testXmlName: String = "testng.xml"
+
+    override val assertionsClass: ClassId = BuiltinClassId(
+        name = TEST_NG_ASSERTIONS,
+        canonicalName = TEST_NG_ASSERTIONS,
+        simpleName = "Assert"
+    )
+
+    val throwingRunnableClassId = BuiltinClassId(
+        name = "${assertionsClass.name}\$ThrowingRunnable",
+        canonicalName = "${assertionsClass.canonicalName}.ThrowingRunnable",
+        simpleName = "ThrowingRunnable"
+    )
+
+    val assertThrows = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertThrows",
+        // TODO: actually the return type is 'T extends java.lang.Throwable'
+        returnType = java.lang.Throwable::class.id,
+        arguments = arrayOf(
+            Class::class.id,
+            throwingRunnableClassId
+        )
+    )
+
+    override val testAnnotationId: ClassId = BuiltinClassId(
+        name = "$mainPackage.annotations.Test",
+        canonicalName = "$mainPackage.annotations.Test",
+        simpleName = "Test"
+    )
+
+    override val parameterizedTestAnnotationId: ClassId = BuiltinClassId(
+        name = "$mainPackage.annotations.Test",
+        canonicalName = "$mainPackage.annotations.Test",
+        simpleName = "Test"
+    )
+
+    override val methodSourceAnnotationId: ClassId = BuiltinClassId(
+        name = "$mainPackage.annotations.DataProvider",
+        canonicalName = "$mainPackage.annotations.DataProvider",
+        simpleName = "DataProvider"
+    )
+
+    override fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String
+    ): List<String> {
+        // TestNg requires a specific xml to run with
+        writeXmlFileForTestSuite(buildDirectory, classesNames)
+
+        return listOf(executionInvoke, "$mainPackage.TestNG", "$buildDirectory${File.separator}$testXmlName")
+    }
+
+    private fun writeXmlFileForTestSuite(buildDirectory: String, testsNames: List<String>) {
+        val packages = testsNames.map { testName ->
+            constructPackageLine(testName.extractPackage())
+        }
+
+        File(buildDirectory + File.separator + testXmlName).writeText(constructTestNgXml(packages))
+    }
+
+    private fun String.extractPackage(): String = split(".").dropLast(1).joinToString(".")
+
+    private fun constructPackageLine(pkg: String): String = "<package name=\"$pkg\"/>"
+
+    private fun constructTestNgXml(packages: List<String>): String =
+        """
+    <!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >  
+    <suite name="SuiteAll" verbose="1">
+        <test name="TestAll">  
+            <packages>
+                ${packages.joinToString(separator = "\t\t\t\n")}
+            </packages>  
+        </test>     
+    </suite>
+    """.trimIndent()
+}
+
+object Junit4 : TestFramework("JUnit4") {
+    override val mainPackage: String = JUNIT4_PACKAGE
+    override val testAnnotation = "@$mainPackage.Test"
+    override val testAnnotationFqn: String = "$mainPackage.Test"
+
+    override val parameterizedTestAnnotation = "Parameterized tests are not supported for JUnit4"
+    override val parameterizedTestAnnotationFqn = "Parameterized tests are not supported for JUnit4"
+    override val methodSourceAnnotation = "Parameterized tests are not supported for JUnit4"
+    override val methodSourceAnnotationFqn = "Parameterized tests are not supported for JUnit4"
+
+    override val testAnnotationId = BuiltinClassId(
+        name = "$JUNIT4_PACKAGE.Test",
+        canonicalName = "$JUNIT4_PACKAGE.Test",
+        simpleName = "Test"
+    )
+
+    override val parameterizedTestAnnotationId = voidClassId
+    override val methodSourceAnnotationId = voidClassId
+
+    val runWithAnnotationClassId = BuiltinClassId(
+        name = "$JUNIT4_PACKAGE.runner.RunWith",
+        canonicalName = "$JUNIT4_PACKAGE.runner.RunWith",
+        simpleName = "RunWith"
+    )
+
+    override val assertionsClass = BuiltinClassId(
+        name = JUNIT4_ASSERTIONS,
+        canonicalName = JUNIT4_ASSERTIONS,
+        simpleName = "Assert"
+    )
+
+    val ignoreAnnotationClassId = with("$JUNIT4_PACKAGE.Ignore") {
+        BuiltinClassId(
+            name = this,
+            canonicalName = this,
+            simpleName = "Ignore"
+        )
+    }
+
+    override fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String
+    ): List<String> = listOf(executionInvoke, "$mainPackage.runner.JUnitCore") + classesNames
+}
+
+object Junit5 : TestFramework("JUnit5") {
+    override val mainPackage: String = JUNIT5_PACKAGE
+    override val testAnnotation = "@$mainPackage.Test"
+    override val testAnnotationFqn: String = "$mainPackage.Test"
+    override val parameterizedTestAnnotation = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest"
+    override val parameterizedTestAnnotationFqn: String = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest"
+    override val methodSourceAnnotation: String = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource"
+    override val methodSourceAnnotationFqn: String = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource"
+
+    val executableClassId = BuiltinClassId(
+        name = "$JUNIT5_PACKAGE.function.Executable",
+        canonicalName = "$JUNIT5_PACKAGE.function.Executable",
+        simpleName = "Executable"
+    )
+
+    val timeoutClassId = BuiltinClassId(
+        name = "$JUNIT5_PACKAGE.Timeout",
+        canonicalName = "$JUNIT5_PACKAGE.Timeout",
+        simpleName = "Timeout"
+    )
+
+    val timeunitClassId = BuiltinClassId(
+        name = "TimeUnit",
+        canonicalName = "java.util.concurrent.TimeUnit",
+        simpleName = "TimeUnit"
+    )
+
+    override val testAnnotationId = BuiltinClassId(
+        name = "$JUNIT5_PACKAGE.Test",
+        canonicalName = "$JUNIT5_PACKAGE.Test",
+        simpleName = "Test"
+    )
+
+    override val parameterizedTestAnnotationId = BuiltinClassId(
+        name = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest",
+        canonicalName = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest",
+        simpleName = "ParameterizedTest"
+    )
+
+    override val methodSourceAnnotationId: ClassId = BuiltinClassId(
+        name = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource",
+        canonicalName = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource",
+        simpleName = "MethodSource"
+    )
+
+    override val assertionsClass = BuiltinClassId(
+        name = JUNIT5_ASSERTIONS,
+        canonicalName = JUNIT5_ASSERTIONS,
+        simpleName = "Assertions"
+    )
+
+    val assertThrows = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertThrows",
+        // TODO: actually the return type is 'T extends java.lang.Throwable'
+        returnType = java.lang.Throwable::class.id,
+        arguments = arrayOf(
+            Class::class.id,
+            executableClassId
+        )
+    )
+
+    val displayNameClassId = BuiltinClassId(
+        name = "$JUNIT5_PACKAGE.DisplayName",
+        canonicalName = "$JUNIT5_PACKAGE.DisplayName",
+        simpleName = "DisplayName"
+    )
+
+    val disabledAnnotationClassId = with("$JUNIT5_PACKAGE.Disabled") {
+        BuiltinClassId(
+            name = this,
+            canonicalName = this,
+            simpleName = "Disabled"
+        )
+    }
+
+    private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
+    private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"
+
+    override fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String
+    ): List<String> =
+        listOf(
+            executionInvoke,
+            "-jar", classPath.split(File.pathSeparator).single { platformJarName in it },
+        ) + isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" }))
+}
+
+enum class RuntimeExceptionTestsBehaviour(
+    override val displayName: String,
+    override val description: String
+) : CodeGenerationSettingItem {
+    PASS(
+        displayName = "Passing",
+        description = "Tests that produce Runtime exceptions should pass (by inserting throwable assertion)"
+    ),
+    FAIL(
+        displayName = "Failing",
+        description = "Tests that produce Runtime exceptions should fail" +
+                "(WARNING!: failing tests may appear in testing class)"
+    );
+
+    override fun toString(): String = displayName
+
+    // Get is mandatory because of the initialization order of the inheritors.
+    // Otherwise, in some cases we could get an incorrect value
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: RuntimeExceptionTestsBehaviour get() = FAIL
+        override val allItems: List<RuntimeExceptionTestsBehaviour> = values().toList()
+    }
+}
+
+data class HangingTestsTimeout(val timeoutMs: Long) {
+    constructor() : this(DEFAULT_TIMEOUT_MS)
+
+    companion object {
+        const val DEFAULT_TIMEOUT_MS = DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+        const val MIN_TIMEOUT_MS = DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+        const val MAX_TIMEOUT_MS = 1_000_000L
+    }
+}
+
+enum class ForceStaticMocking(
+    override val displayName: String,
+    override val description: String,
+    val warningMessage: List<String>,
+) : CodeGenerationSettingItem {
+    FORCE(
+        displayName = "Force static mocking",
+        description = "Use mocks for static methods and constructors invocations even if static mocking is disabled" +
+                "(WARNING!: can add imports from missing dependencies)",
+        warningMessage = listOf(
+            """WARNING!!! Automatically used "${StaticsMocking.defaultItem}" framework for mocking statics""",
+            "because execution encountered flaky methods",
+            "To change this behaviour edit [Settings -> UtBot -> Force static mocking]"
+        )
+    ),
+    DO_NOT_FORCE(
+        displayName = "Do not force static mocking",
+        description = "Do not force static mocking if static mocking setting is disabled" +
+                "(WARNING!: flaky tests can appear)",
+        warningMessage = listOf(
+            "Warning!!! This test can be flaky because execution encountered flaky methods,",
+            """but no "static mocking" was selected"""
+        )
+    );
+
+    override fun toString(): String = displayName
+
+    // Get is mandatory because of the initialization order of the inheritors.
+    // Otherwise, in some cases we could get an incorrect value
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: ForceStaticMocking get() = FORCE
+        override val allItems: List<ForceStaticMocking> = values().toList()
+    }
+}
+
+enum class ParametrizedTestSource(
+    override val displayName: String,
+    override val description: String = "Use $displayName for parametrized tests"
+) : CodeGenerationSettingItem {
+    DO_NOT_PARAMETRIZE(
+        displayName = "Not parametrized",
+        description = "Don't generate parametrized tests"
+    ),
+    PARAMETRIZE(
+        displayName = "Parametrized",
+        description = "Generate parametrized tests"
+    );
+
+    override fun toString(): String = displayName
+
+    // Get is mandatory because of the initialization order of the inheritors.
+    // Otherwise, in some cases we could get an incorrect value
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem: ParametrizedTestSource = DO_NOT_PARAMETRIZE
+        override val allItems: List<ParametrizedTestSource> = values().toList()
+    }
+}

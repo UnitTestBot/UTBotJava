@@ -1,0 +1,18 @@
+rootProject.name = 'utbot'
+
+include 'utbot-core'
+include 'utbot-framework'
+include 'utbot-framework-api'
+include 'utbot-intellij'
+include 'utbot-sample'
+include 'utbot-fuzzers'
+include 'utbot-junit-contest'
+include 'utbot-analytics'
+include 'utbot-cli'
+include 'utbot-api'
+include 'utbot-instrumentation'
+include 'utbot-instrumentation-tests'
+
+include 'utbot-summary'
+include 'utbot-gradle'
+

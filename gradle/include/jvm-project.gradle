@@ -1,0 +1,66 @@
+apply plugin: 'java'
+apply plugin: 'kotlin'
+
+dependencies {
+    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: coroutines_version
+    implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-collections-immutable-jvm', version: collections_version
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
+
+    testImplementation("org.junit.jupiter:junit-jupiter:$junit5_version"){
+        force = true
+    }
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xinline-classes"]
+        allWarningsAsErrors = false
+    }
+}
+
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xinline-classes"]
+        allWarningsAsErrors = false
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+compileJava {
+    options.compilerArgs << '-Werror' << '-Xlint:all'
+    options.encoding = 'UTF-8'
+}
+
+compileTestJava {
+//    options.compilerArgs << '-Werror' << '-Xlint:all'
+//    options.encoding = 'UTF-8'
+}
+
+test {
+    // set heap size for the test JVM(s)
+    minHeapSize = "128m"
+    maxHeapSize = "2048m"
+
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
+
+    afterTest { descriptor, result ->
+        println "[$descriptor.classDisplayName] [$descriptor.displayName]: $result.resultType"
+    }
+
+    testLogging {
+        afterSuite { desc, result ->
+            if (!desc.parent) { // will match the outermost suite
+                println "Test summary: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+            }
+        }
+    }
+}

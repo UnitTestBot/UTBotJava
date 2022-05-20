@@ -1,0 +1,79 @@
+{
+  "CART": {
+    "smile.cart.max.depth": "20",
+    "smile.cart.node.size": "20",
+    "smile.cart.max.nodes": "20",
+    "smile.cart.split.rule": "GINI"
+  },
+  "LOGISTIC": {
+    "smile.logistic.max.iterations": "250",
+    "smile.logistic.tolerance": "0.001",
+    "smile.logistic.lambda": "0.01"
+  },
+  "KNN": {
+    "knn.k": "7"
+  },
+  "LDA": {
+    "smile.lda.tolerance": "1.0E-3"
+  },
+  "FISHER": {
+    "smile.fld.tolerance": "0.0001"
+  },
+  "QDA": {
+    "smile.qda.tolerance": "1.0E-3"
+  },
+  "RDA": {
+    "smile.rda.alpha": "0.1",
+    "smile.rda.tolerance": "0.0001"
+  },
+  "SVM": {
+    "svm.tol": "0.001",
+    "svm.C": "15"
+  },
+  "RANDOMFOREST": {
+    "smile.random.forest.sample.rate": "0.5",
+    "smile.random.forest.max.nodes": "50",
+    "smile.random.forest.node.size": "1",
+    "smile.random.forest.trees": "50",
+    "smile.random.forest.max.depth": "20",
+    "smile.random.forest.mtry": "0",
+    "smile.random.forest.split.rule": "GINI"
+  },
+  "GBM": {
+    "smile.gbt.shrinkage": "0.1",
+    "smile.gbt.sample.rate": "0.8",
+    "smile.gbt.node.size": "12",
+    "smile.gbt.max.nodes": "20",
+    "smile.gbt.max.depth": "30",
+    "smile.gbt.trees": "50"
+  },
+  "ADABOOST": {
+    "smile.adaboost.node.size": "1",
+    "smile.adaboost.trees": "50",
+    "smile.adaboost.max.depth": "20",
+    "smile.adaboost.max.nodes": "6"
+  },
+  "ONE_LAYER_MLP": {
+    "smile.mlp.onelayer.epsilon": "0.0004",
+    "smile.mlp.onelayer.endLearningRate": "0.01",
+    "smile.mlp.onelayer.momentum": "0.00005",
+    "smile.mlp.onelayer.weightDecay": "0.00005",
+    "smile.mlp.onelayer.epochs": "500",
+    "smile.mlp.onelayer.initialLearninRate": "0.01",
+    "smile.mlp.onelayer.rho": "0.00005",
+    "smile.mlp.onelayer.learningRateDecay": "500.0",
+    "smile.mlp.onelayer.neurons": "10"
+  },
+  "TWO_LAYER_MLP": {
+    "smile.mlp.twolayer.epsilon": "0.0001",
+    "smile.mlp.twolayer.endLearningRate": "0.01",
+    "smile.mlp.twolayer.learningRateDecay": "500.0",
+    "smile.mlp.twolayer.first_layer": "12",
+    "smile.mlp.twolayer.momentum": "0.00005",
+    "smile.mlp.twolayer.epochs": "800",
+    "smile.mlp.twolayer.rho": "0.00005",
+    "smile.mlp.twolayer.initialLearninRate": "0.01",
+    "smile.mlp.twolayer.second_layer": "8",
+    "smile.mlp.twolayer.weightDecay": "0.00005"
+  }
+}

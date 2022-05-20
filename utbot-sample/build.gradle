@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    compile group: 'org.jetbrains', name: 'annotations', version: '16.0.2'
+    compile group: 'com.github.stephenc.findbugs', name: 'findbugs-annotations', version: '1.3.9-1'
+    compileOnly 'org.projectlombok:lombok:1.18.20'
+    annotationProcessor 'org.projectlombok:lombok:1.18.20'
+    implementation(project(":utbot-api"))
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
+    implementation group: 'javax.validation', name: 'validation-api', version: '2.0.0.Final'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+
+// To use JUnit5, comment out junit4 and uncomment JUnit5 dependencies here. Please also check "test" section
+    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+//    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.7.0'
+//    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.7.0'
+
+//    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.5.13'
+
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.0.0'
+    testCompile "org.mockito:mockito-inline:+"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+test {
+// To use JUnit5, comment out useJUnit and uncomment useJUnitPlatform. Please also check "dependencies" section
+    useJUnit()
+    // useJUnitPlatform()
+}

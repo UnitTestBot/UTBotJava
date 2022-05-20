@@ -1,0 +1,56 @@
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+compileKotlin {
+    kotlinOptions {
+        allWarningsAsErrors = false
+    }
+}
+
+
+dependencies {
+    api project(":utbot-framework")
+    api project(":utbot-analytics")
+    api project(':utbot-summary')
+
+    implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
+    // Without this dependency testng tests do not run.
+    implementation group: 'com.beust', name: 'jcommander', version: '1.48'
+    implementation group: 'org.testng', name: 'testng', version: testng_version
+    implementation group: 'junit', name: 'junit', version: junit4_version
+    implementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4_platform_version
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+    implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: clikt_version
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junit5_version
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5_version
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2_version
+    implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+}
+
+task createProperties(dependsOn: processResources) {
+    doLast {
+        new File("$buildDir/resources/main/version.properties").withWriter { w ->
+            Properties properties = new Properties()
+            properties['version'] = project.version.toString()
+            properties.store w, null
+        }
+    }
+}
+
+classes {
+    dependsOn createProperties
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'
+    }
+
+    version project.version
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

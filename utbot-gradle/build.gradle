@@ -1,0 +1,33 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+dependencies {
+    api project(":utbot-framework")
+    api project(':utbot-summary')
+
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+}
+
+configurations.all {
+    exclude group: "org.apache.logging.log4j", module: "log4j-slf4j-impl"
+}
+
+gradlePlugin {
+    plugins {
+        sarifReportPlugin {
+            id = 'org.utbot.sarif'
+            implementationClass = 'org.utbot.sarif.SarifGradlePlugin'
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('repo')
+        }
+    }
+}

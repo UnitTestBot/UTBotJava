@@ -1,0 +1,152 @@
+package org.utbot.cli
+
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.check
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.types.choice
+import org.utbot.common.PathUtil.toPath
+import org.utbot.engine.Mocker
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.sarif.SarifReport
+import org.utbot.sarif.SourceFindingStrategyDefault
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.time.temporal.ChronoUnit
+import kotlin.reflect.KClass
+import mu.KotlinLogging
+
+
+private val logger = KotlinLogging.logger {}
+
+class GenerateTestsCommand :
+    GenerateTestsAbstractCommand(name = "generate", help = "Generates tests for the specified class") {
+    private val targetClassFqn by argument(
+        help = "Target class fully qualified name"
+    )
+
+    private val output by option("-o", "--output", help = "Specifies output file for a generated test")
+        .check("Must end with .java or .kt suffix") {
+            it.endsWith(".java") or it.endsWith(".kt")
+        }
+
+    override val classPath by option(
+        "-cp", "--classpath",
+        help = "Specifies the classpath for a class under test"
+    )
+        .required()
+
+    private val sourceCodeFile by option(
+        "-s", "--source",
+        help = "Specifies source code file for a generated test"
+    )
+        .required()
+        .check("Must exist and ends with *.java suffix") {
+            it.endsWith(".java") && Files.exists(Paths.get(it))
+        }
+
+    private val projectRoot by option(
+        "--project-root",
+        help = "Specifies the root of the relative paths in the sarif report that are required to show links correctly"
+    )
+
+    private val sarifReport by option(
+        "--sarif",
+        help = "Specifies output file for the static analysis report"
+    )
+        .check("Must end with *.sarif suffix") {
+            it.endsWith(".sarif")
+        }
+
+    override val codegenLanguage by option("-l", "--language", help = "Defines the codegen language")
+        .choice(
+            CodegenLanguage.JAVA.toString() to CodegenLanguage.JAVA,
+            CodegenLanguage.KOTLIN.toString() to CodegenLanguage.KOTLIN
+        )
+        .default(CodegenLanguage.defaultItem)
+        .check("Output file extension must match the test class language") { language ->
+            output?.let { "." + it.substringAfterLast('.') == language.extension } ?: true
+        }
+
+    private val printToStdOut by option(
+        "-p",
+        "--print-test",
+        help = "Specifies whether a test should be printed out to StdOut"
+    )
+        .flag(default = false)
+
+    override fun run() {
+        val started = now()
+        val workingDirectory = getWorkingDirectory(targetClassFqn)
+            ?: throw Exception("Cannot find the target class in the classpath")
+
+        try {
+            logger.debug { "Generating test for [$targetClassFqn] - started" }
+            logger.debug { "Classpath to be used: ${newline()} $classPath ${newline()}" }
+
+            val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
+            val targetMethods = classUnderTest.targetMethods()
+            initializeEngine(workingDirectory)
+
+            // utContext is used in `generateTestCases`, `generateTest`, `generateReport`
+            withUtContext(UtContext(targetMethods.first().clazz.java.classLoader)) {
+
+                val testClassName = output?.toPath()?.toFile()?.nameWithoutExtension
+                    ?: "${classUnderTest.simpleName}Test"
+                val testCases = generateTestCases(
+                    targetMethods,
+                    Paths.get(sourceCodeFile),
+                    searchDirectory = workingDirectory,
+                    chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
+                        .mapTo(mutableSetOf()) { ClassId(it) }
+                )
+                val testClassBody = generateTest(classUnderTest, testClassName, testCases)
+
+                if (printToStdOut) {
+                    logger.info { testClassBody }
+                }
+                if (sarifReport != null) {
+                    generateReport(targetClassFqn, testCases, testClassBody)
+                }
+                saveToFile(testClassBody, output)
+            }
+        } catch (t: Throwable) {
+            logger.error { "An error has occurred while generating test for snippet $targetClassFqn : $t" }
+            throw t
+        } finally {
+            val duration = ChronoUnit.MILLIS.between(started, now())
+            logger.debug { "Generating test for [$targetClassFqn] - completed in [$duration] (ms)" }
+        }
+    }
+
+    private fun generateReport(classFqn: String, testCases: List<UtTestCase>, testClassBody: String) = try {
+        // reassignments for smart casts
+        val testsFilePath = output
+        val projectRootPath = projectRoot
+
+        when {
+            testsFilePath == null -> {
+                println("The output file is required to generate a report. Please, specify \"--output\" option.")
+            }
+            projectRootPath == null -> {
+                println("The path to the project root is required to generate a report. Please, specify \"--project-root\" option.")
+            }
+            else -> {
+                val sourceFinding =
+                    SourceFindingStrategyDefault(classFqn, sourceCodeFile, testsFilePath, projectRootPath)
+                val report = SarifReport(testCases, testClassBody, sourceFinding).createReport()
+                saveToFile(report, sarifReport)
+                println("The report was saved to \"$sarifReport\". You can open it using the VS Code extension \"Sarif Viewer\".")
+            }
+        }
+    } catch (t: Throwable) {
+        logger.error { "An error has occurred while generating sarif report for snippet $targetClassFqn : $t" }
+        throw t
+    }
+}

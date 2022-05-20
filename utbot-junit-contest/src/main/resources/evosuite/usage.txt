@@ -1,0 +1,58 @@
+usage: EvoSuite
+ -base_dir <arg>            Working directory in which tests and reports
+                            will be placed
+ -class <arg>               target class for test generation. A fully
+                            qualifying needs to be provided, e.g.
+                            org.foo.SomeClass
+ -continuous <arg>          Run Continuous Test Generation (CTG). Valid
+                            values are: [EXECUTE, INFO, CLEAN]
+ -criterion <arg>           target criterion for test generation. Can
+                            define more than one criterion by using a ':'
+                            separated list
+ -D <property=value>        use value for given property
+ -evosuiteCP <arg>          classpath of EvoSuite jar file(s). This is
+                            needed when EvoSuite is called in plugins like
+                            Eclipse/Maven
+ -generateMOSuite           use many objective test generation (MOSA).
+                            This is the default behavior.
+ -generateNumRandom <arg>   generate fixed number of random tests
+ -generateRandom            use random test generation
+ -generateSuite             use whole suite generation.
+ -generateSuiteUsingDSE     use Dynamic Symbolic Execution to generate
+                            test suite
+ -generateTests             use individual test generation (old approach
+                            for reference purposes)
+ -heapdump                  Create heap dump on client VM out of memory
+                            error
+ -help                      print this message
+ -inheritanceTree           Cache inheritance tree during setup
+ -junit <arg>               junit prefix
+ -libraryPath <arg>         java library path to native libraries of the
+                            project under test
+ -listClasses               list the testable classes found in the
+                            specified classpath/prefix
+ -listParameters            list all the parameters that can be set with
+                            -D
+ -measureCoverage           measure coverage on existing test cases
+ -mem <arg>                 heap size for client process (in megabytes)
+ -parallel <n i x>          Start parallel run with n clients, communicate
+                            every i iteration x individuals (rate),
+                            expects #num_parallel_clients
+                            #migrants_iteration_frequency
+                            #migrants_communication_rate
+ -prefix <arg>              target package prefix for test generation. All
+                            classes on the classpath with the given
+                            package prefix will be used, i.e. all classes
+                            in the given package and sub-packages.
+ -printStats                print class information (coverable goals)
+ -projectCP <arg>           classpath of the project under test and all
+                            its dependencies
+ -seed <arg>                seed for random number generator
+ -setup <arg>               Create evosuite-files with property file
+ -startedByCtg              Determine if current process was started by a
+                            CTG process
+ -target <arg>              target classpath for test generation. Either a
+                            jar file or a folder where to find the .class
+                            files
+ -writeDependencies <arg>   write the dependencies of a target class to
+                            file

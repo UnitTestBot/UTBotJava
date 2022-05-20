@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# switch to environment JVM as needed
+JAVA_HOME=/usr
+
+APACHE_EXECS_LIB=lib/org/apache/commons/commons-exec/1.2/commons-exec-1.2.jar
+TOOL=lib/runtool-1.0.0.jar
+
+export JAVA_HOME=$JAVA_HOME
+$JAVA_HOME/bin/java -cp $TOOL:$APACHE_EXECS_LIB  sbst.runtool.Main

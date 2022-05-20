@@ -1,0 +1,10 @@
+spoon.support.compiler.jdt.PositionBuilder
+spoon.reflect.visitor.filter.AllMethodsSameSignatureFunction
+spoon.reflect.visitor.ImportScannerImpl
+spoon.reflect.path.CtElementPathBuilder
+spoon.support.reflect.reference.CtLocalVariableReferenceImpl
+spoon.reflect.path.impl.CtRolePathElement
+spoon.pattern.internal.parameter.MapParameterInfo
+spoon.pattern.internal.ValueConvertorImpl
+spoon.MavenLauncher
+spoon.support.DefaultCoreFactory

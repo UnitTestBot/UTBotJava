@@ -1,0 +1,1 @@
+We don't use this file and dir, it's purpose is not to let git to remove folder

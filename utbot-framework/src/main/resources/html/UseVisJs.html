@@ -1,0 +1,290 @@
+<html>
+<head>
+    <script src="viz.js"></script>
+    <script src="full.render.js"></script>
+    <script id="data" src="graph.js"></script>
+    <script src="render_graph.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+</head>
+<style>
+    /* Navbar container */
+    .navbar {
+        overflow: hidden;
+        background-color: #333;
+        font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+        float: left;
+        font-size: 16px;
+        color: white;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+        float: left;
+        overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+        font-size: 16px;
+        border: none;
+        outline: none;
+        color: white;
+        padding: 14px 16px;
+        background-color: inherit;
+        font-family: inherit; /* Important for vertical align on mobile phones */
+        margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+        background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+        float: none;
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+        background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+        display: block;
+    }
+
+    #execution_stack_big, #execution_stack_small, #global_graph {
+        margin-top: 70px; /* Add a top margin to avoid content overlay */
+    }
+
+    .dropdown-legend {
+        float: left;
+        overflow: hidden;
+    }
+
+    .dropbtn-legend {
+        font-size: 16px;
+        border: none;
+        outline: none;
+        color: white;
+        padding: 14px 16px;
+        background-color: inherit;
+        font-family: inherit; /* Important for vertical align on mobile phones */
+        margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    .dropdown-content-legend {
+        display: none;
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+    }
+
+    .dropdown-legend:hover .dropdown-content-legend {
+        display: block;
+    }
+
+    .desc {
+        padding: 15px;
+        text-align: center;
+    }
+</style>
+<body>
+<div class="navbar">
+    <a href="#GlobalGraph" onclick="hideOrShow('global_graph', 'execution_stack_big', 'execution_stack_small')">GlobalGraph</a>
+    <div class="dropdown">
+        <button class="dropbtn">ExecutionStack<i class="fa fa-caret-down"></i></button>
+        <div class="dropdown-content">
+            <a href="#ExecutionStack1" onclick="hideOrShow('execution_stack_big', 'global_graph', 'execution_stack_small')">Full stack</a>
+            <a href="#ExecutionStack2" onclick="hideOrShow('execution_stack_small', 'global_graph', 'execution_stack_big')">Uncompleted stack</a>
+        </div>
+    </div>
+    <div class="dropdown-legend">
+        <button class="dropbtn-legend">Legend<i class="fa fa-caret-down legend"></i></button>
+        <div class="dropdown-content-legend">
+            <img src="legend.png" alt="Legend">
+            <div class="desc">Legend</div>
+        </div>
+    </div>
+</div>
+
+<div id="execution_stack_big" style="display: none">
+    <div id="jstree_demo_div"></div>
+    <div id="method_tree"></div>
+</div>
+
+<div id="execution_stack_small" style="display: none">
+    <div id="jstree_demo_div_small"></div>
+    <div id="method_tree_small"></div>
+</div>
+
+<div id="global_graph">
+    <div id="global_tree"></div>
+</div>
+
+<script>
+    let DATA = [];
+    let DATA2 = [];
+    let viz = new Viz();
+
+    $('#jstree_demo_div').on("select_node.jstree", function (e, data) {
+        show(fullStack[parseInt(data.node.data.text)], 'method_tree')
+    });
+
+    $('#jstree_demo_div_small').on("select_node.jstree", function (e, data) {
+        show(uncompletedStack[parseInt(data.node.data.text)], 'method_tree_small')
+    });
+
+    $('#jstree_demo_div').jstree({
+        "plugins" : ["types"],
+        'core' : {
+            'data' : function (node, cb) {
+                cb(DATA)
+            }
+        },
+        'types': {
+            'public' : {
+                'icon' : 'public_method.png'
+            },
+            'private' : {
+                'icon' : 'private_method.png'
+            }
+        }
+    });
+
+    $('#jstree_demo_div_small').jstree({
+        "plugins" : ["types"],
+        'core' : {
+            'data' : function (node, cb) {
+                cb(DATA2)
+            }
+        },
+        'types': {
+            'public' : {
+                'icon' : 'public_method.png'
+            },
+            'private' : {
+                'icon' : 'private_method.png'
+            }
+        }
+    });
+
+</script>
+<script>
+    function hideOrShow(id1, id2, id3) {
+        let div1 = document.getElementById(id1)
+        let div2 = document.getElementById(id2)
+        let div3 = document.getElementById(id3)
+
+        div3.style.display = "none"
+        div2.style.display = "none"
+        div1.style.display = "block"
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function createGraph(data, dataDepth, dataVis, i) {
+        if (i === data.length - 1) {
+            let name = data[i].split("label=\"")[1].split("\";")[0]
+            return [{ "text" : name, "data" : { "text": i },  "type" : dataVis[i] }, i + 1]
+        }
+        let name = data[i].split("label=\"")[1].split("\";")[0]
+        var j = i + 1
+        var children = []
+        while (dataDepth[i] < dataDepth[j]) {
+            let values = createGraph(data, dataDepth, dataVis, j)
+
+            j = values[1]
+            children.push(values[0])
+            if (j >= data.length) break
+        }
+        return [{ "text" : name, "data" : { "text": i }, "children": children, "type" : dataVis[i] }, j]
+    }
+
+    async function demo() {
+        let cacheGlobalGraph = ""
+        let cacheGraph1 = ""
+        let cacheGraph2 = ""
+
+        while (true) {
+            // Update data
+            const data = document.getElementById('data');
+            if (data != null) document.head.removeChild(data)
+            let script = document.createElement('script');
+            script.src = "graph.js";
+            script.id='data';
+            document.head.appendChild(script);
+
+            // Redraw
+            if (globalGraph !== cacheGlobalGraph) {
+                show(globalGraph, 'global_tree')
+                cacheGlobalGraph = globalGraph
+            }
+            let newData = []
+            let j = 0
+            while (j < fullStack.length) {
+                let newGraph = createGraph(fullStack, fullStackDepth, fullStackVisibility, j)
+                newData.push(newGraph[0])
+                j = newGraph[1]
+            }
+            DATA = newData
+
+            newData = []
+            j = 0
+            while (j < uncompletedStack.length) {
+                let newGraph = createGraph(uncompletedStack, uncompletedStackDepth, uncompletedStackVisibility, j)
+                newData.push(newGraph[0])
+                j = newGraph[1]
+            }
+            DATA2 = newData
+
+            if (fullStack.join('') !== cacheGraph1) {
+                console.log(DATA)
+                cacheGraph1 = fullStack.join('')
+                $('#jstree_demo_div').jstree(true).refresh();
+            }
+
+            if (uncompletedStack.join('') !== cacheGraph2) {
+                cacheGraph2 = uncompletedStack.join('')
+                $('#jstree_demo_div_small').jstree(true).refresh();
+            }
+
+            await sleep(100)
+        }
+    }
+
+  demo();
+</script>
+
+</body>
+</html>

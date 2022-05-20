@@ -1,0 +1,51 @@
+<!--suppress HttpUrlsUsage -->
+<idea-plugin>
+
+    <id>org.utbot.intellij.plugin.id</id>
+    <name>UnitTestBot</name>
+    <vendor>utbot.org</vendor>
+
+    <description>UnitTestBot plugin for IntelliJ IDEA for Java</description>
+    <version>1.0.0-SNAPSHOT</version>
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
+
+    <!--Optional dependency on org.jetbrains.android-->
+    <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
+
+    <actions>
+        <!--suppress PluginXmlCapitalization -->
+        <action id="org.utbot.intellij.plugin.ui.actions.GenerateFromEditorAction"
+                class="org.utbot.intellij.plugin.ui.actions.GenerateFromEditorAction"
+                text="Create tests with UtBot..."
+                description="Action to generate tests from editor">
+            <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
+            <keyboard-shortcut first-keystroke="control alt U" keymap="$default"/>
+        </action>
+        <!--suppress PluginXmlCapitalization -->
+        <action id="org.utbot.intellij.plugin.ui.actions.GenerateFromProjectTreeAction"
+                class="org.utbot.intellij.plugin.ui.actions.GenerateFromProjectTreeAction"
+                text="Create tests with UtBot..."
+                description="Action to generate tests from project tree">
+            <add-to-group group-id="ProjectViewPopupMenu"/>
+            <keyboard-shortcut first-keystroke="control alt U" keymap="$default"/>
+        </action>
+    </actions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable parentId="tools" instance="org.utbot.intellij.plugin.settings.Configurable"
+                                 id="org.utbot.intellij.plugin.settings.Configurable"
+                                 displayName="UtBot"/>
+        <projectService serviceImplementation="org.utbot.intellij.plugin.settings.Settings"/>
+        <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
+    </extensions>
+
+    <!-- Minimum and maximum build of IDE compatible with the plugin -->
+    <description>
+        <![CDATA[
+                UnitTestBot generates test cases by code, trying to cover maximum statements and execution paths.
+        ]]>
+    </description>
+
+</idea-plugin>

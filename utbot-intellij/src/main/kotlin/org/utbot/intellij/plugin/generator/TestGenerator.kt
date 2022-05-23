@@ -62,6 +62,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
+import org.utbot.intellij.plugin.error.showErrorDialogLater
 
 object TestGenerator {
     fun generateTests(model: GenerateTestsModel, testCases: Map<PsiClass, List<UtTestCase>>) {
@@ -268,7 +269,11 @@ object TestGenerator {
                 SarifReportIdea.createAndSave(model, testCases, generatedTestsCode, sourceFinding)
             }
         } catch (e: Exception) {
-            logger.error{ "Cannot save Sarif report via generated tests: error occurred '${e.message}'"}
+            showErrorDialogLater(
+                project,
+                message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",
+                title = "Failed to save Sarif report"
+            )
         }
 
         try {
@@ -280,7 +285,11 @@ object TestGenerator {
                 }
             }
         } catch (e: Exception) {
-            logger.error { "Cannot save tests generation report: error occurred '${e.message}'" }
+            showErrorDialogLater(
+                project,
+                message = "Cannot save tests generation report: error occurred '${e.message}'",
+                title = "Failed to save tests report"
+            )
         }
     }
 
@@ -393,6 +402,10 @@ object TestGenerator {
     }
 
     private fun showCreatingClassError(project: Project, testClassName: String) {
-        logger.error { "Cannot Create Class '$testClassName'" }
+        showErrorDialogLater(
+            project,
+            message = "Cannot Create Class '$testClassName'",
+            title = "Failed to Create Class"
+        )
     }
 }

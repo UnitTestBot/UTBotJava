@@ -40,6 +40,7 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
+import org.utbot.intellij.plugin.error.showErrorDialogLater
 
 object UtTestsDialogProcessor {
 
@@ -165,7 +166,11 @@ object UtTestsDialogProcessor {
                                     }
 
                                     if (notEmptyCases.isEmpty()) {
-                                        logger.error { "Failed to generate unit tests for class $className" }
+                                        showErrorDialogLater(
+                                            model.project,
+                                            errorMessage(className, secondsTimeout),
+                                            title = "Failed to generate unit tests for class $className"
+                                        )
                                     } else {
                                         testCasesByClass[srcClass] = notEmptyCases
                                     }

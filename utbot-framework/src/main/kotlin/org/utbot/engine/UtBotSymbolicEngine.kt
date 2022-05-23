@@ -1370,6 +1370,7 @@ class UtBotSymbolicEngine(
         val negativeCasePathConstraint = mkNot(positiveCasePathConstraint)
 
         positiveCaseEdge?.let { edge ->
+            environment.state.expectUndefined()
             val positiveCaseState = environment.state.updateQueued(
                 edge,
                 SymbolicStateUpdate(
@@ -1434,6 +1435,9 @@ class UtBotSymbolicEngine(
                 lookups + (Edge(current, current.defaultTarget as Stmt, lookups.size) to targetExpr)
             }
             else -> error("Unknown switch $current")
+        }
+        if (successors.size > 1) {
+            environment.state.expectUndefined()
         }
         successors.forEach { (target, expr) ->
             pathSelector.offer(
@@ -3432,6 +3436,7 @@ class UtBotSymbolicEngine(
 
         val symException = implicitThrown(exception, findNewAddr(), isInNestedMethod())
         if (!traverseCatchBlock(environment.state.stmt, symException, conditions)) {
+            environment.state.expectUndefined()
             val nextState = environment.state.createExceptionState(
                 symException,
                 queuedSymbolicStateUpdates

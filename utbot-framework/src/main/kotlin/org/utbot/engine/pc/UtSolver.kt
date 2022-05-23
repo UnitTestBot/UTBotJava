@@ -161,16 +161,13 @@ data class UtSolver constructor(
     val assertions: Set<UtBoolExpression>
         get(): Set<UtBoolExpression> = constraints.hard
 
+    var expectUndefined: Boolean = false
+
     fun add(hard: HardConstraint, soft: SoftConstraint): UtSolver {
         // status can implicitly change here to UNDEFINED or UNSAT
         val newConstraints = constraints.with(hard.constraints, soft.constraints)
-        /*
-        Always there is at least one new state with SAT status if current status is SAT
-        Thus we can prioritize states like this to reuse current solver.
-         */
-        val isSAT = constraints.status is UtSolverStatusSAT
-        val wantClone = (isSAT && newConstraints.status is UtSolverStatusSAT)
-                || (!isSAT && newConstraints !is UnsatQuery)
+        val wantClone = (expectUndefined && newConstraints.status is UtSolverStatusUNDEFINED)
+                || (!expectUndefined && newConstraints.status !is UtSolverStatusUNSAT)
 
         return if (wantClone && canBeCloned) {
             // try to reuse z3 Solver with value SAT when possible

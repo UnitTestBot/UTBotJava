@@ -12,6 +12,7 @@ import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.plus
+import org.utbot.engine.pc.UtSolverStatusUNDEFINED
 import soot.SootMethod
 import soot.jimple.Stmt
 
@@ -203,6 +204,15 @@ data class ExecutionState(
             lastEdge = edge,
             lastMethod = stackElement.method
         )
+    }
+
+    /**
+     * Tell to solver that states with status [UtSolverStatusUNDEFINED] can be created from current state.
+     *
+     * Note: Solver optimize cloning respect this flag.
+     */
+    fun expectUndefined() {
+        solver.expectUndefined = true
     }
 
     override fun close() {

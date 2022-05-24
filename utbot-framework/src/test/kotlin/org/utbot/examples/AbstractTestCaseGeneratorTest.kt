@@ -1233,6 +1233,101 @@ abstract class AbstractTestCaseGeneratorTest(
         summaryDisplayNameChecks = summaryDisplayNameChecks
     )
 
+    protected inline fun <reified T, reified R> checkThisAndStaticsAfter(
+        method: KFunction1<T, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, StaticsType, R?) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
+        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
+        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T::class,
+        arguments = ::withThisAndStaticsAfter,
+        additionalDependencies = additionalDependencies,
+        summaryTextChecks = summaryTextChecks,
+        summaryNameChecks = summaryNameChecks,
+        summaryDisplayNameChecks = summaryDisplayNameChecks
+    )
+
+    protected inline fun <reified T, reified T1, reified R> checkThisAndStaticsAfter(
+        method: KFunction2<T, T1, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, StaticsType, R?) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
+        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
+        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T::class, T1::class,
+        arguments = ::withThisAndStaticsAfter,
+        additionalDependencies = additionalDependencies,
+        summaryTextChecks = summaryTextChecks,
+        summaryNameChecks = summaryNameChecks,
+        summaryDisplayNameChecks = summaryDisplayNameChecks
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified R> checkThisAndStaticsAfter(
+        method: KFunction3<T, T1, T2, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, StaticsType, R?) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
+        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
+        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class,
+        arguments = ::withThisAndStaticsAfter,
+        additionalDependencies = additionalDependencies,
+        summaryTextChecks = summaryTextChecks,
+        summaryNameChecks = summaryNameChecks,
+        summaryDisplayNameChecks = summaryDisplayNameChecks
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkThisAndStaticsAfter(
+        method: KFunction4<T, T1, T2, T3, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, T3, StaticsType, R?) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
+        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
+        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class,
+        arguments = ::withThisAndStaticsAfter,
+        additionalDependencies = additionalDependencies,
+        summaryTextChecks = summaryTextChecks,
+        summaryNameChecks = summaryNameChecks,
+        summaryDisplayNameChecks = summaryDisplayNameChecks
+    )
+
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkThisAndStaticsAfter(
+        method: KFunction5<T, T1, T2, T3, T4, R>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (T, T1, T2, T3, T4, StaticsType, R?) -> Boolean,
+        coverage: CoverageMatcher = Full,
+        mockStrategy: MockStrategyApi = NO_MOCKS,
+        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
+        summaryNameChecks: List<(String?) -> Boolean> = listOf(),
+        summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers, coverage, T::class, T1::class, T2::class, T3::class, T4::class,
+        arguments = ::withThisAndStaticsAfter,
+        additionalDependencies = additionalDependencies,
+        summaryTextChecks = summaryTextChecks,
+        summaryNameChecks = summaryNameChecks,
+        summaryDisplayNameChecks = summaryDisplayNameChecks
+    )
+
     // checks paramsBefore, staticsBefore and return value for static methods
     protected inline fun <reified R> checkStaticsInStaticMethod(
         method: KFunction0<R>,
@@ -2528,6 +2623,7 @@ fun withResult(ex: UtValueExecution<*>) = ex.paramsBefore + ex.evaluatedResult
 fun withException(ex: UtValueExecution<*>) = ex.paramsBefore + ex.returnValue
 fun withStaticsBefore(ex: UtValueExecution<*>) = ex.paramsBefore + ex.staticsBefore + ex.evaluatedResult
 fun withStaticsAfter(ex: UtValueExecution<*>) = ex.paramsBefore + ex.staticsAfter + ex.evaluatedResult
+fun withThisAndStaticsAfter(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.staticsAfter + ex.evaluatedResult
 fun withThisAndResult(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.evaluatedResult
 fun withThisStaticsBeforeAndResult(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.staticsBefore + ex.evaluatedResult
 fun withThisAndException(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.returnValue

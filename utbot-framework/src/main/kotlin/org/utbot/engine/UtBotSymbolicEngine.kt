@@ -75,6 +75,12 @@ import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
+import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
+import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
+import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
+import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
+import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -152,6 +158,7 @@ import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -196,7 +203,6 @@ import soot.jimple.Expr
 import soot.jimple.FieldRef
 import soot.jimple.FloatConstant
 import soot.jimple.IdentityRef
-import soot.jimple.InstanceFieldRef
 import soot.jimple.IntConstant
 import soot.jimple.InvokeExpr
 import soot.jimple.LongConstant
@@ -876,7 +882,7 @@ class UtBotSymbolicEngine(
         stmt: Stmt
     ): Boolean {
         if (shouldProcessStaticFieldConcretely(fieldRef)) {
-            return processStaticFieldConcretely(fieldRef)
+            return processStaticFieldConcretely(fieldRef, stmt)
         }
 
         val field = fieldRef.field
@@ -922,7 +928,9 @@ class UtBotSymbolicEngine(
             // Note that this list is not exhaustive, so it may be supplemented in the future.
             val packagesToProcessConcretely = javaPackagesToProcessConcretely + sunPackagesToProcessConcretely
 
-            return packagesToProcessConcretely.any { className.startsWith(it) }
+            val declaringClass = fieldRef.fieldRef.declaringClass()
+
+            val isFromPackageToProcessConcretely = packagesToProcessConcretely.any { className.startsWith(it) }
                     // it is required to remove classes we override, since
                     // we could accidentally initialize their final fields
                     // with values that will later affect our overridden classes
@@ -933,6 +941,13 @@ class UtBotSymbolicEngine(
                     //hardcoded string for class name is used cause class is not public
                     //this is a hack to avoid crashing on code with Math.random()
                     && !className.endsWith("RandomNumberGeneratorHolder")
+
+            // we can process concretely only enums that does not affect the external system
+            val isEnumNotAffectingExternalStatics = declaringClass.let {
+                it.isEnum && !it.isEnumAffectingExternalStatics(typeResolver)
+            }
+
+            return isEnumNotAffectingExternalStatics || isFromPackageToProcessConcretely
         }
     }
 
@@ -954,7 +969,7 @@ class UtBotSymbolicEngine(
      *
      * Returns true if processing takes place and Engine should end traversal of current statement.
      */
-    private fun processStaticFieldConcretely(fieldRef: StaticFieldRef): Boolean {
+    private fun processStaticFieldConcretely(fieldRef: StaticFieldRef, stmt: Stmt): Boolean {
         val field = fieldRef.field
         val fieldId = field.fieldId
         if (memory.isInitialized(fieldId)) {
@@ -963,6 +978,107 @@ class UtBotSymbolicEngine(
 
         // Gets concrete value, converts to symbolic value
         val declaringClass = field.declaringClass
+
+        val (edge, updates) = if (declaringClass.isEnum) {
+            makeConcreteUpdatesForEnums(fieldId, declaringClass, stmt)
+        } else {
+            makeConcreteUpdatesForNonEnumStaticField(field, fieldId, declaringClass)
+        }
+
+        val newState = environment.state.updateQueued(edge, updates)
+        pathSelector.offer(newState)
+
+        return true
+    }
+
+    private fun makeConcreteUpdatesForEnums(
+        fieldId: FieldId,
+        declaringClass: SootClass,
+        stmt: Stmt
+    ): Pair<Edge, SymbolicStateUpdate> {
+        val type = declaringClass.type
+        val jClass = type.id.jClass
+
+        // symbolic value for enum class itself
+        val enumClassValue = findOrCreateStaticObject(type)
+
+        // values for enum constants
+        val enumConstantConcreteValues = jClass.enumConstants.filterIsInstance<Enum<*>>()
+
+        val (enumConstantSymbolicValues, enumConstantSymbolicResultsByName) =
+            makeSymbolicValuesFromEnumConcreteValues(type, enumConstantConcreteValues)
+
+        val enumFields = typeResolver.findFields(type)
+
+        val sootFieldsWithRuntimeValues =
+            associateEnumSootFieldsWithConcreteValues(enumFields, enumConstantConcreteValues)
+
+        val (staticFields, nonStaticFields) = sootFieldsWithRuntimeValues.partition { it.first.isStatic }
+
+        val (staticFieldUpdates, curFieldSymbolicValueForLocalVariable) = makeEnumStaticFieldsUpdates(
+            staticFields,
+            declaringClass,
+            enumConstantSymbolicResultsByName,
+            enumConstantSymbolicValues,
+            enumClassValue,
+            fieldId
+        )
+
+        val nonStaticFieldsUpdates = makeEnumNonStaticFieldsUpdates(enumConstantSymbolicValues, nonStaticFields)
+
+        // we do not mark static fields for enum constants and $VALUES as meaningful
+        // because we should not set them in generated code
+        val meaningfulStaticFields = staticFields.filterNot {
+            val name = it.first.name
+
+            name in enumConstantSymbolicResultsByName.keys || isEnumValuesFieldName(name)
+        }
+
+        val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
+            initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
+            meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet()
+        )
+
+        var allUpdates = staticFieldUpdates + nonStaticFieldsUpdates + initializedStaticFieldsMemoryUpdate
+
+        // we need to make locals update if it is an assignment statement
+        // for enums we have only two types for assignment with enums — enum constant or $VALUES field
+        // for example, a jimple body for Enum::values method starts with the following lines:
+        //  public static ClassWithEnum$StatusEnum[] values()
+        //  {
+        //      ClassWithEnum$StatusEnum[] $r0, $r2;
+        //      java.lang.Object $r1;
+        //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
+        //      $r1 = virtualinvoke $r0.<java.lang.Object: java.lang.Object clone()>();
+
+        // so, we have to make an update for the local $r0
+        if (stmt is JAssignStmt) {
+            val local = stmt.leftOp as JimpleLocal
+            val localUpdate = localMemoryUpdate(
+                LocalVariable(local.name) to curFieldSymbolicValueForLocalVariable
+            )
+
+            allUpdates += localUpdate
+        }
+
+        // enum static initializer can be the first statement in method so there will be no last edge
+        // for example, as it is during Enum::values method analysis:
+        // public static ClassWithEnum$StatusEnum[] values()
+        // {
+        //      ClassWithEnum$StatusEnum[] $r0, $r2;
+        //      java.lang.Object $r1;
+
+        //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
+        val edge = environment.state.lastEdge ?: globalGraph.succ(stmt)
+
+        return edge to allUpdates
+    }
+
+    private fun makeConcreteUpdatesForNonEnumStaticField(
+        field: SootField,
+        fieldId: FieldId,
+        declaringClass: SootClass
+    ): Pair<Edge, SymbolicStateUpdate> {
         val concreteValue = extractConcreteValue(field, declaringClass)
         val (symbolicResult, symbolicStateUpdate) = toMethodResult(concreteValue, field.type)
         val symbolicValue = (symbolicResult as SymbolicSuccess).value
@@ -970,19 +1086,15 @@ class UtBotSymbolicEngine(
         // Collects memory updates
         val initializedFieldUpdate =
             MemoryUpdate(initializedStaticFields = persistentHashMapOf(fieldId to concreteValue))
+
         val objectUpdate = objectUpdate(
             instance = findOrCreateStaticObject(declaringClass.type),
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
         val allUpdates = symbolicStateUpdate + initializedFieldUpdate + objectUpdate
-        pathSelector.offer(
-            environment.state.updateQueued(
-                edge = environment.state.lastEdge!!,
-                allUpdates
-            )
-        )
-        return true
+
+        return environment.state.lastEdge!! to allUpdates
     }
 
     // Some fields are inaccessible with reflection, so we have to instantiate it by ourselves.
@@ -1200,7 +1312,7 @@ class UtBotSymbolicEngine(
     /**
      * Converts value to expression with cast to target type for primitives.
      */
-    private fun valueToExpression(value: SymbolicValue, type: Type): UtExpression = when (value) {
+    fun valueToExpression(value: SymbolicValue, type: Type): UtExpression = when (value) {
         is ReferenceValue -> value.addr
         // TODO: shall we add additional constraint that aligned expression still equals original?
         // BitVector can lose valuable bites during extraction
@@ -2028,6 +2140,7 @@ class UtBotSymbolicEngine(
         val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
         queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
 
+        // TODO filter enum constant static fields JIRA:1681
         if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
             queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
         }

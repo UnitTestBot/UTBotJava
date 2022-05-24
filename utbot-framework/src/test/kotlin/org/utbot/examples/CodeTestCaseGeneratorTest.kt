@@ -35,7 +35,7 @@ import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
 @ExtendWith(CodeTestCaseGeneratorTest.Companion.ReadRunningTestsNumberBeforeAllTestsCallback::class)
 abstract class CodeTestCaseGeneratorTest(
     private val testClass: KClass<*>,
-    private val testCodeGeneration: Boolean = true,
+    private var testCodeGeneration: Boolean = true,
     private val languagesLastStages: List<CodeGenerationLanguageLastStage> = listOf(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
@@ -47,6 +47,17 @@ abstract class CodeTestCaseGeneratorTest(
 
     fun processTestCase(testCase: UtTestCase) {
         if (testCodeGeneration) testCases += testCase
+    }
+
+    protected fun withEnabledTestingCodeGeneration(testCodeGeneration: Boolean, block: () -> Unit) {
+        val prev = this.testCodeGeneration
+
+        try {
+            this.testCodeGeneration = testCodeGeneration
+            block()
+        } finally {
+            this.testCodeGeneration = prev
+        }
     }
 
     // save all generated test cases from current class to test code generation

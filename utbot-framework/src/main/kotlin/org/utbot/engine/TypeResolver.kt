@@ -18,7 +18,6 @@ import soot.Scene
 import soot.SootField
 import soot.Type
 import soot.VoidType
-import sun.reflect.Reflection
 
 class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy: Hierarchy) {
 

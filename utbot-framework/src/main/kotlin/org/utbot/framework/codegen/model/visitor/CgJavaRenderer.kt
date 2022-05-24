@@ -1,9 +1,11 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
+import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgBreakStatement
@@ -39,9 +41,9 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
-import org.apache.commons.text.StringEscapeUtils
 
-internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
+internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
+    CgAbstractRenderer(context, printer) {
 
     override val statementEnding: String = ";"
 
@@ -154,11 +156,24 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     }
 
     override fun visit(element: CgAllocateArray) {
-        // TODO: definitely rewrite later
-        // TODO: check array type rendering
-        val beforeLength = element.type.canonicalName.substringBefore("[")
-        val afterLength = element.type.canonicalName.substringAfter("]")
-        print("new $beforeLength[${element.size}]$afterLength")
+        // TODO: Arsen strongly required to rewrite later
+        val typeName = element.type.canonicalName.substringBefore("[")
+        val otherDimensions = element.type.canonicalName.substringAfter("]")
+        print("new $typeName[${element.size}]$otherDimensions")
+    }
+
+    override fun visit(element: CgAllocateInitializedArray) {
+        val arrayModel = element.model
+
+        print("{")
+        for (i in 0 until element.size) {
+            if (element.size > maxArrayElementsInLine(arrayModel.constModel)) println()
+
+            val expr = arrayModel.getElementExpr(i)
+            expr.accept(this)
+            if (i != element.size - 1) print(",")
+        }
+        print("}")
     }
 
     override fun visit(element: CgGetLength) {

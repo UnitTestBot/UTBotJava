@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
@@ -77,11 +78,22 @@ import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.tree.CgWhileLoop
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
+import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
-import org.apache.commons.text.StringEscapeUtils
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.shortClassId
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {
@@ -97,6 +109,21 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected abstract val language: CodegenLanguage
 
     protected abstract val langPackage: String
+
+    //we may render array elements in initialization in one line or in separate lines
+    protected fun maxArrayElementsInLine(constModel: UtModel): Int {
+        if (constModel is UtNullModel) return 10
+        return when (constModel.classId) {
+            intClassId,
+            byteClassId,
+            longClassId,
+            charClassId -> 10
+            shortClassId,
+            doubleClassId,
+            floatClassId -> 6
+            else -> 5
+        }
+    }
 
     private val MethodId.accessibleByName: Boolean
         get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
@@ -688,6 +715,17 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected abstract fun renderExecutableCallArguments(executableCall: CgExecutableCall)
 
     protected abstract fun renderExceptionCatchVariable(exception: CgVariable)
+
+    protected fun UtArrayModel.getElementExpr(index: Int): CgExpression {
+        val itemModel = if (index in this.stores) this.stores[index] else this.constModel
+        val cgValue: CgExpression = when (itemModel) {
+            is UtPrimitiveModel -> itemModel.value.resolve()
+            is UtNullModel -> null.resolve()
+            else -> error("Model $itemModel is not allowed here")
+        }
+
+        return cgValue
+    }
 
     protected fun getEscapedImportRendering(import: Import): String =
         import.qualifiedName

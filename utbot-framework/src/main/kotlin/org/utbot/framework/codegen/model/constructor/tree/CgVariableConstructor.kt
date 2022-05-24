@@ -7,9 +7,11 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.get
+import org.utbot.framework.codegen.model.constructor.util.isDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.isNotDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
+import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
@@ -222,49 +224,59 @@ internal class CgVariableConstructor(val context: CgContext) :
         return CgLiteral(classId, paramModel.value)
     }
 
-    private fun constructArray(model: UtArrayModel, baseName: String?): CgVariable {
-        val elementType = model.classId.elementClassId!!
-        val array = newVar(model.classId, baseName) { CgAllocateArray(model.classId, elementType, model.length) }
-        valueByModelId[model.id] = array
-        if (model.length <= 0) return array
-        if (model.length == 1) {
+    private fun constructArray(arrayModel: UtArrayModel, baseName: String?): CgVariable {
+        val elementType = arrayModel.classId.elementClassId!!
+        val elementModels = arrayModel.stores.values + arrayModel.constModel
+
+        val constModelHasDefaultType =
+            arrayModel.constModel isDefaultValueOf elementType || arrayModel.constModel is UtNullModel
+        val canInitWithValues = constModelHasDefaultType
+                &&  (elementModels.all { it is UtPrimitiveModel } || elementModels.all { it is UtNullModel })
+
+        val initializer =
+            if (canInitWithValues) CgAllocateInitializedArray(arrayModel)
+            else CgAllocateArray(arrayModel.classId, elementType, arrayModel.length)
+
+        val array = newVar(arrayModel.classId, baseName) { initializer }
+        valueByModelId[arrayModel.id] = array
+
+        if (canInitWithValues) {
+            return array
+        }
+
+        if (arrayModel.length <= 0) return array
+        if (arrayModel.length == 1) {
             // take first element value if it is present, otherwise use default value from model
-            val elementModel = model[0]
+            val elementModel = arrayModel[0]
             if (elementModel isNotDefaultValueOf elementType) {
                 array.setArrayElement(0, getOrCreateVariable(elementModel))
             }
         } else {
-            val indexedValuesFromStores = if (model.stores.size == model.length) {
-                // do not use constModel because stores fully cover array
-
-                // choose all not default values from stores
-                model.stores.entries.filter { (_, element) -> element isNotDefaultValueOf elementType }
-            } else {
-                val initialValue = when {
-                    model.constModel isNotDefaultValueOf elementType -> model.constModel
-                    else -> elementType.defaultValueModel()
-                }
-
-                // fill array via constModel if it is not default type value
-                if (model.constModel isNotDefaultValueOf elementType) {
-                    // fill array with default values from model
-                    val defaultValue = getOrCreateVariable(model.constModel, "defaultValue")
-                    basicForLoop(model.length) { i ->
-                        array.setArrayElement(i, defaultValue)
+            val indexedValuesFromStores =
+                if (arrayModel.stores.size == arrayModel.length) {
+                    // do not use constModel because stores fully cover array
+                    arrayModel.stores.entries.filter { (_, element) -> element isNotDefaultValueOf elementType }
+                } else {
+                    // fill array if constModel is not default type value
+                    if (!constModelHasDefaultType) {
+                        val defaultVariable = getOrCreateVariable(arrayModel.constModel, "defaultValue")
+                        basicForLoop(arrayModel.length) { i ->
+                            array.setArrayElement(i, defaultVariable)
+                        }
                     }
+
+                    // choose all not default values
+                    val defaultValue =
+                        if (constModelHasDefaultType) elementType.defaultValueModel() else arrayModel.constModel
+                    arrayModel.stores.entries.filter { (_, element) -> element != defaultValue }
                 }
-
-                // choose all not default values
-                model.stores.entries.filter { (_, element) -> element != initialValue }
-            }
-
-            val sortedByIndexValuesFromStores = indexedValuesFromStores.sortedBy { it.key }
 
             // set all values from stores manually
-            sortedByIndexValuesFromStores.forEach { (index, element) ->
-                array.setArrayElement(index, getOrCreateVariable(element))
-            }
+            indexedValuesFromStores
+                .sortedBy { it.key }
+                .forEach { (index, element) -> array.setArrayElement(index, getOrCreateVariable(element)) }
         }
+
         return array
     }
 
@@ -299,7 +311,10 @@ internal class CgVariableConstructor(val context: CgContext) :
     /**
      * [indexedValuesFromStores] have to be continuous sorted range
      */
-    private fun setStoresRange(array: CgVariable, indexedValuesFromStores: List<MutableMap.MutableEntry<Int, UtModel>>) {
+    private fun setStoresRange(
+        array: CgVariable,
+        indexedValuesFromStores: List<MutableMap.MutableEntry<Int, UtModel>>
+    ) {
         if (indexedValuesFromStores.size < 3) {
             // range is too small, better set manually
             indexedValuesFromStores.forEach { (index, element) ->

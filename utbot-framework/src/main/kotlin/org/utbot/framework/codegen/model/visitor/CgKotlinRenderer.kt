@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.RegularImport
@@ -7,6 +8,7 @@ import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
+import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
@@ -43,6 +45,7 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
@@ -50,7 +53,6 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.voidClassId
-import org.apache.commons.text.StringEscapeUtils
 
 //TODO rewrite using KtPsiFactory?
 internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
@@ -241,6 +243,27 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
             print(" { null }")
         }
     }
+
+    override fun visit(element: CgAllocateInitializedArray) {
+        val arrayModel = element.model
+
+        if (arrayModel.constModel is UtPrimitiveModel) {
+                val prefix = arrayModel.constModel.classId.name.toLowerCase()
+                print("${prefix}ArrayOf(")
+                for (i in 0 until element.size) {
+                    val expr = arrayModel.getElementExpr(i)
+
+                    if (element.size > maxArrayElementsInLine(arrayModel.constModel)) println()
+                    expr.accept(this)
+                    if (i != element.size - 1) print(",")
+                }
+                print(")")
+        } else {
+                print(getKotlinClassString(element.type))
+                print("(${element.size})")
+                if (!element.elementType.isPrimitive) print(" { null }")
+            }
+        }
 
     override fun visit(element: CgGetLength) {
         element.variable.accept(this)

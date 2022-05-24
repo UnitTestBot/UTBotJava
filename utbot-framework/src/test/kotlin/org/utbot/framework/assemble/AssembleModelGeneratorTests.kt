@@ -1,14 +1,5 @@
 package org.utbot.framework.assemble
 
-import org.utbot.examples.assemble.AssembleTestUtils
-import org.utbot.examples.assemble.ComplexField
-import org.utbot.examples.assemble.DirectAccess
-import org.utbot.examples.assemble.DirectAccessAndSetter
-import org.utbot.examples.assemble.InheritedField
-import org.utbot.examples.assemble.ListItem
-import org.utbot.examples.assemble.NoModifier
-import org.utbot.examples.assemble.PackagePrivateFields
-import org.utbot.examples.assemble.PrimitiveFields
 import org.utbot.examples.assemble.arrays.ArrayOfComplexArrays
 import org.utbot.examples.assemble.arrays.ArrayOfPrimitiveArrays
 import org.utbot.examples.assemble.arrays.AssignedArray
@@ -54,6 +45,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.assemble.*
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
@@ -335,6 +327,26 @@ class AssembleModelGeneratorTests {
 
         val expectedRepresentation = printExpectedModel(testClassId.simpleName, v1, statementsChain)
         createModelAndAssert(compositeModel, expectedRepresentation)
+    }
+
+    @Test
+    fun testOnObjectWithFinalFields() {
+        val testClassId = DirectAccessFinal::class.id
+
+        val arrayObjectFields = fields(
+            testClassId,
+            "array" to UtArrayModel(
+                modelIdCounter.incrementAndGet(),
+                intArrayClassId,
+                length = 2,
+                UtPrimitiveModel(0),
+                mutableMapOf(0 to UtPrimitiveModel(1), 1 to UtPrimitiveModel(2)),
+            ),
+        )
+        val compositeModel =
+            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, arrayObjectFields)
+
+        createModelAndAssert(compositeModel, null)
     }
 
     //region inheritance_tests

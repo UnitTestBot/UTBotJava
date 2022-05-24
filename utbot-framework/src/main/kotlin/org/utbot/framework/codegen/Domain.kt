@@ -505,7 +505,7 @@ data class HangingTestsTimeout(val timeoutMs: Long) {
 
     companion object {
         const val DEFAULT_TIMEOUT_MS = DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
-        const val MIN_TIMEOUT_MS = DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+        const val MIN_TIMEOUT_MS = 100L
         const val MAX_TIMEOUT_MS = 1_000_000L
     }
 }

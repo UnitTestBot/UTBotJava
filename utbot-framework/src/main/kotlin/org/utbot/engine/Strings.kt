@@ -67,78 +67,85 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
     private fun UtBotSymbolicEngine.getValueArray(addr: UtAddrExpression) =
         getArrayField(addr, overriddenClass, STRING_VALUE)
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun overrideInvoke(
+        engine: UtBotSymbolicEngine,
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
-    ): List<InvokeResult>? {
-        when (method.subSignature) {
-            toStringMethodSignature -> {
-                return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
-            }
-            matchesMethodSignature -> {
-                val arg = parameters[0] as ObjectValue
-                val matchingLengthExpr = getIntFieldValue(arg, STRING_LENGTH).accept(RewritingVisitor())
-
-                if (!matchingLengthExpr.isConcrete) return null
-
-                val matchingValueExpr = selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
-                val matchingLength = matchingLengthExpr.toConcrete() as Int
-                val matchingValue = CharArray(matchingLength)
-
-                for (i in 0 until matchingLength) {
-                    val charExpr = matchingValueExpr.select(mkInt(i)).accept(RewritingVisitor())
-
-                    if (!charExpr.isConcrete) return null
-
-                    matchingValue[i] = (charExpr.toConcrete() as Number).toChar()
+    ): List<InvokeResult>? =
+        with(engine) {
+            when (method.subSignature) {
+                toStringMethodSignature -> {
+                    return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
                 }
+                matchesMethodSignature -> {
+                    val arg = parameters[0] as ObjectValue
+                    val matchingLengthExpr = getIntFieldValue(arg, STRING_LENGTH).accept(RewritingVisitor())
 
-                val rgxGen = RgxGen(String(matchingValue))
-                val matching = (rgxGen.generate())
-                val notMatching = rgxGen.generateNotMatching()
+                    if (!matchingLengthExpr.isConcrete) return null
 
-                val thisLength = getIntFieldValue(wrapper, STRING_LENGTH)
-                val thisValue = selectArrayExpressionFromMemory(getValueArray(wrapper.addr))
+                    val matchingValueExpr =
+                        selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
+                    val matchingLength = matchingLengthExpr.toConcrete() as Int
+                    val matchingValue = CharArray(matchingLength)
 
-                val matchingConstraints = mutableSetOf<UtBoolExpression>()
-                matchingConstraints += mkEq(thisLength, mkInt(matching.length))
-                for (i in matching.indices) {
-                    matchingConstraints += mkEq(thisValue.select(mkInt(i)), mkChar(matching[i]))
-                }
+                    for (i in 0 until matchingLength) {
+                        val charExpr = matchingValueExpr.select(mkInt(i)).accept(RewritingVisitor())
 
-                val notMatchingConstraints = mutableSetOf<UtBoolExpression>()
-                notMatchingConstraints += mkEq(thisLength, mkInt(notMatching.length))
-                for (i in notMatching.indices) {
-                    notMatchingConstraints += mkEq(thisValue.select(mkInt(i)), mkChar(notMatching[i]))
-                }
+                        if (!charExpr.isConcrete) return null
 
-                return listOf(
-                    MethodResult(UtTrue.toBoolValue(), matchingConstraints.asHardConstraint()),
-                    MethodResult(UtFalse.toBoolValue(), notMatchingConstraints.asHardConstraint())
-                )
-            }
-            charAtMethodSignature -> {
-                val index = parameters[0] as PrimitiveValue
-                val lengthExpr = getIntFieldValue(wrapper, STRING_LENGTH)
-                val inBoundsCondition = mkAnd(Le(0.toPrimitiveValue(), index), Lt(index, lengthExpr.toIntValue()))
-                val failMethodResult =
-                    MethodResult(
-                        explicitThrown(StringIndexOutOfBoundsException(), findNewAddr(), isInNestedMethod()),
-                        hardConstraints = mkNot(inBoundsCondition).asHardConstraint()
+                        matchingValue[i] = (charExpr.toConcrete() as Number).toChar()
+                    }
+
+                    val rgxGen = RgxGen(String(matchingValue))
+                    val matching = (rgxGen.generate())
+                    val notMatching = rgxGen.generateNotMatching()
+
+                    val thisLength = getIntFieldValue(wrapper, STRING_LENGTH)
+                    val thisValue = selectArrayExpressionFromMemory(getValueArray(wrapper.addr))
+
+                    val matchingConstraints = mutableSetOf<UtBoolExpression>()
+                    matchingConstraints += mkEq(thisLength, mkInt(matching.length))
+                    for (i in matching.indices) {
+                        matchingConstraints += mkEq(thisValue.select(mkInt(i)), mkChar(matching[i]))
+                    }
+
+                    val notMatchingConstraints = mutableSetOf<UtBoolExpression>()
+                    notMatchingConstraints += mkEq(thisLength, mkInt(notMatching.length))
+                    for (i in notMatching.indices) {
+                        notMatchingConstraints += mkEq(thisValue.select(mkInt(i)), mkChar(notMatching[i]))
+                    }
+
+                    return listOf(
+                        MethodResult(UtTrue.toBoolValue(), matchingConstraints.asHardConstraint()),
+                        MethodResult(UtFalse.toBoolValue(), notMatchingConstraints.asHardConstraint())
                     )
+                }
+                charAtMethodSignature -> {
+                    val index = parameters[0] as PrimitiveValue
+                    val lengthExpr = getIntFieldValue(wrapper, STRING_LENGTH)
+                    val inBoundsCondition = mkAnd(Le(0.toPrimitiveValue(), index), Lt(index, lengthExpr.toIntValue()))
+                    val failMethodResult =
+                        MethodResult(
+                            explicitThrown(
+                                StringIndexOutOfBoundsException(),
+                                findNewAddr(),
+                                isInNestedMethod()
+                            ),
+                            hardConstraints = mkNot(inBoundsCondition).asHardConstraint()
+                        )
 
-                val valueExpr = selectArrayExpressionFromMemory(getValueArray(wrapper.addr))
+                    val valueExpr = selectArrayExpressionFromMemory(getValueArray(wrapper.addr))
 
-                val returnResult = MethodResult(
-                    valueExpr.select(index.expr).toCharValue(),
-                    hardConstraints = inBoundsCondition.asHardConstraint()
-                )
-                return listOf(returnResult, failMethodResult)
+                    val returnResult = MethodResult(
+                        valueExpr.select(index.expr).toCharValue(),
+                        hardConstraints = inBoundsCondition.asHardConstraint()
+                    )
+                    return listOf(returnResult, failMethodResult)
+                }
+                else -> return null
             }
-            else -> return null
         }
-    }
 
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel = resolver.run {
         val classId = STRING_TYPE.id
@@ -287,7 +294,8 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
     private val asStringBuilderMethodSignature =
         overriddenClass.getMethodByName("asStringBuilder").subSignature
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun overrideInvoke(
+        engine: UtBotSymbolicEngine,
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>

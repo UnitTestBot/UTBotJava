@@ -1360,6 +1360,7 @@ class UtBotSymbolicEngine(
 
             queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
             parameterAddrToGenericType += value.addr to type
+            typeRegistry.genericTypeStorageByAddr += value.addr to typeStorages
         }
     }
 
@@ -3470,18 +3471,10 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val numDimensions = typeAfterCast.numDimensions
-        val inheritors = if (baseTypeAfterCast is PrimType) {
-            setOf(typeAfterCast)
-        } else {
-            typeResolver
-                .findOrConstructInheritorsIncludingTypes(baseTypeAfterCast as RefType)
-                .mapTo(mutableSetOf()) { if (numDimensions > 0) it.makeArrayType(numDimensions) else it }
-        }
-        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritors }
+        val inheritorsTypeStorage = typeResolver.constructTypeStorage(typeAfterCast, useConcreteType = false)
+        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritorsTypeStorage.possibleConcreteTypes }
 
-        val typeStorage = typeResolver.constructTypeStorage(typeAfterCast, inheritors)
-        val isExpression = typeRegistry.typeConstraint(addr, typeStorage).isConstraint()
+        val isExpression = typeRegistry.typeConstraint(addr, inheritorsTypeStorage).isConstraint()
         val notIsExpression = mkNot(isExpression)
 
         val nullEqualityConstraint = addrEq(addr, nullObjectAddr)
@@ -3715,7 +3708,10 @@ class UtBotSymbolicEngine(
             // Still, we need overflows to act as implicit exceptions.
             (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
         ) {
-            logger.debug { "processResult<${methodUnderTest}>: no concrete execution allowed, emit purely symbolic result" }
+            logger.debug {
+                "processResult<${methodUnderTest}>: no concrete execution allowed, " +
+                        "emit purely symbolic result $symbolicUtExecution"
+            }
             emit(symbolicUtExecution)
             return
         }

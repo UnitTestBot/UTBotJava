@@ -29,7 +29,7 @@ import soot.Scene
 import soot.SootMethod
 
 /**
- * Auxiliary enum class for specifying an implementation for [ListWrapper], that it will use.
+ * Auxiliary enum class for specifying an implementation for [OptionalWrapper], that it will use.
  */
 enum class UtOptionalClass {
     UT_OPTIONAL,
@@ -58,7 +58,8 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
     private val AS_OPTIONAL_METHOD_SIGNATURE =
         overriddenClass.getMethodByName(UtOptional<*>::asOptional.name).signature
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun overrideInvoke(
+        engine: UtBotSymbolicEngine,
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -71,7 +72,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
                 return listOf(
                     MethodResult(
                         parameters.first(),
-                        typeRegistry.typeConstraintToGenericTypeParameter(
+                        engine.typeRegistry.typeConstraintToGenericTypeParameter(
                             parameters.first().addr,
                             wrapper.addr,
                             i = 0

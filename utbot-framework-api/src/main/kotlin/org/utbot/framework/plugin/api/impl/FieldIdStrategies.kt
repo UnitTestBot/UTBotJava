@@ -47,7 +47,7 @@ class FieldIdReflectionStrategy(val fieldId: FieldId) : FieldIdStrategy {
         get() = Modifier.isStatic(fieldId.field.modifiers)
 
     override val isSynthetic: Boolean
-        get() = false
+        get() = fieldId.field.isSynthetic
 
     override val type: ClassId
         get() = fieldId.field.type.id

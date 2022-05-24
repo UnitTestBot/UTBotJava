@@ -33,6 +33,7 @@ internal val ClassId.possibleUtilMethodIds: Set<MethodId>
         deepEqualsMethodId,
         arraysDeepEqualsMethodId,
         iterablesDeepEqualsMethodId,
+        streamsDeepEqualsMethodId,
         mapsDeepEqualsMethodId,
         hasCustomEqualsMethodId,
         getArrayLengthMethodId
@@ -115,6 +116,13 @@ internal val ClassId.iterablesDeepEqualsMethodId: MethodId
         name = "iterablesDeepEquals",
         returnType = booleanClassId,
         arguments = arrayOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
+    )
+
+internal val ClassId.streamsDeepEqualsMethodId: MethodId
+    get() = utilMethodId(
+        name = "streamsDeepEquals",
+        returnType = booleanClassId,
+        arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
     )
 
 internal val ClassId.mapsDeepEqualsMethodId: MethodId

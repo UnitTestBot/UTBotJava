@@ -351,6 +351,9 @@ class TypeRegistry {
     private val typeToInheritorsTypes = mutableMapOf<RefType, Set<RefType>>()
     private val typeToAncestorsTypes = mutableMapOf<RefType, Set<RefType>>()
 
+    // TODO docs
+    val genericTypeStorageByAddr = mutableMapOf<UtAddrExpression, List<TypeStorage>>()
+
     // A BiMap containing bijection from every type to an address of the object
     // presenting its classRef and vise versa
     private val classRefBiMap = HashBiMap.create<Type, UtAddrExpression>()
@@ -701,7 +704,24 @@ class TypeRegistry {
         firstAddr: UtAddrExpression,
         secondAddr: UtAddrExpression,
         vararg indexInjection: Pair<Int, Int>
-    ) = UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(*indexInjection))
+    ): UtEqGenericTypeParametersExpression {
+        // TODO docs
+        genericTypeStorageByAddr[secondAddr]?.let { existingGenericTypes ->
+            val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
+
+            indexInjection.forEach { (from, to) ->
+                require(from < existingGenericTypes.size) { "TODO" }
+                currentGenericTypes[to] = existingGenericTypes[from]
+            }
+
+            genericTypeStorageByAddr[firstAddr] = currentGenericTypes
+                .entries
+                .sortedBy { it.key }
+                .mapTo(mutableListOf()) { it.value }
+        }
+
+        return UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(*indexInjection))
+    }
 
     /**
      * returns constraint representing that type parameters of an object with address [firstAddr] are equal to
@@ -712,7 +732,11 @@ class TypeRegistry {
         firstAddr: UtAddrExpression,
         secondAddr: UtAddrExpression,
         parameterSize: Int
-    ) = UtEqGenericTypeParametersExpression(firstAddr, secondAddr, (0 until parameterSize).associateWith { it })
+    ) : UtEqGenericTypeParametersExpression {
+        val injections = (0 until parameterSize).associateWith { it }.toList().toTypedArray()
+
+        return eqGenericTypeParametersConstraint(firstAddr, secondAddr, *injections)
+    }
 
     /**
      * returns constraint representing that the first type parameter of an object with address [firstAddr] are equal to
@@ -720,7 +744,7 @@ class TypeRegistry {
      * @see UtEqGenericTypeParametersExpression
      */
     fun eqGenericSingleTypeParameterConstraint(firstAddr: UtAddrExpression, secondAddr: UtAddrExpression) =
-        UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(0 to 0))
+        eqGenericTypeParametersConstraint(firstAddr, secondAddr, 0 to 0)
 
     /**
      * Returns constraint representing that an object with address [addr] has the same type as the type parameter

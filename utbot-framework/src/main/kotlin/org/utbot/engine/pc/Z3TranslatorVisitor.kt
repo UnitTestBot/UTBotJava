@@ -226,7 +226,6 @@ open class Z3TranslatorVisitor(
     override fun visit(expr: UtGenericExpression): Expr = expr.run {
         val constraints = mutableListOf<BoolExpr>()
         for (i in types.indices) {
-            val symNumDimensions = translate(typeRegistry.genericNumDimensions(addr, i)) as BitVecExpr
             val symType = translate(typeRegistry.genericTypeId(addr, i))
 
             if (types[i].leastCommonType.isJavaLangObject()) {
@@ -244,20 +243,6 @@ open class Z3TranslatorVisitor(
                 }.toTypedArray()
             )
             constraints += typeConstraint
-
-            val numDimensionsConstraint = z3Context.mkAnd(
-                *possibleBaseTypes.map {
-                    val numDimensions = z3Context.mkBV(it.numDimensions, Int.SIZE_BITS)
-
-                    if (it.isJavaLangObject()) {
-                        z3Context.mkBVSGE(symNumDimensions, numDimensions)
-                    } else {
-                        z3Context.mkEq(symNumDimensions, numDimensions)
-                    }
-                }.toTypedArray()
-            )
-
-            constraints += numDimensionsConstraint
 
             z3Context.mkAnd(*constraints.toTypedArray())
         }

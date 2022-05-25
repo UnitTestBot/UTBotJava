@@ -2669,3 +2669,13 @@ inline fun <reified T> withPushingStateFromPathSelectorForConcrete(block: () -> 
         UtSettings.saveRemainingStatesForConcreteExecution = prev
     }
 }
+
+inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () -> T): T {
+    val prev = UtSettings.rewardModelPath
+    UtSettings.rewardModelPath = rewardModelPath
+    try {
+        return block()
+    } finally {
+        UtSettings.rewardModelPath = prev
+    }
+}

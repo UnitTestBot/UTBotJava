@@ -6,7 +6,7 @@ import org.utbot.metrics.ClassificationMetrics
 import org.utbot.models.ClassifierModel
 import org.utbot.models.loadModelFromJson
 import org.utbot.models.save
-import org.utbot.visual.ClassificationHtmlReport
+import org.utbot.visual.ClassificationHTMLReport
 import smile.classification.Classifier
 import smile.data.CategoricalEncoder
 import smile.data.DataFrame
@@ -66,7 +66,7 @@ class ClassifierTrainer(data: DataFrame, val classifierModel: ClassifierModel = 
     }
 
     override fun visualize() {
-        val report = ClassificationHtmlReport()
+        val report = ClassificationHTMLReport()
         report.run {
             addHeader(classifierModel.name, properties)
             addDataDistribution(formula.y(data).toDoubleArray())

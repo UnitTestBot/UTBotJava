@@ -59,7 +59,8 @@ abstract class BasePathSelector(
     /**
      * @return true if [utSolver] constraints are satisfiable
      */
-    private fun checkUnsat(utSolver: UtSolver): Boolean = utSolver.assertions.isNotEmpty() && utSolver.check(respectSoft = false).statusKind != SAT
+    private fun checkUnsat(utSolver: UtSolver): Boolean =
+        utSolver.assertions.isNotEmpty() && utSolver.check(respectSoft = false).statusKind != SAT
 
     /**
      * check fast unsat on forks

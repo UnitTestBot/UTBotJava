@@ -30,6 +30,9 @@ import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.system.exitProcess
 import mu.KotlinLogging
+import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.features.FeatureExtractorFactoryImpl
+import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 
 private val logger = KotlinLogging.logger {}
 
@@ -319,6 +322,8 @@ fun runEstimator(
 //    Predictors.smt = UtBotTimePredictor()
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
+    EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
+    EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
 
 
     // fix for CTRL-ALT-SHIFT-C from IDEA, which copies in class#method form

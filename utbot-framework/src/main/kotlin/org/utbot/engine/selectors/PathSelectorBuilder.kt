@@ -2,22 +2,13 @@
 
 package org.utbot.engine.selectors
 
+import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.TypeRegistry
 import org.utbot.engine.selectors.StrategyOption.DISTANCE
 import org.utbot.engine.selectors.StrategyOption.VISIT_COUNTING
-import org.utbot.engine.selectors.nurs.CoveredNewSelector
-import org.utbot.engine.selectors.nurs.DepthSelector
-import org.utbot.engine.selectors.nurs.MinimalDistanceToUncovered
-import org.utbot.engine.selectors.nurs.NeuroSatSelector
-import org.utbot.engine.selectors.nurs.InheritorsSelector
-import org.utbot.engine.selectors.nurs.RPSelector
-import org.utbot.engine.selectors.nurs.VisitCountingSelector
-import org.utbot.engine.selectors.strategies.ChoosingStrategy
-import org.utbot.engine.selectors.strategies.DistanceStatistics
-import org.utbot.engine.selectors.strategies.EdgeVisitCountingStatistics
-import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
-import org.utbot.engine.selectors.strategies.StoppingStrategy
+import org.utbot.engine.selectors.nurs.*
+import org.utbot.engine.selectors.strategies.*
 import org.utbot.framework.UtSettings.seedInPathSelector
 
 /**
@@ -56,6 +47,34 @@ fun inheritorsSelector(
     typeRegistry: TypeRegistry,
     builder: InheritorsSelectorBuilder.() -> (Unit)
 ) = InheritorsSelectorBuilder(graph, typeRegistry).apply(builder).build()
+
+
+/**
+ * build [SubpathGuidedSelector] using [SubpathGuidedSelectorBuilder]
+ */
+fun subpathGuidedSelector(
+    graph: InterProceduralUnitGraph,
+    strategy: StrategyOption,
+    builder: SubpathGuidedSelectorBuilder.() -> (Unit)
+) = SubpathGuidedSelectorBuilder(graph, strategy).apply(builder).build()
+
+/**
+ * build [CPInstSelector] using [CPInstSelectorBuilder]
+ */
+fun cpInstSelector(
+    graph: InterProceduralUnitGraph,
+    strategy: StrategyOption,
+    builder: CPInstSelectorBuilder.() -> (Unit)
+) = CPInstSelectorBuilder(graph, strategy).apply(builder).build()
+
+/**
+ * build [ForkDepthSelector] using [ForkDepthSelectorBuilder]
+ */
+fun forkDepthSelector(
+    graph: InterProceduralUnitGraph,
+    strategy: StrategyOption,
+    builder: ForkDepthSelectorBuilder.() -> (Unit)
+) = ForkDepthSelectorBuilder(graph, strategy).apply(builder).build()
 
 /**
  * build [DepthSelector] using [DepthSelectorBuilder]
@@ -133,10 +152,22 @@ fun visitCountingSelector(
 fun interleavedSelector(graph: InterProceduralUnitGraph, builder: InterleavedSelectorBuilder.() -> (Unit)) =
     InterleavedSelectorBuilder(graph).apply(builder).build()
 
+/**
+ * build [NNRewardGuidedSelector] using [NNRewardGuidedSelectorBuilder]
+ */
+fun nnRewardGuidedSelector(
+    graph: InterProceduralUnitGraph,
+    strategy: StrategyOption,
+    builder: NNRewardGuidedSelectorBuilder.() -> Unit
+) = NNRewardGuidedSelectorBuilder(graph, strategy).apply(builder).build()
+
 data class PathSelectorContext(
     val graph: InterProceduralUnitGraph,
     var distanceStatistics: DistanceStatistics? = null,
+    var subpathStatistics: SubpathStatistics? = null,
+    var statementsStatistics: StatementsStatistics? = null,
     var countingStatistics: EdgeVisitCountingStatistics? = null,
+    var generatedTestCountingStatistics: GeneratedTestCountingStatistics? = null,
     var stoppingStrategy: StoppingStrategy? = null,
 )
 
@@ -188,6 +219,59 @@ class InheritorsSelectorBuilder internal constructor(
         withDistanceStrategy(),
         requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
         typeRegistry,
+        seed
+    )
+}
+
+/**
+ * Builder for [SubpathGuidedSelector]. Used in [subpathGuidedSelector]
+ */
+class SubpathGuidedSelectorBuilder internal constructor(
+    graph: InterProceduralUnitGraph,
+    private val strategy: StrategyOption,
+    context: PathSelectorContext = PathSelectorContext(graph)
+) : PathSelectorBuilder<SubpathGuidedSelector>(graph, context) {
+    val seed: Int? = seedInPathSelector
+
+    override fun build() = SubpathGuidedSelector(
+        withSubpathStatistics(),
+        withChoosingStrategy(strategy),
+        requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
+        seed!!
+    )
+}
+
+/**
+ * Builder for [CPInstSelectorBuilder]. Used in [cpInstSelector]
+ */
+class CPInstSelectorBuilder internal constructor(
+    graph: InterProceduralUnitGraph,
+    private val strategy: StrategyOption,
+    context: PathSelectorContext = PathSelectorContext(graph)
+) : PathSelectorBuilder<CPInstSelector>(graph, context) {
+    val seed: Int = 42
+
+    override fun build() = CPInstSelector(
+        withStatementsStatistics(),
+        withChoosingStrategy(strategy),
+        requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
+        seed
+    )
+}
+
+/**
+ * Builder for [ForkDepthSelector]. Used in [forkDepthSelector]
+ */
+class ForkDepthSelectorBuilder internal constructor(
+    graph: InterProceduralUnitGraph,
+    val strategy: StrategyOption,
+    context: PathSelectorContext = PathSelectorContext(graph)
+) : PathSelectorBuilder<ForkDepthSelector>(graph, context) {
+    val seed: Int = 42
+
+    override fun build() = ForkDepthSelector(
+        withChoosingStrategy(strategy),
+        requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
         seed
     )
 }
@@ -425,6 +509,24 @@ class InterleavedSelectorBuilder internal constructor(
 }
 
 /**
+ * Builder for [NNRewardGuidedSelector]. Used in []
+ */
+class NNRewardGuidedSelectorBuilder internal constructor(
+    graph: InterProceduralUnitGraph,
+    private val strategy: StrategyOption,
+    context: PathSelectorContext = PathSelectorContext(graph),
+) : PathSelectorBuilder<NNRewardGuidedSelector>(graph, context) {
+    private val seed = seedInPathSelector
+    override fun build() = EngineAnalyticsContext.nnRewardGuidedSelectorFactory(
+        withGeneratedTestCountingStatistics(),
+        withChoosingStrategy(strategy),
+        requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
+        seed!!,
+        graph
+    )
+}
+
+/**
  * Base pathSelectorBuilder that maintains context to attach necessary statistics to graph
  */
 sealed class PathSelectorBuilder<out T : PathSelector>(
@@ -458,6 +560,36 @@ sealed class PathSelectorBuilder<out T : PathSelector>(
             context.distanceStatistics = DistanceStatistics(graph)
         }
         return context.distanceStatistics!!
+    }
+
+    /**
+     * Create new [SubpathStatistics] and attach it to graph or use created one
+     */
+    protected fun withSubpathStatistics(): SubpathStatistics {
+        if (context.subpathStatistics == null) {
+            context.subpathStatistics = SubpathStatistics(graph)
+        }
+        return context.subpathStatistics!!
+    }
+
+    /**
+     * Create new [StatementsStatistics] and attach it to graph or use created one
+     */
+    protected fun withStatementsStatistics(): StatementsStatistics {
+        if (context.statementsStatistics == null) {
+            context.statementsStatistics = StatementsStatistics(graph)
+        }
+        return context.statementsStatistics!!
+    }
+
+    /**
+     * Create new [GeneratedTestCountingStatistics] and attach it to graph or use created one
+     */
+    protected fun withGeneratedTestCountingStatistics(): GeneratedTestCountingStatistics {
+        if (context.generatedTestCountingStatistics == null) {
+            context.generatedTestCountingStatistics = GeneratedTestCountingStatistics(graph)
+        }
+        return context.generatedTestCountingStatistics!!
     }
 
     /**

@@ -2775,3 +2775,13 @@ inline fun <reified T> withTreatingOverflowAsError(block: () -> T): T {
         UtSettings.treatOverflowAsError = prev
     }
 }
+
+inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () -> T): T {
+    val prev = UtSettings.rewardModelPath
+    UtSettings.rewardModelPath = rewardModelPath
+    try {
+        return block()
+    } finally {
+        UtSettings.rewardModelPath = prev
+    }
+}

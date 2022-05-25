@@ -246,6 +246,9 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     if (fieldId.isStatic) {
                         throw AssembleException("Static field $fieldId can't be set in an object of the class $classId")
                     }
+                    if (fieldId.isFinal) {
+                        throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
+                    }
                     //fill field value if it hasn't been filled by constructor, and it is not default
                     if (fieldId in constructorInfo.affectedFields ||
                         (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())

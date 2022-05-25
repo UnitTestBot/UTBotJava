@@ -73,6 +73,7 @@ const val JUNIT5_PARAMETERIZED_PACKAGE = "org.junit.jupiter.params"
 
 //JUnit5 imports
 private const val TEST_NG_ASSERTIONS = "org.testng.Assert"
+private const val TEST_NG_ARRAYS_ASSERTIONS = "org.testng.internal.junit.ArrayAsserts"
 private const val JUNIT5_ASSERTIONS = "org.junit.jupiter.api.Assertions"
 private const val JUNIT4_ASSERTIONS = "org.junit.Assert"
 
@@ -170,6 +171,7 @@ sealed class TestFramework(
     var isInstalled: Boolean = false
     abstract val mainPackage: String
     abstract val assertionsClass: ClassId
+    abstract val arraysAssertionsClass: ClassId
     abstract val testAnnotation: String
     abstract val testAnnotationId: ClassId
     abstract val testAnnotationFqn: String
@@ -186,23 +188,23 @@ sealed class TestFramework(
 
     val assertDoubleEquals by lazy { assertionId("assertEquals", doubleClassId, doubleClassId, doubleClassId) }
 
-    val assertArrayEquals by lazy { assertionId("assertArrayEquals", Array<Any>::class.id, Array<Any>::class.id) }
+    val assertArrayEquals by lazy { arrayAssertionId("assertArrayEquals", Array<Any>::class.id, Array<Any>::class.id) }
 
-    val assertBooleanArrayEquals by lazy { assertionId("assertArrayEquals", booleanArrayClassId, booleanArrayClassId) }
+    open val assertBooleanArrayEquals by lazy { assertionId("assertArrayEquals", booleanArrayClassId, booleanArrayClassId) }
 
-    val assertByteArrayEquals by lazy { assertionId("assertArrayEquals", byteArrayClassId, byteArrayClassId) }
+    val assertByteArrayEquals by lazy { arrayAssertionId("assertArrayEquals", byteArrayClassId, byteArrayClassId) }
 
-    val assertCharArrayEquals by lazy { assertionId("assertArrayEquals", charArrayClassId, charArrayClassId) }
+    val assertCharArrayEquals by lazy { arrayAssertionId("assertArrayEquals", charArrayClassId, charArrayClassId) }
 
-    val assertShortArrayEquals by lazy { assertionId("assertArrayEquals", shortArrayClassId, shortArrayClassId) }
+    val assertShortArrayEquals by lazy { arrayAssertionId("assertArrayEquals", shortArrayClassId, shortArrayClassId) }
 
-    val assertIntArrayEquals by lazy { assertionId("assertArrayEquals", intArrayClassId, intArrayClassId) }
+    val assertIntArrayEquals by lazy { arrayAssertionId("assertArrayEquals", intArrayClassId, intArrayClassId) }
 
-    val assertLongArrayEquals by lazy { assertionId("assertArrayEquals", longArrayClassId, longArrayClassId) }
+    val assertLongArrayEquals by lazy { arrayAssertionId("assertArrayEquals", longArrayClassId, longArrayClassId) }
 
-    val assertFloatArrayEquals by lazy { assertionId("assertArrayEquals", floatArrayClassId, floatArrayClassId, floatClassId) }
+    val assertFloatArrayEquals by lazy { arrayAssertionId("assertArrayEquals", floatArrayClassId, floatArrayClassId, floatClassId) }
 
-    val assertDoubleArrayEquals by lazy { assertionId("assertArrayEquals", doubleArrayClassId, doubleArrayClassId, doubleClassId) }
+    val assertDoubleArrayEquals by lazy { arrayAssertionId("assertArrayEquals", doubleArrayClassId, doubleArrayClassId, doubleClassId) }
 
     val assertNull by lazy { assertionId("assertNull", objectClassId) }
 
@@ -212,8 +214,10 @@ sealed class TestFramework(
 
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
-    private fun assertionId(name: String, vararg params: ClassId): MethodId =
+    protected fun assertionId(name: String, vararg params: ClassId): MethodId =
         builtinStaticMethodId(assertionsClass, name, voidClassId, *params)
+    private fun arrayAssertionId(name: String, vararg params: ClassId): MethodId =
+            builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
 
     abstract fun getRunTestsCommand(
         executionInvoke: String,
@@ -250,6 +254,14 @@ object TestNg : TestFramework(displayName = "TestNG") {
         canonicalName = TEST_NG_ASSERTIONS,
         simpleName = "Assert"
     )
+
+    override val arraysAssertionsClass: ClassId = BuiltinClassId(
+        name = TEST_NG_ARRAYS_ASSERTIONS,
+        canonicalName = TEST_NG_ARRAYS_ASSERTIONS,
+        simpleName = "ArrayAsserts"
+    )
+
+    override val assertBooleanArrayEquals by lazy { assertionId("assertEquals", booleanArrayClassId, booleanArrayClassId) }
 
     val throwingRunnableClassId = BuiltinClassId(
         name = "${assertionsClass.name}\$ThrowingRunnable",
@@ -353,6 +365,7 @@ object Junit4 : TestFramework("JUnit4") {
         canonicalName = JUNIT4_ASSERTIONS,
         simpleName = "Assert"
     )
+    override val arraysAssertionsClass = assertionsClass
 
     val ignoreAnnotationClassId = with("$JUNIT4_PACKAGE.Ignore") {
         BuiltinClassId(
@@ -420,6 +433,8 @@ object Junit5 : TestFramework("JUnit5") {
         canonicalName = JUNIT5_ASSERTIONS,
         simpleName = "Assertions"
     )
+
+    override val arraysAssertionsClass = assertionsClass
 
     val assertThrows = builtinStaticMethodId(
         classId = assertionsClass,

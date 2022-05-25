@@ -8,8 +8,7 @@ import org.jetbrains.kotlin.psi.KtFile
 /**
  * Interface to abstract some checks and hierarchy actions from working with Java or Kotlin.
  *
- * Used in [org.utbot.intellij.plugin.ui.actions.GenerateFromEditorAction]
- * and [org.utbot.intellij.plugin.ui.actions.GenerateFromProjectTreeAction].
+ * Used in [org.utbot.intellij.plugin.ui.actions.GenerateTestsAction].
  */
 interface PsiElementHandler {
     companion object {

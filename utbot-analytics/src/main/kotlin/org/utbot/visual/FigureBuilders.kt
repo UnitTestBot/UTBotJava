@@ -125,22 +125,38 @@ class FigureBuilders {
             return Figure(layout, trace1, trace2)
         }
 
-        fun buildLinePlotSmoothed(
-                x: DoubleArray,
-                y: DoubleArray,
-                smoothing: Double = 1.2,
-                xLabel: String = "X",
-                yLabel: String = "Y",
-                title: String = "Line plot"
+        fun buildSeveralLinesPlot(
+            x: List<DoubleArray>,
+            y: List<DoubleArray>,
+            colors: List<String>,
+            names: List<String>,
+            xLabel: String = "X",
+            yLabel: String = "Y",
+            title: String = "Line plot"
         ): Figure {
             val layout = getXYLayout(xLabel, yLabel, title)
-            val trace: Trace = ScatterTrace.builder(x, y)
+            val traces = x.indices.map {
+                ScatterTrace.builder(x[it], y[it])
                     .mode(ScatterTrace.Mode.LINE_AND_MARKERS)
-                    .line(Line.builder().shape(Line.Shape.SPLINE).smoothing(smoothing).build())
+                    .line(Line.builder().shape(Line.Shape.LINEAR).color(colors[it]).build())
+                    .name(names[it])
+                    .showLegend(true)
                     .build()
+            }
 
+            return Figure(layout, *traces.toTypedArray())
+        }
+
+        fun buildBoxPlot(x: Array<String>,
+                         y: DoubleArray,
+                         xLabel: String = "X",
+                         yLabel: String = "Y",
+                         title: String = "Box plot"): Figure {
+            val layout = getXYLayout(xLabel, yLabel, title)
+            val trace: BoxTrace = BoxTrace.builder(x, y).build()
             return Figure(layout, trace)
         }
+
     }
 
 }

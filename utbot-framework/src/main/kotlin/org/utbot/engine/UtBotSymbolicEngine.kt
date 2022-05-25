@@ -6,17 +6,12 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
-import mu.KotlinLogging
 import org.utbot.analytics.Predictors
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
@@ -79,11 +74,7 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.selectors.PathSelector
-import org.utbot.engine.selectors.coveredNewSelector
-import org.utbot.engine.selectors.inheritorsSelector
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
-import org.utbot.engine.selectors.pollUntilFastSAT
 import org.utbot.engine.selectors.strategies.GraphViz
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
@@ -143,6 +134,40 @@ import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.instrumentation.ConcreteExecutor
+import java.lang.reflect.ParameterizedType
+import java.util.BitSet
+import java.util.IdentityHashMap
+import java.util.TreeSet
+import kotlin.collections.plus
+import kotlin.collections.plusAssign
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.reflect.KClass
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.full.valueParameters
+import kotlin.reflect.jvm.javaType
+import kotlin.system.measureTimeMillis
+import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentSet
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.yield
+import mu.KotlinLogging
+import org.utbot.analytics.CoverageStatistics
+import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.analytics.FeatureProcessor
+import org.utbot.engine.selectors.*
+import org.utbot.framework.UtSettings.featureProcess
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -233,7 +258,6 @@ import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
 import java.lang.reflect.Method
-import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
@@ -269,6 +293,24 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
             withStepsLimit(pathSelectorStepsLimit)
         }
+        PathSelectorType.SUBPATH_GUIDED_SELECTOR -> subpathGuidedSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.CPI_SELECTOR -> cpInstSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.FORK_DEPTH_SELECTOR -> forkDepthSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.NN_REWARD_GUIDED_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.RANDOM_SELECTOR -> randomSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
         else -> error("Unknown type")
     }
 
@@ -284,6 +326,7 @@ class UtBotSymbolicEngine(
 ) : UtContextInitializer() {
 
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
+    private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
     private val globalGraph = InterProceduralUnitGraph(graph)
     internal val typeRegistry: TypeRegistry = TypeRegistry()
     private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
@@ -333,6 +376,9 @@ class UtBotSymbolicEngine(
 
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
+    private val featureProcessor: FeatureProcessor? =
+        if (featureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null
+
     private val insideStaticInitializer
         get() = environment.state.executionStack.any { it.method.isStaticInitializer }
 
@@ -355,6 +401,7 @@ class UtBotSymbolicEngine(
                 logger.error(e) { "Closing resource failed" }
             }
         trackableResources.clear()
+        featureProcessor?.dumpFeatures()
     }
 
     private suspend fun preTraverse() {
@@ -364,13 +411,16 @@ class UtBotSymbolicEngine(
         stateSelectedCount = 0
     }
 
-    fun traverse(): Flow<UtResult> = traverseImpl().onStart { preTraverse() }.onCompletion { postTraverse() }
+    fun traverse(): Flow<UtResult> = traverseImpl()
+        .onStart { preTraverse() }
+        .onCompletion { postTraverse() }
 
     private fun traverseImpl(): Flow<UtResult> = flow {
 
         require(trackableResources.isEmpty())
 
         if (useDebugVisualization) GraphViz(globalGraph, pathSelector)
+        if (UtSettings.collectCoverage) CoverageStatistics(methodUnderTest.toString(), globalGraph)
 
         val initStmt = graph.head
         val initState = ExecutionState(
@@ -457,6 +507,7 @@ class UtBotSymbolicEngine(
 
                 } else {
                     val state = pathSelector.poll()
+
                     // state is null in case states queue is empty
                     // or path selector exceed some limits (steps limit, for example)
                     if (state == null) {
@@ -476,32 +527,39 @@ class UtBotSymbolicEngine(
                         }
                     }
 
-                    environment.state = state
+                    state.executingTime += measureTimeMillis {
+                        environment.state = state
 
-                    val currentStmt = environment.state.stmt
+                        val currentStmt = environment.state.stmt
 
-                    environment.method = globalGraph.method(currentStmt)
-
-                    environment.state.lastEdge?.let {
-                        globalGraph.visitEdge(it)
-                    }
-
-                    try {
-                        val exception = environment.state.exception
-                        if (exception != null) {
-                            traverseException(currentStmt, exception)
-                        } else {
-                            traverseStmt(currentStmt)
+                        if (currentStmt !in visitedStmts) {
+                            environment.state.updateIsVisitedNew()
+                            visitedStmts += currentStmt
                         }
-                    } catch (ex: Throwable) {
-                        environment.state.close()
 
-                        if (ex !is CancellationException) {
-                            logger.error(ex) { "Test generation failed on stmt $currentStmt, symbolic stack trace:\n$symbolicStackTrace" }
-                            // TODO: enrich with nice description for known issues
-                            emit(UtError(ex.description, ex))
-                        } else {
-                            logger.debug(ex) { "Cancellation happened" }
+                        environment.method = globalGraph.method(currentStmt)
+
+                        environment.state.lastEdge?.let {
+                            globalGraph.visitEdge(it)
+                        }
+
+                        try {
+                            val exception = environment.state.exception
+                            if (exception != null) {
+                                traverseException(currentStmt, exception)
+                            } else {
+                                traverseStmt(currentStmt)
+                            }
+                        } catch (ex: Throwable) {
+                            environment.state.close()
+
+                            if (ex !is CancellationException) {
+                                logger.error(ex) { "Test generation failed on stmt $currentStmt, symbolic stack trace:\n$symbolicStackTrace" }
+                                // TODO: enrich with nice description for known issues
+                                emit(UtError(ex.description, ex))
+                            } else {
+                                logger.debug(ex) { "Cancellation happened" }
+                            }
                         }
                     }
                 }
@@ -1323,6 +1381,10 @@ class UtBotSymbolicEngine(
         val (positiveCaseSoftConstraint, negativeCaseSoftConstraint) = resolvedCondition.softConstraints
         val negativeCasePathConstraint = mkNot(positiveCasePathConstraint)
 
+        if (positiveCaseEdge != null) {
+            environment.state.updateIsFork()
+        }
+
         positiveCaseEdge?.let { edge ->
             environment.state.expectUndefined()
             val positiveCaseState = environment.state.updateQueued(
@@ -1393,6 +1455,11 @@ class UtBotSymbolicEngine(
         if (successors.size > 1) {
             environment.state.expectUndefined()
         }
+
+        if (successors.size > 1) {
+            environment.state.updateIsFork()
+        }
+
         successors.forEach { (target, expr) ->
             pathSelector.offer(
                 environment.state.updateQueued(
@@ -2600,6 +2667,10 @@ class UtBotSymbolicEngine(
 
         // If so, return the result of the override
         if (artificialMethodOverride.success) {
+            if (artificialMethodOverride.results.size > 1) {
+                environment.state.updateIsFork()
+            }
+
             return mutableListOf<MethodResult>().apply {
                 for (result in artificialMethodOverride.results) {
                     when (result) {
@@ -2626,6 +2697,10 @@ class UtBotSymbolicEngine(
         // For example, Collection.size will produce two targets (ArrayList and HashSet)
         // that will override the invocation.
         val overrideResults = targets.map { it to overrideInvocation(invocation, it) }
+
+        if (overrideResults.sumOf { (_, overriddenResult) -> overriddenResult.results.size } > 1) {
+            environment.state.updateIsFork()
+        }
 
         // Separate targets for which invocation should be overridden
         // from the targets that should be processed regularly.

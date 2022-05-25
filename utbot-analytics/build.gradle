@@ -12,6 +12,7 @@ String classifier = osName + "-x86_64"
 
 evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
+
 dependencies {
     implementation(project(":utbot-framework"))
     implementation(project(':utbot-instrumentation'))
@@ -29,6 +30,7 @@ dependencies {
 
     implementation group: 'org.bytedeco', name: 'arpack-ng', version: "3.7.0-1.5.4", classifier: "$classifier"
     implementation group: 'org.bytedeco', name: 'openblas', version: "0.3.10-1.5.4", classifier: "$classifier"
+    implementation group: 'org.bytedeco', name: 'javacpp', version: '1.5.3', classifier: "$classifier"
 
     implementation group: 'tech.tablesaw', name: 'tablesaw-core', version: '0.38.2'
     implementation group: 'tech.tablesaw', name: 'tablesaw-jsplot', version: '0.38.2'
@@ -36,6 +38,12 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
 
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+
+    implementation group: 'org.jsoup', name: 'jsoup', version: '1.7.2'
+
+    implementation "ai.djl:api:0.16.0"
+    implementation "ai.djl.pytorch:pytorch-engine:0.16.0"
+    implementation "ai.djl.pytorch:pytorch-native-auto:1.9.1"
 
     testCompile project(':utbot-framework').sourceSets.test.output
 }
@@ -54,4 +62,16 @@ processResources {
             into "models"
         }
     }
+}
+
+jar { dependsOn classes
+    manifest {
+        attributes 'Main-Class': 'org.utbot.QualityAnalysisKt'
+    }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

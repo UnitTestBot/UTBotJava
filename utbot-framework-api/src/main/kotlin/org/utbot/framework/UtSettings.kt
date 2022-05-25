@@ -109,6 +109,11 @@ object UtSettings {
     var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
 
     /**
+     * Type of nnRewardGuidedSelector
+     */
+    var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
+
+    /**
      * Steps limit for path selector.
      */
     var pathSelectorStepsLimit by getIntProperty(3500)
@@ -286,6 +291,47 @@ object UtSettings {
      */
     var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
 
+    /**
+     * 2^{this} will be the length of observed subpath.
+     * See [SubpathGuidedSelector]
+     */
+    var subpathGuidedSelectorIndex by getIntProperty(1)
+    var subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
+
+    /**
+     * Enable feature processing for executionStates
+     */
+    var featureProcess by getBooleanProperty(false)
+
+    /**
+     * Path to deserialized reward models
+     */
+    var rewardModelPath by getStringProperty("models/cf")
+
+    /**
+     * Number of model iterations that will be used during ContestEstimator
+     */
+    var iterations by getIntProperty(4)
+
+    /**
+     * Path for state features dir
+     */
+    var featurePath by getStringProperty("eval/secondFeatures/antlr/INHERITORS_SELECTOR")
+
+    /**
+     * Counter for tests during testGeneration for one project in ContestEstimator
+     */
+    var testCounter by getIntProperty(0)
+
+    var collectCoverage by getBooleanProperty(false)
+
+    var coverageStatisticsDir by getStringProperty("logs/covStatistics")
+
+    /**
+     * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
+     */
+    var singleSelector by getBooleanProperty(true)
+
     override fun toString(): String =
         properties
             .entries
@@ -295,10 +341,22 @@ object UtSettings {
 
 enum class PathSelectorType {
     COVERED_NEW_SELECTOR,
-    INHERITORS_SELECTOR
+    INHERITORS_SELECTOR,
+    SUBPATH_GUIDED_SELECTOR,
+    CPI_SELECTOR,
+    FORK_DEPTH_SELECTOR,
+    LINEAR_REWARD_GUIDED_SELECTOR,
+    NN_REWARD_GUIDED_SELECTOR,
+    RANDOM_SELECTOR,
+    RANDOM_PATH_SELECTOR
 }
 
 enum class TestSelectionStrategyType {
     DO_NOT_MINIMIZE_STRATEGY, // Always adds new test
     COVERAGE_STRATEGY // Adds new test only if it increases coverage
+}
+
+enum class NNRewardGuidedSelectorType {
+    WITH_RECALCULATION,
+    WITHOUT_RECALCULATION
 }

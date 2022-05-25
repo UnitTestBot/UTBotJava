@@ -1,26 +1,14 @@
 package org.utbot.engine.util.statics.concrete
 
 import org.utbot.common.withAccessibility
-import org.utbot.engine.MemoryChunkDescriptor
-import org.utbot.engine.MethodResult
-import org.utbot.engine.ObjectValue
-import org.utbot.engine.SymbolicSuccess
-import org.utbot.engine.SymbolicValue
-import org.utbot.engine.TypeResolver
-import org.utbot.engine.UtBotSymbolicEngine
-import org.utbot.engine.addr
-import org.utbot.engine.canRetrieveBody
-import org.utbot.engine.constructEnumStaticFieldResult
-import org.utbot.engine.fieldId
+import org.utbot.engine.*
 import org.utbot.engine.nullObjectAddr
 import org.utbot.engine.pc.addrEq
 import org.utbot.engine.pc.mkEq
 import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
-import org.utbot.engine.staticInitializerOrNull
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.engine.toMethodResult
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.field
 import soot.SootClass
@@ -191,7 +179,7 @@ fun SootMethod.isAffectingExternalStatics(
         return false
     }
 
-    return activeBody.units.any {
+    return jimpleBody().units.any {
         if (it !is Stmt) {
             return@any false
         }
@@ -204,7 +192,7 @@ fun SootMethod.isAffectingExternalStatics(
                     return@any false
                 }
 
-                val declaringClass = leftOp.fieldRef.declaringClass()
+                val declaringClass = leftOp.field.declaringClass
 
                 val currentClassImplementedInterfaces = typeResolver
                     .findOrConstructAncestorsIncludingTypes(currentClass.type)

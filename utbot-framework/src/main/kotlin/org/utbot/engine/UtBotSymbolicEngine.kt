@@ -928,7 +928,7 @@ class UtBotSymbolicEngine(
             // Note that this list is not exhaustive, so it may be supplemented in the future.
             val packagesToProcessConcretely = javaPackagesToProcessConcretely + sunPackagesToProcessConcretely
 
-            val declaringClass = fieldRef.fieldRef.declaringClass()
+            val declaringClass = fieldRef.field.declaringClass
 
             val isFromPackageToProcessConcretely = packagesToProcessConcretely.any { className.startsWith(it) }
                     // it is required to remove classes we override, since
@@ -1055,7 +1055,7 @@ class UtBotSymbolicEngine(
         if (stmt is JAssignStmt) {
             val local = stmt.leftOp as JimpleLocal
             val localUpdate = localMemoryUpdate(
-                LocalVariable(local.name) to curFieldSymbolicValueForLocalVariable
+                local.variable to curFieldSymbolicValueForLocalVariable
             )
 
             allUpdates += localUpdate

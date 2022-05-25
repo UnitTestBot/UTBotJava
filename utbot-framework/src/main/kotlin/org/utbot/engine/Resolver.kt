@@ -1148,7 +1148,7 @@ fun UtBotSymbolicEngine.constructEnumStaticFieldResult(
     fieldType: Type,
     declaringClass: SootClass,
     enumConstantSymbolicResultsByName: Map<String, MethodResult>,
-    existingEnumSymbolicValue: Any?,
+    staticFieldConcreteValue: Any?,
     enumConstantSymbolicValues: List<ObjectValue>
 ): MethodResult =
     if (isEnumValuesFieldName(fieldName)) {
@@ -1161,8 +1161,9 @@ fun UtBotSymbolicEngine.constructEnumStaticFieldResult(
             // it is field to store enum constant so we use already created symbolic value from runtime enum constant
             enumConstantSymbolicResultsByName.getValue(fieldName)
         } else {
-            // otherwise, we have to create new symbolic value for field using enum class symbolic value
-            toMethodResult(existingEnumSymbolicValue, fieldType)
+            // otherwise, it is a common static field,
+            // and we have to create new symbolic value for it using its concrete value
+            toMethodResult(staticFieldConcreteValue, fieldType)
         }
     }
 

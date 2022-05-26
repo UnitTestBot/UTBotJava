@@ -17,7 +17,7 @@ _Example:_ Sometimes engine does not emit any tests. Seems that in such situatio
 
 Substitute the text with a clear and concise description of what you want to happen.
 
-_Example:_ We can significantly improve coverage with a smart fuzzer. We can not only feed the API under test with a corner case data but analyze the control-flows graph in order to find additional data to fuzz .
+_Example:_ We can significantly improve coverage with a smart fuzzer. We can not only feed the API under test with a corner case data but analyze the control-flows graph in order to find additional data to fuzz.
 
 **Alternatives you've considered**
 

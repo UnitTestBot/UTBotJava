@@ -1,5 +1,22 @@
 package org.utbot.engine
 
+import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toPersistentSet
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.yield
+import mu.KotlinLogging
 import org.utbot.analytics.Predictors
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
@@ -13,6 +30,7 @@ import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
+import org.utbot.engine.pc.NotBoolExpression
 import org.utbot.engine.pc.UtAddNoOverflowExpression
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtAndBoolExpression
@@ -38,7 +56,6 @@ import org.utbot.engine.pc.UtIteExpression
 import org.utbot.engine.pc.UtLongSort
 import org.utbot.engine.pc.UtMkTermArrayExpression
 import org.utbot.engine.pc.UtNegExpression
-import org.utbot.engine.pc.NotBoolExpression
 import org.utbot.engine.pc.UtOrBoolExpression
 import org.utbot.engine.pc.UtPrimitiveSort
 import org.utbot.engine.pc.UtShortSort
@@ -92,94 +109,47 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isIterable
-import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.kClass
-import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.description
 import org.utbot.framework.util.executableId
-import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.SimpleModelProvider
+import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.instrumentation.ConcreteExecutor
-import java.lang.reflect.Method
-import java.lang.reflect.ParameterizedType
-import java.util.BitSet
-import java.util.IdentityHashMap
-import java.util.TreeSet
-import kotlin.collections.plus
-import kotlin.collections.plusAssign
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.reflect.KClass
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
-import kotlinx.collections.immutable.persistentHashMapOf
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
-import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.yield
-import mu.KotlinLogging
 import soot.ArrayType
-import soot.Body
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType
 import soot.DoubleType
 import soot.FloatType
 import soot.IntType
-import soot.Local
 import soot.LongType
 import soot.PrimType
 import soot.RefLikeType
@@ -262,6 +232,15 @@ import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
+import java.lang.reflect.Method
+import java.lang.reflect.ParameterizedType
+import kotlin.collections.plus
+import kotlin.collections.plusAssign
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.full.valueParameters
+import kotlin.reflect.jvm.javaType
 
 private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -534,7 +513,7 @@ class UtBotSymbolicEngine(
 
 
     //Simple fuzzing
-    fun fuzzing() = flow {
+    fun fuzzing(modelProvider: ModelProvider = defaultModelProviders { nextDefaultModelId++ }) = flow {
         if (!UtSettings.useFuzzing)
             return@flow
 
@@ -552,6 +531,8 @@ class UtBotSymbolicEngine(
             return@flow
         }
 
+        val simpleModelProvider = SimpleModelProvider { nextDefaultModelId++ }
+
         val thisInstance = when {
             methodUnderTest.isStatic -> null
             methodUnderTest.isConstructor -> if (
@@ -563,7 +544,7 @@ class UtBotSymbolicEngine(
                 null
             }
             else -> {
-                createSimpleModelByKClass(methodUnderTest.clazz).apply {
+                simpleModelProvider.toModel(methodUnderTest.clazz).apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
                     }
@@ -571,9 +552,11 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph.body))
-        val modelProvider = defaultModelProviders { nextDefaultModelId++ }.withFallback { createModelByClassId(it) }
-        fuzz(methodUnderTestDescription, modelProvider).forEachIndexed { index, parameters ->
+        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph))
+        val modelProviderWithFallback = modelProvider.withFallback(simpleModelProvider::toModel)
+        val coveredInstructionTracker = mutableSetOf<Instruction>()
+        var attempts = UtSettings.fuzzingMaxAttemps
+        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEachIndexed { index, parameters ->
             val initialEnvironmentModels = EnvironmentModels(thisInstance, parameters, mapOf())
 
             try {
@@ -586,6 +569,12 @@ class UtBotSymbolicEngine(
                             logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
                             return@flow
                         }
+                    }
+                }
+
+                if (!coveredInstructionTracker.addAll(concreteExecutionResult.coverage.coveredInstructions)) {
+                    if (--attempts < 0) {
+                        return@flow
                     }
                 }
 
@@ -611,86 +600,6 @@ class UtBotSymbolicEngine(
         }
     }
 
-    /**
-     * Finds constant values in method body.
-     *
-     * todo move to utbot-fuzzer module [module should have access to some API to traverse through control-flow graph]
-     */
-    private fun collectConstantsForFuzzer(body: Body): MutableList<FuzzedConcreteValue> {
-        val constants = mutableListOf<FuzzedConcreteValue>()
-
-        body.units.forEach { unit ->
-            unit.useBoxes.asSequence().map { it.value }.filter { it is Constant || it is JCastExpr }.forEach { value ->
-                try {
-                    var constant: FuzzedConcreteValue? = null
-                    if (unit is JIfStmt && value is Constant) {
-                        /*
-                         * It is acceptable to check different types in if statement like ```2 == 2L```.
-                         *
-                         * Because of that fuzzer tries to find out the correct type between local and constant.
-                         * Constant should be converted into type of local var in such way that if-statement can be true.
-                         */
-                        val exactValue = value.javaClass.getField("value")[value]
-                        val local = unit.conditionBox.value.useBoxes.map { it.value }
-                            .filterIsInstance<Local>()
-                            .takeIf { it.size == 1 }
-                            ?.first()
-                        if (local?.type != value.type && value.type is IntType) {
-                            // Soot loads any integer type as an Int,
-                            // therefore we try to guess target type using second value
-                            // in the if statement
-                            constant = when (local?.type) {
-                                is CharType -> FuzzedConcreteValue(charClassId, (exactValue as Int).toChar())
-                                is BooleanType -> FuzzedConcreteValue(booleanClassId, (exactValue == 1))
-                                is ByteType -> FuzzedConcreteValue(byteClassId, (exactValue as Int).toByte())
-                                is ShortType -> FuzzedConcreteValue(shortClassId, (exactValue as Int).toShort())
-                                else -> null
-                            }
-                        }
-                    }
-                    /*
-                     * The if-statement with 8-byte types like long and double doesn't use simple comparison,
-                     * but cast and `cmp` method instead. This block tries to recognize this situation
-                     * and cast wider type to more narrow one.
-                     */
-                    if (value is JCastExpr) {
-                        val next = graph.getSuccsOf(unit).takeIf { it.size == 1 }?.first()
-                        if (next is JAssignStmt) {
-                            val const = next.useBoxes.map { it.value }
-                                .filterIsInstance<Constant>()
-                                .takeIf { it.size == 1 }
-                                ?.first()
-                            if (const != null) {
-                                val exactValue = const.javaClass.getField("value")[const] as Number
-                                constant = when (value.op.type) {
-                                    is ByteType -> FuzzedConcreteValue(byteClassId, exactValue.toByte())
-                                    is ShortType -> FuzzedConcreteValue(shortClassId, exactValue.toShort())
-                                    is IntType -> FuzzedConcreteValue(intClassId, exactValue.toInt())
-                                    is FloatType -> FuzzedConcreteValue(floatClassId, exactValue.toFloat())
-                                    else -> null
-                                }
-                            }
-                        }
-                    }
-                    /*
-                     * Load constant as is.
-                     */
-                    if (constant == null && value is Constant) {
-                        val exactValue = value.javaClass.getField("value")[value]
-                        constant = FuzzedConcreteValue(value.type.classId, exactValue)
-                    }
-
-                    if (constant != null) {
-                        constants += constant
-                    }
-                } catch (e: Exception) {
-                    logger.warn(e) { "Cannot process constant value of type '${value.type}}'" }
-                }
-            }
-        }
-        return constants
-    }
-
     private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
         stateBefore: EnvironmentModels,
         e: ConcreteExecutionFailureException
@@ -705,70 +614,6 @@ class UtBotSymbolicEngine(
         )
 
         emit(failedConcreteExecution)
-    }
-
-
-    private fun createModelByClassId(classId: ClassId): UtModel {
-        val modelConstructor = UtModelConstructor(IdentityHashMap())
-        val defaultConstructor = classId.jClass.constructors.firstOrNull {
-            it.parameters.isEmpty() && it.isPublic
-        }
-        return when {
-            classId.isPrimitive ->
-                classId.defaultValueModel()
-            classId.isArray ->
-                UtArrayModel(
-                    id = nextDefaultModelId++,
-                    classId,
-                    length = 0,
-                    classId.elementClassId!!.defaultValueModel(),
-                    mutableMapOf()
-                )
-            classId.isIterable -> {
-                val defaultInstance = when {
-                    defaultConstructor != null -> defaultConstructor.newInstance()
-                    classId.jClass.isAssignableFrom(java.util.ArrayList::class.java) -> ArrayList<Any>()
-                    classId.jClass.isAssignableFrom(java.util.TreeSet::class.java) -> TreeSet<Any>()
-                    classId.jClass.isAssignableFrom(java.util.HashMap::class.java) -> HashMap<Any, Any>()
-                    classId.jClass.isAssignableFrom(java.util.ArrayDeque::class.java) -> ArrayDeque<Any>()
-                    classId.jClass.isAssignableFrom(java.util.BitSet::class.java) -> BitSet()
-                    else -> null
-                }
-                if (defaultInstance != null)
-                    modelConstructor.construct(defaultInstance, classId)
-                else
-                    createSimpleModelByKClass(classId.kClass)
-            }
-            else ->
-                createSimpleModelByKClass(classId.kClass)
-        }
-    }
-
-    private fun createSimpleModelByKClass(kclass: KClass<*>): UtModel {
-        val defaultConstructor = kclass.java.constructors.firstOrNull {
-            it.parameters.isEmpty() && it.isPublic // check constructor is public
-        }
-        return if (kclass.isAbstract) { // sealed class is abstract by itself
-            UtNullModel(kclass.java.id)
-        } else if (defaultConstructor != null) {
-            val chain = mutableListOf<UtStatementModel>()
-            val model = UtAssembleModel(
-                id = nextDefaultModelId++,
-                kclass.id,
-                kclass.id.toString(),
-                chain
-            )
-            chain.add(
-                UtExecutableCallModel(model, defaultConstructor.executableId, listOf(), model)
-            )
-            model
-        } else {
-            UtCompositeModel(
-                id = nextDefaultModelId++,
-                kclass.id,
-                isMock = false
-            )
-        }
     }
 
 

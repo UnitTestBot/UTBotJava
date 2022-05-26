@@ -266,4 +266,14 @@ internal class ArrayOfArraysTest : AbstractTestCaseGeneratorTest(testClass = Arr
             { valueBefore, valueAfter -> valueAfter.withIndex().all { it.value == valueBefore[it.index] + it.index } }
         )
     }
+
+    @Test
+    fun testArrayWithItselfAnAsElement() {
+        check(
+            ArrayOfArrays::arrayWithItselfAnAsElement,
+            eq(2),
+            coverage = atLeast(percents = 94)
+            // because of the assumption
+        )
+    }
 }

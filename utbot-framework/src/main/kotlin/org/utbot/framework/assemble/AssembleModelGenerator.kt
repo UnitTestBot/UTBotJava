@@ -195,19 +195,24 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
     /**
      * Assembles internal structure of [UtArrayModel].
      */
-    private fun assembleArrayModel(arrayModel: UtArrayModel): UtModel {
-        instantiatedModels[arrayModel]?.let { return it }
+    private fun assembleArrayModel(arrayModel: UtArrayModel): UtModel =
+        with(arrayModel) {
+            instantiatedModels[this]?.let { return it }
 
-        val constModel = assembleModel(arrayModel.constModel)
-        val stores = arrayModel.stores
-            .mapValues { assembleModel(it.value) }
-            .toMutableMap()
+            // Note that we use constModel from the source model as is here to avoid
+            // possible stack overflow error in case when const model has the same
+            // id as the source one. Later we will try to transform it.
+            val assembleModel = UtArrayModel(id, classId, length, constModel, stores = mutableMapOf())
 
-        val assembleModel = UtArrayModel(arrayModel.id, arrayModel.classId, arrayModel.length, constModel, stores)
+            instantiatedModels[this] = assembleModel
 
-        instantiatedModels[arrayModel] = assembleModel
-        return assembleModel
-    }
+            assembleModel.constModel = assembleModel(constModel)
+            assembleModel.stores += stores
+                .mapValues { assembleModel(it.value) }
+                .toMutableMap()
+
+            assembleModel
+        }
 
     /**
      * Assembles internal structure of [UtCompositeModel] if possible and handles assembling exceptions.

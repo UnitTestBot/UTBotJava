@@ -25,7 +25,7 @@ _Substitute the text with steps to set up the environment for testing of the exp
 
 _Example:_ You can execute test generation for a complex example. Stop the generation in several seconds after the start.
 
-**Potential alternativesd**
+**Potential alternatives**
 
 _Substitute this text with a potential alternative to the solution._
 

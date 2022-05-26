@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
-import org.utbot.common.WorkaroundReason.*
 import org.utbot.common.packageName
 import org.utbot.engine.isStatic
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -24,12 +23,14 @@ import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
+import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgAssignment
+import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
@@ -95,6 +96,7 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -151,11 +153,9 @@ import org.utbot.framework.plugin.api.util.shortWrapperClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.util.isUnit
-import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.plugin.api.TypeParameters
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.jvm.javaType
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -499,7 +499,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         var expected = expected
         if (expected == null) {
-            require(!expectedDeclarationIsNeeded(expectedModel))
+            require(!needExpectedDeclaration(expectedModel))
             expected = actual
         }
 
@@ -852,7 +852,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val fieldName = fieldId.name
         var expectedVariable: CgVariable? = null
 
-        if (expectedDeclarationIsNeeded(fieldModel)) {
+        if (needExpectedDeclaration(fieldModel)) {
             val expectedFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, expected, fieldName)
 
             statements += expectedFieldDeclaration
@@ -872,9 +872,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         )
         statements.addEmptyLineIfNeeded()
     }
-
-    private fun expectedDeclarationIsNeeded(fieldModel: UtModel) =
-        !(fieldModel is UtNullModel || fieldModel is UtPrimitiveModel && fieldModel.value is Boolean)
 
     @Suppress("UNUSED_ANONYMOUS_PARAMETER")
     private fun createDeclarationForFieldFromVariable(
@@ -1301,15 +1298,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     emptyLineIfNeeded()
                 }
 
-
                 //create a block for current test case
                 parametersStatements += innerBlock(
                     {},
-                    block(executionArgumentsBody) + createArgumentsCallRepresentation(
-                        execIndex,
-                        argListVariable,
-                        arguments
-                    )
+                    block(executionArgumentsBody)
+                            + createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
                 )
             }
         }

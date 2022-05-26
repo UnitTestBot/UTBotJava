@@ -11,6 +11,7 @@ import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getFieldVariableName
 import org.utbot.framework.codegen.model.constructor.util.getStaticFieldVariableName
+import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgValue
@@ -118,15 +119,17 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
      *    `assertEquals(5, finalState);`
      */
     private fun saveFieldsState(
-            owner: CgValue,
-            modifiedFields: ModifiedFields,
-            cache: FieldStateCache,
-            state: FieldState
+        owner: CgValue,
+        modifiedFields: ModifiedFields,
+        cache: FieldStateCache,
+        state: FieldState
     ) {
         if (modifiedFields.isEmpty()) return
         emptyLineIfNeeded()
         val fields = when (state) {
-            FieldState.INITIAL -> modifiedFields.filter { it.path.elements.isNotEmpty() && it.path.fieldType.isRefType }
+            FieldState.INITIAL -> modifiedFields
+                    .filter { it.path.elements.isNotEmpty() && it.path.fieldType.isRefType }
+                    .filter { needExpectedDeclaration(it.after) }
             FieldState.FINAL -> modifiedFields
         }
         for ((path, before, after) in fields) {

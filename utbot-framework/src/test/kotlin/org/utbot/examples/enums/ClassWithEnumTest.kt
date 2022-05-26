@@ -174,4 +174,24 @@ class ClassWithEnumTest : AbstractTestCaseGeneratorTest(testClass = ClassWithEnu
             )
         }
     }
+
+    @Test
+    fun testAffectSystemStaticAndUseInitEnumFromIt() {
+        check(
+            ClassWithEnum::affectSystemStaticAndInitEnumFromItAndReturnField,
+            eq(1),
+            { r -> r == true },
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun testAffectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
+        check(
+            ClassWithEnum::affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun,
+            eq(1),
+            { r -> r == true },
+            coverage = DoNotCalculate
+        )
+    }
 }

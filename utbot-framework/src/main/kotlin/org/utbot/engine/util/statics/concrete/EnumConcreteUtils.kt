@@ -15,6 +15,7 @@ import soot.SootClass
 import soot.SootField
 import soot.SootMethod
 import soot.Type
+import soot.Value
 import soot.jimple.StaticFieldRef
 import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
@@ -154,18 +155,23 @@ fun SootClass.isEnumAffectingExternalStatics(typeResolver: TypeResolver): Boolea
     // enum <clinit> active body contains <init> invocations so we can check only <clinit>
     val staticInitializer = staticInitializerOrNull() ?: return false
 
-    return staticInitializer.isAffectingExternalStatics(this, mutableSetOf(), typeResolver)
+    val implementedInterfaces = typeResolver
+        .findOrConstructAncestorsIncludingTypes(type)
+        .filter { type -> type.sootClass.isInterface }
+
+    return staticInitializer.isTouchingExternalStatics(this, mutableSetOf(), implementedInterfaces)
 }
 
 /**
- * Returns whether [this] method affects any statics from any types except [currentClass] and its interfaces.
+ * Returns whether [this] method touches any statics from any types
+ * except [currentClass] and its interfaces in [currentClassImplementedInterfaces].
  *
- * NOTE: see org.utbot.examples.enums.ClassWithEnum.EnumWithStaticAffectingInit for examples.
+ * NOTE: see org.utbot.examples.enums.ClassWithEnum.{EnumWithStaticAffectingInit, OuterStaticUsageEnum} for examples.
  */
-fun SootMethod.isAffectingExternalStatics(
+fun SootMethod.isTouchingExternalStatics(
     currentClass: SootClass,
     alreadyProcessed: MutableSet<SootMethod>,
-    typeResolver: TypeResolver
+    currentClassImplementedInterfaces: List<Type>
 ): Boolean {
     if (this in alreadyProcessed) {
         return false
@@ -187,28 +193,48 @@ fun SootMethod.isAffectingExternalStatics(
         when (it) {
             is JAssignStmt -> {
                 val leftOp = it.leftOp
+                val rightOp = it.rightOp
 
-                if (leftOp !is StaticFieldRef) {
-                    return@any false
-                }
+                val assigningOuterStatics =
+                    isExternalStaticField(leftOp, currentClassImplementedInterfaces, currentClass)
 
-                val declaringClass = leftOp.field.declaringClass
+                val assignmentFromOuterStatics =
+                    isExternalStaticField(rightOp, currentClassImplementedInterfaces, currentClass)
 
-                val currentClassImplementedInterfaces = typeResolver
-                    .findOrConstructAncestorsIncludingTypes(currentClass.type)
-                    .filter { type -> type.sootClass.isInterface }
-                val inImplementedInterfaces = declaringClass.type in currentClassImplementedInterfaces
-
-                // check that no system statics are affected (but implemented interfaces fields are allowed)
-                !(inImplementedInterfaces || declaringClass == currentClass)
+                assigningOuterStatics || assignmentFromOuterStatics
             }
             else -> {
                 if (it.containsInvokeExpr()) {
-                    it.invokeExpr.method.isAffectingExternalStatics(currentClass, alreadyProcessed, typeResolver)
+                    it.invokeExpr.method.isTouchingExternalStatics(
+                        currentClass,
+                        alreadyProcessed,
+                        currentClassImplementedInterfaces
+                    )
                 } else {
                     false
                 }
             }
         }
     }
+}
+
+/**
+ * Determines whether [fieldRef] is static field not from [currentClass]
+ * (except static fields from all interfaces implemented by [currentClass], stored in [currentClassImplementedInterfaces]).
+ */
+private fun isExternalStaticField(
+    fieldRef: Value,
+    currentClassImplementedInterfaces: List<Type>,
+    currentClass: SootClass
+): Boolean {
+    if (fieldRef !is StaticFieldRef) {
+        return false
+    }
+
+    val declaringClass = fieldRef.field.declaringClass
+
+    val classInImplementedInterfaces =
+        declaringClass.type in currentClassImplementedInterfaces
+
+    return !(classInImplementedInterfaces || declaringClass == currentClass)
 }

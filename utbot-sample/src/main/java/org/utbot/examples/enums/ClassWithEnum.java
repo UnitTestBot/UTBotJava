@@ -208,4 +208,34 @@ public class ClassWithEnum {
         I_INHERITOR, J_INHERITOR, K_INHERITOR, L_INHERITOR,
         M_INHERITOR, N_INHERITOR, O_INHERITOR, P_INHERITOR,
     }
+
+    boolean affectSystemStaticAndInitEnumFromItAndReturnField() {
+        int prevStaticValue = ClassWithEnum.staticInt;
+        staticInt++;
+
+        return OuterStaticUsageEnum.A.y != prevStaticValue;
+    }
+
+    boolean affectSystemStaticAndInitEnumFromItAndGetItFromEnumFun() {
+        int prevStaticValue = ClassWithEnum.staticInt;
+        staticInt++;
+
+        return OuterStaticUsageEnum.A.getOuterStatic() != prevStaticValue;
+    }
+
+    static int staticInt = 0;
+
+    enum OuterStaticUsageEnum {
+        A;
+
+        int y;
+
+        OuterStaticUsageEnum() {
+            y = staticInt;
+        }
+
+        int getOuterStatic() {
+            return staticInt;
+        }
+    }
 }

@@ -195,11 +195,17 @@ fun SootMethod.isTouchingExternalStatics(
                 val leftOp = it.leftOp
                 val rightOp = it.rightOp
 
-                val assigningOuterStatics =
-                    isExternalStaticField(leftOp, currentClassImplementedInterfaces, currentClass)
+                val assigningOuterStatics = isExternalStaticField(
+                    leftOp,
+                    currentClassImplementedInterfaces,
+                    currentClass
+                )
 
-                val assignmentFromOuterStatics =
-                    isExternalStaticField(rightOp, currentClassImplementedInterfaces, currentClass)
+                val assignmentFromOuterStatics = isExternalStaticField(
+                    rightOp,
+                    currentClassImplementedInterfaces,
+                    currentClass
+                )
 
                 assigningOuterStatics || assignmentFromOuterStatics
             }
@@ -233,8 +239,7 @@ private fun isExternalStaticField(
 
     val declaringClass = fieldRef.field.declaringClass
 
-    val classInImplementedInterfaces =
-        declaringClass.type in currentClassImplementedInterfaces
+    val classInImplementedInterfaces = declaringClass.type in currentClassImplementedInterfaces
 
-    return !(classInImplementedInterfaces || declaringClass == currentClass)
+    return !classInImplementedInterfaces && declaringClass != currentClass
 }

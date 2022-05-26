@@ -420,7 +420,7 @@ data class UtArrayModel(
     override val id: Int,
     override val classId: ClassId,
     val length: Int = 0,
-    val constModel: UtModel,
+    var constModel: UtModel,
     val stores: MutableMap<Int, UtModel>
 ) : UtReferenceModel(id, classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {

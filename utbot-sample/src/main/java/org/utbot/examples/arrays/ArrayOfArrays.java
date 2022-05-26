@@ -152,4 +152,14 @@ public class ArrayOfArrays {
 
         return array;
     }
+
+    public Object[] arrayWithItselfAnAsElement(Object[] array) {
+        UtMock.assume(array != null && array.length > 0);
+
+        if (array[0] == array) {
+            return array;
+        }
+
+        return null;
+    }
 }

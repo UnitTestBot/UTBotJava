@@ -9,7 +9,9 @@ jobs:
       if: ${{ !contains(github.event.head_commit.message, 'ci skip') }}
       runs-on: ubuntu-20.04
       env:
-        VERSION: ${{ format('1.0.{0}', github.run_number) }}
+        YEAR: $(date +%Y)
+        MONTH: $(date +%Y)
+        VERSION: ${{ format('{$YEAR}.{$MONTH}') }}
       
       steps:
       - uses: actions/checkout@v2

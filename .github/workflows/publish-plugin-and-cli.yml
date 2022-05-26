@@ -40,7 +40,7 @@ jobs:
         run: |
           export KOTLIN_HOME="/usr"
           cd utbot-cli
-          gradle clean build
+          gradle clean build --no-daemon
           cd build/libs
           mv $(find . -type f -iname "utbot-cli*.jar") utbot-cli-${{ env.VERSION }}.jar
       - name: Archive UTBot CLI

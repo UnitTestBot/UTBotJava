@@ -15,21 +15,14 @@
     <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
 
     <actions>
-        <!--suppress PluginXmlCapitalization -->
-        <action id="org.utbot.intellij.plugin.ui.actions.GenerateFromEditorAction"
-                class="org.utbot.intellij.plugin.ui.actions.GenerateFromEditorAction"
-                text="Create tests with UtBot..."
-                description="Action to generate tests from editor">
-            <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
-            <keyboard-shortcut first-keystroke="control alt U" keymap="$default"/>
-        </action>
-        <!--suppress PluginXmlCapitalization -->
-        <action id="org.utbot.intellij.plugin.ui.actions.GenerateFromProjectTreeAction"
-                class="org.utbot.intellij.plugin.ui.actions.GenerateFromProjectTreeAction"
-                text="Create tests with UtBot..."
-                description="Action to generate tests from project tree">
+        <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
+                class="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
+                text="Create Tests with UTBot..."
+                description="Cover code with auto-generated tests">
             <add-to-group group-id="ProjectViewPopupMenu"/>
-            <keyboard-shortcut first-keystroke="control alt U" keymap="$default"/>
+            <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="control alt U"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt U" second-keystroke="alt T"/>
         </action>
     </actions>
 

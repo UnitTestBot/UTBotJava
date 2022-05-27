@@ -40,5 +40,5 @@ jobs:
       if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
-        name: intellij_plugin_tests_run_report.tar.gz
+        name: utbot_intellij_tests_report
         path: utbot-intellij/build/reports/tests/test/*

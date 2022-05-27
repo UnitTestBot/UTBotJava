@@ -43,7 +43,7 @@ public void testFail_errors() {
 
 **Environment**
 
-_Please, help us to recreate the environment. For instance, specify Java version, test framework with a version (JUnit, TestNG...), Mockito configuration (packages, classes, statics), were the test parametrized or not and so on._
+_Substitute this text with an information that can help us to recreate the environment. For instance, specify Java version, test framework with a version (JUnit, TestNG...), Mockito configuration (packages, classes, statics), were the test parametrized or not and so on._
 
 **Additional context**
 

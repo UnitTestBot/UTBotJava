@@ -26,6 +26,5 @@ object EngineAnalyticsContext {
     val nnRewardGuidedSelectorFactory: NNRewardGuidedSelectorFactory = when (UtSettings.nnRewardGuidedSelectorType) {
         NNRewardGuidedSelectorType.WITHOUT_RECALCULATION -> NNRewardGuidedSelectorWithoutRecalculationFactory()
         NNRewardGuidedSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
-        else -> error("Unsupported nnRewardGuidedSelectorType")
     }
 }

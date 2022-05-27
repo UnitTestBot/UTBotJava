@@ -30,7 +30,7 @@ class SubpathStatistics(
             }
             val i = path.size - it - 1 + exceptionNumber
             val prev = if (i == path.size) stmt else path[i]
-            subpath.add(Edge(prev, current, decision))
+            subpath += Edge(prev, current, decision)
             current = prev
         }
 

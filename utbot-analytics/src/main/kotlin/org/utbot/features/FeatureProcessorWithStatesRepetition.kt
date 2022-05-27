@@ -14,7 +14,7 @@ import kotlin.math.pow
 /**
  * Implementation of feature processor, in which we dump each test, so there will be several copies of each state.
  * Extract features for state when this state will be marked visited in graph.
- * Add test case when last state of test case will be traversed.
+ * Add test case, when last state of it will be traversed.
  */
 class FeatureProcessorWithStatesRepetition(
     graph: InterProceduralUnitGraph,
@@ -57,25 +57,26 @@ class FeatureProcessorWithStatesRepetition(
     private fun addTestCase(executionState: ExecutionState) {
         val states = mutableListOf<Pair<Int, Long>>()
         var newCoverage = 0
-        var currentState: ExecutionState? = executionState
 
-        do {
-            val stateHashCode = currentState?.hashCode() ?: 0
-            if (currentState?.features?.isEmpty() == true) {
+        generateSequence(executionState) { currentState ->
+            val stateHashCode = currentState.hashCode()
+
+            if (currentState.features.isEmpty()) {
                 extractFeatures(currentState)
             }
-            currentState?.executingTime?.let { states += (stateHashCode to it) }
-            currentState?.features?.let { dumpedStates[stateHashCode] = it }
 
-            currentState?.stmt?.let {
-                if (it !in visitedStmts && currentState?.isInNestedMethod() == false) {
-                    visitedStmts.add(it)
+            states += stateHashCode to currentState.executingTime
+            dumpedStates[stateHashCode] = currentState.features
+
+            currentState.stmt.let {
+                if (it !in visitedStmts && !currentState.isInNestedMethod()) {
+                    visitedStmts += it
                     newCoverage++
                 }
             }
 
-            currentState = currentState?.parent
-        } while (currentState != null)
+            currentState.parent
+        }
 
         generatedTestCases++
         testCases += TestCase(states, newCoverage, generatedTestCases)
@@ -85,22 +86,23 @@ class FeatureProcessorWithStatesRepetition(
         val rewards = rewardEstimator.calculateRewards(testCases)
 
         testCases.forEach { ts ->
-            FileOutputStream(
-                Paths.get(saveDir, "${UtSettings.testCounter++}.csv").toFile(),
-                true
-            ).bufferedWriter().use { out ->
-                out.appendLine("newCov,reward,${featureKeys.joinToString(separator = ",")}")
-                val reversedStates = ts.states.asReversed()
+            val outputFile = Paths.get(saveDir, "${UtSettings.testCounter++}.csv").toFile()
+            FileOutputStream(outputFile, true)
+                .bufferedWriter()
+                .use { out ->
+                    out.appendLine("newCov,reward,${featureKeys.joinToString(separator = ",")}")
+                    val reversedStates = ts.states.asReversed()
 
-                reversedStates.forEach { (state, _) ->
-                    out.appendLine(
-                        "${ts.newCoverage != 0},${rewards[state]}," +
-                                "${dumpedStates[state]?.joinToString(separator = ",")}"
-                    )
+                    reversedStates.forEach { (state, _) ->
+                        val isCoveredNew = ts.newCoverage != 0
+                        val reward = rewards[state]
+                        val features = dumpedStates[state]?.joinToString(separator = ",")
+
+                        out.appendLine("$isCoveredNew,$reward,$features")
+                    }
+
+                    out.flush()
                 }
-
-                out.flush()
-            }
         }
     }
 
@@ -126,18 +128,18 @@ internal class RewardEstimator {
                 coverages.compute(state) { _, v ->
                     ts.newCoverage + (v ?: 0)
                 }
-                val updateTime = !times.contains(state)
+                val isNewState = state !in times
                 times.compute(state) { _, v ->
                     allTime + (v ?: time)
                 }
-                if (updateTime) {
+                if (isNewState) {
                     allTime += time
                 }
             }
         }
 
         coverages.forEach { (state, coverage) ->
-            rewards[state] = reward(coverage.toDouble(), times[state]!!.toDouble())
+            rewards[state] = reward(coverage.toDouble(), times.getValue(state).toDouble())
         }
 
         return rewards

@@ -4,7 +4,6 @@ import ai.djl.Model
 import ai.djl.inference.Predictor
 import ai.djl.ndarray.NDArray
 import ai.djl.ndarray.NDList
-import ai.djl.ndarray.NDManager
 import ai.djl.translate.Translator
 import ai.djl.translate.TranslatorContext
 import org.utbot.framework.UtSettings
@@ -18,17 +17,13 @@ class NNStateRewardPredictorTorch : NNStateRewardPredictor, Closeable {
         model.load(Paths.get(UtSettings.rewardModelPath, "model.pt1"))
     }
 
-    val predictor: Predictor<List<Float>, Float> = model.newPredictor(object : Translator<List<Float>, Float> {
+    private val predictor: Predictor<List<Float>, Float> = model.newPredictor(object : Translator<List<Float>, Float> {
         override fun processInput(ctx: TranslatorContext, input: List<Float>): NDList {
-            val manager: NDManager = ctx.ndManager
-            val array: NDArray = manager.create(input.toFloatArray())
+            val array: NDArray = ctx.ndManager.create(input.toFloatArray())
             return NDList(array)
         }
 
-        override fun processOutput(ctx: TranslatorContext, list: NDList): Float {
-            val tmp: NDArray = list.get(0)
-            return tmp.getFloat()
-        }
+        override fun processOutput(ctx: TranslatorContext, list: NDList): Float = list[0].getFloat()
     })
 
     override fun predict(input: List<Double>): Double {

@@ -1,10 +1,10 @@
 package org.utbot.predictors
 
-import org.utbot.examples.withRewardModelPath
-import kotlin.system.measureNanoTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.withRewardModelPath
+import kotlin.system.measureNanoTime
 
 class NNStateRewardPredictorTest {
     @Test

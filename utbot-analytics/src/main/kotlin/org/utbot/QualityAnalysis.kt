@@ -1,16 +1,21 @@
 package org.utbot
 
-import org.utbot.QualityAnalysisConfig
-import org.utbot.visual.FigureBuilders
-import org.utbot.visual.HtmlBuilder
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
+import org.utbot.visual.FigureBuilders
+import org.utbot.visual.HtmlBuilder
 import java.io.File
 import java.nio.file.Paths
 
 
-data class Coverage(val misInstructions: Int, val covInstruction: Int, val misBranches: Int, val covBranches: Int, val time: Double = 0.0) {
+data class Coverage(
+    val misInstructions: Int,
+    val covInstruction: Int,
+    val misBranches: Int,
+    val covBranches: Int,
+    val time: Double = 0.0
+) {
     fun getInstructionCoverage(): Double = when {
         (this.misInstructions == 0 && this.covInstruction == 0) -> 0.0
         (this.misInstructions == 0) -> 1.0
@@ -71,17 +76,20 @@ fun parseJacocoReport(path: String, classes: Set<String>): Pair<Map<String, Cove
                 val methodName = classHref.replace("/index.html", "." + methodHref.replace("html", cols[0].text()))
 
                 val instructions = cols[1].select("img")
-                val methodMisInstructions = instructions.getOrNull(0)?.attr("title")?.toString()?.replace(",", "")?.toInt()
-                    ?: 0
-                val methodCovInstructions = instructions.getOrNull(1)?.attr("title")?.toString()?.replace(",", "")?.toInt()
-                    ?: 0
+                val methodMisInstructions =
+                    instructions.getOrNull(0)?.attr("title")?.toString()?.replace(",", "")?.toInt()
+                        ?: 0
+                val methodCovInstructions =
+                    instructions.getOrNull(1)?.attr("title")?.toString()?.replace(",", "")?.toInt()
+                        ?: 0
 
                 val branches = cols[3].select("img")
                 val methodMisBranches = branches.getOrNull(0)?.attr("title")?.toString()?.replace(",", "")?.toInt() ?: 0
                 val methodCovBranches = branches.getOrNull(1)?.attr("title")?.toString()?.replace(",", "")?.toInt() ?: 0
 
                 if (methodMisInstructions == 0 && methodCovBranches == 0 && methodCovInstructions == 0 && methodMisBranches == 0) continue
-                perMethodResult[methodName] = Coverage(methodMisInstructions, methodCovInstructions, methodMisBranches, methodCovBranches)
+                perMethodResult[methodName] =
+                    Coverage(methodMisInstructions, methodCovInstructions, methodMisBranches, methodCovBranches)
             }
         }
     }
@@ -98,7 +106,7 @@ fun main() {
 
     // Parse data
     val jacocoCoverage = QualityAnalysisConfig.selectors.map {
-        it to parseJacocoReport("eval/jacoco/${QualityAnalysisConfig.project}/${it}",classes).first
+        it to parseJacocoReport("eval/jacoco/${QualityAnalysisConfig.project}/${it}", classes).first
     }
 
     // Instruction coverage report (sum coverages percentages / classNum)
@@ -110,13 +118,14 @@ fun main() {
         htmlBuilder.addText("Mean(Instruction (${it.first} model)) =${it.second.sum() / it.second.size}")
     }
     htmlBuilder.addFigure(
-            FigureBuilders.buildBoxPlot(
-                instructionMetrics.map { it.second.map { _ -> "Instructions (${it.first} model)" } }.flatten().toTypedArray(),
-                instructionMetrics.map { it.second }.flatten().toDoubleArray(),
-                title = "Coverage",
-                xLabel = "Instructions",
-                yLabel = "Count"
-            )
+        FigureBuilders.buildBoxPlot(
+            instructionMetrics.map { it.second.map { _ -> "Instructions (${it.first} model)" } }.flatten()
+                .toTypedArray(),
+            instructionMetrics.map { it.second }.flatten().toDoubleArray(),
+            title = "Coverage",
+            xLabel = "Instructions",
+            yLabel = "Count"
+        )
     )
 
     // Instruction coverage report (sum covered instructions / sum instructions)
@@ -128,7 +137,11 @@ fun main() {
         jacoco.first to jacoco.second.map { it.value.getInstructions() }
     }.toMap()
     covInstruction.forEach {
-        htmlBuilder.addText("Mean(Instruction (${it.first} model)) =${it.second.sum().toDouble() / (instructions[it.first]?.sum()?.toDouble() ?: 0.0)}")
+        htmlBuilder.addText(
+            "Mean(Instruction (${it.first} model)) =${
+                it.second.sum().toDouble() / (instructions[it.first]?.sum()?.toDouble() ?: 0.0)
+            }"
+        )
     }
     htmlBuilder.addFigure(
         FigureBuilders.buildBoxPlot(
@@ -159,9 +172,11 @@ fun main() {
     )
 
     // Save report
-    htmlBuilder.saveHTML(Paths.get(
-        QualityAnalysisConfig.outputDir,
-        QualityAnalysisConfig.project,
-        "test.html"
-    ).toFile().absolutePath)
+    htmlBuilder.saveHTML(
+        Paths.get(
+            QualityAnalysisConfig.outputDir,
+            QualityAnalysisConfig.project,
+            "test.html"
+        ).toFile().absolutePath
+    )
 }

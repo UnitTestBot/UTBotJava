@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 
-class ClassificationHTMLReport() {
+class ClassificationHTMLReport {
     private val builder = HtmlBuilder()
 
     fun addHeader(modelName: String, properties: Properties) {
@@ -56,7 +56,7 @@ class ClassificationHTMLReport() {
         )
     }
 
-    fun addPCAPlot(variance: DoubleArray, cumulativeVariance: DoubleArray){
+    fun addPCAPlot(variance: DoubleArray, cumulativeVariance: DoubleArray) {
         builder.addFigure(
             FigureBuilders.buildTwoLinesPlot(
                 variance,
@@ -68,12 +68,19 @@ class ClassificationHTMLReport() {
         )
     }
 
-    fun addMetrics(acc: Double, f1: Double, predTime: Double, precision: DoubleArray, recall: DoubleArray){
+    fun addMetrics(acc: Double, f1: Double, predTime: Double, precision: DoubleArray, recall: DoubleArray) {
         builder.addText("Accuracy ${String.format("%.3f", acc)}")
         builder.addText("F1 macro ${String.format("%.3f", f1)}")
         builder.addText("AvgPredTime ${String.format("%.3f", predTime)}(ms)")
-        for ((i, value) in precision.withIndex()){
-            builder.addText("For class $i precision ${String.format("%.3f", value)} recall ${String.format("%.3f", recall[i])}")
+        for ((i, value) in precision.withIndex()) {
+            builder.addText(
+                "For class $i precision ${String.format("%.3f", value)} recall ${
+                    String.format(
+                        "%.3f",
+                        recall[i]
+                    )
+                }"
+            )
         }
     }
 
@@ -84,7 +91,7 @@ class ClassificationHTMLReport() {
                         .format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")) +
                     ".html"
             builder.saveHTML(filename)
-        }else {
+        } else {
             builder.saveHTML(filename)
         }
     }

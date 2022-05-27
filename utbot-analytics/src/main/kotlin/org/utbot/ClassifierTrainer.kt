@@ -20,7 +20,7 @@ private const val dataPath = "logs/stats.txt"
 private const val logDir = "logs"
 
 class ClassifierTrainer(data: DataFrame, val classifierModel: ClassifierModel = ClassifierModel.GBM) :
-        AbstractTrainer(data, savePcaVariance = true) {
+    AbstractTrainer(data, savePcaVariance = true) {
     private lateinit var metrics: ClassificationMetrics
     lateinit var model: Classifier<DoubleArray>
     val properties = Properties()
@@ -62,7 +62,13 @@ class ClassifierTrainer(data: DataFrame, val classifierModel: ClassifierModel = 
         val xFrame = Formula.lhs(targetColumn).x(validationData)
         val x = xFrame.toArray(false, CategoricalEncoder.LEVEL)
 
-        metrics = ClassificationMetrics(classifierModel.name, model, Compose(transforms), actualLabel.map { it.toInt() }.toIntArray(), x)
+        metrics = ClassificationMetrics(
+            classifierModel.name,
+            model,
+            Compose(transforms),
+            actualLabel.map { it.toInt() }.toIntArray(),
+            x
+        )
     }
 
     override fun visualize() {
@@ -73,8 +79,10 @@ class ClassifierTrainer(data: DataFrame, val classifierModel: ClassifierModel = 
             addClassDistribution(classSizesBeforeResampling)
             addClassDistribution(classSizesAfterResampling, before = false)
             addPCAPlot(pcaVarianceProportion, pcaCumulativeVarianceProportion)
-            addMetrics(metrics.acc, metrics.f1Macro, metrics.avgPredTime, metrics.precision.toDoubleArray(),
-                    metrics.recall.toDoubleArray())
+            addMetrics(
+                metrics.acc, metrics.f1Macro, metrics.avgPredTime, metrics.precision.toDoubleArray(),
+                metrics.recall.toDoubleArray()
+            )
             addConfusionMatrix(metrics.getNormalizedConfusionMatrix())
             save()
         }

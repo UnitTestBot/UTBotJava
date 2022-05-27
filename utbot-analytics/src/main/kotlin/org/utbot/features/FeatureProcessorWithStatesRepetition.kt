@@ -5,11 +5,11 @@ import org.utbot.analytics.FeatureProcessor
 import org.utbot.engine.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.framework.UtSettings
+import soot.jimple.Stmt
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Paths
 import kotlin.math.pow
-import soot.jimple.Stmt
 
 /**
  * Implementation of feature processor, in which we dump each test, so there will be several copies of each state.
@@ -23,6 +23,7 @@ class FeatureProcessorWithStatesRepetition(
     init {
         File(saveDir).mkdirs()
     }
+
     companion object {
         private val featureKeys = arrayOf(
             "stack",

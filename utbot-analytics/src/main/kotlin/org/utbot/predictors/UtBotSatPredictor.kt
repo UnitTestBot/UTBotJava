@@ -4,7 +4,6 @@ import org.utbot.analytics.IUtBotSatPredictor
 import org.utbot.analytics.NeuroSatData
 import org.utbot.analytics.UtBotAbstractPredictor
 import org.utbot.engine.pc.UtExpression
-import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.features.UtExpressionGraphExtraction
 import org.utbot.features.UtExpressionId
 import org.utbot.utils.BinaryUtil
@@ -13,7 +12,7 @@ import java.io.FileOutputStream
 
 @Suppress("unused")
 class UtBotSatPredictor : UtBotAbstractPredictor<Iterable<UtExpression>, NeuroSatData>,
-        IUtBotSatPredictor<Iterable<UtExpression>> {
+    IUtBotSatPredictor<Iterable<UtExpression>> {
 
     private var counter = 1
     private var folder = "logs/GRAPHS"
@@ -33,12 +32,16 @@ class UtBotSatPredictor : UtBotAbstractPredictor<Iterable<UtExpression>, NeuroSa
         }
         File("${folder}/graphs/$counter/vertexesType.txt").printWriter().use { out ->
             out.println("UUID,TYPE")
-            out.print(extractor.expressionIdsCache.keys.map { "${extractor.getID(it)},${
-                BinaryUtil.binaryExpressionString(UtExpressionId().getID(it))}" }.joinToString("\n"))
-       }
+            out.print(extractor.expressionIdsCache.keys.map {
+                "${extractor.getID(it)},${
+                    BinaryUtil.binaryExpressionString(UtExpressionId().getID(it))
+                }"
+            }.joinToString("\n"))
+        }
         File("${folder}/graphs/$counter/vertexesValues.txt").printWriter().use { out ->
             out.println("UUID,VALUE")
-            out.print(extractor.literalValues.keys.map { "${extractor.getID(it)},${extractor.literalValues[it]}" }.joinToString("\n"))
+            out.print(extractor.literalValues.keys.map { "${extractor.getID(it)},${extractor.literalValues[it]}" }
+                .joinToString("\n"))
         }
 
         FileOutputStream("${folder}/SAT.txt", true).bufferedWriter().use { out ->

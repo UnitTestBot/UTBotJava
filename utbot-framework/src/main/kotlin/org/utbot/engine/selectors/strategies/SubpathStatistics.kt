@@ -43,5 +43,6 @@ class SubpathStatistics(
         }
     }
 
-    fun subpathCount(executionState: ExecutionState): Int = subpathCount.getOrPut(executionState.getSubpath(length)) { 1 }
+    fun subpathCount(executionState: ExecutionState): Int =
+        subpathCount.getOrPut(executionState.getSubpath(length)) { 1 }
 }

@@ -47,8 +47,8 @@ dependencies {
 
 test {
 
-    useJUnitPlatform{
-       excludeTags 'Summary'
+    useJUnitPlatform {
+        excludeTags 'Summary'
     }
 
 }
@@ -61,7 +61,8 @@ processResources {
     }
 }
 
-jar { dependsOn classes
+jar {
+    dependsOn classes
     manifest {
         attributes 'Main-Class': 'org.utbot.QualityAnalysisKt'
     }

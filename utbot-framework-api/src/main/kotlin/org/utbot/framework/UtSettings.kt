@@ -1,12 +1,12 @@
 package org.utbot.framework
 
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.toPath
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.Properties
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.reflect.KProperty
-import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
@@ -68,7 +68,8 @@ object UtSettings {
     private fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, String::toInt)
     private fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, String::toLong)
     private fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
-    private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) = getProperty(defaultValue) { enumValueOf(it) }
+    private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
+        getProperty(defaultValue) { enumValueOf(it) }
 
 
     /**
@@ -157,7 +158,7 @@ object UtSettings {
     /*
     * Activate or deactivate tests on comments && names/displayNames
     * */
-    var testSummary by getBooleanProperty( true)
+    var testSummary by getBooleanProperty(true)
     var testName by getBooleanProperty(true)
     var testDisplayName by getBooleanProperty(true)
 
@@ -269,7 +270,9 @@ object UtSettings {
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS)
+    var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(
+        DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+    )
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.

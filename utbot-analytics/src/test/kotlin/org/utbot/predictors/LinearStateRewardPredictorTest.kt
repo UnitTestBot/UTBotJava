@@ -1,8 +1,8 @@
 package org.utbot.predictors
 
-import org.utbot.examples.withRewardModelPath
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.utbot.examples.withRewardModelPath
 
 class LinearStateRewardPredictorTest {
     @Test

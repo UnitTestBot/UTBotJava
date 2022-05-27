@@ -37,11 +37,23 @@ class FeatureProcessorWithRepetitionTest {
         val rewardEstimator = RewardEstimator()
         val testCases = listOf(
             TestCase(
-                listOf(statesToInt["g0"]!! to 2L, statesToInt["f0"]!! to 2L, statesToInt["c0"]!! to 2L, statesToInt["a0"]!! to 1L),
+                listOf(
+                    statesToInt["g0"]!! to 2L,
+                    statesToInt["f0"]!! to 2L,
+                    statesToInt["c0"]!! to 2L,
+                    statesToInt["a0"]!! to 1L
+                ),
                 newCoverage = 4, testIndex = 0
             ),
             TestCase(
-                listOf(statesToInt["g1"]!! to 2L, statesToInt["f1"]!! to 1L,statesToInt["c1"]!! to 1L, statesToInt["f0"]!! to 2L, statesToInt["c0"]!! to 2L, statesToInt["a0"]!! to 1L),
+                listOf(
+                    statesToInt["g1"]!! to 2L,
+                    statesToInt["f1"]!! to 1L,
+                    statesToInt["c1"]!! to 1L,
+                    statesToInt["f0"]!! to 2L,
+                    statesToInt["c0"]!! to 2L,
+                    statesToInt["a0"]!! to 1L
+                ),
                 newCoverage = 0,
                 testIndex = 1
             ),

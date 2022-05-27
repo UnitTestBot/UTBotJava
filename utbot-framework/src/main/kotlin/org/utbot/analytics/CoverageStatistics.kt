@@ -1,5 +1,6 @@
 package org.utbot.analytics
 
+import mu.KotlinLogging
 import org.utbot.engine.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.selectors.strategies.TraverseGraphStatistics
@@ -7,7 +8,6 @@ import org.utbot.engine.stmts
 import org.utbot.framework.UtSettings
 import java.io.File
 import java.io.FileOutputStream
-import mu.KotlinLogging
 
 
 private val logger = KotlinLogging.logger {}
@@ -16,7 +16,7 @@ private val logger = KotlinLogging.logger {}
 class CoverageStatistics(
     private val method: String,
     private val globalGraph: InterProceduralUnitGraph
-): TraverseGraphStatistics(globalGraph) {
+) : TraverseGraphStatistics(globalGraph) {
 
     private val outputFile: String = "${UtSettings.coverageStatisticsDir}/$method.txt"
 

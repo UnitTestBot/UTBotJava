@@ -1,4 +1,4 @@
-name: UTBot Java build and run tests
+name: "UTBot Java: build and run tests"
 
 on:
   push:

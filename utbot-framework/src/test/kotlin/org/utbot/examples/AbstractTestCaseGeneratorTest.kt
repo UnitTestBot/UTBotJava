@@ -2765,3 +2765,13 @@ inline fun <reified T> withPushingStateFromPathSelectorForConcrete(block: () -> 
         UtSettings.saveRemainingStatesForConcreteExecution = prev
     }
 }
+
+inline fun <reified T> withTreatingOverflowAsError(block: () -> T): T {
+    val prev = UtSettings.treatOverflowAsError
+    UtSettings.treatOverflowAsError = true
+    try {
+        return block()
+    } finally {
+        UtSettings.treatOverflowAsError = prev
+    }
+}

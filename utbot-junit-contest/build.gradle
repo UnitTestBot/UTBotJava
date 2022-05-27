@@ -70,6 +70,10 @@ jar { dependsOn classes
 
     manifest {
         attributes 'Main-Class': 'org.utbot.contest.ContestKt'
+        attributes 'Bundle-SymbolicName': 'org.utbot.contest'
+        attributes 'Bundle-Version': "${project.version}"
+        attributes 'Implementation-Title': 'UtBot JUnit contest'
+        attributes 'JAR-Type': 'Fat JAR'
     }
 
     version '1.0'

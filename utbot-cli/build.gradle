@@ -44,6 +44,10 @@ classes {
 jar {
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'
+        attributes 'Bundle-SymbolicName': 'org.utbot.cli'
+        attributes 'Bundle-Version': "${project.version}"
+        attributes 'Implementation-Title': 'UtBot Java CLI'
+        attributes 'JAR-Type': 'Fat JAR'
     }
 
     version project.version

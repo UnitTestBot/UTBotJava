@@ -24,14 +24,17 @@ fun checkFrameworkDependencies(dependencyPaths: String?) {
     //TODO: JIRA:1659
     // check (somehow) that [UtExecutionInstrumentation] is in dependency path: in one of jars or folders
 
-    val dependencyNames = dependencyPaths
-        .splitToSequence(File.pathSeparatorChar)
+    val dependencyPathsSequence = dependencyPaths.splitToSequence(File.pathSeparatorChar)
+
+    val dependencyNames = dependencyPathsSequence
         .mapNotNull { findDependencyName(it) }
         .map { it.toLowerCase() }
         .toSet()
 
     val testFrameworkPatterns = TestFramework.allItems.map { it.patterns() }
-    val testFrameworkFound = dependencyNames.matchesAnyOf(testFrameworkPatterns)
+    val testFrameworkFound = dependencyNames.matchesAnyOf(testFrameworkPatterns) ||
+            dependencyPathsSequence.any { checkDependencyIsFatJar(it) }
+
     if (!testFrameworkFound) {
         error("""
           Test frameworks are not found in dependency path $dependencyPaths, dependency names are:
@@ -41,7 +44,9 @@ fun checkFrameworkDependencies(dependencyPaths: String?) {
     }
 
     val mockFrameworkPatterns = MockFramework.allItems.map { it.patterns() }
-    val mockFrameworkFound = dependencyNames.matchesAnyOf(mockFrameworkPatterns)
+    val mockFrameworkFound = dependencyNames.matchesAnyOf(mockFrameworkPatterns) ||
+            dependencyPathsSequence.any { checkDependencyIsFatJar(it) }
+
     if (!mockFrameworkFound) {
         error("""
           Mock frameworks are not found in dependency path $dependencyPaths, dependency names are:
@@ -75,4 +80,18 @@ private fun findDependencyName(jarPath: String): String? {
     }
 
     return null
+}
+
+// We consider Fat JARs contain test frameworks and mock frameworks in the dependencies.
+private fun checkDependencyIsFatJar(jarPath: String): Boolean {
+    try {
+        val attributes = JarFile(jarPath).manifest.mainAttributes
+        val jarType = attributes.getValue("JAR-Type")
+
+        return jarType == "Fat JAR"
+    } catch (e: Exception) {
+        logger.warn { "Unexpected error during parsing $jarPath manifest file $e" }
+    }
+
+    return false
 }

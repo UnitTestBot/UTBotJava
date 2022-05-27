@@ -1,4 +1,5 @@
-[![Build UTBot and run unit tests](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests-utbot-java.yml/badge.svg)](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests-utbot-java.yml)
+[![UTBot Java: build and run tests](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests.yml/badge.svg)](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests.yml)
+[![Plugin and CLI: publish as archives](https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli.yml/badge.svg)](https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli.yml)
 
 # What is UTBotJava?
 

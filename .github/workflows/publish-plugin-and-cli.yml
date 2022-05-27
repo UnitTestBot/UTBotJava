@@ -1,5 +1,4 @@
-name: Publish plugin and CLI as archives
-
+name: "Plugin and CLI: publish as archives"
 on:
   push:
     branches: [main]

@@ -2,9 +2,9 @@ package org.utbot.engine.selectors
 
 import org.utbot.engine.ExecutionState
 import org.utbot.engine.pathLogger
-import org.utbot.engine.pc.UtSolverStatusUNSAT
 import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
+import org.utbot.engine.pc.UtSolverStatusUNSAT
 import org.utbot.engine.selectors.strategies.ChoosingStrategy
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 import org.utbot.framework.UtSettings

@@ -2,10 +2,10 @@ package org.utbot.predictors
 
 import com.google.gson.Gson
 import org.utbot.framework.UtSettings
+import smile.math.matrix.Matrix
 import java.io.FileReader
 import java.nio.file.Paths
 import kotlin.math.max
-import smile.math.matrix.Matrix
 
 data class NNJson(
     val linearLayers: Array<Array<DoubleArray>> = arrayOf(),
@@ -20,10 +20,11 @@ private fun reLU(input: DoubleArray): DoubleArray {
 }
 
 private fun loadNN(path: String): NN {
-    val nnJson: NNJson = Gson().fromJson(FileReader(Paths.get(UtSettings.rewardModelPath, path).toFile()), NNJson::class.java) ?: run {
-        System.err.println("Something went wrong while parsing NN model")
-        NNJson()
-    }
+    val nnJson: NNJson =
+        Gson().fromJson(FileReader(Paths.get(UtSettings.rewardModelPath, path).toFile()), NNJson::class.java) ?: run {
+            System.err.println("Something went wrong while parsing NN model")
+            NNJson()
+        }
 
     val weights = nnJson.linearLayers.map { Matrix(it) }
     val biases = nnJson.biases.map { Matrix(it) }
@@ -55,7 +56,8 @@ internal fun loadScaler(path: String): StandardScaler =
         StandardScaler(Matrix(mean), Matrix(variance))
     }
 
-class NNStateRewardPredictorSmile(modelPath: String = "nn.json", scalerPath: String = "scaler.txt") : NNStateRewardPredictor {
+class NNStateRewardPredictorSmile(modelPath: String = "nn.json", scalerPath: String = "scaler.txt") :
+    NNStateRewardPredictor {
     val nn = loadNN(modelPath)
     val scaler = loadScaler(scalerPath)
 

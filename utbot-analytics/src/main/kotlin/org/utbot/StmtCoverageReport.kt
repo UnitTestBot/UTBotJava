@@ -1,18 +1,18 @@
 package org.utbot
 
+import org.apache.commons.io.FileUtils
 import org.utbot.visual.FigureBuilders
 import org.utbot.visual.HtmlBuilder
+import smile.read
 import java.io.File
 import java.nio.file.Paths
 import kotlin.random.Random
-import org.apache.commons.io.FileUtils
-import smile.read
 
 
 data class Statistics(
     val perMethod: Map<String, List<DoubleArray>>,
-    val perClass: Map<String,  List<DoubleArray>>,
-    val perProject:  List<DoubleArray>
+    val perClass: Map<String, List<DoubleArray>>,
+    val perProject: List<DoubleArray>
 )
 
 
@@ -21,9 +21,9 @@ fun getStatistics(path: String, classes: Set<String>): Statistics {
     var projectMinStartTime = Double.MAX_VALUE
 
     val rawStatistics = File(path).listFiles()?.filter { it.extension == "txt" && it.readLines().size > 1 }?.map {
-            val data = read.csv(it.absolutePath)
-            it.nameWithoutExtension to data.toArray()
-        }?.toMap() ?: emptyMap()
+        val data = read.csv(it.absolutePath)
+        it.nameWithoutExtension to data.toArray()
+    }?.toMap() ?: emptyMap()
 
     val statisticsPerMethod = rawStatistics.map { methodData ->
         val startTime = methodData.value[0][0]
@@ -80,7 +80,9 @@ fun main() {
     File(QualityAnalysisConfig.classesList).inputStream().bufferedReader().forEachLine { classes.add(it) }
 
     // Prepare folder
-    val projectDataPath = "${QualityAnalysisConfig.outputDir}/report/${QualityAnalysisConfig.project}/${QualityAnalysisConfig.selectors.joinToString("_")}"
+    val projectDataPath = "${QualityAnalysisConfig.outputDir}/report/${QualityAnalysisConfig.project}/${
+        QualityAnalysisConfig.selectors.joinToString("_")
+    }"
     File(projectDataPath).deleteRecursively()
     classes.forEach { File(projectDataPath, it).mkdirs() }
     File(projectDataPath, "css").mkdirs()
@@ -99,8 +101,10 @@ fun main() {
         "rgb(${rnd.nextInt(256)}, ${rnd.nextInt(256)}, ${rnd.nextInt(256)})"
     }
 
-    val htmlBuilderForProject = HtmlBuilder(pathToStyle = listOf("css/coverage.css", "css/highlight-idea.css"),
-                                            pathToJs = listOf("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"))
+    val htmlBuilderForProject = HtmlBuilder(
+        pathToStyle = listOf("css/coverage.css", "css/highlight-idea.css"),
+        pathToJs = listOf("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js")
+    )
     htmlBuilderForProject.addTable(
         statistics.map { it.perClass.map { it.key to (it.value.lastOrNull()?.lastOrNull() ?: 0.0) * 100 }.toMap() },
         selectors,
@@ -123,8 +127,10 @@ fun main() {
 
     classes.forEach { cls ->
         val outputDir = File(projectDataPath, cls)
-        val htmlBuilderForCls = HtmlBuilder(pathToStyle = listOf("../css/coverage.css", "../css/highlight-idea.css"),
-                                            pathToJs = listOf("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"))
+        val htmlBuilderForCls = HtmlBuilder(
+            pathToStyle = listOf("../css/coverage.css", "../css/highlight-idea.css"),
+            pathToJs = listOf("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js")
+        )
         val filteredStatistics = statistics.map {
             it.perMethod.filter { it.key.contains(cls) }
         }
@@ -151,8 +157,10 @@ fun main() {
         htmlBuilderForCls.saveHTML(File(outputDir, "index.html").toString())
 
         filteredStatistics.first().keys.forEach { method ->
-            val htmlBuilderForMethod = HtmlBuilder(pathToStyle = listOf("../../css/coverage.css", "../../css/highlight-idea.css"),
-                                                    pathToJs = listOf("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js"))
+            val htmlBuilderForMethod = HtmlBuilder(
+                pathToStyle = listOf("../../css/coverage.css", "../../css/highlight-idea.css"),
+                pathToJs = listOf("https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.1/highlight.min.js")
+            )
             htmlBuilderForMethod.addFigure(
                 FigureBuilders.buildSeveralLinesPlot(
                     filteredStatistics.map { it[method]?.map { it[0] / 1e9 }?.toDoubleArray() ?: doubleArrayOf() },

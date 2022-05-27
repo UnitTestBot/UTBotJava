@@ -57,7 +57,8 @@ inline fun <TIn, T> UtBotNanoTimePredictor<TIn>.learnOn(input: TIn, block: () ->
  * @see Predictors.smt
  */
 interface IUtBotSatPredictor<TIn> : UtBotAbstractPredictor<TIn, NeuroSatData> {
-    override fun predict(input: TIn) = NeuroSatData(status = UtSolverStatusKind.UNSAT, time = 1) //Zero for default predictor
+    override fun predict(input: TIn) =
+        NeuroSatData(status = UtSolverStatusKind.UNSAT, time = 1) //Zero for default predictor
 }
 
 

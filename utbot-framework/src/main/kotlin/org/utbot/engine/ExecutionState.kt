@@ -2,6 +2,7 @@ package org.utbot.engine
 
 import org.utbot.common.md5
 import org.utbot.engine.pc.UtSolver
+import org.utbot.engine.pc.UtSolverStatusUNDEFINED
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.framework.plugin.api.Step
@@ -13,7 +14,6 @@ import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.plus
-import org.utbot.engine.pc.UtSolverStatusUNDEFINED
 import soot.SootMethod
 import soot.jimple.Stmt
 
@@ -176,7 +176,10 @@ data class ExecutionState(
             symbolicState = symbolicState,
             executionStack = executionStack.removeAt(executionStack.lastIndex),
             path = path + stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(stmtHashcode, stmtCountInPath),
+            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
+                stmtHashcode,
+                stmtCountInPath
+            ),
             decisionPath = decisionPath + edge.decisionNum,
             edges = edges + edge,
             stmts = stmts.putIfAbsent(stmt, pathLength),
@@ -212,7 +215,10 @@ data class ExecutionState(
             symbolicState = symbolicState.stateForNestedMethod() + update,
             executionStack = executionStack + stackElement,
             path = path + this.stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(stmtHashCode, stmtCountInPath),
+            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
+                stmtHashCode,
+                stmtCountInPath
+            ),
             decisionPath = decisionPath + edge.decisionNum,
             edges = edges + edge,
             stmts = stmts.putIfAbsent(this.stmt, pathLength),
@@ -228,7 +234,10 @@ data class ExecutionState(
     ): ExecutionState {
         val last = executionStack.last()
         val stackElement = last.update(stateUpdate.localMemoryUpdates)
-        return copy(symbolicState = symbolicState + stateUpdate, executionStack =  executionStack.set(executionStack.lastIndex, stackElement))
+        return copy(
+            symbolicState = symbolicState + stateUpdate,
+            executionStack = executionStack.set(executionStack.lastIndex, stackElement)
+        )
     }
 
     fun update(
@@ -251,7 +260,10 @@ data class ExecutionState(
             symbolicState = symbolicState + symbolicStateUpdate,
             executionStack = executionStack.set(executionStack.lastIndex, stackElement),
             path = path + stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(stmtHashCode, stmtCountInPath),
+            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
+                stmtHashCode,
+                stmtCountInPath
+            ),
             decisionPath = decisionPath + edge.decisionNum,
             edges = edges + edge,
             stmts = stmts.putIfAbsent(stmt, pathLength),
@@ -309,9 +321,9 @@ data class ExecutionState(
         val path = fullPath()
         val prettifiedPath = path.joinToString(separator = "\n") { (stmt, depth, decision) ->
             val prefix = when (decision) {
-                CALL_DECISION_NUM -> "call[${depth}] - " + "".padEnd(2*depth, ' ')
-                RETURN_DECISION_NUM -> " ret[${depth - 1}] - " + "".padEnd(2*depth, ' ')
-                else -> "          "+"".padEnd(2*depth, ' ')
+                CALL_DECISION_NUM -> "call[${depth}] - " + "".padEnd(2 * depth, ' ')
+                RETURN_DECISION_NUM -> " ret[${depth - 1}] - " + "".padEnd(2 * depth, ' ')
+                else -> "          " + "".padEnd(2 * depth, ' ')
             }
             "$prefix$stmt"
         }

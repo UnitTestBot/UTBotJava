@@ -3,7 +3,6 @@ package org.utbot.analytics
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.selectors.NNRewardGuidedSelectorFactory
 import org.utbot.engine.selectors.NNRewardGuidedSelectorWithRecalculationFactory
-import org.utbot.engine.selectors.NNRewardGuidedSelectorWithRecalculationWeight
 import org.utbot.engine.selectors.NNRewardGuidedSelectorWithoutRecalculationFactory
 import org.utbot.framework.NNRewardGuidedSelectorType
 import org.utbot.framework.UtSettings

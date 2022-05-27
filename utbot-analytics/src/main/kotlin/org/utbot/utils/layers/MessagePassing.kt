@@ -2,7 +2,6 @@ package org.utbot.utils.layers
 
 import org.utbot.utils.MatrixUtil
 import java.io.FileNotFoundException
-import java.util.ArrayList
 
 
 class MessagePassing {

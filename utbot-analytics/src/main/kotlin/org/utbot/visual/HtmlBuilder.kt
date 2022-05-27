@@ -1,14 +1,16 @@
 package org.utbot.visual
 
+import tech.tablesaw.plotly.components.Figure
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
-import tech.tablesaw.plotly.components.Figure
+import java.util.Properties
 
-class HtmlBuilder(bodyMaxWidth: Int = 600,
-                  pathToStyle: List<String> = listOf(),
-                  pathToJs: List<String> = listOf()) {
+class HtmlBuilder(
+    bodyMaxWidth: Int = 600,
+    pathToStyle: List<String> = listOf(),
+    pathToJs: List<String> = listOf()
+) {
     private val pageTop = ("<html>"
             + System.lineSeparator()
             + "<head>"
@@ -56,10 +58,12 @@ class HtmlBuilder(bodyMaxWidth: Int = 600,
         pageBuilder.append("<$h>${header}</$h>")
     }
 
-    fun addTable(statistics: List<Map<String, Double>>,
-                 selectorNames: List<String>,
-                 colors: List<String>,
-                 scope: String) {
+    fun addTable(
+        statistics: List<Map<String, Double>>,
+        selectorNames: List<String>,
+        colors: List<String>,
+        scope: String
+    ) {
         pageBuilder.append("<table class=\"coverageStats\">")
         pageBuilder.append("<tr> <th class=\"name\">$scope</th>\n")
 
@@ -72,10 +76,10 @@ class HtmlBuilder(bodyMaxWidth: Int = 600,
             for (i in statistics.indices) {
                 pageBuilder.append(
                     "<td class=\"coverageStat\">\n" +
-                        "<span class=\"percent\">\n" +
+                            "<span class=\"percent\">\n" +
                             "<p style=\"color:${colors[i]};\">${String.format("%.0f", statistics[i][key])}</p>\n" +
-                        "</span>\n" +
-                    "</td>\n"
+                            "</span>\n" +
+                            "</td>\n"
                 )
             }
             pageBuilder.append("</tr>")

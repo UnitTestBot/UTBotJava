@@ -7,8 +7,24 @@ import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.TypeRegistry
 import org.utbot.engine.selectors.StrategyOption.DISTANCE
 import org.utbot.engine.selectors.StrategyOption.VISIT_COUNTING
-import org.utbot.engine.selectors.nurs.*
-import org.utbot.engine.selectors.strategies.*
+import org.utbot.engine.selectors.nurs.CPInstSelector
+import org.utbot.engine.selectors.nurs.CoveredNewSelector
+import org.utbot.engine.selectors.nurs.DepthSelector
+import org.utbot.engine.selectors.nurs.ForkDepthSelector
+import org.utbot.engine.selectors.nurs.InheritorsSelector
+import org.utbot.engine.selectors.nurs.MinimalDistanceToUncovered
+import org.utbot.engine.selectors.nurs.NeuroSatSelector
+import org.utbot.engine.selectors.nurs.RPSelector
+import org.utbot.engine.selectors.nurs.SubpathGuidedSelector
+import org.utbot.engine.selectors.nurs.VisitCountingSelector
+import org.utbot.engine.selectors.strategies.ChoosingStrategy
+import org.utbot.engine.selectors.strategies.DistanceStatistics
+import org.utbot.engine.selectors.strategies.EdgeVisitCountingStatistics
+import org.utbot.engine.selectors.strategies.GeneratedTestCountingStatistics
+import org.utbot.engine.selectors.strategies.StatementsStatistics
+import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
+import org.utbot.engine.selectors.strategies.StoppingStrategy
+import org.utbot.engine.selectors.strategies.SubpathStatistics
 import org.utbot.framework.UtSettings.seedInPathSelector
 
 /**

@@ -1,10 +1,10 @@
 package org.utbot
 
-import org.utbot.visual.FigureBuilders
-import org.utbot.visual.HtmlBuilder
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
+import org.utbot.visual.FigureBuilders
+import org.utbot.visual.HtmlBuilder
 import java.io.File
 import java.nio.file.Paths
 
@@ -19,7 +19,8 @@ fun parseReport(path: String, classes: Set<String>): Map<String, Double> {
         val clsRows: Elements = packageDocument.select("table")[1].select("tr")
 
         for (j in 1 until clsRows.size) {
-            val clsName = clsRows[j].select("td")[0].select("a").attr("href").replace(".classes/", "").replace(".html", "")
+            val clsName =
+                clsRows[j].select("td")[0].select("a").attr("href").replace(".classes/", "").replace(".html", "")
             val fullName = packageHref.replace("/index.html", ".$clsName")
 
             if (classes.contains(fullName)) {
@@ -59,9 +60,11 @@ fun main() {
     )
 
     // Save report
-    htmlBuilder.saveHTML(Paths.get(
-        QualityAnalysisConfig.outputDir,
-        QualityAnalysisConfig.project,
-        QualityAnalysisConfig.selectors.joinToString("_")
-    ).toFile().absolutePath)
+    htmlBuilder.saveHTML(
+        Paths.get(
+            QualityAnalysisConfig.outputDir,
+            QualityAnalysisConfig.project,
+            QualityAnalysisConfig.selectors.joinToString("_")
+        ).toFile().absolutePath
+    )
 }

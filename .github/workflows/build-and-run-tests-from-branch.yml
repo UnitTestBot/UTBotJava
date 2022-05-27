@@ -4,8 +4,7 @@ on:
   workflow_dispatch
   
 jobs:
-  build-utbot-java:
-    if: ${{ !contains(github.event.head_commit.message, 'ci skip') }}
+  build-and-run-tests:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
@@ -18,7 +17,7 @@ jobs:
       with:
         gradle-version: 6.8
         
-    - name: Build UTBot Java
+    - name: Build and run tests in UTBot Java
       run: |
         export KOTLIN_HOME="/usr"
         gradle clean build --no-daemon
@@ -29,29 +28,17 @@ jobs:
       with:
         name: utbot_framework_logs
         path: utbot-framework/logs/*
-        
-    - name: Create tests report archive if tests have failed  
-      if: ${{ failure() }}
-      run: |
-        cd utbot-framework/build/reports/tests/test
-        tar -czpf tests_run_report.tar.gz *
       
-    - name: Upload tests report artifacts if tests have failed
+    - name: Upload utbot-framework tests report artifacts if tests have failed
       if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
-        name: tests_run_report.tar.gz
-        path: utbot-framework/build/reports/tests/test/tests_run_report.tar.gz
+        name: utbot_framework_tests_report
+        path: utbot-framework/build/reports/tests/test/*
         
-    - name: Create IntelliJ IDEA plugin tests report archive if tests have failed
-      if: ${{ failure() }}
-      run: |
-        cd utbot-intellij/build/reports/tests/test
-        tar -czpf intellij_plugin_tests_run_report.tar.gz *
-        
-    - name: Upload IntelliJ IDEA plugin tests report artifacts if tests have failed
+    - name: Upload utbot-intellij tests report artifacts if tests have failed
       if: ${{ failure() }}
       uses: actions/upload-artifact@v2
       with:
         name: intellij_plugin_tests_run_report.tar.gz
-        path: utbot-intellij/build/reports/tests/test/intellij_plugin_tests_run_report.tar.gz
+        path: utbot-intellij/build/reports/tests/test/*

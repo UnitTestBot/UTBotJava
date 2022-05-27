@@ -7,11 +7,20 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
+import mu.KotlinLogging
+import org.utbot.analytics.CoverageStatistics
+import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
@@ -74,8 +83,19 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
+import org.utbot.engine.selectors.PathSelector
+import org.utbot.engine.selectors.StrategyOption
+import org.utbot.engine.selectors.coveredNewSelector
+import org.utbot.engine.selectors.cpInstSelector
+import org.utbot.engine.selectors.forkDepthSelector
+import org.utbot.engine.selectors.inheritorsSelector
+import org.utbot.engine.selectors.nnRewardGuidedSelector
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
+import org.utbot.engine.selectors.pollUntilFastSAT
+import org.utbot.engine.selectors.randomPathSelector
+import org.utbot.engine.selectors.randomSelector
 import org.utbot.engine.selectors.strategies.GraphViz
+import org.utbot.engine.selectors.subpathGuidedSelector
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.SymbolicState
@@ -92,6 +112,7 @@ import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcrete
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
+import org.utbot.framework.UtSettings.featureProcess
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.preferredCexOption
@@ -142,7 +163,6 @@ import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.reflect.KClass
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaType
@@ -152,22 +172,12 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
-import mu.KotlinLogging
-import org.utbot.analytics.CoverageStatistics
-import org.utbot.analytics.EngineAnalyticsContext
-import org.utbot.analytics.FeatureProcessor
-import org.utbot.engine.selectors.PathSelector
-import org.utbot.engine.selectors.StrategyOption
 import org.utbot.engine.selectors.coveredNewSelector
 import org.utbot.engine.selectors.cpInstSelector
 import org.utbot.engine.selectors.forkDepthSelector
@@ -177,7 +187,6 @@ import org.utbot.engine.selectors.pollUntilFastSAT
 import org.utbot.engine.selectors.randomPathSelector
 import org.utbot.engine.selectors.randomSelector
 import org.utbot.engine.selectors.subpathGuidedSelector
-import org.utbot.framework.UtSettings.featureProcess
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -275,6 +284,10 @@ import kotlin.math.min
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaType
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.full.valueParameters
+import kotlin.reflect.jvm.javaType
+import kotlin.system.measureTimeMillis
 
 private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -461,8 +474,10 @@ class UtBotSymbolicEngine(
                 }
 
                 stateSelectedCount++
-                pathLogger.trace { "traverse<$methodUnderTest>: choosing next state($stateSelectedCount), " +
-                        "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}" }
+                pathLogger.trace {
+                    "traverse<$methodUnderTest>: choosing next state($stateSelectedCount), " +
+                            "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}"
+                }
 
                 if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
                     val state = pathSelector.pollUntilFastSAT() ?: statesForConcreteExecution.pollUntilSat() ?: break
@@ -590,7 +605,7 @@ class UtBotSymbolicEngine(
 
         val isFuzzable = executableId.parameters.all { classId ->
             classId != Method::class.java.id && // causes the child process crash at invocation
-            classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
+                    classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
         if (!isFuzzable) {
             return@flow
@@ -1289,7 +1304,12 @@ class UtBotSymbolicEngine(
                     ?: error("Exception wasn't caught, stmt: $current, line: ${current.lines}")
                 val nextState = environment.state.updateQueued(
                     globalGraph.succ(current),
-                    SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null))
+                    SymbolicStateUpdate(
+                        localMemoryUpdates = localMemoryUpdate(
+                            localVariable to value,
+                            CAUGHT_EXCEPTION to null
+                        )
+                    )
                 )
                 pathSelector.offer(nextState)
             }
@@ -1377,7 +1397,8 @@ class UtBotSymbolicEngine(
                 }
             }
 
-            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
+            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages)
+                .asHardConstraint()
             parameterAddrToGenericType += value.addr to type
         }
     }
@@ -1464,9 +1485,6 @@ class UtBotSymbolicEngine(
         }
         if (successors.size > 1) {
             environment.state.expectUndefined()
-        }
-
-        if (successors.size > 1) {
             environment.state.updateIsFork()
         }
 
@@ -1505,7 +1523,8 @@ class UtBotSymbolicEngine(
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
+                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+                    .asHardConstraint()
                 queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
 
                 return mockedObject
@@ -1543,7 +1562,8 @@ class UtBotSymbolicEngine(
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
             // add typeConstraint for mocked object. It's a declared type of the object.
-            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
+            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+                .asHardConstraint()
             queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
 
             return mockedObject
@@ -1578,7 +1598,8 @@ class UtBotSymbolicEngine(
                         createObject(addr, refType, useConcreteType = true)
                     }
                 } else {
-                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all().asHardConstraint()
+                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all()
+                        .asHardConstraint()
 
                     objectValue(refType, addr, StringWrapper()).also {
                         initStringLiteral(it, this.value)
@@ -1697,7 +1718,11 @@ class UtBotSymbolicEngine(
         val arrayType = type.arrayType
         val arrayValue = createNewArray(value.length.toPrimitiveValue(), arrayType, type).also {
             val defaultValue = arrayType.defaultSymValue
-            queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, arrayType, defaultValue as UtArrayExpressionBase)
+            queuedSymbolicStateUpdates += arrayUpdateWithValue(
+                it.addr,
+                arrayType,
+                defaultValue as UtArrayExpressionBase
+            )
         }
         queuedSymbolicStateUpdates += objectUpdate(
             stringWrapper.copy(typeStorage = TypeStorage(utStringClass.type)),
@@ -1861,7 +1886,8 @@ class UtBotSymbolicEngine(
             return objectValue.copy(addr = nullObjectAddr)
         }
 
-        val typeConstraint = typeRegistry.typeConstraint(castedObject.addr, castedObject.typeStorage).isOrNullConstraint()
+        val typeConstraint =
+            typeRegistry.typeConstraint(castedObject.addr, castedObject.typeStorage).isOrNullConstraint()
 
         // When we do downCast, we should add possible equality to null
         // to avoid situation like this:
@@ -2017,7 +2043,8 @@ class UtBotSymbolicEngine(
                     )
 
                     if (objectValue.type.isJavaLangObject()) {
-                        queuedSymbolicStateUpdates += typeRegistry.zeroDimensionConstraint(objectValue.addr).asSoftConstraint()
+                        queuedSymbolicStateUpdates += typeRegistry.zeroDimensionConstraint(objectValue.addr)
+                            .asSoftConstraint()
                     }
 
                     objectValue
@@ -2889,7 +2916,11 @@ class UtBotSymbolicEngine(
                 return listOf(
                     MethodResult(
                         newArray,
-                        memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
+                        memoryUpdates = arrayUpdateWithValue(
+                            newArray.addr,
+                            arrayType,
+                            selectArrayExpressionFromMemory(src)
+                        )
                     )
                 )
             }
@@ -3374,12 +3405,22 @@ class UtBotSymbolicEngine(
                 mkNot(UtSubNoOverflowExpression(left.expr, right.expr))
             }
             is JMulExpr -> when (sort.type) {
-                    is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
-                    is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                    is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { it: UtExpression -> it.toIntValue() }
-                    is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { it: UtExpression -> it.toLongValue() }
-                    else -> null
-                }
+                is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
+                is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                is IntType -> higherIntMulOverflowCheck(
+                    left,
+                    right,
+                    Int.SIZE_BITS,
+                    Int.MIN_VALUE.toLong()
+                ) { it: UtExpression -> it.toIntValue() }
+                is LongType -> higherIntMulOverflowCheck(
+                    left,
+                    right,
+                    Long.SIZE_BITS,
+                    Long.MIN_VALUE
+                ) { it: UtExpression -> it.toLongValue() }
+                else -> null
+            }
             else -> null
         }
 
@@ -3593,11 +3634,19 @@ class UtBotSymbolicEngine(
         //choose types that have biggest priority
         resolvedParameters
             .filterIsInstance<ReferenceValue>()
-            .forEach { queuedSymbolicStateUpdates += constructConstraintForType(it, it.possibleConcreteTypes).asSoftConstraint() }
+            .forEach {
+                queuedSymbolicStateUpdates += constructConstraintForType(
+                    it,
+                    it.possibleConcreteTypes
+                ).asSoftConstraint()
+            }
 
         val returnValue = (symbolicResult as? SymbolicSuccess)?.value as? ObjectValue
         if (returnValue != null) {
-            queuedSymbolicStateUpdates += constructConstraintForType(returnValue, returnValue.possibleConcreteTypes).asSoftConstraint()
+            queuedSymbolicStateUpdates += constructConstraintForType(
+                returnValue,
+                returnValue.possibleConcreteTypes
+            ).asSoftConstraint()
 
             workaround(REMOVE_ANONYMOUS_CLASSES) {
                 val sootClass = returnValue.type.sootClass
@@ -3747,7 +3796,7 @@ class UtBotSymbolicEngine(
                 queuedSymbolicStateUpdates
             )
         } finally {
-             queuedSymbolicStateUpdates = prevSymbolicStateUpdate
+            queuedSymbolicStateUpdates = prevSymbolicStateUpdate
         }
     }
 }

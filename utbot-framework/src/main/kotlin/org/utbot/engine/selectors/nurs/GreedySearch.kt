@@ -26,7 +26,7 @@ abstract class GreedySearch(
     }
 
     override fun offerImpl(state: ExecutionState) {
-        states.add(state)
+        states += state
     }
 
     override fun pollImpl(): ExecutionState? = peekImpl()?.also { remove(it) }
@@ -44,7 +44,7 @@ abstract class GreedySearch(
 
             if (candidates.isEmpty()) {
                 bestWeight = weight
-                candidates.add(it)
+                candidates += it
             } else {
                 if (bestWeight <= weight) {
                     if (bestWeight < weight) {

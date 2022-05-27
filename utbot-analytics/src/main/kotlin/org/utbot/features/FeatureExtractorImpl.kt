@@ -22,21 +22,24 @@ class FeatureExtractorImpl(private val graph: InterProceduralUnitGraph) : Featur
     private val statementStatistics = StatementsStatistics(graph)
 
     override fun extractFeatures(executionState: ExecutionState, generatedTestCases: Int) {
-        if (executionState.features.isNotEmpty()) {
-            executionState.features.clear()
-        }
+        with(executionState.features) {
+            if (isNotEmpty()) {
+                clear()
+            }
 
-        executionState.features.add(executionState.executionStack) // stack
-        executionState.features.add(graph.succs(executionState.stmt)) // successor
-        executionState.features.add(generatedTestCases) // testCase
-        executionState.features.add(executionState.visitedAfterLastFork) // coverage by branch
-        executionState.features.add(executionState.visitedBeforeLastFork + executionState.visitedAfterLastFork) // coverage by path
-        executionState.features.add(executionState.depth) // depth
-        executionState.features.add(statementStatistics.statementInMethodCount(executionState)) // cpicnt
-        executionState.features.add(statementStatistics.statementCount(executionState)) // icnt
-        executionState.features.add(executionState.stmtsSinceLastCovered) // covNew
-        subpathStatistics.forEach {
-            executionState.features.add(it.subpathCount(executionState)) // sgs_i
+            add(executionState.executionStack) // stack
+            add(graph.succs(executionState.stmt)) // successor
+            add(generatedTestCases) // testCase
+            add(executionState.visitedAfterLastFork) // coverage by branch
+            add(executionState.visitedBeforeLastFork + executionState.visitedAfterLastFork) // coverage by path
+            add(executionState.depth) // depth
+            add(statementStatistics.statementInMethodCount(executionState)) // cpicnt
+            add(statementStatistics.statementCount(executionState)) // icnt
+            add(executionState.stmtsSinceLastCovered) // covNew
+
+            subpathStatistics.forEach {
+                add(it.subpathCount(executionState)) // sgs_i
+            }
         }
     }
 }

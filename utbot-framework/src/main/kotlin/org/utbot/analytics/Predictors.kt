@@ -26,10 +26,9 @@ object Predictors {
     var stateRewardPredictor: UtBotAbstractPredictor<List<Double>, Double> =
         object : UtBotAbstractPredictor<List<Double>, Double> {
             override fun predict(input: List<Double>): Double {
-                TODO("Not yet implemented")
+                error("stateRewardPredictor wasn't provided")
             }
         }
 
     var sat: IUtBotSatPredictor<Iterable<UtExpression>> = object : IUtBotSatPredictor<Iterable<UtExpression>> {}
-    var stateRewardPredictors: MutableList<UtBotAbstractPredictor<List<Double>, Double>> = mutableListOf()
 }

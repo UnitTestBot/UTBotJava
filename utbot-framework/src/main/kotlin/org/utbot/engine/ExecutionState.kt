@@ -1,12 +1,5 @@
 package org.utbot.engine
 
-import org.utbot.common.md5
-import org.utbot.engine.pc.UtSolver
-import org.utbot.engine.pc.UtSolverStatusUNDEFINED
-import org.utbot.engine.symbolic.SymbolicState
-import org.utbot.engine.symbolic.SymbolicStateUpdate
-import org.utbot.framework.plugin.api.Step
-import java.util.Objects
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
@@ -14,8 +7,15 @@ import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.plus
+import org.utbot.common.md5
+import org.utbot.engine.pc.UtSolver
+import org.utbot.engine.pc.UtSolverStatusUNDEFINED
+import org.utbot.engine.symbolic.SymbolicState
+import org.utbot.engine.symbolic.SymbolicStateUpdate
+import org.utbot.framework.plugin.api.Step
 import soot.SootMethod
 import soot.jimple.Stmt
+import java.util.Objects
 
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2
@@ -61,13 +61,13 @@ data class StateAnalyticsProperties(
     /**
      * Flag that indicates whether this state is fork or not. Fork here means that we have more than one successor
      */
-    var isFork: Boolean = false
+    private var isFork: Boolean = false
 
     fun updateIsFork() {
         isFork = true
     }
 
-    var isVisitedNew: Boolean = false
+    private var isVisitedNew: Boolean = false
 
     fun updateIsVisitedNew() {
         isVisitedNew = true
@@ -361,10 +361,14 @@ data class ExecutionState(
         return true
     }
 
-    override fun hashCode(): Int = Objects.hash(
-        stmt, symbolicState, executionStack, path, visitedStatementsHashesToCountInPath, decisionPath,
-        edges, stmts, pathLength, lastEdge, lastMethod, methodResult, exception
-    )
+    private val hashCode by lazy {
+        Objects.hash(
+            stmt, symbolicState, executionStack, path, visitedStatementsHashesToCountInPath, decisionPath,
+            edges, stmts, pathLength, lastEdge, lastMethod, methodResult, exception
+        )
+    }
+
+    override fun hashCode(): Int = hashCode
 
     var reward by stateAnalyticsProperties::reward
     val features by stateAnalyticsProperties::features

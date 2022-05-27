@@ -59,7 +59,7 @@
                 The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
                 <br />
                 <br />
-                You can <a href="http://utbot.org">try the engine online</a> without registration.
+                You can <a href="http://utbot.org">try the engine online</a> without installation.
                 <br />
                 <br />
                 Got ideas? Give us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava">GitHub page</a>

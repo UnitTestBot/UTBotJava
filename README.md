@@ -23,7 +23,7 @@ See [step-by-step guide](https://github.com/UnitTestBot/UTBotJava/wiki/intellij-
 
 # How to use IntelliJ IDEA plugin
 
-See [step-by-step guide](https://github.com/UnitTestBot/UTBotJava/wiki/Generate-tests-with-IntelliJ-IDEA-plugin) explaining how to use the plugin.
+See [step-by-step guide](https://github.com/UnitTestBot/UTBotJava/wiki/generate-tests-with-plugin) explaining how to use the plugin.
 
 # How to contribute to UTBot Java
 

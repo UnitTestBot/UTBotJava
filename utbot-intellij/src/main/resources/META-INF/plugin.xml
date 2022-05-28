@@ -2,7 +2,7 @@
 <idea-plugin>
 
     <id>org.utbot.intellij.plugin.id</id>
-    <name>UnitTestBot</name>
+    <name>UTBot</name>
     <vendor>utbot.org</vendor>
 
     <description>UnitTestBot plugin for IntelliJ IDEA for Java</description>
@@ -37,7 +37,35 @@
     <!-- Minimum and maximum build of IDE compatible with the plugin -->
     <description>
         <![CDATA[
-                UnitTestBot generates test cases by code, trying to cover maximum statements and execution paths.
+                Generate <b>unit tests</b> with a single action!
+                <br />
+                <br />
+                The <b>UTBot</b> engine goes through your code instructions and generates regression tests.
+                <br />
+                <br />
+                The engine finds potential problems in your code:
+                <br />
+                <br />
+                <ul>
+                    <li>exceptions</li>
+                    <li>hangs</li>
+                    <li>overflows</li>
+                    <li>and even native crashes</li>
+                </ul>
+                <br />
+                They are not a surprise for you anymore. The engine will find the problems and generate tests for them.
+                <br />
+                <br />
+                The engine carefully selects tests to maximize statement and branch coverage. Our credo is to <i>maximize test coverage and minimize tests number</i>.
+                <br />
+                <br />
+                You can <a href="http://utbot.org">try the engine online</a> without installation.
+                <br />
+                <br />
+                Got ideas? Give us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava">GitHub page</a>
+                <br />
+                <br />
+                Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
         ]]>
     </description>
 

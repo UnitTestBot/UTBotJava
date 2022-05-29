@@ -43,19 +43,7 @@ public void testFail_errors() {
 
 **Environment**
 
-Test framework:
-
-Java:
-
-Mockito:
-
- - [ ] Other packages
- - [ ] Other classes
- - [ ] Static mocking
-
-Test:
-
-- [ ] Parametrized
+_Substitute this text with an information that can help us to recreate the environment. For instance, specify Java version, test framework with a version (JUnit, TestNG...), Mockito configuration (packages, classes, statics), were the test parametrized or not and so on._
 
 **Additional context**
 

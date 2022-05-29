@@ -31,7 +31,7 @@ internal class SettingDelegate<T>(val initializer: () -> T) {
 /**
  * Default concrete execution timeout (in milliseconds).
  */
-const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 100L
+const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
 
 object UtSettings {
     private val properties = Properties().also { props ->

@@ -70,8 +70,8 @@ fun getEnumConstantByName(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getEnumConstantByName(enumClass: Class<*>, name: String): Any? {
-                val fields: Array<java.lang.reflect.Field> = enumClass.declaredFields
+            private fun getEnumConstantByName(enumClass: Class<*>, name: String): kotlin.Any? {
+                val fields: kotlin.Array<java.lang.reflect.Field> = enumClass.declaredFields
                 for (field in fields) {
                     val fieldName = field.name
                     if (field.isEnumConstant && fieldName == name) {
@@ -114,7 +114,7 @@ fun getStaticFieldValue(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getStaticFieldValue(clazz: Class<*>, fieldName: String): Any? {
+            private fun getStaticFieldValue(clazz: Class<*>, fieldName: String): kotlin.Any? {
                 var currentClass: Class<*>? = clazz
                 var field: java.lang.reflect.Field
                 do {
@@ -164,7 +164,7 @@ fun getFieldValue(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getFieldValue(any: Any, fieldName: String): Any? {
+            private fun getFieldValue(any: kotlin.Any, fieldName: String): kotlin.Any? {
                 var clazz: Class<*>? = any.javaClass
                 var field: java.lang.reflect.Field
                 do {
@@ -214,7 +214,7 @@ fun setStaticField(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun setStaticField(defaultClass: Class<*>, fieldName: String, fieldValue: Any?) {
+            private fun setStaticField(defaultClass: Class<*>, fieldName: String, fieldValue: kotlin.Any?) {
                 var field: java.lang.reflect.Field?
                 var clazz = defaultClass
         
@@ -266,7 +266,7 @@ fun setField(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun setField(any: Any, fieldName: String, fieldValue: Any?) {
+            private fun setField(any: kotlin.Any, fieldName: String, fieldValue: kotlin.Any?) {
                 var clazz: Class<*> = any.javaClass
                 var field: java.lang.reflect.Field?
                 do {
@@ -306,14 +306,18 @@ fun createArray(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun createArray(className: String, length: Int, vararg values: Any): Array<Any> {
-                val array: Any = java.lang.reflect.Array.newInstance(Class.forName(className), length)
+            private fun createArray(
+                className: String, 
+                length: Int, 
+                vararg values: kotlin.Any
+            ): kotlin.Array<kotlin.Any?> {
+                val array: kotlin.Any = java.lang.reflect.Array.newInstance(Class.forName(className), length)
                 
                 for (i in values.indices) {
                     java.lang.reflect.Array.set(array, i, values[i])
                 }
                 
-                return array as Array<Any>
+                return array as kotlin.Array<kotlin.Any?>
             }
         """
         }
@@ -332,7 +336,7 @@ fun createInstance(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun createInstance(className: String): Any? {
+            private fun createInstance(className: String): kotlin.Any? {
                 val clazz: Class<*> = Class.forName(className)
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class::class.java)
                     .invoke(getUnsafeInstance(), clazz)
@@ -354,7 +358,7 @@ fun getUnsafeInstance(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getUnsafeInstance(): Any? {
+            private fun getUnsafeInstance(): kotlin.Any? {
                 val f: java.lang.reflect.Field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
                 f.isAccessible = true
                 return f[null]
@@ -403,10 +407,10 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
             }
         
             private boolean deepEquals(Object o1, Object o2) {
-                return deepEquals(o1, o2, new HashSet<>());
+                return deepEquals(o1, o2, new java.util.HashSet<>());
             }
         
-            private boolean deepEquals(Object o1, Object o2, Set<FieldsPair> visited) {
+            private boolean deepEquals(Object o1, Object o2, java.util.Set<FieldsPair> visited) {
                 visited.add(new FieldsPair(o1, o2));
 
                 if (o1 == o2) {
@@ -429,15 +433,15 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                     return false;
                 }
         
-                if (o1 instanceof Map) {
-                    if (!(o2 instanceof Map)) {
+                if (o1 instanceof java.util.Map) {
+                    if (!(o2 instanceof java.util.Map)) {
                         return false;
                     }
         
-                    return mapsDeepEquals((Map<?, ?>) o1, (Map<?, ?>) o2, visited);
+                    return mapsDeepEquals((java.util.Map<?, ?>) o1, (java.util.Map<?, ?>) o2, visited);
                 }
                 
-                if (o2 instanceof Map) {
+                if (o2 instanceof java.util.Map) {
                     return false;
                 }
         
@@ -461,9 +465,9 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                 }
         
                 // common classes without custom equals, use comparison by fields
-                final List<java.lang.reflect.Field> fields = new ArrayList<>();
+                final java.util.List<java.lang.reflect.Field> fields = new java.util.ArrayList<>();
                 while (firstClass != Object.class) {
-                    fields.addAll(Arrays.asList(firstClass.getDeclaredFields()));
+                    fields.addAll(java.util.Arrays.asList(firstClass.getDeclaredFields()));
                     // Interface should not appear here
                     firstClass = firstClass.getSuperclass();
                 }
@@ -490,26 +494,30 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun deepEquals(o1: Any?, o2: Any?): Boolean = deepEquals(o1, o2, hashSetOf())
+            private fun deepEquals(o1: kotlin.Any?, o2: kotlin.Any?): Boolean = deepEquals(o1, o2, hashSetOf())
             
-            private fun deepEquals(o1: Any?, o2: Any?, visited: MutableSet<kotlin.Pair<Any?, Any?>>): Boolean {
+            private fun deepEquals(
+                o1: kotlin.Any?, 
+                o2: kotlin.Any?, 
+                visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
+            ): Boolean {
                 visited += o1 to o2
                 
                 if (o1 === o2) return true
         
                 if (o1 == null || o2 == null) return false
         
-                if (o1 is Iterable<*>) {
-                    return if (o2 !is Iterable<*>) false else iterablesDeepEquals(o1, o2, visited)
+                if (o1 is kotlin.collections.Iterable<*>) {
+                    return if (o2 !is kotlin.collections.Iterable<*>) false else iterablesDeepEquals(o1, o2, visited)
                 }
                 
-                if (o2 is Iterable<*>) return false
+                if (o2 is kotlin.collections.Iterable<*>) return false
         
-                if (o1 is Map<*, *>) {
-                    return if (o2 !is Map<*, *>) false else mapsDeepEquals(o1, o2, visited)
+                if (o1 is kotlin.collections.Map<*, *>) {
+                    return if (o2 !is kotlin.collections.Map<*, *>) false else mapsDeepEquals(o1, o2, visited)
                 }
                 
-                if (o2 is Map<*, *>) return false
+                if (o2 is kotlin.collections.Map<*, *>) return false
         
                 var firstClass: Class<*> = o1.javaClass
                 if (firstClass.isArray) {
@@ -528,8 +536,8 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                 }
         
                 // common classes without custom equals, use comparison by fields
-                val fields: MutableList<java.lang.reflect.Field> = mutableListOf()
-                while (firstClass != Any::class.java) {
+                val fields: kotlin.collections.MutableList<java.lang.reflect.Field> = mutableListOf()
+                while (firstClass != kotlin.Any::class.java) {
                     fields += listOf(*firstClass.declaredFields)
                     // Interface should not appear here
                     firstClass = firstClass.superclass
@@ -559,14 +567,14 @@ fun arraysDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean arraysDeepEquals(Object arr1, Object arr2, Set<FieldsPair> visited) {
-                final int length = Array.getLength(arr1);
-                if (length != Array.getLength(arr2)) {
+            private boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
+                final int length = java.lang.reflect.Array.getLength(arr1);
+                if (length != java.lang.reflect.Array.getLength(arr2)) {
                     return false;
                 }
         
                 for (int i = 0; i < length; i++) {
-                    if (!deepEquals(Array.get(arr1, i), Array.get(arr2, i), visited)) {
+                    if (!deepEquals(java.lang.reflect.Array.get(arr1, i), java.lang.reflect.Array.get(arr2, i), visited)) {
                         return false;
                     }
                 }
@@ -577,7 +585,11 @@ fun arraysDeepEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun arraysDeepEquals(arr1: Any?, arr2: Any?, visited: MutableSet<kotlin.Pair<Any?, Any?>>): Boolean {
+            private fun arraysDeepEquals(
+                arr1: kotlin.Any?, 
+                arr2: kotlin.Any?, 
+                visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
+            ): Boolean {
                 val size = java.lang.reflect.Array.getLength(arr1)
                 if (size != java.lang.reflect.Array.getLength(arr2)) return false
         
@@ -597,9 +609,9 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, Set<FieldsPair> visited) {
-                final Iterator<?> firstIterator = i1.iterator();
-                final Iterator<?> secondIterator = i2.iterator();
+            private boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
+                final java.util.Iterator<?> firstIterator = i1.iterator();
+                final java.util.Iterator<?> secondIterator = i2.iterator();
                 while (firstIterator.hasNext() && secondIterator.hasNext()) {
                     if (!deepEquals(firstIterator.next(), secondIterator.next(), visited)) {
                         return false;
@@ -616,7 +628,11 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun iterablesDeepEquals(i1: Iterable<*>, i2: Iterable<*>, visited: MutableSet<kotlin.Pair<Any?, Any?>>): Boolean {
+            private fun iterablesDeepEquals(
+                i1: Iterable<*>, 
+                i2: Iterable<*>, 
+                visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
+            ): Boolean {
                 val firstIterator = i1.iterator()
                 val secondIterator = i2.iterator()
                 while (firstIterator.hasNext() && secondIterator.hasNext()) {
@@ -633,12 +649,16 @@ fun mapsDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean mapsDeepEquals(Map<?, ?> m1, Map<?, ?> m2, Set<FieldsPair> visited) {
-                final Iterator<? extends Map.Entry<?, ?>> firstIterator = m1.entrySet().iterator();
-                final Iterator<? extends Map.Entry<?, ?>> secondIterator = m2.entrySet().iterator();
+            private boolean mapsDeepEquals(
+                java.util.Map<?, ?> m1, 
+                java.util.Map<?, ?> m2, 
+                java.util.Set<FieldsPair> visited
+            ) {
+                final java.util.Iterator<? extends java.util.Map.Entry<?, ?>> firstIterator = m1.entrySet().iterator();
+                final java.util.Iterator<? extends java.util.Map.Entry<?, ?>> secondIterator = m2.entrySet().iterator();
                 while (firstIterator.hasNext() && secondIterator.hasNext()) {
-                    final Map.Entry<?, ?> firstEntry = firstIterator.next();
-                    final Map.Entry<?, ?> secondEntry = secondIterator.next();
+                    final java.util.Map.Entry<?, ?> firstEntry = firstIterator.next();
+                    final java.util.Map.Entry<?, ?> secondEntry = secondIterator.next();
         
                     if (!deepEquals(firstEntry.getKey(), secondEntry.getKey(), visited)) {
                         return false;
@@ -662,7 +682,7 @@ fun mapsDeepEquals(language: CodegenLanguage): String =
             private fun mapsDeepEquals(
                 m1: kotlin.collections.Map<*, *>, 
                 m2: kotlin.collections.Map<*, *>, 
-                visited: MutableSet<kotlin.Pair<Any?, Any?>>
+                visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
             ): Boolean {
                 val firstIterator = m1.entries.iterator()
                 val secondIterator = m2.entries.iterator()
@@ -704,9 +724,9 @@ fun hasCustomEquals(language: CodegenLanguage): String =
             """
             private fun hasCustomEquals(clazz: Class<*>): Boolean {
                 var c = clazz
-                while (Any::class.java != c) {
+                while (kotlin.Any::class.java != c) {
                     try {
-                        c.getDeclaredMethod("equals", Any::class.java)
+                        c.getDeclaredMethod("equals", kotlin.Any::class.java)
                         return true
                     } catch (e: Exception) {
                         // Interface should not appear here
@@ -724,12 +744,12 @@ fun getArrayLength(codegenLanguage: CodegenLanguage) =
         CodegenLanguage.JAVA ->
             """
             private static int getArrayLength(Object arr) {
-                return Array.getLength(arr);
+                return java.lang.reflect.Array.getLength(arr);
             }
             """.trimIndent()
         CodegenLanguage.KOTLIN ->
             """
-            private fun getArrayLength(arr: Any?): Int = java.lang.reflect.Array.getLength(arr)
+            private fun getArrayLength(arr: kotlin.Any?): Int = java.lang.reflect.Array.getLength(arr)
             """.trimIndent()
     }
 

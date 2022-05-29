@@ -25,6 +25,7 @@ import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
+import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
 import org.utbot.engine.z3.value
@@ -82,6 +83,7 @@ import soot.PrimType
 import soot.RefType
 import soot.Scene
 import soot.ShortType
+import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
@@ -1068,7 +1070,7 @@ fun UtBotSymbolicEngine.toMethodResult(value: Any?, sootType: Type): MethodResul
             arrayToMethodResult(value.size, elementType) {
                 if (value[it] == null) return@arrayToMethodResult nullObjectAddr
 
-                val addr = UtAddrExpression(mkBVConst("staticVariable${value.hashCode()}", UtInt32Sort))
+                val addr = UtAddrExpression(mkBVConst("staticVariable${value.hashCode()}_$it", UtInt32Sort))
 
                 val createdElement = if (elementType is RefType) {
                     val className = value[it]!!.javaClass.id.name
@@ -1140,6 +1142,30 @@ private fun UtBotSymbolicEngine.arrayToMethodResult(
         memoryUpdates = memoryUpdate
     )
 }
+
+fun UtBotSymbolicEngine.constructEnumStaticFieldResult(
+    fieldName: String,
+    fieldType: Type,
+    declaringClass: SootClass,
+    enumConstantSymbolicResultsByName: Map<String, MethodResult>,
+    staticFieldConcreteValue: Any?,
+    enumConstantSymbolicValues: List<ObjectValue>
+): MethodResult =
+    if (isEnumValuesFieldName(fieldName)) {
+        // special case to fill $VALUES array with already created symbolic values for enum constants runtime values
+        arrayToMethodResult(enumConstantSymbolicValues.size, declaringClass.type) { i ->
+            enumConstantSymbolicValues[i].addr
+        }
+    } else {
+        if (fieldName in enumConstantSymbolicResultsByName) {
+            // it is field to store enum constant so we use already created symbolic value from runtime enum constant
+            enumConstantSymbolicResultsByName.getValue(fieldName)
+        } else {
+            // otherwise, it is a common static field,
+            // and we have to create new symbolic value for it using its concrete value
+            toMethodResult(staticFieldConcreteValue, fieldType)
+        }
+    }
 
 private val Type.unsigned: Boolean
     get() = this is CharType

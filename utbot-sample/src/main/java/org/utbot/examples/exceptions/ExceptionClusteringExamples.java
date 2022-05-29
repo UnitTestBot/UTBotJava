@@ -20,7 +20,7 @@ public class ExceptionClusteringExamples {
     }
 
     public int sleepingMoreThanDefaultTimeout(int i) throws InterruptedException {
-        Thread.sleep(500L);
+        Thread.sleep(1500L);
 
         if (i < 0) {
             throw new RuntimeException();

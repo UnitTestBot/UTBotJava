@@ -1,0 +1,60 @@
+
+name: "[M] Run chosen tests"
+
+on: 
+  workflow_dispatch:
+    inputs:
+        project-name:
+          type: choice
+          description: "Project you want to run tests for."
+          required: true
+          default: utbot-framework
+          options:
+          - utbot-analytics
+          - utbot-cli
+          - utbot-framework-api
+          - utbot-framework
+          - utbot-fuzzers
+          - utbot-gradle
+          - utbot-instrumentation-tests
+          - utbot-instrumentation
+          - utbot-intellij
+        tests-bunch-name:
+          type: string
+          required: true
+          description: "{package-name}.{class-name}.{test-name-optional}"
+    
+jobs:
+    run-chosen-tests:
+      runs-on: ubuntu-20.04
+      
+      steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'zulu'
+          java-package: jdk+fx
+          cache: gradle
+      - uses: gradle/gradle-build-action@v2
+        with:
+          gradle-version: 6.8
+          
+      - name: Run chosen tests
+        run: |
+          export KOTLIN_HOME="/usr"
+          gradle :${{ github.event.inputs.project-name }}:test --tests ${{ github.event.inputs.tests-bunch-name }}
+          
+      - name: Upload ${{ github.event.inputs.project-name }} tests report if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.event.inputs.project-name }}-tests-report
+          path: ${{ github.event.inputs.project-name }}/build/reports/tests/test/*
+          
+      - name: Upload utbot-framework logs if utbot-framework tests have failed
+        if: ${{ failure() || (github.event.inputs.project-name == 'utbot-framework') }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: utbot_framework_logs
+          path: utbot-framework/logs/*

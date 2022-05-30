@@ -226,16 +226,17 @@ internal class CgVariableConstructor(val context: CgContext) :
 
     private fun constructArray(arrayModel: UtArrayModel, baseName: String?): CgVariable {
         val elementType = arrayModel.classId.elementClassId!!
-        val elementModels = arrayModel.stores.values + arrayModel.constModel
+        val elementModels = (0 until arrayModel.length).map {
+            if (it in arrayModel.stores) arrayModel.stores[it] else arrayModel.constModel
+        }
 
-        val constModelHasDefaultType =
-            arrayModel.constModel isDefaultValueOf elementType || arrayModel.constModel is UtNullModel
-        val canInitWithValues = constModelHasDefaultType
-                &&  (elementModels.all { it is UtPrimitiveModel } || elementModels.all { it is UtNullModel })
+        val canInitWithValues = elementModels.all { it is UtPrimitiveModel } || elementModels.all { it is UtNullModel }
 
-        val initializer =
-            if (canInitWithValues) CgAllocateInitializedArray(arrayModel)
-            else CgAllocateArray(arrayModel.classId, elementType, arrayModel.length)
+        val initializer = if (canInitWithValues) {
+            CgAllocateInitializedArray(arrayModel)
+        } else {
+            CgAllocateArray(arrayModel.classId, elementType, arrayModel.length)
+        }
 
         val array = newVar(arrayModel.classId, baseName) { initializer }
         valueByModelId[arrayModel.id] = array
@@ -258,7 +259,7 @@ internal class CgVariableConstructor(val context: CgContext) :
                     arrayModel.stores.entries.filter { (_, element) -> element isNotDefaultValueOf elementType }
                 } else {
                     // fill array if constModel is not default type value
-                    if (!constModelHasDefaultType) {
+                    if (arrayModel.constModel isNotDefaultValueOf elementType) {
                         val defaultVariable = getOrCreateVariable(arrayModel.constModel, "defaultValue")
                         basicForLoop(arrayModel.length) { i ->
                             array.setArrayElement(i, defaultVariable)
@@ -266,8 +267,11 @@ internal class CgVariableConstructor(val context: CgContext) :
                     }
 
                     // choose all not default values
-                    val defaultValue =
-                        if (constModelHasDefaultType) elementType.defaultValueModel() else arrayModel.constModel
+                    val defaultValue = if (arrayModel.constModel isDefaultValueOf elementType) {
+                        arrayModel.constModel
+                    } else {
+                        elementType.defaultValueModel()
+                    }
                     arrayModel.stores.entries.filter { (_, element) -> element != defaultValue }
                 }
 

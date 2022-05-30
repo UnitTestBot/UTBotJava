@@ -246,17 +246,12 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgAllocateInitializedArray) {
         val arrayModel = element.model
+        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
 
         if (arrayModel.constModel is UtPrimitiveModel) {
                 val prefix = arrayModel.constModel.classId.name.toLowerCase()
                 print("${prefix}ArrayOf(")
-                for (i in 0 until element.size) {
-                    val expr = arrayModel.getElementExpr(i)
-
-                    if (element.size > maxArrayElementsInLine(arrayModel.constModel)) println()
-                    expr.accept(this)
-                    if (i != element.size - 1) print(",")
-                }
+                arrayModel.renderElements(element.size, elementsInLine)
                 print(")")
         } else {
                 print(getKotlinClassString(element.type))

@@ -164,15 +164,10 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgAllocateInitializedArray) {
         val arrayModel = element.model
+        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
 
         print("{")
-        for (i in 0 until element.size) {
-            if (element.size > maxArrayElementsInLine(arrayModel.constModel)) println()
-
-            val expr = arrayModel.getElementExpr(i)
-            expr.accept(this)
-            if (i != element.size - 1) print(",")
-        }
+        arrayModel.renderElements(element.size, elementsInLine)
         print("}")
     }
 

@@ -110,14 +110,15 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     protected abstract val langPackage: String
 
-    //we may render array elements in initialization in one line or in separate lines
-    protected fun maxArrayElementsInLine(constModel: UtModel): Int {
+    //We may render array elements in initializer in one line or in separate lines:
+    //items count in one line depends on the value type.
+    protected fun arrayElementsInLine(constModel: UtModel): Int {
         if (constModel is UtNullModel) return 10
         return when (constModel.classId) {
             intClassId,
             byteClassId,
             longClassId,
-            charClassId -> 10
+            charClassId -> 8
             shortClassId,
             doubleClassId,
             floatClassId -> 6
@@ -755,6 +756,18 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
                 }
                 index == lastIndex -> if (newLines) println()
             }
+        }
+    }
+
+    protected fun UtArrayModel.renderElements(length: Int, elementsInLine: Int) {
+        for (i in 0 until length) {
+            val expr = this.getElementExpr(i)
+
+            if (i == 0 && length >= elementsInLine || i != 0 && i % elementsInLine == 0) {
+                println()
+            }
+            expr.accept(this@CgAbstractRenderer)
+            if (i != length - 1) print(",")
         }
     }
 

@@ -146,12 +146,14 @@ private fun getOrCreateTestResourcesUrl(module: Module): String {
     val moduleInstance = ModuleRootManager.getInstance(module)
     val sourceFolders = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
 
-    val testResourcesFolder = sourceFolders.firstOrNull { it.rootType in testResourceRootTypes }
+    val testResourcesFolder = sourceFolders.firstOrNull {
+        it.rootType in testResourceRootTypes && !it.isForGeneratedSources()
+    }
     if (testResourcesFolder != null) {
         return testResourcesFolder.url
     }
 
-    val testFolder = sourceFolders.firstOrNull { f -> f.rootType in testSourceRootTypes }
+    val testFolder = sourceFolders.firstOrNull { it.rootType in testSourceRootTypes }
     val contentEntry = testFolder?.contentEntry ?: moduleInstance.contentEntries.first()
 
     val parentFolderUrl = testFolder?.let { getParentPath(testFolder.url) }

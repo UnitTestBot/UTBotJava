@@ -1,4 +1,4 @@
-name: "Plugin and CLI: publish as archives"
+name: "[M] Plugin and CLI: publish as archives"
 
 on: 
   workflow_dispatch:
@@ -24,6 +24,7 @@ jobs:
           java-version: '8'
           distribution: 'zulu'
           java-package: jdk+fx
+          cache: gradle
       - uses: gradle/gradle-build-action@v2
         with:
           gradle-version: 6.8

@@ -249,16 +249,16 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         val elementsInLine = arrayElementsInLine(arrayModel.constModel)
 
         if (arrayModel.constModel is UtPrimitiveModel) {
-                val prefix = arrayModel.constModel.classId.name.toLowerCase()
-                print("${prefix}ArrayOf(")
-                arrayModel.renderElements(element.size, elementsInLine)
-                print(")")
+            val prefix = arrayModel.constModel.classId.name.toLowerCase()
+            print("${prefix}ArrayOf(")
+            arrayModel.renderElements(element.size, elementsInLine)
+            print(")")
         } else {
-                print(getKotlinClassString(element.type))
-                print("(${element.size})")
-                if (!element.elementType.isPrimitive) print(" { null }")
-            }
+            print(getKotlinClassString(element.type))
+            print("(${element.size})")
+            if (!element.elementType.isPrimitive) print(" { null }")
         }
+    }
 
     override fun visit(element: CgGetLength) {
         element.variable.accept(this)

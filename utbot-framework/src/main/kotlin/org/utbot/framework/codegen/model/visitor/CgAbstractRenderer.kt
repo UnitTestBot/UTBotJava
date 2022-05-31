@@ -87,6 +87,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
@@ -115,14 +116,9 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected fun arrayElementsInLine(constModel: UtModel): Int {
         if (constModel is UtNullModel) return 10
         return when (constModel.classId) {
-            intClassId,
-            byteClassId,
-            longClassId,
-            charClassId -> 8
-            shortClassId,
-            doubleClassId,
-            floatClassId -> 6
-            else -> 5
+            intClassId, byteClassId, longClassId, charClassId -> 8
+            booleanClassId, shortClassId, doubleClassId, floatClassId -> 6
+            else -> error("Non primitive value of type ${constModel.classId} is unexpected in array initializer")
         }
     }
 
@@ -718,11 +714,11 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected abstract fun renderExceptionCatchVariable(exception: CgVariable)
 
     protected fun UtArrayModel.getElementExpr(index: Int): CgExpression {
-        val itemModel = if (index in this.stores) this.stores[index] else this.constModel
+        val itemModel = stores.getOrDefault(index, constModel)
         val cgValue: CgExpression = when (itemModel) {
             is UtPrimitiveModel -> itemModel.value.resolve()
             is UtNullModel -> null.resolve()
-            else -> error("Model $itemModel is not allowed here")
+            else -> error("Non primitive or null model $itemModel is unexpected in array initializer")
         }
 
         return cgValue

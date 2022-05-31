@@ -227,7 +227,7 @@ internal class CgVariableConstructor(val context: CgContext) :
     private fun constructArray(arrayModel: UtArrayModel, baseName: String?): CgVariable {
         val elementType = arrayModel.classId.elementClassId!!
         val elementModels = (0 until arrayModel.length).map {
-            if (it in arrayModel.stores) arrayModel.stores[it] else arrayModel.constModel
+            arrayModel.stores.getOrDefault(it, arrayModel.constModel)
         }
 
         val canInitWithValues = elementModels.all { it is UtPrimitiveModel } || elementModels.all { it is UtNullModel }

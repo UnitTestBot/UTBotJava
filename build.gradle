@@ -45,5 +45,5 @@ subprojects {
 
 test {
     maxHeapSize '512m'
-    jvmArgs '-Xmx512m', '-Xms512m'
+    jvmArgs '-Xmx2048m', '-Xms512m'
 }

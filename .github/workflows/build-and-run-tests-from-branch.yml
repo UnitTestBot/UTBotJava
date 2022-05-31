@@ -2,6 +2,9 @@ name: "[M] UTBot Java: build and run tests"
 
 on:
   workflow_dispatch
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
   
 jobs:
   build-and-run-tests:
@@ -21,7 +24,7 @@ jobs:
     - name: Build and run tests in UTBot Java
       run: |
         export KOTLIN_HOME="/usr"
-        gradle clean build -Dorg.gradle.jvmargs=-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+        gradle clean build
         
     - name: Upload utbot-framework logs
       if: ${{ always() }}

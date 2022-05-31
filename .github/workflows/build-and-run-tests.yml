@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+
 jobs:
   build_and_run_tests:
     runs-on: ubuntu-20.04
@@ -23,7 +26,7 @@ jobs:
     - name: Build and run tests in UTBot Java
       run: |
         export KOTLIN_HOME="/usr"
-        gradle clean build -Dorg.gradle.jvmargs=-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+        gradle clean build
         
     - name: Upload utbot-framework logs
       if: ${{ always() }}

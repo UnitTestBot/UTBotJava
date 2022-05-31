@@ -2,6 +2,9 @@ name: "[M] UTBot Java: build and run tests"
 
 on:
   workflow_dispatch
+
+env:
+  GRADLE_OPTS: -Xmx2048m -Dorg.gradle.daemon=false
   
 jobs:
   build-and-run-tests:

@@ -42,3 +42,5 @@ subprojects {
         maven { url 'https://jitpack.io' }
     }
 }
+
+test { maxHeapSize = "512m" }

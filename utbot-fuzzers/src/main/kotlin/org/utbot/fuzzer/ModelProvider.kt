@@ -19,10 +19,26 @@ fun interface ModelProvider {
      *
      * This model provider is called before `anotherModelProvider`.
      */
-    fun with(anotherModelProvider: ModelProvider) : ModelProvider {
-        return ModelProvider { description, consumer ->
-            this@ModelProvider.generate(description, consumer)
-            anotherModelProvider.generate(description, consumer)
+    fun with(anotherModelProvider: ModelProvider): ModelProvider {
+        fun toList(m: ModelProvider) = if (m is Combined) m.providers else listOf(m)
+        return Combined(toList(this) + toList(anotherModelProvider))
+    }
+
+    /**
+     * Removes `anotherModelProvider` from current one.
+     */
+    fun except(anotherModelProvider: ModelProvider): ModelProvider {
+        return except { it == anotherModelProvider }
+    }
+
+    /**
+     * Removes `anotherModelProvider` from current one.
+     */
+    fun except(filter: (ModelProvider) -> Boolean): ModelProvider {
+        return if (this is Combined) {
+            Combined(providers.filterNot(filter))
+        } else {
+            Combined(if (filter(this)) emptyList() else listOf(this))
         }
     }
 
@@ -54,4 +70,21 @@ fun interface ModelProvider {
         }
     }
 
+    companion object {
+        @JvmStatic
+        fun of(vararg providers: ModelProvider): ModelProvider {
+            return Combined(providers.toList())
+        }
+    }
+
+    /**
+     * Wrapper class that delegates implementation to the [providers].
+     */
+    private class Combined(val providers: List<ModelProvider>): ModelProvider {
+        override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+            providers.forEach { provider ->
+                provider.generate(description, consumer)
+            }
+        }
+    }
 }

@@ -2,10 +2,8 @@ package org.utbot.framework
 
 import org.utbot.common.PathUtil.toPath
 import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.Properties
-import kotlin.io.path.exists
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.reflect.KProperty
 import mu.KotlinLogging
@@ -238,6 +236,11 @@ object UtSettings {
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */
     var useFuzzing: Boolean by getBooleanProperty(false)
+
+    /**
+     * Set the total attempts to improve coverage by fuzzer.
+     */
+    var fuzzingMaxAttemps: Int by getIntProperty(Int.MAX_VALUE)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors

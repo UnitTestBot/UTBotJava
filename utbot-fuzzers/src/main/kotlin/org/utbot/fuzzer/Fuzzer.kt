@@ -3,9 +3,14 @@ package org.utbot.fuzzer
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
+import org.utbot.fuzzer.providers.ConstantsModelProvider
+import org.utbot.fuzzer.providers.ObjectModelProvider
+import org.utbot.fuzzer.providers.PrimitivesModelProvider
+import org.utbot.fuzzer.providers.StringConstantModelProvider
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.ToIntFunction
+import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
@@ -23,13 +28,14 @@ fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvi
             models.add(classId.defaultValueModel())
         }
     }
-    return CartesianProduct(values).asSequence()
+    return CartesianProduct(values, Random(0L)).asSequence()
 }
 
 fun defaultModelProviders(idGenerator: ToIntFunction<ClassId> = SimpleIdGenerator()): ModelProvider {
     return ObjectModelProvider(idGenerator)
-        .with(PrimitivesModelProvider)
         .with(ConstantsModelProvider)
+        .with(StringConstantModelProvider)
+        .with(PrimitivesModelProvider)
 }
 
 private class SimpleIdGenerator : ToIntFunction<ClassId> {

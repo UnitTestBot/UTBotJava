@@ -1,8 +1,10 @@
-package org.utbot.fuzzer
+package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.ModelProvider
 import java.util.function.BiConsumer
 
 /**

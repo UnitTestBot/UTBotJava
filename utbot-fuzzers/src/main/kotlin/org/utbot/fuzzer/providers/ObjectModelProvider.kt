@@ -1,4 +1,4 @@
-package org.utbot.fuzzer
+package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -8,6 +8,9 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.fuzz
 import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
 import java.lang.reflect.Parameter
@@ -21,16 +24,18 @@ class ObjectModelProvider(
     private val idGenerator: ToIntFunction<ClassId>
 ) : ModelProvider {
 
+    var modelProvider: ModelProvider = ModelProvider.of(ConstantsModelProvider, StringConstantModelProvider, PrimitivesModelProvider)
+
     override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
         val assembleModels = with(description) {
             parameters.asSequence()
                 .flatMap { classId ->
                     collectConstructors(classId) { javaConstructor ->
-                        isPublic(javaConstructor) && javaConstructor.parameters.all(::isPrimitiveOrString)
+                        isPublic(javaConstructor) && javaConstructor.parameters.all(Companion::isPrimitiveOrString)
                     }
                 }
                 .associateWith {
-                    fuzzParameters(it)
+                    fuzzParameters(it, modelProvider)
                 }
                 .flatMap { (constructorId, fuzzedParameters) ->
                     fuzzedParameters.map { params ->
@@ -64,14 +69,10 @@ class ObjectModelProvider(
             return parameterType.isPrimitive || String::class.java == parameterType
         }
 
-        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId): Sequence<List<UtModel>> {
+        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<UtModel>> {
             val fuzzedMethod = FuzzedMethodDescription(
                 executableId = constructorId,
                 concreteValues = this.concreteValues
-            )
-            val modelProviders = arrayOf(
-                PrimitivesModelProvider,
-                ConstantsModelProvider
             )
             return fuzz(fuzzedMethod, *modelProviders)
         }

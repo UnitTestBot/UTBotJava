@@ -1,0 +1,49 @@
+package org.utbot.examples.benchmark
+
+import org.utbot.examples.samples.benchmark.Fibonacci
+import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.execute
+import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
+import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
+import java.math.BigInteger
+import javafx.util.Pair
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
+
+class TestBenchmarkClasses {
+    lateinit var utContext: AutoCloseable
+
+    @Test
+    fun testRepeater() {
+        ConcreteExecutor(
+            CoverageInstrumentation,
+            Repeater::class.java.protectionDomain.codeSource.location.path
+        ).use {
+            val dc0 = Repeater(", ")
+            val res0 = it.execute(Repeater::concat, arrayOf(dc0, "flex", "mega-", 2))
+            assertEquals("mega-mega-flex", res0.getOrNull())
+
+
+            val dc1 = Unzipper()
+            val arr = arrayOf(Pair(1, 'h'), Pair(1, 'e'), Pair(2, 'l'), Pair(1, 'o'))
+            val res1 = it.execute(Unzipper::unzip, arrayOf(dc1, arr))
+            assertEquals("h-e-ll-o-", res1.getOrNull())
+        }
+    }
+
+    @Test
+    fun testFibonacci() {
+        ConcreteExecutor(
+            InvokeInstrumentation(),
+            Fibonacci::class.java.protectionDomain.codeSource.location.path
+        ).use {
+            val res =
+                it.execute(
+                    Fibonacci::calc,
+                    arrayOf(1, 1, 10)
+                )
+            assertEquals(Result.success(BigInteger.valueOf(89)), res)
+        }
+    }
+}
+

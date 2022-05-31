@@ -27,6 +27,16 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'maven-publish'
 
+    publishing {
+        publications {
+            jar(MavenPublication) {
+                from components.java
+                groupId 'org.utbot'
+                artifactId project.name
+            }
+        }
+    }
+
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }

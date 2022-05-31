@@ -1,27 +1,20 @@
-package org.utbot.sarif.extension
+package org.utbot.gradle.plugin.extension
 
-import org.utbot.common.PathUtil.toPath
-import org.utbot.engine.Mocker
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.sarif.buildProject
-import java.io.File
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
+import org.utbot.common.PathUtil.toPath
+import org.utbot.engine.Mocker
+import org.utbot.framework.codegen.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.gradle.plugin.buildProject
+import java.io.File
 
 class SarifGradleExtensionProviderTest {
 

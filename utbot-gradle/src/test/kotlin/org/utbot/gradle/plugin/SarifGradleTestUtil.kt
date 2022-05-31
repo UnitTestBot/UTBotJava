@@ -1,4 +1,4 @@
-package org.utbot.sarif
+package org.utbot.gradle.plugin
 
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
@@ -8,7 +8,7 @@ import org.gradle.testfixtures.ProjectBuilder
 internal fun buildProject(): Project {
     val project = ProjectBuilder.builder().build()
     project.pluginManager.apply("java")
-    project.pluginManager.apply("org.utbot.sarif")
+    project.pluginManager.apply("org.utbot.gradle.plugin")
     return project
 }
 

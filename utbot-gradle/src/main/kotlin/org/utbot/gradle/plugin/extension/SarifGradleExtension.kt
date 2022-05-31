@@ -1,4 +1,4 @@
-package org.utbot.sarif.extension
+package org.utbot.gradle.plugin.extension
 
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property

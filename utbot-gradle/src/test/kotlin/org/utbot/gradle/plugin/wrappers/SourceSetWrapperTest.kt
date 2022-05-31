@@ -1,20 +1,19 @@
-package org.utbot.sarif.wrappers
+package org.utbot.gradle.plugin.wrappers
 
-import org.utbot.common.FileUtil.createNewFileWithParentDirectories
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.util.*
-import org.utbot.sarif.buildProject
-import org.utbot.sarif.extension.SarifGradleExtensionProvider
-import org.utbot.sarif.mainSourceSet
-import java.nio.file.Paths
 import org.gradle.api.Project
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.utbot.common.FileUtil.createNewFileWithParentDirectories
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.util.Snippet
+import org.utbot.framework.util.compileClassFile
+import org.utbot.gradle.plugin.buildProject
+import org.utbot.gradle.plugin.extension.SarifGradleExtensionProvider
+import org.utbot.gradle.plugin.mainSourceSet
+import java.nio.file.Paths
 
 class SourceSetWrapperTest {
 

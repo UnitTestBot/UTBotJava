@@ -18,6 +18,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -81,6 +82,7 @@ interface CgElement {
             is CgLiteral -> visit(element)
             is CgNonStaticRunnable -> visit(element)
             is CgStaticRunnable -> visit(element)
+            is CgAllocateInitializedArray -> visit(element)
             is CgAllocateArray -> visit(element)
             is CgEnumConstantAccess -> visit(element)
             is CgFieldAccess -> visit(element)
@@ -644,7 +646,7 @@ class CgStaticRunnable(type: ClassId, val classId: ClassId, methodId: MethodId):
 
 // Array allocation
 
-class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int)
+open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int)
     : CgReferenceExpression {
     override val type: ClassId by lazy { CgClassId(type.name, updateElementType(elementType), isNullable = type.isNullable) }
     val elementType: ClassId by lazy {
@@ -661,6 +663,10 @@ class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int)
             CgClassId(type, isNullable = true)
         }
 }
+
+class CgAllocateInitializedArray(val model: UtArrayModel)
+    : CgAllocateArray(model.classId, model.classId.elementClassId!!, model.length)
+
 
 // Spread operator (for Kotlin, empty for Java)
 

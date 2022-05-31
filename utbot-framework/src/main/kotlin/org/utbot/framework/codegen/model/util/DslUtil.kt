@@ -22,6 +22,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.floatClassId
@@ -53,7 +54,7 @@ fun intLiteral(num: Int) = CgLiteral(intClassId, num)
 
 fun longLiteral(num: Long) = CgLiteral(longClassId, num)
 
-fun byteLiteral(num: Byte) = CgLiteral(booleanClassId, num)
+fun byteLiteral(num: Byte) = CgLiteral(byteClassId, num)
 
 fun shortLiteral(num: Short) = CgLiteral(shortClassId, num)
 

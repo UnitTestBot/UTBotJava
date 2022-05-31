@@ -43,14 +43,14 @@ In addition, it creates one big SARIF-report containing the results from all the
   <details>
   <summary>Groovy</summary>
   <pre>
-  apply plugin: 'org.utbot.sarif'
+  apply plugin: 'org.utbot.gradle.plugin'
   </pre>
   </details>
   
   <details>
   <summary>Kotlin DSL</summary>
   <pre>
-  apply(plugin = "org.utbot.sarif")
+  apply(plugin = "org.utbot.gradle.plugin")
   </pre>
   </details>
 
@@ -195,11 +195,8 @@ There are two ways to do it.
       buildscript {
           repositories {
               mavenLocal()
-              maven {
-                  url "http://[your-ip]:[your-port]/repository/utbot-uber/"
-                  allowInsecureProtocol true
-              }
               mavenCentral()
+              maven { url 'https://jitpack.io' }
           }
       &nbsp;
           dependencies {
@@ -215,11 +212,8 @@ There are two ways to do it.
       buildscript {
           repositories {
               mavenLocal()
-              maven {
-                  url = uri("http://[your-ip]:[your-port]/repository/utbot-uber/")
-                  isAllowInsecureProtocol = true
-              }
               mavenCentral()
+              maven { url 'https://jitpack.io' }
           }
       &nbsp;
           dependencies {
@@ -239,11 +233,8 @@ There are two ways to do it.
       buildscript {
           repositories {
               mavenLocal()
-              maven {
-                  url "http://[your-ip]:[your-port]/repository/utbot-uber/"
-                  allowInsecureProtocol true
-              }
               mavenCentral()
+              maven { url 'https://jitpack.io' }
           }
       &nbsp;
           dependencies {
@@ -262,11 +253,8 @@ There are two ways to do it.
       buildscript {
           repositories {
               mavenLocal()
-              maven {
-                  url = uri("http://[your-ip]:[your-port]/repository/utbot-uber/")
-                  isAllowInsecureProtocol = true
-              }
               mavenCentral()
+              maven { url 'https://jitpack.io' }
           }
       &nbsp;
           dependencies {

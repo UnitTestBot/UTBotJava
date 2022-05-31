@@ -1,5 +1,8 @@
-package org.utbot.sarif
+package org.utbot.gradle.plugin
 
+import mu.KLogger
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.TaskAction
 import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -9,18 +12,16 @@ import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.sarif.extension.SarifGradleExtensionProvider
-import org.utbot.sarif.wrappers.GradleProjectWrapper
-import org.utbot.sarif.wrappers.SourceFindingStrategyGradle
-import org.utbot.sarif.wrappers.SourceSetWrapper
-import org.utbot.sarif.wrappers.TargetClassWrapper
+import org.utbot.gradle.plugin.extension.SarifGradleExtensionProvider
+import org.utbot.gradle.plugin.wrappers.GradleProjectWrapper
+import org.utbot.gradle.plugin.wrappers.SourceFindingStrategyGradle
+import org.utbot.gradle.plugin.wrappers.SourceSetWrapper
+import org.utbot.gradle.plugin.wrappers.TargetClassWrapper
+import org.utbot.sarif.SarifReport
 import org.utbot.summary.summarize
 import java.net.URLClassLoader
 import java.nio.file.Path
 import javax.inject.Inject
-import mu.KLogger
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.TaskAction
 
 /**
  * The main class containing the entry point [createSarifReport].
@@ -59,7 +60,7 @@ open class CreateSarifReportTask @Inject constructor(
     // internal
 
     // overwriting the getLogger() function from the DefaultTask
-    private val logger: KLogger = org.utbot.sarif.logger
+    private val logger: KLogger = org.utbot.gradle.plugin.logger
 
     /**
      * Generates tests and a SARIF report for classes in the [gradleProject] and in all its child projects.

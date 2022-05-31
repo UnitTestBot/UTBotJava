@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  GRADLE_OPTS: -Dorg.gradle.jvmargs=-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+  GRADLE_OPTS: -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
 
 jobs:
   build_and_run_tests:

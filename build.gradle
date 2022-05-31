@@ -44,7 +44,6 @@ subprojects {
 }
 
 test {
-    maxHeapSize = "512m"
-    forkEvery 100
+    maxHeapSize '512m'
     jvmArgs '-Xmx512m', '-Xms512m'
 }

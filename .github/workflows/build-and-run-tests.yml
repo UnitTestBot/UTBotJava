@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  GRADLE_OPTS: -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap
+  GRADLE_OPTS: -Xmx10248m -XX:MaxPermSize=256m
 
 jobs:
   build_and_run_tests:
@@ -26,7 +26,7 @@ jobs:
     - name: Build and run tests in UTBot Java
       run: |
         export KOTLIN_HOME="/usr"
-        gradle clean build
+        gradle clean build --max-workers 4
         
     - name: Upload utbot-framework logs
       if: ${{ always() }}

@@ -44,5 +44,5 @@ subprojects {
 }
 
 test {
-    jvmArgs "-XX:+UnlockExperimentalVMOptions", "-XX:+UseCGroupMemoryLimitForHeap"
+    maxHeapSize = "1024m"
 }

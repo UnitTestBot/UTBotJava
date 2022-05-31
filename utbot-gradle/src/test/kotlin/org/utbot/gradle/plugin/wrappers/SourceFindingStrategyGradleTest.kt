@@ -1,12 +1,12 @@
-package org.utbot.sarif.wrappers
+package org.utbot.gradle.plugin.wrappers
 
-import org.utbot.common.PathUtil.toPath
-import java.nio.file.Paths
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
+import org.utbot.common.PathUtil.toPath
+import java.nio.file.Paths
 
 class SourceFindingStrategyGradleTest {
 

@@ -1,21 +1,14 @@
-package org.utbot.sarif.extension
+package org.utbot.gradle.plugin.extension
 
+import org.gradle.api.Project
 import org.utbot.common.PathUtil.toPath
 import org.utbot.engine.Mocker
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.*
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import java.io.File
-import org.gradle.api.Project
 
 /**
  * Provides all [SarifGradleExtension] fields in a convenient form:

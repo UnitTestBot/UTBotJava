@@ -1,4 +1,4 @@
-package org.utbot.sarif.wrappers
+package org.utbot.gradle.plugin.wrappers
 
 import org.utbot.common.PathUtil
 import org.utbot.common.PathUtil.toPath

@@ -1,4 +1,4 @@
-package org.utbot.sarif
+package org.utbot.gradle.plugin
 
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test

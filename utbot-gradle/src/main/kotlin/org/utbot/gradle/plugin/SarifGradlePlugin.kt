@@ -1,14 +1,14 @@
-package org.utbot.sarif
+package org.utbot.gradle.plugin
 
-import org.utbot.sarif.extension.SarifGradleExtension
-import org.utbot.sarif.extension.SarifGradleExtensionProvider
-import java.io.File
+import mu.KotlinLogging
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskProvider
-import mu.KotlinLogging
+import org.utbot.gradle.plugin.extension.SarifGradleExtension
+import org.utbot.gradle.plugin.extension.SarifGradleExtensionProvider
+import java.io.File
 
 internal val logger = KotlinLogging.logger {}
 

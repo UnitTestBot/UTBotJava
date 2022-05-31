@@ -1,5 +1,6 @@
-package org.utbot.sarif.wrappers
+package org.utbot.gradle.plugin.wrappers
 
+import org.gradle.api.tasks.SourceSet
 import org.utbot.common.FileUtil.createNewFileWithParentDirectories
 import org.utbot.common.FileUtil.findAllFilesOnly
 import org.utbot.common.PathUtil.classFqnToPath
@@ -14,7 +15,6 @@ import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
-import org.gradle.api.tasks.SourceSet
 
 class SourceSetWrapper(
     val sourceSet: SourceSet,

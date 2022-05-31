@@ -26,7 +26,12 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.reflect.KClass
 
-open class SimpleModelProvider(
+/**
+ * Provides some simple default models of any class.
+ *
+ * Used as a fallback implementation until other providers cover every type.
+ */
+open class FallbackModelProvider(
     private val idGenerator: IntSupplier
 ): AbstractModelProvider() {
 

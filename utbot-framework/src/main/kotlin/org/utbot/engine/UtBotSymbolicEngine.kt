@@ -138,7 +138,7 @@ import org.utbot.framework.util.description
 import org.utbot.framework.util.executableId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.SimpleModelProvider
+import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
@@ -531,7 +531,7 @@ class UtBotSymbolicEngine(
             return@flow
         }
 
-        val simpleModelProvider = SimpleModelProvider { nextDefaultModelId++ }
+        val fallbackModelProvider = FallbackModelProvider { nextDefaultModelId++ }
 
         val thisInstance = when {
             methodUnderTest.isStatic -> null
@@ -544,7 +544,7 @@ class UtBotSymbolicEngine(
                 null
             }
             else -> {
-                simpleModelProvider.toModel(methodUnderTest.clazz).apply {
+                fallbackModelProvider.toModel(methodUnderTest.clazz).apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
                     }
@@ -553,7 +553,7 @@ class UtBotSymbolicEngine(
         }
 
         val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph))
-        val modelProviderWithFallback = modelProvider.withFallback(simpleModelProvider::toModel)
+        val modelProviderWithFallback = modelProvider.withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = mutableSetOf<Instruction>()
         var attempts = UtSettings.fuzzingMaxAttemps
         fuzz(methodUnderTestDescription, modelProviderWithFallback).forEachIndexed { index, parameters ->

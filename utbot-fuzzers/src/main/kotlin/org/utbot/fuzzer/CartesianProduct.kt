@@ -15,7 +15,7 @@ class CartesianProduct<T>(
     override fun iterator(): Iterator<List<T>> {
         val combinations = Combinations(*lists.map { it.size }.toIntArray())
         val sequence = if (random != null) {
-            // todo create lazy random algo for this because this method can cause OOME even we take only one value
+            // todo create lazy random algo for this because this method can cause OOME even if we take only one value
             val permutation = IntArray(combinations.size) { it }
             permutation.shuffle(random)
             permutation.asSequence().map(combinations::get)

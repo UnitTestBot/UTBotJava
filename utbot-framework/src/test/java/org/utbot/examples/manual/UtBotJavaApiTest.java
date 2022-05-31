@@ -13,6 +13,7 @@ import org.utbot.examples.manual.examples.ClassRefExample;
 import org.utbot.examples.manual.examples.DirectAccessExample;
 import org.utbot.examples.manual.examples.MultiMethodExample;
 import org.utbot.examples.manual.examples.ProvidedExample;
+import org.utbot.examples.manual.examples.StringSwitchExample;
 import org.utbot.examples.manual.examples.Trivial;
 import org.utbot.examples.manual.examples.customer.B;
 import org.utbot.examples.manual.examples.customer.C;
@@ -1241,6 +1242,64 @@ public class UtBotJavaApiTest {
         );
 
         Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generationResultWithConcreteExecutionOnly);
+        compileClassFile(destinationClassName, snippet2);
+    }
+
+    @Test
+    public void testFuzzingSimple() {
+        UtBotJavaApi.setStopConcreteExecutorOnExit(false);
+
+        String classpath = getClassPath(StringSwitchExample.class);
+        String dependencyClassPath = getDependencyClassPath();
+
+        UtCompositeModel classUnderTestModel = modelFactory.produceCompositeModel(
+                classIdForType(StringSwitchExample.class)
+        );
+
+        Method methodUnderTest = getMethodByName(StringSwitchExample.class, "validate", String.class, int.class, int.class);
+
+        IdentityHashMap<UtModel, UtModel> models = modelFactory.produceAssembleModel(
+                methodUnderTest,
+                StringSwitchExample.class,
+                Collections.singletonList(classUnderTestModel)
+        );
+
+        EnvironmentModels methodState = new EnvironmentModels(
+                models.get(classUnderTestModel),
+                Arrays.asList(new UtPrimitiveModel("initial model"), new UtPrimitiveModel(-10), new UtPrimitiveModel(0)),
+                Collections.emptyMap()
+        );
+
+        TestMethodInfo methodInfo = new TestMethodInfo(
+                methodUnderTest,
+                methodState);
+        List<UtTestCase> utTestCases1 = UtBotJavaApi.fuzzingTestCases(
+                Collections.singletonList(
+                        methodInfo
+                ),
+                StringSwitchExample.class,
+                classpath,
+                dependencyClassPath,
+                MockStrategyApi.OTHER_PACKAGES,
+                3000L,
+                (type) -> {
+                    if (int.class.equals(type) || Integer.class.equals(type)) {
+                        return Arrays.asList(0, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                    }
+                    return null;
+                }
+        );
+
+        String generate = UtBotJavaApi.generate(
+                Collections.singletonList(methodInfo),
+                utTestCases1,
+                destinationClassName,
+                classpath,
+                dependencyClassPath,
+                StringSwitchExample.class
+        );
+
+        Snippet snippet2 = new Snippet(CodegenLanguage.JAVA, generate);
         compileClassFile(destinationClassName, snippet2);
     }
 

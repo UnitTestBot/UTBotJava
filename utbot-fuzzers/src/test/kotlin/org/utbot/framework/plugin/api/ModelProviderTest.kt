@@ -23,6 +23,8 @@ import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
 
 class ModelProviderTest {
@@ -181,7 +183,7 @@ class ModelProviderTest {
             val classId = A::class.java.id
             val models = collect(
                 ObjectModelProvider { 0 }.apply {
-                    modelProvider = ModelProvider.of(ConstantsModelProvider, StringConstantModelProvider)
+                    modelProvider = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
                 parameters = listOf(classId)
             )
@@ -212,7 +214,8 @@ class ModelProviderTest {
                 parameters = listOf(classId)
             )
 
-            assertEquals(0, models.size)
+            assertEquals(1, models.size)
+            assertEquals(1, models[0]!!.size)
         }
     }
 
@@ -257,6 +260,18 @@ class ModelProviderTest {
         assertEquals(1, result[0]!!.size)
         assertTrue(result[1]!!.size > 1)
         assertEquals(UtPrimitiveModel(-123), result[0]!![0])
+    }
+
+    @Test
+    fun `test collection model can produce basic values with assembled model`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                defaultModelProviders { 0 },
+                parameters = listOf(java.util.List::class.java.id)
+            )
+
+            assertEquals(1, result.size)
+        }
     }
 
     private fun collect(

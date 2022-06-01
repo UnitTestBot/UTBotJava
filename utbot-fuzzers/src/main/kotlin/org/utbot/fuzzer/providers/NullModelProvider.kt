@@ -13,11 +13,12 @@ import java.util.function.BiConsumer
 @Suppress("unused") // disabled until fuzzer breaks test with null/nonnull annotations
 object NullModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
-        description.parameters
+        description.parametersMap
             .asSequence()
-            .filter { classId ->  classId.isRefType }
-            .forEachIndexed { index, classId ->
-                consumer.accept(index, UtNullModel(classId))
+            .filter { (classId, _) ->  classId.isRefType }
+            .forEach { (classId, indices) ->
+                val model = UtNullModel(classId)
+                indices.forEach { consumer.accept(it, model) }
             }
     }
 }

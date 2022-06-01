@@ -8,7 +8,7 @@ import org.utbot.fuzzer.ModelProvider
 import java.util.function.BiConsumer
 
 /**
- * Creates models of primitives from the method parameters list.
+ * Produces bound values for primitive types.
  */
 object PrimitivesModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
@@ -70,6 +70,9 @@ object PrimitivesModelProvider : ModelProvider {
                 )
                 stringClassId -> listOf(
                     UtPrimitiveModel(""),
+                    UtPrimitiveModel("   "),
+                    UtPrimitiveModel("string"),
+                    UtPrimitiveModel("\n\t\r"),
                 )
                 else -> listOf()
             }

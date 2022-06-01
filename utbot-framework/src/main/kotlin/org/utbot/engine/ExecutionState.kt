@@ -12,6 +12,7 @@ import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusUNDEFINED
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.SymbolicStateUpdate
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.Step
 import soot.SootMethod
 import soot.jimple.Stmt
@@ -86,7 +87,7 @@ data class StateAnalyticsProperties(
         successorVisitedAfterLastFork,
         successorVisitedBeforeLastFork,
         successorStmtSinceLastCovered,
-        parent
+        if (UtSettings.featureProcess) parent else null
     )
 }
 

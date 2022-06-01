@@ -1,13 +1,30 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import kotlinx.collections.immutable.PersistentList
+import org.utbot.framework.codegen.Junit5
+import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.any
 import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
+import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
+import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
+import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
+import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
+import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -31,18 +48,20 @@ import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
-import kotlinx.collections.immutable.PersistentList
 
 typealias Block = PersistentList<CgStatement>
 
@@ -99,22 +118,58 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return methodCall
     }
 
-    // TODO: do not always use Throwable in the future, use more specific exceptions instead
-    private fun newMethodCall(id: MethodId) {
-        when {
-            id.isUtil -> {
-                requiredUtilMethods += id
-                addException(java.lang.Throwable::class.id)
-            }
-            else -> addException(java.lang.Throwable::class.id)
+    private fun newMethodCall(methodId: MethodId) {
+        if (methodId.isUtil) requiredUtilMethods += methodId
+        importIfNeeded(methodId)
+
+        //Builtin methods does not have jClass, so [methodId.method] will crash on it,
+        //so we need to collect required exceptions manually from source codes
+        if (methodId is BuiltinMethodId) {
+            methodId.findExceptionTypes().forEach { addException(it) }
+            return
         }
-        importIfNeeded(id)
+
+        val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
+                && currentExecution?.result is UtExplicitlyThrownException
+        val frameworkSupportsAssertThrows = testFramework == Junit5 || testFramework == TestNg
+
+        //If explicit exception is wrapped with assertThrows,
+        // no "throws" in test method signature is required.
+        if (methodIsUnderTestAndThrowsExplicitly && frameworkSupportsAssertThrows) {
+            return
+        }
+
+        methodId.method.exceptionTypes.forEach { addException(it.id) }
     }
 
-    private fun newConstructorCall(id: ConstructorId) {
-        importIfNeeded(id.classId)
-        for (exception in id.exceptions) {
+    private fun newConstructorCall(constructorId: ConstructorId) {
+        importIfNeeded(constructorId.classId)
+        for (exception in constructorId.exceptions) {
             addException(exception)
+        }
+    }
+
+    private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
+        if (!this.isUtil) return emptySet()
+
+        with(currentTestClass) {
+            return when (this@findExceptionTypes) {
+                getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
+                getStaticFieldValueMethodId,
+                getFieldValueMethodId,
+                setStaticFieldMethodId,
+                setFieldMethodId,
+                createInstanceMethodId,
+                getUnsafeInstanceMethodId -> setOf(Exception::class.id)
+                createArrayMethodId -> setOf(ClassNotFoundException::class.id)
+                deepEqualsMethodId,
+                arraysDeepEqualsMethodId,
+                iterablesDeepEqualsMethodId,
+                mapsDeepEqualsMethodId,
+                hasCustomEqualsMethodId,
+                getArrayLengthMethodId -> emptySet()
+                else -> error("Unknown util method $this")
+            }
         }
     }
 

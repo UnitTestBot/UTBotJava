@@ -1134,7 +1134,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val varType = CgClassId(
                             it.variableType,
                             TypeParameters(listOf(typeParameter)),
-                            isNullable=true,
+                            isNullable = true,
                         )
                         +CgDeclaration(
                             varType,
@@ -1638,21 +1638,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * that may be thrown by these calls.
      */
     private fun CgExecutableCall.intercepted() {
-        when (executableId) {
-            is MethodId -> {
-                if (executableId == invoke) {
-                    this.wrapReflectiveCall()
-                } else {
-                    +this
-                }
-            }
-            is ConstructorId -> {
-                if (executableId == newInstance) {
-                    this.wrapReflectiveCall()
-                } else {
-                    +this
-                }
-            }
+        val executableToWrap = when (executableId) {
+            is MethodId -> invoke
+            is ConstructorId -> newInstance
+        }
+        if (executableId == executableToWrap) {
+            this.wrapReflectiveCall()
+        } else {
+            +this
         }
     }
 }

@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -8,12 +9,24 @@ import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import sun.misc.Unsafe
 import java.lang.reflect.AccessibleObject
 import java.lang.reflect.Field
 import java.lang.reflect.InvocationTargetException
-import sun.misc.Unsafe
 
 // reflection methods ids
+
+//TODO: these methods are called builtins, but actually are just [MethodId]
+//may be fixed in https://github.com/UnitTestBot/UTBotJava/issues/138
+
+internal val reflectionBuiltins: Set<MethodId>
+         get() = setOf(
+                setAccessible, invoke, newInstance, get, forName,
+                getDeclaredMethod, getDeclaredConstructor, allocateInstance,
+                getClass, getDeclaredField, isEnumConstant, getFieldName,
+                equals, getSuperclass, set, newArrayInstance,
+                setArrayElement, getArrayElement, getTargetException,
+        )
 
 internal val setAccessible = methodId(
         classId = AccessibleObject::class.id,

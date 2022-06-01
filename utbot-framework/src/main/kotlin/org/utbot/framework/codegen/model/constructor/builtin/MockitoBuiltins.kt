@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinMethodId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
@@ -14,6 +15,13 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
+
+internal val mockitoBuiltins: Set<MethodId>
+    get() = setOf(
+        mockMethodId, whenMethodId, thenMethodId, thenReturnMethodId,
+        any, anyOfClass, anyByte, anyChar, anyShort, anyInt, anyLong,
+        anyFloat, anyDouble, anyBoolean, anyString
+    )
 
 internal val mockitoClassId = BuiltinClassId(
     name = "org.mockito.Mockito",

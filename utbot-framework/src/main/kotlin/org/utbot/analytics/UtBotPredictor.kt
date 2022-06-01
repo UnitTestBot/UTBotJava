@@ -3,9 +3,6 @@ package org.utbot.analytics
 import org.utbot.engine.pc.UtSolverStatusKind
 
 
-data class NeuroSatData(val status: UtSolverStatusKind, val time: Long)
-
-
 interface UtBotAbstractPredictor<TIn, TOut> {
     /**
      * Initialization signal from controller
@@ -56,16 +53,15 @@ inline fun <TIn, T> UtBotNanoTimePredictor<TIn>.learnOn(input: TIn, block: () ->
  * Predicts sat/unsat state of some request with input [TIn]
  * @see Predictors.smt
  */
-interface IUtBotSatPredictor<TIn> : UtBotAbstractPredictor<TIn, NeuroSatData> {
-    override fun predict(input: TIn) =
-        NeuroSatData(status = UtSolverStatusKind.UNSAT, time = 1) //Zero for default predictor
+interface IUtBotSatPredictor<TIn> : UtBotAbstractPredictor<TIn, UtSolverStatusKind> {
+    override fun predict(input: TIn) = UtSolverStatusKind.UNSAT //Zero for default predictor
 }
 
 
 /**
  * Embrace [block()] inside this method to ask prediction before execution and send actual result after execution
  */
-fun <TIn> IUtBotSatPredictor<TIn>.learnOn(input: TIn, result: NeuroSatData) {
+fun <TIn> IUtBotSatPredictor<TIn>.learnOn(input: TIn, result: UtSolverStatusKind) {
     val expectedResult = predict(input)
 
     provide(input, expectedResult, result)

@@ -13,7 +13,7 @@ abstract class AbstractHtmlReport(bodyWidth: Int = 600) {
         "logs/Report_" + dateTimeFormatter.format(LocalDateTime.now()) + ".html"
 
     fun save(filename: String = nameWithDate()) {
-        builder.saveHTML(filename)
+        builder.saveHtml(filename)
     }
 }
 

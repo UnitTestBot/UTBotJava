@@ -2,34 +2,50 @@ package org.utbot.visual
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Properties
+import tech.tablesaw.plotly.components.Figure
 
+class ClassificationHtmlReport : AbstractHtmlReport() {
 
-class ClassificationHTMLReport {
-    private val builder = HtmlBuilder()
+    private var figuresNum = 0
 
     fun addHeader(modelName: String, properties: Properties) {
-        builder.addHeader(modelName, properties)
+        val currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss"))
+        builder.addRawHTML("<h1>Model : ${modelName}</h1>")
+        builder.addRawHTML("<h2>$currentDateTime</h2>")
+        builder.addRawHTML("<h3>Hyperparameters:</h3>")
+        for (property in properties) {
+            builder.addText("${property.key} : ${property.value}")
+        }
+    }
+
+    private fun addFigure(figure: Figure) {
+        builder.addRawHTML("<div id='plot$figuresNum'>")
+        builder.addRawHTML(figure.asJavascript("plot$figuresNum"))
+        builder.addRawHTML("</div>")
+        figuresNum++
     }
 
     fun addDataDistribution(y: DoubleArray, threshold: Double = 1000.0) {
+        val (data, notPresented) = y.partition { x -> x <= threshold }
         val rawHistogram = FigureBuilders.buildHistogram(
-            y.filter { x -> x <= threshold }.toDoubleArray(),
+            data.toDoubleArray(),
             xLabel = "ms",
             yLabel = "Number of samples",
             title = "Raw data distribution"
         )
-        builder.addFigure(rawHistogram)
+        addFigure(rawHistogram)
         builder.addText("Number of samples: ${y.size}")
-        builder.addText(
-            "And ${
-                y.filter { x -> x > threshold }.size
-            } more samples longer than $threshold ms are not presented in the raw data distribution plot \n\n"
-        )
+        if (notPresented.isNotEmpty()) {
+            builder.addText(
+                "And ${notPresented.size} more samples longer than $threshold ms are not presented " +
+                        "in the raw data distribution plot \n\n"
+            )
+        }
     }
 
     fun addConfusionMatrix(confusionMatrix: Array<DoubleArray>) {
-        builder.addFigure(
+        addFigure(
             FigureBuilders.buildHeatmap(
                 Array(confusionMatrix.size) { it },
                 Array(confusionMatrix.size) { it },
@@ -45,7 +61,7 @@ class ClassificationHTMLReport {
         var title = "Class distribution after resampling"
         if (before) title = "Class distribution before resampling"
 
-        builder.addFigure(
+        addFigure(
             FigureBuilders.buildBarPlot(
                 Array(classSizes.size) { it },
                 classSizes,
@@ -57,7 +73,7 @@ class ClassificationHTMLReport {
     }
 
     fun addPCAPlot(variance: DoubleArray, cumulativeVariance: DoubleArray) {
-        builder.addFigure(
+        addFigure(
             FigureBuilders.buildTwoLinesPlot(
                 variance,
                 cumulativeVariance,
@@ -83,17 +99,4 @@ class ClassificationHTMLReport {
             )
         }
     }
-
-    fun save(filename: String = "default") {
-        if (filename == "default") {
-            val filename = "logs/Classification_Report_" +
-                    LocalDateTime.now()
-                        .format(DateTimeFormatter.ofPattern("dd-MM-yyyy_HH-mm-ss")) +
-                    ".html"
-            builder.saveHTML(filename)
-        } else {
-            builder.saveHTML(filename)
-        }
-    }
-
 }

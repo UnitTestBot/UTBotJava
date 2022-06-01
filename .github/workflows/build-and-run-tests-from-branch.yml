@@ -20,7 +20,7 @@ jobs:
         
     - name: Build and run tests in UTBot Java
       run: |
-        SET KOTLIN_HOME="%windir%"
+        export KOTLIN_HOME="/usr"
         gradle clean build --no-daemon
         
     - name: Upload utbot-framework logs

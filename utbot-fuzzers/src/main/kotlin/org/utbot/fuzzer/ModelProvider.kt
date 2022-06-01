@@ -43,14 +43,14 @@ fun interface ModelProvider {
     }
 
     /**
-     * Creates [ModelProvider] that passes unprocessed classes to `fallbackModelSupplier` function.
+     * Creates [ModelProvider] that passes unprocessed classes to `modelProvider`.
      *
-     * This model provider is called before function is called, therefore consumer will get values
-     * from this model provider and only after it created by `fallbackModelSupplier`.
+     * Returned model provider is called before `modelProvider` is called, therefore consumer will get values
+     * from returned model provider and only after it calls `modelProvider`.
      *
-     * @param fallbackModelSupplier is called for every [ClassId] which wasn't created by this model provider.
+     * @param modelProvider is called and every value of [ClassId] is collected which wasn't created by this model provider.
      */
-    fun withFallback(fallbackModelSupplier: (ClassId) -> UtModel?) : ModelProvider {
+    fun withFallback(modelProvider: ModelProvider) : ModelProvider {
         return ModelProvider { description, consumer ->
             val providedByDelegateMethodParameters = mutableMapOf<Int, MutableList<UtModel>>()
             this@ModelProvider.generate(description) { index, model ->
@@ -61,12 +61,39 @@ fun interface ModelProvider {
                     consumer.accept(index, model)
                 }
             }
-            (0 until description.parameters.size)
-                .filter { !providedByDelegateMethodParameters.containsKey(it) }
-                .associateWith { description.parameters[it] }
-                .forEach { (index, classId) ->
-                    fallbackModelSupplier(classId)?.let { consumer.accept(index, it) }
+            val missingParameters =
+                (0 until description.parameters.size).filter { !providedByDelegateMethodParameters.containsKey(it) }
+            if (missingParameters.isNotEmpty()) {
+                val values = mutableMapOf<Int, MutableList<UtModel>>()
+                modelProvider.generate(description) { i, m -> values.computeIfAbsent(i) { mutableListOf() }.add(m) }
+                missingParameters.forEach { index ->
+                    values[index]?.let { models ->
+                        models.forEach { model ->
+                            consumer.accept(index, model)
+                        }
+                    }
                 }
+            }
+        }
+    }
+
+    /**
+     * Creates [ModelProvider] that passes unprocessed classes to `fallbackModelSupplier` function.
+     *
+     * This model provider is called before function is called, therefore consumer will get values
+     * from this model provider and only after it created by `fallbackModelSupplier`.
+     *
+     * @param fallbackModelSupplier is called for every [ClassId] which wasn't created by this model provider.
+     */
+    fun withFallback(fallbackModelSupplier: (ClassId) -> UtModel?) : ModelProvider {
+        return withFallback { description, consumer ->
+            description.parametersMap.forEach { (classId, indices) ->
+                fallbackModelSupplier(classId)?.let { model ->
+                    indices.forEach { index ->
+                        consumer.accept(index, model)
+                    }
+                }
+            }
         }
     }
 

@@ -242,6 +242,23 @@ class ModelProviderTest {
         }
     }
 
+    @Test
+    fun `test fallback model can create custom values for any parameter`() {
+        val firstParameterIsUserGenerated = ModelProvider { _, consumer ->
+            consumer.accept(0, UtPrimitiveModel(-123))
+        }.withFallback(PrimitivesModelProvider)
+
+        val result = collect(
+            firstParameterIsUserGenerated,
+            parameters = listOf(intClassId, intClassId)
+        )
+
+        assertEquals(2, result.size)
+        assertEquals(1, result[0]!!.size)
+        assertTrue(result[1]!!.size > 1)
+        assertEquals(UtPrimitiveModel(-123), result[0]!![0])
+    }
+
     private fun collect(
         modelProvider: ModelProvider,
         name: String = "testMethod",

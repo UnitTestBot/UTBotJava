@@ -513,10 +513,7 @@ class UtBotSymbolicEngine(
 
 
     //Simple fuzzing
-    fun fuzzing(modelProvider: ModelProvider = defaultModelProviders { nextDefaultModelId++ }) = flow {
-        if (!UtSettings.useFuzzing)
-            return@flow
-
+    fun fuzzing(modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
         val executableId = if (methodUnderTest.isConstructor) {
             methodUnderTest.javaConstructor!!.executableId
         } else {
@@ -553,7 +550,7 @@ class UtBotSymbolicEngine(
         }
 
         val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph))
-        val modelProviderWithFallback = modelProvider.withFallback(fallbackModelProvider::toModel)
+        val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = mutableSetOf<Instruction>()
         var attempts = UtSettings.fuzzingMaxAttemps
         fuzz(methodUnderTestDescription, modelProviderWithFallback).forEachIndexed { index, parameters ->

@@ -41,9 +41,4 @@ subprojects {
         mavenCentral()
         maven { url 'https://jitpack.io' }
     }
-
-    tasks.withType(Test) {
-        minHeapSize = '128m'
-        maxHeapSize = '512m'
-    }
 }

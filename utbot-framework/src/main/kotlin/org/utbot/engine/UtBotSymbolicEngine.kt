@@ -513,7 +513,7 @@ class UtBotSymbolicEngine(
 
 
     //Simple fuzzing
-    fun fuzzing(modelProvider: ModelProvider.() -> ModelProvider = { this }) = flow {
+    fun fuzzing(modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
         val executableId = if (methodUnderTest.isConstructor) {
             methodUnderTest.javaConstructor!!.executableId
         } else {

@@ -12,6 +12,7 @@ import org.utbot.framework.codegen.model.ModelBasedCodeGeneratorService
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -158,53 +159,54 @@ object UtBotJavaApi {
         generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
         primitiveValuesSupplier: CustomFuzzerValueSupplier = CustomFuzzerValueSupplier { null }
     ): MutableList<UtTestCase> {
+        fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
+            supplier
+                .takeIf { classId.isPrimitive || classId.isPrimitiveWrapper || classId == stringClassId }
+                ?.get(classId.jClass)
+                ?.asSequence()
+                ?.filter {
+                    val valueClassId = it.javaClass.id
+                    when {
+                        classId == valueClassId -> true
+                        classId.isPrimitive -> wrapperByPrimitive[classId] == valueClassId
+                        classId.isPrimitiveWrapper -> primitiveByWrapper[classId] == valueClassId
+                        else -> false
+                    }
+                }
+                ?.map { UtPrimitiveModel(it) } ?: emptySequence()
+
+        val customModelProvider = ModelProvider { description, consumer ->
+            description.parametersMap.forEach { (classId, indices) ->
+                createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
+                    indices.forEach { index ->
+                        consumer.accept(index, model)
+                    }
+                }
+            }
+        }
+
         return withUtContext(UtContext(classUnderTest.classLoader)) {
             UtBotTestCaseGenerator
-                .run {
+                .apply {
                     init(
                         FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
                     )
-                    generateForSeveralMethods(
-                        methodsForAutomaticGeneration.map {
-                            toUtMethod(
-                                it.methodToBeTestedFromUserInput,
-                                classUnderTest.kotlin
-                            )
-                        },
-                        mockStrategyApi,
-                        chosenClassesToMockAlways = emptySet(),
-                        generationTimeoutInMillis,
-                        generate = { engine ->
-                            engine.fuzzing {
-                                ModelProvider { description, consumer ->
-                                    description.parametersMap
-                                        .asSequence()
-                                        .filter { (it, _) -> it.isPrimitive || it.isPrimitiveWrapper || it == stringClassId }
-                                        .forEach { (classId, indices) ->
-                                            primitiveValuesSupplier.get(classId.jClass)?.let { values ->
-                                                values.asSequence()
-                                                    .filter {
-                                                        val valueClassId = it.javaClass.id
-                                                        when {
-                                                            classId == valueClassId -> true
-                                                            classId.isPrimitive -> wrapperByPrimitive[classId] == valueClassId
-                                                            classId.isPrimitiveWrapper -> primitiveByWrapper[classId] == valueClassId
-                                                            else -> false
-                                                        }
-                                                    }
-                                                    .map { UtPrimitiveModel(it) }
-                                                    .forEach { model ->
-                                                        indices.forEach { index ->
-                                                            consumer.accept(index, model)
-                                                        }
-                                                    }
-                                            }
-                                        }
-                                }.withFallback(this)
-                            }
+                }.generateForSeveralMethods(
+                    methodsForAutomaticGeneration.map {
+                        toUtMethod(
+                            it.methodToBeTestedFromUserInput,
+                            classUnderTest.kotlin
+                        )
+                    },
+                    mockStrategyApi,
+                    chosenClassesToMockAlways = emptySet(),
+                    generationTimeoutInMillis,
+                    generate = { symbolicEngine ->
+                        symbolicEngine.fuzzing { defaultModelProvider ->
+                            customModelProvider.withFallback(defaultModelProvider)
                         }
-                    )
-                }
+                    }
+                )
         }.toMutableList()
     }
 

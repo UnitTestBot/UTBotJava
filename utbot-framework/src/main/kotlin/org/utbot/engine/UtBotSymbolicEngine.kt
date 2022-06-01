@@ -584,7 +584,7 @@ class UtBotSymbolicEngine(
                         path = mutableListOf(),
                         fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
-                        testMethodName = "test${methodUnderTest.callable.name.capitalize()}ByFuzzer${index}"
+                        testMethodName = if (methodUnderTest.isMethod) "test${methodUnderTest.callable.name.capitalize()}ByFuzzer${index}" else null
                     )
                 )
             } catch (e: CancellationException) {

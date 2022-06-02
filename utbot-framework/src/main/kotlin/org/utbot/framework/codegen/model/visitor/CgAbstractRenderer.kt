@@ -756,14 +756,30 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     protected fun UtArrayModel.renderElements(length: Int, elementsInLine: Int) {
-        for (i in 0 until length) {
-            val expr = this.getElementExpr(i)
-
-            if (i == 0 && length >= elementsInLine || i != 0 && i % elementsInLine == 0) {
-                println()
+        if (length <= elementsInLine) { // one-line array
+            for (i in 0 until length) {
+                val expr = this.getElementExpr(i)
+                expr.accept(this@CgAbstractRenderer)
+                if (i != length - 1) {
+                    print(", ")
+                }
             }
-            expr.accept(this@CgAbstractRenderer)
-            if (i != length - 1) print(",")
+        } else { // multiline array
+            println() // line break after `int[] x = {`
+            withIndent {
+                for (i in 0 until length) {
+                    val expr = this.getElementExpr(i)
+                    expr.accept(this@CgAbstractRenderer)
+
+                    if (i == length - 1) {
+                        println()
+                    } else if (i % elementsInLine == elementsInLine - 1) {
+                        println(",")
+                    } else {
+                        print(", ")
+                    }
+                }
+            }
         }
     }
 

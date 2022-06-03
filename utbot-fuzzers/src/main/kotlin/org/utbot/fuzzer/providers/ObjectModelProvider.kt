@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
@@ -17,7 +18,6 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.objectModelProviders
 import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
-import java.lang.reflect.Parameter
 import java.util.function.BiConsumer
 import java.util.function.IntSupplier
 
@@ -49,20 +49,19 @@ class ObjectModelProvider : ModelProvider {
                 .filterNot { it == stringClassId || it.isPrimitiveWrapper }
                 .flatMap { classId ->
                     collectConstructors(classId) { javaConstructor ->
-                        isPublic(javaConstructor) && (recursion > 0 || javaConstructor.parameters.all(Companion::isPrimitiveOrString))
-                    }.sortedBy {
-                        // prefer constructors with fewer parameters
-                        it.parameters.size
-                    }.take(limit)
+                        isPublic(javaConstructor)
+                    }.sortedWith(
+                        primitiveParameterizedConstructorsFirstAndThenByParameterCount
+                    ).take(limit)
                 }
-                .associateWith { constructorId ->
+                    .associateWith { constructorId ->
                     val modelProviderWithoutRecursion = modelProvider.exceptIsInstance<ObjectModelProvider>()
                     fuzzParameters(
                         constructorId,
                         if (recursion > 0) {
                             ObjectModelProvider(idGenerator, limit = 1, recursion - 1).with(modelProviderWithoutRecursion)
                         } else {
-                            modelProviderWithoutRecursion
+                            modelProviderWithoutRecursion.withFallback(NullModelProvider)
                         }
                     )
                 }
@@ -98,11 +97,6 @@ class ObjectModelProvider : ModelProvider {
             return javaConstructor.modifiers and Modifier.PUBLIC != 0
         }
 
-        private fun isPrimitiveOrString(parameter: Parameter): Boolean {
-            val parameterType = parameter.type
-            return parameterType.isPrimitive || String::class.java == parameterType
-        }
-
         private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<UtModel>> {
             val fuzzedMethod = FuzzedMethodDescription(
                 executableId = constructorId,
@@ -122,5 +116,14 @@ class ObjectModelProvider : ModelProvider {
                 instantiationChain += UtExecutableCallModel(null, constructorId, params, this)
             }
         }
+
+        private val primitiveParameterizedConstructorsFirstAndThenByParameterCount =
+            compareByDescending<ConstructorId> { constructorId ->
+                constructorId.parameters.all { classId ->
+                    classId.isPrimitive || classId == stringClassId
+                }
+            }.thenComparingInt { constructorId ->
+                constructorId.parameters.size
+            }
     }
 }

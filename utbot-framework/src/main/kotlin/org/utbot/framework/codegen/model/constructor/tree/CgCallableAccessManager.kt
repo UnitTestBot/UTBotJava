@@ -16,6 +16,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
 import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
 import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
@@ -126,6 +127,13 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         //so we need to collect required exceptions manually from source codes
         if (methodId is BuiltinMethodId) {
             methodId.findExceptionTypes().forEach { addException(it) }
+            return
+        }
+        //If [InvocationTargetException] is thrown manually in test, we need
+        // to add "throws Throwable" and other exceptions are not required so on.
+        if (methodId == getTargetException) {
+            collectedExceptions.clear()
+            addException(Throwable::class.id)
             return
         }
 

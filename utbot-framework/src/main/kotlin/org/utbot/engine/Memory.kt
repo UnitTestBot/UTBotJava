@@ -431,7 +431,6 @@ class TypeRegistry {
 
     private val genericAddrToNumDimensionsArrays = mutableMapOf<Int, UtArrayExpressionBase>()
 
-    @Suppress("unused")
     private fun genericAddrToNumDimensions(i: Int) = genericAddrToNumDimensionsArrays.getOrPut(i) {
         mkArrayConst(
             "genericAddrToNumDimensions_$i",
@@ -561,6 +560,8 @@ class TypeRegistry {
      * Returns symbolic representation for a number of dimensions corresponding to the given address
      */
     fun symNumDimensions(addr: UtAddrExpression) = addrToNumDimensions.select(addr)
+
+    fun genericNumDimensions(addr: UtAddrExpression, i: Int) = genericAddrToNumDimensions(i).select(addr)
 
     /**
      * Returns a constraint stating that number of dimensions for the given address is zero

@@ -18,6 +18,11 @@ jobs:
     - uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 6.8
+    
+    - name: "UTBot Java: build and run tests"
+      run: |
+        export KOTLIN_HOME="/usr"
+        gradle clean build --no-daemon
 
     - name: Upload utbot-framework logs
       if: ${{ failure() }}

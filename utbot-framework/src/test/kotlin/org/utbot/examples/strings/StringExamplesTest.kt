@@ -328,7 +328,7 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
     fun testSubstringWithEndIndex() {
         checkWithException(
             StringExamples::substringWithEndIndex,
-            between(6..8),
+            ignoreExecutionsNumber,
             { s, _, _, r -> s == null && r.isException<NullPointerException>() },
             { s, b, e, r -> s != null && b < 0 || e > s.length || b > e && r.isException<StringIndexOutOfBoundsException>() },
             { s, b, e, r -> r.getOrThrow() == s.substring(b, e) && s.substring(b, e) != "password" },
@@ -346,7 +346,7 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
     fun testSubstringWithEndIndexNotEqual() {
         checkWithException(
             StringExamples::substringWithEndIndexNotEqual,
-            between(3..4),
+            ignoreExecutionsNumber,
             { s, _, r -> s == null && r.isException<NullPointerException>() },
             { s, e, r -> s != null && e < 1 || e > s.length && r.isException<StringIndexOutOfBoundsException>() },
             { s, e, r -> s != null && r.getOrThrow() == s.substring(1, e) },

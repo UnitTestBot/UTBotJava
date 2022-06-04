@@ -78,7 +78,8 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         parameter(elementData);
         parameter(elementData.storage);
         assume(elementData.begin == 0);
-        assume(elementData.end >= 0 & elementData.end <= MAX_LIST_SIZE);
+        assume(elementData.end >= 0);
+        assume(elementData.end <= MAX_LIST_SIZE);
 
         visit(this);
     }

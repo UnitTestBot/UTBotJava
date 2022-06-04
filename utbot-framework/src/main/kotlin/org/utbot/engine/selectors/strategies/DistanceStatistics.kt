@@ -35,11 +35,11 @@ class DistanceStatistics(
         graph.stmts.associateWithTo(mutableMapOf()) { 0 }
 
     /**
-     * Drops executionState if all the edges on path are covered and
-     * there is no reachable uncovered statement
+     * Drops executionState if all the edges on path are covered (with respect to uncovered
+     * throw statements of the methods they belong to) and there is no reachable and uncovered statement.
      */
     override fun shouldDrop(state: ExecutionState) =
-        state.edges.all { graph.isCovered(it) } && distanceToUncovered(state) == Int.MAX_VALUE
+        state.edges.all { graph.isCoveredWithAllThrowStatements(it) } && distanceToUncovered(state) == Int.MAX_VALUE
 
     fun isCovered(edge: Edge): Boolean = graph.isCovered(edge)
 

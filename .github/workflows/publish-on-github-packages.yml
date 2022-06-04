@@ -1,0 +1,80 @@
+name: "[M] Publish on GitHub Packages"
+
+on: workflow_dispatch
+
+jobs:
+  build_and_run_tests:
+    if: ${{ github.actor == 'korifey' || github.actor == 'denis-fokin' || github.actor == 'victoriafomina' || 
+          github.actor == 'bissquit' }}
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'zulu'
+        java-package: jdk+fx
+        cache: gradle
+    - uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 6.8
+    
+    - name: "UTBot Java: build and run tests"
+      run: |
+        export KOTLIN_HOME="/usr"
+        gradle clean build --no-daemon
+
+    - name: Upload utbot-framework logs
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: utbot_framework_logs
+        path: utbot-framework/logs/*
+      
+    - name: Upload utbot-framework tests report artifacts if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: utbot_framework_tests_report
+        path: utbot-framework/build/reports/tests/test/*
+
+  publish_framework-api_and_dependencies:
+    needs:  build_and_run_tests
+    runs-on: ubuntu-20.04
+    permissions:
+      packages: write
+      contents: read
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
+      with:
+        java-version: '8'
+        distribution: 'zulu'
+        java-package: jdk+fx
+        cache: gradle
+    - uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 6.8
+        arguments: publish
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set project version
+      run:    
+        echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+  
+    - name: "utbot-framework-api: build and run tests"
+      run: |
+        cd utbot-framework-api
+        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        
+    - name: "utbot-api: build"
+      run: |
+        cd utbot-api
+        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+    
+    - name: "utbot-core: build"
+      run: |
+        cd utbot-core
+        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT

@@ -27,6 +27,7 @@ import org.jetbrains.android.sdk.AndroidSdkType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
 import org.jetbrains.kotlin.platform.TargetPlatformVersion
+import org.utbot.intellij.plugin.ui.GenerateTestsModel
 
 private val logger = KotlinLogging.logger {}
 
@@ -64,16 +65,15 @@ fun Module.suitableTestSourceFolders(): List<SourceFolder> =
  *
  * If no roots exist, our suggestion is a folder named "resources" in the entry root.
  */
-fun Module.getOrCreateTestResourcesPath(): Path {
+fun GenerateTestsModel.getOrCreateTestResourcesPath(): Path {
     val testResourcesUrl = getOrCreateTestResourcesUrl(this)
     return VfsUtilCore.urlToPath(testResourcesUrl).toPath()
 }
 
 /**
  * Gets a path to Sarif reports directory or creates it.
- *
  */
-fun Module.getOrCreateSarifReportsPath(): Path {
+fun GenerateTestsModel.getOrCreateSarifReportsPath(): Path {
     val testResourcesPath = this.getOrCreateTestResourcesPath()
     return "$testResourcesPath/sarif/".toPath()
 }
@@ -137,18 +137,27 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
 
     return sourceFolders
         .filterNot { it.isForGeneratedSources() }
-        .filter { folder -> folder.rootType == codegenLanguage.testRootType() }
+        .filter { it.rootType == codegenLanguage.testRootType() }
+        .sortedBy { it.url.length }
 }
 
 private const val resourcesSuffix = "/resources"
 
-private fun getOrCreateTestResourcesUrl(module: Module): String {
-    val moduleInstance = ModuleRootManager.getInstance(module)
+private fun getOrCreateTestResourcesUrl(model: GenerateTestsModel): String {
+    val moduleInstance = ModuleRootManager.getInstance(model.testModule)
     val sourceFolders = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
 
-    val testResourcesFolder = sourceFolders.firstOrNull {
-        it.rootType in testResourceRootTypes && !it.isForGeneratedSources()
-    }
+    val testResourcesFolder = sourceFolders
+        .filter { sourceFolder ->
+            sourceFolder.rootType in testResourceRootTypes && !sourceFolder.isForGeneratedSources()
+        }
+        // taking the source folder that has the maximum common prefix
+        // with `model.testSourceRoot`, which was selected by the user
+        .maxBy { sourceFolder ->
+            val sourceFolderPath = sourceFolder.file?.path ?: ""
+            val testSourceRootPath = model.testSourceRoot?.path ?: ""
+            sourceFolderPath.commonPrefixWith(testSourceRootPath).length
+        }
     if (testResourcesFolder != null) {
         return testResourcesFolder.url
     }
@@ -164,7 +173,7 @@ private fun getOrCreateTestResourcesUrl(module: Module): String {
         if (testFolder?.rootType == TestResourceKotlinRootType) CodegenLanguage.KOTLIN else CodegenLanguage.JAVA
 
     try {
-        WriteCommandAction.runWriteCommandAction(module.project) {
+        WriteCommandAction.runWriteCommandAction(model.project) {
             contentEntry.addSourceFolder(testResourcesUrl, codegenLanguage.testResourcesRootType())
             moduleInstance.modifiableModel.commit()
             VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(testResourcesUrl))

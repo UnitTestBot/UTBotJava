@@ -575,7 +575,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun configureStaticMocking() {
-        val testResourcesUrl = model.testModule.getOrCreateTestResourcesPath()
+        val testResourcesUrl = model.getOrCreateTestResourcesPath()
         configureMockitoResources(testResourcesUrl)
 
         val staticsMockingValue = staticsMocking.item

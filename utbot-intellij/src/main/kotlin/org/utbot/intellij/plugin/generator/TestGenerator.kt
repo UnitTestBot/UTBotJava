@@ -95,7 +95,7 @@ object TestGenerator {
     }
 
     private fun mergeSarifReports(model: GenerateTestsModel) {
-        val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath()
+        val sarifReportsPath = model.getOrCreateSarifReportsPath()
         val sarifReports = sarifReportsPath.toFile()
             .walkTopDown()
             .filter { it.extension == "sarif" }
@@ -294,7 +294,7 @@ object TestGenerator {
     }
 
     private fun saveTestsReport(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
-        val testResourcesDirPath = model.testModule.getOrCreateTestResourcesPath()
+        val testResourcesDirPath = model.getOrCreateTestResourcesPath()
 
         require(testResourcesDirPath.exists()) {
             "Test resources directory $testResourcesDirPath does not exist"

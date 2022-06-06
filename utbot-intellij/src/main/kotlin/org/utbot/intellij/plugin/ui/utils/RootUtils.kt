@@ -11,14 +11,11 @@ import org.jetbrains.kotlin.config.ResourceKotlinRootType
 import org.jetbrains.kotlin.config.SourceKotlinRootType
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
 import org.jetbrains.kotlin.config.TestSourceKotlinRootType
-import org.jetbrains.kotlin.idea.configuration.externalProjectPath
-import org.utbot.common.PathUtil.safeRelativize
-import org.utbot.common.PathUtil.toPath
 
 val sourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>> = setOf(JavaSourceRootType.SOURCE, SourceKotlinRootType)
-val testSourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>>  = setOf(JavaSourceRootType.TEST_SOURCE, TestSourceKotlinRootType)
-val resourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>> =  setOf(JavaResourceRootType.RESOURCE, ResourceKotlinRootType)
-val testResourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>>  = setOf(JavaResourceRootType.TEST_RESOURCE, TestResourceKotlinRootType)
+val testSourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>> = setOf(JavaSourceRootType.TEST_SOURCE, TestSourceKotlinRootType)
+val resourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>> = setOf(JavaResourceRootType.RESOURCE, ResourceKotlinRootType)
+val testResourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>> = setOf(JavaResourceRootType.TEST_RESOURCE, TestResourceKotlinRootType)
 
 /**
  * Defines test root type for selected codegen language.
@@ -45,15 +42,5 @@ fun SourceFolder.isForGeneratedSources(): Boolean {
     val properties = jpsElement.getProperties(sourceRootTypes + testSourceRootTypes)
     val resourceProperties = jpsElement.getProperties(resourceRootTypes + testResourceRootTypes)
 
-    return isInBuildGeneratedFolder() || properties?.isForGeneratedSources == true && resourceProperties?.isForGeneratedSources == true
-}
-
-/**
- * Returns true if the [SourceFolder] is located in the `build/generated` directory.
- */
-fun SourceFolder.isInBuildGeneratedFolder(): Boolean {
-    val sourceFolderPath = this.file?.path
-    val moduleRootPath = this.contentEntry.rootModel.module.externalProjectPath
-    val relativePath = safeRelativize(sourceFolderPath, moduleRootPath)?.toPath()
-    return relativePath?.startsWith("build/generated") == true
+    return properties?.isForGeneratedSources == true && resourceProperties?.isForGeneratedSources == true
 }

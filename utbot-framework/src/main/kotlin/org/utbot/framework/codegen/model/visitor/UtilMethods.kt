@@ -91,7 +91,7 @@ fun getStaticFieldValue(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws Exception {
+            private static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws IllegalAccessException, NoSuchFieldException {
                 java.lang.reflect.Field field;
                 Class<?> originClass = clazz;
                 do {
@@ -141,7 +141,7 @@ fun getFieldValue(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getFieldValue(Object obj, String fieldName) throws Exception {
+            private static Object getFieldValue(Object obj, String fieldName) throws IllegalAccessException, NoSuchFieldException {
                 Class<?> clazz = obj.getClass();
                 java.lang.reflect.Field field;
                 do {
@@ -191,7 +191,7 @@ fun setStaticField(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws Exception {
+            private static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
                 java.lang.reflect.Field field;
     
                 do {
@@ -242,7 +242,7 @@ fun setField(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static void setField(Object object, String fieldName, Object fieldValue) throws Exception {
+            private static void setField(Object object, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
                 Class<?> clazz = object.getClass();
                 java.lang.reflect.Field field;
     
@@ -327,7 +327,8 @@ fun createInstance(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object createInstance(String className) throws Exception {
+            private static Object createInstance(String className) 
+                    throws ClassNotFoundException, NoSuchMethodException, NoSuchFieldException, IllegalAccessException, InvocationTargetException {
                 Class<?> clazz = Class.forName(className);
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class.class)
                     .invoke(getUnsafeInstance(), clazz);
@@ -349,7 +350,7 @@ fun getUnsafeInstance(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getUnsafeInstance() throws Exception {
+            private static Object getUnsafeInstance() throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
                 java.lang.reflect.Field f = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
                 f.setAccessible(true);
                 return f.get(null);
@@ -766,7 +767,7 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
     val fieldClassId = Field::class.id
     return when (id) {
         getUnsafeInstanceMethodId -> listOf(fieldClassId)
-        createInstanceMethodId -> listOf()
+        createInstanceMethodId -> listOf(java.lang.reflect.InvocationTargetException::class.id)
         createArrayMethodId -> listOf(java.lang.reflect.Array::class.id)
         setFieldMethodId -> listOf(fieldClassId, Modifier::class.id)
         setStaticFieldMethodId -> listOf(fieldClassId, Modifier::class.id)

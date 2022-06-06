@@ -1,0 +1,94 @@
+plugins {
+    id 'maven'
+    id 'maven-publish'
+}
+
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+configurations {
+    mavenEmbedder
+}
+
+dependencies {
+    // `compile` because `api` dependencies are not included in pom.xml by `install` task
+    compile project(':utbot-gradle')
+    compile project(':utbot-framework')
+    compile project(':utbot-summary')
+
+    implementation "org.apache.maven:maven-core:${maven_plugin_api_version}"
+    implementation "org.apache.maven:maven-plugin-api:${maven_plugin_api_version}"
+    compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:${maven_plugin_tools_version}"
+    implementation "io.github.microutils:kotlin-logging:${kotlin_logging_version}"
+
+    mavenEmbedder "org.apache.maven:maven-embedder:${maven_plugin_api_version}"
+    mavenEmbedder "org.apache.maven:maven-compat:${maven_plugin_api_version}"
+    mavenEmbedder "org.slf4j:slf4j-simple:${slf4j_version}"
+}
+
+def buildDirectory = buildDir.canonicalPath
+def outputDirectory = compileKotlin.destinationDir.canonicalPath
+def pomFile = new File("$buildDir/pom.xml")
+def pluginDescriptorFile = new File(outputDirectory, 'META-INF/maven/plugin.xml')
+
+task generatePomFile(dependsOn: compileKotlin) {
+    outputs.file(pomFile)
+
+    install.repositories.mavenInstaller.pom.with {
+        groupId = project.group
+        artifactId = project.name
+        version = project.version
+        packaging = 'maven-plugin'
+
+        withXml {
+            asNode().with {
+                appendNode('build').with {
+                    appendNode('directory', buildDirectory)
+                    appendNode('outputDirectory', outputDirectory)
+                }
+                def repositoriesNode = appendNode('repositories')
+                // `this.project` is the project from Gradle, but `project` is the project from Maven
+                this.project.repositories.indexed().forEach { index, repository ->
+                    repositoriesNode.with {
+                        appendNode('repository').with {
+                            // `index` is needed for the uniqueness of the IDs
+                            appendNode('id', "${repository.name}_${index}")
+                            appendNode('url', repository.url)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    install.repositories.mavenInstaller.pom.writeTo(pomFile)
+
+    doLast {
+        assert pomFile.file, "${pomFile.canonicalPath}: was not generated"
+        logger.info("POM is generated in ${pomFile.canonicalPath}")
+    }
+}
+
+task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
+    inputs.files project.compileKotlin.outputs.files
+    outputs.file pluginDescriptorFile
+
+    workingDir projectDir
+    main = 'org.apache.maven.cli.MavenCli'
+    classpath = configurations.mavenEmbedder
+    systemProperties['maven.multiModuleProjectDirectory'] = projectDir
+    args = [
+        '--errors',
+        '--batch-mode',
+        '--file', "${pomFile.path}",
+        'org.apache.maven.plugins:maven-plugin-plugin:3.6.0:descriptor',
+        '-Dproject.build.sourceEncoding=UTF-8'
+    ]
+
+    doLast {
+        assert pluginDescriptorFile.file, "${pluginDescriptorFile.canonicalPath}: was not generated"
+        logger.info("Plugin descriptor is generated in ${pluginDescriptorFile.canonicalPath}")
+    }
+}
+
+project.jar.dependsOn(generatePluginDescriptor)
+
+// Please, use `other/install` task for publishing

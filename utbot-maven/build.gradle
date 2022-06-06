@@ -33,35 +33,35 @@ def pluginDescriptorFile = new File(outputDirectory, 'META-INF/maven/plugin.xml'
 task generatePomFile(dependsOn: compileKotlin) {
     outputs.file(pomFile)
 
-    install.repositories.mavenInstaller.pom.with {
-        groupId = project.group
-        artifactId = project.name
-        version = project.version
-        packaging = 'maven-plugin'
+    doLast {
+        install.repositories.mavenInstaller.pom.with {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+            packaging = 'maven-plugin'
 
-        withXml {
-            asNode().with {
-                appendNode('build').with {
-                    appendNode('directory', buildDirectory)
-                    appendNode('outputDirectory', outputDirectory)
-                }
-                def repositoriesNode = appendNode('repositories')
-                // `this.project` is the project from Gradle, but `project` is the project from Maven
-                this.project.repositories.indexed().forEach { index, repository ->
-                    repositoriesNode.with {
-                        appendNode('repository').with {
-                            // `index` is needed for the uniqueness of the IDs
-                            appendNode('id', "${repository.name}_${index}")
-                            appendNode('url', repository.url)
+            withXml {
+                asNode().with {
+                    appendNode('build').with {
+                        appendNode('directory', buildDirectory)
+                        appendNode('outputDirectory', outputDirectory)
+                    }
+                    def repositoriesNode = appendNode('repositories')
+                    // `this.project` is the project from Gradle, but `project` is the project from Maven
+                    this.project.repositories.indexed().forEach { index, repository ->
+                        repositoriesNode.with {
+                            appendNode('repository').with {
+                                // `index` is needed for the uniqueness of the IDs
+                                appendNode('id', "${repository.name}_${index}")
+                                appendNode('url', repository.url)
+                            }
                         }
                     }
                 }
             }
         }
-    }
-    install.repositories.mavenInstaller.pom.writeTo(pomFile)
+        install.repositories.mavenInstaller.pom.writeTo(pomFile)
 
-    doLast {
         assert pomFile.file, "${pomFile.canonicalPath}: was not generated"
         logger.info("POM is generated in ${pomFile.canonicalPath}")
     }
@@ -91,4 +91,4 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
 
 project.jar.dependsOn(generatePluginDescriptor)
 
-// Please, use `other/install` task for publishing
+// Please, use `utbot-maven/other/install` task for publishing

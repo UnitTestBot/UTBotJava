@@ -102,6 +102,18 @@ fun interface ModelProvider {
         fun of(vararg providers: ModelProvider): ModelProvider {
             return Combined(providers.toList())
         }
+
+        fun BiConsumer<Int, UtModel>.consumeAll(indices: List<Int>, models: Sequence<UtModel>) {
+            models.forEach { model ->
+                indices.forEach { index ->
+                    accept(index, model)
+                }
+            }
+        }
+
+        fun BiConsumer<Int, UtModel>.consumeAll(indices: List<Int>, models: List<UtModel>) {
+            consumeAll(indices, models.asSequence())
+        }
     }
 
     /**
@@ -114,4 +126,8 @@ fun interface ModelProvider {
             }
         }
     }
+}
+
+inline fun <reified T> ModelProvider.exceptIsInstance(): ModelProvider {
+    return except { it is T }
 }

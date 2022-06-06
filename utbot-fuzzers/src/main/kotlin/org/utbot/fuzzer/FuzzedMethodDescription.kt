@@ -32,7 +32,7 @@ class FuzzedMethodDescription(
     }
 
     constructor(executableId: ExecutableId, concreteValues: Collection<FuzzedConcreteValue> = emptyList()) : this(
-        executableId.name,
+        executableId.classId.simpleName + "." + executableId.name,
         executableId.returnType,
         executableId.parameters,
         concreteValues

@@ -23,6 +23,12 @@ import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.util.primitiveByWrapper
+import org.utbot.framework.plugin.api.util.primitiveWrappers
+import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.providers.EnumModelProvider
+import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
 
 class ModelProviderTest {
@@ -181,7 +187,7 @@ class ModelProviderTest {
             val classId = A::class.java.id
             val models = collect(
                 ObjectModelProvider { 0 }.apply {
-                    modelProvider = ModelProvider.of(ConstantsModelProvider, StringConstantModelProvider)
+                    modelProvider = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
                 parameters = listOf(classId)
             )
@@ -212,7 +218,8 @@ class ModelProviderTest {
                 parameters = listOf(classId)
             )
 
-            assertEquals(0, models.size)
+            assertEquals(1, models.size)
+            assertEquals(1, models[0]!!.size)
         }
     }
 
@@ -259,6 +266,170 @@ class ModelProviderTest {
         assertEquals(UtPrimitiveModel(-123), result[0]!![0])
     }
 
+    @Test
+    fun `test collection model can produce basic values with assembled model`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                defaultModelProviders { 0 },
+                parameters = listOf(java.util.List::class.java.id)
+            )
+
+            assertEquals(1, result.size)
+        }
+    }
+
+    @Test
+    fun `test enum model provider`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(EnumModelProvider, parameters = listOf(OneTwoThree::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(3, result[0]!!.size)
+            OneTwoThree.values().forEachIndexed { index: Int, value ->
+                assertEquals(UtEnumConstantModel(OneTwoThree::class.java.id, value), result[0]!![index])
+            }
+        }
+    }
+
+    @Test
+    fun `test string value generates only primitive models`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(defaultModelProviders { 0 }, parameters = listOf(stringClassId))
+            assertEquals(1, result.size)
+            result[0]!!.forEach {
+                assertInstanceOf(UtPrimitiveModel::class.java, it)
+                assertEquals(stringClassId, it.classId)
+            }
+        }
+    }
+
+    @Test
+    fun `test wrapper primitives generate only primitive models`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            primitiveWrappers.asSequence().filterNot { it == voidWrapperClassId }.forEach { classId ->
+                val result = collect(defaultModelProviders { 0 }, parameters = listOf(classId))
+                assertEquals(1, result.size)
+                result[0]!!.forEach {
+                    assertInstanceOf(UtPrimitiveModel::class.java, it)
+                    val expectPrimitiveBecauseItShouldBeGeneratedByDefaultProviders = primitiveByWrapper[classId]
+                    assertEquals(expectPrimitiveBecauseItShouldBeGeneratedByDefaultProviders, it.classId)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `test at least one string is created if characters exist as constants`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(
+                defaultModelProviders { 0 },
+                parameters = listOf(stringClassId),
+                constants = listOf(
+                    FuzzedConcreteValue(charClassId, 'a'),
+                    FuzzedConcreteValue(charClassId, 'b'),
+                    FuzzedConcreteValue(charClassId, 'c'),
+                )
+            )
+            assertEquals(1, result.size)
+            assertTrue(result[0]!!.any {
+                it is UtPrimitiveModel && it.value == "abc"
+            })
+        }
+    }
+
+    @Test
+    @Suppress("unused", "UNUSED_PARAMETER", "ConvertSecondaryConstructorToPrimary")
+    fun `test complex object is constructed and it is not null`() {
+        class A {
+            constructor(some: Any)
+        }
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider { 0 }, parameters = listOf(A::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(1, result[0]!!.size)
+            assertInstanceOf(UtAssembleModel::class.java, result[0]!![0])
+            assertEquals(A::class.java.id, result[0]!![0].classId)
+            (result[0]!![0] as UtAssembleModel).instantiationChain.forEach {
+                assertTrue(it is UtExecutableCallModel)
+                assertEquals(1, (it as UtExecutableCallModel).params.size)
+                val objectParamInConstructor = it.params[0]
+                assertInstanceOf(UtAssembleModel::class.java, objectParamInConstructor)
+                val innerAssembledModel = objectParamInConstructor as UtAssembleModel
+                assertEquals(Any::class.java.id, innerAssembledModel.classId)
+                assertEquals(1, innerAssembledModel.instantiationChain.size)
+                val objectCreation = innerAssembledModel.instantiationChain.first() as UtExecutableCallModel
+                assertEquals(0, objectCreation.params.size)
+                assertInstanceOf(ConstructorId::class.java, objectCreation.executable)
+            }
+        }
+    }
+
+    @Test
+    @Suppress("unused", "UNUSED_PARAMETER", "ConvertSecondaryConstructorToPrimary")
+    fun `test recursive constructor calls and can pass null into inner if no other values exist`() {
+        class MyA {
+            constructor(some: MyA?)
+        }
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider { 0 }, parameters = listOf(MyA::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(1, result[0]!!.size)
+            val outerModel = result[0]!![0] as UtAssembleModel
+            outerModel.instantiationChain.forEach {
+                val constructorParameters = (it as UtExecutableCallModel).params
+                assertEquals(1, constructorParameters.size)
+                val innerModel = (constructorParameters[0] as UtAssembleModel)
+                assertEquals(MyA::class.java.id, innerModel.classId)
+                assertEquals(1, innerModel.instantiationChain.size)
+                val innerConstructorParameters = innerModel.instantiationChain[0] as UtExecutableCallModel
+                assertEquals(1, innerConstructorParameters.params.size)
+                assertInstanceOf(UtNullModel::class.java, innerConstructorParameters.params[0])
+            }
+        }
+    }
+
+    @Test
+    @Suppress("unused", "UNUSED_PARAMETER", "ConvertSecondaryConstructorToPrimary")
+    fun `test complex object is constructed with the simplest inner object constructor`() {
+
+        class Inner {
+            constructor(some: Inner?)
+
+            constructor(some: Inner?, other: Any)
+
+            // this constructor should be chosen
+            constructor(int: Int, double: Double)
+
+            constructor(other: Any, int: Int)
+
+            constructor(some: Inner?, other: Double)
+        }
+
+        class Outer {
+            constructor(inner: Inner)
+        }
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider { 0 }, parameters = listOf(Outer::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(1, result[0]!!.size)
+            val outerModel = result[0]!![0] as UtAssembleModel
+            outerModel.instantiationChain.forEach {
+                val constructorParameters = (it as UtExecutableCallModel).params
+                assertEquals(1, constructorParameters.size)
+                val innerModel = (constructorParameters[0] as UtAssembleModel)
+                assertEquals(Inner::class.java.id, innerModel.classId)
+                assertEquals(1, innerModel.instantiationChain.size)
+                val innerConstructorParameters = innerModel.instantiationChain[0] as UtExecutableCallModel
+                assertEquals(2, innerConstructorParameters.params.size)
+                assertTrue(innerConstructorParameters.params.all { param -> param is UtPrimitiveModel })
+                assertEquals(intClassId, innerConstructorParameters.params[0].classId)
+                assertEquals(doubleClassId, innerConstructorParameters.params[1].classId)
+            }
+        }
+    }
+
     private fun collect(
         modelProvider: ModelProvider,
         name: String = "testMethod",
@@ -273,4 +444,7 @@ class ModelProviderTest {
         }
     }
 
+    private enum class OneTwoThree {
+        ONE, TWO, THREE
+    }
 }

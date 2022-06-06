@@ -20,22 +20,23 @@ abstract class Z3Initializer : AutoCloseable {
     companion object {
         private val libraries = listOf("libz3", "libz3java")
         private val vcWinLibrariesToLoadBefore = listOf("vcruntime140", "vcruntime140_1")
-        private const val supportedArch = "amd64"
+        private val supportedArchs = setOf("amd64", "x86_64")
         private val initializeCallback by lazy {
             System.setProperty("z3.skipLibraryLoad", "true")
             val arch = System.getProperty("os.arch")
-            require(supportedArch == arch) { "Not supported arch: $arch" }
+            require(arch in supportedArchs) { "Not supported arch: $arch" }
 
-            val osProperty = System.getProperty("os.name")
+            val osProperty = System.getProperty("os.name").toLowerCase()
             val (ext, allLibraries) = when {
-                osProperty.startsWith("Windows") -> ".dll" to vcWinLibrariesToLoadBefore + libraries
-                osProperty.startsWith("Linux") -> ".so" to libraries
+                osProperty.startsWith("windows") -> ".dll" to vcWinLibrariesToLoadBefore + libraries
+                osProperty.startsWith("linux") -> ".so" to libraries
+                osProperty.startsWith("mac") -> ".dylib" to libraries
                 else -> error("Unknown OS: $osProperty")
             }
             val libZ3DllUrl = Z3Initializer::class.java
                 .classLoader
                 .getResource("lib/x64/libz3.dll") ?: error("Can't find native library folder")
-            //can't take resource of parent folder right here because in obfuscated jar parent folder
+            // can't take resource of parent folder right here because in obfuscated jar parent folder
             // can be missed (e.g., in case if obfuscation was applied)
 
             val libFolder: String?

@@ -53,6 +53,7 @@ dependencies {
 
     z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3_version, ext: 'zip'
     z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3_version, ext: 'zip'
+    z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3_version, ext: 'zip'
 }
 
 processResources {

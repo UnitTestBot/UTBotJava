@@ -6,7 +6,10 @@ configurations {
 }
 
 
-String classifier = System.getProperty('os.name').toLowerCase().split()[0] + "-x86_64"
+def osName = System.getProperty('os.name').toLowerCase().split()[0]
+if (osName == "mac") osName = "macosx"
+String classifier = osName + "-x86_64"
+
 evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 dependencies {

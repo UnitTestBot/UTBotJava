@@ -93,6 +93,6 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     }
 }
 
-project.jar.dependsOn(generatePluginDescriptor)
+project.install.dependsOn(generatePluginDescriptor)
 
 // Please, use `utbot-maven/other/install` task for publishing

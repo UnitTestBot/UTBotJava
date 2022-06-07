@@ -67,14 +67,14 @@ jobs:
     - name: "utbot-framework-api: build and run tests"
       run: |
         cd utbot-framework-api
-        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        gradle clean build --no-daemon
         
     - name: "utbot-api: build"
       run: |
         cd utbot-api
-        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        gradle clean build --no-daemon
     
     - name: "utbot-core: build"
       run: |
         cd utbot-core
-        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        gradle clean build --no-daemon

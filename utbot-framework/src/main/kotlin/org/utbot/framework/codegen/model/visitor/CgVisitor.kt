@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.visitor
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
+import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
@@ -198,6 +199,7 @@ interface CgVisitor<R> {
 
     // Array allocation
     fun visit(element: CgAllocateArray): R
+    fun visit(element: CgAllocateInitializedArray): R
 
     // Spread operator
     fun visit(element: CgSpread): R

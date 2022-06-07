@@ -17,7 +17,7 @@ class FuzzedMethodDescription(
     val name: String,
     val returnType: ClassId,
     val parameters: List<ClassId>,
-    val concreteValues: List<FuzzedConcreteValue> = emptyList()
+    val concreteValues: Collection<FuzzedConcreteValue> = emptyList()
 ) {
 
     /**
@@ -31,8 +31,8 @@ class FuzzedMethodDescription(
         result
     }
 
-    constructor(executableId: ExecutableId, concreteValues: List<FuzzedConcreteValue> = emptyList()) : this(
-        executableId.name,
+    constructor(executableId: ExecutableId, concreteValues: Collection<FuzzedConcreteValue> = emptyList()) : this(
+        executableId.classId.simpleName + "." + executableId.name,
         executableId.returnType,
         executableId.parameters,
         concreteValues
@@ -44,5 +44,19 @@ class FuzzedMethodDescription(
  */
 data class FuzzedConcreteValue(
     val classId: ClassId,
-    val value: Any
+    val value: Any,
+    val relativeOp: FuzzedOp = FuzzedOp.NONE,
 )
+enum class FuzzedOp {
+    NONE,
+    EQ,
+    NE,
+    GT,
+    GE,
+    LT,
+    LE,
+    CH, // changed or called
+    ;
+
+    fun isComparisonOp() = this == EQ || this == NE || this == GT || this == GE || this == LT || this == LE
+}

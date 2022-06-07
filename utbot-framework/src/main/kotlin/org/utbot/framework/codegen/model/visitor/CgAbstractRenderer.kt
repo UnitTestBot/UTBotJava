@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
@@ -77,11 +78,23 @@ import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.tree.CgWhileLoop
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
+import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
-import org.apache.commons.text.StringEscapeUtils
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.shortClassId
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {
@@ -97,6 +110,17 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected abstract val language: CodegenLanguage
 
     protected abstract val langPackage: String
+
+    //We may render array elements in initializer in one line or in separate lines:
+    //items count in one line depends on the value type.
+    protected fun arrayElementsInLine(constModel: UtModel): Int {
+        if (constModel is UtNullModel) return 10
+        return when (constModel.classId) {
+            intClassId, byteClassId, longClassId, charClassId -> 8
+            booleanClassId, shortClassId, doubleClassId, floatClassId -> 6
+            else -> error("Non primitive value of type ${constModel.classId} is unexpected in array initializer")
+        }
+    }
 
     private val MethodId.accessibleByName: Boolean
         get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
@@ -689,6 +713,17 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     protected abstract fun renderExceptionCatchVariable(exception: CgVariable)
 
+    protected fun UtArrayModel.getElementExpr(index: Int): CgExpression {
+        val itemModel = stores.getOrDefault(index, constModel)
+        val cgValue: CgExpression = when (itemModel) {
+            is UtPrimitiveModel -> itemModel.value.resolve()
+            is UtNullModel -> null.resolve()
+            else -> error("Non primitive or null model $itemModel is unexpected in array initializer")
+        }
+
+        return cgValue
+    }
+
     protected fun getEscapedImportRendering(import: Import): String =
         import.qualifiedName
             .split(".")
@@ -716,6 +751,34 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
                     if (newLines) println() else print(" ")
                 }
                 index == lastIndex -> if (newLines) println()
+            }
+        }
+    }
+
+    protected fun UtArrayModel.renderElements(length: Int, elementsInLine: Int) {
+        if (length <= elementsInLine) { // one-line array
+            for (i in 0 until length) {
+                val expr = this.getElementExpr(i)
+                expr.accept(this@CgAbstractRenderer)
+                if (i != length - 1) {
+                    print(", ")
+                }
+            }
+        } else { // multiline array
+            println() // line break after `int[] x = {`
+            withIndent {
+                for (i in 0 until length) {
+                    val expr = this.getElementExpr(i)
+                    expr.accept(this@CgAbstractRenderer)
+
+                    if (i == length - 1) {
+                        println()
+                    } else if (i % elementsInLine == elementsInLine - 1) {
+                        println(",")
+                    } else {
+                        print(", ")
+                    }
+                }
             }
         }
     }

@@ -12,15 +12,25 @@ import org.utbot.framework.codegen.model.ModelBasedCodeGeneratorService
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.primitiveByWrapper
+import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.fuzzer.ModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import java.lang.reflect.Method
@@ -91,6 +101,11 @@ object UtBotJavaApi {
         }
     }
 
+    /**
+     * Generates test cases using default workflow.
+     *
+     * @see [fuzzingTestCases]
+     */
     @JvmStatic
     @JvmOverloads
     fun generateTestCases(
@@ -126,6 +141,73 @@ object UtBotJavaApi {
         })
 
         return testCases
+    }
+
+    /**
+     * Generates test cases using only fuzzing workflow.
+     *
+     * @see [generateTestCases]
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun fuzzingTestCases(
+        methodsForAutomaticGeneration: List<TestMethodInfo>,
+        classUnderTest: Class<*>,
+        classpath: String,
+        dependencyClassPath: String,
+        mockStrategyApi: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES,
+        generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
+        primitiveValuesSupplier: CustomFuzzerValueSupplier = CustomFuzzerValueSupplier { null }
+    ): MutableList<UtTestCase> {
+        fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
+            supplier
+                .takeIf { classId.isPrimitive || classId.isPrimitiveWrapper || classId == stringClassId }
+                ?.get(classId.jClass)
+                ?.asSequence()
+                ?.filter {
+                    val valueClassId = it.javaClass.id
+                    when {
+                        classId == valueClassId -> true
+                        classId.isPrimitive -> wrapperByPrimitive[classId] == valueClassId
+                        classId.isPrimitiveWrapper -> primitiveByWrapper[classId] == valueClassId
+                        else -> false
+                    }
+                }
+                ?.map { UtPrimitiveModel(it) } ?: emptySequence()
+
+        val customModelProvider = ModelProvider { description, consumer ->
+            description.parametersMap.forEach { (classId, indices) ->
+                createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
+                    indices.forEach { index ->
+                        consumer.accept(index, model)
+                    }
+                }
+            }
+        }
+
+        return withUtContext(UtContext(classUnderTest.classLoader)) {
+            UtBotTestCaseGenerator
+                .apply {
+                    init(
+                        FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
+                    )
+                }.generateForSeveralMethods(
+                    methodsForAutomaticGeneration.map {
+                        toUtMethod(
+                            it.methodToBeTestedFromUserInput,
+                            classUnderTest.kotlin
+                        )
+                    },
+                    mockStrategyApi,
+                    chosenClassesToMockAlways = emptySet(),
+                    generationTimeoutInMillis,
+                    generate = { symbolicEngine ->
+                        symbolicEngine.fuzzing { defaultModelProvider ->
+                            customModelProvider.withFallback(defaultModelProvider)
+                        }
+                    }
+                )
+        }.toMutableList()
     }
 
     private fun generateUnitTests(
@@ -182,4 +264,19 @@ object UtBotJavaApi {
             listOf(utExecution)
         )
     }.toList()
+}
+
+/**
+ * Accepts type of parameter and returns collection of values for this type.
+ *
+ * Value types which can be generated:
+ *
+ *  - primitive types: boolean, char, byte, short, int, long, float, double
+ *  - primitive wrappers: Boolean, Character, Byte, Short, Integer, Long, Float, Double
+ *  - String
+ *
+ *  If null is returned instead of empty collection then default fuzzer values are produced.
+ */
+fun interface CustomFuzzerValueSupplier {
+    fun get(type: Class<*>): Collection<Any>?
 }

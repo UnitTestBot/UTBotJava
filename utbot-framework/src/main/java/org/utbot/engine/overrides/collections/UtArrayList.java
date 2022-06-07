@@ -82,7 +82,8 @@ public class UtArrayList<E> extends AbstractList<E>
 
         int size = elementData.end;
         assume(elementData.begin == 0);
-        assume(size >= 0 & size <= MAX_LIST_SIZE);
+        assume(size >= 0);
+        assume(size <= MAX_LIST_SIZE);
 
         visit(this);
     }

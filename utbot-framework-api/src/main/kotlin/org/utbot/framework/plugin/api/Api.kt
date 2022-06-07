@@ -1155,6 +1155,9 @@ enum class CodegenLanguage(
             ).plus(sourcesFiles)
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
         }
+        if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {
+            throw RuntimeException("'KOTLIN_HOME' environment variable is not defined. Standard location is {IDEA installation dir}/plugins/Kotlin/kotlinc")
+        }
 
         return listOf(compilerExecutableAbsolutePath) + isolateCommandLineArgumentsToArgumentFile(arguments)
     }

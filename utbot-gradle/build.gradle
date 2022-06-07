@@ -18,8 +18,8 @@ configurations.all {
 gradlePlugin {
     plugins {
         sarifReportPlugin {
-            id = 'org.utbot.sarif'
-            implementationClass = 'org.utbot.sarif.SarifGradlePlugin'
+            id = 'org.utbot.gradle.plugin'
+            implementationClass = 'org.utbot.gradle.plugin.SarifGradlePlugin'
         }
     }
 }

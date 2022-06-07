@@ -7,6 +7,7 @@ import soot.jimple.Stmt
 import soot.jimple.SwitchStmt
 import soot.jimple.internal.JReturnStmt
 import soot.jimple.internal.JReturnVoidStmt
+import soot.jimple.internal.JThrowStmt
 import soot.toolkits.graph.ExceptionalUnitGraph
 
 private const val EXCEPTION_DECISION_SHIFT = 100000
@@ -22,7 +23,16 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     private var attachAllowed = true
     val graphs = mutableListOf(graph)
     private val statistics = mutableListOf<TraverseGraphStatistics>()
-    private val methods = mutableListOf(graph.body.method)
+    // All the methods in the InterProceduralUnitGraph
+    private val methods: MutableSet<SootMethod> = mutableSetOf(graph.body.method)
+    // Methods with registered edges
+    private val registeredMethods: MutableSet<SootMethod> = mutableSetOf(graph.body.method)
+
+    // We use this field for exceptional statements of the methods from the [registeredMethods] map.
+    // Points of interest are statements of the graph that must be covered during the exploration.
+    // Therefore, there is no need to put here statements from registered methods since
+    // we try to cover all of their edges.
+    private val methodToUncoveredThrowStatements: MutableMap<SootMethod, MutableSet<Stmt>> = mutableMapOf()
 
     private val unexceptionalSuccsCache = mutableMapOf<ExceptionalUnitGraph, Map<Stmt, Set<Stmt>>>()
     private val exceptionalSuccsCache = mutableMapOf<ExceptionalUnitGraph, Map<Stmt, Set<Stmt>>>()
@@ -41,9 +51,10 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     private val unexceptionalSuccs: MutableMap<Stmt, Set<Stmt>> = graph.unexceptionalSuccs.toMutableMap()
 
     private val stmtToGraph: MutableMap<Stmt, ExceptionalUnitGraph> = stmts.associateWithTo(mutableMapOf()) { graph }
+    private val edgeToGraph: MutableMap<Edge, ExceptionalUnitGraph> = graph.edges.associateWithTo(mutableMapOf()) { graph }
 
-    val registeredEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
-    val outgoingEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
+    private val registeredEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
+    private val outgoingEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
 
     fun method(stmt: Stmt): SootMethod = stmtToGraph[stmt]?.body?.method ?: error("$stmt not in graph.")
 
@@ -79,42 +90,65 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     private val ExceptionalUnitGraph.outgoingEdgesCount: MutableMap<Stmt, Int>
         get() = stmts.associateWithTo(mutableMapOf()) { succ(it).count() }
 
+    /**
+     * Returns a method that the [edge] is belongs to. If the [edge] does not
+     * have such method, null will be returned.
+     *
+     * Note: for example, implicit edges and edges produced by an invocation
+     * does not have a method they could belong to.
+     */
+    private fun methodByEdge(edge: Edge): SootMethod? = edgeToGraph[edge]?.body?.method
 
     /**
-     * join new graph to stmt.
-     * @param registerEdges - if true than edges
+     * Joins a new [graph] to the [stmt]. Depending on the [registerEdges], edges of the [graph]
+     * might be either registered in the global graph or not.
+     *
+     * If they are registered, path selector tries to cover all edges from the [graph].
      */
     fun join(stmt: Stmt, graph: ExceptionalUnitGraph, registerEdges: Boolean) {
         attachAllowed = false
+
         val invokeEdge = Edge(stmt, graph.head, CALL_DECISION_NUM)
-        val alreadyJoined = graph.body.method in methods
+        val method = graph.body.method
+        val alreadyJoined = method in methods
+
         if (!alreadyJoined) {
             graphs += graph
-            methods += graph.body.method
+            methods += method
             traps += graph.traps
             exceptionalSuccs += graph.exceptionalSuccs
             unexceptionalSuccs += graph.unexceptionalSuccs
 
-            val joinedStmts = graph.stmts
-            stmts += joinedStmts
-            joinedStmts.forEach { stmtToGraph[it] = graph }
+            graph.edges.forEach { edgeToGraph[it] = graph }
+
+            val joinedStmts = graph.stmts.onEach { stmtToGraph[it] = graph }
             outgoingEdgesCount += graph.outgoingEdgesCount
+            stmts += joinedStmts
+
             if (registerEdges) {
+                registeredMethods += method
                 registeredEdgesCount += graph.outgoingEdgesCount
                 registeredEdges += graph.edges
                 registeredEdgesCount.computeIfPresent(stmt) { _, value ->
                     value + 1
                 }
             }
+
+            // it is important to have this method call after we register the given method
+            // because we find uncoveredPoints for unregistered methods only
+            method.uncoveredThrowStatements()
         }
+
         invokeSuccessors.compute(stmt) { _, value ->
             value?.apply { add(graph.head) } ?: mutableSetOf(graph.head)
         }
+
         registeredEdges += invokeEdge
 
         outgoingEdgesCount.computeIfPresent(stmt) { _, value ->
             value + 1
         }
+
         statistics.forEach {
             it.onJoin(stmt, graph, registerEdges)
         }
@@ -129,9 +163,15 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
         coveredOutgoingEdges.putIfAbsent(executionState.stmt, 0)
 
         for (edge in executionState.edges) {
+            markAsCoveredStmt(edge.src)
+            markAsCoveredStmt(edge.dst)
+
             when (edge) {
                 in implicitEdges -> coveredImplicitEdges += edge
-                !in registeredEdges -> coveredOutgoingEdges.putIfAbsent(edge.src, 0)
+                !in registeredEdges -> {
+                    coveredOutgoingEdges.putIfAbsent(edge.src, 0)
+                    coveredEdges += edge
+                }
                 !in coveredEdges -> {
                     coveredOutgoingEdges.compute(edge.src) { _, value -> (value ?: 0) + 1 }
                     coveredEdges += edge
@@ -141,6 +181,43 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
         statistics.forEach {
             it.onTraversed(executionState)
         }
+    }
+
+    /**
+     * Returns uncovered throw statements for [this] method.
+     */
+    private fun SootMethod.uncoveredThrowStatements(): Set<Stmt> {
+        val throwStatements = methodToUncoveredThrowStatements[this]
+
+        if (throwStatements != null) {
+            return throwStatements
+        }
+
+        // We don't have to additionally specify throw statements
+        // since for the registeredMethods we try to cover all of their edges.
+        if (this in registeredMethods) {
+            return emptySet()
+        }
+
+        // We don't want to cover all the exceptions in not overridden library classes
+        if (declaringClass.isLibraryClass && !declaringClass.isOverridden) {
+            return emptySet()
+        }
+
+        val uncoveredThrowStatements = methodToUncoveredThrowStatements.getOrPut(this) { mutableSetOf() }
+
+        if (!canRetrieveBody()) {
+            return uncoveredThrowStatements
+        }
+
+        uncoveredThrowStatements += jimpleBody().units.filterIsInstance<JThrowStmt>()
+
+        return uncoveredThrowStatements
+    }
+
+    private fun markAsCoveredStmt(stmt: Stmt) {
+        val method = methodByStmt(stmt)
+        methodToUncoveredThrowStatements[method]?.remove(stmt)
     }
 
     /**
@@ -215,11 +292,34 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
             (edge in coveredEdges || edge !in registeredEdges)
         }
 
+    /**
+     * If the [edge] does not have associated method, returns a result of [isCovered] call.
+     * Otherwise, there are several cases:
+     * * If the [edge] in [coveredEdges], returns true;
+     * * If the [edge] belongs to a method of some overridden class and there is
+     * uncovered throw statements in it, returns false;
+     * * In all other cases, returns whether the [edge] absent in [registeredEdges].
+     */
+    fun isCoveredWithAllThrowStatements(edge: Edge): Boolean {
+        val method = methodByEdge(edge) ?: return isCovered(edge)
+        
+        if (edge in coveredEdges) {
+            return true
+        }
+
+        if (method.declaringClass.isOverridden && method.uncoveredThrowStatements().isNotEmpty()) {
+            return false
+        }
+
+        return edge !in registeredEdges
+    }
 
     /**
      * @return true if stmt has more than one outgoing edge
      */
     fun isFork(stmt: Stmt): Boolean = (outgoingEdgesCount[stmt] ?: 0) > 1
+
+    private fun methodByStmt(stmt: Stmt) = stmtToGraph.getValue(stmt).body.method
 }
 
 private fun ExceptionalUnitGraph.succ(stmt: Stmt): Sequence<Stmt> = exceptionalSucc(stmt) + unexceptionalSucc(stmt)

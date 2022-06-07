@@ -107,6 +107,7 @@ import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
@@ -292,7 +293,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 // we cannot generate any assertions for constructor testing
                 // but we need to generate a constructor call
                 val constructorCall = currentExecutable as ConstructorId
-                currentExecution!!.result
+                val currentExecution = currentExecution!!
+                currentExecution.result
                     .onSuccess {
                         methodType = SUCCESSFUL
 
@@ -308,15 +310,16 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         }
                     }
                     .onFailure { exception ->
-                        processExecutionFailure(exception)
+                        processExecutionFailure(currentExecution, exception)
                     }
             }
             is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
             is MethodId -> {
                 emptyLineIfNeeded()
                 val method = currentExecutable as MethodId
+                val currentExecution = currentExecution!!
                 // build assertions
-                currentExecution!!.result
+                currentExecution.result
                     .onSuccess { result ->
                         methodType = SUCCESSFUL
 
@@ -330,13 +333,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         }
                     }
                     .onFailure { exception ->
-                        processExecutionFailure(exception)
+                        processExecutionFailure(currentExecution, exception)
                     }
             }
         }
     }
 
-    private fun processExecutionFailure(exception: Throwable) {
+    private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
         val methodInvocationBlock = {
             with(currentExecutable) {
                 when (this) {
@@ -346,7 +349,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
         }
 
-        if (shouldTestPassWithExpectedException(exception)) {
+        if (shouldTestPassWithException(execution, exception)) {
             testFrameworkManager.expectException(exception::class.id) {
                 methodInvocationBlock()
             }
@@ -373,11 +376,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         methodInvocationBlock()
     }
 
-    private fun shouldTestPassWithExpectedException(exception: Throwable): Boolean {
+    private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
 
-        return runtimeExceptionTestsBehaviour == PASS || exception !is RuntimeException
+        val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
+        val exceptionIsExplicit = execution.result is UtExplicitlyThrownException
+        return exceptionRequiresAssert || exceptionIsExplicit
     }
 
     private fun writeWarningAboutTimeoutExceeding() {
@@ -1129,7 +1134,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val varType = CgClassId(
                             it.variableType,
                             TypeParameters(listOf(typeParameter)),
-                            isNullable=true,
+                            isNullable = true,
                         )
                         +CgDeclaration(
                             varType,
@@ -1633,21 +1638,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * that may be thrown by these calls.
      */
     private fun CgExecutableCall.intercepted() {
-        when (executableId) {
-            is MethodId -> {
-                if (executableId == invoke) {
-                    this.wrapReflectiveCall()
-                } else {
-                    +this
-                }
-            }
-            is ConstructorId -> {
-                if (executableId == newInstance) {
-                    this.wrapReflectiveCall()
-                } else {
-                    +this
-                }
-            }
+        val executableToWrap = when (executableId) {
+            is MethodId -> invoke
+            is ConstructorId -> newInstance
+        }
+        if (executableId == executableToWrap) {
+            this.wrapReflectiveCall()
+        } else {
+            +this
         }
     }
 }

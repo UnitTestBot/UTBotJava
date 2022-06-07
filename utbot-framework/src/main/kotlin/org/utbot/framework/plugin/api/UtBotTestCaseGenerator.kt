@@ -166,11 +166,28 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
+        val engine = createSymbolicEngine(
+            controller,
+            method,
+            mockStrategy,
+            chosenClassesToMockAlways,
+            executionTimeEstimator
+        )
+        return createDefaultFlow(engine)
+    }
+
+    private fun createSymbolicEngine(
+        controller: EngineController,
+        method: UtMethod<*>,
+        mockStrategy: MockStrategyApi,
+        chosenClassesToMockAlways: Set<ClassId>,
+        executionTimeEstimator: ExecutionTimeEstimator
+    ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $method  --$mockStrategy--")
         val graph = graph(method)
 
-        val engine = UtBotSymbolicEngine(
+        return UtBotSymbolicEngine(
             controller,
             method,
             graph,
@@ -180,11 +197,14 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
+    }
 
-        return flowOf(
-            engine.traverse(),
-            engine.fuzzing(),
-        ).flattenConcat()
+    private fun createDefaultFlow(engine: UtBotSymbolicEngine): Flow<UtResult> {
+        var flow = engine.traverse()
+        if (UtSettings.useFuzzing) {
+            flow = flowOf(flow, engine.fuzzing()).flattenConcat()
+        }
+        return flow
     }
 
     // CONFLUENCE:The+UtBot+Java+timeouts
@@ -224,7 +244,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         methods: List<UtMethod<*>>,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
-        methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis
+        methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
+        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = ::createDefaultFlow
     ): List<UtTestCase> {
         if (isCanceled()) return methods.map { UtTestCase(it) }
 
@@ -246,13 +267,13 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                         //yield one to
                         yield()
 
-                        generateAsync(
+                        generate(createSymbolicEngine(
                             controller,
                             method,
                             mockStrategy,
                             chosenClassesToMockAlways,
                             executionTimeEstimator
-                        ).collect {
+                        )).collect {
                             when (it) {
                                 is UtExecution -> method2executions.getValue(method) += it
                                 is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)

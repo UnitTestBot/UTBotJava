@@ -31,7 +31,7 @@ class EdgeVisitCountingStatistics(
      * - all statements are already covered and execution is complete
      */
     override fun shouldDrop(state: ExecutionState): Boolean {
-        return state.edges.all { graph.isCovered(it) } && state.isComplete()
+        return state.edges.all { graph.isCoveredWithAllThrowStatements(it) } && state.isComplete()
     }
 
     /**

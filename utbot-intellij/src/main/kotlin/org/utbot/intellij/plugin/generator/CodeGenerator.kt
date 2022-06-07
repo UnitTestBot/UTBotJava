@@ -57,7 +57,10 @@ class CodeGenerator(
 
 fun findMethodsInClassMatchingSelected(clazz: KClass<*>, selectedMethods: List<MemberInfo>): List<UtMethod<*>> {
     val selectedSignatures = selectedMethods.map { it.signature() }
-    return clazz.functions.filter { it.signature().normalized() in selectedSignatures }.map { UtMethod(it, clazz) }
+    return clazz.functions
+        .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
+        .filter { it.signature().normalized() in selectedSignatures }
+        .map { UtMethod(it, clazz) }
 }
 
 fun findMethodParams(clazz: KClass<*>, methods: List<MemberInfo>): Map<UtMethod<*>, List<String>> {

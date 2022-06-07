@@ -147,9 +147,10 @@ internal abstract class TestFrameworkManager(val context: CgContext)
 
     fun assertBoolean(actual: CgExpression) = assertBoolean(expected = true, actual)
 
-    // Exception expectation is very different in JUnit4 and JUnit5
+    // Exception expectation differs between test frameworks
     // JUnit4 requires to add a specific argument to the test method annotation
-    // JUnit5 requires to use method assertThrows()
+    // JUnit5 requires using method assertThrows()
+    // TestNg allows both approaches, we use similar to JUnit5
     abstract fun expectException(exception: ClassId, block: () -> Unit)
 
     open fun setTestExecutionTimeout(timeoutMs: Long) {

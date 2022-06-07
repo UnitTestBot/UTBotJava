@@ -15,6 +15,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
+import org.utbot.engine.isOverridden
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
 
@@ -81,8 +82,8 @@ class GraphViz(
             uncompletedStack.last().addDotEdge(it)
             fullStack.last().addDotEdge(it)
         }
-        (graph.registeredEdges + graph.implicitEdges).forEach {
-            if (!libraryGraphs.contains(stmtToSubgraph[it.src]) && !libraryGraphs.contains(stmtToSubgraph[it.src])) {
+        (graph.allEdges + graph.implicitEdges).forEach {
+            if (!libraryGraphs.contains(stmtToSubgraph[it.src]) && !libraryGraphs.contains(stmtToSubgraph[it.dst])) {
                 dotGlobalGraph.addDotEdge(it)
             }
         }
@@ -152,7 +153,8 @@ class GraphViz(
     }
 
     override fun onJoin(stmt: Stmt, graph: ExceptionalUnitGraph, shouldRegister: Boolean) {
-        if (!shouldRegister) {
+        val declaringClass = graph.body?.method?.declaringClass
+        if (declaringClass?.isLibraryClass == true && !declaringClass.isOverridden) {
             libraryGraphs.add(graph.body?.method?.declaringClass?.shortName + "." + graph.body?.method?.name)
         }
         update()
@@ -175,7 +177,7 @@ class GraphViz(
             }
         }
 
-        for (edge in graph.registeredEdges + graph.implicitEdges) {
+        for (edge in graph.allEdges + graph.implicitEdges) {
             subgraphEdges[stmtToSubgraph[edge.src]!!]!!.add(edge)
         }
     }
@@ -185,7 +187,7 @@ class GraphViz(
         graph.dotNode(executionState.stmt)?.isLast = true
 
         // Node property: covered
-        globalGraph.stmts.forEach { graph.dotNode(it)?.covered = globalGraph.isCovered(it) }
+        globalGraph.stmts.forEach { graph.dotNode(it)?.covered = globalGraph.isCoveredIgnoringRegistration(it) }
 
         // Node property: In queue
         pathSelector.queue().forEach { graph.dotNode(it.first.stmt)?.inQueue = true }
@@ -194,7 +196,7 @@ class GraphViz(
         if (!pathSelector.isEmpty()) graph.dotNode(pathSelector.peek()!!.stmt)?.headQueue = true
 
         // Edge property: covered
-        (globalGraph.registeredEdges + globalGraph.implicitEdges).forEach {
+        (globalGraph.allEdges + globalGraph.implicitEdges).forEach {
             graph.dotEdge(it)?.isCovered = globalGraph.isCovered(it)
         }
 

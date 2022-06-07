@@ -12,6 +12,8 @@ import org.utbot.engine.TypeRegistry
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
 import org.utbot.engine.pc.UtSolverStatusKind.UNKNOWN
 import org.utbot.engine.pc.UtSolverStatusKind.UNSAT
+import org.utbot.engine.prettify
+import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.prettify
@@ -126,6 +128,11 @@ data class UtSolver constructor(
     //these constraints.hard are already added to z3solver
     private var constraints: BaseQuery = Query(),
 
+    // Constraints that should not be added in the solver as hypothesis.
+    // Instead, we use `check` to find out if they are satisfiable.
+    // It is required to have unsat cores with them.
+    var assumption: Assumption = Assumption(),
+
     //new constraints for solver (kind of incremental behavior)
     private var hardConstraintsNotYetAddedToZ3Solver: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
 
@@ -136,6 +143,11 @@ data class UtSolver constructor(
 
     private val translator: Z3TranslatorVisitor = Z3TranslatorVisitor(context, typeRegistry)
 
+    /**
+     * Constraints from the [assumption] that are not satisfiable.
+     * All the elements were found in the calculated unsat core.
+     */
+    internal val failedAssumptions = mutableListOf<UtBoolExpression>()
 
     //protection against solver reusage
     private var canBeCloned: Boolean = true
@@ -163,13 +175,13 @@ data class UtSolver constructor(
 
     var expectUndefined: Boolean = false
 
-    fun add(hard: HardConstraint, soft: SoftConstraint): UtSolver {
+    fun add(hard: HardConstraint, soft: SoftConstraint, assumption: Assumption = Assumption()): UtSolver {
         // status can implicitly change here to UNDEFINED or UNSAT
         val newConstraints = constraints.with(hard.constraints, soft.constraints)
         val wantClone = (expectUndefined && newConstraints.status is UtSolverStatusUNDEFINED)
                 || (!expectUndefined && newConstraints.status !is UtSolverStatusUNSAT)
 
-        return if (wantClone && canBeCloned) {
+        return if (wantClone && canBeCloned && assumption.constraints.isEmpty()) {
             // try to reuse z3 Solver with value SAT when possible
             canBeCloned = false
             copy(
@@ -177,13 +189,22 @@ data class UtSolver constructor(
                 hardConstraintsNotYetAddedToZ3Solver = hardConstraintsNotYetAddedToZ3Solver.addAll(newConstraints.lastAdded),
             )
         } else {
+            // We pass here undefined status to force calculation
+            // at the next `check` call. Otherwise, we'd ignore
+            // the given assumptions and return already calculated status.
+            val constraintsWithStatus = if (assumption.constraints.isNotEmpty()) {
+                newConstraints.withStatus(UtSolverStatusUNDEFINED)
+            } else {
+                newConstraints
+            }
             /*
             Create new solver to add another constraints (new branches)
             New solver hasn't already added constraints thus we must add them again
             */
             copy(
-                constraints = newConstraints,
+                constraints = constraintsWithStatus,
                 hardConstraintsNotYetAddedToZ3Solver = newConstraints.hard,
+                assumption = this.assumption + assumption,
                 z3Solver = context.mkSolver().also { it.setParameters(params) },
             )
         }
@@ -195,11 +216,12 @@ data class UtSolver constructor(
         }
 
         val translatedSoft = if (respectSoft && preferredCexOption) {
-            constraints.soft.associateByTo(mutableMapOf()) { translator.translate(it) as BoolExpr }
+            constraints.soft.translate()
         } else {
             mutableMapOf()
         }
 
+        val translatedAssumes = assumption.constraints.translate()
 
         val statusHolder = logger.trace().bracket("High level check(): ", { it }) {
             Predictors.smtIncremental.learnOn(IncrementalData(constraints.hard, hardConstraintsNotYetAddedToZ3Solver)) {
@@ -210,7 +232,7 @@ data class UtSolver constructor(
                     "${str.md5()}\n$str"
                 }
 
-                when (val status = check(translatedSoft)) {
+                when (val status = check(translatedSoft, translatedAssumes)) {
                     SAT -> UtSolverStatusSAT(translator, z3Solver)
                     else -> UtSolverStatusUNSAT(status)
                 }
@@ -227,19 +249,31 @@ data class UtSolver constructor(
         z3Solver.reset()
     }
 
-    private fun check(translatedSoft: MutableMap<BoolExpr, UtBoolExpression>): UtSolverStatusKind {
+    private fun check(
+        translatedSoft: MutableMap<BoolExpr, UtBoolExpression>,
+        translatedAssumptions: MutableMap<BoolExpr, UtBoolExpression>
+    ): UtSolverStatusKind {
+        val assumptionsInUnsatCore = mutableListOf<UtBoolExpression>()
+
         while (true) {
             val res = logger.trace().bracket("Low level check(): ", { it }) {
-                z3Solver.check(*translatedSoft.keys.toTypedArray())
+                val constraintsToCheck = translatedSoft.keys + translatedAssumptions.keys
+                z3Solver.check(*constraintsToCheck.toTypedArray())
             }
             when (res) {
-                SATISFIABLE -> return SAT
+                SATISFIABLE -> {
+                    if (assumptionsInUnsatCore.isNotEmpty()) {
+                        failedAssumptions += assumptionsInUnsatCore
+                    }
+
+                    return SAT
+                }
                 UNSATISFIABLE -> {
                     val unsatCore = z3Solver.unsatCore
 
                     // if we don't have any soft constraints and enabled unsat cores
                     // for hard constraints, then calculate it and print the result using the logger
-                    if (translatedSoft.isEmpty() && UtSettings.enableUnsatCoreCalculationForHardConstraints) {
+                    if (translatedSoft.isEmpty() && translatedAssumptions.isEmpty() && UtSettings.enableUnsatCoreCalculationForHardConstraints) {
                         with(context.mkSolver()) {
                             check(*z3Solver.assertions)
                             val constraintsInUnsatCore = this.unsatCore.toList()
@@ -253,15 +287,26 @@ data class UtSolver constructor(
                     // an unsat core for hard constraints
                     if (unsatCore.isEmpty()) return UNSAT
 
-                    for (unsatVariable in unsatCore) {
-                        translatedSoft.remove(unsatVariable)
-                            ?: error("$unsatVariable from unsatCore isn't in soft constraints")
+                    val failedSoftConstraints = unsatCore.filter { it in translatedSoft.keys }
+
+                    if (failedSoftConstraints.isNotEmpty()) {
+                        failedSoftConstraints.forEach { translatedSoft.remove(it) }
+                        // remove soft constraints first, only then try to remove assumptions
+                        continue
                     }
+
+                    unsatCore
+                        .filter { it in translatedAssumptions.keys }
+                        .forEach {
+                            assumptionsInUnsatCore += translatedAssumptions.getValue(it)
+                            translatedAssumptions.remove(it)
+                        }
                 }
                 else -> {
                     logger.debug { "Reason of UNKNOWN: ${z3Solver.reasonUnknown}" }
                     if (translatedSoft.isEmpty()) {
-                        logger.debug {"No soft constraints left, return UNKNOWN"}
+                        logger.debug { "No soft constraints left, return UNKNOWN" }
+                        logger.trace { "Constraints lead to unknown: ${z3Solver.assertions.joinToString("\n")} " }
                         return UNKNOWN
                     }
 
@@ -270,6 +315,9 @@ data class UtSolver constructor(
             }
         }
     }
+
+    private fun Collection<UtBoolExpression>.translate(): MutableMap<BoolExpr, UtBoolExpression> =
+        associateByTo(mutableMapOf()) { translator.translate(it) as BoolExpr }
 }
 
 enum class UtSolverStatusKind {

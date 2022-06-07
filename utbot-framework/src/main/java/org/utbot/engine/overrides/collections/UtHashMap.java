@@ -100,12 +100,12 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
         parameter(values.touched);
         parameter(values.storage);
         parameter(keys);
-        // for some unknown reason parameter(keys.storage) leads to MapValuesTest::testIteratorNext test failure
+        parameter(keys.storage);
 
         assume(values.size == keys.end);
         assume(values.touched.length == keys.end);
         doesntThrow();
-        for (int i = 0; i < keys.end; i++) {
+        for (int i = keys.begin; i < keys.end; i++) {
             K key = keys.get(i);
 
             assume(values.touched[i] == key);

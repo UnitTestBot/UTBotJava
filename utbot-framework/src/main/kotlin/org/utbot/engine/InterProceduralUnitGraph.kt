@@ -40,6 +40,8 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
 
     val stmts: MutableSet<Stmt> = graph.stmts.toMutableSet()
     val registeredEdges: MutableSet<Edge> = graph.edges.toMutableSet()
+    // this field is required for visualization
+    val allEdges: MutableSet<Edge> = graph.edges.toMutableSet()
     /**
      * Used in [org.utbot.engine.selectors.nurs.InheritorsSelector] for a fast search of Virtual invoke successors.
      */
@@ -54,6 +56,7 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     private val edgeToGraph: MutableMap<Edge, ExceptionalUnitGraph> = graph.edges.associateWithTo(mutableMapOf()) { graph }
 
     private val registeredEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
+    private val allEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
     private val outgoingEdgesCount: MutableMap<Stmt, Int> = graph.outgoingEdgesCount
 
     fun method(stmt: Stmt): SootMethod = stmtToGraph[stmt]?.body?.method ?: error("$stmt not in graph.")
@@ -125,6 +128,12 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
             outgoingEdgesCount += graph.outgoingEdgesCount
             stmts += joinedStmts
 
+            allEdges += graph.edges
+            allEdgesCount += graph.outgoingEdgesCount
+            allEdgesCount.computeIfPresent(stmt) { _, value ->
+                value + 1
+            }
+
             if (registerEdges) {
                 registeredMethods += method
                 registeredEdgesCount += graph.outgoingEdgesCount
@@ -144,6 +153,7 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
         }
 
         registeredEdges += invokeEdge
+        allEdges += invokeEdge
 
         outgoingEdgesCount.computeIfPresent(stmt) { _, value ->
             value + 1
@@ -168,11 +178,8 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
 
             when (edge) {
                 in implicitEdges -> coveredImplicitEdges += edge
-                !in registeredEdges -> {
+                !in registeredEdges, !in coveredEdges-> {
                     coveredOutgoingEdges.putIfAbsent(edge.src, 0)
-                    coveredEdges += edge
-                }
-                !in coveredEdges -> {
                     coveredOutgoingEdges.compute(edge.src) { _, value -> (value ?: 0) + 1 }
                     coveredEdges += edge
                 }
@@ -280,7 +287,10 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
      * Statement is covered if all the outgoing edges are covered.
      */
     fun isCovered(stmt: Stmt) =
-        stmt !in registeredEdgesCount || stmt in coveredOutgoingEdges && coveredOutgoingEdges[stmt]!! >= registeredEdgesCount[stmt]!!
+        stmt !in registeredEdgesCount || isCoveredIgnoringRegistration(stmt)
+
+    fun isCoveredIgnoringRegistration(stmt: Stmt) =
+        stmt in coveredOutgoingEdges && coveredOutgoingEdges[stmt]!! >= allEdgesCount[stmt]!!
 
     /**
      * Edge is covered if we visited it in successfully completed execution at least once

@@ -64,17 +64,16 @@ fun Module.suitableTestSourceFolders(): List<SourceFolder> =
  *
  * If no roots exist, our suggestion is a folder named "resources" in the entry root.
  */
-fun Module.getOrCreateTestResourcesPath(): Path {
-    val testResourcesUrl = getOrCreateTestResourcesUrl(this)
+fun Module.getOrCreateTestResourcesPath(testSourceRoot: VirtualFile?): Path {
+    val testResourcesUrl = getOrCreateTestResourcesUrl(this, testSourceRoot)
     return VfsUtilCore.urlToPath(testResourcesUrl).toPath()
 }
 
 /**
  * Gets a path to Sarif reports directory or creates it.
- *
  */
-fun Module.getOrCreateSarifReportsPath(): Path {
-    val testResourcesPath = this.getOrCreateTestResourcesPath()
+fun Module.getOrCreateSarifReportsPath(testSourceRoot: VirtualFile?): Path {
+    val testResourcesPath = this.getOrCreateTestResourcesPath(testSourceRoot)
     return "$testResourcesPath/sarif/".toPath()
 }
 
@@ -137,21 +136,33 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
 
     return sourceFolders
         .filterNot { it.isForGeneratedSources() }
-        .filter { folder -> folder.rootType == codegenLanguage.testRootType() }
+        .filter { it.rootType == codegenLanguage.testRootType() }
+        // Heuristics: User is more likely to choose the shorter path
+        .sortedBy { it.url.length }
 }
 
 private const val resourcesSuffix = "/resources"
 
-private fun getOrCreateTestResourcesUrl(module: Module): String {
+private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualFile?): String {
     val moduleInstance = ModuleRootManager.getInstance(module)
     val sourceFolders = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
 
-    val testResourcesFolder = sourceFolders.firstOrNull { it.rootType in testResourceRootTypes }
+    val testResourcesFolder = sourceFolders
+        .filter { sourceFolder ->
+            sourceFolder.rootType in testResourceRootTypes && !sourceFolder.isForGeneratedSources()
+        }
+        // taking the source folder that has the maximum common prefix
+        // with `testSourceRoot`, which was selected by the user
+        .maxBy { sourceFolder ->
+            val sourceFolderPath = sourceFolder.file?.path ?: ""
+            val testSourceRootPath = testSourceRoot?.path ?: ""
+            sourceFolderPath.commonPrefixWith(testSourceRootPath).length
+        }
     if (testResourcesFolder != null) {
         return testResourcesFolder.url
     }
 
-    val testFolder = sourceFolders.firstOrNull { f -> f.rootType in testSourceRootTypes }
+    val testFolder = sourceFolders.firstOrNull { it.rootType in testSourceRootTypes }
     val contentEntry = testFolder?.contentEntry ?: moduleInstance.contentEntries.first()
 
     val parentFolderUrl = testFolder?.let { getParentPath(testFolder.url) }

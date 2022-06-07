@@ -13,9 +13,9 @@ import org.jetbrains.kotlin.config.TestResourceKotlinRootType
 import org.jetbrains.kotlin.config.TestSourceKotlinRootType
 
 val sourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>> = setOf(JavaSourceRootType.SOURCE, SourceKotlinRootType)
-val testSourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>>  = setOf(JavaSourceRootType.TEST_SOURCE, TestSourceKotlinRootType)
-val resourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>> =  setOf(JavaResourceRootType.RESOURCE, ResourceKotlinRootType)
-val testResourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>>  = setOf(JavaResourceRootType.TEST_RESOURCE, TestResourceKotlinRootType)
+val testSourceRootTypes: Set<JpsModuleSourceRootType<JavaSourceRootProperties>> = setOf(JavaSourceRootType.TEST_SOURCE, TestSourceKotlinRootType)
+val resourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>> = setOf(JavaResourceRootType.RESOURCE, ResourceKotlinRootType)
+val testResourceRootTypes: Set<JpsModuleSourceRootType<JavaResourceRootProperties>> = setOf(JavaResourceRootType.TEST_RESOURCE, TestResourceKotlinRootType)
 
 /**
  * Defines test root type for selected codegen language.

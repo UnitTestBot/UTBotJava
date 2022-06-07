@@ -15,48 +15,49 @@ import org.utbot.gradle.plugin.extension.SarifConfigurationParser.mockFrameworkP
 import org.utbot.gradle.plugin.extension.SarifConfigurationParser.mockStrategyParse
 import org.utbot.gradle.plugin.extension.SarifConfigurationParser.staticsMockingParse
 import org.utbot.gradle.plugin.extension.SarifConfigurationParser.testFrameworkParse
+import org.utbot.gradle.plugin.extension.SarifExtensionProvider
 import java.io.File
 
 class SarifMavenConfigurationProvider(
     private val createSarifReportMojo: CreateSarifReportMojo
-) {
+) : SarifExtensionProvider {
 
-    val targetClasses: List<String>
+    override val targetClasses: List<String>
         get() = createSarifReportMojo.targetClasses
 
-    val projectRoot: File
+    override val projectRoot: File
         get() = createSarifReportMojo.projectRoot
 
-    val generatedTestsRelativeRoot: File
+    override val generatedTestsRelativeRoot: String
         get() = createSarifReportMojo.generatedTestsRelativeRoot
 
-    val sarifReportsRelativeRoot: File
+    override val sarifReportsRelativeRoot: String
         get() = createSarifReportMojo.sarifReportsRelativeRoot
 
-    val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
+    override val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
         get() = createSarifReportMojo.markGeneratedTestsDirectoryAsTestSourcesRoot
 
-    val testFramework: TestFramework
+    override val testFramework: TestFramework
         get() = testFrameworkParse(createSarifReportMojo.testFramework)
 
-    val mockFramework: MockFramework
+    override val mockFramework: MockFramework
         get() = mockFrameworkParse(createSarifReportMojo.mockFramework)
 
-    val generationTimeout: Long
+    override val generationTimeout: Long
         get() = generationTimeoutParse(createSarifReportMojo.generationTimeout)
 
-    val codegenLanguage: CodegenLanguage
+    override val codegenLanguage: CodegenLanguage
         get() = codegenLanguageParse(createSarifReportMojo.codegenLanguage)
 
-    val mockStrategy: MockStrategyApi
+    override val mockStrategy: MockStrategyApi
         get() = mockStrategyParse(createSarifReportMojo.mockStrategy)
 
-    val staticsMocking: StaticsMocking
+    override val staticsMocking: StaticsMocking
         get() = staticsMockingParse(createSarifReportMojo.staticsMocking)
 
-    val forceStaticMocking: ForceStaticMocking
+    override val forceStaticMocking: ForceStaticMocking
         get() = forceStaticMockingParse(createSarifReportMojo.forceStaticMocking)
 
-    val classesToMockAlways: Set<ClassId>
+    override val classesToMockAlways: Set<ClassId>
         get() = classesToMockAlwaysParse(createSarifReportMojo.classesToMockAlways)
 }

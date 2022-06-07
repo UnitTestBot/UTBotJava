@@ -26,19 +26,19 @@ import java.io.File
 class SarifGradleExtensionProvider(
     private val project: Project,
     private val extension: SarifGradleExtension
-) {
+) : SarifExtensionProvider {
 
     /**
      * Classes for which the SARIF report will be created.
      */
-    val targetClasses: List<String>
+    override val targetClasses: List<String>
         get() = extension.targetClasses
             .getOrElse(listOf())
 
     /**
      * Absolute path to the root of the relative paths in the SARIF report.
      */
-    val projectRoot: File
+    override val projectRoot: File
         get() = extension.projectRoot.orNull
             ?.toPath()?.toFile()
             ?: project.projectDir
@@ -46,30 +46,30 @@ class SarifGradleExtensionProvider(
     /**
      * Relative path to the root of the generated tests.
      */
-    val generatedTestsRelativeRoot: String
+    override val generatedTestsRelativeRoot: String
         get() = extension.generatedTestsRelativeRoot.orNull
             ?: "build/generated/test"
 
     /**
      * Relative path to the root of the SARIF reports.
      */
-    val sarifReportsRelativeRoot: String
+    override val sarifReportsRelativeRoot: String
         get() = extension.sarifReportsRelativeRoot.orNull
             ?: "build/generated/sarif"
 
     /**
      * Mark the directory with generated tests as `test sources root` or not.
      */
-    val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
+    override val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
         get() = extension.markGeneratedTestsDirectoryAsTestSourcesRoot.orNull
             ?: true
 
-    val testFramework: TestFramework
+    override val testFramework: TestFramework
         get() = extension.testFramework
             .map(::testFrameworkParse)
             .getOrElse(TestFramework.defaultItem)
 
-    val mockFramework: MockFramework
+    override val mockFramework: MockFramework
         get() = extension.mockFramework
             .map(::mockFrameworkParse)
             .getOrElse(MockFramework.defaultItem)
@@ -77,27 +77,27 @@ class SarifGradleExtensionProvider(
     /**
      * Maximum tests generation time for one class (in milliseconds).
      */
-    val generationTimeout: Long
+    override val generationTimeout: Long
         get() = extension.generationTimeout
             .map(::generationTimeoutParse)
             .getOrElse(60 * 1000L) // 60 seconds
 
-    val codegenLanguage: CodegenLanguage
+    override val codegenLanguage: CodegenLanguage
         get() = extension.codegenLanguage
             .map(::codegenLanguageParse)
             .getOrElse(CodegenLanguage.defaultItem)
 
-    val mockStrategy: MockStrategyApi
+    override val mockStrategy: MockStrategyApi
         get() = extension.mockStrategy
             .map(::mockStrategyParse)
             .getOrElse(MockStrategyApi.defaultItem)
 
-    val staticsMocking: StaticsMocking
+    override val staticsMocking: StaticsMocking
         get() = extension.staticsMocking
             .map(::staticsMockingParse)
             .getOrElse(StaticsMocking.defaultItem)
 
-    val forceStaticMocking: ForceStaticMocking
+    override val forceStaticMocking: ForceStaticMocking
         get() = extension.forceStaticMocking
             .map(::forceStaticMockingParse)
             .getOrElse(ForceStaticMocking.defaultItem)
@@ -105,7 +105,7 @@ class SarifGradleExtensionProvider(
     /**
      * Contains user-specified classes and `Mocker.defaultSuperClassesToMockAlwaysNames`.
      */
-    val classesToMockAlways: Set<ClassId>
+    override val classesToMockAlways: Set<ClassId>
         get() = classesToMockAlwaysParse(
             extension.classesToMockAlways.getOrElse(listOf())
         )

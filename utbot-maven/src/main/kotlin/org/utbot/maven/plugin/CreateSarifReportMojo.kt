@@ -9,21 +9,13 @@ import org.apache.maven.plugins.annotations.Parameter
 import org.apache.maven.project.MavenProject
 import org.utbot.common.bracket
 import org.utbot.common.debug
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
-import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.gradle.plugin.CreateSarifReportFacade
 import org.utbot.gradle.plugin.wrappers.TargetClassWrapper
 import org.utbot.maven.plugin.wrappers.MavenProjectWrapper
 import org.utbot.maven.plugin.wrappers.SourceFindingStrategyMaven
-import org.utbot.sarif.SarifReport
-import org.utbot.summary.summarize
 import java.io.File
-import java.net.URLClassLoader
-import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -46,10 +38,10 @@ class CreateSarifReportMojo : AbstractMojo() {
     internal lateinit var projectRoot: File
 
     @Parameter(defaultValue = "target/generated/test")
-    internal lateinit var generatedTestsRelativeRoot: File
+    internal lateinit var generatedTestsRelativeRoot: String
 
     @Parameter(defaultValue = "target/generated/sarif")
-    internal lateinit var sarifReportsRelativeRoot: File
+    internal lateinit var sarifReportsRelativeRoot: String
 
     @Parameter(defaultValue = "true")
     internal var markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean = true
@@ -92,7 +84,10 @@ class CreateSarifReportMojo : AbstractMojo() {
         }
         try {
             generateForProjectRecursively(rootMavenProjectWrapper)
-            mergeReports(rootMavenProjectWrapper)
+            CreateSarifReportFacade.mergeReports(
+                sarifReports = rootMavenProjectWrapper.collectReportsRecursively(),
+                mergedSarifReportFile = rootMavenProjectWrapper.sarifReportFile
+            )
         } catch (t: Throwable) {
             logger.error(t) { "Unexpected error while generating SARIF report" }
             return
@@ -122,70 +117,13 @@ class CreateSarifReportMojo : AbstractMojo() {
      */
     private fun generateForClass(mavenProjectWrapper: MavenProjectWrapper, targetClass: TargetClassWrapper) {
         logger.debug().bracket("Generating tests for the $targetClass") {
-            initializeEngine(mavenProjectWrapper.runtimeClasspath, mavenProjectWrapper.workingDirectory)
-
-            val testCases = generateTestCases(targetClass, mavenProjectWrapper.workingDirectory)
-            val testClassBody = generateTestCode(targetClass, testCases)
-            targetClass.testsCodeFile.writeText(testClassBody)
-
-            generateReport(mavenProjectWrapper, targetClass, testCases, testClassBody)
-        }
-    }
-
-    private val dependencyPaths by lazy {
-        val thisClassLoader = this::class.java.classLoader as URLClassLoader
-        thisClassLoader.urLs.joinToString(separator = ";") { it.path }
-    }
-
-    private fun initializeEngine(classPath: String, workingDirectory: Path) {
-        UtBotTestCaseGenerator.init(workingDirectory, classPath, dependencyPaths) { false }
-    }
-
-    private fun generateTestCases(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtTestCase> =
-        UtBotTestCaseGenerator.generateForSeveralMethods(
-            targetClass.targetMethods(),
-            sarifProperties.mockStrategy,
-            sarifProperties.classesToMockAlways,
-            sarifProperties.generationTimeout
-        ).map {
-            it.summarize(targetClass.sourceCodeFile, workingDirectory)
-        }
-
-    private fun generateTestCode(targetClass: TargetClassWrapper, testCases: List<UtTestCase>): String =
-        initializeCodeGenerator(targetClass)
-            .generateAsString(testCases, targetClass.testsCodeFile.nameWithoutExtension)
-
-    private fun initializeCodeGenerator(targetClass: TargetClassWrapper) =
-        ModelBasedTestCodeGenerator().apply {
-            val isNoStaticMocking = sarifProperties.staticsMocking is NoStaticMocking
-            val isForceStaticMocking = sarifProperties.forceStaticMocking == ForceStaticMocking.FORCE
-            init(
-                classUnderTest = targetClass.classUnderTest.java,
-                testFramework = sarifProperties.testFramework,
-                mockFramework = sarifProperties.mockFramework,
-                staticsMocking = sarifProperties.staticsMocking,
-                forceStaticMocking = sarifProperties.forceStaticMocking,
-                generateWarningsForStaticMocking = isNoStaticMocking && isForceStaticMocking,
-                codegenLanguage = sarifProperties.codegenLanguage
+            val sourceFindingStrategy =
+                SourceFindingStrategyMaven(mavenProjectWrapper, targetClass.testsCodeFile.path)
+            val createSarifReportFacade =
+                CreateSarifReportFacade(sarifProperties, sourceFindingStrategy)
+            createSarifReportFacade.generateForClass(
+                targetClass, mavenProjectWrapper.workingDirectory, mavenProjectWrapper.runtimeClasspath
             )
-        }
-
-    // SARIF reports
-
-    /**
-     * Creates a SARIF report for the class [targetClass].
-     * Saves the report to the file specified in [targetClass].
-     */
-    private fun generateReport(
-        mavenProjectWrapper: MavenProjectWrapper,
-        targetClass: TargetClassWrapper,
-        testCases: List<UtTestCase>,
-        testClassBody: String
-    ) {
-        logger.debug().bracket("Creating a SARIF report for the $targetClass") {
-            val sourceFinding = SourceFindingStrategyMaven(mavenProjectWrapper, targetClass.testsCodeFile.path)
-            val sarifReport = SarifReport(testCases, testClassBody, sourceFinding).createReport()
-            targetClass.sarifReportFile.writeText(sarifReport)
         }
     }
 
@@ -204,15 +142,4 @@ class CreateSarifReportMojo : AbstractMojo() {
         this.targetClasses.map { targetClass ->
             targetClass.sarifReportFile.readText()
         }
-
-    /**
-     * Merges all SARIF reports into one large containing all the information.
-     */
-    private fun mergeReports(mavenProjectWrapper: MavenProjectWrapper) {
-        val reports = mavenProjectWrapper.collectReportsRecursively()
-        val mergedReport = SarifReport.mergeReports(reports)
-        mavenProjectWrapper.sarifReportFile.writeText(mergedReport)
-        println("SARIF report was saved to \"${mavenProjectWrapper.sarifReportFile.path}\"")
-        println("You can open it using the VS Code extension \"Sarif Viewer\"")
-    }
 }

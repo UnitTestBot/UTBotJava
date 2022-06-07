@@ -1395,8 +1395,7 @@ class UtBotSymbolicEngine(
                 }
             }
 
-            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages)
-                .asHardConstraint()
+            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
             parameterAddrToGenericType += value.addr to type
         }
     }

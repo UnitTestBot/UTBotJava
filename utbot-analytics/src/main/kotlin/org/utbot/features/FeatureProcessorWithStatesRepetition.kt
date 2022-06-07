@@ -120,16 +120,16 @@ internal class RewardEstimator {
     fun calculateRewards(testCases: List<TestCase>): Map<Int, Double> {
         val rewards = mutableMapOf<Int, Double>()
         val coverages = mutableMapOf<Int, Int>()
-        val times = mutableMapOf<Int, Long>()
+        val stateToExecutingTime = mutableMapOf<Int, Long>()
 
         testCases.forEach { ts ->
             var allTime = 0L
-            ts.states.forEach { (state, time) ->
-                coverages.compute(state) { _, v ->
+            ts.states.forEach { (stateHash, time) ->
+                coverages.compute(stateHash) { _, v ->
                     ts.newCoverage + (v ?: 0)
                 }
-                val isNewState = state !in times
-                times.compute(state) { _, v ->
+                val isNewState = stateHash !in stateToExecutingTime
+                stateToExecutingTime.compute(stateHash) { _, v ->
                     allTime + (v ?: time)
                 }
                 if (isNewState) {
@@ -139,7 +139,7 @@ internal class RewardEstimator {
         }
 
         coverages.forEach { (state, coverage) ->
-            rewards[state] = reward(coverage.toDouble(), times.getValue(state).toDouble())
+            rewards[state] = reward(coverage.toDouble(), stateToExecutingTime.getValue(state).toDouble())
         }
 
         return rewards

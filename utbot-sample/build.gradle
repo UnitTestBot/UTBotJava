@@ -12,10 +12,10 @@ dependencies {
     implementation group: 'javax.validation', name: 'validation-api', version: '2.0.0.Final'
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
 
-// To use JUnit5, comment out junit4 and uncomment JUnit5 dependencies here. Please also check "test" section
-    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
-//    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.7.0'
-//    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.7.0'
+// To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
+//    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.7.0'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.7.0'
 
 //    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.5.13'
 
@@ -29,7 +29,7 @@ java {
 }
 
 test {
-// To use JUnit5, comment out useJUnit and uncomment useJUnitPlatform. Please also check "dependencies" section
-    useJUnit()
-    // useJUnitPlatform()
+// To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
+    //useJUnit()
+    useJUnitPlatform()
 }

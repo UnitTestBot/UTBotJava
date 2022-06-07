@@ -39,9 +39,12 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     private val edgesCache = mutableMapOf<ExceptionalUnitGraph, List<Edge>>()
 
     val stmts: MutableSet<Stmt> = graph.stmts.toMutableSet()
-    val registeredEdges: MutableSet<Edge> = graph.edges.toMutableSet()
+    private val registeredEdges: MutableSet<Edge> = graph.edges.toMutableSet()
     // this field is required for visualization
-    val allEdges: MutableSet<Edge> = graph.edges.toMutableSet()
+    private val allExplicitEdges: MutableSet<Edge> = graph.edges.toMutableSet()
+
+    val allEdges: Set<Edge> get() = allExplicitEdges + implicitEdges
+
     /**
      * Used in [org.utbot.engine.selectors.nurs.InheritorsSelector] for a fast search of Virtual invoke successors.
      */
@@ -128,11 +131,9 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
             outgoingEdgesCount += graph.outgoingEdgesCount
             stmts += joinedStmts
 
-            allEdges += graph.edges
+            allExplicitEdges += graph.edges
             allEdgesCount += graph.outgoingEdgesCount
-            allEdgesCount.computeIfPresent(stmt) { _, value ->
-                value + 1
-            }
+            allEdgesCount.computeIfPresent(stmt) { _, value -> value + 1 }
 
             if (registerEdges) {
                 registeredMethods += method
@@ -153,7 +154,7 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
         }
 
         registeredEdges += invokeEdge
-        allEdges += invokeEdge
+        allExplicitEdges += invokeEdge
 
         outgoingEdgesCount.computeIfPresent(stmt) { _, value ->
             value + 1
@@ -207,7 +208,7 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
         }
 
         // We don't want to cover all the exceptions in not overridden library classes
-        if (declaringClass.isLibraryClass && !declaringClass.isOverridden) {
+        if (declaringClass.isLibraryNonOverriddenClass) {
             return emptySet()
         }
 
@@ -257,6 +258,7 @@ class InterProceduralUnitGraph(graph: ExceptionalUnitGraph) {
     /**
      * attach new statistics to graph before any modifying operations
      */
+    @Suppress("UNREACHABLE_CODE")
     fun attach(statistics: TraverseGraphStatistics) {
         if (!attachAllowed) {
             throw error("Cannot attach new statistics. Graph have modified.")

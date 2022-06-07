@@ -429,6 +429,9 @@ val SootClass.isUtMock: Boolean
 val SootClass.isOverridden: Boolean
     get() = packageName.startsWith(UTBOT_OVERRIDE_PACKAGE_NAME)
 
+val SootClass.isLibraryNonOverriddenClass: Boolean
+    get() = isLibraryClass && !isOverridden
+
 /**
  * Returns a state from the list that has [UtSolverStatusSAT] status.
  * Inside it calls UtSolver.check if required.

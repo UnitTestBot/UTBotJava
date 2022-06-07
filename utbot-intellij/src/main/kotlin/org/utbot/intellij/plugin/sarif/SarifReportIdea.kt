@@ -21,7 +21,7 @@ object SarifReportIdea {
     ) {
         // building the path to the report file
         val classFqn = testCases.firstOrNull()?.method?.clazz?.qualifiedName ?: return
-        val sarifReportsPath = model.getOrCreateSarifReportsPath()
+        val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}-utbot.sarif")
 
         // creating report related directory

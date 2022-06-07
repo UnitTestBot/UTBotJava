@@ -23,6 +23,10 @@ dependencies {
     mavenEmbedder "org.apache.maven:maven-embedder:${maven_plugin_api_version}"
     mavenEmbedder "org.apache.maven:maven-compat:${maven_plugin_api_version}"
     mavenEmbedder "org.slf4j:slf4j-simple:${slf4j_version}"
+    mavenEmbedder "org.eclipse.aether:aether-connector-basic:${eclipse_aether_version}"
+    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:${eclipse_aether_version}"
+    mavenEmbedder "org.apache.maven.wagon:wagon-http:${maven_wagon_version}"
+    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:${maven_wagon_version}"
 }
 
 def buildDirectory = buildDir.canonicalPath
@@ -31,7 +35,7 @@ def pomFile = new File("$buildDir/pom.xml")
 def pluginDescriptorFile = new File(outputDirectory, 'META-INF/maven/plugin.xml')
 
 task generatePomFile(dependsOn: compileKotlin) {
-    outputs.file(pomFile)
+    outputs.file pomFile
 
     doLast {
         install.repositories.mavenInstaller.pom.with {

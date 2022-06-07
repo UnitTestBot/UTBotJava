@@ -65,7 +65,7 @@ This diagram doesn't illustrate some details, so read them below.
 
 # FeatureProcessor
 
-It is interface in framework-module, that allow to use implementation from analytics module.
+It is interface in framework-module, that allows to use implementation from analytics module.
 
 * `dumpFeatures(state: ExecutionState)` - dump features and rewards in some format on disk. Called at the end of traverse in `UtBotSymbolicEngine`
 
@@ -115,28 +115,28 @@ classDiagram
 
 Maintains calculation of reward. 
 
-* `calculateRewards(List<TestCase>): Map<Int, Double>` - calculates `coverage` for each state and `time` for each state. `Coverage` - sum of `newCoverage` by `TestCase` that contain its state. `Time` - sum of `state.executingTime` by all states, that has this state on its path. Then calculates `reward(coverage, time)`.
+* `calculateRewards(List<TestCase>): Map<Int, Double>` - calculates `coverage` for each state and `time` for each state. `Coverage` - sum of `newCoverage` by `TestCase` that contains its state. `Time` - sum of `state.executingTime` by all states, that has this state on its path. Then calculates `reward(coverage, time)`.
 
 ## FeatureProcessorWithStatesRepetition
 
 * `onVisit(state: ExecutionState)` - extractFeatures for state
 * `onTraversed(state: ExecutionState)` - create `TestCase`, so we go from `state` to `state.parent` while it is not root, for each `state` on path add its features to `dumpedStates`, calculate coverage of its `TestCase`, increment `generatedTestCases` on 1 and add new `TestCase` in `testCases`.
-* `dumpFeatures()` - call `RewardEstimator.calculateRewards()` and write `csv` file for each `TestCase` in format: `newCov,features,reward` for each `state` in it. `newCov` - flag that indicates whether this `TestCase` cover something new or not. So in this approach, each `state` will be written as many times as number of `TestCase` that has it.
-For creating `FeatureExtractor` it uses `FeatureExtractorFactory` from `EngineAnalyticsContext`.
+* `dumpFeatures()` - call `RewardEstimator.calculateRewards()` and write `csv` file for each `TestCase` in format: `newCov,features,reward` for each `state` in it. `newCov` - flag that indicates whether this `TestCase` cover something new or not. So in this approach, each `state` will be written as many times as the number of `TestCase` that has it.
+For creating `FeatureExtractor`, it uses `FeatureExtractorFactory` from `EngineAnalyticsContext`.
 
 # FeatureExtractor
 
-It is interface in framework-module, that allow to use implementation from analytics module.
-* `extractFeatures(state: ExecutionState)` - create features list for state and store it in `state.features`. Now we extract all features, which was described in [paper](https://files.sri.inf.ethz.ch/website/papers/ccs21-learch.pdf). In feature, we can extend feature list by other features, for example, NeuroSMT.
+It is interface in framework-module, that allows to use implementation from analytics module.
+* `extractFeatures(state: ExecutionState)` - create features list for state and store it in `state.features`. Now we extract all features, which were described in [paper](https://files.sri.inf.ethz.ch/website/papers/ccs21-learch.pdf). In feature, we can extend the feature list by other features, for example, NeuroSMT.
 
 # NNStateRewardPredictor
 
 Interface for reward predictors. Now it has two implementations in `analytics` module:
 
-* `NNStateRewardPredictorSmile`: it uses our own format to store feedforward neural network and it uses `Smile` library to do multiplication of matrix.
-* `NNStateRewardPredictorTorch`: it assumed that model is any type of model in `pt` format. It uses `Deep Java library` to use such models.
+* `NNStateRewardPredictorSmile`: it uses our own format to store feedforward neural network, and it uses `Smile` library to do multiplication of matrix.
+* `NNStateRewardPredictorTorch`: it assumed that a model is any type of model in `pt` format. It uses the `Deep Java library` to use such models.
 
-It should be created at the beginning of work and stored at `Predictors` class to be used in `NNRewardGuidedSelector` from `framework` module.
+It should be created at the beginning of work and stored at `Predictors` class to be used in `NNRewardGuidedSelector` from the `framework` module.
 
 
 # NNStateRewardGuidedSelector
@@ -149,4 +149,4 @@ We have two different implementantions:
 
 # EngineAnalyticsContext
 
-It is object that should be filled by factories in the beginning of work to allow objects from `framework` module using objects from `analytics` module. 
+It is an object that should be filled by factories in the beginning of work to allow objects from the `framework` module using objects from `analytics` module. 

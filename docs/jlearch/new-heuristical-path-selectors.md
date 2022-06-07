@@ -30,7 +30,7 @@ classDiagram
 ```
 `Subpath` = `List<Edge>`
 
-This class maintains frequency of each subpath with length `2^index`, which is presented as `List<Edge>`, on certain instance of `InterproceduralUnitGraph`
+This class maintains frequency of each subpath with length `2^index`, which is presented as `List<Edge>`, in a certain instance of `InterproceduralUnitGraph`
 
 * `onVisit(state: ExecutionState)` - we calculate subpath of this state and increment its frequency on `1`
 * `subpathCount(state: ExecutionState)` - we calculate subpath of this state and return its frequency
@@ -45,7 +45,7 @@ classDiagram
 
 Inspired by [paper](http://pxzhang.cn/paper/concolic_testing/oopsla13-pgse.pdf).
 
-We override `ExecutionState.weight` as `-StatementStatistics.subpathCount(this)`, so we pick `state`, which `subpath` is less traveled.
+We override `ExecutionState.weight` as `-StatementStatistics.subpathCount(this)`, so we pick the `state`, which `subpath` is less traveled.
 
 # StatementStatistics
 
@@ -66,11 +66,11 @@ classDiagram
     TraverseGraphStatistics o-- InterProceduralUnitGraph
 ```
 
-This class maintains frequency of each `Stmt` and number of `Stmt`, that was visited in some `SootMethod`, on certain instance of `InterproceduralUnitGraph`.
+This class maintains frequency of each `Stmt` and number of `Stmt`, that was visited in some `SootMethod`, on a certain instance of `InterproceduralUnitGraph`.
 
-* `onVisit(state: ExecutionState)` - increment frequency of state's `stmt` on 1. If we visit this `stmt` for the first time, then increment number of `Stmt`, that we visit in current state's `method`, on 1.
-* `statementCount(state: ExecutionState)` - get frequency of state's `stmt`
-* `statementsInMethodCount(state: ExecutionState)` - get number of `stmt`, that was visited in current state's `method`.
+* `onVisit(state: ExecutionState)` - increment frequency of state's `stmt` on 1. If we visit this `stmt` for the first time, then increment number of `Stmt`, that we visit in the current state's `method`, on 1.
+* `statementCount(state: ExecutionState)` - get a frequency of state's `stmt`
+* `statementsInMethodCount(state: ExecutionState)` - get number of `stmt`, that was visited in the current state's `method`.
 
 # CPInstSelector
 
@@ -89,5 +89,5 @@ classDiagram
     ForkDepthSelector --|> NonUniformRandomSearch
 ```
 
-Override `ExecutionState.cost` as `ExecutionState.depth`, so we are more likely to explore the least deep `state` in terms of number of forks on its path.
+Override `ExecutionState.cost` as `ExecutionState.depth`, so we are more likely to explore the least deep `state` in terms of the number of forks on its path.
 

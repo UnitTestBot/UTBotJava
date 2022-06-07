@@ -19,6 +19,18 @@ internal class IntArrayBasicsTest : AbstractTestCaseGeneratorTest(
     )
 ) {
     @Test
+    fun testIntArrayWithAssumeOrExecuteConcretely() {
+        check(
+            IntArrayBasics::intArrayWithAssumeOrExecuteConcretely,
+            eq(4),
+            { x, n, r -> x > 0 && n < 20 && r?.size == 2 },
+            { x, n, r -> x > 0 && n >= 20 && r?.size == 4 },
+            { x, n, r -> x <= 0 && n < 20 && r?.size == 10 },
+            { x, n, r -> x <= 0 && n >= 20 && r?.size == 20 },
+        )
+    }
+
+    @Test
     fun testInitArray() {
         checkWithException(
             IntArrayBasics::initAnArray,

@@ -13,6 +13,14 @@ public class UtMock {
     @SuppressWarnings("unused")
     public static void assume(boolean predicate) {
         // to use compilers checks, i.e. for possible NPE
-        if (!predicate) throw new RuntimeException();
+        if (!predicate) {
+            throw new RuntimeException();
+        }
+    }
+
+    @SuppressWarnings("unused")
+    public static void assumeOrExecuteConcretely(boolean predicate) {
+        // In oppose to assume, we don't have predicate check here
+        // to avoid RuntimeException during concrete execution
     }
 }

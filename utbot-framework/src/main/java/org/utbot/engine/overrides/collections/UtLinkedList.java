@@ -19,6 +19,7 @@ import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.engine.ResolverKt.MAX_LIST_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
@@ -79,7 +80,7 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         parameter(elementData.storage);
         assume(elementData.begin == 0);
         assume(elementData.end >= 0);
-        assume(elementData.end <= MAX_LIST_SIZE);
+        assumeOrExecuteConcretely(elementData.end <= MAX_LIST_SIZE);
 
         visit(this);
     }

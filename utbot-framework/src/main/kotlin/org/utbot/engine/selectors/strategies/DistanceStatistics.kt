@@ -4,6 +4,7 @@ import org.utbot.engine.Edge
 import org.utbot.engine.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.isReturn
+import org.utbot.engine.pathLogger
 import org.utbot.engine.stmts
 import kotlin.math.min
 import kotlinx.collections.immutable.PersistentList
@@ -38,8 +39,17 @@ class DistanceStatistics(
      * Drops executionState if all the edges on path are covered (with respect to uncovered
      * throw statements of the methods they belong to) and there is no reachable and uncovered statement.
      */
-    override fun shouldDrop(state: ExecutionState) =
-        state.edges.all { graph.isCoveredWithAllThrowStatements(it) } && distanceToUncovered(state) == Int.MAX_VALUE
+    override fun shouldDrop(state: ExecutionState): Boolean {
+        val shouldDrop = state.edges.all { graph.isCoveredWithAllThrowStatements(it) } && distanceToUncovered(state) == Int.MAX_VALUE
+
+        if (shouldDrop) {
+            pathLogger.debug {
+                "Dropping state (lastStatus=${state.solver.lastStatus}) by the distance statistics. MD5: ${state.md5()}"
+            }
+        }
+
+        return shouldDrop
+    }
 
     fun isCovered(edge: Edge): Boolean = graph.isCovered(edge)
 

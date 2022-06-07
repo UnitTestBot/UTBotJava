@@ -119,7 +119,8 @@ data class Query(
         lts: Map<UtExpression, Long> = this@Query.lts,
         gts: Map<UtExpression, Long> = this@Query.gts
     ) = AxiomInstantiationRewritingVisitor(eqs, lts, gts).let { visitor ->
-        this.map { it.simplify(visitor) }.map { simplifyGeneric(it) }
+        this.map { it.simplify(visitor) }
+            .map { simplifyGeneric(it) }
             .flatMap { splitAnd(it) } + visitor.instantiatedArrayAxioms
     }
 

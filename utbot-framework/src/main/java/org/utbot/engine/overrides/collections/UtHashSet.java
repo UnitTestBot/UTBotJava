@@ -73,7 +73,7 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
         doesntThrow();
 
         // check that all elements are distinct.
-        for (int i = 0; i < elementData.end; i++) {
+        for (int i = elementData.begin; i < elementData.end; i++) {
             E element = elementData.get(i);
             parameter(element);
             // make element address non-positive

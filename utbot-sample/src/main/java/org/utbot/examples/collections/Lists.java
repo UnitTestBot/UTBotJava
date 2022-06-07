@@ -1,5 +1,7 @@
 package org.utbot.examples.collections;
 
+import org.utbot.api.mock.UtMock;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -8,6 +10,11 @@ import java.util.List;
 import java.util.Objects;
 
 public class Lists {
+    int bigListFromParameters(List<Integer> list) {
+        UtMock.assume(list != null && list.size() == 11);
+
+        return list.size();
+    }
 
     Collection<Integer> getNonEmptyCollection(Collection<Integer> collection) {
         if (collection.size() == 0) {

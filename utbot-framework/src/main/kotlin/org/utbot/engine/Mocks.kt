@@ -168,14 +168,13 @@ class Mocker(
         mockInfo: UtMockInfo
     ): Boolean {
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
+        if (isUtMockAssumeOrExecuteConcretely(mockInfo)) return false // never mock UtMock.assumeOrExecuteConcretely invocation
         if (isOverriddenClass(type)) return false  // never mock overriden classes
         if (isMakeSymbolic(mockInfo)) return true // support for makeSymbolic
         if (type.sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
-        //TODO: SAT-1496 verify that using SootClass here is correct
         if (!isEngineClass(type) && (type.sootClass.isInnerClass || type.sootClass.isLocal || type.sootClass.isAnonymous)) return false // there is no reason (and maybe no possibility) to mock such classes
         if (!isEngineClass(type) && type.sootClass.isPrivate) return false // could not mock private classes (even if it is in mock always list)
         if (mockAlways(type)) return true // always mock randoms and loggers
-        if (type.sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
         if (mockInfo is UtFieldMockInfo) {
             return when {
                 mockInfo.fieldId.declaringClass.packageName.startsWith("java.lang") -> false
@@ -196,6 +195,9 @@ class Mocker(
 
     private fun isUtMockAssume(mockInfo: UtMockInfo) =
         mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == assumeBytecodeSignature
+
+    private fun isUtMockAssumeOrExecuteConcretely(mockInfo: UtMockInfo) =
+        mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == assumeOrExecuteConcretelyBytecodeSignature
 
     private fun isEngineClass(type: RefType) = type.className in engineClasses
 
@@ -304,6 +306,9 @@ internal val nonNullableMakeSymbolic: SootMethod
 internal val assumeMethod: SootMethod
     get() = utMockClass.getMethod(ASSUME_NAME, listOf(BooleanType.v()))
 
+internal val assumeOrExecuteConcretelyMethod: SootMethod
+    get() = utMockClass.getMethod(ASSUME_OR_EXECUTE_CONCRETELY_NAME, listOf(BooleanType.v()))
+
 val makeSymbolicBytecodeSignature: String
     get() = makeSymbolicMethod.executableId.signature
 
@@ -312,6 +317,9 @@ val nonNullableMakeSymbolicBytecodeSignature: String
 
 val assumeBytecodeSignature: String
     get() = assumeMethod.executableId.signature
+
+val assumeOrExecuteConcretelyBytecodeSignature: String
+    get() = assumeOrExecuteConcretelyMethod.executableId.signature
 
 internal val UTBOT_OVERRIDE_PACKAGE_NAME = UtOverrideMock::class.java.packageName
 
@@ -331,3 +339,4 @@ internal val utLogicMockIteMethodName = UtLogicMock::ite.name
 
 private const val MAKE_SYMBOLIC_NAME = "makeSymbolic"
 private const val ASSUME_NAME = "assume"
+private const val ASSUME_OR_EXECUTE_CONCRETELY_NAME = "assumeOrExecuteConcretely"

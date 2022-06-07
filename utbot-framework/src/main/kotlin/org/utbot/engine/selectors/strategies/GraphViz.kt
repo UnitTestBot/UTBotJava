@@ -15,6 +15,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
+import org.utbot.engine.isLibraryNonOverriddenClass
 import org.utbot.engine.isOverridden
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
@@ -28,8 +29,9 @@ class GraphViz(
 ) : TraverseGraphStatistics(globalGraph) {
 
     // Files
-    private val path = Files.createTempDirectory("Graph-vis")
-    private val graphJs = Paths.get(path.toString(), "graph.js").toFile()
+    private val graphVisDirectory = Files.createTempDirectory("Graph-vis")
+    private val graphVisPathString = graphVisDirectory.toString()
+    private val graphJs = Paths.get(graphVisPathString, "graph.js").toFile()
 
     // Subgraph data
     private val stmtToSubgraph = mutableMapOf<Stmt, String>()
@@ -41,13 +43,17 @@ class GraphViz(
 
     init {
         // Prepare workspace
-        for (file in arrayOf(
+        val requiredFileNames = arrayOf(
             "full.render.js", "graph.js", "legend.png", "private_method.png",
             "public_method.png", "render_graph.js", "UseVisJs.html", "viz.js"
-        )) {
+        )
+
+        val classLoader = GraphViz::class.java.classLoader
+
+        for (file in requiredFileNames) {
             FileUtils.copyInputStreamToFile(
-                GraphViz::class.java.classLoader.getResourceAsStream("html/$file"),
-                Paths.get(path.toString(), file).toFile()
+                classLoader.getResourceAsStream("html/$file"),
+                Paths.get(graphVisDirectory.toString(), file).toFile()
             )
         }
         FileWriter(graphJs).use {
@@ -59,7 +65,9 @@ class GraphViz(
         }
 
         update()
-        val path = Paths.get(path.toString(), "UseVisJs.html")
+
+        val path = Paths.get(graphVisPathString, "UseVisJs.html")
+
         logger.debug { "Debug visualization: $path" }
 
         if (copyVisualizationPathToClipboard) {
@@ -71,72 +79,71 @@ class GraphViz(
 
     override fun onVisit(executionState: ExecutionState) {
         var src: Stmt = executionState.path.firstOrNull() ?: return
+
         update()
 
-        val uncompletedStack = mutableListOf(DotGraph(stmtToSubgraph[src]!!, 0)) // Only uncompleted methods execution
-        val fullStack = mutableListOf(DotGraph(stmtToSubgraph[src]!!, 0))
+        val subgraph = stmtToSubgraph[src] ?: error("No subgraph found for the $src statement")
+
+        val uncompletedStack = mutableListOf(DotGraph(subgraph, 0)) // Only uncompleted methods execution
+        val fullStack = mutableListOf(DotGraph(subgraph, 0))
         val dotGlobalGraph = DotGraph("GlobalGraph", 0)
 
         // Add edges to dot graph
-        subgraphEdges[stmtToSubgraph[src]!!]?.forEach {
+        subgraphEdges[subgraph]?.forEach {
             uncompletedStack.last().addDotEdge(it)
             fullStack.last().addDotEdge(it)
         }
-        (graph.allEdges + graph.implicitEdges).forEach {
-            if (!libraryGraphs.contains(stmtToSubgraph[it.src]) && !libraryGraphs.contains(stmtToSubgraph[it.dst])) {
-                dotGlobalGraph.addDotEdge(it)
+
+        graph.allEdges.forEach { edge ->
+            val (edgeSrc, edgeDst, _) = edge
+
+            if (stmtToSubgraph[edgeSrc] !in libraryGraphs && stmtToSubgraph[edgeDst] !in libraryGraphs) {
+                dotGlobalGraph.addDotEdge(edge)
             }
         }
 
         // Split execution stack
-        for (dst in executionState.path + executionState.stmt) {
+        val allStatements = executionState.path + executionState.stmt
+
+        for (dst in allStatements) {
             val edge = executionState.edges.findLast { it.src == src && it.dst == dst } ?: executionState.lastEdge
-            if (edge == null || edge.src != src || edge.dst != dst) continue
-            val graph = stmtToSubgraph[dst]!!
 
-            uncompletedStack.last().dotNode(src)?.visited = true
-            uncompletedStack.last().dotNode(dst)?.visited = true
-            uncompletedStack.last().dotEdge(edge)?.isVisited = true
+            if (edge == null || edge.src != src || edge.dst != dst) {
+                continue
+            }
 
-            fullStack.last().dotNode(src)?.visited = true
-            fullStack.last().dotNode(dst)?.visited = true
-            fullStack.last().dotEdge(edge)?.isVisited = true
+            val graphName = stmtToSubgraph[dst] ?: error("No subgraph found for the $dst statement")
 
-            dotGlobalGraph.dotNode(src)?.visited = true
-            dotGlobalGraph.dotNode(dst)?.visited = true
-            dotGlobalGraph.dotEdge(edge)?.isVisited = true
+
+            uncompletedStack.last().markAsVisited(src, dst, edge)
+            fullStack.last().markAsVisited(src, dst, edge)
+            dotGlobalGraph.markAsVisited(src, dst, edge)
 
             // Check if we returned to previous method
-            if (uncompletedStack.last().name != graph) {
-                if (uncompletedStack.size > 1 && uncompletedStack[uncompletedStack.size - 2].name == graph) {
+            if (uncompletedStack.last().name != graphName) {
+                if (uncompletedStack.size > 1 && uncompletedStack[uncompletedStack.size - 2].name == graphName) {
                     uncompletedStack.removeLast()
                 } else {
-                    uncompletedStack += DotGraph(graph, uncompletedStack.size)
-                    subgraphEdges[graph]?.forEach {
-                        uncompletedStack.last().addDotEdge(it)
-                    }
+                    uncompletedStack.addGraphWithEdges(graphName, uncompletedStack.size)
                 }
             }
 
             // Check if we change execution method
-            if (graph != stmtToSubgraph[src]) {
-                fullStack += DotGraph(graph, uncompletedStack.size - 1)
-                subgraphEdges[graph]?.forEach {
-                    fullStack.last().addDotEdge(it)
-                }
+            if (graphName != stmtToSubgraph[src]) {
+                fullStack.addGraphWithEdges(graphName, uncompletedStack.size - 1)
             }
 
             src = dst
         }
 
         // Filter library methods
-        uncompletedStack.removeIf { libraryGraphs.contains(it.name) }
-        fullStack.removeIf { libraryGraphs.contains(it.name) }
+        uncompletedStack.removeIf { it.name in libraryGraphs }
+        fullStack.removeIf { it.name in libraryGraphs }
 
         // Update nodes and edges properties
-        updateProperties(dotGlobalGraph, executionState)
-        uncompletedStack.forEach { updateProperties(it, executionState) }
-        fullStack.forEach { updateProperties(it, executionState) }
+        dotGlobalGraph.updateProperties(executionState)
+        uncompletedStack.forEach { it.updateProperties(executionState) }
+        fullStack.forEach { it.updateProperties(executionState) }
 
         // Write result
         FileWriter(graphJs).use { writer ->
@@ -152,58 +159,89 @@ class GraphViz(
         }
     }
 
-    override fun onJoin(stmt: Stmt, graph: ExceptionalUnitGraph, shouldRegister: Boolean) {
-        val declaringClass = graph.body?.method?.declaringClass
-        if (declaringClass?.isLibraryClass == true && !declaringClass.isOverridden) {
-            libraryGraphs.add(graph.body?.method?.declaringClass?.shortName + "." + graph.body?.method?.name)
+    private fun MutableList<DotGraph>.addGraphWithEdges(graphName: String, depth: Int) {
+        this += DotGraph(graphName, depth)
+        subgraphEdges[graphName]?.forEach {
+            last().addDotEdge(it)
         }
+    }
+
+    private fun DotGraph.markAsVisited(src: Stmt, dst: Stmt, edge: Edge) {
+        dotNode(src)?.visited = true
+        dotNode(dst)?.visited = true
+        dotEdge(edge)?.isVisited = true
+    }
+
+    // Note that we do not use `shouldRegister` here, because visualization
+    // does not depend on the fact of registration. Otherwise, we'd
+    // lose overridden classes here and don't join them at the visualization.
+    override fun onJoin(stmt: Stmt, graph: ExceptionalUnitGraph, shouldRegister: Boolean) {
+        val method = graph.body?.method
+        val declaringClass = method?.declaringClass
+
+        if (declaringClass?.isLibraryNonOverriddenClass == true) {
+            libraryGraphs += declaringClass.shortName + "." + method.name
+        }
+
         update()
     }
 
     override fun onTraversed(executionState: ExecutionState) {
-        if (executionState.exception != null)
-            exceptionalEdges[executionState.lastEdge ?: return] = executionState.exception.concrete.toString()
+        if (executionState.lastEdge == null) {
+            return
+        }
+
+        if (executionState.exception != null) {
+            exceptionalEdges[executionState.lastEdge] = executionState.exception.concrete.toString()
+        }
     }
 
     private fun update() {
         graph.graphs.forEachIndexed { _, graph ->
-            val declaringClassName =
-                if (graph.body.method.isDeclared) graph.body?.method?.declaringClass?.shortName else "UnknownClass"
-            val name = declaringClassName + "." + graph.body?.method?.name
-            subgraphVisibility.putIfAbsent(name, if (graph.body?.method?.isPrivate == true) "private" else "public")
-            subgraphEdges.putIfAbsent(name, mutableSetOf())
+            val method = graph.body?.method
+            val declaringClass = if (method?.isDeclared == true) method.declaringClass?.shortName else "UnknownClass"
+            val methodName = declaringClass + "." + method?.name
+            val visibility = if (method?.isPrivate == true) "private" else "public"
+
+            subgraphVisibility.putIfAbsent(methodName, visibility)
+            subgraphEdges.putIfAbsent(methodName, mutableSetOf())
+
             graph.stmts.forEach { stmt ->
-                stmtToSubgraph[stmt] = name
+                stmtToSubgraph[stmt] = methodName
             }
         }
 
-        for (edge in graph.allEdges + graph.implicitEdges) {
-            subgraphEdges[stmtToSubgraph[edge.src]!!]!!.add(edge)
+        for (edge in graph.allEdges) {
+            val subgraph = stmtToSubgraph[edge.src] ?: error("No subgraph found for the ${edge.src} statement")
+            val edges = subgraphEdges[subgraph] ?: error("No subgraph edges found for the $subgraph")
+            edges += edge
         }
     }
 
-    private fun updateProperties(graph: DotGraph, executionState: ExecutionState) {
+    private fun DotGraph.updateProperties(executionState: ExecutionState) {
         // Node property: Last execution state
-        graph.dotNode(executionState.stmt)?.isLast = true
+        dotNode(executionState.stmt)?.isLast = true
 
         // Node property: covered
-        globalGraph.stmts.forEach { graph.dotNode(it)?.covered = globalGraph.isCoveredIgnoringRegistration(it) }
+        globalGraph.stmts.forEach { dotNode(it)?.covered = globalGraph.isCoveredIgnoringRegistration(it) }
+
+        val queue = pathSelector.queue()
 
         // Node property: In queue
-        pathSelector.queue().forEach { graph.dotNode(it.first.stmt)?.inQueue = true }
+        queue.forEach { (state, _) -> dotNode(state.stmt)?.inQueue = true }
 
         // Node property: Head of queue
-        if (!pathSelector.isEmpty()) graph.dotNode(pathSelector.peek()!!.stmt)?.headQueue = true
+        pathSelector.peek()?.let { dotNode(it.stmt)?.headQueue = true }
 
         // Edge property: covered
-        (globalGraph.allEdges + globalGraph.implicitEdges).forEach {
-            graph.dotEdge(it)?.isCovered = globalGraph.isCovered(it)
+        globalGraph.allEdges.forEach {
+            dotEdge(it)?.isCovered = globalGraph.isCovered(it)
         }
 
         // Edge property: Edge to queue stmt property
-        pathSelector.queue().filter { it.first.lastEdge != null && it.first.lastEdge !in globalGraph.implicitEdges }
+        queue.filter { (state, _) -> state.lastEdge != null && state.lastEdge !in globalGraph.implicitEdges }
             .forEach { (state, weight) ->
-                graph.dotEdge(state.lastEdge!!)?.apply {
+                dotEdge(state.lastEdge!!)?.apply {
                     isToQueueStmt = true
                     label = "%.2f".format(weight)
                 }
@@ -211,14 +249,13 @@ class GraphViz(
 
         // Edge property: implicit edge to exception
         exceptionalEdges.keys.forEach {
-            graph.dotEdge(it)?.apply {
+            dotEdge(it)?.apply {
                 isExceptional = true
-                toException = exceptionalEdges[it]!!
+                toException = exceptionalEdges.getValue(it)
             }
         }
     }
 }
-
 
 /**
  * Represents graph node in dot format
@@ -231,7 +268,6 @@ data class DotNode(val id: Int, val label: String) {
     var visited: Boolean = false
     var invoke: Boolean = false
     var isLast: Boolean = false
-    var isImplicit: Boolean = false
     private var toolTip: String = ""
 
     private val fillColor: String
@@ -243,17 +279,17 @@ data class DotNode(val id: Int, val label: String) {
             return mixtureColors(colors, "white")
         }
 
-    val color: String
+    private val color: String
         get() = if (visited) "red" else "black"
 
-    val shape: String
+    private val shape: String
         get() = when {
             returned -> "circle"
             invoke -> "cds"
             else -> "rectangle"
         }
 
-    val width: String
+    private val width: String
         get() = when {
             isLast -> "5.0"
             invoke -> "2.0"
@@ -276,7 +312,7 @@ data class DotEdge(val id: Int, val srcId: Int, val dstId: Int, var label: Strin
     var isCaller = false
     var toException = ""
 
-    val color: String
+    private val color: String
         get() {
             val colors = mutableListOf<String>()
             if (isVisited) colors += "red"
@@ -285,7 +321,7 @@ data class DotEdge(val id: Int, val srcId: Int, val dstId: Int, var label: Strin
             return mixtureColors(colors, "black")
         }
 
-    val style: String
+    private val style: String
         get() = when {
             isCaller -> "dotted"
             isExceptional -> "dashed"
@@ -302,30 +338,29 @@ data class DotEdge(val id: Int, val srcId: Int, val dstId: Int, var label: Strin
  * Represents graph in dot format
  */
 class DotGraph(val name: String, val depth: Int) {
-    var nodeId = 0
-    var edgeId = 0
-    val nodes = mutableMapOf<Stmt, DotNode>()
+    private var nodeId = 0
+    private var edgeId = 0
+    private val nodes = mutableMapOf<Stmt, DotNode>()
     val edges = mutableMapOf<Edge, DotEdge>()
 
     fun dotNode(stmt: Stmt): DotNode? = nodes[stmt]
 
-    fun dotEdge(edge: Edge): DotEdge? {
-        return edges[edge]
-    }
+    fun dotEdge(edge: Edge): DotEdge? = edges[edge]
 
-    fun addDotEdge(edge: Edge): DotEdge {
-        val srcNode = nodes.getOrPut(edge.src) { DotNode(nodeId++, edge.src.toDotName()) }
-        val dstNode = nodes.getOrPut(edge.dst) { DotNode(nodeId++, edge.dst.toDotName()) }
+    fun addDotEdge(edge: Edge): DotEdge = with(edge) {
+        val srcNode = nodes.getOrPut(src) { DotNode(nodeId++, src.toDotName()) }
+        val dstNode = nodes.getOrPut(dst) { DotNode(nodeId++, dst.toDotName()) }
 
-        srcNode.returned = edge.src.isReturn
-        srcNode.invoke = edge.src.containsInvokeExpr()
-        dstNode.returned = edge.dst.isReturn
-        dstNode.invoke = edge.dst.containsInvokeExpr()
+        srcNode.returned = src.isReturn
+        srcNode.invoke = src.containsInvokeExpr()
+
+        dstNode.returned = dst.isReturn
+        dstNode.invoke = dst.containsInvokeExpr()
 
         val dotEdge = edges.getOrPut(edge) { DotEdge(edgeId++, srcNode.id, dstNode.id) }
-        dotEdge.isCaller = edge.decisionNum == CALL_DECISION_NUM
+        dotEdge.isCaller = decisionNum == CALL_DECISION_NUM
 
-        return dotEdge
+        dotEdge
     }
 
     // Remove special characters in dot format
@@ -349,25 +384,27 @@ class DotGraph(val name: String, val depth: Int) {
         edges.filter { !it.value.isExceptional }.forEach { append(it.value.toString()) }
 
         // Add implicit edge and node (exception case)
-        edges.values.filter { it.isExceptional }.forEach {
-            val implicitId = nodeId++
-            val color = if (it.isCovered) "azure3" else "black"
-            val shortName = it.toException.split(":")[0].filter { it2 -> it2.isUpperCase() }
+        edges.values
+            .filter { it.isExceptional }
+            .forEach {
+                val implicitId = nodeId++
+                val color = if (it.isCovered) "azure3" else "black"
+                val shortName = it.toException.split(":")[0].filter { it2 -> it2.isUpperCase() }
 
-            if (it.isCovered) {
-                append(
-                    "\"$implicitId\" [label=\"${shortName}\",tooltip=\"${it.toException}\"," +
-                            "shape=circle,style=\"filled,dashed\",fillcolor=azure3];\n"
-                )
-            } else {
-                append(
-                    "\"$implicitId\" [label=\"${shortName}\", tooltip=\"${it.toException}\"," +
-                            "shape=circle, style=dashed];\n"
-                )
+                if (it.isCovered) {
+                    append(
+                        "\"$implicitId\" [label=\"${shortName}\",tooltip=\"${it.toException}\"," +
+                                "shape=circle,style=\"filled,dashed\",fillcolor=azure3];\n"
+                    )
+                } else {
+                    append(
+                        "\"$implicitId\" [label=\"${shortName}\", tooltip=\"${it.toException}\"," +
+                                "shape=circle, style=dashed];\n"
+                    )
+                }
+
+                append("\"${it.srcId}\" -> \"$implicitId\" [style=dashed,color=\"$color\"];\n")
             }
-
-            append("\"${it.srcId}\" -> \"$implicitId\" [style=dashed,color=\"$color\"];\n")
-        }
 
         // Close dot graph
         append("}")

@@ -6,7 +6,6 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.Test
 
-@Ignore
 internal class SimpleClassMultiInstanceExampleTest : AbstractTestCaseGeneratorTest(testClass = SimpleClassMultiInstanceExample::class) {
     @Test
     fun singleObjectChangeTest() {

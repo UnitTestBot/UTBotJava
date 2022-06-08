@@ -1,4 +1,4 @@
-package org.utbot.maven.plugin
+package org.utbot.maven.plugin.extension
 
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
@@ -7,15 +7,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.classesToMockAlwaysParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.codegenLanguageParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.forceStaticMockingParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.generationTimeoutParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.mockFrameworkParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.mockStrategyParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.staticsMockingParse
-import org.utbot.gradle.plugin.extension.SarifConfigurationParser.testFrameworkParse
-import org.utbot.gradle.plugin.extension.SarifExtensionProvider
+import org.utbot.framework.plugin.sarif.SarifExtensionProvider
+import org.utbot.maven.plugin.CreateSarifReportMojo
 import java.io.File
 
 class SarifMavenConfigurationProvider(

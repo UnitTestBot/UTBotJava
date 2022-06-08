@@ -7,7 +7,8 @@ import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.replaceSeparator
 import org.utbot.common.tryLoadClass
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.gradle.plugin.util.ClassUtil
+import org.utbot.framework.plugin.sarif.util.ClassUtil
+import org.utbot.framework.plugin.sarif.TargetClassWrapper
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Path

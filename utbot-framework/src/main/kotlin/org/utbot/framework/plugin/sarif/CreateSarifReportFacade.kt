@@ -1,12 +1,10 @@
-package org.utbot.gradle.plugin
+package org.utbot.framework.plugin.sarif
 
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
 import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.gradle.plugin.extension.SarifExtensionProvider
-import org.utbot.gradle.plugin.wrappers.TargetClassWrapper
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategy
 import org.utbot.summary.summarize

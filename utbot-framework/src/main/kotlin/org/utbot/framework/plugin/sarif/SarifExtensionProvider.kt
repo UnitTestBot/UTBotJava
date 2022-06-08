@@ -1,4 +1,4 @@
-package org.utbot.gradle.plugin.extension
+package org.utbot.framework.plugin.sarif
 
 import org.utbot.engine.Mocker
 import org.utbot.framework.codegen.*
@@ -6,8 +6,25 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
+import java.io.File
 
-object SarifConfigurationParser {
+interface SarifExtensionProvider {
+
+    val targetClasses: List<String>
+    val projectRoot: File
+    val generatedTestsRelativeRoot: String
+    val sarifReportsRelativeRoot: String
+    val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
+    val testFramework: TestFramework
+    val mockFramework: MockFramework
+    val generationTimeout: Long
+    val codegenLanguage: CodegenLanguage
+    val mockStrategy: MockStrategyApi
+    val staticsMocking: StaticsMocking
+    val forceStaticMocking: ForceStaticMocking
+    val classesToMockAlways: Set<ClassId>
+
+    // transform functions
 
     fun testFrameworkParse(testFramework: String): TestFramework =
         when (testFramework.toLowerCase()) {

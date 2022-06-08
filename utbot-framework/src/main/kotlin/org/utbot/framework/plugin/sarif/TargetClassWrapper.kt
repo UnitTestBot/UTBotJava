@@ -1,4 +1,4 @@
-package org.utbot.gradle.plugin.wrappers
+package org.utbot.framework.plugin.sarif
 
 import org.utbot.framework.plugin.api.UtMethod
 import java.io.File

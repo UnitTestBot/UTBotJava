@@ -1,4 +1,4 @@
-package org.utbot.gradle.plugin.util
+package org.utbot.framework.plugin.sarif.util
 
 import org.utbot.common.PathUtil
 import org.utbot.common.loadClassesFromDirectory

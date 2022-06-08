@@ -7,11 +7,12 @@ import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.sarif.CreateSarifReportFacade
 import org.utbot.gradle.plugin.extension.SarifGradleExtensionProvider
 import org.utbot.gradle.plugin.wrappers.GradleProjectWrapper
 import org.utbot.gradle.plugin.wrappers.SourceFindingStrategyGradle
 import org.utbot.gradle.plugin.wrappers.SourceSetWrapper
-import org.utbot.gradle.plugin.wrappers.TargetClassWrapper
+import org.utbot.framework.plugin.sarif.TargetClassWrapper
 import javax.inject.Inject
 
 /**

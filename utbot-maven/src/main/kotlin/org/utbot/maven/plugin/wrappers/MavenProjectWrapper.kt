@@ -6,9 +6,9 @@ import org.utbot.common.FileUtil.findAllFilesOnly
 import org.utbot.common.PathUtil
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.tryLoadClass
-import org.utbot.gradle.plugin.util.ClassUtil
-import org.utbot.gradle.plugin.wrappers.TargetClassWrapper
-import org.utbot.maven.plugin.SarifMavenConfigurationProvider
+import org.utbot.framework.plugin.sarif.util.ClassUtil
+import org.utbot.framework.plugin.sarif.TargetClassWrapper
+import org.utbot.maven.plugin.extension.SarifMavenConfigurationProvider
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Path

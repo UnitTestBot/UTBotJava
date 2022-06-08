@@ -11,8 +11,9 @@ import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.gradle.plugin.CreateSarifReportFacade
-import org.utbot.gradle.plugin.wrappers.TargetClassWrapper
+import org.utbot.framework.plugin.sarif.CreateSarifReportFacade
+import org.utbot.framework.plugin.sarif.TargetClassWrapper
+import org.utbot.maven.plugin.extension.SarifMavenConfigurationProvider
 import org.utbot.maven.plugin.wrappers.MavenProjectWrapper
 import org.utbot.maven.plugin.wrappers.SourceFindingStrategyMaven
 import java.io.File

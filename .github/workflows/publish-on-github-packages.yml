@@ -71,11 +71,6 @@ jobs:
         git fetch
         git checkout ${{ github.event.inputs.commit-sha }}
         
-    - name: "utbot-intellij: build and run tests"
-      run: |
-        cd utbot-intellij
-        gradle clean build --no-daemon
-  
     - name: "utbot-framework-api: build and run tests"
       run: |
         cd utbot-framework-api

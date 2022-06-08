@@ -54,12 +54,12 @@ class ConstructorAnalyzer {
      * Retrieves information about [constructorId] params and modified fields from Soot.
      */
     fun analyze(constructorId: ConstructorId): ConstructorAssembleInfo {
-        setFields.clear()
-        affectedFields.clear()
+        val setFields = mutableSetOf<FieldId>()
+        val affectedFields = mutableSetOf<FieldId>()
 
         val sootConstructor = sootConstructor(constructorId)
             ?: error("Soot representation of $constructorId is not found.")
-        val params = analyze(sootConstructor)
+        val params = analyze(sootConstructor, setFields, affectedFields)
 
         return ConstructorAssembleInfo(constructorId, params, setFields, affectedFields)
     }
@@ -106,24 +106,26 @@ class ConstructorAnalyzer {
         return jimpleLocal.name.first() != '$'
     }
 
-    private val setFields = mutableSetOf<FieldId>()
-    private val affectedFields = mutableSetOf<FieldId>()
     private val visitedConstructors = mutableSetOf<SootMethod>()
 
-    private fun analyze(sootConstructor: SootMethod): Map<Int, FieldId> {
+    private fun analyze(
+        sootConstructor: SootMethod,
+        setFields: MutableSet<FieldId>,
+        affectedFields: MutableSet<FieldId>,
+    ): Map<Int, FieldId> {
         if (sootConstructor in visitedConstructors) {
             return emptyMap()
         }
         visitedConstructors.add(sootConstructor)
 
         val jimpleBody = retrieveJimpleBody(sootConstructor) ?: return emptyMap()
-        analyzeAssignments(jimpleBody)
+        analyzeAssignments(jimpleBody, setFields, affectedFields)
 
         val indexOfLocals = jimpleVariableIndices(jimpleBody)
         val indexedFields = indexToField(sootConstructor).toMutableMap()
 
         for (invocation in invocations(jimpleBody)) {
-            val invokedIndexedFields = analyze(invocation.method)
+            val invokedIndexedFields = analyze(invocation.method, setFields, affectedFields)
 
             for ((index, argument) in invocation.args.withIndex()) {
                 val fieldId = invokedIndexedFields[index] ?: continue
@@ -140,7 +142,11 @@ class ConstructorAnalyzer {
      * Analyze assignments if they are primitive and allow
      * to set a field into required value so on.
      */
-    private fun analyzeAssignments(jimpleBody: JimpleBody) {
+    private fun analyzeAssignments(
+        jimpleBody: JimpleBody,
+        setFields: MutableSet<FieldId>,
+        affectedFields: MutableSet<FieldId>,
+    ) {
         for (assn in assignments(jimpleBody)) {
             val leftPart = assn.leftOp as? JInstanceFieldRef ?: continue
 

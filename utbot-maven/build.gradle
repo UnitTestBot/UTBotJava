@@ -6,7 +6,7 @@ plugins {
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 configurations {
-    mavenEmbedder
+    mavenEmbedder // it is used to run maven tasks from gradle
 }
 
 dependencies {
@@ -27,11 +27,20 @@ dependencies {
     mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:${maven_wagon_version}"
 }
 
+/**
+ * We should run the maven task `install` to build & publish this plugin.
+ * But `utbot-maven` is the Gradle module (not Maven), so we have to
+ * manually generate the pom.xml file and the plugin descriptor file.
+ */
+
 def buildDirectory = buildDir.canonicalPath
 def outputDirectory = compileKotlin.destinationDir.canonicalPath
 def pomFile = new File("$buildDir/pom.xml")
 def pluginDescriptorFile = new File(outputDirectory, 'META-INF/maven/plugin.xml')
 
+/**
+ * Generates the pom.xml file and saves it to the [pomFile].
+ */
 task generatePomFile(dependsOn: compileKotlin) {
     outputs.file pomFile
 
@@ -69,6 +78,9 @@ task generatePomFile(dependsOn: compileKotlin) {
     }
 }
 
+/**
+ * Generates the plugin descriptor file and saves it to the [pluginDescriptorFile].
+ */
 task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     inputs.files project.compileKotlin.outputs.files
     outputs.file pluginDescriptorFile

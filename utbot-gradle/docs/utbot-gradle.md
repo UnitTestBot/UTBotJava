@@ -8,37 +8,9 @@ In addition, it creates one big SARIF-report containing the results from all the
 
 ### How to use
 
-- Add our nexus repository to your build file:
-  
-  <details>
-  <summary>Groovy</summary>
-  <pre>
-  buildscript {
-      repositories {
-          maven {
-              url "http://[your-ip]:[your-port]/repository/utbot-uber/"
-              allowInsecureProtocol true
-          }
-      }
-  }
-  </pre>
-  </details>
-  
-  <details>
-  <summary>Kotlin DSL</summary>
-  <pre>
-  buildscript {
-      repositories {
-          maven {
-              url = uri("http://[your-ip]:[your-port]/repository/utbot-uber/")
-              isAllowInsecureProtocol = true
-          }
-      }
-  }
-  </pre>
-  </details>
+_TODO: The plugin has not been published yet._
 
-- Then apply the plugin:
+- Apply the plugin:
   
   <details>
   <summary>Groovy</summary>
@@ -46,7 +18,7 @@ In addition, it creates one big SARIF-report containing the results from all the
   apply plugin: 'org.utbot.gradle.plugin'
   </pre>
   </details>
-  
+
   <details>
   <summary>Kotlin DSL</summary>
   <pre>
@@ -70,9 +42,9 @@ sarifReport {
     generatedTestsRelativeRoot = 'build/generated/test'
     sarifReportsRelativeRoot = 'build/generated/sarif'
     markGeneratedTestsDirectoryAsTestSourcesRoot = true
-    generationTimeout = 60000L
     testFramework = 'junit5'
     mockFramework = 'mockito'
+    generationTimeout = 60000L
     codegenLanguage = 'java'
     mockStrategy = 'package-based'
     staticsMocking = 'mock-statics'
@@ -92,9 +64,9 @@ configure&lt;SarifGradleExtension&gt; {
     generatedTestsRelativeRoot.set("build/generated/test")
     sarifReportsRelativeRoot.set("build/generated/sarif")
     markGeneratedTestsDirectoryAsTestSourcesRoot.set(true)
-    generationTimeout.set(60000L)
     testFramework.set("junit5")
     mockFramework.set("mockito")
+    generationTimeout.set(60000L)
     codegenLanguage.set("java")
     mockStrategy.set("package-based")
     staticsMocking.set("mock-statics")
@@ -128,10 +100,6 @@ configure&lt;SarifGradleExtension&gt; {
   - Mark the directory with generated tests as `test sources root` or not.
   - By default, `true` is used.
 
-- `generationTimeout` &ndash;
-  - Time budget for generating tests for one class (in milliseconds).
-  - By default, 60 seconds is used.
-
 - `testFramework` &ndash;
   - The name of the test framework to be used.
   - Can be one of:
@@ -143,6 +111,10 @@ configure&lt;SarifGradleExtension&gt; {
   - The name of the mock framework to be used.
   - Can be one of:
     - `'mockito'` _(by default)_
+
+- `generationTimeout` &ndash;
+    - Time budget for generating tests for one class (in milliseconds).
+    - By default, 60 seconds is used.
 
 - `codegenLanguage` &ndash;
   - The language of the generated tests.
@@ -181,12 +153,13 @@ If you want to change the source code of the plugin or even the whole utbot-proj
 you need to do the following:
 - Publish the modified project to the local maven repository
 - Correctly specify the dependencies in the build file (in your project)
+- Apply the plugin (see the section __How to use__).
 
 There are two ways to do it.
 
 - **The first way**
     - Run `publishing/publishToMavenLocal` (**utbot root** gradle task)
-  
+
     - Add to your build file:
       
       <details>
@@ -246,7 +219,7 @@ There are two ways to do it.
       }
       </pre>
       </details>
-      
+
       <details>
       <summary>Kotlin DSL</summary>
       <pre>

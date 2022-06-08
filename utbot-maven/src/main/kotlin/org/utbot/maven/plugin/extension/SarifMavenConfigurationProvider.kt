@@ -11,6 +11,9 @@ import org.utbot.framework.plugin.sarif.SarifExtensionProvider
 import org.utbot.maven.plugin.CreateSarifReportMojo
 import java.io.File
 
+/**
+ * Provides fields needed to create a SARIF report in a convenient form.
+ */
 class SarifMavenConfigurationProvider(
     private val createSarifReportMojo: CreateSarifReportMojo
 ) : SarifExtensionProvider {

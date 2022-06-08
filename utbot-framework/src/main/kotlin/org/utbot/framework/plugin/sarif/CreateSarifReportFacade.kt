@@ -12,6 +12,10 @@ import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Path
 
+/**
+ * Facade for `createSarifReport` task/mojo.
+ * Stores common logic between gradle and maven plugins.
+ */
 class CreateSarifReportFacade(
     val sarifProperties: SarifExtensionProvider,
     val sourceFindingStrategy: SourceFindingStrategy
@@ -19,7 +23,7 @@ class CreateSarifReportFacade(
 
     /**
      * Generates tests and a SARIF report for the class [targetClass].
-     * Requires withUtContext { ... }.
+     * Requires withUtContext() { ... }.
      */
     fun generateForClass(
         targetClass: TargetClassWrapper,
@@ -37,7 +41,8 @@ class CreateSarifReportFacade(
 
     companion object {
         /**
-         * Merges all SARIF reports into one large containing all the information.
+         * Merges all [sarifReports] into one large [mergedSarifReportFile] containing all the information.
+         * Prints a message about where the SARIF file is saved if [verbose] is true.
          */
         fun mergeReports(
             sarifReports: List<String>,
@@ -92,8 +97,6 @@ class CreateSarifReportFacade(
                 codegenLanguage = sarifProperties.codegenLanguage
             )
         }
-
-    // SARIF reports
 
     /**
      * Creates a SARIF report for the class [targetClass].

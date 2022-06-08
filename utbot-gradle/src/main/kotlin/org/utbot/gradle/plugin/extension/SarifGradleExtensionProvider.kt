@@ -21,38 +21,23 @@ class SarifGradleExtensionProvider(
     private val extension: SarifGradleExtension
 ) : SarifExtensionProvider {
 
-    /**
-     * Classes for which the SARIF report will be created.
-     */
     override val targetClasses: List<String>
         get() = extension.targetClasses
             .getOrElse(listOf())
 
-    /**
-     * Absolute path to the root of the relative paths in the SARIF report.
-     */
     override val projectRoot: File
         get() = extension.projectRoot.orNull
             ?.toPath()?.toFile()
             ?: project.projectDir
 
-    /**
-     * Relative path to the root of the generated tests.
-     */
     override val generatedTestsRelativeRoot: String
         get() = extension.generatedTestsRelativeRoot.orNull
             ?: "build/generated/test"
 
-    /**
-     * Relative path to the root of the SARIF reports.
-     */
     override val sarifReportsRelativeRoot: String
         get() = extension.sarifReportsRelativeRoot.orNull
             ?: "build/generated/sarif"
 
-    /**
-     * Mark the directory with generated tests as `test sources root` or not.
-     */
     override val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
         get() = extension.markGeneratedTestsDirectoryAsTestSourcesRoot.orNull
             ?: true
@@ -67,9 +52,6 @@ class SarifGradleExtensionProvider(
             .map(::mockFrameworkParse)
             .getOrElse(MockFramework.defaultItem)
 
-    /**
-     * Maximum tests generation time for one class (in milliseconds).
-     */
     override val generationTimeout: Long
         get() = extension.generationTimeout
             .map(::generationTimeoutParse)
@@ -95,9 +77,6 @@ class SarifGradleExtensionProvider(
             .map(::forceStaticMockingParse)
             .getOrElse(ForceStaticMocking.defaultItem)
 
-    /**
-     * Contains user-specified classes and `Mocker.defaultSuperClassesToMockAlwaysNames`.
-     */
     override val classesToMockAlways: Set<ClassId>
         get() = classesToMockAlwaysParse(
             extension.classesToMockAlways.getOrElse(listOf())

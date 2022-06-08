@@ -8,20 +8,58 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import java.io.File
 
+/**
+ * Provides fields needed to create a SARIF report.
+ * Defines transform function for these fields.
+ */
 interface SarifExtensionProvider {
 
+    /**
+    * Classes for which the SARIF report will be created.
+    */
     val targetClasses: List<String>
+
+    /**
+     * Absolute path to the root of the relative paths in the SARIF report.
+     */
     val projectRoot: File
+
+    /**
+     * Relative path to the root of the generated tests.
+     */
     val generatedTestsRelativeRoot: String
+
+    /**
+     * Relative path to the root of the SARIF reports.
+     */
     val sarifReportsRelativeRoot: String
+
+    /**
+     * Mark the directory with generated tests as `test sources root` or not.
+     */
     val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
+
     val testFramework: TestFramework
+
     val mockFramework: MockFramework
+
+    /**
+     * Maximum tests generation time for one class (in milliseconds).
+     */
     val generationTimeout: Long
+
     val codegenLanguage: CodegenLanguage
+
     val mockStrategy: MockStrategyApi
+
     val staticsMocking: StaticsMocking
+
     val forceStaticMocking: ForceStaticMocking
+
+    /**
+     * Classes to force mocking theirs static methods and constructors.
+     * Contains user-specified classes and `Mocker.defaultSuperClassesToMockAlwaysNames`.
+     */
     val classesToMockAlways: Set<ClassId>
 
     // transform functions

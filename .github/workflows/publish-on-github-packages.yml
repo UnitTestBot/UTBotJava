@@ -1,6 +1,12 @@
 name: "[M] Publish on GitHub Packages"
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      commit-sha:
+        type: string
+        required: true
+        description: "commit SHA: e.g. cab4799c"
 
 jobs:
   build_and_run_tests:
@@ -38,7 +44,7 @@ jobs:
         name: utbot_framework_tests_report
         path: utbot-framework/build/reports/tests/test/*
 
-  publish_framework-api_and_dependencies:
+  publish_utbot:
     needs:  build_and_run_tests
     runs-on: ubuntu-20.04
     permissions:
@@ -60,21 +66,22 @@ jobs:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    - name: Set project version
-      run:    
-        echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
-  
+    - name: Check out ${{ github.event.inputs.commit-sha }} commit
+      run: |
+        git fetch
+        git checkout ${{ github.event.inputs.commit-sha }}
+        
     - name: "utbot-framework-api: build and run tests"
       run: |
         cd utbot-framework-api
-        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        gradle clean build --no-daemon
         
     - name: "utbot-api: build"
       run: |
         cd utbot-api
-        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        gradle clean build --no-daemon
     
     - name: "utbot-core: build"
       run: |
         cd utbot-core
-        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}-SNAPSHOT
+        gradle clean build --no-daemon

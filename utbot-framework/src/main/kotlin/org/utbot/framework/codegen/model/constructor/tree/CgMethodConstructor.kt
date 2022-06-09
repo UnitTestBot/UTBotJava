@@ -848,8 +848,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         depth: Int,
         visitedModels: MutableSet<UtModel>
     ) {
+        // if field is static, it is represents itself in "before" and
+        // "after" state: no need to assert its equality to itself.
+        if (fieldId.isStatic) {
+            return
+        }
+
+        // if model is already processed, so we don't want to add new statements
         if (fieldModel in visitedModels) {
-            // this model is already processed, so we don't want to add new statements
             return
         }
 

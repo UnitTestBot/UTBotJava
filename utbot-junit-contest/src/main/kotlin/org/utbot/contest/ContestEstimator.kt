@@ -2,6 +2,7 @@ package org.utbot.contest
 
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.analytics.Predictors
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.info
@@ -21,6 +22,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.predictors.NNStateRewardPredictorSmile
 import java.io.File
 import java.io.FileInputStream
 import java.net.URLClassLoader
@@ -323,6 +325,7 @@ fun runEstimator(
 //    Predictors.smt = UtBotTimePredictor()
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
+//    Predictors.stateRewardPredictor = NNStateRewardPredictorSmile()
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
 

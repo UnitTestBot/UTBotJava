@@ -309,12 +309,12 @@ object UtSettings {
     /**
      * Path to deserialized reward models
      */
-    var rewardModelPath by getStringProperty("models/cf")
+    var rewardModelPath by getStringProperty("../models/0")
 
     /**
      * Number of model iterations that will be used during ContestEstimator
      */
-    var iterations by getIntProperty(4)
+    var iterations by getIntProperty(1)
 
     /**
      * Path for state features dir

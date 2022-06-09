@@ -8,9 +8,10 @@ Fixes # (issue)
 
 Please delete options that are not relevant.
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- Minor bug fix (non-breaking small changes)
+- Bug fix (non-breaking change which fixes an issue)
+- New feature (non-breaking change which adds functionality)
+- Breaking change (fix or feature that would cause existing functionality to not work as expected)
 
 # How Has This Been Tested?
 
@@ -18,14 +19,13 @@ Please delete options that are not relevant.
 
 Specify tests that help to verify the change automatically.  
 
-- [ ] Test A
-- [ ] Test B
+_Example:_ org.utbot.examples.algorithms.BinarySearchTest
 
 ## Manual Scenario 
 
 Please, provide several scenarios that you went through to verify that the change worked as expected.  
 
-# Checklist:
+# Checklist (remove irrelevant options):
 
 - [ ] The change followed the style guidelines of the UTBot project
 - [ ] Self-review of the code is passed

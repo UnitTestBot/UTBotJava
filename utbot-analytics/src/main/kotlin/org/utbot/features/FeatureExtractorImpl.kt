@@ -9,9 +9,14 @@ import org.utbot.engine.selectors.strategies.SubpathStatistics
 /**
  * Implementation of feature extractor.
  * Extract features for state and stores it in features vector of this state.
+ *
+ * @param graph execution graph of current symbolic traverse
  */
 class FeatureExtractorImpl(private val graph: InterProceduralUnitGraph) : FeatureExtractor {
     companion object {
+        /**
+         * Indexes for [SubpathStatistics], with which we want to collect our features
+         */
         private val subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
     }
 

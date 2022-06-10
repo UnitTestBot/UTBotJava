@@ -15,6 +15,9 @@ import kotlin.math.pow
  * Implementation of feature processor, in which we dump each test, so there will be several copies of each state.
  * Extract features for state when this state will be marked visited in graph.
  * Add test case, when last state of it will be traversed.
+ *
+ * @param graph execution graph of current symbolic traverse
+ * @param saveDir directory in which we  will store features and rewards of [ExecutionState]
  */
 class FeatureProcessorWithStatesRepetition(
     graph: InterProceduralUnitGraph,
@@ -25,21 +28,11 @@ class FeatureProcessorWithStatesRepetition(
     }
 
     companion object {
-        private val featureKeys = arrayOf(
-            "stack",
-            "successor",
-            "testCase",
-            "coverageByBranch",
-            "coverageByPath",
-            "depth",
-            "cpicnt",
-            "icnt",
-            "covNew",
-            "subpath1",
-            "subpath2",
-            "subpath4",
-            "subpath8"
-        )
+        private const val featureFile = "jlearch_features"
+        private val featureKeys = Companion::class.java.classLoader.getResourceAsStream(featureFile)
+            ?.bufferedReader().use {
+                it?.readText()?.split(System.lineSeparator()) ?: emptyList()
+            }
     }
 
     private var generatedTestCases = 0

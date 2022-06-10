@@ -13,6 +13,7 @@ import kotlin.math.pow
 
 /**
  * Implementation of feature processor, in which we dump each test, so there will be several copies of each state.
+ * Goal is make weighted dataset, where more value for states, which generated more tests.
  * Extract features for state when this state will be marked visited in graph.
  * Add test case, when last state of it will be traversed.
  *
@@ -139,11 +140,25 @@ internal class RewardEstimator {
     }
 
     companion object {
+        /**
+         * Threshold for time: executingTime less than that we don't distinct. We are not expiremented with changing it yet,
+         * now it is just minimal positive value distinct from 0.
+         */
         private const val minTime = 1.0
+
+        /**
+         * Just degree of reward to make it smaller if it more than 1 and bigger if it less than 1.
+         */
         private const val rewardDegree = 0.5
 
         fun reward(coverage: Double, time: Double): Double = (coverage / maxOf(time, minTime)).pow(rewardDegree)
     }
 }
 
+/**
+ * Class that represents test case.
+ * @param states pairs from stateHash and executingTime, created from each state of this test case
+ * @param newCoverage number of instructions, that was visited in first time by [states]
+ * @param testIndex number of test case, that was created before
+ */
 data class TestCase(val states: List<Pair<Int, Long>>, val newCoverage: Int, val testIndex: Int)

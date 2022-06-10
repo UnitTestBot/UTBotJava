@@ -2,11 +2,11 @@
 <idea-plugin>
 
     <id>org.utbot.intellij.plugin.id</id>
-    <name>UTBot</name>
+    <name>UnitTestBot</name>
     <vendor>utbot.org</vendor>
 
     <description>UnitTestBot plugin for IntelliJ IDEA for Java</description>
-    <version>2022.5-alpha</version>
+    <version>2022.6-alpha</version>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>

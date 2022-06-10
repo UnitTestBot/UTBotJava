@@ -1,8 +1,10 @@
 package org.utbot.predictors
 
+import com.google.gson.JsonSyntaxException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.utbot.examples.withRewardModelPath
 import kotlin.system.measureNanoTime
 
@@ -48,5 +50,32 @@ class NNStateRewardPredictorTest {
         return (1..iterations)
             .map { measureNanoTime { pred.predict(features) } }
             .average()
+    }
+
+    @Test
+    fun corruptedModelFileTest() {
+        withRewardModelPath("src/test/resources") {
+            assertThrows<JsonSyntaxException> {
+                NNStateRewardPredictorSmile(modelPath = "corrupted_nn.json")
+            }
+        }
+    }
+
+    @Test
+    fun emptyModelFileTest() {
+        withRewardModelPath("src/test/resources") {
+            assertThrows<IllegalStateException> {
+                NNStateRewardPredictorSmile(modelPath = "empty_nn.json")
+            }
+        }
+    }
+
+    @Test
+    fun corruptedScalerTest() {
+        withRewardModelPath("src/test/resources") {
+            assertThrows<IllegalStateException> {
+                NNStateRewardPredictorSmile(scalerPath = "corrupted_scaler.txt")
+            }
+        }
     }
 }

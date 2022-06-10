@@ -1,7 +1,6 @@
 package org.utbot.predictors
 
 import com.google.gson.Gson
-import mu.KotlinLogging
 import org.utbot.framework.UtSettings
 import smile.math.matrix.Matrix
 import java.io.FileReader
@@ -11,7 +10,9 @@ import kotlin.math.max
 private const val DEFAULT_MODEL_PATH = "nn.json"
 private const val DEFAULT_SCALER_PATH = "scaler.txt"
 
-private val logger = KotlinLogging.logger {}
+private object ActivationFunctions {
+    const val ReLU = "reLU"
+}
 
 data class NNJson(
     val linearLayers: Array<Array<DoubleArray>> = emptyArray(),
@@ -49,8 +50,7 @@ private fun loadModel(path: String): NNJson {
     val modelFile = Paths.get(UtSettings.rewardModelPath, path).toFile()
     val nnJson: NNJson =
         Gson().fromJson(FileReader(modelFile), NNJson::class.java) ?: run {
-            logger.debug { "Something went wrong while parsing NN model" }
-            NNJson()
+            error("Empty model")
         }
 
     return nnJson
@@ -68,7 +68,7 @@ private fun buildModel(nnJson: NNJson): NeuralNetwork {
         if (i != nnJson.linearLayers.lastIndex) {
             operations.add {
                 when (nnJson.activationLayers[i]) {
-                    "reLU" -> reLU(it)
+                    ActivationFunctions.ReLU -> reLU(it)
                     else -> error("Unsupported activation")
                 }
             }
@@ -84,8 +84,8 @@ data class StandardScaler(val mean: Matrix?, val variance: Matrix?)
 
 internal fun loadScaler(path: String): StandardScaler =
     Paths.get(UtSettings.rewardModelPath, path).toFile().bufferedReader().use {
-        val mean = it.readLine()?.splitByCommaIntoDoubleArray()
-        val variance = it.readLine()?.splitByCommaIntoDoubleArray()
+        val mean = it.readLine()?.splitByCommaIntoDoubleArray() ?: error("There is not mean in $path")
+        val variance = it.readLine()?.splitByCommaIntoDoubleArray() ?: error("There is not variance in $path")
         StandardScaler(Matrix(mean), Matrix(variance))
     }
 

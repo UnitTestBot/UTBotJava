@@ -18,6 +18,7 @@ private fun loadWeights(path: String): Matrix {
     }
 
     val weightsArray = weightsFile.readText().splitByCommaIntoDoubleArray()
+
     return Matrix(weightsArray)
 }
 

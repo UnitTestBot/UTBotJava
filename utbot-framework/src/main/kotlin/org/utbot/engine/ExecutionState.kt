@@ -64,7 +64,7 @@ data class StateAnalyticsProperties(
      */
     private var isFork: Boolean = false
 
-    fun updateIsFork() {
+    fun definitelyFork() {
         isFork = true
     }
 
@@ -87,7 +87,7 @@ data class StateAnalyticsProperties(
         successorVisitedAfterLastFork,
         successorVisitedBeforeLastFork,
         successorStmtSinceLastCovered,
-        if (UtSettings.featureProcess) parent else null
+        if (UtSettings.enableFeatureProcess) parent else null
     )
 }
 
@@ -331,8 +331,8 @@ data class ExecutionState(
         return " MD5(path)=${prettifiedPath.md5()}\n$prettifiedPath"
     }
 
-    fun updateIsFork() {
-        stateAnalyticsProperties.updateIsFork()
+    fun definitelyFork() {
+        stateAnalyticsProperties.definitelyFork()
     }
 
     fun updateIsVisitedNew() {

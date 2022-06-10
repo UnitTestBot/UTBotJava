@@ -19,7 +19,7 @@ interface NNRewardGuidedSelectorFactory {
 }
 
 /**
- * Creates [NNRewardGuidedSelectorWithRecalculationWeight]
+ * Creates [NNRewardGuidedSelectorWithWeightsRecalculation]
  */
 class NNRewardGuidedSelectorWithRecalculationFactory : NNRewardGuidedSelectorFactory {
     override fun invoke(
@@ -28,13 +28,13 @@ class NNRewardGuidedSelectorWithRecalculationFactory : NNRewardGuidedSelectorFac
         stoppingStrategy: StoppingStrategy,
         seed: Int,
         graph: InterProceduralUnitGraph
-    ): NNRewardGuidedSelector = NNRewardGuidedSelectorWithRecalculationWeight(
+    ): NNRewardGuidedSelector = NNRewardGuidedSelectorWithWeightsRecalculation(
         generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph
     )
 }
 
 /**
- * Creates [NNRewardGuidedSelectorWithoutRecalculationWeight]
+ * Creates [NNRewardGuidedSelectorWithoutWeightsRecalculation]
  */
 class NNRewardGuidedSelectorWithoutRecalculationFactory : NNRewardGuidedSelectorFactory {
     override fun invoke(
@@ -43,7 +43,7 @@ class NNRewardGuidedSelectorWithoutRecalculationFactory : NNRewardGuidedSelector
         stoppingStrategy: StoppingStrategy,
         seed: Int,
         graph: InterProceduralUnitGraph
-    ): NNRewardGuidedSelector = NNRewardGuidedSelectorWithoutRecalculationWeight(
+    ): NNRewardGuidedSelector = NNRewardGuidedSelectorWithoutWeightsRecalculation(
         generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph
     )
 }

@@ -306,9 +306,9 @@ object UtSettings {
     var subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
 
     /**
-     * Enable feature processing for executionStates
+     * Flag that indicates whether feature processing for execution states enabled or not
      */
-    var featureProcess by getBooleanProperty(false)
+    var enableFeatureProcess by getBooleanProperty(false)
 
     /**
      * Path to deserialized reward models
@@ -342,14 +342,48 @@ object UtSettings {
             .joinToString(separator = System.lineSeparator()) { "\t${it.key}=${it.value}" }
 }
 
+/**
+ * Type of [BasePathSelector]. For each value see class in comment
+ */
 enum class PathSelectorType {
+    /**
+     * [CoveredNewSelector]
+     */
     COVERED_NEW_SELECTOR,
+
+    /**
+     * [InheritorsSelector]
+     */
     INHERITORS_SELECTOR,
+
+    /**
+     * [SubpathGuidedSelector]
+     */
     SUBPATH_GUIDED_SELECTOR,
+
+    /**
+     * [CPInstSelector]
+     */
     CPI_SELECTOR,
+
+    /**
+     * [ForkDepthSelector]
+     */
     FORK_DEPTH_SELECTOR,
+
+    /**
+     * [NNRewardGuidedSelector]
+     */
     NN_REWARD_GUIDED_SELECTOR,
+
+    /**
+     * [RandomSelector]
+     */
     RANDOM_SELECTOR,
+
+    /**
+     * [RandomPathSelector]
+     */
     RANDOM_PATH_SELECTOR
 }
 

@@ -5,7 +5,8 @@ import org.utbot.analytics.FeatureProcessorFactory
 import org.utbot.engine.InterProceduralUnitGraph
 
 /**
- * Implementation of feature processor factory, which creates FeatureProcessorWithStatesRepetition
+ * Implementation of feature processor factory, which creates FeatureProcessorWithStatesRepetition.
+ * See [FeatureProcessorWithStatesRepetition].
  */
 class FeatureProcessorWithStatesRepetitionFactory : FeatureProcessorFactory {
     override fun invoke(graph: InterProceduralUnitGraph): FeatureProcessor = FeatureProcessorWithStatesRepetition(graph)

@@ -35,7 +35,7 @@ abstract class NNRewardGuidedSelector(
  * Calculate weight of execution state only when it is offered. It has advantage, because it works faster,
  * than with recalculation but disadvantage is that some features of execution state can change.
  */
-class NNRewardGuidedSelectorWithoutRecalculationWeight(
+class NNRewardGuidedSelectorWithoutWeightsRecalculation(
     generatedTestCountingStatistics: GeneratedTestCountingStatistics,
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy,
@@ -58,7 +58,7 @@ class NNRewardGuidedSelectorWithoutRecalculationWeight(
  * Calculate weight of execution state every time when it needed. It works slower,
  * than without recalculation but features are always relevant
  */
-class NNRewardGuidedSelectorWithRecalculationWeight(
+class NNRewardGuidedSelectorWithWeightsRecalculation(
     generatedTestCountingStatistics: GeneratedTestCountingStatistics,
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy,

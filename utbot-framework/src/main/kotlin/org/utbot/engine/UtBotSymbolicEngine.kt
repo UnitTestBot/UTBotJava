@@ -9,7 +9,6 @@ import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
@@ -111,7 +110,7 @@ import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcrete
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
-import org.utbot.framework.UtSettings.featureProcess
+import org.utbot.framework.UtSettings.enableFeatureProcess
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.preferredCexOption
@@ -155,9 +154,6 @@ import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.instrumentation.ConcreteExecutor
 import java.lang.reflect.ParameterizedType
-import java.util.BitSet
-import java.util.IdentityHashMap
-import java.util.TreeSet
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
@@ -166,26 +162,6 @@ import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaType
 import kotlin.system.measureTimeMillis
-import kotlinx.collections.immutable.persistentHashMapOf
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.yield
-import org.utbot.engine.selectors.coveredNewSelector
-import org.utbot.engine.selectors.cpInstSelector
-import org.utbot.engine.selectors.forkDepthSelector
-import org.utbot.engine.selectors.inheritorsSelector
-import org.utbot.engine.selectors.nnRewardGuidedSelector
-import org.utbot.engine.selectors.pollUntilFastSAT
-import org.utbot.engine.selectors.randomPathSelector
-import org.utbot.engine.selectors.randomSelector
-import org.utbot.engine.selectors.subpathGuidedSelector
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -276,17 +252,6 @@ import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
 import java.lang.reflect.Method
-import kotlin.collections.plus
-import kotlin.collections.plusAssign
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
-import kotlin.system.measureTimeMillis
 
 private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -398,7 +363,7 @@ class UtBotSymbolicEngine(
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     private val featureProcessor: FeatureProcessor? =
-        if (featureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null
+        if (enableFeatureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null
 
     private val insideStaticInitializer
         get() = environment.state.executionStack.any { it.method.isStaticInitializer }
@@ -1403,7 +1368,7 @@ class UtBotSymbolicEngine(
         val negativeCasePathConstraint = mkNot(positiveCasePathConstraint)
 
         if (positiveCaseEdge != null) {
-            environment.state.updateIsFork()
+            environment.state.definitelyFork()
         }
 
         positiveCaseEdge?.let { edge ->
@@ -1475,7 +1440,7 @@ class UtBotSymbolicEngine(
         }
         if (successors.size > 1) {
             environment.state.expectUndefined()
-            environment.state.updateIsFork()
+            environment.state.definitelyFork()
         }
 
         successors.forEach { (target, expr) ->
@@ -2686,7 +2651,7 @@ class UtBotSymbolicEngine(
         // If so, return the result of the override
         if (artificialMethodOverride.success) {
             if (artificialMethodOverride.results.size > 1) {
-                environment.state.updateIsFork()
+                environment.state.definitelyFork()
             }
 
             return mutableListOf<MethodResult>().apply {
@@ -2717,7 +2682,7 @@ class UtBotSymbolicEngine(
         val overrideResults = targets.map { it to overrideInvocation(invocation, it) }
 
         if (overrideResults.sumOf { (_, overriddenResult) -> overriddenResult.results.size } > 1) {
-            environment.state.updateIsFork()
+            environment.state.definitelyFork()
         }
 
         // Separate targets for which invocation should be overridden

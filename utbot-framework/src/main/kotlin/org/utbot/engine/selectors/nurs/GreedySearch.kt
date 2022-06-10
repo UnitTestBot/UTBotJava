@@ -15,7 +15,7 @@ import kotlin.random.Random
 abstract class GreedySearch(
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy,
-    seed: Int = 0
+    seed: Int = 42
 ) : BasePathSelector(choosingStrategy, stoppingStrategy), StrategyObserver {
     private val states = mutableSetOf<ExecutionState>()
 
@@ -31,6 +31,9 @@ abstract class GreedySearch(
 
     override fun pollImpl(): ExecutionState? = peekImpl()?.also { remove(it) }
 
+    /**
+     * Creates set of states with maximum weight and then pick random
+     */
     override fun peekImpl(): ExecutionState? {
         if (isEmpty()) {
             return null

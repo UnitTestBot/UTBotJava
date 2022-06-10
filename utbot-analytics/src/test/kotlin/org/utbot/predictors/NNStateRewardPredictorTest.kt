@@ -12,7 +12,7 @@ class NNStateRewardPredictorTest {
     @Test
     fun simpleTest() {
         withRewardModelPath("src/test/resources") {
-            val pred = NNStateRewardPredictorSmile()
+            val pred = NNStateRewardPredictorBase()
 
             val features = listOf(0.0, 0.0)
 
@@ -25,7 +25,7 @@ class NNStateRewardPredictorTest {
     fun performanceTest() {
         val features = (1..13).map { 1.0 }.toList()
         withRewardModelPath("models\\test\\0") {
-            val averageTime = calcAverageTimeForModelPredict(::NNStateRewardPredictorSmile, 100, features)
+            val averageTime = calcAverageTimeForModelPredict(::NNStateRewardPredictorBase, 100, features)
             println(averageTime)
         }
 
@@ -56,7 +56,7 @@ class NNStateRewardPredictorTest {
     fun corruptedModelFileTest() {
         withRewardModelPath("src/test/resources") {
             assertThrows<JsonSyntaxException> {
-                NNStateRewardPredictorSmile(modelPath = "corrupted_nn.json")
+                NNStateRewardPredictorBase(modelPath = "corrupted_nn.json")
             }
         }
     }
@@ -65,7 +65,7 @@ class NNStateRewardPredictorTest {
     fun emptyModelFileTest() {
         withRewardModelPath("src/test/resources") {
             assertThrows<IllegalStateException> {
-                NNStateRewardPredictorSmile(modelPath = "empty_nn.json")
+                NNStateRewardPredictorBase(modelPath = "empty_nn.json")
             }
         }
     }
@@ -74,7 +74,7 @@ class NNStateRewardPredictorTest {
     fun corruptedScalerTest() {
         withRewardModelPath("src/test/resources") {
             assertThrows<IllegalStateException> {
-                NNStateRewardPredictorSmile(scalerPath = "corrupted_scaler.txt")
+                NNStateRewardPredictorBase(scalerPath = "corrupted_scaler.txt")
             }
         }
     }

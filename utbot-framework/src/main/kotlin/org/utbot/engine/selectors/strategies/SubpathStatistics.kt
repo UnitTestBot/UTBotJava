@@ -17,6 +17,9 @@ class SubpathStatistics(
     private val subpathCount = mutableMapOf<List<Edge>, Int>()
     private val length: Int = 2.0.pow(index).toInt()
 
+    /**
+     * Take length last edges from state's path and handle exception edges
+     */
     private fun ExecutionState.getSubpath(length: Int): List<Edge> {
         val subpath = mutableListOf<Edge>()
         val actualLength = if (pathLength >= length) length else pathLength

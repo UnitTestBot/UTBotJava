@@ -12,6 +12,11 @@ private const val DEFAULT_WEIGHT_PATH = "linear.txt"
  */
 private fun loadWeights(path: String): Matrix {
     val weightsFile = File("${UtSettings.rewardModelPath}/${path}")
+
+    if (!weightsFile.exists()) {
+        error("There is no file with weights with path: ${weightsFile.absolutePath}")
+    }
+
     val weightsArray = weightsFile.readText().splitByCommaIntoDoubleArray()
     return Matrix(weightsArray)
 }

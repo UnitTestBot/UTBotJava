@@ -39,13 +39,13 @@ data class NNJson(
     }
 }
 
-data class NN(val operations: List<(DoubleArray) -> DoubleArray>)
+data class NeuralNetwork(val operations: List<(DoubleArray) -> DoubleArray>)
 
 private fun reLU(input: DoubleArray): DoubleArray {
     return input.map { max(0.0, it) }.toDoubleArray()
 }
 
-private fun loadNN(path: String): NN {
+private fun loadModel(path: String): NNJson {
     val modelFile = Paths.get(UtSettings.rewardModelPath, path).toFile()
     val nnJson: NNJson =
         Gson().fromJson(FileReader(modelFile), NNJson::class.java) ?: run {
@@ -53,6 +53,10 @@ private fun loadNN(path: String): NN {
             NNJson()
         }
 
+    return nnJson
+}
+
+private fun buildModel(nnJson: NNJson): NeuralNetwork {
     val weights = nnJson.linearLayers.map { Matrix(it) }
     val biases = nnJson.biases.map { Matrix(it) }
     val operations = mutableListOf<(DoubleArray) -> DoubleArray>()
@@ -71,8 +75,10 @@ private fun loadNN(path: String): NN {
         }
     }
 
-    return NN(operations)
+    return NeuralNetwork(operations)
 }
+
+private fun getModel(path: String) = buildModel(loadModel(path))
 
 data class StandardScaler(val mean: Matrix?, val variance: Matrix?)
 
@@ -85,7 +91,7 @@ internal fun loadScaler(path: String): StandardScaler =
 
 class NNStateRewardPredictorSmile(modelPath: String = DEFAULT_MODEL_PATH, scalerPath: String = DEFAULT_SCALER_PATH) :
     NNStateRewardPredictor {
-    private val nn = loadNN(modelPath)
+    private val nn = getModel(modelPath)
     private val scaler = loadScaler(scalerPath)
 
     override fun predict(input: List<Double>): Double {

@@ -13,13 +13,13 @@ import org.utbot.framework.UtSettings
 object EngineAnalyticsContext {
     var featureProcessorFactory: FeatureProcessorFactory = object : FeatureProcessorFactory {
         override fun invoke(graph: InterProceduralUnitGraph): FeatureProcessor {
-            error("Feature processor factory wasn't provided")
+            error("Feature processor factory is not provided.")
         }
     }
 
     var featureExtractorFactory: FeatureExtractorFactory = object : FeatureExtractorFactory {
         override fun invoke(graph: InterProceduralUnitGraph): FeatureExtractor {
-            error("Feature extractor factory wasn't provided")
+            error("Feature extractor factory is not provided.")
         }
     }
 

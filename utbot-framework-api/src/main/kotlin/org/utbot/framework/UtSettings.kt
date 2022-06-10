@@ -299,6 +299,10 @@ object UtSettings {
      * See [SubpathGuidedSelector]
      */
     var subpathGuidedSelectorIndex by getIntProperty(1)
+
+    /**
+     * Set of indexes, which will use [SubpathGuidedSelector] in not single mode
+     */
     var subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
 
     /**
@@ -326,10 +330,6 @@ object UtSettings {
      */
     var testCounter by getIntProperty(0)
 
-    var collectCoverage by getBooleanProperty(false)
-
-    var coverageStatisticsDir by getStringProperty("logs/covStatistics")
-
     /**
      * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
      */
@@ -348,7 +348,6 @@ enum class PathSelectorType {
     SUBPATH_GUIDED_SELECTOR,
     CPI_SELECTOR,
     FORK_DEPTH_SELECTOR,
-    LINEAR_REWARD_GUIDED_SELECTOR,
     NN_REWARD_GUIDED_SELECTOR,
     RANDOM_SELECTOR,
     RANDOM_PATH_SELECTOR
@@ -359,7 +358,17 @@ enum class TestSelectionStrategyType {
     COVERAGE_STRATEGY // Adds new test only if it increases coverage
 }
 
+/**
+ * Enum to specify [NNRewardGuidedSelector], see implementations for more details
+ */
 enum class NNRewardGuidedSelectorType {
+    /**
+     * [NNRewardGuidedSelectorWithRecalculation]
+     */
     WITH_RECALCULATION,
+
+    /**
+     * [NNRewardGuidedSelectorWithoutRecalculation]
+     */
     WITHOUT_RECALCULATION
 }

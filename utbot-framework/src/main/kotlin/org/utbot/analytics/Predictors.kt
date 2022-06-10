@@ -26,9 +26,7 @@ object Predictors {
     var stateRewardPredictor: UtBotAbstractPredictor<List<Double>, Double> =
         object : UtBotAbstractPredictor<List<Double>, Double> {
             override fun predict(input: List<Double>): Double {
-                error("stateRewardPredictor wasn't provided")
+                error("stateRewardPredictor is not provided.")
             }
         }
-
-    var sat: IUtBotSatPredictor<Iterable<UtExpression>> = object : IUtBotSatPredictor<Iterable<UtExpression>> {}
 }

@@ -19,8 +19,12 @@ class SubpathGuidedSelector(
 ) : GreedySearch(choosingStrategy, stoppingStrategy, seed) {
 
 
-    override val name = "NURS:SubpathGuidedSearch"
+    override val name
+        get() = "NURS:SubpathGuidedSearch"
 
+    /**
+     * Use - to find minimum
+     */
     override val ExecutionState.weight: Double
         get() = -subpathStatistics.subpathCount(this).toDouble()
 }

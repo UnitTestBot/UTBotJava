@@ -10,9 +10,9 @@ import org.utbot.engine.selectors.strategies.StoppingStrategy
  * where StatementStatistics.statementsInMethodCount(exState)
  * is number of visited instructions in the current function of execution state
  *
- * https://github.com/klee/klee/blob/085c54b980a2f62c7c475d32b5d0ce9c6f97904f/lib/Core/Searcher.cpp#L207
+ * @see @see <a href=https://github.com/klee/klee/blob/085c54b980a2f62c7c475d32b5d0ce9c6f97904f/lib/Core/Searcher.cpp#L207>Klee analog</a>
  *
- * @see [NonUniformRandomSearch]
+ * [NonUniformRandomSearch]
  */
 class CPInstSelector(
     private val statementStatistics: StatementsStatistics,

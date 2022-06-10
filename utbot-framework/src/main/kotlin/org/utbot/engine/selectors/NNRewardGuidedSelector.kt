@@ -10,11 +10,13 @@ import org.utbot.engine.selectors.strategies.GeneratedTestCountingStatistics
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 
 /**
- * https://files.sri.inf.ethz.ch/website/papers/ccs21-learch.pdf
+ * @see <a href=https://files.sri.inf.ethz.ch/website/papers/ccs21-learch.pdf>Learch</a>
  *
  * Calculates reward using neural network, when state is offered, and then peeks state with maximum reward
  *
- * @see [GreedySearch]
+ * @see choosingStrategy [ChossingStrategy] for [GreedySearch]
+ *
+ * [GreedySearch]
  */
 abstract class NNRewardGuidedSelector(
     protected val generatedTestCountingStatistics: GeneratedTestCountingStatistics,
@@ -31,7 +33,7 @@ abstract class NNRewardGuidedSelector(
 
 /**
  * Calculate weight of execution state only when it is offered. It has advantage, because it works faster,
- * but disadvantage is that some features of execution state can change.
+ * than with recalculation but disadvantage is that some features of execution state can change.
  */
 class NNRewardGuidedSelectorWithoutRecalculationWeight(
     generatedTestCountingStatistics: GeneratedTestCountingStatistics,
@@ -53,7 +55,8 @@ class NNRewardGuidedSelectorWithoutRecalculationWeight(
 }
 
 /**
- * Calculate weight of execution state every time when it needed. It works slower, but features are always relevant
+ * Calculate weight of execution state every time when it needed. It works slower,
+ * than without recalculation but features are always relevant
  */
 class NNRewardGuidedSelectorWithRecalculationWeight(
     generatedTestCountingStatistics: GeneratedTestCountingStatistics,

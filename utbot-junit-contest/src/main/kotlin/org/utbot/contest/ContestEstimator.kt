@@ -250,7 +250,7 @@ fun main(args: Array<String>) {
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
     if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
         processedClassesThreshold = 9999 //change to change number of classes to run
-        val timeLimit = 200 // increase if you want to debug something
+        val timeLimit = 20 // increase if you want to debug something
 
         // Uncomment it for debug purposes:
         // you can specify method for test generation in format `classFqn.methodName`
@@ -270,7 +270,7 @@ fun main(args: Array<String>) {
 
         // config for SBST 2022
         methodFilter = null
-        projectFilter = listOf("guava-30.0")
+        projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
         tools = listOf(Tool.UtBot)
 
         estimatorArgs = arrayOf(

@@ -30,15 +30,15 @@ import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.system.exitProcess
 import mu.KotlinLogging
+import org.utbot.framework.JdkPathService
 
 private val logger = KotlinLogging.logger {}
 
 private val classPathSeparator = System.getProperty("path.separator")
-private val javaHome = if (System.getProperty("user.name") == "d00555580") {
-    "C:/Program Files/Java/jdk1.8.0_241"
-} else {
-    System.getenv("JAVA_HOME")
-}
+//To hack it to debug something be like Dima
+// if (System.getProperty("user.name") == "d00555580") my_path else "JAVA_HOME"
+private val javaHome = System.getenv("JAVA_HOME")
+
 private val javacCmd = "$javaHome/bin/javac"
 private val javaCmd = "$javaHome/bin/java"
 
@@ -250,7 +250,7 @@ fun main(args: Array<String>) {
     // very special case when you run your project directly from IntellijIDEA omitting command line arguments
     if (args.isEmpty() && System.getProperty("os.name")?.run { contains("win", ignoreCase = true) } == true) {
         processedClassesThreshold = 9999 //change to change number of classes to run
-        val timeLimit = 20 // increase if you want to debug something
+        val timeLimit = 200 // increase if you want to debug something
 
         // Uncomment it for debug purposes:
         // you can specify method for test generation in format `classFqn.methodName`
@@ -270,7 +270,7 @@ fun main(args: Array<String>) {
 
         // config for SBST 2022
         methodFilter = null
-        projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
+        projectFilter = listOf("guava-30.0")
         tools = listOf(Tool.UtBot)
 
         estimatorArgs = arrayOf(
@@ -293,6 +293,7 @@ fun main(args: Array<String>) {
         tools = listOf(Tool.UtBot)
     }
 
+    JdkPathService.jdkPathProvider = ContestEstimatorJdkPathProvider(javaHome)
     runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
 }
 
@@ -332,7 +333,6 @@ fun runEstimator(
 
     if (updatedMethodFilter != null)
         logger.info { "Filtering: class='$classFqnFilter', method ='$methodNameFilter'" }
-
 
     val projectToClassFQNs = classesLists.listFiles()!!.associate { it.name to File(it, "list").readLines() }
 

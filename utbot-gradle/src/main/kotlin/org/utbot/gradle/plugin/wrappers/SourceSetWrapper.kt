@@ -25,7 +25,7 @@ class SourceSetWrapper(
     val runtimeClasspath: String by lazy {
         sourceSet.runtimeClasspath.filter { file ->
             file.exists()
-        }.joinToString(separator = ";") { file ->
+        }.joinToString(File.pathSeparator) { file ->
             replaceSeparator(file.absolutePath)
         }
     }

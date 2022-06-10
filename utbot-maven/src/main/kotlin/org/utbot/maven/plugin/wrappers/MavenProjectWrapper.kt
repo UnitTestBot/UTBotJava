@@ -61,7 +61,7 @@ class MavenProjectWrapper(
      * Runtime classpath of the [mavenProject].
      */
     val runtimeClasspath: String by lazy {
-        mavenProject.runtimeClasspathElements.joinToString(separator = ";")
+        mavenProject.runtimeClasspathElements.joinToString(File.pathSeparator)
     }
 
     /**

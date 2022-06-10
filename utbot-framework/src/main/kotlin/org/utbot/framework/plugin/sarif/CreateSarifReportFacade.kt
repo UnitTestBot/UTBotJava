@@ -62,7 +62,7 @@ class CreateSarifReportFacade(
 
     private val dependencyPaths by lazy {
         val thisClassLoader = this::class.java.classLoader as URLClassLoader
-        thisClassLoader.urLs.joinToString(separator = ";") { it.path }
+        thisClassLoader.urLs.joinToString(File.pathSeparator) { it.path }
     }
 
     private fun initializeEngine(classPath: String, workingDirectory: Path) {

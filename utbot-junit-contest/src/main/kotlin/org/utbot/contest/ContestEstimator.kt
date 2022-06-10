@@ -323,7 +323,7 @@ fun runEstimator(
 //    Predictors.smt = UtBotTimePredictor()
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
-//    Predictors.stateRewardPredictor = NNStateRewardPredictorSmile()
+//    Predictors.stateRewardPredictor = NNStateRewardPredictorBase()
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
 

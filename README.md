@@ -9,9 +9,7 @@ UTBotJava generates test cases by code, trying to cover maximum statements and e
 
 UTBot Java provides users with **IntelliJ IDEA** plugin. 
 
-_The plugin was tested on **Win64** and **Linux64**._
-
-> ⚠ Not supported on **MAC OS** for now (will be fixed soon).
+_The plugin was tested on **Win64**, **Linux64** and **MacOSx86-64**._
 
 # How to download IntelliJ IDEA plugin
 

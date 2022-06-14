@@ -7,7 +7,7 @@ import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.sarif.CreateSarifReportFacade
+import org.utbot.framework.plugin.sarif.GenerateTestsAndSarifReportFacade
 import org.utbot.gradle.plugin.extension.SarifGradleExtensionProvider
 import org.utbot.gradle.plugin.wrappers.GradleProjectWrapper
 import org.utbot.gradle.plugin.wrappers.SourceFindingStrategyGradle
@@ -16,11 +16,11 @@ import org.utbot.framework.plugin.sarif.TargetClassWrapper
 import javax.inject.Inject
 
 /**
- * The main class containing the entry point [createSarifReport].
+ * The main class containing the entry point [generateTestsAndSarifReport].
  *
  * [Documentation](https://docs.gradle.org/current/userguide/custom_tasks.html)
  */
-open class CreateSarifReportTask @Inject constructor(
+open class GenerateTestsAndSarifReportTask @Inject constructor(
     private val sarifProperties: SarifGradleExtensionProvider
 ) : DefaultTask() {
 
@@ -33,7 +33,7 @@ open class CreateSarifReportTask @Inject constructor(
      * Entry point: called when the user starts this gradle task.
      */
     @TaskAction
-    fun createSarifReport() {
+    fun generateTestsAndSarifReport() {
         val rootGradleProject = try {
             GradleProjectWrapper(project, sarifProperties)
         } catch (t: Throwable) {
@@ -42,7 +42,7 @@ open class CreateSarifReportTask @Inject constructor(
         }
         try {
             generateForProjectRecursively(rootGradleProject)
-            CreateSarifReportFacade.mergeReports(
+            GenerateTestsAndSarifReportFacade.mergeReports(
                 sarifReports = rootGradleProject.collectReportsRecursively(),
                 mergedSarifReportFile = rootGradleProject.sarifReportFile
             )
@@ -89,9 +89,9 @@ open class CreateSarifReportTask @Inject constructor(
         logger.debug().bracket("Generating tests for the $targetClass") {
             val sourceFindingStrategy =
                 SourceFindingStrategyGradle(sourceSet, targetClass.testsCodeFile.path)
-            val createSarifReportFacade =
-                CreateSarifReportFacade(sarifProperties, sourceFindingStrategy)
-            createSarifReportFacade.generateForClass(
+            val generateTestsAndSarifReportFacade =
+                GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy)
+            generateTestsAndSarifReportFacade.generateForClass(
                 targetClass, sourceSet.workingDirectory, sourceSet.runtimeClasspath
             )
         }

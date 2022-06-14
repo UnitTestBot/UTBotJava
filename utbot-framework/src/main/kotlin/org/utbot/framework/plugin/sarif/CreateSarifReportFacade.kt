@@ -13,10 +13,10 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 
 /**
- * Facade for `createSarifReport` task/mojo.
+ * Facade for `generateTestsAndSarifReport` task/mojo.
  * Stores common logic between gradle and maven plugins.
  */
-class CreateSarifReportFacade(
+class GenerateTestsAndSarifReportFacade(
     val sarifProperties: SarifExtensionProvider,
     val sourceFindingStrategy: SourceFindingStrategy
 ) {

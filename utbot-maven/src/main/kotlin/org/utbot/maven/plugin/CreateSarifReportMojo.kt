@@ -11,7 +11,7 @@ import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.sarif.CreateSarifReportFacade
+import org.utbot.framework.plugin.sarif.GenerateTestsAndSarifReportFacade
 import org.utbot.framework.plugin.sarif.TargetClassWrapper
 import org.utbot.maven.plugin.extension.SarifMavenConfigurationProvider
 import org.utbot.maven.plugin.wrappers.MavenProjectWrapper
@@ -26,13 +26,13 @@ private val logger = KotlinLogging.logger {}
  * [Documentation](https://maven.apache.org/guides/plugin/guide-java-plugin-development.html)
  */
 @Mojo(
-    name = "createSarifReport",
+    name = "generateTestsAndSarifReport",
     defaultPhase = LifecyclePhase.GENERATE_TEST_SOURCES
 )
 @Execute(
     phase = LifecyclePhase.GENERATE_TEST_SOURCES
 )
-class CreateSarifReportMojo : AbstractMojo() {
+class GenerateTestsAndSarifReportMojo : AbstractMojo() {
 
     @Parameter(defaultValue = "\${project}", readonly = true)
     private lateinit var mavenProject: MavenProject
@@ -128,7 +128,7 @@ class CreateSarifReportMojo : AbstractMojo() {
         }
         try {
             generateForProjectRecursively(rootMavenProjectWrapper)
-            CreateSarifReportFacade.mergeReports(
+            GenerateTestsAndSarifReportFacade.mergeReports(
                 sarifReports = rootMavenProjectWrapper.collectReportsRecursively(),
                 mergedSarifReportFile = rootMavenProjectWrapper.sarifReportFile
             )
@@ -166,9 +166,9 @@ class CreateSarifReportMojo : AbstractMojo() {
         logger.debug().bracket("Generating tests for the $targetClass") {
             val sourceFindingStrategy =
                 SourceFindingStrategyMaven(mavenProjectWrapper, targetClass.testsCodeFile.path)
-            val createSarifReportFacade =
-                CreateSarifReportFacade(sarifProperties, sourceFindingStrategy)
-            createSarifReportFacade.generateForClass(
+            val generateTestsAndSarifReportFacade =
+                GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy)
+            generateTestsAndSarifReportFacade.generateForClass(
                 targetClass, mavenProjectWrapper.workingDirectory, mavenProjectWrapper.runtimeClasspath
             )
         }

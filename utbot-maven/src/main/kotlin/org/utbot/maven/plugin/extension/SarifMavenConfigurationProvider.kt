@@ -8,52 +8,52 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.sarif.SarifExtensionProvider
-import org.utbot.maven.plugin.CreateSarifReportMojo
+import org.utbot.maven.plugin.GenerateTestsAndSarifReportMojo
 import java.io.File
 
 /**
  * Provides fields needed to create a SARIF report in a convenient form.
  */
 class SarifMavenConfigurationProvider(
-    private val createSarifReportMojo: CreateSarifReportMojo
+    private val generateTestsAndSarifReportMojo: GenerateTestsAndSarifReportMojo
 ) : SarifExtensionProvider {
 
     override val targetClasses: List<String>
-        get() = createSarifReportMojo.targetClasses
+        get() = generateTestsAndSarifReportMojo.targetClasses
 
     override val projectRoot: File
-        get() = createSarifReportMojo.projectRoot
+        get() = generateTestsAndSarifReportMojo.projectRoot
 
     override val generatedTestsRelativeRoot: String
-        get() = createSarifReportMojo.generatedTestsRelativeRoot
+        get() = generateTestsAndSarifReportMojo.generatedTestsRelativeRoot
 
     override val sarifReportsRelativeRoot: String
-        get() = createSarifReportMojo.sarifReportsRelativeRoot
+        get() = generateTestsAndSarifReportMojo.sarifReportsRelativeRoot
 
     override val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
-        get() = createSarifReportMojo.markGeneratedTestsDirectoryAsTestSourcesRoot
+        get() = generateTestsAndSarifReportMojo.markGeneratedTestsDirectoryAsTestSourcesRoot
 
     override val testFramework: TestFramework
-        get() = testFrameworkParse(createSarifReportMojo.testFramework)
+        get() = testFrameworkParse(generateTestsAndSarifReportMojo.testFramework)
 
     override val mockFramework: MockFramework
-        get() = mockFrameworkParse(createSarifReportMojo.mockFramework)
+        get() = mockFrameworkParse(generateTestsAndSarifReportMojo.mockFramework)
 
     override val generationTimeout: Long
-        get() = generationTimeoutParse(createSarifReportMojo.generationTimeout)
+        get() = generationTimeoutParse(generateTestsAndSarifReportMojo.generationTimeout)
 
     override val codegenLanguage: CodegenLanguage
-        get() = codegenLanguageParse(createSarifReportMojo.codegenLanguage)
+        get() = codegenLanguageParse(generateTestsAndSarifReportMojo.codegenLanguage)
 
     override val mockStrategy: MockStrategyApi
-        get() = mockStrategyParse(createSarifReportMojo.mockStrategy)
+        get() = mockStrategyParse(generateTestsAndSarifReportMojo.mockStrategy)
 
     override val staticsMocking: StaticsMocking
-        get() = staticsMockingParse(createSarifReportMojo.staticsMocking)
+        get() = staticsMockingParse(generateTestsAndSarifReportMojo.staticsMocking)
 
     override val forceStaticMocking: ForceStaticMocking
-        get() = forceStaticMockingParse(createSarifReportMojo.forceStaticMocking)
+        get() = forceStaticMockingParse(generateTestsAndSarifReportMojo.forceStaticMocking)
 
     override val classesToMockAlways: Set<ClassId>
-        get() = classesToMockAlwaysParse(createSarifReportMojo.classesToMockAlways)
+        get() = classesToMockAlwaysParse(generateTestsAndSarifReportMojo.classesToMockAlways)
 }

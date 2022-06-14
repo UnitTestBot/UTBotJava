@@ -254,4 +254,4 @@ Also note that the standard way to configure the log level (using the `log4j2.xm
 
 ### Requirements
 
-UTBot gradle plugin requires Gradle 6.8+ due to a bug that was fixed in version 6.8
+UTBot gradle plugin requires Gradle 6.8+

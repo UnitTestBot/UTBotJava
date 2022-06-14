@@ -251,3 +251,7 @@ Note that the internal gradle log information will also be shown.
 Also note that the standard way to configure the log level (using the `log4j2.xml`) does not work from gradle.
 
 [Read more about gradle log levels](https://docs.gradle.org/current/userguide/logging.html)
+
+### Requirements
+
+UTBot gradle plugin requires Gradle 6.8+ due to a bug that was fixed in version 6.8

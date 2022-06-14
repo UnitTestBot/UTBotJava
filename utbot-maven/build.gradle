@@ -1,0 +1,108 @@
+plugins {
+    id 'maven'
+    id 'maven-publish'
+}
+
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+configurations {
+    mavenEmbedder // it is used to run maven tasks from gradle
+}
+
+dependencies {
+    // `compile` because `api` dependencies are not included in pom.xml by `install` task
+    compile project(':utbot-framework')
+
+    implementation "org.apache.maven:maven-core:${maven_plugin_api_version}"
+    implementation "org.apache.maven:maven-plugin-api:${maven_plugin_api_version}"
+    compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:${maven_plugin_tools_version}"
+    implementation "io.github.microutils:kotlin-logging:${kotlin_logging_version}"
+
+    mavenEmbedder "org.apache.maven:maven-embedder:${maven_plugin_api_version}"
+    mavenEmbedder "org.apache.maven:maven-compat:${maven_plugin_api_version}"
+    mavenEmbedder "org.slf4j:slf4j-simple:${slf4j_version}"
+    mavenEmbedder "org.eclipse.aether:aether-connector-basic:${eclipse_aether_version}"
+    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:${eclipse_aether_version}"
+    mavenEmbedder "org.apache.maven.wagon:wagon-http:${maven_wagon_version}"
+    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:${maven_wagon_version}"
+}
+
+/**
+ * We should run the maven task `install` to build & publish this plugin.
+ * But `utbot-maven` is the Gradle module (not Maven), so we have to
+ * manually generate the pom.xml file and the plugin descriptor file.
+ */
+
+def buildDirectory = buildDir.canonicalPath
+def outputDirectory = compileKotlin.destinationDir.canonicalPath
+def pomFile = new File("$buildDir/pom.xml")
+def pluginDescriptorFile = new File(outputDirectory, 'META-INF/maven/plugin.xml')
+
+/**
+ * Generates the pom.xml file and saves it to the [pomFile].
+ */
+task generatePomFile(dependsOn: compileKotlin) {
+    outputs.file pomFile
+
+    doLast {
+        install.repositories.mavenInstaller.pom.with {
+            groupId = project.group
+            artifactId = project.name
+            version = project.version
+            packaging = 'maven-plugin'
+
+            withXml {
+                asNode().with {
+                    appendNode('build').with {
+                        appendNode('directory', buildDirectory)
+                        appendNode('outputDirectory', outputDirectory)
+                    }
+                    def repositoriesNode = appendNode('repositories')
+                    // `this.project` is the project from Gradle, but `project` is the project from Maven
+                    this.project.repositories.indexed().forEach { index, repository ->
+                        repositoriesNode.with {
+                            appendNode('repository').with {
+                                // `index` is needed for the uniqueness of the IDs
+                                appendNode('id', "${repository.name}_${index}")
+                                appendNode('url', repository.url)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        install.repositories.mavenInstaller.pom.writeTo(pomFile)
+
+        assert pomFile.file, "${pomFile.canonicalPath}: was not generated"
+        logger.info("POM is generated in ${pomFile.canonicalPath}")
+    }
+}
+
+/**
+ * Generates the plugin descriptor file and saves it to the [pluginDescriptorFile].
+ */
+task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
+    inputs.files project.compileKotlin.outputs.files
+    outputs.file pluginDescriptorFile
+
+    workingDir projectDir
+    main = 'org.apache.maven.cli.MavenCli'
+    classpath = configurations.mavenEmbedder
+    systemProperties['maven.multiModuleProjectDirectory'] = projectDir
+    args = [
+        '--errors',
+        '--batch-mode',
+        '--file', "${pomFile.path}",
+        'org.apache.maven.plugins:maven-plugin-plugin:3.6.0:descriptor',
+        '-Dproject.build.sourceEncoding=UTF-8'
+    ]
+
+    doLast {
+        assert pluginDescriptorFile.file, "${pluginDescriptorFile.canonicalPath}: was not generated"
+        logger.info("Plugin descriptor is generated in ${pluginDescriptorFile.canonicalPath}")
+    }
+}
+
+project.install.dependsOn(generatePluginDescriptor)
+
+// Please, use `utbot-maven/other/install` task for publishing

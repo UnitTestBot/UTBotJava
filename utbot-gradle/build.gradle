@@ -6,7 +6,6 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
     api project(":utbot-framework")
-    api project(':utbot-summary')
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 }

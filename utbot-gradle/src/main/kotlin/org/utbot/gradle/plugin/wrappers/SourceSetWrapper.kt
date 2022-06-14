@@ -5,12 +5,10 @@ import org.utbot.common.FileUtil.createNewFileWithParentDirectories
 import org.utbot.common.FileUtil.findAllFilesOnly
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.replaceSeparator
-import org.utbot.common.loadClassesFromDirectory
 import org.utbot.common.tryLoadClass
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter.Companion.computeSourceFileName
+import org.utbot.framework.plugin.sarif.util.ClassUtil
+import org.utbot.framework.plugin.sarif.TargetClassWrapper
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Path
@@ -27,7 +25,7 @@ class SourceSetWrapper(
     val runtimeClasspath: String by lazy {
         sourceSet.runtimeClasspath.filter { file ->
             file.exists()
-        }.joinToString(separator = ";") { file ->
+        }.joinToString(File.pathSeparator) { file ->
             replaceSeparator(file.absolutePath)
         }
     }
@@ -53,36 +51,22 @@ class SourceSetWrapper(
 
     /**
      * List of declared in the [sourceSet] classes.
-     * Does not contain classes without declared methods or without a canonicalName.
      */
     val targetClasses: List<TargetClassWrapper> by lazy {
-        parentProject.sarifProperties.targetClasses.ifEmpty {
-            // finds all declared classes if `sarifProperties.targetClasses` is empty
-            classLoader
-                .loadClassesFromDirectory(
-                    classesDirectory = workingDirectory.toFile()
-                )
-                .filter { clazz ->
-                    clazz.canonicalName != null && clazz.declaredMethods.isNotEmpty()
-                }
-                .map { clazz ->
-                    clazz.canonicalName
-                }
-        }.mapNotNull { classFqn ->
-            constructTargetClassWrapper(classFqn)
-        }
+        parentProject.sarifProperties.targetClasses
+            .ifEmpty {
+                ClassUtil.findAllDeclaredClasses(classLoader, workingDirectory.toFile())
+            }
+            .mapNotNull { classFqn ->
+                constructTargetClassWrapper(classFqn)
+            }
     }
 
     /**
      * Finds the source code file by the given class fully qualified name.
      */
     fun findSourceCodeFile(classFqn: String): File? =
-        sourceCodeFiles.firstOrNull { sourceCodeFile ->
-            val relativePath = "${classFqnToPath(classFqn)}.${sourceCodeFile.extension}"
-            sourceCodeFile.endsWith(File(relativePath))
-        } ?: classLoader.tryLoadClass(classFqn)?.let { clazz: Class<*> ->
-            findSourceCodeFileByClass(clazz)
-        }
+        ClassUtil.findSourceCodeFile(classFqn, sourceCodeFiles, classLoader)
 
     // internal
 
@@ -131,22 +115,6 @@ class SourceSetWrapper(
         val relativePath = "$sourceRoot/${sourceSet.name}/${classFqnToPath(classFqn)}Test$fileExtension"
         val absolutePath = Paths.get(parentProject.generatedTestsDirectory.path, relativePath)
         return absolutePath.toFile().apply { createNewFileWithParentDirectories() }
-    }
-
-    /**
-     * Fallback logic: called after a failure of [findSourceCodeFile].
-     */
-    private fun findSourceCodeFileByClass(clazz: Class<*>): File? {
-        val sourceFileName = withUtContext(UtContext(classLoader)) {
-            computeSourceFileName(clazz) // finds the file name in bytecode
-        } ?: return null
-        val candidates = sourceCodeFiles.filter { sourceCodeFile ->
-            sourceCodeFile.endsWith(File(sourceFileName))
-        }
-        return if (candidates.size == 1)
-            candidates.first()
-        else // we can't decide which file is needed
-            null
     }
 
     /**

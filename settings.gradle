@@ -15,4 +15,5 @@ include 'utbot-instrumentation-tests'
 
 include 'utbot-summary'
 include 'utbot-gradle'
+include 'utbot-maven'
 

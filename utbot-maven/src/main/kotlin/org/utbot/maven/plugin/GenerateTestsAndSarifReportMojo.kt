@@ -18,7 +18,7 @@ import org.utbot.maven.plugin.wrappers.MavenProjectWrapper
 import org.utbot.maven.plugin.wrappers.SourceFindingStrategyMaven
 import java.io.File
 
-private val logger = KotlinLogging.logger {}
+internal val logger = KotlinLogging.logger {}
 
 /**
  * The main class containing the entry point [execute].

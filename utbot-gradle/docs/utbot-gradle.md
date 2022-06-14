@@ -2,7 +2,7 @@
 
 Utbot Gradle Plugin is a gradle plugin for generating tests and creating SARIF-reports.
 
-The `createSarifReport` gradle task generates tests and SARIF-reports for all classes in your project (or only for classes specified in the configuration).
+The `generateTestsAndSarifReport` gradle task generates tests and SARIF-reports for all classes in your project (or only for classes specified in the configuration).
 In addition, it creates one big SARIF-report containing the results from all the processed files.   
 
 
@@ -26,7 +26,7 @@ _TODO: The plugin has not been published yet._
   </pre>
   </details>
 
-- Run gradle task `utbot/createSarifReport` to create a report.
+- Run gradle task `utbot/generateTestsAndSarifReport` to create a report.
 
 
 ### How to configure
@@ -242,9 +242,9 @@ There are two ways to do it.
 
 ### How to configure the log level
 
-To change the log level run the `createSarifReport` task with the appropriate flag.
+To change the log level run the `generateTestsAndSarifReport` task with the appropriate flag.
 
-For example, `createSarifReport --debug`
+For example, `generateTestsAndSarifReport --debug`
 
 Note that the internal gradle log information will also be shown.
 

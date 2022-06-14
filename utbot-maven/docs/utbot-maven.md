@@ -2,7 +2,7 @@
 
 Utbot Maven Plugin is a maven plugin for generating tests and creating SARIF-reports.
 
-The `createSarifReport` maven task generates tests and SARIF-reports for all classes in your project (or only for classes specified in the configuration).
+The `generateTestsAndSarifReport` maven task generates tests and SARIF-reports for all classes in your project (or only for classes specified in the configuration).
 In addition, it creates one big SARIF-report containing the results from all the processed files.
 
 
@@ -23,7 +23,7 @@ _TODO: The plugin has not been published yet._
   </build>
   ```
 
-- Run maven task `utbot:createSarifReport` to create a report.
+- Run maven task `utbot:generateTestsAndSarifReport` to create a report.
 
 
 ### How to configure
@@ -136,8 +136,8 @@ you need to do the following:
 
 ### How to configure the log level
 
-To change the log level run the `createSarifReport` task with the appropriate flag.
+To change the log level run the `generateTestsAndSarifReport` task with the appropriate flag.
 
-For example, `mvn utbot:createSarifReport --debug`
+For example, `mvn utbot:generateTestsAndSarifReport --debug`
 
 Note that the internal maven log information will also be shown.

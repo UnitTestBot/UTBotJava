@@ -28,9 +28,9 @@ class SarifGradlePlugin : Plugin<Project> {
 
     /**
      * The name of the gradle task.
-     * @see [CreateSarifReportTask]
+     * @see [GenerateTestsAndSarifReportTask]
      */
-    internal val createSarifReportTaskName = "createSarifReport"
+    internal val generateTestsAndSarifReportTaskName = "generateTestsAndSarifReport"
 
     /**
      * Entry point: called when the plugin is applied.
@@ -45,12 +45,12 @@ class SarifGradlePlugin : Plugin<Project> {
             sarifGradleExtension
         )
 
-        val createSarifReportTask = project.tasks.register(
-            createSarifReportTaskName,
-            CreateSarifReportTask::class.java,
+        val generateTestsAndSarifReportTask = project.tasks.register(
+            generateTestsAndSarifReportTaskName,
+            GenerateTestsAndSarifReportTask::class.java,
             sarifGradleExtensionProvider
         )
-        createSarifReportTask.addDependencyOnClassesTasksRecursively(project)
+        generateTestsAndSarifReportTask.addDependencyOnClassesTasksRecursively(project)
 
         markGeneratedTestsDirectoryIfNeededRecursively(project, sarifGradleExtensionProvider)
     }
@@ -60,7 +60,7 @@ class SarifGradlePlugin : Plugin<Project> {
     /**
      * Applies [addDependencyOnClassesTasks] to the [project] and to all its child projects.
      */
-    private fun TaskProvider<CreateSarifReportTask>.addDependencyOnClassesTasksRecursively(project: Project) {
+    private fun TaskProvider<GenerateTestsAndSarifReportTask>.addDependencyOnClassesTasksRecursively(project: Project) {
         project.afterEvaluate {
             addDependencyOnClassesTasks(project)
         }
@@ -70,13 +70,13 @@ class SarifGradlePlugin : Plugin<Project> {
     }
 
     /**
-     * Makes [CreateSarifReportTask] dependent on `classes` task
+     * Makes [GenerateTestsAndSarifReportTask] dependent on `classes` task
      * of each source set from the [project], except `test` source set.
      *
      * The [project] should be evaluated because we need its `java` plugin.
      * Therefore, it is recommended to call this function in the `project.afterEvaluate` block.
      */
-    private fun TaskProvider<CreateSarifReportTask>.addDependencyOnClassesTasks(project: Project) {
+    private fun TaskProvider<GenerateTestsAndSarifReportTask>.addDependencyOnClassesTasks(project: Project) {
         val javaPlugin = project.convention.findPlugin(JavaPluginConvention::class.java)
         if (javaPlugin == null) {
             logger.warn {
@@ -88,11 +88,11 @@ class SarifGradlePlugin : Plugin<Project> {
             sourceSet.name != SourceSet.TEST_SOURCE_SET_NAME
         }
         logger.debug { "Found source sets in the '${project.name}': ${sourceSetsExceptTest.map { it.name }}" }
-        configure { createSarifReportTask ->
+        configure { generateTestsAndSarifReportTask ->
             sourceSetsExceptTest.map { sourceSet ->
                 val classesTask = project.tasks.getByName(sourceSet.classesTaskName)
-                createSarifReportTask.dependsOn(classesTask)
-                logger.debug { "'createSarifReport' task now depends on the task '${classesTask.name}'" }
+                generateTestsAndSarifReportTask.dependsOn(classesTask)
+                logger.debug { "'generateTestsAndSarifReport' task now depends on the task '${classesTask.name}'" }
             }
         }
     }

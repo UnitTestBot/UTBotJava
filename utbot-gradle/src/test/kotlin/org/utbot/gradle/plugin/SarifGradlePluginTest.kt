@@ -13,11 +13,11 @@ class SarifGradlePluginTest {
     }
 
     @Test
-    fun `plugin should register createSarifReport task`() {
+    fun `plugin should register generateTestsAndSarifReport task`() {
         val project = buildProject()
         val sarifGradlePlugin = project.sarifGradlePlugin
-        val createSarifReportTask = project.tasks.getByName(sarifGradlePlugin.createSarifReportTaskName)
-        assertNotNull(createSarifReportTask)
+        val generateTestsAndSarifReportTask = project.tasks.getByName(sarifGradlePlugin.generateTestsAndSarifReportTaskName)
+        assertNotNull(generateTestsAndSarifReportTask)
     }
 
     @Test

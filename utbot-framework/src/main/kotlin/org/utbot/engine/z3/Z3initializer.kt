@@ -2,6 +2,7 @@ package org.utbot.engine.z3
 
 import com.microsoft.z3.Context
 import com.microsoft.z3.Global
+import org.utbot.common.FileUtil
 import java.io.File
 import java.nio.file.Files.createTempDirectory
 
@@ -41,7 +42,7 @@ abstract class Z3Initializer : AutoCloseable {
 
             val libFolder: String?
             if (libZ3DllUrl.toURI().scheme == "jar") {
-                val tempDir = createTempDirectory(null).toFile().apply { deleteOnExit() }
+                val tempDir = FileUtil.createTempDirectory("libs-").toFile()
 
                 allLibraries.forEach { name ->
                     Z3Initializer::class.java

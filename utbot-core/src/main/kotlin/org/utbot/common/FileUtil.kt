@@ -75,12 +75,8 @@ object FileUtil {
         }.forEach { it.deleteRecursively() }
     }
 
-    private fun createTempDirectory(): Path {
-        val tempFolderPath = Paths.get(tempDirectoryPath + File.separator + utBotTempFolderPrefix)
-
-        tempFolderPath.toFile().mkdirs()
-
-        return createTempDirectory(tempFolderPath, "generated-")
+    fun createTempDirectory(prefix: String): Path {
+        return createTempDirectory(utBotTempDirectory, prefix)
     }
 
     /**
@@ -88,7 +84,7 @@ object FileUtil {
      * It can be used for Soot analysis.
      */
     fun isolateClassFiles(vararg classes: KClass<*>): File {
-        val tempDir = createTempDirectory().toFile()
+        val tempDir = createTempDirectory("generated-").toFile()
 
         for (clazz in classes) {
             val path = clazz.toClassFilePath()

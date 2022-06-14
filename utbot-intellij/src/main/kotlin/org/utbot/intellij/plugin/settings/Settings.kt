@@ -32,6 +32,8 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 import com.intellij.util.xmlb.Converter
 import com.intellij.util.xmlb.annotations.OptionTag
+import org.utbot.common.FileUtil
+import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 
 @State(
@@ -152,6 +154,11 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     }
 
     override fun getState(): State = state
+
+    override fun initializeComponent() {
+        super.initializeComponent()
+        CompletableFuture.runAsync { FileUtil.clearTempDirectory(UtSettings.daysLimitForTempFiles) }
+    }
 
     override fun loadState(state: State) {
         this.state = state

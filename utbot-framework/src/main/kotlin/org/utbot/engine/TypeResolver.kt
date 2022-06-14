@@ -110,7 +110,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
     fun constructTypeStorage(type: Type, possibleTypes: Collection<Type>): TypeStorage {
         val concretePossibleTypes = possibleTypes
             .map { (if (it is ArrayType) it.baseType else it) to it.numDimensions }
-            .filterNot { (baseType, _) -> baseType is RefType && baseType.sootClass.isInappropriate }
+            .filterNot { (baseType, numDimensions) -> numDimensions == 0 && baseType is RefType && baseType.sootClass.isInappropriate }
             .mapTo(mutableSetOf()) { (baseType, numDimensions) ->
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }

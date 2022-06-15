@@ -7,6 +7,15 @@ on:
         type: string
         required: true
         description: "commit SHA: e.g. cab4799c"
+      version-postfix:
+        type: choice
+        description: "It adds alpha or beta postfix to version."
+        required: true
+        default: no-postfix
+        options:
+        - no-postfix
+        - alpha
+        - beta
 
 jobs:
   build_and_run_tests:
@@ -25,24 +34,7 @@ jobs:
       with:
         gradle-version: 6.8
     
-    - name: "UTBot Java: build and run tests"
-      run: |
-        export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
 
-    - name: Upload utbot-framework logs
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
-      
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_tests_report
-        path: utbot-framework/build/reports/tests/test/*
 
   publish_utbot:
     needs:  build_and_run_tests
@@ -58,30 +50,26 @@ jobs:
         distribution: 'zulu'
         java-package: jdk+fx
         cache: gradle
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.8
-        arguments: publish
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set environment variables
+      run: |
+        echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+        echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
+
+    - name: Create version with postfix
+      if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
+      run:
+        echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
         
     - name: Check out ${{ github.event.inputs.commit-sha }} commit
       run: |
         git fetch
         git checkout ${{ github.event.inputs.commit-sha }}
         
-    - name: "utbot-framework-api: build and run tests"
-      run: |
-        cd utbot-framework-api
-        gradle clean build --no-daemon
-        
-    - name: "utbot-api: build"
-      run: |
-        cd utbot-api
-        gradle clean build --no-daemon
-    
-    - name: "utbot-core: build"
-      run: |
-        cd utbot-core
-        gradle clean build --no-daemon
+    - uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 6.8
+        arguments: publish -PsemVer=${{ env.VERSION }}
+      env:
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

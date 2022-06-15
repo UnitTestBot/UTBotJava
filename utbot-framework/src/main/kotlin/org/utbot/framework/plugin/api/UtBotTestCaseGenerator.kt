@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
+import org.utbot.engine.*
 import soot.Scene
 import soot.jimple.JimpleBody
 import soot.toolkits.graph.ExceptionalUnitGraph
@@ -403,7 +404,9 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         val signature = method.callable.signature
         val sootMethod = clazz.methods.singleOrNull { it.pureJavaSignature == signature }
             ?: error("No such $signature found")
-
+        if (!sootMethod.canRetrieveBody()) {
+            error("No method body for $sootMethod found")
+        }
         val methodBody = sootMethod.jimpleBody()
         val graph = methodBody.graph()
 

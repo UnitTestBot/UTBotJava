@@ -58,6 +58,7 @@ class GenerateTestsAction : AnAction() {
             e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
                 srcClasses += getAllClasses(project, it)
             }
+            srcClasses.removeIf { it.isInterface }
             var commonSourceRoot = null as VirtualFile?
             for (srcClass in srcClasses) {
                 if (commonSourceRoot == null) {

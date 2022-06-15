@@ -4,6 +4,9 @@ import org.utbot.framework.UtSettings
 import smile.math.matrix.Matrix
 import java.nio.file.Paths
 
+
+internal const val DEFAULT_SCALER_PATH = "scaler.txt"
+
 data class StandardScaler(val mean: Matrix?, val variance: Matrix?)
 
 internal fun loadScaler(path: String): StandardScaler =

@@ -1,9 +1,10 @@
 package org.utbot.predictors
 
+import org.utbot.analytics.StateRewardPredictor
 import mu.KotlinLogging
-import org.utbot.analytics.UtBotAbstractPredictor
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import smile.math.MathEx.dot
 import smile.math.matrix.Matrix
 import java.io.File
 
@@ -26,13 +27,15 @@ private fun loadWeights(path: String): Matrix {
     return Matrix(weightsArray)
 }
 
-class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH) :
-    UtBotAbstractPredictor<List<List<Double>>, List<Double>> {
+class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH, scalerPath: String = DEFAULT_SCALER_PATH) :
+    StateRewardPredictor {
     private lateinit var weights: Matrix
+    private lateinit var scaler: StandardScaler
 
     init {
         try {
             weights = loadWeights(weightsPath)
+            scaler = loadScaler(scalerPath)
         } catch (e: Exception) {
             logger.info(e) {
                 "Error while initialization of LinearStateRewardPredictor. Changing pathSelectorType on INHERITORS_SELECTOR"
@@ -41,7 +44,7 @@ class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH) :
         }
     }
 
-    override fun predict(input: List<List<Double>>): List<Double> {
+    fun predict(input: List<List<Double>>): List<Double> {
         // add 1 to each feature vector
         val matrixValues = input
             .map { (it + 1.0).toDoubleArray() }
@@ -50,5 +53,12 @@ class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH) :
         val X = Matrix(matrixValues)
 
         return X.mm(weights).col(0).toList()
+    }
+
+    override fun predict(input: List<Double>): Double {
+        var inputArray =  Matrix(input.toDoubleArray()).sub(scaler.mean).div(scaler.variance).col(0)
+        inputArray += 1.0
+
+        return dot(inputArray, weights.col(0))
     }
 }

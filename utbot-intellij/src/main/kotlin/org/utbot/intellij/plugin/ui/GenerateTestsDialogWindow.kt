@@ -52,6 +52,7 @@ import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.IconButton
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
 import com.intellij.openapi.vfs.VirtualFile
@@ -843,7 +844,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun staticsMockingConfigured(): Boolean {
-        val entries = ModuleRootManager.getInstance(model.testModule).modifiableModel.contentEntries
+        val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
+        Disposer.register(disposable) { modifiableModel.dispose() }
+        val entries = modifiableModel.contentEntries
         val hasEntriesWithoutResources = entries
             .filterNot { it.sourceFolders.any { f -> f.rootType in testResourceRootTypes } }
             .isNotEmpty()

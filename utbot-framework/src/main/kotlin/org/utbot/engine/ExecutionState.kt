@@ -1,10 +1,5 @@
 package org.utbot.engine
 
-import org.utbot.common.md5
-import org.utbot.engine.pc.UtSolver
-import org.utbot.engine.symbolic.SymbolicState
-import org.utbot.engine.symbolic.SymbolicStateUpdate
-import org.utbot.framework.plugin.api.Step
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
@@ -12,9 +7,16 @@ import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.plus
+import org.utbot.common.md5
+import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusUNDEFINED
+import org.utbot.engine.symbolic.SymbolicState
+import org.utbot.engine.symbolic.SymbolicStateUpdate
+import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.Step
 import soot.SootMethod
 import soot.jimple.Stmt
+import java.util.Objects
 
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2
@@ -41,6 +43,55 @@ data class ExecutionStackElement(
 }
 
 /**
+ * Class that store all information about execution state that needed only for analytics module
+ */
+data class StateAnalyticsProperties(
+    /**
+     * Number of forks already performed along state's path, where fork is statement with multiple successors
+     */
+    val depth: Int = 0,
+    var visitedAfterLastFork: Int = 0,
+    var visitedBeforeLastFork: Int = 0,
+    var stmtsSinceLastCovered: Int = 0,
+    val parent: ExecutionState? = null,
+) {
+    var executingTime: Long = 0
+    var reward: Double? = null
+    val features: MutableList<Double> = mutableListOf()
+
+    /**
+     * Flag that indicates whether this state is fork or not. Fork here means that we have more than one successor
+     */
+    private var isFork: Boolean = false
+
+    fun definitelyFork() {
+        isFork = true
+    }
+
+    private var isVisitedNew: Boolean = false
+
+    fun updateIsVisitedNew() {
+        isVisitedNew = true
+        stmtsSinceLastCovered = 0
+        visitedAfterLastFork++
+    }
+
+    private val successorDepth: Int get() = depth + if (isFork) 1 else 0
+
+    private val successorVisitedAfterLastFork: Int get() = if (!isFork) visitedAfterLastFork else 0
+    private val successorVisitedBeforeLastFork: Int get() = visitedBeforeLastFork + if (isFork) visitedAfterLastFork else 0
+    private val successorStmtSinceLastCovered: Int get() = 1 + stmtsSinceLastCovered
+
+    fun successorProperties(parent: ExecutionState) = StateAnalyticsProperties(
+        successorDepth,
+        successorVisitedAfterLastFork,
+        successorVisitedBeforeLastFork,
+        successorStmtSinceLastCovered,
+        if (UtSettings.enableFeatureProcess) parent else null
+    )
+}
+
+/**
  * [visitedStatementsHashesToCountInPath] is a map representing how many times each instruction from the [path]
  * has occurred. It is required to calculate priority of the branches and decrease the priority for branches leading
  * inside a cycle. To improve performance it is a persistent map using state's hashcode to imitate an identity hashmap.
@@ -61,11 +112,13 @@ data class ExecutionState(
     val lastMethod: SootMethod? = null,
     val methodResult: MethodResult? = null,
     val exception: SymbolicFailure? = null,
-    private var outgoingEdges: Int = 0
+    private var stateAnalyticsProperties: StateAnalyticsProperties = StateAnalyticsProperties()
 ) : AutoCloseable {
     val solver: UtSolver by symbolicState::solver
 
     val memory: Memory by symbolicState::memory
+
+    private var outgoingEdges = 0
 
     fun isInNestedMethod() = executionStack.size > 1
 
@@ -107,7 +160,8 @@ data class ExecutionState(
             pathLength = pathLength + 1,
             lastEdge = edge,
             lastMethod = executionStack.last().method,
-            exception = exception
+            exception = exception,
+            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
 
@@ -123,14 +177,18 @@ data class ExecutionState(
             symbolicState = symbolicState,
             executionStack = executionStack.removeAt(executionStack.lastIndex),
             path = path + stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(stmtHashcode, stmtCountInPath),
+            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
+                stmtHashcode,
+                stmtCountInPath
+            ),
             decisionPath = decisionPath + edge.decisionNum,
             edges = edges + edge,
             stmts = stmts.putIfAbsent(stmt, pathLength),
             pathLength = pathLength + 1,
             lastEdge = edge,
             lastMethod = executionStack.last().method,
-            methodResult
+            methodResult,
+            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
 
@@ -158,13 +216,17 @@ data class ExecutionState(
             symbolicState = symbolicState.stateForNestedMethod() + update,
             executionStack = executionStack + stackElement,
             path = path + this.stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(stmtHashCode, stmtCountInPath),
+            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
+                stmtHashCode,
+                stmtCountInPath
+            ),
             decisionPath = decisionPath + edge.decisionNum,
             edges = edges + edge,
             stmts = stmts.putIfAbsent(this.stmt, pathLength),
             pathLength = pathLength + 1,
             lastEdge = edge,
-            lastMethod = stackElement.method
+            lastMethod = stackElement.method,
+            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
 
@@ -173,7 +235,10 @@ data class ExecutionState(
     ): ExecutionState {
         val last = executionStack.last()
         val stackElement = last.update(stateUpdate.localMemoryUpdates)
-        return copy(symbolicState = symbolicState + stateUpdate, executionStack =  executionStack.set(executionStack.lastIndex, stackElement))
+        return copy(
+            symbolicState = symbolicState + stateUpdate,
+            executionStack = executionStack.set(executionStack.lastIndex, stackElement)
+        )
     }
 
     fun update(
@@ -196,13 +261,17 @@ data class ExecutionState(
             symbolicState = symbolicState + symbolicStateUpdate,
             executionStack = executionStack.set(executionStack.lastIndex, stackElement),
             path = path + stmt,
-            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(stmtHashCode, stmtCountInPath),
+            visitedStatementsHashesToCountInPath = visitedStatementsHashesToCountInPath.put(
+                stmtHashCode,
+                stmtCountInPath
+            ),
             decisionPath = decisionPath + edge.decisionNum,
             edges = edges + edge,
             stmts = stmts.putIfAbsent(stmt, pathLength),
             pathLength = pathLength + 1,
             lastEdge = edge,
-            lastMethod = stackElement.method
+            lastMethod = stackElement.method,
+            stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
 
@@ -253,12 +322,61 @@ data class ExecutionState(
         val path = fullPath()
         val prettifiedPath = path.joinToString(separator = "\n") { (stmt, depth, decision) ->
             val prefix = when (decision) {
-                CALL_DECISION_NUM -> "call[${depth}] - " + "".padEnd(2*depth, ' ')
-                RETURN_DECISION_NUM -> " ret[${depth - 1}] - " + "".padEnd(2*depth, ' ')
-                else -> "          "+"".padEnd(2*depth, ' ')
+                CALL_DECISION_NUM -> "call[${depth}] - " + "".padEnd(2 * depth, ' ')
+                RETURN_DECISION_NUM -> " ret[${depth - 1}] - " + "".padEnd(2 * depth, ' ')
+                else -> "          " + "".padEnd(2 * depth, ' ')
             }
             "$prefix$stmt"
         }
         return " MD5(path)=${prettifiedPath.md5()}\n$prettifiedPath"
     }
+
+    fun definitelyFork() {
+        stateAnalyticsProperties.definitelyFork()
+    }
+
+    fun updateIsVisitedNew() {
+        stateAnalyticsProperties.updateIsVisitedNew()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ExecutionState
+
+        if (stmt != other.stmt) return false
+        if (symbolicState != other.symbolicState) return false
+        if (executionStack != other.executionStack) return false
+        if (path != other.path) return false
+        if (visitedStatementsHashesToCountInPath != other.visitedStatementsHashesToCountInPath) return false
+        if (decisionPath != other.decisionPath) return false
+        if (edges != other.edges) return false
+        if (stmts != other.stmts) return false
+        if (pathLength != other.pathLength) return false
+        if (lastEdge != other.lastEdge) return false
+        if (lastMethod != other.lastMethod) return false
+        if (methodResult != other.methodResult) return false
+        if (exception != other.exception) return false
+
+        return true
+    }
+
+    private val hashCode by lazy {
+        Objects.hash(
+            stmt, symbolicState, executionStack, path, visitedStatementsHashesToCountInPath, decisionPath,
+            edges, stmts, pathLength, lastEdge, lastMethod, methodResult, exception
+        )
+    }
+
+    override fun hashCode(): Int = hashCode
+
+    var reward by stateAnalyticsProperties::reward
+    val features by stateAnalyticsProperties::features
+    var executingTime by stateAnalyticsProperties::executingTime
+    val depth by stateAnalyticsProperties::depth
+    var visitedBeforeLastFork by stateAnalyticsProperties::visitedBeforeLastFork
+    var visitedAfterLastFork by stateAnalyticsProperties::visitedAfterLastFork
+    var stmtsSinceLastCovered by stateAnalyticsProperties::stmtsSinceLastCovered
+    val parent by stateAnalyticsProperties::parent
 }

@@ -1,5 +1,7 @@
 package org.utbot.contest
 
+import mu.KotlinLogging
+import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.info
@@ -13,6 +15,8 @@ import org.utbot.contest.Paths.evosuiteReportFile
 import org.utbot.contest.Paths.jarsDir
 import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
+import org.utbot.features.FeatureExtractorFactoryImpl
+import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -29,7 +33,6 @@ import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.system.exitProcess
-import mu.KotlinLogging
 import org.utbot.framework.JdkPathService
 
 private val logger = KotlinLogging.logger {}
@@ -320,6 +323,9 @@ fun runEstimator(
 //    Predictors.smt = UtBotTimePredictor()
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
+//    Predictors.stateRewardPredictor = NNStateRewardPredictorBase()
+    EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
+    EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
 
 
     // fix for CTRL-ALT-SHIFT-C from IDEA, which copies in class#method form

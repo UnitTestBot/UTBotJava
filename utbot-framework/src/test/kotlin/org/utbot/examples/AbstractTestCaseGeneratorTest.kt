@@ -67,6 +67,7 @@ import kotlin.reflect.KFunction4
 import kotlin.reflect.KFunction5
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.utbot.framework.PathSelectorType
 
 val logger = KotlinLogging.logger {}
 
@@ -1607,7 +1608,7 @@ abstract class AbstractTestCaseGeneratorTest(
         summaryNameChecks: List<(String?) -> Boolean> = listOf(),
         summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
     ) = internalCheck(
-        method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class ,
+        method, mockStrategy, branches, matchers, coverage, T1::class, T2::class, T3::class, T4::class,
         arguments = ::withParamsMutationsAndResult,
         additionalDependencies = additionalDependencies,
         summaryTextChecks = summaryTextChecks,
@@ -2625,7 +2626,9 @@ fun withStaticsBefore(ex: UtValueExecution<*>) = ex.paramsBefore + ex.staticsBef
 fun withStaticsAfter(ex: UtValueExecution<*>) = ex.paramsBefore + ex.staticsAfter + ex.evaluatedResult
 fun withThisAndStaticsAfter(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.staticsAfter + ex.evaluatedResult
 fun withThisAndResult(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.evaluatedResult
-fun withThisStaticsBeforeAndResult(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.staticsBefore + ex.evaluatedResult
+fun withThisStaticsBeforeAndResult(ex: UtValueExecution<*>) =
+    listOf(ex.callerBefore) + ex.paramsBefore + ex.staticsBefore + ex.evaluatedResult
+
 fun withThisAndException(ex: UtValueExecution<*>) = listOf(ex.callerBefore) + ex.paramsBefore + ex.returnValue
 fun withMocks(ex: UtValueExecution<*>) = ex.paramsBefore + listOf(ex.mocks) + ex.evaluatedResult
 fun withMocksAndInstrumentation(ex: UtValueExecution<*>) =
@@ -2735,7 +2738,10 @@ inline fun <reified T> withoutMinimization(block: () -> T): T {
     }
 }
 
-inline fun <reified T> withSettingsFromTestFrameworkConfiguration(config: TestFrameworkConfiguration, block: () -> T): T {
+inline fun <reified T> withSettingsFromTestFrameworkConfiguration(
+    config: TestFrameworkConfiguration,
+    block: () -> T
+): T {
     val substituteStaticsWithSymbolicVariable = UtSettings.substituteStaticsWithSymbolicVariable
     UtSettings.substituteStaticsWithSymbolicVariable = config.resetNonFinalFieldsAfterClinit
     try {
@@ -2750,8 +2756,7 @@ inline fun <T> withoutSubstituteStaticsWithSymbolicVariable(block: () -> T) {
     UtSettings.substituteStaticsWithSymbolicVariable = false
     try {
         block()
-    }
-    finally {
+    } finally {
         UtSettings.substituteStaticsWithSymbolicVariable = substituteStaticsWithSymbolicVariable
     }
 }
@@ -2773,5 +2778,25 @@ inline fun <reified T> withTreatingOverflowAsError(block: () -> T): T {
         return block()
     } finally {
         UtSettings.treatOverflowAsError = prev
+    }
+}
+
+inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () -> T): T {
+    val prev = UtSettings.rewardModelPath
+    UtSettings.rewardModelPath = rewardModelPath
+    try {
+        return block()
+    } finally {
+        UtSettings.rewardModelPath = prev
+    }
+}
+
+inline fun <reified T> withPathSelectorType(pathSelectorType: PathSelectorType, block: () -> T): T {
+    val prev = UtSettings.pathSelectorType
+    UtSettings.pathSelectorType = pathSelectorType
+    try {
+        return block()
+    } finally {
+        UtSettings.pathSelectorType = prev
     }
 }

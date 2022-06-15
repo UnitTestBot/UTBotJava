@@ -1,12 +1,12 @@
 package org.utbot.framework
 
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.toPath
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.Properties
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.reflect.KProperty
-import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
@@ -68,7 +68,8 @@ object UtSettings {
     private fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, String::toInt)
     private fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, String::toLong)
     private fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
-    private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) = getProperty(defaultValue) { enumValueOf(it) }
+    private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
+        getProperty(defaultValue) { enumValueOf(it) }
 
 
     /**
@@ -107,6 +108,11 @@ object UtSettings {
      * Type of path selector
      */
     var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
+
+    /**
+     * Type of nnRewardGuidedSelector
+     */
+    var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
 
     /**
      * Steps limit for path selector.
@@ -152,7 +158,7 @@ object UtSettings {
     /*
     * Activate or deactivate tests on comments && names/displayNames
     * */
-    var testSummary by getBooleanProperty( true)
+    var testSummary by getBooleanProperty(true)
     var testName by getBooleanProperty(true)
     var testDisplayName by getBooleanProperty(true)
 
@@ -264,7 +270,9 @@ object UtSettings {
     /**
      * Timeout for specific concrete execution (in milliseconds).
      */
-    var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS)
+    var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(
+        DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
+    )
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
@@ -286,6 +294,47 @@ object UtSettings {
      */
     var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
 
+    /**
+     * 2^{this} will be the length of observed subpath.
+     * See [SubpathGuidedSelector]
+     */
+    var subpathGuidedSelectorIndex by getIntProperty(1)
+
+    /**
+     * Set of indexes, which will use [SubpathGuidedSelector] in not single mode
+     */
+    var subpathGuidedSelectorIndexes = listOf(0, 1, 2, 3)
+
+    /**
+     * Flag that indicates whether feature processing for execution states enabled or not
+     */
+    var enableFeatureProcess by getBooleanProperty(false)
+
+    /**
+     * Path to deserialized reward models
+     */
+    var rewardModelPath by getStringProperty("../models/0")
+
+    /**
+     * Number of model iterations that will be used during ContestEstimator
+     */
+    var iterations by getIntProperty(1)
+
+    /**
+     * Path for state features dir
+     */
+    var featurePath by getStringProperty("eval/secondFeatures/antlr/INHERITORS_SELECTOR")
+
+    /**
+     * Counter for tests during testGeneration for one project in ContestEstimator
+     */
+    var testCounter by getIntProperty(0)
+
+    /**
+     * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
+     */
+    var singleSelector by getBooleanProperty(true)
+
     override fun toString(): String =
         properties
             .entries
@@ -293,12 +342,67 @@ object UtSettings {
             .joinToString(separator = System.lineSeparator()) { "\t${it.key}=${it.value}" }
 }
 
+/**
+ * Type of [BasePathSelector]. For each value see class in comment
+ */
 enum class PathSelectorType {
+    /**
+     * [CoveredNewSelector]
+     */
     COVERED_NEW_SELECTOR,
-    INHERITORS_SELECTOR
+
+    /**
+     * [InheritorsSelector]
+     */
+    INHERITORS_SELECTOR,
+
+    /**
+     * [SubpathGuidedSelector]
+     */
+    SUBPATH_GUIDED_SELECTOR,
+
+    /**
+     * [CPInstSelector]
+     */
+    CPI_SELECTOR,
+
+    /**
+     * [ForkDepthSelector]
+     */
+    FORK_DEPTH_SELECTOR,
+
+    /**
+     * [NNRewardGuidedSelector]
+     */
+    NN_REWARD_GUIDED_SELECTOR,
+
+    /**
+     * [RandomSelector]
+     */
+    RANDOM_SELECTOR,
+
+    /**
+     * [RandomPathSelector]
+     */
+    RANDOM_PATH_SELECTOR
 }
 
 enum class TestSelectionStrategyType {
     DO_NOT_MINIMIZE_STRATEGY, // Always adds new test
     COVERAGE_STRATEGY // Adds new test only if it increases coverage
+}
+
+/**
+ * Enum to specify [NNRewardGuidedSelector], see implementations for more details
+ */
+enum class NNRewardGuidedSelectorType {
+    /**
+     * [NNRewardGuidedSelectorWithRecalculation]
+     */
+    WITH_RECALCULATION,
+
+    /**
+     * [NNRewardGuidedSelectorWithoutRecalculation]
+     */
+    WITHOUT_RECALCULATION
 }

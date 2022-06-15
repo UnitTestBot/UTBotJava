@@ -34,7 +34,7 @@ class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH) :
         try {
             weights = loadWeights(weightsPath)
         } catch (e: Exception) {
-            logger.error(e) {
+            logger.info(e) {
                 "Error while initialization of LinearStateRewardPredictor. Changing pathSelectorType on INHERITORS_SELECTOR"
             }
             UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR

@@ -1,11 +1,12 @@
 package org.utbot.predictors
 
-import com.google.gson.JsonSyntaxException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import org.utbot.examples.withPathSelectorType
 import org.utbot.examples.withRewardModelPath
+import org.utbot.framework.PathSelectorType
+import org.utbot.framework.UtSettings
 import kotlin.system.measureNanoTime
 
 class NNStateRewardPredictorTest {
@@ -55,8 +56,9 @@ class NNStateRewardPredictorTest {
     @Test
     fun corruptedModelFileTest() {
         withRewardModelPath("src/test/resources") {
-            assertThrows<JsonSyntaxException> {
+            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
                 NNStateRewardPredictorBase(modelPath = "corrupted_nn.json")
+                assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
     }
@@ -64,8 +66,9 @@ class NNStateRewardPredictorTest {
     @Test
     fun emptyModelFileTest() {
         withRewardModelPath("src/test/resources") {
-            assertThrows<IllegalStateException> {
+            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
                 NNStateRewardPredictorBase(modelPath = "empty_nn.json")
+                assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
     }
@@ -73,8 +76,9 @@ class NNStateRewardPredictorTest {
     @Test
     fun corruptedScalerTest() {
         withRewardModelPath("src/test/resources") {
-            assertThrows<IllegalStateException> {
+            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
                 NNStateRewardPredictorBase(scalerPath = "corrupted_scaler.txt")
+                assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
     }

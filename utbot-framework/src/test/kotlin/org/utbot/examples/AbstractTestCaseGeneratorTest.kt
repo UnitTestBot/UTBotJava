@@ -67,6 +67,7 @@ import kotlin.reflect.KFunction4
 import kotlin.reflect.KFunction5
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.utbot.framework.PathSelectorType
 
 val logger = KotlinLogging.logger {}
 
@@ -2787,5 +2788,15 @@ inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () ->
         return block()
     } finally {
         UtSettings.rewardModelPath = prev
+    }
+}
+
+inline fun <reified T> withPathSelectorType(pathSelectorType: PathSelectorType, block: () -> T): T {
+    val prev = UtSettings.pathSelectorType
+    UtSettings.pathSelectorType = pathSelectorType
+    try {
+        return block()
+    } finally {
+        UtSettings.pathSelectorType = prev
     }
 }

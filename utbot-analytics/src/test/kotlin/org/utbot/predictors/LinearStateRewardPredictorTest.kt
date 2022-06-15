@@ -2,8 +2,10 @@ package org.utbot.predictors
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
+import org.utbot.examples.withPathSelectorType
 import org.utbot.examples.withRewardModelPath
+import org.utbot.framework.PathSelectorType
+import org.utbot.framework.UtSettings
 
 class LinearStateRewardPredictorTest {
     @Test
@@ -23,8 +25,9 @@ class LinearStateRewardPredictorTest {
     @Test
     fun wrongFormatTest() {
         withRewardModelPath("src/test/resources") {
-            assertThrows<IllegalStateException> {
+            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
                 LinearStateRewardPredictor("wrong_format_linear.txt")
+                assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
     }

@@ -22,7 +22,7 @@ class NNStateRewardPredictorBase(modelPath: String = DEFAULT_MODEL_PATH, scalerP
             nn = getModel(modelPath)
             scaler = loadScaler(scalerPath)
         } catch (e: Exception) {
-            logger.error(e) {
+            logger.info(e) {
                 "Error while initialization of NNStateRewardPredictorBase. Changing pathSelectorType on INHERITORS_SELECTOR"
             }
             UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR

@@ -91,4 +91,7 @@ class HtmlBuilder(
         pageBuilder.append("<div>$text</div>")
     }
 
+    fun addRawHTML(HTMLCode: String) {
+        pageBuilder.append(HTMLCode)
+    }
 }

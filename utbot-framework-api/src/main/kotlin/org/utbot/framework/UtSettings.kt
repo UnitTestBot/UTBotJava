@@ -330,6 +330,10 @@ object UtSettings {
      */
     var testCounter by getIntProperty(0)
 
+    var collectCoverage by getBooleanProperty(false)
+
+    var coverageStatisticsDir by getStringProperty("logs/covStatistics")
+
     /**
      * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
      */

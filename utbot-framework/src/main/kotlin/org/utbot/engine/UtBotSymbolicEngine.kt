@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
+import org.utbot.analytics.CoverageStatistics
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
@@ -406,6 +407,7 @@ class UtBotSymbolicEngine(
         require(trackableResources.isEmpty())
 
         if (useDebugVisualization) GraphViz(globalGraph, pathSelector)
+        if (UtSettings.collectCoverage) CoverageStatistics(methodUnderTest.toString(), globalGraph)
 
         val initStmt = graph.head
         val initState = ExecutionState(

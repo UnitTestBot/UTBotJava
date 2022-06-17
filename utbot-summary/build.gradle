@@ -4,8 +4,12 @@ apply plugin: "java"
 
 dependencies {
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
+    api project(":utbot-framework")
     api project(':utbot-framework-api')
     implementation(project(':utbot-instrumentation'))
+
+    testImplementation project(':utbot-sample')
+    testImplementation group: 'junit', name: 'junit', version: junit4_version
 
     implementation group: 'com.github.haifengl', name: 'smile-kotlin', version: '2.6.0'
     implementation group: 'com.github.haifengl', name: 'smile-core', version: '2.6.0'
@@ -13,4 +17,12 @@ dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+
+    testCompile project(':utbot-framework').sourceSets.test.output
+}
+
+test {
+    useJUnitPlatform {
+        excludeTags 'Summary'
+    }
 }

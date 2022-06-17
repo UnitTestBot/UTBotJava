@@ -49,7 +49,7 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
     val stmtToASTNode = mutableMapOf<Unit, Node?>()
 
     init {
-        removeComments(methodDeclaration)
+        removeComments(methodDeclaration) // TODO: Zinoviev probably - this is a place where I can obtain comments of tested methods and parse it by tags and so on
         mapTernaryConditional(methodDeclaration, stmts)
         val ifStmtToNodeMap = createIfStmtToASTNodesMap(methodDeclaration)
         for (stmt in stmts) {
@@ -61,7 +61,9 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
 
                 if (ASTNode != null) {
                     if (ASTNode is IfStmt && stmt is JIfStmt) {
-                        ASTNode = ifStmtToNodeMap[ASTNode]?.remove()
+                        //ASTNode = ifStmtToNodeMap[ASTNode]?.remove() // TODO: Zinoviev
+                        val nodes = ifStmtToNodeMap[ASTNode]
+                        if(!nodes.isNullOrEmpty()) ASTNode = nodes.remove()
                     } else if (stmt is JReturnStmt) {
                         ASTNode = validateReturnASTNode(ASTNode)
                     }

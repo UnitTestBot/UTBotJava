@@ -1,9 +1,11 @@
-package org.utbot.analytics.guava.math
+package math
 
-import org.utbot.analytics.examples.SummaryTestCaseGeneratorTest
+import examples.SummaryTestCaseGeneratorTest
 import guava.examples.math.IntMath
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
+@Tag("Summary")
 class SummaryIntMath : SummaryTestCaseGeneratorTest(
     IntMath::class,
 ) {

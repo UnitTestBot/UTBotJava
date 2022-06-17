@@ -1,10 +1,11 @@
-package org.utbot.analytics.examples.ternary
+package examples.ternary
 
-import org.utbot.analytics.examples.SummaryTestCaseGeneratorTest
+import examples.SummaryTestCaseGeneratorTest
 import org.utbot.examples.ternary.Ternary
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
+@Tag("Summary")
 class SummaryTernary : SummaryTestCaseGeneratorTest(
     Ternary::class,
 ) {

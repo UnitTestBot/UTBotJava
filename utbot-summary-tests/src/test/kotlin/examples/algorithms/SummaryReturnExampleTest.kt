@@ -1,9 +1,10 @@
-package org.utbot.analytics.examples.algorithms
+package examples.algorithms
 
-import org.utbot.analytics.examples.SummaryTestCaseGeneratorTest
+import examples.SummaryTestCaseGeneratorTest
+import org.junit.jupiter.api.Tag
 import org.utbot.examples.algorithms.ReturnExample
 import org.junit.jupiter.api.Test
-
+@Tag("Summary")
 class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
     ReturnExample::class,
 ) {

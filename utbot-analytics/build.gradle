@@ -5,7 +5,6 @@ configurations {
     mlmodels
 }
 
-
 def osName = System.getProperty('os.name').toLowerCase().split()[0]
 if (osName == "mac") osName = "macosx"
 String classifier = osName + "-x86_64"
@@ -49,11 +48,9 @@ dependencies {
 }
 
 test {
-
     useJUnitPlatform {
         excludeTags 'Summary'
     }
-
 }
 
 processResources {

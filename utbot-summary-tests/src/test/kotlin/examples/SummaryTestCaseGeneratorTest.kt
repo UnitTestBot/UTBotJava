@@ -1,4 +1,4 @@
-package org.utbot.analytics.examples
+package examples
 
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
@@ -15,6 +15,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
@@ -25,9 +26,7 @@ import kotlin.reflect.KFunction4
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Tag
 
-@Tag("Summary")
 open class SummaryTestCaseGeneratorTest(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
@@ -53,38 +52,43 @@ open class SummaryTestCaseGeneratorTest(
         coverage: CoverageMatcher = DoNotCalculate,
         mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
         summaryKeys: List<String>,
+        methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, displayNames)
+    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
 
     protected inline fun <reified T, reified R> checkOneArgument(
         method: KFunction2<*, T, R>,
         coverage: CoverageMatcher = DoNotCalculate,
         mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
         summaryKeys: List<String>,
+        methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, displayNames)
+    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
 
     protected inline fun <reified T1, reified T2, reified R> checkTwoArguments(
         method: KFunction3<*, T1, T2, R>,
         coverage: CoverageMatcher = DoNotCalculate,
         mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
         summaryKeys: List<String>,
+        methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, displayNames)
+    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
 
     protected inline fun <reified T1, reified T2, reified T3, reified R> checkThreeArguments(
         method: KFunction4<*, T1, T2, T3, R>,
         coverage: CoverageMatcher = DoNotCalculate,
         mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
         summaryKeys: List<String>,
+        methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, displayNames)
+    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
 
     inline fun <reified R> check(
         method: KFunction<R>,
         mockStrategy: MockStrategyApi,
         coverageMatcher: CoverageMatcher,
         summaryKeys: List<String>,
+        methodNames: List<String>,
         displayNames: List<String>
     ) {
         workaround(WorkaroundReason.HACK) {
@@ -98,8 +102,18 @@ open class SummaryTestCaseGeneratorTest(
         val testCase = executionsModel(utMethod, mockStrategy)
         testCase.summarize(searchDirectory)
         testCase.executions.checkMatchersWithTextSummary(summaryKeys)
+        testCase.executions.checkMatchersWithMethodNames(methodNames)
         testCase.executions.checkMatchersWithDisplayNames(displayNames)
     }
+
+    private fun String.normalize(): String {
+        var result = this.replace("[\\n\\t\\s ]".toRegex(), "")
+        nextSynonyms.forEach {
+            result = result.replace(it, "")
+        }
+        return result
+    }
+
 
     fun List<UtExecution>.checkMatchersWithTextSummary(
         summaryTextKeys: List<String>,
@@ -108,9 +122,27 @@ open class SummaryTestCaseGeneratorTest(
             return
         }
         val notMatchedExecutions = this.filter { execution ->
-            summaryTextKeys.none { summaryKey -> execution.summary?.contains(summaryKey) == true }
+            summaryTextKeys.none { summaryKey -> val normalize = execution.summary?.toString()?.normalize()
+                println("Execution")
+                println(normalize)
+                println("SummaryKey")
+                println(summaryKey.normalize())
+
+                normalize?.contains(summaryKey.normalize()) == true }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched summaries ${summaries(notMatchedExecutions)}" }
+        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched comments ${summaries(notMatchedExecutions)}" }
+    }
+
+    fun List<UtExecution>.checkMatchersWithMethodNames(
+        methodNames: List<String>,
+    ) {
+        if (methodNames.isEmpty()) {
+            return
+        }
+        val notMatchedExecutions = this.filter { execution ->
+            methodNames.none { methodName -> execution.testMethodName?.equals(methodName) == true }
+        }
+        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched display names ${summaries(notMatchedExecutions)}" }
     }
 
     fun List<UtExecution>.checkMatchersWithDisplayNames(
@@ -122,7 +154,7 @@ open class SummaryTestCaseGeneratorTest(
         val notMatchedExecutions = this.filter { execution ->
             displayNames.none { displayName -> execution.displayName?.equals(displayName) == true }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched summaries ${summaries(notMatchedExecutions)}" }
+        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched display names ${summaries(notMatchedExecutions)}" }
     }
 
     private fun summaries(executions: List<UtExecution>): String {
@@ -132,5 +164,4 @@ open class SummaryTestCaseGeneratorTest(
         }
         return result
     }
-
 }

@@ -1,9 +1,10 @@
-package org.utbot.analytics.examples.controlflow
+package examples.controlflow
 
-import org.utbot.analytics.examples.SummaryTestCaseGeneratorTest
+import examples.SummaryTestCaseGeneratorTest
+import org.junit.jupiter.api.Tag
 import org.utbot.examples.controlflow.Cycles
 import org.junit.jupiter.api.Test
-
+@Tag("Summary")
 class SummaryCycleTest : SummaryTestCaseGeneratorTest(
     Cycles::class,
 ) {

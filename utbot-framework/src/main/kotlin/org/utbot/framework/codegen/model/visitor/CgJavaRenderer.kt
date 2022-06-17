@@ -105,8 +105,6 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     }
 
     override fun visit(element: CgTypeCast) {
-        // TODO: check cases when element.expression is CgLiteral of primitive wrapper type and element.targetType is primitive
-        // TODO: example: (double) 1.0, (float) 1.0f, etc.
         val expr = element.expression
         val wrappedTargetType = wrapperByPrimitive.getOrDefault(element.targetType, element.targetType)
         val exprTypeIsSimilar = expr.type == element.targetType || expr.type == wrappedTargetType

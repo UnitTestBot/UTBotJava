@@ -162,3 +162,5 @@ internal class RewardEstimator {
  * @param testIndex number of test case, that was created before
  */
 data class TestCase(val states: List<Pair<Int, Long>>, val newCoverage: Int, val testIndex: Int)
+
+// test

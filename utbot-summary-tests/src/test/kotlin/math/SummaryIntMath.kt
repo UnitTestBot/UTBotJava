@@ -2,10 +2,11 @@ package math
 
 import examples.SummaryTestCaseGeneratorTest
 import guava.examples.math.IntMath
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
-@Tag("Summary")
+@Disabled
 class SummaryIntMath : SummaryTestCaseGeneratorTest(
     IntMath::class,
 ) {

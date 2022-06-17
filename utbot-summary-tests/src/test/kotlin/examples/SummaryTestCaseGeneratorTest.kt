@@ -1,5 +1,6 @@
 package examples
 
+import org.junit.jupiter.api.*
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.examples.AbstractTestCaseGeneratorTest
@@ -23,10 +24,9 @@ import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeEach
 
+
+@Disabled
 open class SummaryTestCaseGeneratorTest(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
@@ -123,11 +123,6 @@ open class SummaryTestCaseGeneratorTest(
         }
         val notMatchedExecutions = this.filter { execution ->
             summaryTextKeys.none { summaryKey -> val normalize = execution.summary?.toString()?.normalize()
-                println("Execution")
-                println(normalize)
-                println("SummaryKey")
-                println(summaryKey.normalize())
-
                 normalize?.contains(summaryKey.normalize()) == true }
         }
         Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched comments ${summaries(notMatchedExecutions)}" }

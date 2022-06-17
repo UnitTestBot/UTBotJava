@@ -1,10 +1,12 @@
 package examples.algorithms
 
 import examples.SummaryTestCaseGeneratorTest
+import org.junit.Ignore
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.utbot.examples.algorithms.ReturnExample
 import org.junit.jupiter.api.Test
-@Tag("Summary")
+@Disabled
 class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
     ReturnExample::class,
 ) {

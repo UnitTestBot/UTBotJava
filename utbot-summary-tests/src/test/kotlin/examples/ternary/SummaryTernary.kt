@@ -1,11 +1,13 @@
 package examples.ternary
 
 import examples.SummaryTestCaseGeneratorTest
+import org.junit.Ignore
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.ternary.Ternary
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
-@Tag("Summary")
+@Disabled
 class SummaryTernary : SummaryTestCaseGeneratorTest(
     Ternary::class,
 ) {

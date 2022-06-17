@@ -1,11 +1,13 @@
 package org.utbot.examples.math
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.AbstractTestCaseGeneratorTest
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 internal class OverflowExamplesTest : AbstractTestCaseGeneratorTest(testClass = OverflowExamples::class) {
     @Test
+    @Disabled("TODO move to existing test file")
     fun testIntOverflow() {
         check(
             OverflowExamples::intOverflow,

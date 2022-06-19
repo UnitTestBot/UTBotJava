@@ -18,6 +18,12 @@ dependencies {
     compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:${maven_plugin_tools_version}"
     implementation "io.github.microutils:kotlin-logging:${kotlin_logging_version}"
 
+    implementation 'org.eclipse.sisu:org.eclipse.sisu.plexus:0.3.5'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "org.apache.maven.plugin-testing:maven-plugin-testing-harness:3.3.0"
+    testImplementation 'org.apache.maven:maven-compat:3.8.5'
+    testImplementation 'org.apache.maven.resolver:maven-resolver-api:1.8.0'
+
     mavenEmbedder "org.apache.maven:maven-embedder:${maven_plugin_api_version}"
     mavenEmbedder "org.apache.maven:maven-compat:${maven_plugin_api_version}"
     mavenEmbedder "org.slf4j:slf4j-simple:${slf4j_version}"

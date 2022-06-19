@@ -29,6 +29,7 @@ import com.microsoft.z3.Status.UNSATISFIABLE
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
 import mu.KotlinLogging
+import org.utbot.analytics.NeuroSatData
 import soot.ByteType
 import soot.CharType
 import soot.IntType
@@ -200,7 +201,7 @@ data class UtSolver constructor(
             mutableMapOf()
         }
 
-
+        val startTime = System.nanoTime()
         val statusHolder = logger.trace().bracket("High level check(): ", { it }) {
             Predictors.smtIncremental.learnOn(IncrementalData(constraints.hard, hardConstraintsNotYetAddedToZ3Solver)) {
                 hardConstraintsNotYetAddedToZ3Solver.forEach { z3Solver.add(translator.translate(it) as BoolExpr) }
@@ -216,6 +217,11 @@ data class UtSolver constructor(
                 }
             }
         }
+        Predictors.sat.provide(
+            constraints.hard,
+            NeuroSatData(statusHolder.statusKind, System.nanoTime() - startTime),
+            NeuroSatData(statusHolder.statusKind, System.nanoTime() - startTime)
+        )
         this.constraints = this.constraints.withStatus(statusHolder)
         hardConstraintsNotYetAddedToZ3Solver = persistentHashSetOf()
 

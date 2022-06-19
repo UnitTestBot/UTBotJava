@@ -2,6 +2,7 @@ package org.utbot.contest
 
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.analytics.Predictors
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.info
@@ -34,6 +35,7 @@ import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.system.exitProcess
 import org.utbot.framework.JdkPathService
+import org.utbot.predictors.UtBotSatPredictor
 
 private val logger = KotlinLogging.logger {}
 
@@ -273,7 +275,7 @@ fun main(args: Array<String>) {
 
         // config for SBST 2022
         methodFilter = null
-        projectFilter = listOf("fastjson-1.2.50", "guava-26.0", "seata-core-0.5.0", "spoon-core-7.0.0")
+        projectFilter = listOf("guava-26.0")
         tools = listOf(Tool.UtBot)
 
         estimatorArgs = arrayOf(
@@ -324,6 +326,7 @@ fun runEstimator(
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
 //    Predictors.stateRewardPredictor = NNStateRewardPredictorBase()
+    Predictors.sat = UtBotSatPredictor()
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
 

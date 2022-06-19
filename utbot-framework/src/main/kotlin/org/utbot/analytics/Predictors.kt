@@ -29,4 +29,6 @@ object Predictors {
                 error("stateRewardPredictor is not provided.")
             }
         }
+
+    var sat: IUtBotSatPredictor<Iterable<UtExpression>> = object: IUtBotSatPredictor<Iterable<UtExpression>> {}
 }

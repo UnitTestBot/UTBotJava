@@ -254,10 +254,12 @@ class SarifReport(
             return null
 
         // searching needed method call
+        val publicMethodCall = "$methodName("
+        val privateMethodCall = Regex("""$methodName.*\.invoke\(""") // using reflection
         val methodCallLineNumber = testsBodyLines
             .drop(testMethodStartsAt + 1) // for search after it
             .indexOfFirst { line ->
-                line.contains("$methodName(")
+                line.contains(publicMethodCall) || line.contains(privateMethodCall)
             }
         if (methodCallLineNumber == -1)
             return null

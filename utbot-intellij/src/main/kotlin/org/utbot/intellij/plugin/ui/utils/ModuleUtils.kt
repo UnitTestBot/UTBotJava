@@ -74,7 +74,7 @@ fun Module.getOrCreateTestResourcesPath(testSourceRoot: VirtualFile?): Path {
  */
 fun Module.getOrCreateSarifReportsPath(testSourceRoot: VirtualFile?): Path {
     val testResourcesPath = this.getOrCreateTestResourcesPath(testSourceRoot)
-    return "$testResourcesPath/sarif/".toPath()
+    return "$testResourcesPath/utbot-sarif-report/".toPath()
 }
 
 /**

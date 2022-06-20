@@ -97,10 +97,10 @@ class SourceSetWrapper(
 
     /**
      * Creates and returns a file for a future SARIF report.
-     * For example, ".../main/com/qwerty/Main-utbot.sarif".
+     * For example, ".../main/com/qwerty/MainReport.sarif".
      */
     private fun createSarifReportFile(classFqn: String): File {
-        val relativePath = "${sourceSet.name}/${classFqnToPath(classFqn)}-utbot.sarif"
+        val relativePath = "${sourceSet.name}/${classFqnToPath(classFqn)}Report.sarif"
         val absolutePath = Paths.get(parentProject.generatedSarifDirectory.path, relativePath)
         return absolutePath.toFile().apply { createNewFileWithParentDirectories() }
     }

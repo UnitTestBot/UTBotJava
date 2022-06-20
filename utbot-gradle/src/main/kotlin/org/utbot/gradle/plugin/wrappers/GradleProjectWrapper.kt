@@ -59,7 +59,7 @@ class GradleProjectWrapper(
     val sarifReportFile: File by lazy {
         Paths.get(
             generatedSarifDirectory.path,
-            "${project.name}-utbot.sarif"
+            "${project.name}Report.sarif"
         ).toFile().apply {
             createNewFileWithParentDirectories()
         }

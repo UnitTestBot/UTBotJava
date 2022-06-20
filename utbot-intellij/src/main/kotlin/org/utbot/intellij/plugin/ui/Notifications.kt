@@ -1,11 +1,22 @@
 package org.utbot.intellij.plugin.ui
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationListener
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.ui.popup.Balloon
+import com.intellij.openapi.wm.WindowManager
+import com.intellij.ui.GotItMessage
+import com.intellij.ui.awt.RelativePoint
+import com.intellij.util.ui.JBFont
+import java.awt.Point
 
 abstract class Notifier {
     protected abstract val notificationType: NotificationType
@@ -96,4 +107,23 @@ object TestsReportNotifier : InformationUrlNotifier() {
     override val titleText: String = "Report of the unit tests generation via UtBot"
 
     override fun content(project: Project?, module: Module?, info: String): String = info
+}
+
+object GotItTooltipActivity : StartupActivity {
+    private const val KEY = "UTBot.GotItMessageWasShown"
+    override fun runActivity(project: Project) {
+        if (PropertiesComponent.getInstance().isTrueValue(KEY)) return
+        ApplicationManager.getApplication().invokeLater {
+            val shortcut = ActionManager.getInstance()
+                .getKeyboardShortcut("org.utbot.intellij.plugin.ui.actions.GenerateTestsAction")?:return@invokeLater
+            val shortcutText = KeymapUtil.getShortcutText(shortcut)
+            val message = GotItMessage.createMessage("UTBot is ready!",
+                "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;\">" +
+                        "You can get test coverage for methods, Java classes<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
+            message.setCallback { PropertiesComponent.getInstance().setValue(KEY, true) }
+            WindowManager.getInstance().getFrame(project)?.rootPane?.let {
+                message.show(RelativePoint(it, Point(it.width, it.height)), Balloon.Position.above)
+            }
+        }
+    }
 }

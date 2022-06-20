@@ -10,15 +10,6 @@ import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.junitByVersion
 import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.framework.plugin.api.UtValueTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -66,6 +57,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
+import org.utbot.framework.plugin.api.*
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -334,7 +326,7 @@ fun runGeneration(
 
                         }
 
-                        generator.generateAsync(controller, method, mockStrategyApi)
+                        generator.generateAsync(controller, method.toSootMethod(), mockStrategyApi)
                             .collect { result ->
                                 when (result) {
                                     is UtExecution -> {

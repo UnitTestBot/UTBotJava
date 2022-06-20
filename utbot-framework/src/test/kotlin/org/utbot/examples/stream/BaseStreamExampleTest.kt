@@ -330,6 +330,18 @@ class BaseStreamExampleTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
+    @Disabled("TODO unsat type constraints https://github.com/UnitTestBot/UTBotJava/issues/253")
+    fun testCustomCollectionStreamExample() {
+        check(
+            BaseStreamExample::customCollectionStreamExample,
+            ignoreExecutionsNumber,
+            { c, r -> c.isEmpty() && r == 0L },
+            { c, r -> c.isNotEmpty() && c.size.toLong() == r },
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
     fun testGenerateExample() {
         check(
             BaseStreamExample::generateExample,

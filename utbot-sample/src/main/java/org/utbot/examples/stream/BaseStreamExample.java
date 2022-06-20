@@ -1,8 +1,10 @@
 package org.utbot.examples.stream;
 
+import org.jetbrains.annotations.NotNull;
 import org.utbot.api.mock.UtMock;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -402,6 +404,25 @@ public class BaseStreamExample {
         return stream.count();
     }
 
+    @SuppressWarnings({"ReplaceInefficientStreamCount", "ConstantConditions"})
+    long customCollectionStreamExample(CustomCollection<Integer> customCollection) {
+        UtMock.assume(customCollection != null && customCollection.data != null);
+
+        if (customCollection.isEmpty()) {
+            return customCollection.stream().count();
+
+            // simplified example, does not generate branch too
+            /*customCollection.removeIf(Objects::isNull);
+            return customCollection.toArray().length;*/
+        } else {
+            return customCollection.stream().count();
+
+            // simplified example, does not generate branch too
+            /*customCollection.removeIf(Objects::isNull);
+            return customCollection.toArray().length;*/
+        }
+    }
+
     Integer[] generateExample() {
         return Stream.generate(() -> 42).limit(10).toArray(Integer[]::new);
     }
@@ -453,6 +474,115 @@ public class BaseStreamExample {
 
         void plus(IntWrapper other) {
             value += other.value;
+        }
+    }
+
+    public static class CustomCollection<E> implements Collection<E> {
+        private E[] data;
+
+        public CustomCollection(@NotNull E[] data) {
+            this.data = data;
+        }
+
+        @Override
+        public int size() {
+            return data.length;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return size() == 0;
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return Arrays.asList(data).contains(o);
+        }
+
+        @NotNull
+        @Override
+        public Iterator<E> iterator() {
+            return Arrays.asList(data).iterator();
+        }
+
+        @SuppressWarnings({"ManualArrayCopy", "unchecked"})
+        @NotNull
+        @Override
+        public Object[] toArray() {
+            final int size = size();
+            E[] arr = (E[]) new Object[size];
+            for (int i = 0; i < size; i++) {
+                arr[i] = data[i];
+            }
+
+            return arr;
+        }
+
+        @NotNull
+        @Override
+        public <T> T[] toArray(@NotNull T[] a) {
+            return Arrays.asList(data).toArray(a);
+        }
+
+        @Override
+        public boolean add(E e) {
+            final int size = size();
+            E[] newData = Arrays.copyOf(data, size + 1);
+            newData[size] = e;
+            data = newData;
+
+            return true;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public boolean remove(Object o) {
+            final List<E> es = Arrays.asList(data);
+            final boolean removed = es.remove(o);
+            data = (E[]) es.toArray();
+
+            return removed;
+        }
+
+        @Override
+        public boolean containsAll(@NotNull Collection<?> c) {
+            return Arrays.asList(data).containsAll(c);
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public boolean addAll(@NotNull Collection<? extends E> c) {
+            final List<E> es = Arrays.asList(data);
+            final boolean added = es.addAll(c);
+            data = (E[]) es.toArray();
+
+            return added;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public boolean removeAll(@NotNull Collection<?> c) {
+            final List<E> es = Arrays.asList(data);
+            final boolean removed = es.removeAll(c);
+            data = (E[]) es.toArray();
+
+            return removed;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public boolean retainAll(@NotNull Collection<?> c) {
+            final List<E> es = Arrays.asList(data);
+            final boolean retained = es.retainAll(c);
+            data = (E[]) es.toArray();
+
+            return retained;
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public void clear() {
+            data = (E[]) new Object[0];
         }
     }
 }

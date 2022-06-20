@@ -98,9 +98,8 @@ class SarifMavenConfigurationProviderTest : AbstractMojoTestCase() {
 
     // internal
 
-    private val testMavenProject by lazy {
+    private val testMavenProject: TestMavenProject =
         TestMavenProject("src/test/resources/project-to-test".toPath())
-    }
 
     private val sarifReportMojo by lazy {
         configureSarifReportMojo(testMavenProject.mavenProject)

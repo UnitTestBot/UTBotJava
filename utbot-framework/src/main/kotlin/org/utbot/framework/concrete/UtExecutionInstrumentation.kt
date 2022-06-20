@@ -214,10 +214,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             return UtTimeoutException(exception)
         }
         val instrs = traceHandler.computeInstructionList()
-        val isNested = if (instrs.isEmpty())
+        val isNested = if (instrs.isEmpty()) {
             false
-        else
+        } else {
             instrs.first().callId != instrs.last().callId
+        }
         return if (instrs.isNotEmpty() && instrs.last().instructionData is ExplicitThrowInstruction) {
             UtExplicitlyThrownException(exception, isNested)
         } else {

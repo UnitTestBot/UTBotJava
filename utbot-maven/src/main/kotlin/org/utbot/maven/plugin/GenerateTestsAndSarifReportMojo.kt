@@ -34,6 +34,9 @@ internal val logger = KotlinLogging.logger {}
 )
 class GenerateTestsAndSarifReportMojo : AbstractMojo() {
 
+    /**
+     * The maven project for which we are creating a SARIF report.
+     */
     @Parameter(defaultValue = "\${project}", readonly = true)
     lateinit var mavenProject: MavenProject
 

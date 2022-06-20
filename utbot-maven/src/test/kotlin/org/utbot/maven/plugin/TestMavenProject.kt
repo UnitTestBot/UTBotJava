@@ -25,7 +25,7 @@ class TestMavenProject(pathToProject: Path) {
         FileUtils.copyDirectoryStructure(pathToProject.toFile(), projectBaseDir)
     }
 
-    val mavenProject: MavenProject by lazy {
+    val mavenProject: MavenProject = run {
         val pomFile = File(projectBaseDir, "pom.xml")
         val model = MavenXpp3Reader().read(FileReader(pomFile))
         val mavenProject = MavenProject(model)

@@ -16,7 +16,7 @@ class SummaryOfMath : SummaryTestCaseGeneratorTest(
     Stats::class,
 ) {
     @Test
-    fun testOf1() {
+    fun testOfInts() {
         val summary1 = "Test calls StatsAccumulator::addAll,\n" +
                 "    there it triggers recursion of addAll once, \n" +
                 "Test throws NullPointerException in: acummulator.addAll(values);\n"

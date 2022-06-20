@@ -23,7 +23,7 @@ Give us some time to review your proposal and provide you with our feedback. It 
 
 
 ## Coding conventions
-Our team adheres to the defined requirements to coding style to optimize for readability. You can take a look on this Coding style guide to better understand what we expect to see in your code. 
+Our team adheres to the defined requirements to coding style to optimize for readability. You can take a look on this [Coding style guide](https://github.com/saveourtool/diktat/blob/master/info/guide/diktat-coding-convention.md) to better understand what we expect to see in your code. 
 
 
 ## How to setup development environment?

@@ -19,6 +19,7 @@ jobs:
     - uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 6.8
+        cache: gradle
         
     - name: Build and run tests in UTBot Java
       run: |
@@ -31,6 +32,13 @@ jobs:
       with:
         name: utbot_framework_logs
         path: utbot-framework/logs/*
+        
+    - name: Upload generated tests
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: generated_tests
+        path: tmp/UTBot/*.(java|kt)
       
     - name: Upload utbot-framework tests report artifacts if tests have failed
       if: ${{ failure() }}

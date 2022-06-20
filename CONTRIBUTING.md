@@ -7,9 +7,9 @@ The following guideline should help you with suggesting changes to our project, 
 
 ## I\`ve found a bug! How to report?
 
-First of all, please check our [Issues](https://github.com/UnitTestBot/UTBotJava/issues) - this bug may have already been reported, and you just don\`t need to spend your time on a new one.
+First of all, please check our [Issues](https://github.com/UnitTestBot/UTBotJava/issues) — this bug may have already been reported, and you just don\`t need to spend your time on a new one.
 
-If you haven\`t found the relevant issue,  don\`t hesitate to [create a new one](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=), including as much detail as possible - the pre-made template will assist you in it.
+If you haven\`t found the relevant issue,  don\`t hesitate to [create a new one](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=), including as much detail as possible — the pre-made template will assist you in it.
 
 In case you already have a PR with solution, please remain so amazing and link it with the created issue.
 

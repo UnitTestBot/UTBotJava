@@ -6,6 +6,7 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.Test
 
+@Ignore
 internal class ModelMinimizationExamplesTest : AbstractTestCaseGeneratorTest(testClass = ModelMinimizationExamples::class) {
     @Test
     fun singleValueComparisonTest() {

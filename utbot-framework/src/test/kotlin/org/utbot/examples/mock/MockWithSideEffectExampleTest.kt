@@ -8,6 +8,7 @@ import org.utbot.examples.isException
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.Test
 
+@Ignore
 internal class MockWithSideEffectExampleTest : AbstractTestCaseGeneratorTest(testClass = MockWithSideEffectExample::class) {
     @Test
     fun testSideEffect() {

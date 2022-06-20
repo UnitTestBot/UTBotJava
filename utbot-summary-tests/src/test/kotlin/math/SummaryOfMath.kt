@@ -6,6 +6,12 @@ import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 
+/**
+ * It runs test generation for the poor analogue of the Stats.of method ported from the guava-26.0 framework
+ * and validates generated docs, display names and test method names.
+ *
+ * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/198">Related issue</a>
+ */
 class SummaryOfMath : SummaryTestCaseGeneratorTest(
     Stats::class,
 ) {
@@ -43,7 +49,7 @@ class SummaryOfMath : SummaryTestCaseGeneratorTest(
         val displayName3 = "addAll -> return new Stats(count, mean, sumOfSquaresOfDeltas, min, max)"
         val displayName4 = "addAll -> return new Stats(count, mean, sumOfSquaresOfDeltas, min, max)"
 
-        val method = Stats::of2
+        val method = Stats::ofInts
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 

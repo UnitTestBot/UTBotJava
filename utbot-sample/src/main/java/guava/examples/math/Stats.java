@@ -27,7 +27,7 @@ public final class Stats implements Serializable {
   private final double max;
 
   /**
-   * Internal constructor. Users should use {@link #of} or {@link StatsAccumulator#snapshot}.
+   * Internal constructor. Users should use {@link #ofIterable} or {@link StatsAccumulator#snapshot}.
    *
    * <p>To ensure that the created instance obeys its contract, the parameters should satisfy the
    * following constraints. This is the callers responsibility and is not enforced here.
@@ -54,7 +54,7 @@ public final class Stats implements Serializable {
    * @param values a series of values, which will be converted to {@code double} values (this may
    *     cause loss of precision)
    */
-  public static Stats of(Iterable<? extends Number> values) {
+  public static Stats ofIterable(Iterable<? extends Number> values) {
     StatsAccumulator accumulator = new StatsAccumulator();
     accumulator.addAll(values);
     return accumulator.snapshot();
@@ -66,7 +66,7 @@ public final class Stats implements Serializable {
    * @param values a series of values, which will be converted to {@code double} values (this may
    *     cause loss of precision)
    */
-  public static Stats of5(Iterator<? extends Number> values) {
+  public static Stats ofIterator(Iterator<? extends Number> values) {
     StatsAccumulator accumulator = new StatsAccumulator();
     accumulator.addAll(values);
     return accumulator.snapshot();
@@ -77,7 +77,7 @@ public final class Stats implements Serializable {
    *
    * @param values a series of values
    */
-  public static Stats of1(double... values) {
+  public static Stats ofDoubles(double... values) {
     StatsAccumulator acummulator = new StatsAccumulator();
     acummulator.addAll(values);
     return acummulator.snapshot();
@@ -88,7 +88,7 @@ public final class Stats implements Serializable {
    *
    * @param values a series of values
    */
-  public static Stats of2(int... values) {
+  public static Stats ofInts(int... values) {
     StatsAccumulator acummulator = new StatsAccumulator();
     acummulator.addAll(values);
     return acummulator.snapshot();
@@ -100,7 +100,7 @@ public final class Stats implements Serializable {
    * @param values a series of values, which will be converted to {@code double} values (this may
    *     cause loss of precision for longs of magnitude over 2^53 (slightly over 9e15))
    */
-  public static Stats of3(long... values) {
+  public static Stats ofLongs(long... values) {
     StatsAccumulator acummulator = new StatsAccumulator();
     acummulator.addAll(values);
     return acummulator.snapshot();

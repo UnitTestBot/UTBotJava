@@ -248,7 +248,9 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         // the constructed model to avoid infinite recursion below
         resolver.addConstructedModel(concreteAddr, resultModel)
 
-        val typeStorage = resolver.typeRegistry.genericTypeStorageByAddr[wrapper.addr]?.singleOrNull() ?: TypeStorage(OBJECT_TYPE)
+        // try to retrieve type storage for the single type parameter
+        val typeStorage =
+            resolver.typeRegistry.getObjectParameterTypeStorages(wrapper.addr)?.singleOrNull() ?: TypeStorage(OBJECT_TYPE)
 
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->

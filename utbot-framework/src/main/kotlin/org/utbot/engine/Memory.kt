@@ -351,8 +351,10 @@ class TypeRegistry {
     private val typeToInheritorsTypes = mutableMapOf<RefType, Set<RefType>>()
     private val typeToAncestorsTypes = mutableMapOf<RefType, Set<RefType>>()
 
-    // TODO docs
-    val genericTypeStorageByAddr = mutableMapOf<UtAddrExpression, List<TypeStorage>>()
+    /**
+     * Contains types storages for type parameters of object by its address.
+     */
+    private val genericTypeStorageByAddr = mutableMapOf<UtAddrExpression, List<TypeStorage>>()
 
     // A BiMap containing bijection from every type to an address of the object
     // presenting its classRef and vise versa
@@ -705,20 +707,7 @@ class TypeRegistry {
         secondAddr: UtAddrExpression,
         vararg indexInjection: Pair<Int, Int>
     ): UtEqGenericTypeParametersExpression {
-        // TODO docs
-        genericTypeStorageByAddr[secondAddr]?.let { existingGenericTypes ->
-            val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
-
-            indexInjection.forEach { (from, to) ->
-                require(from < existingGenericTypes.size) { "TODO" }
-                currentGenericTypes[to] = existingGenericTypes[from]
-            }
-
-            genericTypeStorageByAddr[firstAddr] = currentGenericTypes
-                .entries
-                .sortedBy { it.key }
-                .mapTo(mutableListOf()) { it.value }
-        }
+        setParameterTypeStoragesEquality(firstAddr, secondAddr, indexInjection)
 
         return UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(*indexInjection))
     }
@@ -745,6 +734,45 @@ class TypeRegistry {
      */
     fun eqGenericSingleTypeParameterConstraint(firstAddr: UtAddrExpression, secondAddr: UtAddrExpression) =
         eqGenericTypeParametersConstraint(firstAddr, secondAddr, 0 to 0)
+
+    /**
+     * Associates provided [typeStorages] with an object with the provided [addr].
+     */
+    fun saveObjectParameterTypeStorages(addr: UtAddrExpression, typeStorages: List<TypeStorage>) {
+        genericTypeStorageByAddr += addr to typeStorages
+    }
+
+    /**
+     * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
+     */
+    fun getObjectParameterTypeStorages(addr: UtAddrExpression): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+
+    /**
+     * Set types storages for [firstAddr]'s type parameters equal to type storages for [secondAddr]'s type parameters
+     * according to provided types injection represented by [indexInjection].
+     */
+    private fun setParameterTypeStoragesEquality(
+        firstAddr: UtAddrExpression,
+        secondAddr: UtAddrExpression,
+        indexInjection: Array<out Pair<Int, Int>>
+    ) {
+        genericTypeStorageByAddr[secondAddr]?.let { existingGenericTypes ->
+            val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
+
+            indexInjection.forEach { (from, to) ->
+                require(from >= 0 && from < existingGenericTypes.size) {
+                    "Type injection is out of bounds: should be in [0; ${existingGenericTypes.size}) but is $from"
+                }
+
+                currentGenericTypes[to] = existingGenericTypes[from]
+            }
+
+            genericTypeStorageByAddr[firstAddr] = currentGenericTypes
+                .entries
+                .sortedBy { it.key }
+                .mapTo(mutableListOf()) { it.value }
+        }
+    }
 
     /**
      * Returns constraint representing that an object with address [addr] has the same type as the type parameter

@@ -48,8 +48,7 @@ import java.util.IdentityHashMap
  *
  * Note: Caches class related information, can be reused if classes don't change.
  */
-class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
-    private val methodPackageName = methodUnderTest.clazz.java.packageName
+class AssembleModelGenerator(private val methodPackageName: String) {
 
     //Instantiated models are stored to avoid cyclic references during reference graph analysis
     private val instantiatedModels: IdentityHashMap<UtModel, UtReferenceModel> =

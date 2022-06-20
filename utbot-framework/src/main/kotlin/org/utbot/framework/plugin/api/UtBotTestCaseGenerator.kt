@@ -43,13 +43,19 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.engine.*
+import org.utbot.framework.modifications.StatementsStorage
+import org.utbot.framework.synthesis.Synthesizer
+import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
+import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import soot.Scene
+import soot.SootMethod
 import soot.jimple.JimpleBody
 import soot.toolkits.graph.ExceptionalUnitGraph
 
@@ -162,41 +168,43 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     @Throws(CancellationException::class)
     fun generateAsync(
         controller: EngineController,
-        method: UtMethod<*>,
+        sootMethod: SootMethod,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
-        executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
+        executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
+        postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(
             controller,
-            method,
+            sootMethod,
             mockStrategy,
             chosenClassesToMockAlways,
-            executionTimeEstimator
+            executionTimeEstimator,
+            postConditionConstructor
         )
         return createDefaultFlow(engine)
     }
 
     private fun createSymbolicEngine(
         controller: EngineController,
-        method: UtMethod<*>,
+        sootMethod: SootMethod,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
-        executionTimeEstimator: ExecutionTimeEstimator
+        executionTimeEstimator: ExecutionTimeEstimator,
+        postConditionConstructor: PostConditionConstructor
     ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
-        logger.debug("Starting symbolic execution for $method  --$mockStrategy--")
-        val graph = graph(method)
+        logger.debug("Starting symbolic execution for $sootMethod  --$mockStrategy--")
+        val graph = graph(sootMethod)
 
         return UtBotSymbolicEngine(
             controller,
-            method,
+            sootMethod,
             graph,
-            classpathForEngine,
-            dependencyPaths = dependencyPaths,
             mockStrategy = apiToModel(mockStrategy),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
-            solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
+            solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
+            postConditionConstructor = postConditionConstructor,
         )
     }
 
@@ -270,10 +278,11 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
 
                         generate(createSymbolicEngine(
                             controller,
-                            method,
+                            method.toSootMethod(),
                             mockStrategy,
                             chosenClassesToMockAlways,
-                            executionTimeEstimator
+                            executionTimeEstimator,
+                            EmptyPostCondition
                         )).collect {
                             when (it) {
                                 is UtExecution -> method2executions.getValue(method) += it
@@ -321,7 +330,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         return methods.map { method ->
             UtTestCase(
                 method,
-                minimizeExecutions(method2executions.getValue(method)),
+                minimizeExecutions(method2executions.getValue(method).toAssemble()),
                 jimpleBody(method),
                 method2errors.getValue(method)
             )
@@ -356,10 +365,12 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         }
     }
 
-    override fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtTestCase {
-        logger.trace { "UtSettings:${System.lineSeparator()}" + UtSettings.toString() }
-
-        if (isCanceled()) return UtTestCase(method)
+    internal fun generateWithPostCondition(
+        method: SootMethod,
+        mockStrategy: MockStrategyApi,
+        postConditionConstructor: PostConditionConstructor
+    ): List<UtExecution> {
+        if (isCanceled()) return emptyList()
 
         val executions = mutableListOf<UtExecution>()
         val errors = mutableMapOf<String, Int>()
@@ -367,7 +378,12 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
-                generateAsync(EngineController(), method, mockStrategy).collect {
+                generateAsync(
+                    EngineController(),
+                    method,
+                    mockStrategy,
+                    postConditionConstructor = postConditionConstructor
+                ).collect {
                     when (it) {
                         is UtExecution -> executions += it
                         is UtError -> errors.merge(it.description, 1, Int::plus)
@@ -377,8 +393,28 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         }
 
         val minimizedExecutions = minimizeExecutions(executions)
-        return UtTestCase(method, minimizedExecutions, jimpleBody(method), errors)
+        return minimizedExecutions
     }
+
+    override fun generate(
+        method: UtMethod<*>,
+        mockStrategy: MockStrategyApi,
+    ): UtTestCase {
+        val executions = generateWithPostCondition(method.toSootMethod(), mockStrategy, EmptyPostCondition)
+
+        return UtTestCase(
+            method,
+            executions.toAssemble(),
+            jimpleBody(method),
+        )
+    }
+
+    private fun toAssembleModel(model: UtModel) = (model as? UtCompositeModel)?.let {
+        val statementStorage = StatementsStorage()
+        statementStorage.update(setOf(it.classId))
+        val synthesizer = Synthesizer(statementStorage, it)
+        synthesizer.synthesize()
+    } ?: model
 
 
     private fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
@@ -397,20 +433,11 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             else -> error("Cannot map API Mock Strategy model to Engine model: $mockStrategyApi")
         }
 
-    private fun graph(method: UtMethod<*>): ExceptionalUnitGraph {
-        val className = method.clazz.java.name
-        val clazz = Scene.v().classes.singleOrNull { it.name == className }
-            ?: error("No such $className found in the Scene")
-        val signature = method.callable.signature
-        val sootMethod = clazz.methods.singleOrNull { it.pureJavaSignature == signature }
-            ?: error("No such $signature found")
-        if (!sootMethod.canRetrieveBody()) {
-            error("No method body for $sootMethod found")
-        }
+    private fun graph(sootMethod: SootMethod): ExceptionalUnitGraph {
         val methodBody = sootMethod.jimpleBody()
         val graph = methodBody.graph()
 
-        logger.trace { "JIMPLE for $method:\n${methodBody}" }
+        logger.trace { "JIMPLE for $sootMethod:\n${methodBody}" }
 
         return graph
     }
@@ -422,6 +449,33 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
 
         return sootMethod.jimpleBody()
     }
+
+
+    private fun List<UtExecution>.toAssemble(): List<UtExecution> =
+        map { execution ->
+            val oldStateBefore = execution.stateBefore
+            val newThisModel = oldStateBefore.thisInstance?.let { UtBotTestCaseGenerator.toAssembleModel(it) }
+            val newParameters = oldStateBefore.parameters.map { UtBotTestCaseGenerator.toAssembleModel(it) }
+
+            execution.copy(
+                stateBefore = EnvironmentModels(
+                    newThisModel,
+                    newParameters,
+                    oldStateBefore.statics
+                )
+            )
+        }
+}
+
+fun UtMethod<*>.toSootMethod(): SootMethod {
+    val className = clazz.java.name
+    val clazz = Scene.v().classes.singleOrNull { it.name == className }
+        ?: error("No such $className found in the Scene")
+    val signature = callable.signature
+    val sootMethod = clazz.methods.singleOrNull { it.pureJavaSignature == signature }
+        ?: error("No such $signature found")
+
+    return sootMethod
 }
 
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)

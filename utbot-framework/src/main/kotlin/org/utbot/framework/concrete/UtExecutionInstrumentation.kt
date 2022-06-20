@@ -95,11 +95,11 @@ class UtConcreteExecutionResult(
      * @return [UtConcreteExecutionResult] with converted models.
      */
     fun convertToAssemble(
-        methodUnderTest: UtMethod<*>
+        methodPackageName: String
     ): UtConcreteExecutionResult {
         val allModels = collectAllModels()
 
-        val modelsToAssembleModels = AssembleModelGenerator(methodUnderTest).createAssembleModels(allModels)
+        val modelsToAssembleModels = AssembleModelGenerator(methodPackageName).createAssembleModels(allModels)
         return updateWithAssembleModels(modelsToAssembleModels)
     }
 }

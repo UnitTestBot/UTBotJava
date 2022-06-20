@@ -314,7 +314,7 @@ open class Z3TranslatorVisitor(
 
     private fun Context.mkBV2Int(expr: UtExpression): IntExpr =
         if (expr is UtBvLiteral) {
-            mkInt(expr.value as Long)
+            mkInt(expr.value.toLong())
         } else {
             mkBV2Int(translate(expr) as BitVecExpr, true)
         }

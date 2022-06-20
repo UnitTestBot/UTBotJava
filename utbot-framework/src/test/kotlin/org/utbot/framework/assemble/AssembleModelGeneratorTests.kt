@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.common.packageName
 import org.utbot.examples.assemble.*
 
 /**
@@ -1436,7 +1437,7 @@ class AssembleModelGeneratorTests {
         expectedModelRepresentations: List<String?>,
         assembleTestUtils: UtMethod<*> = UtMethod.from(AssembleTestUtils::class.functions.first()),
     ) {
-        val modelsMap = AssembleModelGenerator(assembleTestUtils).createAssembleModels(models)
+        val modelsMap = AssembleModelGenerator(assembleTestUtils.clazz.java.packageName).createAssembleModels(models)
         //we sort values to fix order of models somehow (IdentityHashMap does not guarantee the order)
         val assembleModels = modelsMap.values
             .filterIsInstance<UtAssembleModel>()

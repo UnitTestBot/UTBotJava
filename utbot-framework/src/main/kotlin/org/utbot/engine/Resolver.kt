@@ -85,6 +85,7 @@ import soot.Scene
 import soot.ShortType
 import soot.SootClass
 import soot.SootField
+import soot.SootMethod
 import soot.Type
 import soot.VoidType
 import sun.java2d.cmm.lcms.LcmsServiceProvider
@@ -116,7 +117,7 @@ class Resolver(
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
-    methodUnderTest: UtMethod<*>,
+    methodPackageName: String,
     private val softMaxArraySize: Int
 ) {
 
@@ -131,7 +132,7 @@ class Resolver(
     private val instrumentation = mutableListOf<UtInstrumentation>()
     private val requiredInstanceFields = mutableMapOf<Address, Set<FieldId>>()
 
-    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest)
+    private val assembleModelGenerator = AssembleModelGenerator(methodPackageName)
 
     /**
      * Contains FieldId of the static field which is construction at the moment and null of there is no such field.
@@ -346,10 +347,9 @@ class Resolver(
     /**
      * Resolves current result (return value).
      */
-    fun resolveResult(symResult: SymbolicResult?): UtExecutionResult =
+    fun resolveResult(symResult: SymbolicResult): UtExecutionResult =
         withMemoryState(CURRENT) {
             when (symResult) {
-                null -> UtExecutionSuccess(UtVoidModel)
                 is SymbolicSuccess -> {
                     collectMocksAndInstrumentation()
                     val model = resolveModel(symResult.value)

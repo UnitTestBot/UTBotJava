@@ -359,7 +359,6 @@ val UtSort.defaultValue: UtExpression
         // empty string because we want to have a default value of the same sort as the items stored in the strings array
         UtSeqSort -> mkString("")
         is UtArraySort -> if (itemSort is UtArraySort) nullObjectAddr else mkArrayWithConst(this, itemSort.defaultValue)
-        else -> nullObjectAddr
     }
 
 /**

@@ -8,6 +8,8 @@ import org.utbot.common.md5
 import org.utbot.common.trace
 import org.utbot.engine.Eq
 import org.utbot.engine.PrimitiveValue
+import org.utbot.engine.ReferenceValue
+import org.utbot.engine.SymbolicValue
 import org.utbot.engine.TypeRegistry
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
 import org.utbot.engine.pc.UtSolverStatusKind.UNKNOWN
@@ -20,6 +22,7 @@ import org.utbot.engine.z3.Z3Initializer
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.preferredCexOption
+import org.utbot.framework.plugin.api.UtReferenceModel
 import com.microsoft.z3.BoolExpr
 import com.microsoft.z3.Context
 import com.microsoft.z3.Params
@@ -74,6 +77,13 @@ private fun reduceAnd(exprs: List<UtBoolExpression>) =
     }
 
 fun mkEq(left: PrimitiveValue, right: PrimitiveValue): UtBoolExpression = Eq(left, right)
+fun mkEq(left: ReferenceValue, right: ReferenceValue): UtBoolExpression = mkEq(left.addr, right.addr)
+
+fun mkEq(left: SymbolicValue, right: SymbolicValue): UtBoolExpression = when (left) {
+    is PrimitiveValue -> mkEq(left, right as? PrimitiveValue ?: error("Can't cast to PrimitiveValue"))
+    is ReferenceValue -> mkEq(left, right as? ReferenceValue ?: error("Can't cast to ReferenceValue"))
+}
+
 fun mkTrue(): UtBoolLiteral = UtTrue
 fun mkFalse(): UtBoolLiteral = UtFalse
 fun mkBool(boolean: Boolean): UtBoolLiteral = if (boolean) UtTrue else UtFalse

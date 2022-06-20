@@ -34,6 +34,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import java.nio.file.Path
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
+import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
@@ -76,6 +77,16 @@ internal abstract class AbstractModelBasedTest(
     ) = internalCheck(
         method, mockStrategy, branches, matchers,
         arguments = ::withStaticsAfter
+    )
+
+    protected fun checkThis(
+        method: KFunction1<*, *>,
+        branches: ExecutionsNumberMatcher,
+        vararg matchers: (UtModel, UtExecutionResult) -> Boolean,
+        mockStrategy: MockStrategyApi = NO_MOCKS
+    ) = internalCheck(
+        method, mockStrategy, branches, matchers,
+        arguments = ::withThisAndResult
     )
 
     private fun internalCheck(
@@ -180,6 +191,7 @@ internal abstract class AbstractModelBasedTest(
     }
 }
 
+private fun withThisAndResult(ex: UtExecution) = listOf(ex.stateBefore.thisInstance) + ex.stateBefore.parameters + ex.result
 private fun withResult(ex: UtExecution) = ex.stateBefore.parameters + ex.result
 private fun withStaticsAfter(ex: UtExecution) = ex.stateBefore.parameters + ex.stateAfter.statics + ex.result
 

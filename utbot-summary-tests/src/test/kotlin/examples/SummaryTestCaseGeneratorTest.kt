@@ -29,7 +29,7 @@ import kotlin.reflect.KFunction4
 @Disabled
 open class SummaryTestCaseGeneratorTest(
     testClass: KClass<*>,
-    testCodeGeneration: Boolean = true,
+    testCodeGeneration: Boolean = false,
     languagePipelines: List<CodeGenerationLanguageLastStage> = listOf(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, TestExecution)

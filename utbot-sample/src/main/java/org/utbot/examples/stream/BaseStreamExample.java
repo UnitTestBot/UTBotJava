@@ -423,6 +423,16 @@ public class BaseStreamExample {
         }
     }
 
+    long anyCollectionStreamExample(Collection<Integer> c) {
+        UtMock.assume(c != null);
+
+        if (c.isEmpty()) {
+            return c.stream().count();
+        } else {
+            return c.stream().count();
+        }
+    }
+
     Integer[] generateExample() {
         return Stream.generate(() -> 42).limit(10).toArray(Integer[]::new);
     }

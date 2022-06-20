@@ -3,7 +3,6 @@ package org.utbot.examples.lambda
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.AbstractTestCaseGeneratorTest
-import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 
@@ -13,7 +12,7 @@ class SimpleLambdaExamplesTest : AbstractTestCaseGeneratorTest(testClass = Simpl
         checkWithException(
             SimpleLambdaExamples::biFunctionLambdaExample,
             eq(2),
-            { a, b, r -> b == 0 && r.isException<ArithmeticException>() },
+            { _, b, r -> b == 0 && r.isException<ArithmeticException>() },
             { a, b, r -> b != 0 && r.getOrThrow() == a / b },
         )
     }

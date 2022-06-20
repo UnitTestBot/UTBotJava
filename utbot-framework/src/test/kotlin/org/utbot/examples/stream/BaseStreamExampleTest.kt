@@ -342,6 +342,17 @@ class BaseStreamExampleTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
+    fun testAnyCollectionStreamExample() {
+        check(
+            BaseStreamExample::anyCollectionStreamExample,
+            ignoreExecutionsNumber,
+            { c, r -> c.isEmpty() && r == 0L },
+            { c, r -> c.isNotEmpty() && c.size.toLong() == r },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
+    }
+
+    @Test
     fun testGenerateExample() {
         check(
             BaseStreamExample::generateExample,

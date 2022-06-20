@@ -92,7 +92,7 @@ class SimpleSentenceBlock(val stringTemplates: StringsTemplatesInterface) {
                 result += stringTemplates.sentenceBeginning + " "
                 restartSentence = false
             }
-            result += "${nextSynonyms.random()} $nextSentenceBlock" // TODO: Zinoviev - add seed for test purposes
+            result += "${nextSynonyms.random()} $nextSentenceBlock"
 
             if (nextSentenceBlock.trim().endsWith(DOT_SYMBOL)) {
                 restartSentence = true

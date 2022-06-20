@@ -39,10 +39,10 @@ class SummaryOfMath : SummaryTestCaseGeneratorTest(
                 "    \n" +
                 "Test later returns from: return acummulator.snapshot();\n"
 
-        val methodName1 = "testOf2_StatsAccumulatorAddAll"
-        val methodName2 = "testOf2_snapshot"
-        val methodName3 = "testOf2_IterateForEachLoop"
-        val methodName4 = "testOf2_IterateForEachLoop_1"
+        val methodName1 = "testOfInts_StatsAccumulatorAddAll"
+        val methodName2 = "testOfInts_snapshot"
+        val methodName3 = "testOfInts_IterateForEachLoop"
+        val methodName4 = "testOfInts_IterateForEachLoop_1"
 
         val displayName1 = "acummulator.addAll(values) : True -> ThrowNullPointerException"
         val displayName2 = "snapshot -> return new Stats(count, mean, sumOfSquaresOfDeltas, min, max)"

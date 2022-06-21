@@ -103,7 +103,7 @@ object TestGenerator {
             .toList()
 
         val mergedReport = SarifReport.mergeReports(sarifReports)
-        val mergedReportPath = sarifReportsPath.resolve("${model.project.name}-utbot-merged.sarif")
+        val mergedReportPath = sarifReportsPath.resolve("${model.project.name}Report.sarif")
         mergedReportPath.toFile().writeText(mergedReport)
 
         // notifying the user

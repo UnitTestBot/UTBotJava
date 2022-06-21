@@ -63,6 +63,8 @@ data class GeneratedSarif(val text: String) {
     fun hasCodeFlows(): Boolean = text.contains("codeFlows")
 
     fun codeFlowsIsNotEmpty(): Boolean = text.contains("threadFlows")
+
+    fun contains(value: String): Boolean = text.contains(value)
 }
 
 fun compileClassAndGetClassPath(classNameToSource: Pair<String, String>): Pair<String, ClassLoader> {

@@ -21,7 +21,7 @@
                 description="Cover code with auto-generated tests">
             <add-to-group group-id="ProjectViewPopupMenu"/>
             <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="control alt U"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt shift U"/>
             <keyboard-shortcut keymap="$default" first-keystroke="alt U" second-keystroke="alt T"/>
         </action>
     </actions>

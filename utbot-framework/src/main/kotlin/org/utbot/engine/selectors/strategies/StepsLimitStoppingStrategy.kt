@@ -3,6 +3,7 @@ package org.utbot.engine.selectors.strategies
 import org.utbot.engine.Edge
 import org.utbot.engine.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
+import org.utbot.engine.pathLogger
 
 /**
  * Stopping strategy that suggest to stop execution
@@ -16,7 +17,13 @@ class StepsLimitStoppingStrategy(
     private var stepsCounter: Int = 0
 
     override fun shouldStop(): Boolean {
-        return stepsCounter > stepsLimit
+        val shouldDrop = stepsCounter > stepsLimit
+
+        if (shouldDrop) {
+            pathLogger.debug { "Steps limit has been exceeded: current step limit is $stepsLimit" }
+        }
+
+        return shouldDrop
     }
 
     override fun onVisit(edge: Edge) {

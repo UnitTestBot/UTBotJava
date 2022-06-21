@@ -15,10 +15,12 @@ data class SymbolicState(
     val memory: Memory = Memory(),
 ) {
     operator fun plus(update: SymbolicStateUpdate): SymbolicState =
-        SymbolicState(
-            solver.add(hard = update.hardConstraints, soft = update.softConstraints),
-            memory = memory.update(update.memoryUpdates),
-        )
+        with(update) {
+            SymbolicState(
+                solver.add(hard = hardConstraints, soft = softConstraints, assumption = assumptions),
+                memory = memory.update(memoryUpdates),
+            )
+        }
 
     operator fun plus(update: HardConstraint): SymbolicState =
         plus(SymbolicStateUpdate(hardConstraints = update))

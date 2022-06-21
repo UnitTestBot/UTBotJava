@@ -24,6 +24,11 @@ jobs:
     - uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 6.8
+        
+    - name: Check out ${{ github.event.inputs.commit-sha }} commit
+      run: |
+        git fetch
+        git checkout ${{ github.event.inputs.commit-sha }}
     
     - name: "UTBot Java: build and run tests"
       run: |
@@ -58,6 +63,12 @@ jobs:
         distribution: 'zulu'
         java-package: jdk+fx
         cache: gradle
+        
+    - name: Check out ${{ github.event.inputs.commit-sha }} commit
+      run: |
+        git fetch
+        git checkout ${{ github.event.inputs.commit-sha }}
+        
     - uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 6.8
@@ -65,23 +76,3 @@ jobs:
       env:
         GITHUB_ACTOR: ${{ github.actor }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Check out ${{ github.event.inputs.commit-sha }} commit
-      run: |
-        git fetch
-        git checkout ${{ github.event.inputs.commit-sha }}
-        
-    - name: "utbot-framework-api: build and run tests"
-      run: |
-        cd utbot-framework-api
-        gradle clean build --no-daemon
-        
-    - name: "utbot-api: build"
-      run: |
-        cd utbot-api
-        gradle clean build --no-daemon
-    
-    - name: "utbot-core: build"
-      run: |
-        cd utbot-core
-        gradle clean build --no-daemon

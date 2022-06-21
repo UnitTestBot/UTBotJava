@@ -18,9 +18,9 @@ COPY docker/get_java_cli_download_url.py .
 ENV JAVA_CLI_ZIP_NAME "utbot_java_cli.zip"
     
 RUN curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-    -L "$(python3 get_java_cli_download_url.py)" \
-    -o "${JAVA_CLI_ZIP_NAME}"
-    RUN unzip "${JAVA_CLI_ZIP_NAME}" \
+        -L "$(python3 get_java_cli_download_url.py)" \
+        -o "${JAVA_CLI_ZIP_NAME}" \
+    && unzip "${JAVA_CLI_ZIP_NAME}" \
     && rm "${JAVA_CLI_ZIP_NAME}"
 
 ENV JAVA_CLI_PATH="$(find $pwd -type f -name "utbot-cli*")"

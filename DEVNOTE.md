@@ -19,6 +19,7 @@
 ![image](https://user-images.githubusercontent.com/106974353/174807962-18c648fd-b67d-4556-90df-eee690abe6e2.png)
 
 5. Wait for the build to be completed
+Done! You\`re awesome and ready for digging the code. 😃
 
  
 ## Development of UTBot Java with IntelliJ IDEA

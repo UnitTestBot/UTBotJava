@@ -57,7 +57,7 @@ jobs:
       - name: Docker Buildx (build and push)
         run: |
           docker buildx build \
-            -f docker/Dockerfile_java_cli \
+            -f docker/${{ env.IMAGE_NAME }} \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
             --tag ${{ steps.meta.outputs.tags }} \

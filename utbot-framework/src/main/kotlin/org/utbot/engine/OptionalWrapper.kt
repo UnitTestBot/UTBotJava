@@ -58,8 +58,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
     private val AS_OPTIONAL_METHOD_SIGNATURE =
         overriddenClass.getMethodByName(UtOptional<*>::asOptional.name).signature
 
-    override fun overrideInvoke(
-        engine: UtBotSymbolicEngine,
+    override fun UtBotSymbolicEngine.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -72,7 +71,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
                 return listOf(
                     MethodResult(
                         parameters.first(),
-                        engine.typeRegistry.typeConstraintToGenericTypeParameter(
+                        typeRegistry.typeConstraintToGenericTypeParameter(
                             parameters.first().addr,
                             wrapper.addr,
                             i = 0
@@ -82,6 +81,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
             }
 
         }
+
         return null
     }
 

@@ -33,10 +33,6 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
-import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
-import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
-import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
 
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
@@ -250,8 +246,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 
         // try to retrieve type storage for the single type parameter
         val typeStorage =
-            resolver.typeRegistry.getObjectParameterTypeStorages(wrapper.addr)?.singleOrNull() ?: TypeStorage(OBJECT_TYPE)
-
+            resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)?.singleOrNull() ?: TypeRegistry.objectTypeStorage
 
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
             val addr = UtAddrExpression(arrayExpression.select(mkInt(i + firstValue)))

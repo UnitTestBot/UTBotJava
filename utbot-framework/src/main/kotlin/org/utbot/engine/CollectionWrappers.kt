@@ -1,24 +1,15 @@
 package org.utbot.engine
 
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.common.unreachableBranch
-import org.utbot.engine.CommonStreamWrapper.Companion.isClosedStreamFieldId
-import org.utbot.engine.CommonStreamWrapper.Companion.isParallelStreamFieldId
-import org.utbot.engine.CommonStreamWrapper.Companion.utStreamType
 import org.utbot.engine.overrides.collections.AssociativeArray
-import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtArrayList
 import org.utbot.engine.overrides.collections.UtGenericAssociative
 import org.utbot.engine.overrides.collections.UtGenericStorage
 import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
-import org.utbot.engine.overrides.stream.UtStream
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
-import org.utbot.engine.pc.mkEq
-import org.utbot.engine.pc.mkFalse
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
@@ -58,8 +49,7 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
      *
      * @see invoke
      */
-    protected abstract fun overrideInvoke(
-        engine: UtBotSymbolicEngine,
+    protected abstract fun UtBotSymbolicEngine.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -83,7 +73,7 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
         method: SootMethod,
         parameters: List<SymbolicValue>
     ): List<InvokeResult> {
-        val methodResults = overrideInvoke(this, wrapper, method, parameters)
+        val methodResults = overrideInvoke(wrapper, method, parameters)
         if (methodResults != null) {
             return methodResults
         }
@@ -159,28 +149,25 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
 }
 
 abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: String) : BaseContainerWrapper(containerClassName) {
-    override fun overrideInvoke(
-        engine: UtBotSymbolicEngine,
+    override fun UtBotSymbolicEngine.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? =
-        with(engine) {
-            when (method.signature) {
-                UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> {
-                    val equalGenericTypeConstraint = typeRegistry
-                        .eqGenericSingleTypeParameterConstraint(parameters[0].addr, wrapper.addr)
-                        .asHardConstraint()
+        when (method.signature) {
+            UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> {
+                val equalGenericTypeConstraint = typeRegistry
+                    .eqGenericSingleTypeParameterConstraint(parameters[0].addr, wrapper.addr)
+                    .asHardConstraint()
 
-                    val methodResult = MethodResult(
-                        SymbolicSuccess(voidValue),
-                        equalGenericTypeConstraint
-                    )
+                val methodResult = MethodResult(
+                    SymbolicSuccess(voidValue),
+                    equalGenericTypeConstraint
+                )
 
-                    listOf(methodResult)
-                }
-                else -> null
+                listOf(methodResult)
             }
+            else -> null
         }
 
     override fun Resolver.resolveValueModels(wrapper: ObjectValue): List<List<UtModel>> {
@@ -283,34 +270,32 @@ class SetWrapper : BaseGenericStorageBasedContainerWrapper(UtHashSet::class.qual
  * entries, then real behavior of generated test can differ from expected and undefined.
  */
 class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
-    override fun overrideInvoke(
-        engine: UtBotSymbolicEngine,
+    override fun UtBotSymbolicEngine.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? =
-        with(engine) {
-            when (method.signature) {
-                UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        typeRegistry.eqGenericSingleTypeParameterConstraint(parameters[0].addr, wrapper.addr)
-                            .asHardConstraint()
-                    )
+        when (method.signature) {
+            UT_GENERIC_STORAGE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    typeRegistry.eqGenericSingleTypeParameterConstraint(parameters[0].addr, wrapper.addr)
+                        .asHardConstraint()
                 )
-                UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        typeRegistry.eqGenericTypeParametersConstraint(
-                            parameters[0].addr,
-                            wrapper.addr,
-                            parameterSize = 2
-                        ).asHardConstraint()
-                    )
+            )
+            UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE -> listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    typeRegistry.eqGenericTypeParametersConstraint(
+                        parameters[0].addr,
+                        wrapper.addr,
+                        parameterSize = 2
+                    ).asHardConstraint()
                 )
-                else -> null
-            }
+            )
+            else -> null
         }
+
     override fun Resolver.resolveValueModels(wrapper: ObjectValue): List<List<UtModel>> {
         val fieldModels = collectFieldModels(wrapper.addr, overriddenClass.type)
         val keyModels = fieldModels[overriddenClass.getFieldByName("keys").fieldId] as? UtArrayModel
@@ -401,12 +386,6 @@ private val UT_GENERIC_ASSOCIATIVE_CLASS
 
 private val UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE =
     UT_GENERIC_ASSOCIATIVE_CLASS.getMethodByName(UtGenericAssociative<*, *>::setEqualGenericType.name).signature
-
-private val COLLECTION_CLASS: SootClass
-    get() = Scene.v().getSootClass(java.util.Collection::class.java.canonicalName)
-
-private val UT_COLLECTION_STREAM_SIGNATURE: String =
-    COLLECTION_CLASS.getMethodByName("stream").signature
 
 val ARRAY_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.ArrayList::class.java.canonicalName).type

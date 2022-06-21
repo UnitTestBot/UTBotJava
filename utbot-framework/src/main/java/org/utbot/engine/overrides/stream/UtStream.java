@@ -4,7 +4,12 @@ import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
@@ -24,6 +29,7 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.ResolverKt.HARD_MAX_ARRAY_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
@@ -313,7 +319,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             throw new IllegalArgumentException();
         }
 
-        // TODO how to process long value correctly - assumeOrExecuteConcretely?
+        assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
+
         int newSize = (int) maxSize;
         int curSize = elementData.end;
 
@@ -346,7 +353,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return new UtStream<>();
         }
 
-        // TODO how to process long value correctly - assumeOrExecuteConcretely?
+        // n is 1...Integer.MAX_VALUE here
         int newSize = (int) (curSize - n);
 
         return new UtStream<>((E[]) elementData.toArray((int) n, newSize), newSize);

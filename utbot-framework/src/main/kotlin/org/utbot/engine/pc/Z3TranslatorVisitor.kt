@@ -242,10 +242,10 @@ open class Z3TranslatorVisitor(
                     )
                 }.toTypedArray()
             )
-            constraints += typeConstraint
 
-            z3Context.mkAnd(*constraints.toTypedArray())
+            constraints += typeConstraint
         }
+
         z3Context.mkOr(
             z3Context.mkAnd(*constraints.toTypedArray()),
             z3Context.mkEq(translate(expr.addr), translate(nullObjectAddr))
@@ -259,12 +259,17 @@ open class Z3TranslatorVisitor(
         val genericSymType = translate(typeRegistry.genericTypeId(baseAddr, parameterTypeIndex))
         val genericNumDimensions = translate(typeRegistry.genericNumDimensions(baseAddr, parameterTypeIndex))
 
-        val typeConstraint = z3Context.mkOr(
+        val dimensionsConstraint = z3Context.mkEq(symNumDimensions, genericNumDimensions)
+
+        val equalTypeConstraint = z3Context.mkAnd(
             z3Context.mkEq(symType, genericSymType),
-            z3Context.mkEq(translate(expr.addr), translate(nullObjectAddr))
+            dimensionsConstraint
         )
 
-        val dimensionsConstraint = z3Context.mkEq(symNumDimensions, genericNumDimensions)
+        val typeConstraint = z3Context.mkOr(
+            equalTypeConstraint,
+            z3Context.mkEq(translate(expr.addr), translate(nullObjectAddr))
+        )
 
         z3Context.mkAnd(typeConstraint, dimensionsConstraint)
     }

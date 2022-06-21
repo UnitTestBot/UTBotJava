@@ -722,7 +722,7 @@ class TypeRegistry {
         secondAddr: UtAddrExpression,
         parameterSize: Int
     ) : UtEqGenericTypeParametersExpression {
-        val injections = (0 until parameterSize).associateWith { it }.toList().toTypedArray()
+        val injections = Array(parameterSize) { it to it }
 
         return eqGenericTypeParametersConstraint(firstAddr, secondAddr, *injections)
     }
@@ -745,7 +745,7 @@ class TypeRegistry {
     /**
      * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
      */
-    fun getObjectParameterTypeStorages(addr: UtAddrExpression): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+    fun getTypeStoragesForObjectTypeParameters(addr: UtAddrExpression): List<TypeStorage>? = genericTypeStorageByAddr[addr]
 
     /**
      * Set types storages for [firstAddr]'s type parameters equal to type storages for [secondAddr]'s type parameters
@@ -756,22 +756,22 @@ class TypeRegistry {
         secondAddr: UtAddrExpression,
         indexInjection: Array<out Pair<Int, Int>>
     ) {
-        genericTypeStorageByAddr[secondAddr]?.let { existingGenericTypes ->
-            val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
+        val existingGenericTypes = genericTypeStorageByAddr[secondAddr] ?: return
 
-            indexInjection.forEach { (from, to) ->
-                require(from >= 0 && from < existingGenericTypes.size) {
-                    "Type injection is out of bounds: should be in [0; ${existingGenericTypes.size}) but is $from"
-                }
+        val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
 
-                currentGenericTypes[to] = existingGenericTypes[from]
+        indexInjection.forEach { (from, to) ->
+            require(from >= 0 && from < existingGenericTypes.size) {
+                "Type injection is out of bounds: should be in [0; ${existingGenericTypes.size}) but is $from"
             }
 
-            genericTypeStorageByAddr[firstAddr] = currentGenericTypes
-                .entries
-                .sortedBy { it.key }
-                .mapTo(mutableListOf()) { it.value }
+            currentGenericTypes[to] = existingGenericTypes[from]
         }
+
+        genericTypeStorageByAddr[firstAddr] = currentGenericTypes
+            .entries
+            .sortedBy { it.key }
+            .mapTo(mutableListOf()) { it.value }
     }
 
     /**

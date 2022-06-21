@@ -14,11 +14,8 @@ import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.util.nextModelName
-import soot.BooleanType
 import soot.RefType
 import soot.Scene
-import soot.SootField
-import soot.Type
 
 /**
  * Auxiliary enum class for specifying an implementation for [CommonStreamWrapper], that it will use.
@@ -62,14 +59,14 @@ abstract class StreamWrapper(
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtAssembleModel = resolver.run {
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
-        val parametersArrayModel = resolveElementAsArrayModel(wrapper)
+        val parametersArrayModel = resolveElementsAsArrayModel(wrapper)
 
         val instantiationChain = mutableListOf<UtStatementModel>()
         val modificationsChain = emptyList<UtStatementModel>()
 
         UtAssembleModel(addr, utStreamClass.overriddenStreamClassId, modelName, instantiationChain, modificationsChain)
             .apply {
-                val (builder, params) = if (parametersArrayModel.length == 0) {
+                val (builder, params) = if (parametersArrayModel == null || parametersArrayModel.length == 0) {
                     streamEmptyMethodId to emptyList()
                 } else {
                     streamOfMethodId to listOf(parametersArrayModel)
@@ -89,10 +86,10 @@ abstract class StreamWrapper(
     override val modificationMethodId: MethodId
         get() = error("No modification method for Stream")
 
-    private fun Resolver.resolveElementAsArrayModel(wrapper: ObjectValue): UtArrayModel {
+    private fun Resolver.resolveElementsAsArrayModel(wrapper: ObjectValue): UtArrayModel? {
         val elementDataFieldId = FieldId(overriddenClass.type.classId, "elementData")
 
-        return collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as UtArrayModel
+        return collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as? UtArrayModel
     }
 
     private val streamOfMethodId: MethodId = methodId(
@@ -116,12 +113,5 @@ class CommonStreamWrapper : StreamWrapper(UtStreamClass.UT_STREAM) {
     companion object {
         internal val utStreamType: RefType
             get() = Scene.v().getSootClass(UtStream::class.java.canonicalName).type
-        private val booleanType: Type
-            get() = BooleanType.v()
-
-        internal val isParallelStreamFieldId: SootField
-            get() = SootField("isParallel", booleanType)
-        internal val isClosedStreamFieldId: SootField
-            get() = SootField("isClosed", booleanType)
     }
 }

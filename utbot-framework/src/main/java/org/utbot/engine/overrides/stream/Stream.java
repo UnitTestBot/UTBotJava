@@ -8,11 +8,11 @@ import java.util.stream.BaseStream;
 
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
-@SuppressWarnings({"UnnecessaryInterfaceModifier", "unused"})
+@SuppressWarnings("unused")
 @UtClassMock(target = java.util.stream.Stream.class, internalUsage = true)
 public interface Stream<E> extends BaseStream<E, Stream<E>> {
     @SuppressWarnings("unchecked")
-    public static <E> java.util.stream.Stream<E> of(E element) {
+    static <E> java.util.stream.Stream<E> of(E element) {
         Object[] data = new Object[1];
         data[0] = element;
 
@@ -20,30 +20,30 @@ public interface Stream<E> extends BaseStream<E, Stream<E>> {
     }
 
     @SuppressWarnings("unchecked")
-    public static <E> java.util.stream.Stream<E> of(E... elements) {
+    static <E> java.util.stream.Stream<E> of(E... elements) {
         int size = elements.length;
 
         return new UtStream<>(elements, size);
     }
 
     @SuppressWarnings("unchecked")
-    public static <E> java.util.stream.Stream<E> empty() {
+    static <E> java.util.stream.Stream<E> empty() {
         return new UtStream<>((E[]) new Object[]{}, 0);
     }
 
-    public static <E> java.util.stream.Stream<E> generate(Supplier<E> s) {
+    static <E> java.util.stream.Stream<E> generate(Supplier<E> s) {
         // as "generate" method produces an infinite stream, we cannot analyze it symbolically
         executeConcretely();
         return null;
     }
 
-    public static <E> java.util.stream.Stream<E> iterate(final E seed, final UnaryOperator<E> f) {
+    static <E> java.util.stream.Stream<E> iterate(final E seed, final UnaryOperator<E> f) {
         // as "iterate" method produces an infinite stream, we cannot analyze it symbolically
         executeConcretely();
         return null;
     }
     
-    public static <E> java.util.stream.Stream<E> concat(
+     static <E> java.util.stream.Stream<E> concat(
             java.util.stream.Stream<? extends E> a, 
             java.util.stream.Stream<? extends E> b
     ) {

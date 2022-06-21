@@ -858,17 +858,17 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
         }
         iterablesDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Iterable::class.id, Iterator::class.id, Set::class.id)
-            CodegenLanguage.KOTLIN -> listOf()
+            CodegenLanguage.KOTLIN -> emptyList()
         }
         streamsDeepEqualsMethodId -> when (codegenLanguage) {
-            CodegenLanguage.JAVA -> listOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id, Set::class.id)
-            CodegenLanguage.KOTLIN -> listOf()
+            CodegenLanguage.JAVA -> listOf(java.util.stream.Stream::class.id, Set::class.id)
+            CodegenLanguage.KOTLIN -> emptyList()
         }
         mapsDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Map::class.id, Iterator::class.id, Set::class.id)
-            CodegenLanguage.KOTLIN -> listOf()
+            CodegenLanguage.KOTLIN -> emptyList()
         }
-        hasCustomEqualsMethodId -> listOf()
+        hasCustomEqualsMethodId -> emptyList()
         getArrayLengthMethodId -> listOf(java.lang.reflect.Array::class.id)
         else -> error("Unknown util method for class $this: $id")
     }

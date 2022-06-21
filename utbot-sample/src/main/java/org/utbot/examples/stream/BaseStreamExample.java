@@ -28,6 +28,11 @@ public class BaseStreamExample {
         }
     }
 
+    Stream<Integer> returningStreamAsParameterExample(Stream<Integer> s) {
+        UtMock.assume(s != null);
+        return s;
+    }
+
     @SuppressWarnings("Convert2MethodRef")
     boolean filterExample(List<Integer> list) {
         UtMock.assume(list != null && !list.isEmpty());
@@ -423,6 +428,7 @@ public class BaseStreamExample {
         }
     }
 
+    @SuppressWarnings({"ConstantConditions", "ReplaceInefficientStreamCount"})
     long anyCollectionStreamExample(Collection<Integer> c) {
         UtMock.assume(c != null);
 

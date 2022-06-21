@@ -43,6 +43,18 @@ class BaseStreamExampleTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
+    fun testReturningStreamAsParameterExample() {
+        withoutConcrete {
+            check(
+                BaseStreamExample::returningStreamAsParameterExample,
+                eq(1),
+                { s, r -> s != null && s.toList() == r!!.toList() },
+                coverage = FullWithAssumptions(assumeCallsNumber = 1)
+            )
+        }
+    }
+
+    @Test
     fun testFilterExample() {
         check(
             BaseStreamExample::filterExample,

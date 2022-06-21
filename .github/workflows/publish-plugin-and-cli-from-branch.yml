@@ -19,6 +19,12 @@ jobs:
       container: ubuntu:20.04
       
       steps:
+      - name: Install prerequisites
+        run: |
+          set -x
+          apt update
+          apt install -y unzip
+
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v2
         with:

@@ -1,6 +1,6 @@
 # UTBot Java Developer Guide
  
- Here are the steps for you to start the research of UTBot Java.
+ Here are the steps for you to jump into UTBot Java.
  
 ## Install UTBot Java from source
 1. Clone UTBot Java repository via [Git](https://github.com/UnitTestBot/UTBotJava.git)
@@ -25,11 +25,11 @@ Done! You\`re awesome and ready for digging the code. 😃
 ## Development of UTBot Java with IntelliJ IDEA
 
 The majority of the code is written in Kotlin. The project is divided into Gradle subprojects. The most significant of them are: 
-1. utbot-framework - all about the engine and tests for it
+1. utbot-framework — all about the engine and tests for it
 
-2. utbot-intellij - IDE plugin
+2. utbot-intellij — IDE plugin
 
-3. utbot-sample - a framework with examples to demonstrate engine capacity
+3. utbot-sample — a framework with examples to demonstrate engine capacity
  
 ## Testing
 

@@ -17,7 +17,6 @@ assignees: ''
 - [ ] Clone or reuse UTBot project (https://github.com/UnitTestBot/UTBotJava.git)
 - [ ] Open the project in the IDE
 - [ ] Install the downloaded plugin
-- [ ] Build the project (Instruction is needed)
 
 *Go through manual scenarios*
 

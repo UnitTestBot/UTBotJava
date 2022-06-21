@@ -42,3 +42,25 @@ subprojects {
         maven { url 'https://jitpack.io' }
     }
 }
+
+configure([
+    project(':utbot-api'),
+    project(':utbot-core'),
+    project(':utbot-framework'),
+    project(':utbot-framework-api'),
+    project(':utbot-fuzzers'),
+    project(':utbot-instrumentation')
+]) {
+    publishing {
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url = "https://maven.pkg.github.com/UnitTestBot/UTBotJava"
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR")
+                    password = System.getenv("GITHUB_TOKEN")
+                }
+            }
+        }
+    }
+}

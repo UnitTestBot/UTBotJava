@@ -6,6 +6,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: utbot_java_cli
+  DOCKERFILE_PATH: docker/Dockerfile_java_cli
 
 jobs:
   build-and-publish-docker:
@@ -57,7 +58,7 @@ jobs:
       - name: Docker Buildx (build and push)
         run: |
           docker buildx build \
-            -f docker/${{ env.IMAGE_NAME }} \
+            -f ${{ env.DOCKERFILE_PATH }} \
             --cache-from "type=local,src=/tmp/.buildx-cache" \
             --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
             --tag ${{ steps.meta.outputs.tags }} \

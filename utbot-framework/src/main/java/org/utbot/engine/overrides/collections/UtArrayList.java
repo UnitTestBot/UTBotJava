@@ -13,7 +13,10 @@ import java.util.RandomAccess;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
+
 import org.jetbrains.annotations.NotNull;
+import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.engine.ResolverKt.MAX_LIST_SIZE;
@@ -359,6 +362,28 @@ public class UtArrayList<E> extends AbstractList<E>
         for (int i = 0; i < elementData.end; i++) {
             elementData.set(i, operator.apply(elementData.get(i)));
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Stream<E> stream() {
+        preconditionCheck();
+
+        int size = elementData.end;
+        Object[] data = elementData.toArray(0, size);
+
+        return new UtStream<>((E[]) data, size);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Stream<E> parallelStream() {
+        preconditionCheck();
+
+        int size = elementData.end;
+        Object[] data = elementData.toArray(0, size);
+
+        return new UtStream<>((E[]) data, size);
     }
 
     /**

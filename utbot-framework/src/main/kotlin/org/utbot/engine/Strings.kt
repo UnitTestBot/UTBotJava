@@ -72,9 +72,9 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         method: SootMethod,
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? {
-        when (method.subSignature) {
+        return when (method.subSignature) {
             toStringMethodSignature -> {
-                return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+                listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
             }
             matchesMethodSignature -> {
                 val arg = parameters[0] as ObjectValue
@@ -82,7 +82,8 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
 
                 if (!matchingLengthExpr.isConcrete) return null
 
-                val matchingValueExpr = selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
+                val matchingValueExpr =
+                    selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
                 val matchingLength = matchingLengthExpr.toConcrete() as Int
                 val matchingValue = CharArray(matchingLength)
 
@@ -124,7 +125,11 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
                 val inBoundsCondition = mkAnd(Le(0.toPrimitiveValue(), index), Lt(index, lengthExpr.toIntValue()))
                 val failMethodResult =
                     MethodResult(
-                        explicitThrown(StringIndexOutOfBoundsException(), findNewAddr(), isInNestedMethod()),
+                        explicitThrown(
+                            StringIndexOutOfBoundsException(),
+                            findNewAddr(),
+                            isInNestedMethod()
+                        ),
                         hardConstraints = mkNot(inBoundsCondition).asHardConstraint()
                     )
 

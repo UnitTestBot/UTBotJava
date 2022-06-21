@@ -227,9 +227,11 @@ open class Z3TranslatorVisitor(
         val constraints = mutableListOf<BoolExpr>()
         for (i in types.indices) {
             val symType = translate(typeRegistry.genericTypeId(addr, i))
+
             if (types[i].leastCommonType.isJavaLangObject()) {
                  continue
             }
+
             val possibleBaseTypes = types[i].possibleConcreteTypes.map { it.baseType }
 
             val typeConstraint = z3Context.mkOr(
@@ -240,8 +242,10 @@ open class Z3TranslatorVisitor(
                     )
                 }.toTypedArray()
             )
+
             constraints += typeConstraint
         }
+
         z3Context.mkOr(
             z3Context.mkAnd(*constraints.toTypedArray()),
             z3Context.mkEq(translate(expr.addr), translate(nullObjectAddr))
@@ -250,11 +254,24 @@ open class Z3TranslatorVisitor(
 
     override fun visit(expr: UtIsGenericTypeExpression): Expr = expr.run {
         val symType = translate(typeRegistry.symTypeId(addr))
+        val symNumDimensions = translate(typeRegistry.symNumDimensions(addr))
+
         val genericSymType = translate(typeRegistry.genericTypeId(baseAddr, parameterTypeIndex))
-        z3Context.mkOr(
+        val genericNumDimensions = translate(typeRegistry.genericNumDimensions(baseAddr, parameterTypeIndex))
+
+        val dimensionsConstraint = z3Context.mkEq(symNumDimensions, genericNumDimensions)
+
+        val equalTypeConstraint = z3Context.mkAnd(
             z3Context.mkEq(symType, genericSymType),
+            dimensionsConstraint
+        )
+
+        val typeConstraint = z3Context.mkOr(
+            equalTypeConstraint,
             z3Context.mkEq(translate(expr.addr), translate(nullObjectAddr))
         )
+
+        z3Context.mkAnd(typeConstraint, dimensionsConstraint)
     }
 
     override fun visit(expr: UtEqGenericTypeParametersExpression): Expr = expr.run {
@@ -263,6 +280,10 @@ open class Z3TranslatorVisitor(
             val firstSymType = translate(typeRegistry.genericTypeId(firstAddr, i))
             val secondSymType = translate(typeRegistry.genericTypeId(secondAddr, j))
             constraints += z3Context.mkEq(firstSymType, secondSymType)
+
+            val firstSymNumDimensions = translate(typeRegistry.genericNumDimensions(firstAddr, i))
+            val secondSymNumDimensions = translate(typeRegistry.genericNumDimensions(secondAddr, j))
+            constraints += z3Context.mkEq(firstSymNumDimensions, secondSymNumDimensions)
         }
         z3Context.mkAnd(*constraints.toTypedArray())
     }

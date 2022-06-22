@@ -31,14 +31,10 @@ import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
-import org.utbot.intellij.plugin.util.AndroidApiHelper
-import com.intellij.codeInsight.hint.HintUtil
-import com.intellij.icons.AllIcons
 import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.roots.ContentEntry
@@ -46,7 +42,6 @@ import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.JavaProjectModelModificationService
 import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
 import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
@@ -68,18 +63,11 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ContextHelpLabel
-import com.intellij.ui.HyperlinkLabel
-import com.intellij.ui.IdeBorderFactory.createBorder
-import com.intellij.ui.InplaceButton
-import com.intellij.ui.JBColor
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SideBorder
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.Panel
-import com.intellij.ui.components.panels.HorizontalLayout
-import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
@@ -95,7 +83,6 @@ import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
-import java.awt.Color
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -118,9 +105,6 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
-    companion object {
-        const val supportedSdkVersion = 8
-    }
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
 
@@ -241,74 +225,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
 
-    override fun createTitlePane(): JComponent? {
-        val sdkVersion = findSdkVersion()
-        //TODO:SAT-1571 investigate Android Studio specific sdk issues
-        if (sdkVersion?.feature == supportedSdkVersion || AndroidApiHelper.isAndroidStudio()) return null
-        isOKActionEnabled = false
-        return SdkNotificationPanel(model, sdkVersion)
-    }
-
     private fun findTestPackageComboValue(): String {
         val packageNames = model.srcClasses.map { it.packageName }.distinct()
         return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
-    }
-
-    private fun findSdkVersion(): JavaVersion? {
-        val projectSdk = ModuleRootManager.getInstance(model.testModule).sdk
-        return JavaVersion.tryParse(projectSdk?.versionString)
-    }
-
-    /**
-     * A panel to inform user about incorrect jdk in project.
-     *
-     * Note: this implementation was encouraged by NonModalCommitPromoter.
-     */
-    private inner class SdkNotificationPanel(
-        private val model: GenerateTestsModel,
-        private val sdkVersion: JavaVersion?,
-    ) : BorderLayoutPanel() {
-        init {
-            border = merge(empty(10), createBorder(JBColor.border(), SideBorder.BOTTOM), true)
-
-            addToLeft(JBLabel().apply {
-                icon = AllIcons.Ide.FatalError
-                text = if (sdkVersion != null) {
-                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}"
-                } else {
-                    "SDK is not defined"
-                }
-            })
-
-            addToRight(NonOpaquePanel(HorizontalLayout(scale(12))).apply {
-                add(createConfigureAction())
-                add(createCloseAction())
-            })
-        }
-
-        override fun getBackground(): Color? =
-            EditorColorsManager.getInstance().globalScheme.getColor(HintUtil.ERROR_COLOR_KEY) ?: super.getBackground()
-
-        private fun createConfigureAction(): JComponent =
-            HyperlinkLabel("Setup SDK").apply {
-                addHyperlinkListener {
-                    val projectStructure = ProjectStructureConfigurable.getInstance(model.project)
-                    val isEdited = ShowSettingsUtil.getInstance().editConfigurable(model.project, projectStructure)
-                    { projectStructure.select(model.testModule.name, ClasspathEditor.getName(), true) }
-
-                    val sdkVersion = findSdkVersion()
-                    val sdkFixed = isEdited && sdkVersion?.feature == supportedSdkVersion
-                    if (sdkFixed) {
-                        this@SdkNotificationPanel.isVisible = false
-                        isOKActionEnabled = true
-                    }
-                }
-            }
-
-        private fun createCloseAction(): JComponent =
-            InplaceButton(IconButton(null, AllIcons.Actions.Close, AllIcons.Actions.CloseHovered)) {
-                this@SdkNotificationPanel.isVisible = false
-            }
     }
 
     private fun updateMembersTable() {

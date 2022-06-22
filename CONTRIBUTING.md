@@ -28,7 +28,7 @@ Our team adheres to the defined requirements to coding style to optimize for rea
 
 ## How to setup development environment?
 
-Please refer [Developer guide](DEVNOTE.md) to setup developer environment, build and run UTBot.
+Please refer [Developer guide](https://github.com/UnitTestBot/UTBotJava/blob/main/DEVNOTE.md) to setup developer environment, build and run UTBot.
 
 
 ## How to test you PR? 

@@ -99,8 +99,8 @@ JVM_OPTS=$JVM_OPTS" -Xloggc:$WORKDIR/run_contest_gc.log"
 
 JVM_OPTS=$JVM_OPTS" -Dutbot.settings.path=$SETTING_PROPERTIES_FILE"
 
-#TMP directory
-JVM_OPTS=$JVM_OPTS" -Djava.io.tmpdir=/home/wx1143086/tmp"
+#Custom TMP directory - usually for server, change it by yours
+#JVM_OPTS=$JVM_OPTS" -Djava.io.tmpdir=/home/wx1143086/tmp"
 
 echo "JVM_OPTS: $JVM_OPTS"
 

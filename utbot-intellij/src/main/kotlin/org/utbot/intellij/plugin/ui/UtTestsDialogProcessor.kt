@@ -40,6 +40,7 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
+import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.intellij.plugin.error.showErrorDialogLater
 
 object UtTestsDialogProcessor {
@@ -149,6 +150,7 @@ object UtTestsDialogProcessor {
                                     .executeSynchronously()
 
                                 withSubstitutionCondition(shouldSubstituteStatics) {
+                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
                                     val codeGenerator = CodeGenerator(
                                         searchDirectory = searchDirectory,
                                         mockStrategy = model.mockStrategy,
@@ -158,6 +160,14 @@ object UtTestsDialogProcessor {
                                         pluginJarsPath = pluginJarsPath.joinToString(separator = File.pathSeparator),
                                         chosenClassesToMockAlways = model.chosenClassesToMockAlways
                                     ) { indicator.isCanceled }
+
+                                    val forceMockListener = if (!mockFrameworkInstalled) {
+                                         ForceMockListener().apply {
+                                             codeGenerator.generator.configureEngine = { engine -> engine.attachMockListener(this) }
+                                         }
+                                    } else {
+                                        null
+                                    }
 
                                     val notEmptyCases = withUtContext(context) {
                                         codeGenerator
@@ -173,6 +183,10 @@ object UtTestsDialogProcessor {
                                         )
                                     } else {
                                         testCasesByClass[srcClass] = notEmptyCases
+                                    }
+
+                                    forceMockListener?.run {
+                                        model.forceMockHappened = forceMockHappened
                                     }
 
                                     timerHandler.cancel(true)

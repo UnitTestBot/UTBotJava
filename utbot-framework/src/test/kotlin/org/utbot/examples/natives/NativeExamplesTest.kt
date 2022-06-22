@@ -5,16 +5,20 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.junit.jupiter.api.Test
+import org.utbot.examples.withSolverTimeoutInMillis
 
 internal class NativeExamplesTest : AbstractTestCaseGeneratorTest(testClass = NativeExamples::class) {
 
     @Test
     fun testFindAndPrintSum() {
-        check(
-            NativeExamples::findAndPrintSum,
-            ge(1),
-            coverage = DoNotCalculate,
-        )
+        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
+        withSolverTimeoutInMillis(5000) {
+            check(
+                NativeExamples::findAndPrintSum,
+                ge(1),
+                coverage = DoNotCalculate,
+            )
+        }
     }
 
     @Test

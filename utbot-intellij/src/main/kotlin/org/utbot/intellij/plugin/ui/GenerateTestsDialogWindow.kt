@@ -773,18 +773,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.allItems
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.allItems.filterNot { it == Junit4 }
         }
-
-        enabledTestFrameworks.forEach {
-            it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
-        }
-
-        val defaultItem = when (parametrizedTestSource) {
+        var defaultItem = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.defaultItem
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.parametrizedDefaultItem
         }
+        enabledTestFrameworks.forEach {
+            it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
+            if (it.isInstalled && !defaultItem.isInstalled) defaultItem = it
+        }
 
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
-        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
+        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks && currentFrameworkItem.isInstalled) currentFrameworkItem else defaultItem
         testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
             override fun customizeCellRenderer(
                 list: JList<out TestFramework>, value: TestFramework?,

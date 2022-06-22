@@ -1,3 +1,7 @@
+plugins {
+  id 'maven-publish'
+}
+
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 repositories {
@@ -74,4 +78,17 @@ test {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }
+}
+
+publishing {
+  repositories {
+    maven {
+      name = "GitHubPackages"
+      url = "https://maven.pkg.github.com/UnitTestBot/UTBotJava"
+      credentials {
+        username = System.getenv("GITHUB_ACTOR")
+        password = System.getenv("GITHUB_TOKEN")
+      }
+    }
+  }
 }

@@ -17,7 +17,7 @@ class SarifReportTest {
         val actualReport = SarifReport(
             testCases = listOf(),
             generatedTestsCode = "",
-            SourceFindingStrategyDefault("", "", "", "")
+            sourceFindingEmpty
         ).createReport()
 
         assert(actualReport.isNotEmpty())
@@ -28,7 +28,7 @@ class SarifReportTest {
         val sarif = SarifReport(
             testCases = listOf(testCase),
             generatedTestsCode = "",
-            SourceFindingStrategyDefault("", "", "", "")
+            sourceFindingEmpty
         ).createReport().toSarif()
 
         assert(sarif.runs.first().results.isEmpty())
@@ -58,7 +58,7 @@ class SarifReportTest {
         val report = SarifReport(
             testCases = testCases,
             generatedTestsCode = "",
-            SourceFindingStrategyDefault("", "", "", "")
+            sourceFindingEmpty
         ).createReport().toSarif()
 
         assert(report.runs.first().results[0].message.text.contains("NullPointerException"))
@@ -74,23 +74,9 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
         Mockito.`when`(mockUtExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(1337)
-        Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain")
+        Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
-        val report = SarifReport(
-            testCases = listOf(testCase),
-            generatedTestsCode = """
-                // comment for `startLine == 2` in related location
-                public void testMain() throws Throwable {
-                    Main.main();
-                } 
-            """.trimIndent(),
-            SourceFindingStrategyDefault(
-                sourceClassFqn = "Main",
-                sourceFilePath = "src/Main.java",
-                testsFilePath = "test/MainTest.java",
-                projectRootPath = "."
-            )
-        ).createReport().toSarif()
+        val report = sarifReportMain.createReport().toSarif()
 
         val result = report.runs.first().results.first()
         val location = result.locations.first().physicalLocation
@@ -99,7 +85,7 @@ class SarifReportTest {
         assert(location.artifactLocation.uri.contains("Main.java"))
         assert(location.region.startLine == 1337)
         assert(relatedLocation.artifactLocation.uri.contains("MainTest.java"))
-        assert(relatedLocation.region.startLine == 2)
+        assert(relatedLocation.region.startLine == 1)
     }
 
     @Test
@@ -117,16 +103,7 @@ class SarifReportTest {
             )
         )
 
-        val report = SarifReport(
-            testCases = listOf(testCase),
-            generatedTestsCode = "",
-            SourceFindingStrategyDefault(
-                sourceClassFqn = "Main",
-                sourceFilePath = "src/Main.java",
-                testsFilePath = "test/MainTest.java",
-                projectRootPath = "."
-            )
-        ).createReport().toSarif()
+        val report = sarifReportMain.createReport().toSarif()
 
         val result = report.runs.first().results.first()
         assert(result.message.text.contains("227"))
@@ -135,14 +112,13 @@ class SarifReportTest {
     }
 
     @Test
-    fun testCorrectCodeFlow() {
+    fun testCorrectCodeFlows() {
         mockUtMethodNames()
 
         val uncheckedException = Mockito.mock(NullPointerException::class.java)
+        val stackTraceElement = StackTraceElement("Main", "main", "Main.java", 17)
         Mockito.`when`(uncheckedException.stackTrace).thenReturn(
-            Array(2) {
-                StackTraceElement("Main", "main", "Main.java", 17)
-            }
+            Array(2) { stackTraceElement }
         )
 
         Mockito.`when`(mockUtExecution.result).thenReturn(
@@ -150,24 +126,61 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
 
-        val report = SarifReport(
-            testCases = listOf(testCase),
-            generatedTestsCode = "",
-            SourceFindingStrategyDefault(
-                sourceClassFqn = "Main",
-                sourceFilePath = "src/Main.java",
-                testsFilePath = "test/MainTest.java",
-                projectRootPath = "."
-            )
-        ).createReport().toSarif()
+        val report = sarifReportMain.createReport().toSarif()
 
         val result = report.runs.first().results.first().codeFlows.first().threadFlows.first().locations.map {
             it.location.physicalLocation
         }
-        assert(result[0].artifactLocation.uri.contains("Main.java"))
-        assert(result[0].region.startLine == 17)
-        assert(result[1].artifactLocation.uri.contains("Main.java"))
-        assert(result[1].region.startLine == 17)
+        for (index in 0..1) {
+            assert(result[index].artifactLocation.uri.contains("Main.java"))
+            assert(result[index].region.startLine == 17)
+        }
+    }
+
+    @Test
+    fun testCodeFlowsStartsWithMethodCall() {
+        mockUtMethodNames()
+
+        val uncheckedException = Mockito.mock(NullPointerException::class.java)
+        val stackTraceElement = StackTraceElement("Main", "main", "Main.java", 3)
+        Mockito.`when`(uncheckedException.stackTrace).thenReturn(arrayOf(stackTraceElement))
+
+        Mockito.`when`(mockUtExecution.result).thenReturn(
+            UtImplicitlyThrownException(uncheckedException, false)
+        )
+        Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
+        Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
+
+        val report = sarifReportMain.createReport().toSarif()
+
+        val codeFlowPhysicalLocations = report.runs[0].results[0].codeFlows[0].threadFlows[0].locations.map {
+            it.location.physicalLocation
+        }
+        assert(codeFlowPhysicalLocations[0].artifactLocation.uri.contains("MainTest.java"))
+        assert(codeFlowPhysicalLocations[0].region.startLine == 3)
+    }
+
+    @Test
+    fun testCodeFlowsStartsWithPrivateMethodCall() {
+        mockUtMethodNames()
+
+        val uncheckedException = Mockito.mock(NullPointerException::class.java)
+        val stackTraceElement = StackTraceElement("Main", "main", "Main.java", 3)
+        Mockito.`when`(uncheckedException.stackTrace).thenReturn(arrayOf(stackTraceElement))
+
+        Mockito.`when`(mockUtExecution.result).thenReturn(
+            UtImplicitlyThrownException(uncheckedException, false)
+        )
+        Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
+        Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
+
+        val report = sarifReportPrivateMain.createReport().toSarif()
+
+        val codeFlowPhysicalLocations = report.runs[0].results[0].codeFlows[0].threadFlows[0].locations.map {
+            it.location.physicalLocation
+        }
+        assert(codeFlowPhysicalLocations[0].artifactLocation.uri.contains("MainTest.java"))
+        assert(codeFlowPhysicalLocations[0].region.startLine == 4)
     }
 
     // internal
@@ -184,4 +197,41 @@ class SarifReportTest {
     }
 
     private fun String.toSarif(): Sarif = jacksonObjectMapper().readValue(this)
+
+    // constants
+
+    private val sourceFindingEmpty = SourceFindingStrategyDefault(
+        sourceClassFqn = "",
+        sourceFilePath = "",
+        testsFilePath = "",
+        projectRootPath = ""
+    )
+
+    private val sourceFindingMain = SourceFindingStrategyDefault(
+        sourceClassFqn = "Main",
+        sourceFilePath = "src/Main.java",
+        testsFilePath = "test/MainTest.java",
+        projectRootPath = "."
+    )
+
+    private val generatedTestsCodeMain = """
+        public void testMain_ThrowArithmeticException() {
+            Main main = new Main();
+            main.main(0);
+        }
+    """.trimIndent()
+
+    private val generatedTestsCodePrivateMain = """
+        public void testMain_ThrowArithmeticException() {
+            Main main = new Main();
+            // ...
+            mainMethod.invoke(main, mainMethodArguments);
+        }
+    """.trimIndent()
+
+    private val sarifReportMain =
+        SarifReport(listOf(testCase), generatedTestsCodeMain, sourceFindingMain)
+
+    private val sarifReportPrivateMain =
+        SarifReport(listOf(testCase), generatedTestsCodePrivateMain, sourceFindingMain)
 }

@@ -54,6 +54,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 
 /**
  * Interface for all code generation context aware entities
@@ -350,6 +351,9 @@ internal interface CgContextOwner {
 
     val iterablesDeepEquals: MethodId
         get() = currentTestClass.iterablesDeepEqualsMethodId
+
+    val streamsDeepEquals: MethodId
+        get() = currentTestClass.streamsDeepEqualsMethodId
 
     val mapsDeepEquals: MethodId
         get() = currentTestClass.mapsDeepEqualsMethodId

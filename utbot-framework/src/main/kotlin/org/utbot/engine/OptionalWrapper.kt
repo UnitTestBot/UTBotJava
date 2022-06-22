@@ -29,7 +29,7 @@ import soot.Scene
 import soot.SootMethod
 
 /**
- * Auxiliary enum class for specifying an implementation for [ListWrapper], that it will use.
+ * Auxiliary enum class for specifying an implementation for [OptionalWrapper], that it will use.
  */
 enum class UtOptionalClass {
     UT_OPTIONAL,
@@ -81,6 +81,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
             }
 
         }
+
         return null
     }
 

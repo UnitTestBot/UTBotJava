@@ -5,6 +5,7 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
+import org.utbot.examples.between
 import org.utbot.examples.isException
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -20,6 +21,16 @@ internal class ListsTest : AbstractTestCaseGeneratorTest(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Test
+    fun testBigListFromParameters() {
+        check(
+            Lists::bigListFromParameters,
+            eq(1),
+            { list, r -> list.size == r && list.size == 11 },
+            coverage = DoNotCalculate
+        )
+    }
+
     @Test
     fun testGetNonEmptyCollection() {
         check(
@@ -104,7 +115,7 @@ internal class ListsTest : AbstractTestCaseGeneratorTest(
     fun removeElementsTest() {
         checkWithException(
             Lists::removeElements,
-            eq(7),
+            between(7..8),
             { list, _, _, r -> list == null && r.isException<NullPointerException>() },
             { list, i, _, r -> list != null && i < 0 && r.isException<IndexOutOfBoundsException>() },
             { list, i, _, r -> list != null && i >= 0 && list.size > i && list[i] == null && r.isException<NullPointerException>() },

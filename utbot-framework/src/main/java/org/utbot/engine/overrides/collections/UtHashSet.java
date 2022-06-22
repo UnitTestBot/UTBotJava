@@ -8,7 +8,10 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
+
 import org.jetbrains.annotations.NotNull;
+import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
@@ -73,7 +76,7 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
         doesntThrow();
 
         // check that all elements are distinct.
-        for (int i = 0; i < elementData.end; i++) {
+        for (int i = elementData.begin; i < elementData.end; i++) {
             E element = elementData.get(i);
             parameter(element);
             // make element address non-positive
@@ -261,6 +264,28 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
     public Iterator<E> iterator() {
         preconditionCheck();
         return new UtHashSetIterator();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Stream<E> stream() {
+        preconditionCheck();
+
+        int size = elementData.end;
+        Object[] data = elementData.toArray(0, size);
+
+        return new UtStream<>((E[]) data, size);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Stream<E> parallelStream() {
+        preconditionCheck();
+
+        int size = elementData.end;
+        Object[] data = elementData.toArray(0, size);
+
+        return new UtStream<>((E[]) data, size);
     }
 
     public class UtHashSetIterator implements Iterator<E> {

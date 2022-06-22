@@ -290,7 +290,9 @@ class MockValueConstructor(
         constructedObjects[model]?.let { return it }
 
         with(model) {
-            val elementClassId = classId.elementClassId!!
+            val elementClassId = classId.elementClassId ?: error(
+                "Provided incorrect UtArrayModel without elementClassId. ClassId: ${model.classId}, model: $model"
+            )
             return when (elementClassId.jvmName) {
                 "B" -> ByteArray(length) { primitive(constModel) }.apply {
                     stores.forEach { (index, model) -> this[index] = primitive(model) }

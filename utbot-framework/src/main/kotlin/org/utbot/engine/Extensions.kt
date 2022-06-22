@@ -18,6 +18,7 @@ import org.utbot.engine.pc.UtSeqSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
+import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.pc.UtSort
 import org.utbot.engine.pc.mkArrayWithConst
 import org.utbot.engine.pc.mkBool
@@ -46,6 +47,7 @@ import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
+import org.utbot.engine.pc.UtSolverStatusUNDEFINED
 import soot.ArrayType
 import soot.PrimType
 import soot.RefLikeType
@@ -435,18 +437,27 @@ val SootClass.isLibraryNonOverriddenClass: Boolean
 /**
  * Returns a state from the list that has [UtSolverStatusSAT] status.
  * Inside it calls UtSolver.check if required.
+ *
+ * [processStatesWithUnknownStatus] is responsible for solver checks for states
+ * with unknown status. Note that this calculation might take a long time.
  */
-fun MutableList<ExecutionState>.pollUntilSat(): ExecutionState? {
+fun MutableList<ExecutionState>.pollUntilSat(processStatesWithUnknownStatus: Boolean): ExecutionState? {
     while (!isEmpty()) {
         val state = removeLast()
 
         with(state.solver) {
+            if (lastStatus.statusKind == UtSolverStatusKind.UNSAT) return@with
+
             if (lastStatus.statusKind == UtSolverStatusKind.SAT) return state
 
-            if (lastStatus.statusKind == UtSolverStatusKind.UNKNOWN) {
-                val result = check(respectSoft = true)
+            require(failedAssumptions.isEmpty()) { "There are failed requirements in the queue to execute concretely" }
 
-                if (result.statusKind == UtSolverStatusKind.SAT) return state
+            if (processStatesWithUnknownStatus) {
+                if (lastStatus == UtSolverStatusUNDEFINED) {
+                    val result = check(respectSoft = true)
+
+                    if (result.statusKind == UtSolverStatusKind.SAT) return state
+                }
             }
         }
     }
@@ -458,3 +469,23 @@ fun isOverriddenClass(type: RefType) = type.sootClass.isOverridden
 
 val SootMethod.isSynthetic: Boolean
     get() = soot.Modifier.isSynthetic(modifiers)
+
+/**
+ * Returns true if the [SootMethod]'s signature is equal to [UtMock.assume]'s signature, false otherwise.
+ */
+val SootMethod.isUtMockAssume
+    get() = signature == assumeMethod.signature
+
+/**
+ * Returns true if the [SootMethod]'s signature is equal to
+ * [UtMock.assumeOrExecuteConcretely]'s signature, false otherwise.
+ */
+val SootMethod.isUtMockAssumeOrExecuteConcretely
+    get() = signature == assumeOrExecuteConcretelyMethod.signature
+
+/**
+ * Returns true is the [SootMethod] is defined in a class from
+ * [UTBOT_OVERRIDE_PACKAGE_NAME] package and its name is `preconditionCheck`.
+ */
+val SootMethod.isPreconditionCheckMethod
+    get() = declaringClass.isOverridden && name == "preconditionCheck"

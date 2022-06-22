@@ -8,10 +8,17 @@
 
 ![image](https://user-images.githubusercontent.com/106974353/174806216-9d4969b4-51fb-4531-a6d0-94e3734a437a.png)
 
-*don\`t forget to check your Project SDK and Gradle SDK are of 1.8 Java version.
+⚠️ Important don\`t forgets at this step:
+
+✔️ check your Project SDK and Gradle SDK are of 1.8 Java version.
 
 ![image](https://user-images.githubusercontent.com/106974353/174812758-fcbabb5b-0411-48d7-aefe-6d69873185e3.png)
 ![image](https://user-images.githubusercontent.com/106974353/174806632-ed796fb7-57dd-44b5-b499-e9eeb0436f15.png)
+
+✔️ check your System environment variables: the KOTLIN_HOME variable path should be set up
+
+![image](https://user-images.githubusercontent.com/106974353/175059333-4f3b0083-7964-4886-8fcd-48c475fc1fb3.png)
+
 
 3. Open Gradle tool window
 4. Launch Task utbot > Tasks > build > assemble

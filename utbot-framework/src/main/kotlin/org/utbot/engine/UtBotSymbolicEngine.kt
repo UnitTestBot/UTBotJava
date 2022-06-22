@@ -81,19 +81,11 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.selectors.PathSelector
-import org.utbot.engine.selectors.StrategyOption
-import org.utbot.engine.selectors.coveredNewSelector
-import org.utbot.engine.selectors.cpInstSelector
-import org.utbot.engine.selectors.forkDepthSelector
-import org.utbot.engine.selectors.inheritorsSelector
-import org.utbot.engine.selectors.nnRewardGuidedSelector
+import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
-import org.utbot.engine.selectors.pollUntilFastSAT
-import org.utbot.engine.selectors.randomPathSelector
-import org.utbot.engine.selectors.randomSelector
+import org.utbot.engine.selectors.strategies.DefaultScoringStrategy
 import org.utbot.engine.selectors.strategies.GraphViz
-import org.utbot.engine.selectors.subpathGuidedSelector
+import org.utbot.engine.selectors.strategies.ScoringStrategy
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.SymbolicState
@@ -116,21 +108,8 @@ import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MissingState
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.graph
-import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
@@ -250,33 +229,39 @@ private var stateSelectedCount = 0
 //all id values of synthetic default models must be greater that for real ones
 var nextDefaultModelId = 1500_000_000
 
-private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
-    when (pathSelectorType) {
-        PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.SUBPATH_GUIDED_SELECTOR -> subpathGuidedSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.CPI_SELECTOR -> cpInstSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.FORK_DEPTH_SELECTOR -> forkDepthSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.NN_REWARD_GUIDED_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.RANDOM_SELECTOR -> randomSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
+private fun pathSelector(
+    graph: InterProceduralUnitGraph,
+    typeRegistry: TypeRegistry,
+    scoringStrategy: ScoringStrategy,
+) = when (pathSelectorType) {
+    PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
+        withStepsLimit(pathSelectorStepsLimit)
     }
+    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.SUBPATH_GUIDED_SELECTOR -> subpathGuidedSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.CPI_SELECTOR -> cpInstSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.FORK_DEPTH_SELECTOR -> forkDepthSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.NN_REWARD_GUIDED_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.RANDOM_SELECTOR -> randomSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+    PathSelectorType.SCORING_PATH_SELECTOR -> scoringPathSelector(graph, scoringStrategy) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+}
 
 class UtBotSymbolicEngine(
     private val controller: EngineController,
@@ -287,14 +272,15 @@ class UtBotSymbolicEngine(
     mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
-    private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition
+    private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
+    scoringStrategy: ScoringStrategy = DefaultScoringStrategy
 ) : UtContextInitializer() {
 
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
     private val globalGraph = InterProceduralUnitGraph(graph)
     internal val typeRegistry: TypeRegistry = TypeRegistry()
-    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
+    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry, scoringStrategy)
 
     private val classLoader: ClassLoader
         get() = utContext.classLoader

@@ -50,6 +50,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.engine.*
+import org.utbot.engine.selectors.strategies.DefaultScoringStrategy
+import org.utbot.engine.selectors.strategies.ScoringStrategy
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
@@ -173,6 +175,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
+        scoringStrategy: ScoringStrategy = DefaultScoringStrategy
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(
             controller,
@@ -180,7 +183,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             mockStrategy,
             chosenClassesToMockAlways,
             executionTimeEstimator,
-            postConditionConstructor
+            postConditionConstructor,
+            scoringStrategy
         )
         return createDefaultFlow(engine)
     }
@@ -191,7 +195,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator,
-        postConditionConstructor: PostConditionConstructor
+        postConditionConstructor: PostConditionConstructor,
+        scoringStrategy: ScoringStrategy
     ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $sootMethod  --$mockStrategy--")
@@ -205,6 +210,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
             postConditionConstructor = postConditionConstructor,
+            scoringStrategy = scoringStrategy
         )
     }
 
@@ -282,7 +288,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                             mockStrategy,
                             chosenClassesToMockAlways,
                             executionTimeEstimator,
-                            EmptyPostCondition
+                            EmptyPostCondition,
+                            DefaultScoringStrategy
                         )).collect {
                             when (it) {
                                 is UtExecution -> method2executions.getValue(method) += it
@@ -368,7 +375,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     internal fun generateWithPostCondition(
         method: SootMethod,
         mockStrategy: MockStrategyApi,
-        postConditionConstructor: PostConditionConstructor
+        postConditionConstructor: PostConditionConstructor,
+        scoringStrategy: ScoringStrategy
     ): List<UtExecution> {
         if (isCanceled()) return emptyList()
 
@@ -382,7 +390,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                     EngineController(),
                     method,
                     mockStrategy,
-                    postConditionConstructor = postConditionConstructor
+                    postConditionConstructor = postConditionConstructor,
+                    scoringStrategy = scoringStrategy
                 ).collect {
                     when (it) {
                         is UtExecution -> executions += it
@@ -400,7 +409,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
     ): UtTestCase {
-        val executions = generateWithPostCondition(method.toSootMethod(), mockStrategy, EmptyPostCondition)
+        val executions = generateWithPostCondition(method.toSootMethod(), mockStrategy, EmptyPostCondition, DefaultScoringStrategy)
 
         return UtTestCase(
             method,

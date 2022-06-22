@@ -384,7 +384,12 @@ enum class PathSelectorType {
     /**
      * [RandomPathSelector]
      */
-    RANDOM_PATH_SELECTOR
+    RANDOM_PATH_SELECTOR,
+
+    /**
+     * [ScoringPathSelector]
+     */
+    SCORING_PATH_SELECTOR
 }
 
 enum class TestSelectionStrategyType {

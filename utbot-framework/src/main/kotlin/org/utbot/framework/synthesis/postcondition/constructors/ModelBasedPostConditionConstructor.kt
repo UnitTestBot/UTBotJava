@@ -44,7 +44,7 @@ import soot.SootClass
 import soot.Type
 
 class ModelBasedPostConditionConstructor(
-    private val expectedModel: UtModel
+    val expectedModel: UtModel
 ) : PostConditionConstructor {
     override fun constructPostCondition(
         engine: UtBotSymbolicEngine,

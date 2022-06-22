@@ -61,7 +61,9 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
 
                 if (ASTNode != null) {
                     if (ASTNode is IfStmt && stmt is JIfStmt) {
-                        ASTNode = ifStmtToNodeMap[ASTNode]?.remove()
+                        ASTNode = ifStmtToNodeMap[ASTNode]?.let {
+                            if (it.isNotEmpty()) it.remove() else null
+                        }
                     } else if (stmt is JReturnStmt) {
                         ASTNode = validateReturnASTNode(ASTNode)
                     }

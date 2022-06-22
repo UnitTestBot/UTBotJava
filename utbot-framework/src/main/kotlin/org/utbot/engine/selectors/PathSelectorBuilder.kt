@@ -17,14 +17,7 @@ import org.utbot.engine.selectors.nurs.NeuroSatSelector
 import org.utbot.engine.selectors.nurs.RPSelector
 import org.utbot.engine.selectors.nurs.SubpathGuidedSelector
 import org.utbot.engine.selectors.nurs.VisitCountingSelector
-import org.utbot.engine.selectors.strategies.ChoosingStrategy
-import org.utbot.engine.selectors.strategies.DistanceStatistics
-import org.utbot.engine.selectors.strategies.EdgeVisitCountingStatistics
-import org.utbot.engine.selectors.strategies.GeneratedTestCountingStatistics
-import org.utbot.engine.selectors.strategies.StatementsStatistics
-import org.utbot.engine.selectors.strategies.StepsLimitStoppingStrategy
-import org.utbot.engine.selectors.strategies.StoppingStrategy
-import org.utbot.engine.selectors.strategies.SubpathStatistics
+import org.utbot.engine.selectors.strategies.*
 import org.utbot.framework.UtSettings.seedInPathSelector
 
 /**
@@ -144,6 +137,15 @@ fun randomSelector(
     strategy: StrategyOption,
     builder: RandomSelectorBuilder.() -> Unit
 ) = RandomSelectorBuilder(graph, strategy).apply(builder).build()
+
+/**
+ * build [scoringPathSelector] using [ScoringPathSelectorBuilder]
+ */
+fun scoringPathSelector(
+    graph: InterProceduralUnitGraph,
+    scoringStrategy: ScoringStrategy,
+    builder: ScoringPathSelectorBuilder.() -> (Unit)
+) = ScoringPathSelectorBuilder(graph, scoringStrategy).apply(builder).build()
 
 /**
  * build [RPSelector] using [RPSelectorBuilder]
@@ -402,6 +404,23 @@ class RandomSelectorBuilder internal constructor(
         withChoosingStrategy(strategy),
         requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
         seed
+    )
+}
+
+/**
+ * Builder for [ScoringSelector]. Used in [scoringSelector]
+ *
+ * @param strategy [ScoringStrategy] for choosingStrategy for this PathSelector
+ */
+class ScoringPathSelectorBuilder internal constructor(
+    graph: InterProceduralUnitGraph,
+    val scoringStrategy: ScoringStrategy,
+    context: PathSelectorContext = PathSelectorContext(graph)
+) : PathSelectorBuilder<ScoringPathSelector>(graph, context) {
+    override fun build() = ScoringPathSelector(
+        withDistanceStrategy(),
+        requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
+        scoringStrategy
     )
 }
 

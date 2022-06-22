@@ -50,7 +50,7 @@ private val logger = KotlinLogging.logger {}
 abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     CliktCommand(name = name, help = help) {
 
-    abstract val classPath:String?
+    abstract val classPath: String?
 
     private val mockStrategy by option("-m", "--mock-strategy", help = "Defines the mock strategy")
         .choice(
@@ -146,8 +146,10 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun getWorkingDirectory(classFqn: String): Path? {
         val classRelativePath = classFqnToPath(classFqn) + ".class"
         val classAbsoluteURL = classLoader.getResource(classRelativePath) ?: return null
-        val classAbsolutePath = replaceSeparator(classAbsoluteURL.toPath().toString())
+        val classAbsolutePath = replaceSeparator(classAbsoluteURL.file.removePrefix("file:"))
             .removeSuffix(classRelativePath)
+            .removeSuffix("/")
+            .removeSuffix("!")
         return Paths.get(classAbsolutePath)
     }
 
@@ -199,7 +201,11 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         // Set UtSettings parameters.
         UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
 
-        UtBotTestCaseGenerator.init(workingDirectory, classPathNormalized, System.getProperty("java.class.path")) { false }
+        UtBotTestCaseGenerator.init(
+            workingDirectory,
+            classPathNormalized,
+            System.getProperty("java.class.path")
+        ) { false }
     }
 
     private fun initializeCodeGenerator(testFramework: String, classUnderTest: KClass<*>): ModelBasedTestCodeGenerator {

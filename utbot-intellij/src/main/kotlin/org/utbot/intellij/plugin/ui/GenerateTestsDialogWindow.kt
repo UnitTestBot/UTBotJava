@@ -36,6 +36,8 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.projectRoots.JavaSdkVersion
+import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.JavaProjectModelModificationService
@@ -45,6 +47,8 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
 import com.intellij.openapi.vfs.VirtualFile
@@ -70,16 +74,27 @@ import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
+import com.intellij.util.lang.JavaVersion
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.JBUI.Borders.empty
+import com.intellij.util.ui.JBUI.Borders.merge
+import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.JBUI.size
+import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Objects
 import java.util.concurrent.TimeUnit
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComboBox
+import javax.swing.JComponent
+import javax.swing.JList
+import javax.swing.JPanel
 import kotlin.streams.toList
 import org.jetbrains.concurrency.Promise
-import javax.swing.*
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -257,6 +272,34 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun checkMembers(members: List<MemberInfo>) = members.forEach { it.isChecked = true }
 
+    private fun getTestRoot() : VirtualFile? {
+        model.testSourceRoot?.let {
+            if (it.isDirectory) return it
+        }
+        return null
+    }
+
+    override fun doValidate(): ValidationInfo? {
+        if (getTestRoot() == null) {
+            return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
+        }
+        if (getRootDirectoryAndContentEntry() == null) {
+            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+        }
+
+        membersTable.tableHeader?.background = UIUtil.getTableBackground()
+        membersTable.background = UIUtil.getTableBackground()
+        if (membersTable.selectedMemberInfos.isEmpty()) {
+            membersTable.tableHeader?.background = JBUI.CurrentTheme.Validator.errorBackgroundColor()
+            membersTable.background = JBUI.CurrentTheme.Validator.errorBackgroundColor()
+            return ValidationInfo(
+                "Tick any methods to generate tests for", membersTable
+            )
+        }
+        return null
+    }
+
+
     override fun doOKAction() {
         model.testPackageName =
             if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
@@ -330,20 +373,18 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Creates test source root if absent and target packages for tests.
      */
     private fun createTestRootAndPackages(): Boolean {
-        val testSourceRoot = model.testSourceRoot ?: return false
-        if (model.testSourceRoot?.isDirectory != true) return false
+        val (sourceRoot, contentEntry) = getRootDirectoryAndContentEntry() ?: return false
+        val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
+        VfsUtil.createDirectoryIfMissing(urlToPath(sourceRoot.url))
+        contentEntry.addSourceFolder(sourceRoot.url, codegenLanguages.item.testRootType())
+        WriteCommandAction.runWriteCommandAction(model.project) { modifiableModel.commit() }
 
-        val rootExists = getOrCreateTestRoot(testSourceRoot)
-        if (rootExists) {
-            if (cbSpecifyTestPackage.isSelected) {
-                createSelectedPackage(testSourceRoot)
-            } else {
-                createPackagesByClasses(testSourceRoot)
-            }
-            return true
+        if (cbSpecifyTestPackage.isSelected) {
+            createSelectedPackage(sourceRoot)
+        } else {
+            createPackagesByClasses(sourceRoot)
         }
-
-        return false
+        return true
     }
 
     private fun createPackagesByClasses(testSourceRoot: VirtualFile) {
@@ -372,19 +413,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "Generation error"
         )
 
-    private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
-        val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
-        val contentEntry = modifiableModel.contentEntries
+    private fun getRootDirectoryAndContentEntry() : Pair<VirtualFile, ContentEntry>? {
+        val testSourceRoot = getTestRoot()?: return null
+        val contentEntry = ModuleRootManager.getInstance(model.testModule).contentEntries
             .filterNot { it.file == null }
-            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) }
-            ?: return false
-
-        VfsUtil.createDirectoryIfMissing(urlToPath(testSourceRoot.url))
-
-        contentEntry.addSourceFolder(testSourceRoot.url, codegenLanguages.item.testRootType())
-        WriteCommandAction.runWriteCommandAction(model.project) { modifiableModel.commit() }
-
-        return true
+            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) } ?: return null
+        return Pair(testSourceRoot, contentEntry)
     }
 
     private fun createPackageWrapper(packageName: String?): PackageWrapper =
@@ -614,9 +648,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         itemsToHelpTooltip.forEach { (box, tooltip) -> box.setHelpTooltipTextChanger(tooltip) }
 
         testSourceFolderField.childComponent.addActionListener { event ->
-            val item = (event.source as JComboBox<*>).selectedItem as String
-
-            pathToFile(item)?.let { model.testSourceRoot = it }
+            model.testSourceRoot = pathToFile((event.source as JComboBox<*>).selectedItem as String)
         }
 
         mockStrategies.addActionListener { event ->
@@ -754,7 +786,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun staticsMockingConfigured(): Boolean {
-        val entries = ModuleRootManager.getInstance(model.testModule).modifiableModel.contentEntries
+        val entries = ModuleRootManager.getInstance(model.testModule).contentEntries
         val hasEntriesWithoutResources = entries
             .filterNot { it.sourceFolders.any { f -> f.rootType in testResourceRootTypes } }
             .isNotEmpty()

@@ -19,7 +19,7 @@ Want a new feature or to change the existing one? We are very welcome your fresh
 
 Please [create an issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) with your proposal and describe your idea with full information about it. By adding some examples you also bring much happiness to our souls!
 
-Give us some time to review your proposal and provide you with our feedback. It will be decided who is preparing the pull request: we may need your help or fix on our side.
+Give us some time to review your proposal and provide you with our feedback. It will be decided who is preparing the pull request: we may need your help or we will take care of it all. 🙂
 
 
 ## Coding conventions

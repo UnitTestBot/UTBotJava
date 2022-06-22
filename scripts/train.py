@@ -33,6 +33,9 @@ def get_args():
 
 
 def get_free_gpu():
+    """
+    :return: index of gpu with maximum free memory
+    """
     os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free >tmp')
     memory_available = [int(x.split()[2]) for x in open('tmp', 'r').readlines()]
     return np.argmax(memory_available)
@@ -70,6 +73,11 @@ def get_data(args):
 
         total_df = get_data_selector(selector, total_df)
 
+    """ 
+    In jlearch directory we store features, which was collected by selectors using models,
+    which was trained on previous iterations. 
+    We choose only features, that was collected by previous iteration of current model.
+    """
     jlearch_dir = os.path.join(DATA_DIR, "jlearch")
     if os.path.exists(jlearch_dir):
         for selector in os.listdir(jlearch_dir):
@@ -86,6 +94,11 @@ def get_data(args):
 
 
 def dump_scaler(scaler, args):
+    """
+    Dump scaler in such format:
+    - first line is mean vector values separated by comma
+    - second line is variance vector values separated by comma
+    """
     with open(os.path.join(args.output_dir, 'scaler.txt'), 'w') as f:
         for array in np.vstack((scaler.mean_, scaler.scale_)).tolist():
             for item in array[:-1]:
@@ -184,7 +197,7 @@ class Linear(torch.nn.Module):
 
         dump_scaler(self.scaler, args)
         with open(os.path.join(args.output_dir, 'linear.txt'), 'w') as f:
-            f.write(f"{','.join(map(str, self.model.coef_.tolist()))},{self.model.intercept_[0]}\n")
+            f.write(f"{','.join(map(str, self.model.coef_[0]))},{self.model.intercept_[0]}\n")
 
 
 def train_epoch(model, data_loader, loss_fn, optimizer, device):

@@ -23,6 +23,8 @@ COVERAGE_PATH=${coverageItems[1]}
 
 WORKDIR="."
 INPUT_FOLDER=contest_input
+
+# We set UtSettings by properties file
 SETTING_PROPERTIES_FILE="$WORKDIR/settings.properties"
 touch $SETTING_PROPERTIES_FILE
 echo "pathSelectorType=$PATH_SELECTOR_TYPE" > "$SETTING_PROPERTIES_FILE"
@@ -57,17 +59,21 @@ if [[ -n $COVERAGE_PROCESSING ]]; then
 fi
 
 
+# Clean resources folder, because if there is more than one project, than there is may be error during jacoco report
 RESOURCES_FOLDER="utbot-junit-contest/src/main/resources"
 rm -rf $RESOURCES_FOLDER/classes/*
 rm -rf $RESOURCES_FOLDER/projects/*
+rm -rf $RESOURCES_FOLDER/evosuite
 
+# Copy target project in resources folder
 cp -rp $INPUT_FOLDER/classes/$PROJECT $RESOURCES_FOLDER/classes/$PROJECT
 cp -rp $INPUT_FOLDER/projects/$PROJECT $RESOURCES_FOLDER/projects/$PROJECT
 
-JAR_TYPE="utbot-junit-contest-1.0.jar"
+JAR_TYPE="utbot-junit-contest"
 echo "JAR_TYPE: $JAR_TYPE"
-UTBOT_JAR=$(ls -l utbot-junit-contest/build/libs/$JAR_TYPE | awk '{print $9}')
-MAIN_CLASS="com.huawei.utbot.contest.ContestEstimatorKt"
+LIBS_DIR="utbot-junit-contest/build/libs/"
+UTBOT_JAR="$LIBS_DIR$(ls -l $LIBS_DIR | grep $JAR_TYPE | awk '{print $9}')"
+MAIN_CLASS="org.utbot.contest.ContestEstimatorKt"
 CLASSPATH=$RESOURCES_FOLDER/projects
 echo "CLASS PATH: $CLASSPATH"
 TARGET_CLASSES=$RESOURCES_FOLDER/classes

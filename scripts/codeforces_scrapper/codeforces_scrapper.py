@@ -31,7 +31,21 @@ def check_json(answer):
         return values['result']
 
 
+def get_main_name(tree):
+    """
+    :return: class name with main method
+    """
+    return next(klass.name for klass in tree.types
+         if isinstance(klass, javalang.tree.ClassDeclaration)
+         for m in klass.methods
+         if m.name == 'main' and m.modifiers.issuperset({'public', 'static'}))
+
+
 def save_source_code(contest_id, submission_id):
+    """
+    Parse html page to find source code of submission and save it in some unique package p${contest_id}.p${submission_id}.
+    If we reach api request bound, then we try to sleep for 5 minutes.
+    """
     url = request.Request(f"http://codeforces.com/contest/{contest_id}/submission/{submission_id}")
     with request.urlopen(url) as req:
         soup = bs4.BeautifulSoup(req.read(), "html.parser")
@@ -43,15 +57,12 @@ def save_source_code(contest_id, submission_id):
             code += p.get_text()
         tree = javalang.parse.parse(code)
         try:
-            name = next(klass.name for klass in tree.types
-                        if isinstance(klass, javalang.tree.ClassDeclaration)
-                        for m in klass.methods
-                        if m.name == 'main' and m.modifiers.issuperset({'public', 'static'}))
+            name = get_main_name(tree)
             with open(os.path.join(path, f"{name}.java"), 'w') as f:
                 print(f"package p{contest_id}.p{submission_id};", file=f)
                 f.write(code)
         except StopIteration:
-            print("Sleeping...")
+            print("Sleeping, because we reach request bound")
             time.sleep(300)
 
 
@@ -76,6 +87,9 @@ def main():
 
     print(f"Get {len(problems)} problems: {problems[0]}")
 
+    """
+    For each problem try to take submission_count submissions.
+    """
     all_submission = 0
     for i, p in enumerate(problems):
         cur_submission = 0

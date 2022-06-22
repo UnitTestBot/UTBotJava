@@ -34,8 +34,11 @@ internal val logger = KotlinLogging.logger {}
 )
 class GenerateTestsAndSarifReportMojo : AbstractMojo() {
 
+    /**
+     * The maven project for which we are creating a SARIF report.
+     */
     @Parameter(defaultValue = "\${project}", readonly = true)
-    private lateinit var mavenProject: MavenProject
+    lateinit var mavenProject: MavenProject
 
     /**
      * Classes for which the SARIF report will be created.
@@ -117,11 +120,22 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     internal var classesToMockAlways: List<String> = listOf()
 
     /**
+     * Provides configuration needed to create a SARIF report.
+     */
+    val sarifProperties: SarifMavenConfigurationProvider
+        get() = SarifMavenConfigurationProvider(this)
+
+    /**
+     * Contains information about the maven project for which we are creating a SARIF report.
+     */
+    lateinit var rootMavenProjectWrapper: MavenProjectWrapper
+
+    /**
      * Entry point: called when the user starts this maven task.
      */
     override fun execute() {
-        val rootMavenProjectWrapper = try {
-            MavenProjectWrapper(mavenProject, sarifProperties)
+        try {
+            rootMavenProjectWrapper = MavenProjectWrapper(mavenProject, sarifProperties)
         } catch (t: Throwable) {
             logger.error(t) { "Unexpected error while configuring the maven task" }
             return
@@ -139,9 +153,6 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     }
 
     // internal
-
-    private val sarifProperties: SarifMavenConfigurationProvider
-        get() = SarifMavenConfigurationProvider(this)
 
     /**
      * Generates tests and a SARIF report for classes in the [mavenProjectWrapper] and in all its child projects.

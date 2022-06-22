@@ -109,12 +109,6 @@ val SootMethod.findMockAnnotationOrNull
 val SootMethod.hasInternalMockAnnotation
     get() = annotationsOrNull?.singleOrNull { it.type == utInternalUsageBytecodeSignature } != null
 
-/**
- * Returns true if the [SootMethod]'s signature is equal to [UtMock.assume]'s signature, false otherwise.
- */
-val SootMethod.isUtMockAssume
-    get() = signature == assumeMethod.signature
-
 val utClassMockBytecodeSignature = UtClassMock::class.java.bytecodeSignature()
 val utConstructorMockBytecodeSignature = UtConstructorMock::class.java.bytecodeSignature()
 val utInternalUsageBytecodeSignature = UtInternalUsage::class.java.bytecodeSignature()

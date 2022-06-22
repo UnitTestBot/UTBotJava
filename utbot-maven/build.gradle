@@ -13,18 +13,23 @@ dependencies {
     // `compile` because `api` dependencies are not included in pom.xml by `install` task
     compile project(':utbot-framework')
 
-    implementation "org.apache.maven:maven-core:${maven_plugin_api_version}"
-    implementation "org.apache.maven:maven-plugin-api:${maven_plugin_api_version}"
-    compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:${maven_plugin_tools_version}"
-    implementation "io.github.microutils:kotlin-logging:${kotlin_logging_version}"
+    implementation "org.apache.maven:maven-core:$maven_plugin_api_version"
+    implementation "org.apache.maven:maven-plugin-api:$maven_plugin_api_version"
+    compileOnly "org.apache.maven.plugin-tools:maven-plugin-annotations:$maven_plugin_tools_version"
+    implementation "io.github.microutils:kotlin-logging:$kotlin_logging_version"
 
-    mavenEmbedder "org.apache.maven:maven-embedder:${maven_plugin_api_version}"
-    mavenEmbedder "org.apache.maven:maven-compat:${maven_plugin_api_version}"
-    mavenEmbedder "org.slf4j:slf4j-simple:${slf4j_version}"
-    mavenEmbedder "org.eclipse.aether:aether-connector-basic:${eclipse_aether_version}"
-    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:${eclipse_aether_version}"
-    mavenEmbedder "org.apache.maven.wagon:wagon-http:${maven_wagon_version}"
-    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:${maven_wagon_version}"
+    implementation "org.eclipse.sisu:org.eclipse.sisu.plexus:$sisu_plexus_version"
+    testImplementation "org.apache.maven.plugin-testing:maven-plugin-testing-harness:$maven_plugin_testing_version"
+    testImplementation "org.apache.maven:maven-compat:$maven_plugin_api_version"
+    testImplementation "org.apache.maven.resolver:maven-resolver-api:$maven_resolver_api_version"
+
+    mavenEmbedder "org.apache.maven:maven-embedder:$maven_plugin_api_version"
+    mavenEmbedder "org.apache.maven:maven-compat:$maven_plugin_api_version"
+    mavenEmbedder "org.slf4j:slf4j-simple:$slf4j_version"
+    mavenEmbedder "org.eclipse.aether:aether-connector-basic:$eclipse_aether_version"
+    mavenEmbedder "org.eclipse.aether:aether-transport-wagon:$eclipse_aether_version"
+    mavenEmbedder "org.apache.maven.wagon:wagon-http:$maven_wagon_version"
+    mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:$maven_wagon_version"
 }
 
 /**

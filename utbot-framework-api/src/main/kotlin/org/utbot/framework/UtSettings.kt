@@ -295,6 +295,14 @@ object UtSettings {
     var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
 
     /**
+     * Enable it to process states with unknown solver status
+     * from the queue to concrete execution.
+     *
+     * True by default.
+     */
+    var processUnknownStatesDuringConcreteExecution by getBooleanProperty(true)
+
+    /**
      * 2^{this} will be the length of observed subpath.
      * See [SubpathGuidedSelector]
      */

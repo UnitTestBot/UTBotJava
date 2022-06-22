@@ -15,10 +15,6 @@ import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
-import org.utbot.intellij.plugin.ui.SarifReportNotifier
-import org.utbot.intellij.plugin.ui.TestsReportNotifier
-import org.utbot.intellij.plugin.ui.packageName
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.sarif.SarifReport
@@ -63,6 +59,11 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.intellij.plugin.error.showErrorDialogLater
+import org.utbot.intellij.plugin.ui.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.SarifReportNotifier
+import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
+import org.utbot.intellij.plugin.ui.TestsReportNotifier
+import org.utbot.intellij.plugin.ui.packageName
 
 object TestGenerator {
     fun generateTests(model: GenerateTestsModel, testCases: Map<PsiClass, List<UtTestCase>>) {
@@ -317,6 +318,17 @@ object TestGenerator {
         VfsUtil.createDirectories(parent.toString())
         resultedReportedPath.toFile().writeText(testsCodeWithTestReport.testsGenerationReport.getFileContent())
 
+        if (model.forceMockHappened) {
+            testsCodeWithTestReport.testsGenerationReport.apply {
+                initialMessage = {
+                    """
+                    Unit tests for $classUnderTest were generated partially.<br>
+                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
+                """.trimIndent()
+                }
+            }
+        }
         val notifyMessage = buildString {
             appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString())
             appendHtmlLine()
@@ -334,7 +346,7 @@ object TestGenerator {
             """.trimIndent()
             appendHtmlLine(savedFileMessage)
         }
-        TestsReportNotifier.notify(notifyMessage)
+        TestsReportNotifier.notify(notifyMessage, model.project, model.testModule)
     }
 
     @Suppress("unused")

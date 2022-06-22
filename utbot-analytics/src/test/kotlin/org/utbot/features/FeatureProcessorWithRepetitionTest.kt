@@ -94,6 +94,9 @@ class FeatureProcessorWithRepetitionTest : AbstractTestCaseGeneratorTest(OnePath
         }
     }
 
+    /**
+     * Test, that we correctly add test cases and dump them into file
+     */
     @Test
     fun addTestCaseTest() {
         withFeaturePath(featureDir) {

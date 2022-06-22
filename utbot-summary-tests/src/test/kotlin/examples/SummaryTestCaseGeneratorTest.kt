@@ -106,8 +106,13 @@ open class SummaryTestCaseGeneratorTest(
         testCase.executions.checkMatchersWithDisplayNames(displayNames)
     }
 
+    /**
+     * It removes from the String all whitespaces, tabs etc.
+     *
+     * @see <a href="https://www.baeldung.com/java-regex-s-splus">Explanation of the used regular expression.</a>
+     */
     private fun String.normalize(): String {
-        var result = this.replace("[\\n\\t\\s ]".toRegex(), "")
+        var result = this.replace("\\s+".toRegex(), "")
         nextSynonyms.forEach {
             result = result.replace(it, "")
         }

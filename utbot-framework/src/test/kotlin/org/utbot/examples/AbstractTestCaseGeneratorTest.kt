@@ -2811,3 +2811,18 @@ inline fun <reified T> withPathSelectorType(pathSelectorType: PathSelectorType, 
         UtSettings.pathSelectorType = prev
     }
 }
+
+inline fun <reified T> withFeaturePath(featurePath: String, block: () -> T): T {
+    val prevFeaturePath = UtSettings.featurePath
+    val prevEnableFeatureProcess = UtSettings.enableFeatureProcess
+
+    UtSettings.featurePath = featurePath
+    UtSettings.enableFeatureProcess = true
+
+    try {
+        return block()
+    } finally {
+        UtSettings.featurePath = prevFeaturePath
+        UtSettings.enableFeatureProcess = prevEnableFeatureProcess
+    }
+}

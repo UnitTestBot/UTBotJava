@@ -25,7 +25,9 @@ Done! You\`re awesome and ready for digging the code. 😃
  
 ## Development of UTBot Java with IntelliJ IDEA
 
-The majority of the code is written in Kotlin. The project is divided into Gradle subprojects. The most significant of them are: 
+The majority of the code is written in Kotlin. 
+
+The project is divided into Gradle subprojects. The most significant of them are: 
 1. utbot-framework — all about the engine and tests for it
 
 2. utbot-intellij — IDE plugin

@@ -133,7 +133,7 @@ internal class LinkedListsTest : AbstractTestCaseGeneratorTest(
             LinkedLists::peekLast,
             eq(3),
             { l, _ -> l == null },
-            { l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
+            { l, r -> l != null && (l.isEmpty() || l.last() == null) && r.isException<NullPointerException>() },
             { l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l.last() },
             coverage = DoNotCalculate
         )
@@ -146,8 +146,8 @@ internal class LinkedListsTest : AbstractTestCaseGeneratorTest(
             eq(4),
             { l, _ -> l == null },
             { l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
-            { l, _ -> l != null && l.isNotEmpty() && l[0] == null },
-            { l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l[0] },
+            { l, r -> l != null && l.isNotEmpty() && l[0] == null && r.isException<NullPointerException>() },
+            { l, r -> l != null && l.isNotEmpty() && l[0] != null && r.getOrNull() == l[0] },
             coverage = DoNotCalculate
         )
     }

@@ -162,8 +162,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
      */
     private fun MethodId.dependencies(): List<MethodId> = when (this) {
         createInstance -> listOf(getUnsafeInstance)
-        deepEquals -> listOf(arraysDeepEquals, iterablesDeepEquals, mapsDeepEquals, hasCustomEquals)
-        arraysDeepEquals, iterablesDeepEquals, mapsDeepEquals -> listOf(deepEquals)
+        deepEquals -> listOf(arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals, hasCustomEquals)
+        arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals -> listOf(deepEquals)
         else -> emptyList()
     }
 

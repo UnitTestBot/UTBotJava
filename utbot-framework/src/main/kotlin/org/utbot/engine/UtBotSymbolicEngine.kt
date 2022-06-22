@@ -96,10 +96,12 @@ import org.utbot.engine.selectors.strategies.GraphViz
 import org.utbot.engine.selectors.subpathGuidedSelector
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
+import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
+import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
@@ -116,6 +118,7 @@ import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.UtSettings.useDebugVisualization
+import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
@@ -441,7 +444,9 @@ class UtBotSymbolicEngine(
                 }
 
                 if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
-                    val state = pathSelector.pollUntilFastSAT() ?: statesForConcreteExecution.pollUntilSat() ?: break
+                    val state = pathSelector.pollUntilFastSAT()
+                        ?: statesForConcreteExecution.pollUntilSat(processUnknownStatesDuringConcreteExecution)
+                        ?: break
                     // This state can contain inconsistent wrappers - for example, Map with keys but missing values.
                     // We cannot use withWrapperConsistencyChecks here because it needs solver to work.
                     // So, we have to process such cases accurately in wrappers resolving.
@@ -1355,6 +1360,8 @@ class UtBotSymbolicEngine(
 
             queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
             parameterAddrToGenericType += value.addr to type
+
+            typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
         }
     }
 
@@ -1371,26 +1378,61 @@ class UtBotSymbolicEngine(
             environment.state.definitelyFork()
         }
 
-        positiveCaseEdge?.let { edge ->
-            environment.state.expectUndefined()
-            val positiveCaseState = environment.state.updateQueued(
-                edge,
-                SymbolicStateUpdate(
-                    hardConstraints = positiveCasePathConstraint.asHardConstraint(),
-                    softConstraints = setOfNotNull(positiveCaseSoftConstraint).asSoftConstraint()
-                ) + resolvedCondition.symbolicStateUpdates.positiveCase
-            )
-            pathSelector.offer(positiveCaseState)
+        /* assumeOrExecuteConcrete in jimple looks like:
+            ``` z0 = a > 5
+                if (z0 == 1) goto label1
+                assumeOrExecuteConcretely(z0)
+
+                label1:
+                assumeOrExecuteConcretely(z0)
+            ```
+
+            We have to detect such situations to avoid addition `a > 5` into hardConstraints,
+            because we want to add them into Assumptions.
+
+            Note: we support only simple predicates right now (one logical operation),
+            otherwise they will be added as hard constraints, and we will not execute
+            the state concretely if there will be UNSAT because of assumptions.
+         */
+        val isAssumeExpr = positiveCaseEdge?.let { isConditionForAssumeOrExecuteConcretely(it.dst) } ?: false
+
+        // in case of assume we want to have the only branch where $z = 1 (it is a negative case)
+        if (!isAssumeExpr) {
+            positiveCaseEdge?.let { edge ->
+                environment.state.expectUndefined()
+                val positiveCaseState = environment.state.updateQueued(
+                    edge,
+                    SymbolicStateUpdate(
+                        hardConstraints = positiveCasePathConstraint.asHardConstraint(),
+                        softConstraints = setOfNotNull(positiveCaseSoftConstraint).asSoftConstraint()
+                    ) + resolvedCondition.symbolicStateUpdates.positiveCase
+                )
+                pathSelector.offer(positiveCaseState)
+            }
         }
+
+        // Depending on existance of assumeExpr we have to add corresponding hardConstraints and assumptions
+        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else HardConstraint()
+        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else Assumption()
 
         val negativeCaseState = environment.state.updateQueued(
             negativeCaseEdge,
             SymbolicStateUpdate(
-                hardConstraints = negativeCasePathConstraint.asHardConstraint(),
+                hardConstraints = hardConstraints,
                 softConstraints = setOfNotNull(negativeCaseSoftConstraint).asSoftConstraint(),
+                assumptions = assumption
             ) + resolvedCondition.symbolicStateUpdates.negativeCase
         )
         pathSelector.offer(negativeCaseState)
+    }
+
+    /**
+     * Returns true if the next stmt is an [assumeOrExecuteConcretelyMethod] invocation, false otherwise.
+     */
+    private fun isConditionForAssumeOrExecuteConcretely(stmt: Stmt): Boolean {
+        val successor = globalGraph.succStmts(stmt).singleOrNull() as? JInvokeStmt ?: return false
+        val invokeExpression = successor.invokeExpr as? JStaticInvokeExpr ?: return false
+        return invokeExpression.method.isUtMockAssumeOrExecuteConcretely
     }
 
     private fun traverseInvokeStmt(current: JInvokeStmt) {
@@ -2721,19 +2763,39 @@ class UtBotSymbolicEngine(
         return overriddenResults + originResults
     }
 
-    private fun invoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
-        val substitutedMethod = typeRegistry.findSubstitutionOrNull(target.method)
+    private fun invoke(
+        target: InvocationTarget,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> = with(target.method) {
+        val substitutedMethod = typeRegistry.findSubstitutionOrNull(this)
 
-        if (target.method.isNative && substitutedMethod == null) return processNativeMethod(target)
+        if (isNative && substitutedMethod == null) return processNativeMethod(target)
 
-        // If we face UtMock.assume call, we should continue only with the branch where the predicate
-        // from the parameters is equal true
-        return when {
-            target.method.isUtMockAssume -> {
+        // If we face UtMock.assume call, we should continue only with the branch
+        // where the predicate from the parameters is equal true
+        when {
+            isUtMockAssume || isUtMockAssumeOrExecuteConcretely -> {
                 val param = UtCastExpression(parameters.single() as PrimitiveValue, BooleanType.v())
+
+                val assumptionStmt = mkEq(param, UtTrue)
+                val (hardConstraints, assumptions) = if (isUtMockAssume) {
+                    // For UtMock.assume we must add the assumeStmt to the hard constraints
+                    setOf(assumptionStmt) to emptySet()
+                } else {
+                    // For assumeOrExecuteConcretely we must add the statement to the assumptions.
+                    // It is required to have opportunity to remove it later in case of unsat state
+                    // because of it and execute the state concretely.
+                    emptySet<UtBoolExpression>() to setOf(assumptionStmt)
+                }
+
+                val symbolicStateUpdate = SymbolicStateUpdate(
+                    hardConstraints = hardConstraints.asHardConstraint(),
+                    assumptions = assumptions.asAssumption()
+                )
+
                 val stateToContinue = environment.state.updateQueued(
                     globalGraph.succ(environment.state.stmt),
-                    SymbolicStateUpdate(hardConstraints = mkEq(param, UtTrue).asHardConstraint())
+                    symbolicStateUpdate
                 )
                 pathSelector.offer(stateToContinue)
 
@@ -2742,17 +2804,15 @@ class UtBotSymbolicEngine(
                 queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
                 emptyList()
             }
-            target.method.declaringClass == utOverrideMockClass -> utOverrideMockInvoke(target, parameters)
-            target.method.declaringClass == utLogicMockClass -> utLogicMockInvoke(target, parameters)
-            target.method.declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
+            declaringClass == utOverrideMockClass -> utOverrideMockInvoke(target, parameters)
+            declaringClass == utLogicMockClass -> utLogicMockInvoke(target, parameters)
+            declaringClass == utArrayMockClass -> utArrayMockInvoke(target, parameters)
             else -> {
-                val graph = substitutedMethod?.jimpleBody()?.graph() ?: target.method.jimpleBody().graph()
-                val isLibraryMethod = target.method.isLibraryMethod
+                val graph = substitutedMethod?.jimpleBody()?.graph() ?: jimpleBody().graph()
                 pushToPathSelector(graph, target.instance, parameters, target.constraints, isLibraryMethod)
                 emptyList()
             }
         }
-
     }
 
     private fun utOverrideMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
@@ -3412,18 +3472,10 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val numDimensions = typeAfterCast.numDimensions
-        val inheritors = if (baseTypeAfterCast is PrimType) {
-            setOf(typeAfterCast)
-        } else {
-            typeResolver
-                .findOrConstructInheritorsIncludingTypes(baseTypeAfterCast as RefType)
-                .mapTo(mutableSetOf()) { if (numDimensions > 0) it.makeArrayType(numDimensions) else it }
-        }
-        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritors }
+        val inheritorsTypeStorage = typeResolver.constructTypeStorage(typeAfterCast, useConcreteType = false)
+        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritorsTypeStorage.possibleConcreteTypes }
 
-        val typeStorage = typeResolver.constructTypeStorage(typeAfterCast, inheritors)
-        val isExpression = typeRegistry.typeConstraint(addr, typeStorage).isConstraint()
+        val isExpression = typeRegistry.typeConstraint(addr, inheritorsTypeStorage).isConstraint()
         val notIsExpression = mkNot(isExpression)
 
         val nullEqualityConstraint = addrEq(addr, nullObjectAddr)
@@ -3657,7 +3709,10 @@ class UtBotSymbolicEngine(
             // Still, we need overflows to act as implicit exceptions.
             (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
         ) {
-            logger.debug { "processResult<${methodUnderTest}>: no concrete execution allowed, emit purely symbolic result" }
+            logger.debug {
+                "processResult<${methodUnderTest}>: no concrete execution allowed, " +
+                        "emit purely symbolic result $symbolicUtExecution"
+            }
             emit(symbolicUtExecution)
             return
         }

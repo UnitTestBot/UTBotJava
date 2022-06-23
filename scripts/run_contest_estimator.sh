@@ -10,10 +10,17 @@ PATH_SELECTOR_PATH=${items[1]}
 IS_COMBINED_SELECTOR=${items[2]}
 ITERATIONS=${items[3]}
 
+echo "PATH_SELECTOR=$PATH_SELECTOR"
+echo "PATH_SELECTOR_TYPE=$PATH_SELECTOR_TYPE"
+echo "PATH_SELECTOR_PATH=$PATH_SELECTOR_PATH"
+
 FEATURE_ARG=${4}
 featureItems=(${FEATURE_ARG//##/ })
 FEATURE_PROCESSING=${featureItems[0]}
 FEATURE_PATH=${featureItems[1]}
+
+echo "FEATURE_ARG=$FEATURE_ARG"
+echo "FEATURE_PATH=$FEATURE_PATH"
 
 COVERAGE_ARG=${5}
 coverageItems=(${COVERAGE_ARG//##/ })
@@ -41,7 +48,7 @@ if [[ -n $ITERATIONS ]]; then
 fi
 
 if [[ -n $FEATURE_PROCESSING ]]; then
-  echo "featureProcess=true" >> "$SETTING_PROPERTIES_FILE"
+  echo "enableFeatureProcess=true" >> "$SETTING_PROPERTIES_FILE"
   if [[ -z $FEATURE_PATH ]]; then
     FEATURE_PATH=eval/features/$PATH_SELECTOR_TYPE/$PROJECT
   fi

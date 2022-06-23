@@ -39,9 +39,7 @@ do
     for model in "${models[@]}"
     do
 
-      COMMAND="$WORKDIR/scripts/run_contest_estimator.sh $prog $TIME_LIMIT 'NN_REWARD_GUIDED_SELECTOR $OUTPUT_DIR/$model/$i' 'true eval/features/jlearch/$model$i/$prog'"
-      echo "ESTIMATOR COMMAND=$COMMAND"
-      $COMMAND
+     $WORKDIR/scripts/run_contest_estimator.sh $prog $TIME_LIMIT "NN_REWARD_GUIDED_SELECTOR $OUTPUT_DIR/$model/$i" "true eval/features/jlearch/$model$i/$prog"
     done
   done <"$WORKDIR/scripts/prog_list"
 done

@@ -22,7 +22,7 @@ def get_args():
     parser.add_argument("--output_dir", dest='output_dir', type=str)
     parser.add_argument("--prog_list", dest='prog_list', type=str)
     parser.add_argument("--epochs", default=-1, type=int)
-    parser.add_argument("--device", default='gpu', type=str)
+    parser.add_argument("--device", default='cpu', type=str)
     parser.add_argument("--batch_size", dest='batch_size', default=4096, type=int)
     parser.add_argument("--hidden_dim", dest='hidden_dim', default=64, type=int)
     parser.add_argument("--model", dest='model', default='nn', type=str)

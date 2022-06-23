@@ -328,11 +328,17 @@ fun runEstimator(
 //    Predictors.smt = UtBotTimePredictor()
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
+
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
     EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
     if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
         Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+    }
+    
+    logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
+    if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
     }
 
     // fix for CTRL-ALT-SHIFT-C from IDEA, which copies in class#method form

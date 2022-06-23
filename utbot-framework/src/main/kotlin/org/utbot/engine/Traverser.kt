@@ -3829,8 +3829,8 @@ class Traverser(
         // it's free to make a check, because in the result is SAT, it should be already cached
         val holder = requireNotNull(solver.check(respectSoft = true) as? UtSolverStatusSAT) { "The state must be SAT!" }
 
-        val predictedTestName = Predictors.testName.predict(environment.state.path)
-        Predictors.testName.provide(environment.state.path, predictedTestName, "")
+        val predictedTestName = Predictors.testName.predict(state.path)
+        Predictors.testName.provide(state.path, predictedTestName, "")
 
         val resolver =
             Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
@@ -3849,10 +3849,10 @@ class Traverser(
             symbolicExecutionResult,
             instrumentation,
             entryMethodPath(),
-            environment.state.fullPath()
+            state.fullPath()
         )
 
-        globalGraph.traversed(environment.state)
+        globalGraph.traversed(state)
 
         if (!UtSettings.useConcreteExecution ||
             // Can't execute concretely because overflows do not cause actual exceptions.

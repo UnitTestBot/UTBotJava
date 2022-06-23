@@ -804,7 +804,7 @@ class Traverser(
         if (right !is JNewMultiArrayExpr) return false
 
         val graph = unfoldMultiArrayExpr(stmt)
-        val resolvedSizes = right.sizes.map { (it.resolve(IntType.v()) as PrimitiveValue).align() }
+        val resolvedSizes = right.sizes.map { (resolve(it, IntType.v()) as PrimitiveValue).align() }
 
         negativeArraySizeCheck(*resolvedSizes.toTypedArray())
 
@@ -1112,7 +1112,7 @@ class Traverser(
         val rightPartWrappedAsMethodResults = if (rightValue is InvokeExpr) {
             invokeResult(rightValue)
         } else {
-            val value = rightValue.resolve(current.leftOp.type)
+            val value = resolve(rightValue, current.leftOp.type)
             listOf(MethodResult(value))
         }
 
@@ -1180,11 +1180,11 @@ class Traverser(
      */
     private fun traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate = when (left) {
         is ArrayRef -> {
-            val arrayInstance = left.base.resolve() as ArrayValue
+            val arrayInstance = resolve(left.base) as ArrayValue
             val addr = arrayInstance.addr
             nullPointerExceptionCheck(addr)
 
-            val index = (left.index.resolve() as PrimitiveValue).align()
+            val index = (resolve(left.index) as PrimitiveValue).align()
             val length = memory.findArrayLength(addr)
             indexOutOfBoundsChecks(index, length)
 
@@ -1227,7 +1227,7 @@ class Traverser(
             // This hack solves the problem with static final fields, which are equal by reference with parameter
             workaround(HACK) {
                 if (left.field.isFinal) {
-                    addConstraintsForFinalAssign(left.resolve(), value)
+                    addConstraintsForFinalAssign(resolve(left), value)
                 }
             }
 
@@ -1255,8 +1255,8 @@ class Traverser(
         is JInstanceFieldRef -> {
             // Runs resolve() to check possible NPE and create required arrays related to the field.
             // Ignores the result of resolve().
-            fieldRef.resolve()
-            val baseObject = fieldRef.base.resolve() as ObjectValue
+            resolve(fieldRef)
+            val baseObject = resolve(fieldRef.base) as ObjectValue
             val typeStorage = TypeStorage(fieldRef.field.declaringClass.type)
             baseObject.copy(typeStorage = typeStorage)
         }
@@ -1531,7 +1531,7 @@ class Traverser(
     }
 
     private fun traverseSwitchStmt(current: SwitchStmt) {
-        val valueExpr = current.key.resolve() as PrimitiveValue
+        val valueExpr = resolve(current.key) as PrimitiveValue
         val successors = when (current) {
             is JTableSwitchStmt -> {
                 val indexed = (current.lowIndex..current.highIndex).mapIndexed { i, index ->
@@ -1568,7 +1568,7 @@ class Traverser(
     }
 
     private suspend fun FlowCollector<UtResult>.traverseThrowStmt(current: JThrowStmt) {
-        val symException = explicitThrown(current.op.resolve(), isInNestedMethod())
+        val symException = explicitThrown(resolve(current.op), isInNestedMethod())
         traverseException(current, symException)
     }
 
@@ -1647,18 +1647,18 @@ class Traverser(
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 
-    private fun Constant.resolve(): SymbolicValue =
-        when (this) {
-            is IntConstant -> this.value.toPrimitiveValue()
-            is LongConstant -> this.value.toPrimitiveValue()
-            is FloatConstant -> this.value.toPrimitiveValue()
-            is DoubleConstant -> this.value.toPrimitiveValue()
+    private fun resolveConstant(constant: Constant): SymbolicValue =
+        when (constant) {
+            is IntConstant -> constant.value.toPrimitiveValue()
+            is LongConstant -> constant.value.toPrimitiveValue()
+            is FloatConstant -> constant.value.toPrimitiveValue()
+            is DoubleConstant -> constant.value.toPrimitiveValue()
             is StringConstant -> {
                 val addr = findNewAddr()
-                val refType = this.type as RefType
+                val refType = constant.type as RefType
 
                 // We disable creation of string literals to avoid unsats because of too long lines
-                if (UtSettings.ignoreStringLiterals && value.length > MAX_STRING_SIZE) {
+                if (UtSettings.ignoreStringLiterals && constant.value.length > MAX_STRING_SIZE) {
                     // instead of it we create an unbounded symbolic variable
                     workaround(HACK) {
                         statesForConcreteExecution += environment.state
@@ -1668,109 +1668,110 @@ class Traverser(
                     queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all().asHardConstraint()
 
                     objectValue(refType, addr, StringWrapper()).also {
-                        initStringLiteral(it, this.value)
+                        initStringLiteral(it, constant.value)
                     }
                 }
             }
             is ClassConstant -> {
-                val sootType = toSootType()
+                val sootType = constant.toSootType()
                 val result = if (sootType is RefLikeType) {
                     typeRegistry.createClassRef(sootType.baseType, sootType.numDimensions)
                 } else {
-                    error("Can't get class constant for $value")
+                    error("Can't get class constant for ${constant.value}")
                 }
                 queuedSymbolicStateUpdates += result.symbolicStateUpdate
                 (result.symbolicResult as SymbolicSuccess).value
             }
-            else -> error("Unsupported type: $this")
+            else -> error("Unsupported type: $constant")
         }
 
-    private fun Expr.resolve(valueType: Type = this.type): SymbolicValue = when (this) {
-        is BinopExpr -> {
-            val left = this.op1.resolve()
-            val right = this.op2.resolve()
-            when {
-                left is ReferenceValue && right is ReferenceValue -> {
-                    when (this) {
-                        is JEqExpr -> addrEq(left.addr, right.addr).toBoolValue()
-                        is JNeExpr -> mkNot(addrEq(left.addr, right.addr)).toBoolValue()
-                        else -> TODO("Unknown op $this for $left and $right")
-                    }
-                }
-                left is PrimitiveValue && right is PrimitiveValue -> {
-                    // division by zero special case
-                    if ((this is JDivExpr || this is JRemExpr) && left.expr.isInteger() && right.expr.isInteger()) {
-                        divisionByZeroCheck(right)
-                    }
-
-                    if (UtSettings.treatOverflowAsError) {
-                        // overflow detection
-                        if (left.expr.isInteger() && right.expr.isInteger()) {
-                            intOverflowCheck(this, left, right)
+    private fun resolve(expr: Expr, valueType: Type = expr.type): SymbolicValue =
+        when (expr) {
+            is BinopExpr -> {
+                val left = resolve(expr.op1)
+                val right = resolve(expr.op2)
+                when {
+                    left is ReferenceValue && right is ReferenceValue -> {
+                        when (expr) {
+                            is JEqExpr -> addrEq(left.addr, right.addr).toBoolValue()
+                            is JNeExpr -> mkNot(addrEq(left.addr, right.addr)).toBoolValue()
+                            else -> TODO("Unknown op $expr for $left and $right")
                         }
                     }
+                    left is PrimitiveValue && right is PrimitiveValue -> {
+                        // division by zero special case
+                        if ((expr is JDivExpr || expr is JRemExpr) && left.expr.isInteger() && right.expr.isInteger()) {
+                            divisionByZeroCheck(right)
+                        }
 
-                    doOperation(this, left, right).toPrimitiveValue(this.type)
-                }
-                else -> TODO("Unknown op $this for $left and $right")
-            }
-        }
-        is JNegExpr -> UtNegExpression(op.resolve() as PrimitiveValue).toPrimitiveValue(this.type)
-        is JNewExpr -> {
-            val addr = findNewAddr()
-            val generator = UtMockInfoGenerator { mockAddr ->
-                UtNewInstanceMockInfo(
-                    baseType.id,
-                    mockAddr,
-                    environment.method.declaringClass.id
-                )
-            }
-            val objectValue = createObject(addr, baseType, useConcreteType = true, generator)
-            addConstraintsForDefaultValues(objectValue)
-            objectValue
-        }
-        is JNewArrayExpr -> {
-            val size = (this.size.resolve() as PrimitiveValue).align()
-            val type = this.type as ArrayType
-            createNewArray(size, type, type.elementType).also {
-                val defaultValue = type.defaultSymValue
-                queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, type, defaultValue as UtArrayExpressionBase)
-            }
-        }
-        is JNewMultiArrayExpr -> {
-            val result = environment.state.methodResult
-                ?: error("There is no unfolded JNewMultiArrayExpr found in the methodResult")
-            queuedSymbolicStateUpdates += result.symbolicStateUpdate
-            (result.symbolicResult as SymbolicSuccess).value
-        }
-        is JLengthExpr -> {
-            val operand = op as? JimpleLocal ?: error("Unknown op: $op")
-            when (operand.type) {
-                is ArrayType -> {
-                    val arrayInstance = localVariableMemory.local(operand.variable) as ArrayValue?
-                        ?: error("$op not found in the locals")
-                    nullPointerExceptionCheck(arrayInstance.addr)
-                    memory.findArrayLength(arrayInstance.addr).also { length ->
-                        queuedSymbolicStateUpdates += Ge(length, 0).asHardConstraint()
+                        if (UtSettings.treatOverflowAsError) {
+                            // overflow detection
+                            if (left.expr.isInteger() && right.expr.isInteger()) {
+                                intOverflowCheck(expr, left, right)
+                            }
+                        }
+
+                        doOperation(expr, left, right).toPrimitiveValue(expr.type)
                     }
+                    else -> TODO("Unknown op $expr for $left and $right")
                 }
-                else -> error("Unknown op: $op")
             }
-        }
-        is JCastExpr -> when (val value = op.resolve(valueType)) {
-            is PrimitiveValue -> value.cast(type)
-            is ObjectValue -> {
-                castObject(value, type, op)
+            is JNegExpr -> UtNegExpression(resolve(expr.op) as PrimitiveValue).toPrimitiveValue(expr.type)
+            is JNewExpr -> {
+                val addr = findNewAddr()
+                val generator = UtMockInfoGenerator { mockAddr ->
+                    UtNewInstanceMockInfo(
+                        expr.baseType.id,
+                        mockAddr,
+                        environment.method.declaringClass.id
+                    )
+                }
+                val objectValue = createObject(addr, expr.baseType, useConcreteType = true, generator)
+                addConstraintsForDefaultValues(objectValue)
+                objectValue
             }
-            is ArrayValue -> castArray(value, type)
+            is JNewArrayExpr -> {
+                val size = (resolve(expr.size) as PrimitiveValue).align()
+                val type = expr.type as ArrayType
+                createNewArray(size, type, type.elementType).also {
+                    val defaultValue = type.defaultSymValue
+                    queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, type, defaultValue as UtArrayExpressionBase)
+                }
+            }
+            is JNewMultiArrayExpr -> {
+                val result = environment.state.methodResult
+                    ?: error("There is no unfolded JNewMultiArrayExpr found in the methodResult")
+                queuedSymbolicStateUpdates += result.symbolicStateUpdate
+                (result.symbolicResult as SymbolicSuccess).value
+            }
+            is JLengthExpr -> {
+                val operand = expr.op as? JimpleLocal ?: error("Unknown op: ${expr.op}")
+                when (operand.type) {
+                    is ArrayType -> {
+                        val arrayInstance = localVariableMemory.local(operand.variable) as ArrayValue?
+                            ?: error("${expr.op} not found in the locals")
+                        nullPointerExceptionCheck(arrayInstance.addr)
+                        memory.findArrayLength(arrayInstance.addr).also { length ->
+                            queuedSymbolicStateUpdates += Ge(length, 0).asHardConstraint()
+                        }
+                    }
+                    else -> error("Unknown op: ${expr.op}")
+                }
+            }
+            is JCastExpr -> when (val value = resolve(expr.op, valueType)) {
+                is PrimitiveValue -> value.cast(expr.type)
+                is ObjectValue -> {
+                    castObject(value, expr.type, expr.op)
+                }
+                is ArrayValue -> castArray(value, expr.type)
+            }
+            is JInstanceOfExpr -> when (val value = resolve(expr.op, valueType)) {
+                is PrimitiveValue -> error("Unexpected instanceof on primitive $value")
+                is ObjectValue -> objectInstanceOf(value, expr.checkType, expr.op)
+                is ArrayValue -> arrayInstanceOf(value, expr.checkType)
+            }
+            else -> TODO("$expr")
         }
-        is JInstanceOfExpr -> when (val value = op.resolve(valueType)) {
-            is PrimitiveValue -> error("Unexpected instanceof on primitive $value")
-            is ObjectValue -> objectInstanceOf(value, checkType, op)
-            is ArrayValue -> arrayInstanceOf(value, checkType)
-        }
-        else -> TODO("$this")
-    }
 
     private fun initStringLiteral(stringWrapper: ObjectValue, value: String) {
         queuedSymbolicStateUpdates += objectUpdate(
@@ -2050,39 +2051,42 @@ class Traverser(
     // Type is needed for null values: we should know, which null do we require.
     // If valueType is NullType, return typelessNullObject. It can happen in a situation,
     // where we cannot find the type, for example in condition (null == null)
-    private fun Value.resolve(valueType: Type = this.type): SymbolicValue = when (this) {
-        is JimpleLocal -> localVariableMemory.local(this.variable) ?: error("$name not found in the locals")
-        is Constant -> if (this is NullConstant) typeResolver.nullObject(valueType) else resolve()
-        is Expr -> resolve(valueType).simplify()
+    private fun resolve(
+        value: Value,
+        valueType: Type = value.type
+    ): SymbolicValue = when (value) {
+        is JimpleLocal -> localVariableMemory.local(value.variable) ?: error("${value.name} not found in the locals")
+        is Constant -> if (value is NullConstant) typeResolver.nullObject(valueType) else resolveConstant(value)
+        is Expr -> resolve(value, valueType).simplify()
         is JInstanceFieldRef -> {
-            val instance = (base.resolve() as ObjectValue)
-            recordInstanceFieldRead(instance.addr, field)
+            val instance = (resolve(value.base) as ObjectValue)
+            recordInstanceFieldRead(instance.addr, value.field)
             nullPointerExceptionCheck(instance.addr)
 
             val objectType = if (instance.concrete?.value is BaseOverriddenWrapper) {
                 instance.concrete.value.overriddenClass.type
             } else {
-                field.declaringClass.type as RefType
+                value.field.declaringClass.type as RefType
             }
-            val generator = (field.type as? RefType)?.let { refType ->
+            val generator = (value.field.type as? RefType)?.let { refType ->
                 UtMockInfoGenerator { mockAddr ->
-                    val fieldId = FieldId(objectType.id, field.name)
+                    val fieldId = FieldId(objectType.id, value.field.name)
                     UtFieldMockInfo(refType.id, mockAddr, fieldId, instance.addr)
                 }
             }
-            createFieldOrMock(objectType, instance.addr, field, generator).also { value ->
+            createFieldOrMock(objectType, instance.addr, value.field, generator).also { fieldValue ->
                 preferredCexInstanceCache[instance]?.let { usedCache ->
-                    if (usedCache.add(field)) {
-                        applyPreferredConstraints(value)
+                    if (usedCache.add(value.field)) {
+                        applyPreferredConstraints(fieldValue)
                     }
                 }
             }
         }
         is JArrayRef -> {
-            val arrayInstance = base.resolve() as ArrayValue
+            val arrayInstance = resolve(value.base) as ArrayValue
             nullPointerExceptionCheck(arrayInstance.addr)
 
-            val index = (index.resolve() as PrimitiveValue).align()
+            val index = (resolve(value.index) as PrimitiveValue).align()
             val length = memory.findArrayLength(arrayInstance.addr)
             indexOutOfBoundsChecks(index, length)
 
@@ -2117,8 +2121,8 @@ class Traverser(
                 else -> PrimitiveValue(elementType, array.select(arrayInstance.addr, index.expr))
             }
         }
-        is StaticFieldRef -> readStaticField(this)
-        else -> error("${this::class} is not supported")
+        is StaticFieldRef -> readStaticField(value)
+        else -> error("${value::class} is not supported")
     }
 
     private fun readStaticField(fieldRef: StaticFieldRef): SymbolicValue {
@@ -2185,7 +2189,7 @@ class Traverser(
     }
 
     private fun resolveParameters(parameters: List<Value>, types: List<Type>) =
-        parameters.zip(types).map { (value, type) -> value.resolve(type) }
+        parameters.zip(types).map { (value, type) -> resolve(value, type) }
 
     private fun applyPreferredConstraints(value: SymbolicValue) {
         when (value) {
@@ -2651,7 +2655,7 @@ class Traverser(
         methodRef: SootMethodRef,
         parameters: List<Value>
     ): List<MethodResult> {
-        val instance = base.resolve()
+        val instance = resolve(base)
         if (instance !is ReferenceValue) error("We cannot run $methodRef on $instance")
 
         nullPointerExceptionCheck(instance.addr)
@@ -2777,7 +2781,7 @@ class Traverser(
     }
 
     private fun specialInvoke(invokeExpr: JSpecialInvokeExpr): List<MethodResult> {
-        val instance = invokeExpr.base.resolve()
+        val instance = resolve(invokeExpr.base)
         if (instance !is ReferenceValue) error("We cannot run ${invokeExpr.methodRef} on $instance")
 
         nullPointerExceptionCheck(instance.addr)
@@ -3254,8 +3258,8 @@ class Traverser(
         // We add cond.op.type for null values only. If we have condition like "null == r1"
         // we'll have ObjectInstance(r1::type) and ObjectInstance(r1::type) for now
         // For non-null values type is ignored.
-        val lhs = cond.op1.resolve(cond.op2.type)
-        val rhs = cond.op2.resolve(cond.op1.type)
+        val lhs = resolve(cond.op1, cond.op2.type)
+        val rhs = resolve(cond.op2, cond.op1.type)
         return when {
             lhs.isNullObject() || rhs.isNullObject() -> {
                 val eq = addrEq(lhs.addr, rhs.addr)
@@ -3265,7 +3269,7 @@ class Traverser(
                 ResolvedCondition(compareReferenceValues(lhs, rhs, cond is NeExpr))
             }
             else -> {
-                val expr = cond.resolve().asPrimitiveValueOrError as UtBoolExpression
+                val expr = resolve(cond).asPrimitiveValueOrError as UtBoolExpression
                 val memoryUpdates = collectSymbolicStateUpdates(expr)
                 ResolvedCondition(
                     expr,
@@ -3348,8 +3352,8 @@ class Traverser(
         var positiveCaseConstraint: UtBoolExpression? = null
         var negativeCaseConstraint: UtBoolExpression? = null
 
-        val left = cond.op1.resolve(cond.op2.type)
-        val right = cond.op2.resolve(cond.op1.type)
+        val left = resolve(cond.op1, cond.op2.type)
+        val right = resolve(cond.op2, cond.op1.type)
 
         if (left !is PrimitiveValue || right !is PrimitiveValue) return SoftConstraintsForResolvedCondition()
 
@@ -3881,7 +3885,7 @@ class Traverser(
 
     private fun ReturnStmt.symbolicSuccess(): SymbolicSuccess {
         val type = environment.method.returnType
-        val value = when (val instance = op.resolve(type)) {
+        val value = when (val instance = resolve(op, type)) {
             is PrimitiveValue -> instance.cast(type)
             else -> instance
         }

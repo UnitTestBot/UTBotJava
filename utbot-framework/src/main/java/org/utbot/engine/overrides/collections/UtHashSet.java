@@ -20,7 +20,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 /**
- * Class represents hybrid implementation (java + engine instructions) of Set interface for UtBotSymbolicEngine.
+ * Class represents hybrid implementation (java + engine instructions) of Set interface for {@link org.utbot.engine.UtBotSymbolicEngine}.
  * <p>
  * Implementation is based on RangedModifiableArray, and all operations are linear.
  * Should behave similar to

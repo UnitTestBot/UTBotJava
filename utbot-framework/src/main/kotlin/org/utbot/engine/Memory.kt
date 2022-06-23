@@ -238,12 +238,14 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         val previousMemoryStates = staticFieldsStates.toMutableMap()
 
 
-        // sometimes we want to change initial memory states of fields of a certain class, so we erase all the
-        // information about previous states and update it with the current state. For now, this processing only takes
-        // place after receiving MethodResult from [STATIC_INITIALIZER] method call at the end of
-        // [UtBotSymbolicEngine.processStaticInitializer]. The value of `update.classIdToClearStatics` is equal to the
-        // class for which the static initialization has performed.
-        // TODO: JIRA:1610 -- refactor working with statics later
+        /**
+         * sometimes we want to change initial memory states of fields of a certain class, so we erase all the
+         * information about previous states and update it with the current state. For now, this processing only takes
+         * place after receiving MethodResult from [STATIC_INITIALIZER] method call at the end of
+         * [UtBotSymbolicEngine.processStaticInitializer]. The value of `update.classIdToClearStatics` is equal to the
+         * class for which the static initialization has performed.
+         * TODO: JIRA:1610 -- refactor working with statics later
+         */
         update.classIdToClearStatics?.let { classId ->
             Scene.v().getSootClass(classId.name).fields.forEach { sootField ->
                 previousMemoryStates.remove(sootField.fieldId)

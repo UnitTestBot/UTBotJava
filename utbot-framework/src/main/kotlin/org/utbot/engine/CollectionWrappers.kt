@@ -65,7 +65,7 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
      *
      * Multiple GraphResults are returned because, we shouldn't substitute invocation of specified
      * that was called inside substituted method of object with the same address as specified [wrapper].
-     * (For example UtArrayList.<init> invokes AbstractList.<init> that also leads to UtBotSymbolicEngine.invoke,
+     * (For example UtArrayList.<init> invokes AbstractList.<init> that also leads to [UtBotSymbolicEngine.invoke],
      * and shouldn't be substituted with UtArrayList.<init> again). Only one GraphResult is valid, that is
      * guaranteed by contradictory to each other sets of constraints, added to them.
      */

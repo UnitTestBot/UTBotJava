@@ -346,10 +346,9 @@ class Resolver(
     /**
      * Resolves current result (return value).
      */
-    fun resolveResult(symResult: SymbolicResult?): UtExecutionResult =
+    fun resolveResult(symResult: SymbolicResult): UtExecutionResult =
         withMemoryState(CURRENT) {
             when (symResult) {
-                null -> UtExecutionSuccess(UtVoidModel)
                 is SymbolicSuccess -> {
                     collectMocksAndInstrumentation()
                     val model = resolveModel(symResult.value)

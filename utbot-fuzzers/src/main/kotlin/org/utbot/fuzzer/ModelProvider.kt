@@ -12,7 +12,7 @@ fun interface ModelProvider {
      * @param description a fuzzed method description
      * @param consumer accepts index in the parameter list and [UtModel] for this parameter.
      */
-    fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>)
+    fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>)
 
     /**
      * Combines this model provider with `anotherModelProvider` into one instance.
@@ -52,7 +52,7 @@ fun interface ModelProvider {
      */
     fun withFallback(modelProvider: ModelProvider) : ModelProvider {
         return ModelProvider { description, consumer ->
-            val providedByDelegateMethodParameters = mutableMapOf<Int, MutableList<UtModel>>()
+            val providedByDelegateMethodParameters = mutableMapOf<Int, MutableList<FuzzedValue>>()
             this@ModelProvider.generate(description) { index, model ->
                 providedByDelegateMethodParameters.computeIfAbsent(index) { mutableListOf() }.add(model)
             }
@@ -64,7 +64,7 @@ fun interface ModelProvider {
             val missingParameters =
                 (0 until description.parameters.size).filter { !providedByDelegateMethodParameters.containsKey(it) }
             if (missingParameters.isNotEmpty()) {
-                val values = mutableMapOf<Int, MutableList<UtModel>>()
+                val values = mutableMapOf<Int, MutableList<FuzzedValue>>()
                 modelProvider.generate(description) { i, m -> values.computeIfAbsent(i) { mutableListOf() }.add(m) }
                 missingParameters.forEach { index ->
                     values[index]?.let { models ->
@@ -90,7 +90,7 @@ fun interface ModelProvider {
             description.parametersMap.forEach { (classId, indices) ->
                 fallbackModelSupplier(classId)?.let { model ->
                     indices.forEach { index ->
-                        consumer.accept(index, model)
+                        consumer.accept(index, model.fuzzed())
                     }
                 }
             }
@@ -103,7 +103,7 @@ fun interface ModelProvider {
             return Combined(providers.toList())
         }
 
-        fun BiConsumer<Int, UtModel>.consumeAll(indices: List<Int>, models: Sequence<UtModel>) {
+        fun BiConsumer<Int, FuzzedValue>.consumeAll(indices: List<Int>, models: Sequence<FuzzedValue>) {
             models.forEach { model ->
                 indices.forEach { index ->
                     accept(index, model)
@@ -111,7 +111,7 @@ fun interface ModelProvider {
             }
         }
 
-        fun BiConsumer<Int, UtModel>.consumeAll(indices: List<Int>, models: List<UtModel>) {
+        fun BiConsumer<Int, FuzzedValue>.consumeAll(indices: List<Int>, models: List<FuzzedValue>) {
             consumeAll(indices, models.asSequence())
         }
     }
@@ -120,12 +120,14 @@ fun interface ModelProvider {
      * Wrapper class that delegates implementation to the [providers].
      */
     private class Combined(val providers: List<ModelProvider>): ModelProvider {
-        override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+        override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
             providers.forEach { provider ->
                 provider.generate(description, consumer)
             }
         }
     }
+
+    fun UtModel.fuzzed(block: FuzzedValue.() -> Unit = {}): FuzzedValue = FuzzedValue(this, this@ModelProvider).apply(block)
 }
 
 inline fun <reified T> ModelProvider.exceptIsInstance(): ModelProvider {

@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
@@ -179,7 +180,7 @@ object UtBotJavaApi {
             description.parametersMap.forEach { (classId, indices) ->
                 createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
                     indices.forEach { index ->
-                        consumer.accept(index, model)
+                        consumer.accept(index, FuzzedValue(model))
                     }
                 }
             }

@@ -1,6 +1,5 @@
 package org.utbot.fuzzer
 
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitivesModelProvider
@@ -18,8 +17,8 @@ import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
 
-fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvider): Sequence<List<UtModel>> {
-    val values = List<MutableList<UtModel>>(description.parameters.size) { mutableListOf() }
+fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
+    val values = List<MutableList<FuzzedValue>>(description.parameters.size) { mutableListOf() }
     modelProviders.forEach { fuzzingProvider ->
         fuzzingProvider.generate(description) { index, model ->
             values[index].add(model)

@@ -113,14 +113,18 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                         val nameIndex = namesCounter.getOrPut(name) { 0 }
                         namesCounter[name] = nameIndex + 1
                         updatedExecutions += traceTags.execution
-                        if (GENERATE_DISPLAY_NAMES) {
+                        if (GENERATE_DISPLAY_NAMES
+                            // do not rewrite display name if already set
+                            && traceTags.execution.displayName.isNullOrBlank()) {
                             if (!GENERATE_DISPLAYNAME_FROM_TO_STYLE) {
                                 traceTags.execution.displayName = displayName
                             } else {
                                 traceTags.execution.displayName = fromToName
                             }
                         }
-                        if (GENERATE_NAMES) {
+                        if (GENERATE_NAMES
+                            // do not rewrite display name if already set
+                            && traceTags.execution.testMethodName.isNullOrBlank()) {
                             traceTags.execution.testMethodName = name
                             if (nameIndex != 0) traceTags.execution.testMethodName += "_$nameIndex"
                         }

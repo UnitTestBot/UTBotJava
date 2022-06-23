@@ -128,7 +128,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
                         explicitThrown(
                             StringIndexOutOfBoundsException(),
                             findNewAddr(),
-                            isInNestedMethod()
+                            environment.state.isInNestedMethod()
                         ),
                         hardConstraints = mkNot(inBoundsCondition).asHardConstraint()
                     )

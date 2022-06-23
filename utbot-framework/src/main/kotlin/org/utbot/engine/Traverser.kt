@@ -1797,7 +1797,7 @@ class Traverser(
         }
 
         queuedSymbolicStateUpdates += arrayUpdateWithValue(arrayValue.addr, CharType.v().arrayType, newArray)
-        environment.state = environment.state.updateMemory(queuedSymbolicStateUpdates)
+        environment.state = environment.state.update(queuedSymbolicStateUpdates)
         queuedSymbolicStateUpdates = queuedSymbolicStateUpdates.copy(memoryUpdates = MemoryUpdate())
     }
 
@@ -3770,38 +3770,32 @@ class Traverser(
             queuedSymbolicStateUpdates += mkNot(mkEq(symbolicResult.value.addr, nullObjectAddr)).asHardConstraint()
         }
 
-        val newSolver = solver.add(
-            hard = queuedSymbolicStateUpdates.hardConstraints,
-            soft = queuedSymbolicStateUpdates.softConstraints
-        )
-
-        val updatedMemory = memory.update(queuedSymbolicStateUpdates.memoryUpdates)
+        val state = environment.state.update(queuedSymbolicStateUpdates)
+        val memory = state.memory
+        val solver = state.solver
 
         //no need to respect soft constraints in NestedMethod
-        val holder = newSolver.check(respectSoft = !environment.state.isInNestedMethod())
+        val holder = solver.check(respectSoft = !state.isInNestedMethod())
 
         if (holder !is UtSolverStatusSAT) {
             logger.trace { "processResult<${environment.method.signature}> UNSAT" }
             return
         }
+        val methodResult = MethodResult(symbolicResult)
 
         //execution frame from level 2 or above
-        if (environment.state.isInNestedMethod()) {
+        if (state.isInNestedMethod()) {
             // static fields substitution
             // TODO: JIRA:1610 -- better way of working with statics
             val updates = if (environment.method.name == STATIC_INITIALIZER && substituteStaticsWithSymbolicVariable) {
                 substituteStaticFieldsWithSymbolicVariables(
                     environment.method.declaringClass,
-                    updatedMemory.queuedStaticMemoryUpdates()
+                    memory.queuedStaticMemoryUpdates()
                 )
             } else {
                 MemoryUpdate() // all memory updates are already added in [environment.state]
             }
-            val methodResult = MethodResult(
-                symbolicResult,
-                queuedSymbolicStateUpdates + updates
-            )
-            val stateToOffer = environment.state.pop(methodResult)
+            val stateToOffer = state.pop(methodResult.copy(symbolicStateUpdate = updates.asUpdate()))
             pathSelector.offer(stateToOffer)
 
             logger.trace { "processResult<${environment.method.signature}> return from nested method" }
@@ -3809,13 +3803,35 @@ class Traverser(
         }
 
         //toplevel method
+        val terminalExecutionState =
+            state.copy(
+                methodResult = methodResult, // a way to put SymbolicResult into terminal state
+                label = StateLabel.TERMINAL
+            )
+        consumeTerminalState(terminalExecutionState)
+    }
+
+    private suspend fun FlowCollector<UtResult>.consumeTerminalState(
+        state: ExecutionState,
+    ) {
+        // some checks to be sure the state is correct
+        require(state.label == StateLabel.TERMINAL) { "Can't process non-terminal state!" }
+        require(!state.isInNestedMethod()) { "The state has to correspond to the MUT"}
+
+        val memory = state.memory
+        val solver = state.solver
+        val parameters = state.parameters.map { it.value }
+        val symbolicResult = requireNotNull(state.methodResult?.symbolicResult) { "The state must have symbolicResult"}
+        // it's free to make a check, because in the result is SAT, it should be already cached
+        val holder = requireNotNull(solver.check(respectSoft = true) as? UtSolverStatusSAT) { "The state must be SAT!" }
+
         val predictedTestName = Predictors.testName.predict(environment.state.path)
         Predictors.testName.provide(environment.state.path, predictedTestName, "")
 
         val resolver =
-            Resolver(hierarchy, updatedMemory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
+            Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
 
-        val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(resolvedParameters)
+        val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(parameters)
 
         val symbolicExecutionResult = resolver.resolveResult(symbolicResult)
 

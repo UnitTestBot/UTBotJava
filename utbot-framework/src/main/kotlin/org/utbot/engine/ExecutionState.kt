@@ -252,7 +252,7 @@ data class ExecutionState(
         )
     }
 
-    fun updateMemory(
+    fun update(
         stateUpdate: SymbolicStateUpdate
     ): ExecutionState {
         val last = executionStack.last()

@@ -48,7 +48,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
-import org.utbot.engine.*
 import soot.Scene
 import soot.jimple.JimpleBody
 import soot.toolkits.graph.ExceptionalUnitGraph
@@ -202,12 +201,9 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     ): Traverser {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $method  --$mockStrategy--")
-        val graph = graph(method)
-
         return Traverser(
             controller,
             method,
-            graph,
             classpathForEngine,
             dependencyPaths = dependencyPaths,
             mockStrategy = apiToModel(mockStrategy),
@@ -419,31 +415,22 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             else -> error("Cannot map API Mock Strategy model to Engine model: $mockStrategyApi")
         }
 
-    private fun graph(method: UtMethod<*>): ExceptionalUnitGraph {
-        val className = method.clazz.java.name
-        val clazz = Scene.v().classes.singleOrNull { it.name == className }
-            ?: error("No such $className found in the Scene")
-        val signature = method.callable.signature
-        val sootMethod = clazz.methods.singleOrNull { it.pureJavaSignature == signature }
-            ?: error("No such $signature found")
-        if (!sootMethod.canRetrieveBody()) {
-            error("No method body for $sootMethod found")
-        }
-        val methodBody = sootMethod.jimpleBody()
-        val graph = methodBody.graph()
+}
 
-        logger.trace { "JIMPLE for $method:\n${methodBody}" }
+fun graph(method: UtMethod<*>): ExceptionalUnitGraph {
+    val methodBody = jimpleBody(method)
+    return methodBody.graph()
+}
 
-        return graph
-    }
+fun jimpleBody(method: UtMethod<*>): JimpleBody {
+    val className = method.clazz.java.name
+    val clazz = Scene.v().classes.singleOrNull { it.name == className }
+        ?: error("No such $className found in the Scene")
+    val signature = method.callable.signature
+    val sootMethod = clazz.methods.singleOrNull { it.pureJavaSignature == signature }
+        ?: error("No such $signature found")
 
-    fun jimpleBody(method: UtMethod<*>): JimpleBody {
-        val clazz = Scene.v().classes.single { it.name == method.clazz.java.name }
-        val signature = method.callable.signature
-        val sootMethod = clazz.methods.single { it.pureJavaSignature == signature }
-
-        return sootMethod.jimpleBody()
-    }
+    return sootMethod.jimpleBody()
 }
 
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)

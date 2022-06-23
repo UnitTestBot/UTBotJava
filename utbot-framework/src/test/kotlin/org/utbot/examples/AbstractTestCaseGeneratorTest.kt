@@ -68,6 +68,7 @@ import kotlin.reflect.KFunction5
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.framework.PathSelectorType
+import org.utbot.framework.plugin.api.jimpleBody
 
 val logger = KotlinLogging.logger {}
 
@@ -2343,7 +2344,7 @@ abstract class AbstractTestCaseGeneratorTest(
                 walk(utMethod, mockStrategy, additionalDependenciesClassPath)
             }
             testCase.summarize(searchDirectory)
-            val valueTestCase = testCase.toValueTestCase(UtBotTestCaseGenerator.jimpleBody(utMethod))
+            val valueTestCase = testCase.toValueTestCase(jimpleBody(utMethod))
 
             assertTrue(testCase.errors.isEmpty()) {
                 "We have errors: ${
@@ -2478,7 +2479,7 @@ abstract class AbstractTestCaseGeneratorTest(
         additionalDependenciesClassPath: String = ""
     ): MethodResult {
         val testCase = executions(method, mockStrategy, additionalDependenciesClassPath)
-        val jimpleBody = UtBotTestCaseGenerator.jimpleBody(method)
+        val jimpleBody = jimpleBody(method)
         val methodCoverage = methodCoverage(
             method,
             testCase.toValueTestCase(jimpleBody).executions,

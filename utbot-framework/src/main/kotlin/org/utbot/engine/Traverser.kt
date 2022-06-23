@@ -266,6 +266,7 @@ import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
 import java.lang.reflect.Method
 import java.util.concurrent.atomic.AtomicInteger
+import org.utbot.framework.plugin.api.jimpleBody
 
 private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -317,13 +318,16 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
 class Traverser(
     private val controller: EngineController,
     private val methodUnderTest: UtMethod<*>,
-    private val graph: ExceptionalUnitGraph,
     classpath: String,
     dependencyPaths: String,
     mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
+
+    private val graph = jimpleBody(methodUnderTest).also {
+        logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
+    }.graph()
 
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()

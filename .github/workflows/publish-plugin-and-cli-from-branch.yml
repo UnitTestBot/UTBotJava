@@ -15,8 +15,8 @@ on:
     
 jobs:
     publish_plugin_and_cli:
-      #runs-on: self-hosted
-      runs-on: ubuntu-latest
+      runs-on: [self-hosted, local]
+      #runs-on: ubuntu-latest
       container: ubuntu:20.04
       
       steps:

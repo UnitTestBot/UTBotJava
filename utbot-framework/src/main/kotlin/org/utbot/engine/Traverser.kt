@@ -265,6 +265,7 @@ import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
 import java.lang.reflect.Method
+import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -387,7 +388,18 @@ class Traverser(
     private val insideStaticInitializer
         get() = environment.state.executionStack.any { it.method.isStaticInitializer }
 
-    internal fun findNewAddr() = typeRegistry.findNewAddr(insideStaticInitializer).also { touchAddress(it) }
+
+    private val objectCounter = AtomicInteger(TypeRegistry.objectCounterInitialValue)
+    private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
+        val newAddr = objectCounter.getAndIncrement()
+        // return negative address for objects created inside static initializer
+        // to make their address space be intersected with address space of
+        // parameters of method under symbolic execution
+        // @see ObjectWithFinalStaticTest::testParameterEqualsFinalStatic
+        val signedAddr = if (insideStaticInitializer) -newAddr else newAddr
+        return UtAddrExpression(signedAddr)
+    }
+    internal fun findNewAddr() = findNewAddr(insideStaticInitializer).also { touchAddress(it) }
 
     // Counter used for a creation symbolic results of "hashcode" and "equals" methods.
     private var equalsCounter = 0

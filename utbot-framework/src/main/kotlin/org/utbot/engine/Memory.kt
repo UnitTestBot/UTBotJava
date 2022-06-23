@@ -539,17 +539,6 @@ class TypeRegistry {
         finalCost
     }
 
-    private val objectCounter = AtomicInteger(objectCounterInitialValue)
-    fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
-        val newAddr = objectCounter.getAndIncrement()
-        // return negative address for objects created inside static initializer
-        // to make their address space be intersected with address space of
-        // parameters of method under symbolic execution
-        // @see ObjectWithFinalStaticTest::testParameterEqualsFinalStatic
-        val signedAddr = if (insideStaticInitializer) -newAddr else newAddr
-        return UtAddrExpression(signedAddr)
-    }
-
     private val classRefCounter = AtomicInteger(classRefAddrsInitialValue)
     private fun nextClassRefAddr() = UtAddrExpression(classRefCounter.getAndIncrement())
 

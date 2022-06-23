@@ -46,7 +46,7 @@ class UtMockInfoGenerator(private val generator: (UtAddrExpression) -> UtMockInf
  * Contains mock class id and mock address to work with object cache.
  *
  * Note: addr for static method mocks contains addr of the "host" object
- * received by [UtBotSymbolicEngine.locateStaticObject].
+ * received by [Traverser.locateStaticObject].
  *
  * @property classId classId of the object this mock represents.
  * @property addr address of the mock object.
@@ -90,9 +90,9 @@ data class UtObjectMockInfo(
 
 /**
  * Mock for the "host" object for static methods and fields with [classId] declaringClass.
- * [addr] is a value received by [UtBotSymbolicEngine.locateStaticObject].
+ * [addr] is a value received by [Traverser.locateStaticObject].
  *
- * @see UtBotSymbolicEngine.locateStaticObject
+ * @see Traverser.locateStaticObject
  */
 data class UtStaticObjectMockInfo(
     override val classId: ClassId,
@@ -115,12 +115,12 @@ data class UtNewInstanceMockInfo(
  * Represents mocks for static methods.
  * Contains the methodId.
  *
- * Used only in [UtBotSymbolicEngine.mockStaticMethod] method to pass information into [Mocker] about the method.
+ * Used only in [Traverser.mockStaticMethod] method to pass information into [Mocker] about the method.
  * All the executables will be stored in executables of the object with [UtStaticObjectMockInfo] and the same addr.
  *
  * Note: we use non null addr here because of [createMockObject] method. We have to know address of the object
  * that we want to make. Although static method doesn't have "caller", we still can use address of the object
- * received by [UtBotSymbolicEngine.locateStaticObject].
+ * received by [Traverser.locateStaticObject].
  */
 data class UtStaticMethodMockInfo(
     override val addr: UtAddrExpression,
@@ -265,7 +265,7 @@ class UtMockWrapper(
     private val mockInfo: UtMockInfo
 ) : WrapperInterface {
 
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>

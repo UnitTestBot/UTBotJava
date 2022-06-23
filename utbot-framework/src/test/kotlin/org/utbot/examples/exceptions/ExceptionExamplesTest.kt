@@ -93,7 +93,7 @@ internal class ExceptionExamplesTest : AbstractTestCaseGeneratorTest(
     }
 
     /**
-     * Used for path generation check in [org.utbot.engine.UtBotSymbolicEngine.fullPath]
+     * Used for path generation check in [org.utbot.engine.Traverser.fullPath]
      */
     @Test
     fun testCatchDeepNestedThrow() {
@@ -107,7 +107,7 @@ internal class ExceptionExamplesTest : AbstractTestCaseGeneratorTest(
     }
 
     /**
-     * Used for path generation check in [org.utbot.engine.UtBotSymbolicEngine.fullPath]
+     * Used for path generation check in [org.utbot.engine.Traverser.fullPath]
      */
     @Test
     fun testDontCatchDeepNestedThrow() {

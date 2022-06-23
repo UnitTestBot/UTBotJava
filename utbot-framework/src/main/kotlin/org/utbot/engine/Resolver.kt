@@ -683,7 +683,7 @@ class Resolver(
      * the method returns null as the result.
      *
      * @see Memory.touchedAddresses
-     * @see UtBotSymbolicEngine.touchAddress
+     * @see Traverser.touchAddress
      */
     private fun UtSolverStatusSAT.constructTypeOrNull(addr: UtAddrExpression, defaultType: Type): Type? {
         return constructTypeOrNull(addr, defaultType, isTouched(addr))
@@ -1032,7 +1032,7 @@ val typesOfObjectsToRecreate = listOf(
  * * we have to determine, which null values must be constructed;
  * * we must distinguish primitives and wrappers, but because of kotlin types we cannot do it without the [sootType];
  */
-fun UtBotSymbolicEngine.toMethodResult(value: Any?, sootType: Type): MethodResult {
+fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
     if (sootType is PrimType) return MethodResult(value.primitiveToSymbolic())
 
     return when (value) {
@@ -1107,7 +1107,7 @@ fun UtBotSymbolicEngine.toMethodResult(value: Any?, sootType: Type): MethodResul
     }
 }
 
-private fun UtBotSymbolicEngine.arrayToMethodResult(
+private fun Traverser.arrayToMethodResult(
     size: Int,
     elementType: Type,
     takeElement: (Int) -> UtExpression
@@ -1143,7 +1143,7 @@ private fun UtBotSymbolicEngine.arrayToMethodResult(
     )
 }
 
-fun UtBotSymbolicEngine.constructEnumStaticFieldResult(
+fun Traverser.constructEnumStaticFieldResult(
     fieldName: String,
     fieldType: Type,
     declaringClass: SootClass,

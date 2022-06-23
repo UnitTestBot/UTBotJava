@@ -17,7 +17,7 @@
     </Appenders>
     <Loggers>
         <!--        Uncomment this logger to see path -->
-        <Logger name="org.utbot.engine.UtBotSymbolicEngine.path" level="debug"/>
+        <Logger name="org.utbot.engine.Traverser.path" level="debug"/>
 
 
         <!-- Set this logger level to TRACE to see SMT requests, and SAT/UNSAT/UNKNOWN responses -->

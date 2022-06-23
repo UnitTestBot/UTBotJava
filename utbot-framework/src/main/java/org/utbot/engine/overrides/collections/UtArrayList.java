@@ -28,7 +28,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 
 /**
- * Class represents hybrid implementation (java + engine instructions) of List interface for {@link org.utbot.engine.UtBotSymbolicEngine}.
+ * Class represents hybrid implementation (java + engine instructions) of List interface for {@link org.utbot.engine.Traverser}.
  * <p>
  * Implementation is based on org.utbot.engine.overrides.collections.RangeModifiableArray.
  * Should behave similar to {@link java.util.ArrayList}.

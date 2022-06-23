@@ -313,7 +313,7 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         }
     }
 
-class UtBotSymbolicEngine(
+class Traverser(
     private val controller: EngineController,
     private val methodUnderTest: UtMethod<*>,
     private val graph: ExceptionalUnitGraph,
@@ -3377,7 +3377,7 @@ class UtBotSymbolicEngine(
      * different object addresses in such case
      * - We do not compare null addresses here, it happens in resolveIfCondition
      *
-     * @see UtBotSymbolicEngine.resolveIfCondition
+     * @see Traverser.resolveIfCondition
      */
     private fun compareReferenceValues(
         lhs: ReferenceValue,
@@ -3877,7 +3877,7 @@ class UtBotSymbolicEngine(
         return SymbolicSuccess(value)
     }
 
-    internal fun asMethodResult(function: UtBotSymbolicEngine.() -> SymbolicValue): MethodResult {
+    internal fun asMethodResult(function: Traverser.() -> SymbolicValue): MethodResult {
         val prevSymbolicStateUpdate = queuedSymbolicStateUpdates.copy()
         // TODO: refactor this `try` with `finally` later
         queuedSymbolicStateUpdates = SymbolicStateUpdate()

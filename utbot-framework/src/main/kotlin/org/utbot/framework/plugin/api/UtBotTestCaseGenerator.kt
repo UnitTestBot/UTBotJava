@@ -8,7 +8,7 @@ import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.MockStrategy
 import org.utbot.engine.Mocker
-import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.Traverser
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.TestSelectionStrategyType
@@ -199,12 +199,12 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator
-    ): UtBotSymbolicEngine {
+    ): Traverser {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $method  --$mockStrategy--")
         val graph = graph(method)
 
-        return UtBotSymbolicEngine(
+        return Traverser(
             controller,
             method,
             graph,
@@ -216,7 +216,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         )
     }
 
-    private fun createDefaultFlow(engine: UtBotSymbolicEngine): Flow<UtResult> {
+    private fun createDefaultFlow(engine: Traverser): Flow<UtResult> {
         var flow = engine.traverse()
         if (UtSettings.useFuzzing) {
             flow = flowOf(
@@ -265,7 +265,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
-        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = ::createDefaultFlow
+        generate: (engine: Traverser) -> Flow<UtResult> = ::createDefaultFlow
     ): List<UtTestCase> {
         if (isCanceled()) return methods.map { UtTestCase(it) }
 

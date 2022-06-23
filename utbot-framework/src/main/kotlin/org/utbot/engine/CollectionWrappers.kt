@@ -50,7 +50,7 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
      *
      * @see invoke
      */
-    protected abstract fun UtBotSymbolicEngine.overrideInvoke(
+    protected abstract fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -65,11 +65,11 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
      *
      * Multiple GraphResults are returned because, we shouldn't substitute invocation of specified
      * that was called inside substituted method of object with the same address as specified [wrapper].
-     * (For example UtArrayList.<init> invokes AbstractList.<init> that also leads to [UtBotSymbolicEngine.invoke],
+     * (For example UtArrayList.<init> invokes AbstractList.<init> that also leads to [Traverser.invoke],
      * and shouldn't be substituted with UtArrayList.<init> again). Only one GraphResult is valid, that is
      * guaranteed by contradictory to each other sets of constraints, added to them.
      */
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -162,7 +162,7 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
 }
 
 abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: String) : BaseContainerWrapper(containerClassName) {
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -283,7 +283,7 @@ class SetWrapper : BaseGenericStorageBasedContainerWrapper(UtHashSet::class.qual
  * entries, then real behavior of generated test can differ from expected and undefined.
  */
 class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -418,14 +418,14 @@ val HASH_MAP_TYPE: RefType
 val STREAM_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.stream.Stream::class.java.canonicalName).type
 
-internal fun UtBotSymbolicEngine.getArrayField(
+internal fun Traverser.getArrayField(
     addr: UtAddrExpression,
     wrapperClass: SootClass,
     field: SootField
 ): ArrayValue =
     createFieldOrMock(wrapperClass.type, addr, field, mockInfoGenerator = null) as ArrayValue
 
-internal fun UtBotSymbolicEngine.getIntFieldValue(wrapper: ObjectValue, field: SootField): UtExpression {
+internal fun Traverser.getIntFieldValue(wrapper: ObjectValue, field: SootField): UtExpression {
     val chunkId = hierarchy.chunkIdForField(field.declaringClass.type, field)
     val descriptor = MemoryChunkDescriptor(chunkId, field.declaringClass.type, IntType.v())
     val array = memory.findArray(descriptor, MemoryState.CURRENT)

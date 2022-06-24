@@ -30,6 +30,7 @@ import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
+import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.AndroidApiHelper
 import com.intellij.codeInsight.hint.HintUtil
@@ -40,6 +41,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
@@ -51,10 +53,14 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.ui.popup.IconButton
+import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
@@ -89,6 +95,8 @@ import com.intellij.util.ui.JBUI.Borders.empty
 import com.intellij.util.ui.JBUI.Borders.merge
 import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.JBUI.size
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.awt.Color
@@ -97,9 +105,13 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Objects
 import java.util.concurrent.TimeUnit
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComboBox
+import javax.swing.JComponent
+import javax.swing.JList
+import javax.swing.JPanel
 import kotlin.streams.toList
 import org.jetbrains.concurrency.Promise
-import javax.swing.*
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -345,6 +357,34 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun checkMembers(members: List<MemberInfo>) = members.forEach { it.isChecked = true }
 
+    private fun getTestRoot() : VirtualFile? {
+        model.testSourceRoot?.let {
+            if (it.isDirectory || it is FakeVirtualFile) return it
+        }
+        return null
+    }
+
+    override fun doValidate(): ValidationInfo? {
+        val testRoot = getTestRoot()
+            ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
+
+        if (findReadOnlyContentEntry(testRoot) == null) {
+            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+        }
+
+        membersTable.tableHeader?.background = UIUtil.getTableBackground()
+        membersTable.background = UIUtil.getTableBackground()
+        if (membersTable.selectedMemberInfos.isEmpty()) {
+            membersTable.tableHeader?.background = JBUI.CurrentTheme.Validator.errorBackgroundColor()
+            membersTable.background = JBUI.CurrentTheme.Validator.errorBackgroundColor()
+            return ValidationInfo(
+                "Tick any methods to generate tests for", membersTable
+            )
+        }
+        return null
+    }
+
+
     override fun doOKAction() {
         model.testPackageName =
             if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
@@ -418,11 +458,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Creates test source root if absent and target packages for tests.
      */
     private fun createTestRootAndPackages(): Boolean {
+        model.testSourceRoot = createDirectoryIfMissing(model.testSourceRoot)
         val testSourceRoot = model.testSourceRoot ?: return false
         if (model.testSourceRoot?.isDirectory != true) return false
-
-        val rootExists = getOrCreateTestRoot(testSourceRoot)
-        if (rootExists) {
+        if (getOrCreateTestRoot(testSourceRoot)) {
             if (cbSpecifyTestPackage.isSelected) {
                 createSelectedPackage(testSourceRoot)
             } else {
@@ -430,8 +469,22 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
             return true
         }
-
         return false
+    }
+
+    private fun createDirectoryIfMissing(dir : VirtualFile?): VirtualFile? {
+        val file = if (dir is FakeVirtualFile) {
+            WriteCommandAction.runWriteCommandAction(model.project, Computable<VirtualFile> {
+                VfsUtil.createDirectoryIfMissing(dir.path)
+            })
+        } else {
+            dir
+        }?: return null
+        return if (VfsUtil.virtualToIoFile(file).isFile) {
+            null
+        } else {
+            StandardFileSystems.local().findFileByPath(file.path)
+        }
     }
 
     private fun createPackagesByClasses(testSourceRoot: VirtualFile) {
@@ -460,19 +513,33 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "Generation error"
         )
 
+    private fun findReadOnlyContentEntry(testSourceRoot: VirtualFile?): ContentEntry? {
+        if (testSourceRoot == null) return null
+        if (testSourceRoot is FakeVirtualFile) {
+            return findReadOnlyContentEntry(testSourceRoot.parent)
+        }
+        return ModuleRootManager.getInstance(model.testModule).contentEntries
+            .filterNot { it.file == null }
+            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
+    }
+
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
         val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
-        val contentEntry = modifiableModel.contentEntries
-            .filterNot { it.file == null }
-            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) }
-            ?: return false
+        try {
+            val contentEntry = modifiableModel.contentEntries
+                .filterNot { it.file == null }
+                .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) }
+                ?: return false
 
-        VfsUtil.createDirectoryIfMissing(urlToPath(testSourceRoot.url))
-
-        contentEntry.addSourceFolder(testSourceRoot.url, codegenLanguages.item.testRootType())
-        WriteCommandAction.runWriteCommandAction(model.project) { modifiableModel.commit() }
-
-        return true
+            contentEntry.addSourceRootIfAbsent(
+                modifiableModel,
+                testSourceRoot.url,
+                codegenLanguages.item.testRootType()
+            )
+            return true
+        } finally {
+            if (modifiableModel.isWritable && !modifiableModel.isDisposed) modifiableModel.dispose()
+        }
     }
 
     private fun createPackageWrapper(packageName: String?): PackageWrapper =
@@ -702,9 +769,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         itemsToHelpTooltip.forEach { (box, tooltip) -> box.setHelpTooltipTextChanger(tooltip) }
 
         testSourceFolderField.childComponent.addActionListener { event ->
-            val item = (event.source as JComboBox<*>).selectedItem as String
-
-            pathToFile(item)?.let { model.testSourceRoot = it }
+            with((event.source as JComboBox<*>).selectedItem) {
+                if (this is VirtualFile) {
+                    model.testSourceRoot = this@with
+                }
+                else {
+                    model.testSourceRoot = null
+                }
+            }
         }
 
         mockStrategies.addActionListener { event ->
@@ -755,14 +827,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
         }
     }
-
-    private fun pathToFile(path: String): VirtualFile? {
-        val relativePath = path.substring(".../".length).replace('\\', '/')
-        return model.testModule
-            .suitableTestSourceRoots()
-            .firstOrNull { it.path.contains(relativePath) }
-    }
-
 
     private lateinit var currentFrameworkItem: TestFramework
 
@@ -843,7 +907,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun staticsMockingConfigured(): Boolean {
-        val entries = ModuleRootManager.getInstance(model.testModule).modifiableModel.contentEntries
+        val entries = ModuleRootManager.getInstance(model.testModule).contentEntries
         val hasEntriesWithoutResources = entries
             .filterNot { it.sourceFolders.any { f -> f.rootType in testResourceRootTypes } }
             .isNotEmpty()

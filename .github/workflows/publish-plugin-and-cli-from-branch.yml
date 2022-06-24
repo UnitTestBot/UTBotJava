@@ -12,23 +12,30 @@ on:
           - no-postfix
           - alpha
           - beta
-    
+
 jobs:
     publish_plugin_and_cli:
       runs-on: [self-hosted, local]
       #runs-on: ubuntu-latest
-      container: ubuntu:20.04
+      container:
+        image: ubuntu:20.04
+        volumes:
+          - /home/github-runner/certificates/:/usr/local/share/ca-certificates/
       
       steps:
       - name: Install prerequisites
         run: |
           set -x
           apt update
-          apt install -y unzip fonts-dejavu fontconfig
+          apt install -y unzip \
+                         fonts-dejavu \
+                         fontconfig \
+                         git \
+                         ca-certificates
+          cp /usr/local/share/ca-certificates/* /etc/ssl/certs/
+          update-ca-certificates
 
       - uses: actions/checkout@v3
-        with:
-          ssh-strict: false
       - uses: actions/setup-java@v2
         with:
           java-version: '8'

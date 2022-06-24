@@ -18,6 +18,7 @@ env:
   # repo name in events doesn't fit our requirements because contains slash symbol
   # https://docs.github.com/en/developers/webhooks-and-events/events/github-event-types
   GIT_REPO_NAME: UTBotJava
+  SSL_CERT_DIR: /etc/ssl/certs
 
 jobs:
     publish_plugin_and_cli:

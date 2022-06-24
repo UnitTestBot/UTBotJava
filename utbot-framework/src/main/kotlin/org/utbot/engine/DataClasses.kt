@@ -89,7 +89,7 @@ data class Parameter(private val localVariable: LocalVariable, private val type:
  * that **usually** contains only concrete types (so-called appropriate). The only way to create [TypeStorage] with
  * inappropriate possibleType is to create it using constructor with the only type.
  *
- * @see isAppropriate
+ * @see isAppropriateForInstantiation
  */
 data class TypeStorage(val leastCommonType: Type, val possibleConcreteTypes: Set<Type>) {
     private val hashCode = Objects.hash(leastCommonType, possibleConcreteTypes)

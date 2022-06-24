@@ -512,7 +512,7 @@ class TypeRegistry {
 
         if (sootClass.name.contains("$")) finalCost += -4096
 
-        if (sootClass.type.sootClass.isInappropriate) finalCost += -8192
+        if (sootClass.type.sootClass.isInappropriateForInstantiation) finalCost += -8192
 
         finalCost
     }

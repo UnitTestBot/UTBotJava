@@ -32,7 +32,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
     /**
      * Finds all the inheritors for each type from the [types] and returns their intersection.
      *
-     * Note: every type from the result satisfies [isAppropriate] condition.
+     * Note: every type from the result satisfies [isAppropriateForInstantiation] condition.
      */
     fun intersectInheritors(types: Array<java.lang.reflect.Type>): Set<RefType> = intersectTypes(types) {
         findOrConstructInheritorsIncludingTypes(it)
@@ -41,7 +41,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
     /**
      * Finds all the ancestors for each type from the [types] and return their intersection.
      *
-     * Note: every type from the result satisfies [isAppropriate] condition.
+     * Note: every type from the result satisfies [isAppropriateForInstantiation] condition.
      */
     fun intersectAncestors(types: Array<java.lang.reflect.Type>): Set<RefType> = intersectTypes(types) {
         findOrConstructAncestorsIncludingTypes(it)
@@ -59,7 +59,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         return types
             .map { classOrDefault(it.rawType.typeName) }
             .fold(allObjects) { acc, value -> acc.intersect(retrieveFunction(value)) }
-            .filter { it.sootClass.isAppropriate }
+            .filter { it.sootClass.isAppropriateForInstantiation }
             .toSet()
     }
 
@@ -81,10 +81,10 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
      * @param take Number of types to take
      *
      * @see TypeRegistry.findRating
-     * @see appropriateClasses
+     * @see appropriateForInstantiationClasses
      */
     fun findTopRatedTypes(types: Collection<Type>, take: Int = Int.MAX_VALUE) =
-        types.appropriateClasses()
+        types.appropriateForInstantiationClasses()
             .sortedByDescending { type ->
                 val baseType = if (type is ArrayType) type.baseType else type
                 // primitive baseType has the highest possible rating
@@ -105,7 +105,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
      * classes we can instantiate: there will be no interfaces, abstract or local classes.
      * If there are no such classes, [TypeStorage.possibleConcreteTypes] is an empty set.
      *
-     * @see isAppropriate
+     * @see isAppropriateForInstantiation
      */
     fun constructTypeStorage(type: Type, possibleTypes: Collection<Type>): TypeStorage {
         val concretePossibleTypes = possibleTypes
@@ -125,7 +125,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
 
         val baseSootClass = baseType.sootClass
 
-        if (numDimensions == 0 && baseSootClass.isInappropriate) {
+        if (numDimensions == 0 && baseSootClass.isInappropriateForInstantiation) {
             // interface, abstract class, or local, or mock could not be constructed
             return true
         }
@@ -151,7 +151,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
      * classes we can instantiate: there will be no interfaces, abstract or local classes.
      * If there are no such classes, [TypeStorage.possibleConcreteTypes] is an empty set.
      *
-     * @see isAppropriate
+     * @see isAppropriateForInstantiation
      */
     fun constructTypeStorage(type: Type, useConcreteType: Boolean): TypeStorage {
         // create a typeStorage with concreteType even if the type belongs to an interface or an abstract class
@@ -170,7 +170,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             if (type is ArrayType) {
                 allInheritors
             } else {
-                allInheritors.filterTo(mutableSetOf()) { it.sootClass.isAppropriate }
+                allInheritors.filterTo(mutableSetOf()) { it.sootClass.isAppropriateForInstantiation }
             }
         }
 
@@ -278,13 +278,13 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         findAnyConcreteInheritorIncluding(evaluatedType) ?: findAnyConcreteInheritorIncluding(defaultType)
 
     private fun findAnyConcreteInheritorIncluding(type: RefType): RefType? =
-        if (type.sootClass.isAppropriate) {
+        if (type.sootClass.isAppropriateForInstantiation) {
             type
         } else {
             findOrConstructInheritorsIncludingTypes(type)
                 .filterNot { !it.hasSootClass() && (it.sootClass.isOverridden || it.sootClass.isUtMock) }
                 .sortedByDescending { typeRegistry.findRating(it) }
-                .firstOrNull { it.sootClass.isAppropriate }
+                .firstOrNull { it.sootClass.isAppropriateForInstantiation }
         }
 }
 

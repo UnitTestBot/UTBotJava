@@ -18,7 +18,6 @@ import org.utbot.engine.pc.UtSeqSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
-import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.pc.UtSort
 import org.utbot.engine.pc.mkArrayWithConst
 import org.utbot.engine.pc.mkBool
@@ -159,34 +158,58 @@ fun <K, V> PersistentMap<K, V>.putIfAbsent(key: K, value: V): PersistentMap<K, V
         this.put(key, value)
     }
 
+fun Collection<Type>.appropriateForMethodInvocationClasses(): List<Type> = filterTypesByPredicate {
+    it.isAppropriateForMethodInvocation
+}
+
 /**
- * Filters given collection with [isAppropriate] property as a predicate.
+ * Filters given collection with [isAppropriateForInstantiation] property as a predicate.
  *
  * @receiver Collection for filtering
  *
  * @return List of the given elements containing only primitive types, RefTypes that satisfy the predicate and
  * ArrayType with primitive baseType or RefType baseType satisfying the predicate
- * @see isAppropriate
- * @see isInappropriate
+ * @see isAppropriateForInstantiation
+ * @see isInappropriateForInstantiation
  *
  */
-fun Collection<Type>.appropriateClasses() = filter { type ->
-    val baseType = if (type is ArrayType) type.baseType else type
-    if (baseType is RefType) baseType.sootClass.isAppropriate else baseType is PrimType
+fun Collection<Type>.appropriateForInstantiationClasses(): List<Type> = filterTypesByPredicate {
+    it.isAppropriateForInstantiation
 }
 
 /**
- * Returns true if the class can be instantiated and false otherwise.
- * @see isInappropriate
+ * Filters given types with given [predicate] for [SootClass] of theirs base types.
  */
-val SootClass.isAppropriate
-    get() = !isInappropriate
+private fun Collection<Type>.filterTypesByPredicate(predicate: (SootClass) -> Boolean): List<Type> = filter { type ->
+    val baseType = if (type is ArrayType) type.baseType else type
+    if (baseType is RefType) predicate(baseType.sootClass) else baseType is PrimType
+}
+
+/**
+ * Returns true if the class can be used for a method invocation and false otherwise.
+ * @see isInappropriateForMethodInvocation
+ */
+val SootClass.isAppropriateForMethodInvocation
+    get() = !isInappropriateForMethodInvocation
+
+/**
+ * Returns true if the class can be instantiated and false otherwise.
+ * @see isInappropriateForInstantiation
+ */
+val SootClass.isAppropriateForInstantiation
+    get() = !isInappropriateForInstantiation
+
+/**
+ * Returns true if the class is abstract, interface, or if the class has UtClassMock annotation, false otherwise.
+ */
+val SootClass.isInappropriateForMethodInvocation
+    get() = isAbstract || isInterface || findMockAnnotationOrNull != null
 
 /**
  * Returns true if the class is abstract, interface, local or if the class has UtClassMock annotation, false otherwise.
  */
-val SootClass.isInappropriate
-    get() = isAbstract || isInterface || isLocal || findMockAnnotationOrNull != null
+val SootClass.isInappropriateForInstantiation
+    get() = isInappropriateForMethodInvocation || isLocal
 
 private val isLocalRegex = ".*\\$\\d+[\\p{L}\\p{M}0-9][\\p{L}\\p{M}0-9]*".toRegex()
 

@@ -2646,7 +2646,7 @@ class UtBotSymbolicEngine(
         val implementationToClasses = concretePossibleTypes
             .filterIsInstance<RefType>()
             .groupBy { it.sootClass.findMethodOrNull(methodSubSignature)?.declaringClass }
-            .filterValues { it.appropriateClasses().isNotEmpty() }
+            .filterValues { it.appropriateForMethodInvocationClasses().isNotEmpty() }
 
         val targets = mutableListOf<MethodInvocationTarget>()
         for ((sootClass, types) in implementationToClasses) {

@@ -19,6 +19,7 @@ env:
   # https://docs.github.com/en/developers/webhooks-and-events/events/github-event-types
   GIT_REPO_NAME: UTBotJava
   SSL_CERT_DIR: /etc/ssl/certs
+  NODE_EXTRA_CA_CERTS: /etc/ssl/certs/WebSecureInternetGatewayCA.pem
 
 jobs:
     publish_plugin_and_cli:
@@ -50,8 +51,6 @@ jobs:
           distribution: 'zulu'
           java-package: jdk+fx
           cache: gradle
-        env:
-          NODE_EXTRA_CA_CERTS: /etc/ssl/certs/WebSecureInternetGatewayCA.pem
       - uses: gradle/gradle-build-action@v2
         with:
           gradle-version: 6.8

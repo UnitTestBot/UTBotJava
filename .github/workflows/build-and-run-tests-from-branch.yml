@@ -6,7 +6,7 @@ on:
 jobs:
   build-and-run-tests:
 #    runs-on: ubuntu-20.04
-    runs-on: [self-hosted, local]
+    runs-on: [self-hosted, cloud]
     container: ubuntu:20.04
 
     steps:

@@ -51,10 +51,13 @@ jobs:
           distribution: 'zulu'
           java-package: jdk+fx
           cache: gradle
+      - name: Debug
+        run: |
+          sleep 600
       - uses: gradle/gradle-build-action@v2
         with:
           gradle-version: 6.8
-          
+
       - name: Set environment variables
         run: |
           echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV

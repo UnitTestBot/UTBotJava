@@ -44,10 +44,9 @@ jobs:
         with:
           ssh-strict: false
 
-      - name: User payload | Checkout repository
-        run: |
-          set -x
-          sleep 600
+#      - name: User payload | Checkout repository
+#        run: |
+#          set -x
 #          git config --global credential.helper 'store --file ~/.git-credentials'
 #          echo "https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
 #          git clone https://github.com/UnitTestBot/${GIT_REPO_NAME}.git ${GIT_REPO_NAME}

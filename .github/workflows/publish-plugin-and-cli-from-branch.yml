@@ -13,6 +13,12 @@ on:
           - alpha
           - beta
 
+env:
+  GIT_USERNAME: bot
+  # repo name in events doesn't fit our requirements because contains slash symbol
+  # https://docs.github.com/en/developers/webhooks-and-events/events/github-event-types
+  GIT_REPO_NAME: UTBotJava
+
 jobs:
     publish_plugin_and_cli:
       runs-on: [self-hosted, local]
@@ -35,7 +41,17 @@ jobs:
           cp /usr/local/share/ca-certificates/* /etc/ssl/certs/
           update-ca-certificates
 
-      - uses: actions/checkout@v3
+#      - uses: actions/checkout@v3
+      - name: User payload | Checkout repository
+        run: |
+          set -x
+          git config --global credential.helper 'store --file ~/.git-credentials'
+          echo "https://${GIT_USERNAME}:${GITHUB_TOKEN}@github.com" > ~/.git-credentials
+          git clone https://github.com/UnitTestBot/${GIT_REPO_NAME}.git ${GIT_REPO_NAME}
+          cd ${GIT_REPO_NAME}
+          git checkout ${GITHUB_REF_NAME}
+          ls -lh
+
       - uses: actions/setup-java@v2
         with:
           java-version: '8'

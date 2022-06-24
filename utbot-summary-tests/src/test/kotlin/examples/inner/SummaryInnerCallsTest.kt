@@ -1,9 +1,13 @@
-package org.utbot.analytics.examples.inner
+package examples.inner
 
-import org.utbot.analytics.examples.SummaryTestCaseGeneratorTest
+import examples.SummaryTestCaseGeneratorTest
+import org.junit.Ignore
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.utbot.examples.inner.InnerCalls
 import org.junit.jupiter.api.Test
 
+@Disabled
 class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     InnerCalls::class,
 ) {

@@ -8,7 +8,6 @@ import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.MockStrategy
 import org.utbot.engine.Mocker
-import org.utbot.engine.Traverser
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.TestSelectionStrategyType
@@ -48,6 +47,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
+import org.utbot.engine.UtBotSymbolicEngine
 import soot.Scene
 import soot.jimple.JimpleBody
 import soot.toolkits.graph.ExceptionalUnitGraph
@@ -198,10 +198,10 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator
-    ): Traverser {
+    ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $method  --$mockStrategy--")
-        return Traverser(
+        return UtBotSymbolicEngine(
             controller,
             method,
             classpathForEngine,
@@ -212,7 +212,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         )
     }
 
-    private fun createDefaultFlow(engine: Traverser): Flow<UtResult> {
+    private fun createDefaultFlow(engine: UtBotSymbolicEngine): Flow<UtResult> {
         var flow = engine.traverse()
         if (UtSettings.useFuzzing) {
             flow = flowOf(
@@ -261,7 +261,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
-        generate: (engine: Traverser) -> Flow<UtResult> = ::createDefaultFlow
+        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = ::createDefaultFlow
     ): List<UtTestCase> {
         if (isCanceled()) return methods.map { UtTestCase(it) }
 

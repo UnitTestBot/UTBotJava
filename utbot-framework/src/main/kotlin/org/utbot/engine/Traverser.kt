@@ -7,30 +7,12 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.yield
-import mu.KotlinLogging
-import org.utbot.analytics.EngineAnalyticsContext
-import org.utbot.analytics.FeatureProcessor
-import org.utbot.analytics.Predictors
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
-import org.utbot.common.bracket
-import org.utbot.common.debug
 import org.utbot.common.findField
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
-import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
@@ -84,87 +66,37 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.selectors.PathSelector
-import org.utbot.engine.selectors.StrategyOption
-import org.utbot.engine.selectors.coveredNewSelector
-import org.utbot.engine.selectors.cpInstSelector
-import org.utbot.engine.selectors.forkDepthSelector
-import org.utbot.engine.selectors.inheritorsSelector
-import org.utbot.engine.selectors.nnRewardGuidedSelector
-import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
-import org.utbot.engine.selectors.pollUntilFastSAT
-import org.utbot.engine.selectors.randomPathSelector
-import org.utbot.engine.selectors.randomSelector
-import org.utbot.engine.selectors.strategies.GraphViz
-import org.utbot.engine.selectors.subpathGuidedSelector
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.Assumption
-import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.util.trusted.isFromTrustedLibrary
-import org.utbot.engine.util.mockListeners.MockListener
-import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
-import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
-import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
-import org.utbot.framework.UtSettings.enableFeatureProcess
-import org.utbot.framework.UtSettings.pathSelectorStepsLimit
-import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
-import org.utbot.framework.UtSettings.useDebugVisualization
-import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
-import org.utbot.framework.concrete.UtConcreteExecutionData
-import org.utbot.framework.concrete.UtConcreteExecutionResult
-import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.graph
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.executableId
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.FallbackModelProvider
-import org.utbot.fuzzer.collectConstantsForFuzzer
-import org.utbot.fuzzer.defaultModelProviders
-import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.names.MethodBasedNameSuggester
-import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.instrumentation.ConcreteExecutor
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -173,7 +105,6 @@ import kotlin.math.min
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaType
-import kotlin.system.measureTimeMillis
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -257,103 +188,30 @@ import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
-import soot.tagkit.ParamNamesTag
 import soot.toolkits.graph.ExceptionalUnitGraph
 import sun.reflect.Reflection
 import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
 import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
-import java.lang.reflect.Method
 import java.util.concurrent.atomic.AtomicInteger
-import org.utbot.framework.plugin.api.jimpleBody
-
-private val logger = KotlinLogging.logger {}
-val pathLogger = KotlinLogging.logger(logger.name + ".path")
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
-//in future we should put all timeouts here
-class EngineController {
-    var paused: Boolean = false
-    var executeConcretely: Boolean = false
-    var stop: Boolean = false
-    var job: Job? = null
-}
-
-//for debugging purpose only
-private var stateSelectedCount = 0
-
-//all id values of synthetic default models must be greater that for real ones
-private var nextDefaultModelId = 1500_000_000
-
-private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
-    when (pathSelectorType) {
-        PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.SUBPATH_GUIDED_SELECTOR -> subpathGuidedSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.CPI_SELECTOR -> cpInstSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.FORK_DEPTH_SELECTOR -> forkDepthSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.NN_REWARD_GUIDED_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.RANDOM_SELECTOR -> randomSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-        PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
-            withStepsLimit(pathSelectorStepsLimit)
-        }
-    }
-
 class Traverser(
-    private val controller: EngineController,
     private val methodUnderTest: UtMethod<*>,
-    classpath: String,
-    dependencyPaths: String,
-    mockStrategy: MockStrategy = NO_MOCKS,
-    chosenClassesToMockAlways: Set<ClassId>,
-    private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
+    internal val typeRegistry: TypeRegistry,
+    internal val hierarchy: Hierarchy,
+    // TODO HACK violation of encapsulation
+    internal val typeResolver: TypeResolver,
+    private val globalGraph: InterProceduralUnitGraph,
+    private val mocker: Mocker,
 ) : UtContextInitializer() {
 
-    private val graph = jimpleBody(methodUnderTest).also {
-        logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
-    }.graph()
-
-    private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
-    private val globalGraph = InterProceduralUnitGraph(graph)
-    internal val typeRegistry: TypeRegistry = TypeRegistry()
-    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
 
     private val classLoader: ClassLoader
         get() = utContext.classLoader
-
-    internal val hierarchy: Hierarchy = Hierarchy(typeRegistry)
-
-    // TODO HACK violation of encapsulation
-    internal val typeResolver: TypeResolver = TypeResolver(typeRegistry, hierarchy)
-
-    private val classUnderTest: ClassId = methodUnderTest.clazz.id
-
-    private val mocker: Mocker = Mocker(
-        mockStrategy,
-        classUnderTest,
-        hierarchy,
-        chosenClassesToMockAlways,
-        MockListenerController(controller)
-    )
-
-    private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
     lateinit var environment: Environment
     private val solver: UtSolver
@@ -366,16 +224,8 @@ class Traverser(
     private val localVariableMemory: LocalVariableMemory
         get() = environment.state.localVariableMemory
 
-
     //HACK (long strings)
     internal var softMaxArraySize = 40
-
-    private val concreteExecutor =
-        ConcreteExecutor(
-            UtExecutionInstrumentation,
-            classpath,
-            dependencyPaths
-        ).apply { this.classLoader = utContext.classLoader }
 
     /**
      * Contains information about the generic types used in the parameters of the method under test.
@@ -385,9 +235,6 @@ class Traverser(
     private val preferredCexInstanceCache = mutableMapOf<ObjectValue, MutableSet<SootField>>()
 
     private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
-
-    private val featureProcessor: FeatureProcessor? =
-        if (enableFeatureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null
 
     private val objectCounter = AtomicInteger(TypeRegistry.objectCounterInitialValue)
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
@@ -399,7 +246,7 @@ class Traverser(
         val signedAddr = if (insideStaticInitializer) -newAddr else newAddr
         return UtAddrExpression(signedAddr)
     }
-    internal fun findNewAddr() = findNewAddr(insideStaticInitializer).also { touchAddress(it) }
+    internal fun findNewAddr() = findNewAddr(environment.state.isInsideStaticInitializer).also { touchAddress(it) }
 
     // Counter used for a creation symbolic results of "hashcode" and "equals" methods.
     private var equalsCounter = 0
@@ -408,317 +255,45 @@ class Traverser(
     // A counter for objects created as native method call result.
     private var unboundedConstCounter = 0
 
-    private val trackableResources: MutableSet<AutoCloseable> = mutableSetOf()
+    fun traverse(state: ExecutionState): Collection<ExecutionState> {
+        val context = TraversalContext()
 
-    private fun postTraverse() {
-        for (r in trackableResources)
-            try {
-                r.close()
-            } catch (e: Throwable) {
-                logger.error(e) { "Closing resource failed" }
-            }
-        trackableResources.clear()
-        featureProcessor?.dumpFeatures()
-    }
-
-    private suspend fun preTraverse() {
-        //fixes leak in useless Context() created in AutoCloseable()
-        close()
-        if (!currentCoroutineContext().isActive) return
-        stateSelectedCount = 0
-    }
-
-    fun traverse(): Flow<UtResult> = traverseImpl()
-        .onStart { preTraverse() }
-        .onCompletion { postTraverse() }
-
-    private fun traverseImpl(): Flow<UtResult> = flow {
-
-        require(trackableResources.isEmpty())
-
-        if (useDebugVisualization) GraphViz(globalGraph, pathSelector)
-
-        val initStmt = graph.head
-        val initState = ExecutionState(
-            initStmt,
-            SymbolicState(UtSolver(typeRegistry, trackableResources, solverTimeoutInMillis)),
-            executionStack = persistentListOf(ExecutionStackElement(null, method = graph.body.method))
-        )
-
-        pathSelector.offer(initState)
-
-        environment = Environment(
-            method = globalGraph.method(initStmt),
-            state = initState
-        )
-        pathSelector.use {
-
-            while (currentCoroutineContext().isActive) {
-                if (controller.stop)
-                    break
-
-                if (controller.paused) {
-                    try {
-                        yield()
-                    } catch (e: CancellationException) { //todo in future we should just throw cancellation
-                        break
-                    }
-                    continue
-                }
-
-                stateSelectedCount++
-                pathLogger.trace { "traverse<$methodUnderTest>: choosing next state($stateSelectedCount), " +
-                            "queue size=${(pathSelector as? NonUniformRandomSearch)?.size ?: -1}"
-                }
-
-                if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
-                    val state = pathSelector.pollUntilFastSAT()
-                        ?: statesForConcreteExecution.pollUntilSat(processUnknownStatesDuringConcreteExecution)
-                        ?: break
-                    // This state can contain inconsistent wrappers - for example, Map with keys but missing values.
-                    // We cannot use withWrapperConsistencyChecks here because it needs solver to work.
-                    // So, we have to process such cases accurately in wrappers resolving.
-
-                    logger.trace { "executing $state concretely..." }
-
-                    environment.state = state
+        val currentStmt = state.stmt
+        environment = Environment(globalGraph.method(state.stmt), state)
 
 
-                    logger.debug().bracket("concolicStrategy<$methodUnderTest>: execute concretely") {
-                        val resolver = Resolver(
-                            hierarchy,
-                            memory,
-                            typeRegistry,
-                            typeResolver,
-                            state.solver.lastStatus as UtSolverStatusSAT,
-                            methodUnderTest,
-                            softMaxArraySize
-                        )
-
-                        val resolvedParameters = state.methodUnderTestParameters
-                        val (modelsBefore, _, instrumentation) = resolver.resolveModels(resolvedParameters)
-                        val stateBefore = modelsBefore.constructStateForMethod(methodUnderTest)
-
-                        try {
-                            val concreteExecutionResult =
-                                concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
-
-                            val concreteUtExecution = UtExecution(
-                                stateBefore,
-                                concreteExecutionResult.stateAfter,
-                                concreteExecutionResult.result,
-                                instrumentation,
-                                mutableListOf(),
-                                listOf(),
-                                concreteExecutionResult.coverage
-                            )
-                            emit(concreteUtExecution)
-
-                            logger.debug { "concolicStrategy<${methodUnderTest}>: returned $concreteUtExecution" }
-                        } catch (e: CancellationException) {
-                            logger.debug(e) { "Cancellation happened" }
-                        } catch (e: ConcreteExecutionFailureException) {
-                            emitFailedConcreteExecutionResult(stateBefore, e)
-                        } catch (e: Throwable) {
-                            emit(UtError("Concrete execution failed", e))
-                        }
-                    }
-
-                } else {
-                    val state = pathSelector.poll()
-
-                    // state is null in case states queue is empty
-                    // or path selector exceed some limits (steps limit, for example)
-                    if (state == null) {
-                        // check do we have remaining states that we can execute concretely
-                        val pathSelectorStatesForConcreteExecution = pathSelector
-                            .remainingStatesForConcreteExecution
-                            .map { it.withWrapperConsistencyChecks() }
-                        if (pathSelectorStatesForConcreteExecution.isNotEmpty()) {
-                            statesForConcreteExecution += pathSelectorStatesForConcreteExecution
-                            logger.debug {
-                                "${pathSelectorStatesForConcreteExecution.size} remaining states " +
-                                        "were moved from path selector for concrete execution"
-                            }
-                            continue // the next step in while loop processes concrete states
-                        } else {
-                            break
-                        }
-                    }
-
-                    state.executingTime += measureTimeMillis {
-                        environment.state = state
-
-                        val currentStmt = environment.state.stmt
-
-                        if (currentStmt !in visitedStmts) {
-                            environment.state.updateIsVisitedNew()
-                            visitedStmts += currentStmt
-                        }
-
-                        environment.method = globalGraph.method(currentStmt)
-
-                        environment.state.lastEdge?.let {
-                            globalGraph.visitEdge(it)
-                        }
-
-                        try {
-                            val exception = environment.state.exception
-                            if (exception != null) {
-                                traverseException(currentStmt, exception)
-                            } else {
-                                traverseStmt(currentStmt)
-                            }
-
-                            // Here job can be cancelled from within traverse, e.g. by using force mocking without Mockito.
-                            // So we need to make it throw CancelledException by method below:
-                            currentCoroutineContext().job.ensureActive()
-                        } catch (ex: Throwable) {
-                            environment.state.close()
-
-                            if (ex !is CancellationException) {
-                                logger.error(ex) { "Test generation failed on stmt $currentStmt, symbolic stack trace:\n$symbolicStackTrace" }
-                                // TODO: enrich with nice description for known issues
-                                emit(UtError(ex.description, ex))
-                            } else {
-                                logger.debug(ex) { "Cancellation happened" }
-                            }
-                        }
-                    }
-                }
-                queuedSymbolicStateUpdates = SymbolicStateUpdate()
-                globalGraph.visitNode(environment.state)
-            }
-        }
-    }
-
-
-    /**
-     * Run fuzzing flow.
-     *
-     * @param until is used by fuzzer to cancel all tasks if the current time is over this value
-     * @param modelProvider provides model values for a method
-     */
-    fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
-        val executableId = if (methodUnderTest.isConstructor) {
-            methodUnderTest.javaConstructor!!.executableId
-        } else {
-            methodUnderTest.javaMethod!!.executableId
+        if (currentStmt !in visitedStmts) {
+            environment.state.updateIsVisitedNew()
+            visitedStmts += currentStmt
         }
 
-        val isFuzzable = executableId.parameters.all { classId ->
-            classId != Method::class.java.id && // causes the child process crash at invocation
-            classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
-        }
-        if (!isFuzzable) {
-            return@flow
+        environment.state.lastEdge?.let {
+            globalGraph.visitEdge(it)
         }
 
-        val fallbackModelProvider = FallbackModelProvider { nextDefaultModelId++ }
-
-        val thisInstance = when {
-            methodUnderTest.isStatic -> null
-            methodUnderTest.isConstructor -> if (
-                methodUnderTest.clazz.isAbstract ||  // can't instantiate abstract class
-                methodUnderTest.clazz.java.isEnum    // can't reflectively create enum objects
-            ) {
-                return@flow
+        try {
+            val exception = environment.state.exception
+            if (exception != null) {
+                context.traverseException(currentStmt, exception)
             } else {
-                null
+                context.traverseStmt(currentStmt)
             }
-            else -> {
-                fallbackModelProvider.toModel(methodUnderTest.clazz).apply {
-                    if (this is UtNullModel) { // it will definitely fail because of NPE,
-                        return@flow
-                    }
-                }
-            }
-        }
+        } catch (ex: Throwable) {
+            environment.state.close()
 
-        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
-            compilableName = if (methodUnderTest.isMethod) executableId.name else null
-            val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
-            parameterNameMap = { index -> names?.getOrNull(index) }
-        }
-        val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
-        val coveredInstructionTracker = mutableSetOf<Instruction>()
-        var attempts = UtSettings.fuzzingMaxAttempts
-        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
-            if (System.currentTimeMillis() >= until) {
-                logger.info { "Fuzzing overtime: $methodUnderTest" }
-                return@flow
-            }
-
-            val initialEnvironmentModels = EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
-
-            try {
-                val concreteExecutionResult =
-                    concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
-
-                workaround(REMOVE_ANONYMOUS_CLASSES) {
-                    concreteExecutionResult.result.onSuccess {
-                        if (it.classId.isAnonymous) {
-                            logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                            return@flow
-                        }
-                    }
-                }
-
-                if (!coveredInstructionTracker.addAll(concreteExecutionResult.coverage.coveredInstructions)) {
-                    if (--attempts < 0) {
-                        return@flow
-                    }
-                }
-
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                val testMethodName = try {
-                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()
-                } catch (t: Throwable) {
-                    logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
-                    null
-                }
-
-                emit(
-                    UtExecution(
-                        stateBefore = initialEnvironmentModels,
-                        stateAfter = concreteExecutionResult.stateAfter,
-                        result = concreteExecutionResult.result,
-                        instrumentation = emptyList(),
-                        path = mutableListOf(),
-                        fullPath = emptyList(),
-                        coverage = concreteExecutionResult.coverage,
-                        testMethodName = testMethodName?.testName,
-                        displayName = testMethodName?.displayName
-                    )
-                )
-            } catch (e: CancellationException) {
-                logger.debug { "Cancelled by timeout" }
-            } catch (e: ConcreteExecutionFailureException) {
-                emitFailedConcreteExecutionResult(initialEnvironmentModels, e)
-            } catch (e: Throwable) {
-                emit(UtError("Default concrete execution failed", e))
+            if (ex !is CancellationException) {
+                logger.error(ex) { "Test generation failed on stmt $currentStmt, symbolic stack trace:\n$symbolicStackTrace" }
+                // TODO: enrich with nice description for known issues
+                throw ex
+            } else {
+                logger.debug(ex) { "Cancellation happened" }
             }
         }
+        queuedSymbolicStateUpdates = SymbolicStateUpdate()
+        return context.nextStates
     }
 
-    private suspend fun FlowCollector<UtResult>.emitFailedConcreteExecutionResult(
-        stateBefore: EnvironmentModels,
-        e: ConcreteExecutionFailureException
-    ) {
-        val failedConcreteExecution = UtExecution(
-            stateBefore = stateBefore,
-            stateAfter = MissingState,
-            result = UtConcreteExecutionFailure(e),
-            instrumentation = emptyList(),
-            path = mutableListOf(),
-            fullPath = listOf()
-        )
-
-        emit(failedConcreteExecution)
-    }
-
-
-    private suspend fun FlowCollector<UtResult>.traverseStmt(current: Stmt) {
+    private fun TraversalContext.traverseStmt(current: Stmt) {
         if (doPreparatoryWorkIfRequired(current)) return
 
         when (current) {
@@ -727,14 +302,14 @@ class Traverser(
             is JIfStmt -> traverseIfStmt(current)
             is JInvokeStmt -> traverseInvokeStmt(current)
             is SwitchStmt -> traverseSwitchStmt(current)
-            is JReturnStmt -> processResult(current.symbolicSuccess())
+            is JReturnStmt -> processResult(symbolicSuccess(current))
             is JReturnVoidStmt -> processResult(SymbolicSuccess(voidValue))
             is JRetStmt -> error("This one should be already removed by Soot: $current")
             is JThrowStmt -> traverseThrowStmt(current)
-            is JBreakpointStmt -> pathSelector.offer(environment.state.updateQueued(globalGraph.succ(current)))
-            is JGotoStmt -> pathSelector.offer(environment.state.updateQueued(globalGraph.succ(current)))
-            is JNopStmt -> pathSelector.offer(environment.state.updateQueued(globalGraph.succ(current)))
-            is MonitorStmt -> pathSelector.offer(environment.state.updateQueued(globalGraph.succ(current)))
+            is JBreakpointStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
+            is JGotoStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
+            is JNopStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
+            is MonitorStmt -> offerState(environment.state.updateQueued(globalGraph.succ(current)))
             is DefinitionStmt -> TODO("$current")
             else -> error("Unsupported: ${current::class}")
         }
@@ -751,7 +326,7 @@ class Traverser(
      * - False if preparatory work is not required or it is already done.
      * environment.state.methodResult can contain the work result.
      */
-    private suspend fun FlowCollector<UtResult>.doPreparatoryWorkIfRequired(current: Stmt): Boolean {
+    private fun TraversalContext.doPreparatoryWorkIfRequired(current: Stmt): Boolean {
         if (current !is JAssignStmt) return false
 
         return when {
@@ -774,7 +349,7 @@ class Traverser(
      *
      * Note: similar but more granular approach used if Engine decides to process static field concretely.
      */
-    private suspend fun FlowCollector<UtResult>.processStaticInitializerIfRequired(stmt: JAssignStmt): Boolean {
+    private fun TraversalContext.processStaticInitializerIfRequired(stmt: JAssignStmt): Boolean {
         val right = stmt.rightOp
         val left = stmt.leftOp
         val method = environment.method
@@ -796,7 +371,7 @@ class Traverser(
      * environment.state.methodResult.
      * - False otherwise
      */
-    private fun unfoldMultiArrayExprIfRequired(stmt: JAssignStmt): Boolean {
+    private fun TraversalContext.unfoldMultiArrayExprIfRequired(stmt: JAssignStmt): Boolean {
         // We have already unfolded the statement and processed constructed graph, have the calculated result
         if (environment.state.methodResult != null) return false
 
@@ -823,7 +398,7 @@ class Traverser(
      *
      * Returns true if processing takes place and Engine should end traversal of current statement.
      */
-    private suspend fun FlowCollector<UtResult>.processStaticInitializer(
+    private fun TraversalContext.processStaticInitializer(
         fieldRef: StaticFieldRef,
         stmt: Stmt
     ): Boolean {
@@ -853,7 +428,7 @@ class Traverser(
         when (result.symbolicResult) {
             // This branch could be useful if we have a static field, i.e. x = 5 / 0
             is SymbolicFailure -> traverseException(stmt, result.symbolicResult)
-            is SymbolicSuccess -> pathSelector.offer(
+            is SymbolicSuccess -> offerState(
                 environment.state.updateQueued(
                     environment.state.lastEdge!!,
                     result.symbolicStateUpdate
@@ -915,7 +490,7 @@ class Traverser(
      *
      * Returns true if processing takes place and Engine should end traversal of current statement.
      */
-    private fun processStaticFieldConcretely(fieldRef: StaticFieldRef, stmt: Stmt): Boolean {
+    private fun TraversalContext.processStaticFieldConcretely(fieldRef: StaticFieldRef, stmt: Stmt): Boolean {
         val field = fieldRef.field
         val fieldId = field.fieldId
         if (memory.isInitialized(fieldId)) {
@@ -942,7 +517,7 @@ class Traverser(
         val edge = environment.state.lastEdge ?: globalGraph.succ(stmt)
 
         val newState = environment.state.updateQueued(edge, updates)
-        pathSelector.offer(newState)
+        offerState(newState)
 
         return true
     }
@@ -1074,7 +649,7 @@ class Traverser(
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =
         methodResult != null && id in methodResult.memoryUpdates.staticInstanceStorage
 
-    private fun skipVerticesForThrowableCreation(current: JAssignStmt) {
+    private fun TraversalContext.skipVerticesForThrowableCreation(current: JAssignStmt) {
         val rightType = current.rightOp.type as RefType
         val exceptionType = Scene.v().getSootClass(rightType.className).type
         val createdException = createObject(findNewAddr(), exceptionType, true)
@@ -1089,10 +664,10 @@ class Traverser(
             globalGraph.visitNode(environment.state)
         } while (!environment.state.stmt.isConstructorCall(currentExceptionJimpleLocal))
 
-        pathSelector.offer(environment.state.updateQueued(globalGraph.succ(environment.state.stmt)))
+        offerState(environment.state.updateQueued(globalGraph.succ(environment.state.stmt)))
     }
 
-    private fun traverseAssignStmt(current: JAssignStmt) {
+    private fun TraversalContext.traverseAssignStmt(current: JAssignStmt) {
         val rightValue = current.rightOp
 
         workaround(HACK) {
@@ -1127,7 +702,7 @@ class Traverser(
                         queuedSymbolicStateUpdates + methodResult.symbolicStateUpdate
                     )
                     globalGraph.registerImplicitEdge(nextState.lastEdge!!)
-                    pathSelector.offer(nextState)
+                    offerState(nextState)
                 }
 
                 is SymbolicSuccess -> {
@@ -1135,7 +710,7 @@ class Traverser(
                         current.leftOp,
                         methodResult.symbolicResult.value
                     )
-                    pathSelector.offer(
+                    offerState(
                         environment.state.updateQueued(
                             globalGraph.succ(current),
                             update + methodResult.symbolicStateUpdate
@@ -1178,7 +753,7 @@ class Traverser(
     /**
      * Traverses left part of assignment i.e. where to store resolved value.
      */
-    private fun traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate = when (left) {
+    private fun TraversalContext.traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate = when (left) {
         is ArrayRef -> {
             val arrayInstance = resolve(left.base) as ArrayValue
             val addr = arrayInstance.addr
@@ -1251,7 +826,7 @@ class Traverser(
     /**
      * Resolves instance for field. For static field it's a special object represents static fields of particular class.
      */
-    private fun resolveInstanceForField(fieldRef: FieldRef) = when (fieldRef) {
+    private fun TraversalContext.resolveInstanceForField(fieldRef: FieldRef) = when (fieldRef) {
         is JInstanceFieldRef -> {
             // Runs resolve() to check possible NPE and create required arrays related to the field.
             // Ignores the result of resolve().
@@ -1282,7 +857,7 @@ class Traverser(
         is PrimitiveValue -> UtCastExpression(value, type)
     }
 
-    private fun traverseIdentityStmt(current: JIdentityStmt) {
+    private fun TraversalContext.traverseIdentityStmt(current: JIdentityStmt) {
         val localVariable = (current.leftOp as? JimpleLocal)?.variable ?: error("Unknown op: ${current.leftOp}")
         when (val identityRef = current.rightOp as IdentityRef) {
             is ParameterRef, is ThisRef -> {
@@ -1335,7 +910,7 @@ class Traverser(
                     globalGraph.succ(current),
                     SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value))
                 )
-                pathSelector.offer(nextState)
+                offerState(nextState)
             }
             is JCaughtExceptionRef -> {
                 val value = localVariableMemory.local(CAUGHT_EXCEPTION)
@@ -1344,7 +919,7 @@ class Traverser(
                     globalGraph.succ(current),
                     SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null))
                 )
-                pathSelector.offer(nextState)
+                offerState(nextState)
             }
             else -> error("Unsupported $identityRef")
         }
@@ -1437,7 +1012,7 @@ class Traverser(
         }
     }
 
-    private fun traverseIfStmt(current: JIfStmt) {
+    private fun TraversalContext.traverseIfStmt(current: JIfStmt) {
         // positiveCaseEdge could be null - see Conditions::emptyBranches
         val (negativeCaseEdge, positiveCaseEdge) = globalGraph.succs(current).let { it[0] to it.getOrNull(1) }
         val cond = current.condition
@@ -1479,7 +1054,7 @@ class Traverser(
                         softConstraints = setOfNotNull(positiveCaseSoftConstraint).asSoftConstraint()
                     ) + resolvedCondition.symbolicStateUpdates.positiveCase
                 )
-                pathSelector.offer(positiveCaseState)
+                offerState(positiveCaseState)
             }
         }
 
@@ -1495,7 +1070,7 @@ class Traverser(
                 assumptions = assumption
             ) + resolvedCondition.symbolicStateUpdates.negativeCase
         )
-        pathSelector.offer(negativeCaseState)
+        offerState(negativeCaseState)
     }
 
     /**
@@ -1507,7 +1082,7 @@ class Traverser(
         return invokeExpression.method.isUtMockAssumeOrExecuteConcretely
     }
 
-    private fun traverseInvokeStmt(current: JInvokeStmt) {
+    private fun TraversalContext.traverseInvokeStmt(current: JInvokeStmt) {
         val results = invokeResult(current.invokeExpr)
 
         results.forEach { result ->
@@ -1515,7 +1090,7 @@ class Traverser(
                 return@forEach
             }
 
-            pathSelector.offer(
+            offerState(
                 when (result.symbolicResult) {
                     is SymbolicFailure -> environment.state.createExceptionState(
                         result.symbolicResult,
@@ -1530,7 +1105,7 @@ class Traverser(
         }
     }
 
-    private fun traverseSwitchStmt(current: SwitchStmt) {
+    private fun TraversalContext.traverseSwitchStmt(current: SwitchStmt) {
         val valueExpr = resolve(current.key) as PrimitiveValue
         val successors = when (current) {
             is JTableSwitchStmt -> {
@@ -1558,7 +1133,7 @@ class Traverser(
         }
 
         successors.forEach { (target, expr) ->
-            pathSelector.offer(
+            offerState(
                 environment.state.updateQueued(
                     target,
                     SymbolicStateUpdate(hardConstraints = expr.asHardConstraint()),
@@ -1567,7 +1142,7 @@ class Traverser(
         }
     }
 
-    private suspend fun FlowCollector<UtResult>.traverseThrowStmt(current: JThrowStmt) {
+    private fun TraversalContext.traverseThrowStmt(current: JThrowStmt) {
         val symException = explicitThrown(resolve(current.op), environment.state.isInNestedMethod())
         traverseException(current, symException)
     }
@@ -1647,7 +1222,7 @@ class Traverser(
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 
-    private fun resolveConstant(constant: Constant): SymbolicValue =
+    private fun TraversalContext.resolveConstant(constant: Constant): SymbolicValue =
         when (constant) {
             is IntConstant -> constant.value.toPrimitiveValue()
             is LongConstant -> constant.value.toPrimitiveValue()
@@ -1661,7 +1236,7 @@ class Traverser(
                 if (UtSettings.ignoreStringLiterals && constant.value.length > MAX_STRING_SIZE) {
                     // instead of it we create an unbounded symbolic variable
                     workaround(HACK) {
-                        statesForConcreteExecution += environment.state
+                        offerState(environment.state.withLabel(StateLabel.CONCRETE))
                         createObject(addr, refType, useConcreteType = true)
                     }
                 } else {
@@ -1685,7 +1260,7 @@ class Traverser(
             else -> error("Unsupported type: $constant")
         }
 
-    private fun resolve(expr: Expr, valueType: Type = expr.type): SymbolicValue =
+    private fun TraversalContext.resolve(expr: Expr, valueType: Type = expr.type): SymbolicValue =
         when (expr) {
             is BinopExpr -> {
                 val left = resolve(expr.op1)
@@ -1909,7 +1484,7 @@ class Traverser(
         }
     }
 
-    private fun castObject(objectValue: ObjectValue, typeAfterCast: Type, op: Value): SymbolicValue {
+    private fun TraversalContext.castObject(objectValue: ObjectValue, typeAfterCast: Type, op: Value): SymbolicValue {
         classCastExceptionCheck(objectValue, typeAfterCast)
 
         val currentType = objectValue.type
@@ -1963,7 +1538,7 @@ class Traverser(
         return castedObject
     }
 
-    private fun castArray(arrayValue: ArrayValue, typeAfterCast: Type): ArrayValue {
+    private fun TraversalContext.castArray(arrayValue: ArrayValue, typeAfterCast: Type): ArrayValue {
         classCastExceptionCheck(arrayValue, typeAfterCast)
 
         if (typeAfterCast.isJavaLangObject()) return arrayValue
@@ -2055,7 +1630,7 @@ class Traverser(
     // Type is needed for null values: we should know, which null do we require.
     // If valueType is NullType, return typelessNullObject. It can happen in a situation,
     // where we cannot find the type, for example in condition (null == null)
-    private fun resolve(
+    private fun TraversalContext.resolve(
         value: Value,
         valueType: Type = value.type
     ): SymbolicValue = when (value) {
@@ -2192,7 +1767,7 @@ class Traverser(
         return created
     }
 
-    private fun resolveParameters(parameters: List<Value>, types: List<Type>) =
+    private fun TraversalContext.resolveParameters(parameters: List<Value>, types: List<Type>) =
         parameters.zip(types).map { (value, type) -> resolve(value, type) }
 
     private fun applyPreferredConstraints(value: SymbolicValue) {
@@ -2489,7 +2064,7 @@ class Traverser(
         }
     }
 
-    private suspend fun FlowCollector<UtResult>.traverseException(current: Stmt, exception: SymbolicFailure) {
+    private fun TraversalContext.traverseException(current: Stmt, exception: SymbolicFailure) {
         if (!traverseCatchBlock(current, exception, emptySet())) {
             processResult(exception)
         }
@@ -2500,7 +2075,7 @@ class Traverser(
      *
      * Returns true if found, false otherwise.
      */
-    private fun traverseCatchBlock(
+    private fun TraversalContext.traverseCatchBlock(
         current: Stmt,
         exception: SymbolicFailure,
         conditions: Set<UtBoolExpression>
@@ -2511,7 +2086,7 @@ class Traverser(
         )
         val edge = findCatchBlock(current, classId) ?: return false
 
-        pathSelector.offer(
+        offerState(
             environment.state.updateQueued(
                 edge,
                 SymbolicStateUpdate(
@@ -2530,7 +2105,7 @@ class Traverser(
         }.firstOrNull { it.second in hierarchy.ancestors(classId) }?.first
     }
 
-    private fun invokeResult(invokeExpr: Expr): List<MethodResult> =
+    private fun TraversalContext.invokeResult(invokeExpr: Expr): List<MethodResult> =
         environment.state.methodResult?.let {
             listOf(it)
         } ?: when (invokeExpr) {
@@ -2598,7 +2173,7 @@ class Traverser(
      *
      * @see mockStaticMethod
      */
-    private fun mockMakeSymbolic(invokeExpr: JStaticInvokeExpr): List<MethodResult>? {
+    private fun TraversalContext.mockMakeSymbolic(invokeExpr: JStaticInvokeExpr): List<MethodResult>? {
         val methodSignature = invokeExpr.method.signature
         if (methodSignature != makeSymbolicMethod.signature && methodSignature != nonNullableMakeSymbolic.signature) return null
 
@@ -2636,9 +2211,7 @@ class Traverser(
         )
     }
 
-    fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
-
-    private fun staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
+    private fun TraversalContext.staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
 
@@ -2654,7 +2227,7 @@ class Traverser(
      * Each target defines/reduces object type to set of concrete (not abstract, not interface)
      * classes with particular method implementation.
      */
-    private fun virtualAndInterfaceInvoke(
+    private fun TraversalContext.virtualAndInterfaceInvoke(
         base: Value,
         methodRef: SootMethodRef,
         parameters: List<Value>
@@ -2784,7 +2357,7 @@ class Traverser(
             .toList()
     }
 
-    private fun specialInvoke(invokeExpr: JSpecialInvokeExpr): List<MethodResult> {
+    private fun TraversalContext.specialInvoke(invokeExpr: JSpecialInvokeExpr): List<MethodResult> {
         val instance = resolve(invokeExpr.base)
         if (instance !is ReferenceValue) error("We cannot run ${invokeExpr.methodRef} on $instance")
 
@@ -2798,10 +2371,10 @@ class Traverser(
         return commonInvokePart(invocation)
     }
 
-    private fun dynamicInvoke(invokeExpr: JDynamicInvokeExpr): List<MethodResult> {
+    private fun TraversalContext.dynamicInvoke(invokeExpr: JDynamicInvokeExpr): List<MethodResult> {
         workaround(HACK) {
             // The engine does not yet support JDynamicInvokeExpr, so switch to concrete execution if we encounter it
-            statesForConcreteExecution += environment.state
+            offerState(environment.state.withLabel(StateLabel.CONCRETE))
             queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
             return emptyList()
         }
@@ -2812,7 +2385,7 @@ class Traverser(
      *
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
-    private fun commonInvokePart(invocation: Invocation): List<MethodResult> {
+    private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
         // First, check if there is override for the invocation itself, not for the targets
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
 
@@ -2889,7 +2462,7 @@ class Traverser(
         return overriddenResults + originResults
     }
 
-    private fun invoke(
+    private fun TraversalContext.invoke(
         target: InvocationTarget,
         parameters: List<SymbolicValue>
     ): List<MethodResult> = with(target.method) {
@@ -2923,7 +2496,7 @@ class Traverser(
                     globalGraph.succ(environment.state.stmt),
                     symbolicStateUpdate
                 )
-                pathSelector.offer(stateToContinue)
+                offerState(stateToContinue)
 
                 // we already pushed state with the fulfilled predicate, so we can just drop our branch here by
                 // adding UtFalse to the constraints.
@@ -2941,7 +2514,7 @@ class Traverser(
         }
     }
 
-    private fun utOverrideMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
+    private fun TraversalContext.utOverrideMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
         when (target.method.name) {
             utOverrideMockAlreadyVisitedMethodName -> {
                 return listOf(MethodResult(memory.isVisited(parameters[0].addr).toBoolValue()))
@@ -2959,7 +2532,7 @@ class Traverser(
                     globalGraph.succ(environment.state.stmt),
                     doesntThrow = true
                 )
-                pathSelector.offer(stateToContinue)
+                offerState(stateToContinue)
                 queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
                 return emptyList()
             }
@@ -2973,7 +2546,7 @@ class Traverser(
                                 hardConstraints = Le(addr, nullObjectAddr.toIntValue()).asHardConstraint()
                             )
                         )
-                        pathSelector.offer(stateToContinue)
+                        offerState(stateToContinue)
                     }
                     is ArrayValue -> {
                         val addr = param.addr
@@ -3002,7 +2575,7 @@ class Traverser(
                                 memoryUpdates = update
                             )
                         )
-                        pathSelector.offer(stateToContinue)
+                        offerState(stateToContinue)
                     }
                 }
 
@@ -3013,7 +2586,7 @@ class Traverser(
                 return emptyList()
             }
             utOverrideMockExecuteConcretelyMethodName -> {
-                statesForConcreteExecution += environment.state
+                offerState(environment.state.withLabel(StateLabel.CONCRETE))
                 queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
                 return emptyList()
             }
@@ -3102,7 +2675,7 @@ class Traverser(
      *
      * Proceeds overridden method as non-library.
      */
-    private fun overrideInvocation(invocation: Invocation, target: InvocationTarget?): OverrideResult {
+    private fun TraversalContext.overrideInvocation(invocation: Invocation, target: InvocationTarget?): OverrideResult {
         // If we try to override invocation itself, the target is null, and we have to process
         // the instance from the invocation, otherwise take the one from the target
         val instance = if (target == null) invocation.instance else target.instance
@@ -3158,7 +2731,7 @@ class Traverser(
             val results = invoke(instance as ObjectValue, invocation.method, invocation.parameters)
             if (results.isEmpty()) {
                 // Drop the branch and switch to concrete execution
-                statesForConcreteExecution += environment.state
+                offerState(environment.state.withLabel(StateLabel.CONCRETE))
                 queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
             }
             return OverrideResult(success = true, results)
@@ -3229,7 +2802,7 @@ class Traverser(
             .firstOrNull { it.canRetrieveBody() || it.isNative }
     }
 
-    private fun pushToPathSelector(
+    private fun TraversalContext.pushToPathSelector(
         graph: ExceptionalUnitGraph,
         caller: ReferenceValue?,
         callParameters: List<SymbolicValue>,
@@ -3238,7 +2811,7 @@ class Traverser(
     ) {
         globalGraph.join(environment.state.stmt, graph, !isLibraryMethod)
         val parametersWithThis = listOfNotNull(caller) + callParameters
-        pathSelector.offer(
+        offerState(
             environment.state.push(
                 graph.head,
                 inputArguments = ArrayDeque(parametersWithThis),
@@ -3258,7 +2831,7 @@ class Traverser(
         doesntThrow
     )
 
-    private fun resolveIfCondition(cond: BinopExpr): ResolvedCondition {
+    private fun TraversalContext.resolveIfCondition(cond: BinopExpr): ResolvedCondition {
         // We add cond.op.type for null values only. If we have condition like "null == r1"
         // we'll have ObjectInstance(r1::type) and ObjectInstance(r1::type) for now
         // For non-null values type is ignored.
@@ -3352,7 +2925,7 @@ class Traverser(
         }
     }
 
-    private fun constructSoftConstraintsForCondition(cond: BinopExpr): SoftConstraintsForResolvedCondition {
+    private fun TraversalContext.constructSoftConstraintsForCondition(cond: BinopExpr): SoftConstraintsForResolvedCondition {
         var positiveCaseConstraint: UtBoolExpression? = null
         var negativeCaseConstraint: UtBoolExpression? = null
 
@@ -3408,7 +2981,7 @@ class Traverser(
         return if (negate) mkNot(eq) else eq
     }
 
-    private fun nullPointerExceptionCheck(addr: UtAddrExpression) {
+    private fun TraversalContext.nullPointerExceptionCheck(addr: UtAddrExpression) {
         val canBeNull = addrEq(addr, nullObjectAddr)
         val canNotBeNull = mkNot(canBeNull)
         val notMarked = mkEq(memory.isSpeculativelyNotNull(addr), mkFalse())
@@ -3418,10 +2991,9 @@ class Traverser(
             implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
         }
 
-        queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()
-    }
+        queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()    }
 
-    private fun divisionByZeroCheck(denom: PrimitiveValue) {
+    private fun TraversalContext.divisionByZeroCheck(denom: PrimitiveValue) {
         val equalsToZero = Eq(denom, 0)
         implicitlyThrowException(ArithmeticException("/ by zero"), setOf(equalsToZero))
         queuedSymbolicStateUpdates += mkNot(equalsToZero).asHardConstraint()
@@ -3526,7 +3098,7 @@ class Traverser(
         )
     }
 
-    private fun intOverflowCheck(op: BinopExpr, leftRaw: PrimitiveValue, rightRaw: PrimitiveValue) {
+    private fun TraversalContext.intOverflowCheck(op: BinopExpr, leftRaw: PrimitiveValue, rightRaw: PrimitiveValue) {
         // cast to the bigger type
         val sort = simpleMaxSort(leftRaw, rightRaw) as UtPrimitiveSort
         val left = leftRaw.expr.toPrimitiveValue(sort.type)
@@ -3555,7 +3127,7 @@ class Traverser(
         }
     }
 
-    private fun indexOutOfBoundsChecks(index: PrimitiveValue, length: PrimitiveValue) {
+    private fun TraversalContext.indexOutOfBoundsChecks(index: PrimitiveValue, length: PrimitiveValue) {
         val ltZero = Lt(index, 0)
         implicitlyThrowException(IndexOutOfBoundsException("Less than zero"), setOf(ltZero))
 
@@ -3566,7 +3138,7 @@ class Traverser(
         queuedSymbolicStateUpdates += mkNot(geLength).asHardConstraint()
     }
 
-    private fun negativeArraySizeCheck(vararg sizes: PrimitiveValue) {
+    private fun TraversalContext.negativeArraySizeCheck(vararg sizes: PrimitiveValue) {
         val ltZero = mkOr(sizes.map { Lt(it, 0) })
         implicitlyThrowException(NegativeArraySizeException("Less than zero"), setOf(ltZero))
         queuedSymbolicStateUpdates += mkNot(ltZero).asHardConstraint()
@@ -3578,7 +3150,7 @@ class Traverser(
      * Note: if we have the valueToCast.addr related to some parameter with addr p_0, and that parameter's type is a parameterizedType,
      * we ignore potential exception throwing if the typeAfterCast is one of the generics included in that type.
      */
-    private fun classCastExceptionCheck(valueToCast: ReferenceValue, typeAfterCast: Type) {
+    private fun TraversalContext.classCastExceptionCheck(valueToCast: ReferenceValue, typeAfterCast: Type) {
         val baseTypeAfterCast = if (typeAfterCast is ArrayType) typeAfterCast.baseType else typeAfterCast
         val addr = valueToCast.addr
 
@@ -3625,7 +3197,7 @@ class Traverser(
         queuedSymbolicStateUpdates += mkOr(isExpression, nullEqualityConstraint).asHardConstraint()
     }
 
-    private fun implicitlyThrowException(
+    private fun TraversalContext.implicitlyThrowException(
         exception: Exception,
         conditions: Set<UtBoolExpression>,
         softConditions: Set<UtBoolExpression> = emptySet()
@@ -3642,7 +3214,7 @@ class Traverser(
                         + softConditions.asSoftConstraint()
             )
             globalGraph.registerImplicitEdge(nextState.lastEdge!!)
-            pathSelector.offer(nextState)
+            offerState(nextState)
         }
     }
 
@@ -3655,22 +3227,6 @@ class Traverser(
                 if (method.isDeclared) "$method" else method.subSignature
             }
         }
-
-    /**
-     * Collects entry method statement path for ML. Eliminates duplicated statements, e.g. assignment with invocation
-     * in right part.
-     */
-    private fun entryMethodPath(state: ExecutionState): MutableList<Step> {
-        val entryPath = mutableListOf<Step>()
-        state.fullPath().forEach { step ->
-            // TODO: replace step.stmt in methodUnderAnalysisStmts with step.depth == 0
-            //  when fix SAT-812: [JAVA] Wrong depth when exception thrown
-            if (step.stmt in methodUnderAnalysisStmts && step.stmt !== entryPath.lastOrNull()?.stmt) {
-                entryPath += step
-            }
-        }
-        return entryPath
-    }
 
     private fun constructConstraintForType(value: ReferenceValue, possibleTypes: Collection<Type>): UtBoolExpression {
         val preferredTypes = typeResolver.findTopRatedTypes(possibleTypes, take = NUMBER_OF_PREFERRED_TYPES)
@@ -3745,7 +3301,7 @@ class Traverser(
         )
     }
 
-    private suspend fun FlowCollector<UtResult>.processResult(symbolicResult: SymbolicResult) {
+    private fun TraversalContext.processResult(symbolicResult: SymbolicResult) {
         val resolvedParameters = environment.state.parameters.map { it.value }
 
         //choose types that have biggest priority
@@ -3800,112 +3356,23 @@ class Traverser(
                 MemoryUpdate() // all memory updates are already added in [environment.state]
             }
             val stateToOffer = state.pop(methodResult.copy(symbolicStateUpdate = updates.asUpdate()))
-            pathSelector.offer(stateToOffer)
+            offerState(stateToOffer)
 
             logger.trace { "processResult<${environment.method.signature}> return from nested method" }
             return
         }
 
         //toplevel method
-        val terminalExecutionState =
-            state.copy(
-                methodResult = methodResult, // a way to put SymbolicResult into terminal state
-                label = StateLabel.TERMINAL
-            )
-        consumeTerminalState(terminalExecutionState)
-    }
-
-    private suspend fun FlowCollector<UtResult>.consumeTerminalState(
-        state: ExecutionState,
-    ) {
-        // some checks to be sure the state is correct
-        require(state.label == StateLabel.TERMINAL) { "Can't process non-terminal state!" }
-        require(!state.isInNestedMethod()) { "The state has to correspond to the MUT"}
-
-        val memory = state.memory
-        val solver = state.solver
-        val parameters = state.parameters.map { it.value }
-        val symbolicResult = requireNotNull(state.methodResult?.symbolicResult) { "The state must have symbolicResult"}
-        // it's free to make a check, because in the result is SAT, it should be already cached
-        val holder = requireNotNull(solver.check(respectSoft = true) as? UtSolverStatusSAT) { "The state must be SAT!" }
-
-        val predictedTestName = Predictors.testName.predict(state.path)
-        Predictors.testName.provide(state.path, predictedTestName, "")
-
-        val resolver =
-            Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
-
-        val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(parameters)
-
-        val symbolicExecutionResult = resolver.resolveResult(symbolicResult)
-
-        val stateBefore = modelsBefore.constructStateForMethod(methodUnderTest)
-        val stateAfter = modelsAfter.constructStateForMethod(methodUnderTest)
-        require(stateBefore.parameters.size == stateAfter.parameters.size)
-
-        val symbolicUtExecution = UtExecution(
-            stateBefore,
-            stateAfter,
-            symbolicExecutionResult,
-            instrumentation,
-            entryMethodPath(environment.state),
-            state.fullPath()
+        val terminalExecutionState = state.copy(
+            methodResult = methodResult, // the way to put SymbolicResult into terminal state
+            label = StateLabel.TERMINAL
         )
-
-        globalGraph.traversed(state)
-
-        if (!UtSettings.useConcreteExecution ||
-            // Can't execute concretely because overflows do not cause actual exceptions.
-            // Still, we need overflows to act as implicit exceptions.
-            (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
-        ) {
-            logger.debug {
-                "processResult<${methodUnderTest}>: no concrete execution allowed, " +
-                        "emit purely symbolic result $symbolicUtExecution"
-            }
-            emit(symbolicUtExecution)
-            return
-        }
-
-        //It's possible that symbolic and concrete stateAfter/results are diverged.
-        //So we trust concrete results more.
-        try {
-            logger.debug().bracket("processResult<$methodUnderTest>: concrete execution") {
-
-                //this can throw CancellationException
-                val concreteExecutionResult = concreteExecutor.executeConcretely(
-                    methodUnderTest,
-                    stateBefore,
-                    instrumentation
-                )
-
-                workaround(REMOVE_ANONYMOUS_CLASSES) {
-                    concreteExecutionResult.result.onSuccess {
-                        if (it.classId.isAnonymous) {
-                            logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                            emit(symbolicUtExecution)
-                            return
-                        }
-                    }
-                }
-
-                val concolicUtExecution = symbolicUtExecution.copy(
-                    stateAfter = concreteExecutionResult.stateAfter,
-                    result = concreteExecutionResult.result,
-                    coverage = concreteExecutionResult.coverage
-                )
-
-                emit(concolicUtExecution)
-                logger.debug { "processResult<${methodUnderTest}>: returned $concolicUtExecution" }
-            }
-        } catch (e: ConcreteExecutionFailureException) {
-            emitFailedConcreteExecutionResult(stateBefore, e)
-        }
+        offerState(terminalExecutionState)
     }
 
-    private fun ReturnStmt.symbolicSuccess(): SymbolicSuccess {
+    private fun TraversalContext.symbolicSuccess(stmt: ReturnStmt): SymbolicSuccess {
         val type = environment.method.returnType
-        val value = when (val instance = resolve(op, type)) {
+        val value = when (val instance = resolve(stmt.op, type)) {
             is PrimitiveValue -> instance.cast(type)
             else -> instance
         }
@@ -3926,69 +3393,4 @@ class Traverser(
              queuedSymbolicStateUpdates = prevSymbolicStateUpdate
         }
     }
-}
-
-private fun ResolvedModels.constructStateForMethod(methodUnderTest: UtMethod<*>): EnvironmentModels {
-    val (thisInstanceBefore, paramsBefore) = when {
-        methodUnderTest.isStatic -> null to parameters
-        methodUnderTest.isConstructor -> null to parameters.drop(1)
-        else -> parameters.first() to parameters.drop(1)
-    }
-    return EnvironmentModels(thisInstanceBefore, paramsBefore, statics)
-}
-
-private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
-    methodUnderTest: UtMethod<*>,
-    stateBefore: EnvironmentModels,
-    instrumentation: List<UtInstrumentation>
-): UtConcreteExecutionResult = executeAsync(
-    methodUnderTest.callable,
-    arrayOf(),
-    parameters = UtConcreteExecutionData(stateBefore, instrumentation)
-).convertToAssemble(methodUnderTest)
-
-/**
- * Before pushing our states for concrete execution, we have to be sure that every state is consistent.
- * For now state could be inconsistent in case MUT parameters are wrappers that are not fully visited.
- * For example, not fully visited map can contain duplicate keys that leads to incorrect behaviour.
- * To prevent it, we need to add visited constraint for each MUT parameter-wrapper in state.
- */
-private fun ExecutionState.withWrapperConsistencyChecks(): ExecutionState {
-    val visitedConstraints = mutableSetOf<UtBoolExpression>()
-    val methodUnderTestWrapperParameters = methodUnderTestParameters.filterNot { it.asWrapperOrNull == null }
-    val methodUnderTestWrapperParametersAddresses = methodUnderTestWrapperParameters.map { it.addr }.toSet()
-
-    if (methodUnderTestWrapperParameters.isEmpty()) {
-        return this
-    }
-
-    // make consistency checks for parameters-wrappers ...
-    methodUnderTestWrapperParameters.forEach { symbolicValue ->
-        symbolicValue.asWrapperOrNull?.let {
-            makeWrapperConsistencyCheck(symbolicValue, memory, visitedConstraints)
-        }
-    }
-
-    // ... and all locals that depends on these parameters-wrappers
-    val localReferenceValues = localVariableMemory
-        .localValues
-        .filterIsInstance<ReferenceValue>()
-        .filter { it.addr.internal is UtArraySelectExpression }
-    localReferenceValues.forEach {
-        val theMostNestedAddr = findTheMostNestedAddr(it.addr.internal as UtArraySelectExpression)
-        if (theMostNestedAddr in methodUnderTestWrapperParametersAddresses) {
-            makeWrapperConsistencyCheck(it, memory, visitedConstraints)
-        }
-    }
-
-    return copy(symbolicState = symbolicState + visitedConstraints.asHardConstraint())
-}
-
-private fun makeWrapperConsistencyCheck(
-    symbolicValue: SymbolicValue,
-    memory: Memory,
-    visitedConstraints: MutableSet<UtBoolExpression>
-) {
-    val visitedSelectExpression = memory.isVisited(symbolicValue.addr)
-    visitedConstraints += mkEq(visitedSelectExpression, mkInt(1))
 }

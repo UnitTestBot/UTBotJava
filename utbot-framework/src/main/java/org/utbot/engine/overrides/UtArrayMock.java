@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 /**
  * Auxiliary class with static methods without implementation.
- * These static methods are just markers for {@link org.utbot.engine.UtBotSymbolicEngine}.,
+ * These static methods are just markers for {@link org.utbot.engine.Traverser}.,
  * to do some corresponding behavior, that can't be represent
  * with java instructions.
  * <p>

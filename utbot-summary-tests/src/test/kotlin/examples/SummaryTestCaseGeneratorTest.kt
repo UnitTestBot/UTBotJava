@@ -101,6 +101,7 @@ open class SummaryTestCaseGeneratorTest(
         val utMethod = UtMethod.from(method)
         val testCase = executionsModel(utMethod, mockStrategy)
         testCase.summarize(searchDirectory)
+
         testCase.executions.checkMatchersWithTextSummary(summaryKeys)
         testCase.executions.checkMatchersWithMethodNames(methodNames)
         testCase.executions.checkMatchersWithDisplayNames(displayNames)

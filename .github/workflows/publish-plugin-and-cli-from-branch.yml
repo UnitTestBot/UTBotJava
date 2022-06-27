@@ -52,8 +52,12 @@ jobs:
           java-package: jdk+fx
           cache: gradle
       - name: Debug
+        # /__w/_tool/Java_Zulu_jdk+fx/8.0.332-9/x64
         run: |
-          /__w/_tool/Java_Zulu_jdk+fx/8.0.332-9/x64/bin/keytool \
+          set -x
+          printenv
+          ls -lh /etc/ssl/certs/WebSecureInternetGatewayCA.pem
+          ${JAVA_HOME}/bin/keytool \
                       -import \
                       -alias web-gateway-2 \
                       -file /etc/ssl/certs/WebSecureInternetGatewayCA.pem \

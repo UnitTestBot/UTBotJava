@@ -49,7 +49,8 @@ configure([
     project(':utbot-framework'),
     project(':utbot-framework-api'),
     project(':utbot-fuzzers'),
-    project(':utbot-instrumentation')
+    project(':utbot-instrumentation'),
+    project(':utbot-summary')
 ]) {
     publishing {
         repositories {

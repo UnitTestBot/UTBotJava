@@ -176,13 +176,22 @@ object UtSettings {
     var enableMachineLearningModule by getBooleanProperty(true)
 
     /**
-     * Options below regulate which NullPointerExceptions check should be performed.
+     * Options below regulate which [NullPointerException] check should be performed.
      *
      * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
      */
     var checkNpeInNestedMethods by getBooleanProperty(true)
     var checkNpeInNestedNotPrivateMethods by getBooleanProperty(false)
-    var checkNpeForFinalFields by getBooleanProperty(false)
+
+    /**
+     * This option determines whether should we generate [NullPointerException] checks for final or non-public fields
+     * in non-application classes. Set by true, this option highly decreases test's readability in some cases
+     * because of using reflection API for setting final/non-public fields in non-application classes.
+     *
+     * NOTE: default false value loses some executions with NPE in system classes, but often most of these executions
+     * are not expected by user.
+     */
+    var maximizeCoverageUsingReflection by getBooleanProperty(false)
 
     /**
      * Activate or deactivate substituting static fields values set in static initializer

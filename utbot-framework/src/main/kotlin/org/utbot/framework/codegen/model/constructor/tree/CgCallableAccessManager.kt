@@ -26,6 +26,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -173,6 +174,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 deepEqualsMethodId,
                 arraysDeepEqualsMethodId,
                 iterablesDeepEqualsMethodId,
+                streamsDeepEqualsMethodId,
                 mapsDeepEqualsMethodId,
                 hasCustomEqualsMethodId,
                 getArrayLengthMethodId -> emptySet()

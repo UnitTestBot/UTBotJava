@@ -6,7 +6,7 @@ We have loggers in UtBot IntelliJ Plugin like the following one:
 `val logger = Logger.getInstance(CodeGenerator::class.java)`
 
 
-Instead of recording them in files only, we can put them right into IntelliJ IDEA. So, let\`s do it then! 😃
+Instead of placing loggers output in the standard stream or a file, we can put them right into IntelliJ IDEA. So, let\`s do it then! 😃
 
 
 1. In UTBot repository find Gradle > Tasks > intellij > runIde and choose it with the right button click

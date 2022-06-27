@@ -158,6 +158,10 @@ fun <K, V> PersistentMap<K, V>.putIfAbsent(key: K, value: V): PersistentMap<K, V
         this.put(key, value)
     }
 
+/**
+ * Filter out types that could not be used for method invocations - abstract classes, interfaces and UT mocks.
+ * @see isAppropriateForMethodInvocation
+ */
 fun Collection<Type>.appropriateForMethodInvocationClasses(): List<Type> = filterTypesByPredicate {
     it.isAppropriateForMethodInvocation
 }

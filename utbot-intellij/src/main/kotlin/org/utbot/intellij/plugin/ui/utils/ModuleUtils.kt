@@ -146,7 +146,7 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
 }
 
 private const val dedicatedTestSourceRootName = "utbot_tests"
-fun Module.addDedicatedTestRoot(testSourceRoots : MutableList<VirtualFile>) : VirtualFile? {
+fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<VirtualFile>): VirtualFile? {
     // Dedicated test root already exists
     // OR it looks like standard structure of Gradle project where 'unexpected' test roots won't work
     if (testSourceRoots.any { file ->
@@ -214,7 +214,11 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
     }
 }
 
-fun ContentEntry.addSourceRootIfAbsent(model: ModifiableRootModel, sourceRootUrl : String, type: JpsModuleSourceRootType<*>) {
+fun ContentEntry.addSourceRootIfAbsent(
+    model: ModifiableRootModel,
+    sourceRootUrl: String,
+    type: JpsModuleSourceRootType<*>
+) {
     getSourceFolders(type).find { it.url == sourceRootUrl }?.apply {
         model.dispose()
         return

@@ -55,7 +55,7 @@ class ChildProcessRunner {
     companion object {
         private const val UTBOT_INSTRUMENTATION = "utbot-instrumentation"
         private const val ERRORS_FILE_PREFIX = "utbot-childprocess-errors"
-        private const val INSTRUMENTATION_LIB = "instrumentation-lib"
+        private const val INSTRUMENTATION_LIB = "lib"
 
         private const val DEBUG_RUN_CMD = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,address=5005"
 

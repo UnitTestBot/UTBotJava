@@ -1,7 +1,7 @@
 package org.utbot.fuzzer.names
 
 /**
- * Information that can be used to generate tests.
+ * Information that can be used to generate test names.
  */
 class TestSuggestedInfo(
     val testName: String,

@@ -114,6 +114,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                         namesCounter[name] = nameIndex + 1
                         updatedExecutions += traceTags.execution
                         if (GENERATE_DISPLAY_NAMES
+                            // todo extract these options into more suitable place (https://github.com/UnitTestBot/UTBotJava/issues/359)
                             // do not rewrite display name if already set
                             && traceTags.execution.displayName.isNullOrBlank()) {
                             if (!GENERATE_DISPLAYNAME_FROM_TO_STYLE) {
@@ -123,6 +124,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                             }
                         }
                         if (GENERATE_NAMES
+                            // todo extract these options into more suitable place (https://github.com/UnitTestBot/UTBotJava/issues/359)
                             // do not rewrite display name if already set
                             && traceTags.execution.testMethodName.isNullOrBlank()) {
                             traceTags.execution.testMethodName = name

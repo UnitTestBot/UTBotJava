@@ -20,7 +20,6 @@ env:
   GIT_REPO_NAME: UTBotJava
   SSL_CERT_DIR: /etc/ssl/certs
   NODE_EXTRA_CA_CERTS: /etc/ssl/certs/WebSecureInternetGatewayCA.pem
-  NODE_TLS_REJECT_UNAUTHORIZED: 0
 
 jobs:
     publish_plugin_and_cli:
@@ -55,9 +54,6 @@ jobs:
       - name: Debug
         # /__w/_tool/Java_Zulu_jdk+fx/8.0.332-9/x64
         run: |
-          set -x
-          printenv
-          ls -lh /etc/ssl/certs/WebSecureInternetGatewayCA.pem
           ${JAVA_HOME}/bin/keytool \
                       -import \
                       -alias web-gateway-2 \

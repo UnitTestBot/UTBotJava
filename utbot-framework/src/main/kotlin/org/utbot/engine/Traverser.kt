@@ -389,10 +389,6 @@ class Traverser(
     private val featureProcessor: FeatureProcessor? =
         if (enableFeatureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null
 
-    private val insideStaticInitializer
-        get() = environment.state.executionStack.any { it.method.isStaticInitializer }
-
-
     private val objectCounter = AtomicInteger(TypeRegistry.objectCounterInitialValue)
     private fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
         val newAddr = objectCounter.getAndIncrement()

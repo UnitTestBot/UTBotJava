@@ -160,6 +160,9 @@ data class ExecutionState(
     val isThrowException: Boolean
         get() = (lastEdge?.decisionNum ?: 0) < CALL_DECISION_NUM
 
+    val isInsideStaticInitializer
+        get() = executionStack.any { it.method.isStaticInitializer }
+
     fun createExceptionState(
         exception: SymbolicFailure,
         update: SymbolicStateUpdate

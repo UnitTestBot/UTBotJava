@@ -1,6 +1,16 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "6.1.0"
+}
+
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
+}
+
+shadowJar {
+  configurations = [project.configurations.compileClasspath]
+  archiveClassifier.set('')
+  minimize()
 }

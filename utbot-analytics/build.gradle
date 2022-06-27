@@ -1,5 +1,4 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-apply plugin: "java"
 
 configurations {
     mlmodels
@@ -14,7 +13,7 @@ compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
     implementation(project(":utbot-framework"))
-    implementation(project(':utbot-instrumentation'))
+    compile(project(':utbot-instrumentation'))
     implementation(project(':utbot-summary'))
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version

@@ -6,11 +6,10 @@ compileKotlin {
     }
 }
 
-
 dependencies {
     api project(":utbot-framework")
-    api project(":utbot-analytics")
     api project(':utbot-summary')
+    api project(':utbot-instrumentation')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     // Without this dependency testng tests do not run.

@@ -218,7 +218,7 @@ internal class UtModelConstructor(
 
     private fun constructFromEnum(enum: Enum<*>): UtModel =
         constructedObjects.getOrElse(enum) {
-            val utModel = UtEnumConstantModel(enum::class.java.id, enum)
+            val utModel = UtEnumConstantModel(handleId(enum), enum::class.java.id, enum)
             constructedObjects[enum] = utModel
             utModel
         }

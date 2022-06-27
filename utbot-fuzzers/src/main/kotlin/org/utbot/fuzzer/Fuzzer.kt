@@ -42,7 +42,7 @@ fun defaultModelProviders(idGenerator: IntSupplier = SimpleIdGenerator()): Model
         ObjectModelProvider(idGenerator),
         CollectionModelProvider(idGenerator),
         ArrayModelProvider(idGenerator),
-        EnumModelProvider,
+        EnumModelProvider(idGenerator),
         ConstantsModelProvider,
         StringConstantModelProvider,
         CharToStringModelProvider,
@@ -58,7 +58,7 @@ fun objectModelProviders(idGenerator: IntSupplier = SimpleIdGenerator()): ModelP
     return ModelProvider.of(
         CollectionModelProvider(idGenerator),
         ArrayModelProvider(idGenerator),
-        EnumModelProvider,
+        EnumModelProvider(idGenerator),
         StringConstantModelProvider,
         CharToStringModelProvider,
         ConstantsModelProvider,

@@ -282,11 +282,11 @@ class ModelProviderTest {
     @Test
     fun `test enum model provider`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(EnumModelProvider, parameters = listOf(OneTwoThree::class.java.id))
+            val result = collect(EnumModelProvider { 1 }, parameters = listOf(OneTwoThree::class.java.id))
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
             OneTwoThree.values().forEachIndexed { index: Int, value ->
-                assertEquals(UtEnumConstantModel(OneTwoThree::class.java.id, value), result[0]!![index])
+                assertEquals(UtEnumConstantModel(index + 1, OneTwoThree::class.java.id, value), result[0]!![index])
             }
         }
     }

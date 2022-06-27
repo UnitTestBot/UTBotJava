@@ -641,7 +641,7 @@ class Resolver(
             clazz.enumConstants.indices.random()
         }
         val value = clazz.enumConstants[index] as Enum<*>
-        val model = UtEnumConstantModel(clazz.id, value)
+        val model = UtEnumConstantModel(addr, clazz.id, value)
         addConstructedModel(addr, model)
 
         return model

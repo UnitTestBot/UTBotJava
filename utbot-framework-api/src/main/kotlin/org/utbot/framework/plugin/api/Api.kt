@@ -326,6 +326,7 @@ object UtVoidModel : UtModel(voidClassId)
  * Model for enum constant
  */
 data class UtEnumConstantModel(
+    val id: Int?,
     override val classId: ClassId,
     val value: Enum<*>
 ) : UtModel(classId) {

@@ -21,6 +21,7 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -398,7 +399,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateTo(mutableMapOf()) { i ->
                 val model = touchedValues.stores[i]
-                val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id!!
+                val addr = model?.concreteAddress ?: throw IllegalStateException("Model is null")
                 addr to resolver.resolveModel(
                     ObjectValue(
                         TypeStorage(OBJECT_TYPE),

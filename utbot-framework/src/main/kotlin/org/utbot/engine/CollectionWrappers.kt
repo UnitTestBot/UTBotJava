@@ -361,7 +361,7 @@ private fun constructKeysAndValues(keysModel: UtModel, valuesModel: UtModel, siz
         keysModel is UtArrayModel && valuesModel is UtArrayModel -> {
             List(size) {
                 keysModel.stores[it].let { model ->
-                    val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id
+                    val addr = model?.concreteAddress ?: throw IllegalStateException("Model is null")
                     // as we do not support generics for now, valuesModel.classId.elementClassId is unknown,
                     // but it can be known with generics support
                     val defaultValue = UtNullModel(valuesModel.classId.elementClassId ?: objectClassId)

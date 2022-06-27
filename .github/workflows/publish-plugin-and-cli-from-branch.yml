@@ -51,17 +51,6 @@ jobs:
           distribution: 'zulu'
           java-package: jdk+fx
           cache: gradle
-      - name: Debug
-        # /__w/_tool/Java_Zulu_jdk+fx/8.0.332-9/x64
-        run: |
-          ${JAVA_HOME}/bin/keytool \
-                      -import \
-                      -alias web-gateway-2 \
-                      -file /etc/ssl/certs/WebSecureInternetGatewayCA.pem \
-                      -keystore test-store \
-                      -noprompt \
-                      -storepass ${{ secrets.KEYSTORE_PASS }}
-#          sleep 600
       - uses: gradle/gradle-build-action@v2
         with:
           gradle-version: 6.8

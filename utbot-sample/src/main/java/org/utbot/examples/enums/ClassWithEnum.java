@@ -1,5 +1,9 @@
 package org.utbot.examples.enums;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Map;
+
 import static org.utbot.examples.enums.ClassWithEnum.ManyConstantsEnum.A;
 import static org.utbot.examples.enums.ClassWithEnum.ManyConstantsEnum.B;
 import static org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR;
@@ -97,6 +101,28 @@ public class ClassWithEnum {
 
         return true;
     }
+
+    public int enumToEnumMapCountValues(@NotNull Map<ManyConstantsEnum, ManyConstantsEnum> map) {
+        int count = 0;
+        for (ManyConstantsEnum value: map.values()) {
+            if (value == A) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int enumToStringMapCountKeys(@NotNull Map<ManyConstantsEnum, String> map) {
+        int count = 0;
+        for (ManyConstantsEnum key: map.keySet()) {
+            if (key == A) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+
 
     enum StatusEnum {
         READY(0, 10, "200"),

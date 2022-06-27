@@ -1733,6 +1733,7 @@ class Traverser(
             is JNewArrayExpr -> {
                 val size = (resolve(expr.size) as PrimitiveValue).align()
                 val type = expr.type as ArrayType
+                negativeArraySizeCheck(size)
                 createNewArray(size, type, type.elementType).also {
                     val defaultValue = type.defaultSymValue
                     queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, type, defaultValue as UtArrayExpressionBase)
@@ -2015,8 +2016,11 @@ class Traverser(
         return castedArray
     }
 
+    /**
+     * @param size [SymbolicValue] representing size of an array. It's caller responsibility to handle negative
+     * size.
+     */
     internal fun createNewArray(size: PrimitiveValue, type: ArrayType, elementType: Type): ArrayValue {
-        negativeArraySizeCheck(size)
         val addr = findNewAddr()
         val length = memory.findArrayLength(addr)
 

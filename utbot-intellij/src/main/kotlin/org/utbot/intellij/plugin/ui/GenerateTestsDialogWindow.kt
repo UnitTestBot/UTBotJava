@@ -75,8 +75,9 @@ import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
-import com.intellij.util.ui.JBUI.size
+import com.intellij.util.lang.JavaVersion
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.nio.file.Files
@@ -220,6 +221,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             add(mainComponent, BorderLayout.LINE_START)
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
+
+    private fun findSdkVersion(): Int {
+        val projectSdk = ModuleRootManager.getInstance(model.testModule).sdk
+        val sdkVersion = JavaVersion.tryParse(projectSdk?.versionString)
+            ?: error("No sdk found in ${model.testModule}")
+        return sdkVersion.feature
+    }
 
     private fun findTestPackageComboValue(): String {
         val packageNames = model.srcClasses.map { it.packageName }.distinct()
@@ -710,9 +718,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         parametrizedTestSources.addActionListener { event ->
             val comboBox = event.source as ComboBox<*>
-            val item = comboBox.item as ParametrizedTestSource
+            val parametrizedTestSource = comboBox.item as ParametrizedTestSource
 
-            val areMocksSupported = item == ParametrizedTestSource.DO_NOT_PARAMETRIZE
+            val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
 
             mockStrategies.isEnabled = areMocksSupported
             staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
@@ -723,7 +731,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 staticsMocking.item = NoStaticMocking
             }
 
-            updateTestFrameworksList(item)
+            updateTestFrameworksList(parametrizedTestSource)
         }
 
         cbSpecifyTestPackage.addActionListener {
@@ -744,10 +752,17 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     //We would like to remove JUnit4 from framework list in parametrized mode
     private fun updateTestFrameworksList(parametrizedTestSource: ParametrizedTestSource) {
         //We do not support parameterized tests for JUnit4
-        val enabledTestFrameworks = when (parametrizedTestSource) {
+        var enabledTestFrameworks = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.allItems
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.allItems.filterNot { it == Junit4 }
         }
+
+        //Will be removed after gradle-intelij-plugin version update upper than 2020.2
+        //TestNg will be reverted after https://github.com/UnitTestBot/UTBotJava/issues/309
+        if (findSdkVersion() < 11) {
+            enabledTestFrameworks = enabledTestFrameworks.filterNot { it == TestNg }
+        }
+
         var defaultItem = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.defaultItem
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.parametrizedDefaultItem

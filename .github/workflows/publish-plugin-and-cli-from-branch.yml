@@ -20,6 +20,7 @@ env:
   GIT_REPO_NAME: UTBotJava
   SSL_CERT_DIR: /etc/ssl/certs
   NODE_EXTRA_CA_CERTS: /etc/ssl/certs/WebSecureInternetGatewayCA.pem
+  NODE_TLS_REJECT_UNAUTHORIZED: 0
 
 jobs:
     publish_plugin_and_cli:

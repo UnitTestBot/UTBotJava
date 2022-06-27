@@ -28,7 +28,6 @@ import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
@@ -37,8 +36,6 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.ShowSettingsUtil
-import com.intellij.openapi.roots.ContentEntry
-import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
@@ -51,7 +48,6 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -79,15 +75,9 @@ import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
-import com.intellij.util.lang.JavaVersion
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.JBUI.Borders.empty
-import com.intellij.util.ui.JBUI.Borders.merge
-import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import com.intellij.util.ui.components.BorderLayoutPanel
 import java.awt.BorderLayout
 import java.nio.file.Files
 import java.nio.file.Path
@@ -461,6 +451,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         } finally {
             if (modifiableModel.isWritable && !modifiableModel.isDisposed) modifiableModel.dispose()
         }
+    }
 
     private fun createPackageWrapper(packageName: String?): PackageWrapper =
         PackageWrapper(PsiManager.getInstance(model.project), trimPackageName(packageName))

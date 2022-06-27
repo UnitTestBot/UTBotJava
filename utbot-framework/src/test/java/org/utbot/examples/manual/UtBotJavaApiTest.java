@@ -204,9 +204,7 @@ public class UtBotJavaApiTest {
                 fields
         );
 
-        UtClassRefModel classRefModel = new UtClassRefModel(
-                classIdForType(Class.class), Class.class
-        );
+        UtClassRefModel classRefModel = modelFactory.produceClassRefModel(Class.class);
 
         EnvironmentModels initialState = new EnvironmentModels(
                 classUnderTestModel,
@@ -389,9 +387,7 @@ public class UtBotJavaApiTest {
                 fields
         );
 
-        UtClassRefModel classRefModel = new UtClassRefModel(
-                classIdForType(Class.class), Class.class
-        );
+        UtClassRefModel classRefModel = modelFactory.produceClassRefModel(Class.class);
 
         EnvironmentModels initialState = new EnvironmentModels(
                 classUnderTestModel,

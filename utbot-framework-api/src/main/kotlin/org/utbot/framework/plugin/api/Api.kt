@@ -264,6 +264,15 @@ fun UtModel.hasDefaultValue() =
 fun UtModel.isMockModel() = this is UtCompositeModel && isMock
 
 /**
+ * Get model id or null if id is null or the model has no id.
+ */
+fun UtModel.idOrNull(): Int? = when (this) {
+    is UtNullModel -> 0
+    is UtReferenceModel -> id
+    else -> null
+}
+
+/**
  * Model for nulls.
  */
 data class UtNullModel(
@@ -304,20 +313,64 @@ object UtVoidModel : UtModel(voidClassId)
  * Model for enum constant
  */
 data class UtEnumConstantModel(
+    override val id: Int?,
     override val classId: ClassId,
     val value: Enum<*>
-) : UtModel(classId) {
-    override fun toString(): String = "$value"
+) : UtReferenceModel(id, classId) {
+    override fun toString(): String = "$value@$id"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtEnumConstantModel
+
+        if (id != other.id) return false
+        if (classId != other.classId) return false
+        if (value != other.value) return false
+
+        return true
+    }
+
+
+    override fun hashCode(): Int {
+        var result = id ?: 0
+        result = 31 * result + classId.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
+
 }
 
 /**
  * Model for class reference
  */
 data class UtClassRefModel(
+    override val id: Int?,
     override val classId: ClassId,
     val value: Class<*>
-) : UtModel(classId) {
-    override fun toString(): String = "$value"
+) : UtReferenceModel(id, classId) {
+    override fun toString(): String = "$value:$id"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtClassRefModel
+
+        if (id != other.id) return false
+        if (classId != other.classId) return false
+        if (value != other.value) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id ?: 0
+        result = 31 * result + classId.hashCode()
+        result = 31 * result + value.hashCode()
+        return result
+    }
 }
 
 /**

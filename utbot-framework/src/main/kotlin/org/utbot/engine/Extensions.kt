@@ -484,3 +484,4 @@ val SootMethod.isUtMockAssumeOrExecuteConcretely
  */
 val SootMethod.isPreconditionCheckMethod
     get() = declaringClass.isOverridden && name == "preconditionCheck"
+

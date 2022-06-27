@@ -615,7 +615,7 @@ class Resolver(
         val modeledNumDimensions = holder.eval(numDimensionsArray.select(addrExpression)).intValue()
 
         val classRef = classRefByName(modeledType, modeledNumDimensions)
-        val model = UtClassRefModel(CLASS_REF_CLASS_ID, classRef)
+        val model = UtClassRefModel(addr, CLASS_REF_CLASS_ID, classRef)
         addConstructedModel(addr, model)
 
         return model
@@ -640,7 +640,7 @@ class Resolver(
             clazz.enumConstants.indices.random()
         }
         val value = clazz.enumConstants[index] as Enum<*>
-        val model = UtEnumConstantModel(clazz.id, value)
+        val model = UtEnumConstantModel(addr, clazz.id, value)
         addConstructedModel(addr, model)
 
         return model

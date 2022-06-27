@@ -19,7 +19,7 @@
         </Logger>
 
 
-        <Logger name="org.utbot.engine.Traverser" level="debug"/>
+        <Logger name="org.utbot.engine.UtBotSymbolicEngine" level="debug"/>
         <Logger name="org.utbot.instrumentation" level="trace"/>
 
         <Logger name="org.utbot.engine.selectors.strategies.GraphViz" level="debug">

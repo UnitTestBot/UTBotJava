@@ -27,7 +27,8 @@ data class GenerateTestsModel(
     var selectedMethods: Set<MemberInfo>?,
     var timeout:Long,
     var generateWarningsForStaticMocking: Boolean = false,
-    var forceMockHappened: Boolean = false
+    var forceMockHappened: Boolean = false,
+    var hasTestFrameworkConflict: Boolean = false,
 ) {
     var testSourceRoot: VirtualFile? = null
     var testPackageName: String? = null

@@ -506,6 +506,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (frameworkNotInstalled && createTestFrameworkNotificationDialog() == Messages.YES) {
             configureTestFramework()
         }
+
+        model.hasTestFrameworkConflict = TestFramework.allItems.count { it.isInstalled  } > 1
     }
 
     private fun configureMockFrameworkIfRequired() {

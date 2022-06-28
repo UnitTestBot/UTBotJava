@@ -318,17 +318,8 @@ object TestGenerator {
         VfsUtil.createDirectories(parent.toString())
         resultedReportedPath.toFile().writeText(testsCodeWithTestReport.testsGenerationReport.getFileContent())
 
-        if (model.forceMockHappened) {
-            testsCodeWithTestReport.testsGenerationReport.apply {
-                initialMessage = {
-                    """
-                    Unit tests for $classUnderTest were generated partially.<br>
-                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
-                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
-                """.trimIndent()
-                }
-            }
-        }
+        processInitialWarnings(testsCodeWithTestReport, model)
+
         val notifyMessage = buildString {
             appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString())
             appendHtmlLine()
@@ -347,6 +338,37 @@ object TestGenerator {
             appendHtmlLine(savedFileMessage)
         }
         TestsReportNotifier.notify(notifyMessage, model.project, model.testModule)
+    }
+
+    private fun processInitialWarnings(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
+        val hasInitialWarnings = model.forceMockHappened || model.hasTestFrameworkConflict
+        if (!hasInitialWarnings) {
+            return
+        }
+
+        testsCodeWithTestReport.testsGenerationReport.apply {
+            summaryMessage = { "Unit tests for $classUnderTest were generated with warnings.<br>" }
+
+            if (model.forceMockHappened) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
+                """.trimIndent()
+                }
+            }
+            if (model.hasTestFrameworkConflict) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: There are several test frameworks in the project. 
+                    To select run configuration, please refer to the documentation depending on the project build system:
+                     <a href=" https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests">Gradle</a>, 
+                     <a href=" https://maven.apache.org/surefire/maven-surefire-plugin/examples/providers.html">Maven</a> 
+                     or <a href=" https://www.jetbrains.com/help/idea/run-debug-configuration.html#compound-configs">Idea</a>.
+                """.trimIndent()
+                }
+            }
+        }
     }
 
     @Suppress("unused")

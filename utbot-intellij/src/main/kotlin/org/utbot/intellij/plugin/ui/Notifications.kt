@@ -172,7 +172,7 @@ object GotItTooltipActivity : StartupActivity {
             val shortcutText = KeymapUtil.getShortcutText(shortcut)
             val message = GotItMessage.createMessage("UTBot is ready!",
                 "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;\">" +
-                        "You can get test coverage for methods, Java classes<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
+                        "You can get test coverage for methods, Java classes,<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
             message.setCallback { PropertiesComponent.getInstance().setValue(KEY, true) }
             WindowManager.getInstance().getFrame(project)?.rootPane?.let {
                 message.show(RelativePoint(it, Point(it.width, it.height)), Balloon.Position.above)

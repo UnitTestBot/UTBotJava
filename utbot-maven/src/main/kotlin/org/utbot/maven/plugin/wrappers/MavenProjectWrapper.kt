@@ -141,7 +141,7 @@ class MavenProjectWrapper(
 
     /**
      * Creates and returns a file for future generated tests.
-     * For example, ".../java/main/com/qwerty/MainTest.java".
+     * For example, ".../com/qwerty/MainTest.java".
      */
     private fun createTestsCodeFile(classFqn: String): File {
         val fileExtension = sarifProperties.codegenLanguage.extension

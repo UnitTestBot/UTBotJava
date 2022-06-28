@@ -184,9 +184,13 @@ class Mocker(
         if (mockAlways(type)) return true // always mock randoms and loggers
         if (mockInfo is UtFieldMockInfo) {
             val declaringClass = mockInfo.fieldId.declaringClass
+            val sootDeclaringClass = Scene.v().getSootClass(declaringClass.name)
 
-            if (Scene.v().getSootClass(declaringClass.name).isArtificialEntity) {
-                return false // see BaseStreamExample::minExample for an example; cannot load java class for such class
+            if (sootDeclaringClass.isArtificialEntity || sootDeclaringClass.isOverridden) {
+                // Cannot load Java class for artificial classes, see BaseStreamExample::minExample for an example.
+                // Wrapper classes that override system classes ([org.utbot.engine.overrides] package) are also
+                // unavailable to the [UtContext] class loader used by the plugin.
+                return false
             }
 
             return when {

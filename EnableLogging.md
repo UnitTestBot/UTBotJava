@@ -34,3 +34,5 @@ Instead of sending loggers output in the standard stream or a file, we can put t
 ![image](https://user-images.githubusercontent.com/106974353/175881203-9e6e1ed2-3ba7-4ea9-a18a-a5ce314a13ab.png)
 
 
+If you want to use the existing loggers in UTBot or you`re a contributor and you have your own loggers to add, please watch [this article](HowToUseLoggers.md) to know how to do it in a better way.
+

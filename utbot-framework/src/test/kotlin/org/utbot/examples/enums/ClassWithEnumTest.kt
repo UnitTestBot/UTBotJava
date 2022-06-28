@@ -199,7 +199,7 @@ class ClassWithEnumTest : AbstractTestCaseGeneratorTest(testClass = ClassWithEnu
     fun testEnumToEnumMapCountValues() {
         check(
             ClassWithEnum::enumToEnumMapCountValues,
-            eq(1),
+            eq(3),
             { map, result -> map.values.count { it == ClassWithEnum.ManyConstantsEnum.A } == result }
         )
     }
@@ -208,7 +208,7 @@ class ClassWithEnumTest : AbstractTestCaseGeneratorTest(testClass = ClassWithEnu
     fun testEnumToStringMapCountKeys() {
         check(
             ClassWithEnum::enumToStringMapCountKeys,
-            eq(1),
+            eq(3),
             { map, result -> map.keys.count { it == ClassWithEnum.ManyConstantsEnum.A } == result }
         )
     }

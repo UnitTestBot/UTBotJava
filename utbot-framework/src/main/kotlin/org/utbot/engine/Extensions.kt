@@ -18,7 +18,6 @@ import org.utbot.engine.pc.UtSeqSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
-import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.pc.UtSort
 import org.utbot.engine.pc.mkArrayWithConst
 import org.utbot.engine.pc.mkBool
@@ -31,7 +30,6 @@ import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.mkString
 import org.utbot.engine.pc.toSort
-import org.utbot.framework.UtSettings.checkNpeForFinalFields
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.plugin.api.FieldId
@@ -384,11 +382,7 @@ fun arrayTypeUpdate(addr: UtAddrExpression, type: ArrayType) =
 fun SootField.shouldBeNotNull(): Boolean {
     require(type is RefLikeType)
 
-    if (hasNotNullAnnotation()) return true
-
-    if (!checkNpeForFinalFields && isFinal) return true
-
-    return false
+    return hasNotNullAnnotation()
 }
 
 /**

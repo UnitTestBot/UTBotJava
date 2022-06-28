@@ -77,6 +77,7 @@ import org.utbot.engine.pc.mkBVConst
 import org.utbot.engine.pc.mkBoolConst
 import org.utbot.engine.pc.mkChar
 import org.utbot.engine.pc.mkEq
+import org.utbot.engine.pc.mkFalse
 import org.utbot.engine.pc.mkFpConst
 import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkNot
@@ -115,6 +116,7 @@ import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.UtSettings.checkNpeForFinalFields
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.enableFeatureProcess
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
@@ -2199,8 +2201,15 @@ class UtBotSymbolicEngine(
         val chunkId = hierarchy.chunkIdForField(objectType, field)
         val createdField = createField(objectType, addr, field.type, chunkId, mockInfoGenerator)
 
-        if (field.type is RefLikeType && field.shouldBeNotNull()) {
-            queuedSymbolicStateUpdates += mkNot(mkEq(createdField.addr, nullObjectAddr)).asHardConstraint()
+        if (field.type is RefLikeType) {
+            if (field.shouldBeNotNull()) {
+                queuedSymbolicStateUpdates += mkNot(mkEq(createdField.addr, nullObjectAddr)).asHardConstraint()
+            }
+
+            // See docs/SpeculativeFieldNonNullability.md for details
+            if (field.isFinal && field.declaringClass.isLibraryClass && !checkNpeForFinalFields) {
+                markAsSpeculativelyNotNull(createdField.addr)
+            }
         }
 
         return createdField
@@ -2368,6 +2377,10 @@ class UtBotSymbolicEngine(
 
     private fun touchAddress(addr: UtAddrExpression) {
         queuedSymbolicStateUpdates += MemoryUpdate(touchedAddresses = persistentListOf(addr))
+    }
+
+    private fun markAsSpeculativelyNotNull(addr: UtAddrExpression) {
+        queuedSymbolicStateUpdates += MemoryUpdate(speculativelyNotNullAddresses = persistentListOf(addr))
     }
 
     /**
@@ -3290,9 +3303,11 @@ class UtBotSymbolicEngine(
     private fun nullPointerExceptionCheck(addr: UtAddrExpression) {
         val canBeNull = addrEq(addr, nullObjectAddr)
         val canNotBeNull = mkNot(canBeNull)
+        val notMarked = mkEq(memory.isSpeculativelyNotNull(addr), mkFalse())
+        val notMarkedAndNull = mkAnd(notMarked, canBeNull)
 
         if (environment.method.checkForNPE(environment.state.executionStack.size)) {
-            implicitlyThrowException(NullPointerException(), setOf(canBeNull))
+            implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
         }
 
         queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()

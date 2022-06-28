@@ -330,7 +330,18 @@ data class UtEnumConstantModel(
     override val classId: ClassId,
     val value: Enum<*>
 ) : UtReferenceModel(id, classId) {
-    override fun toString(): String = "$value"
+    override fun toString(): String = "$value@$id"
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as UtEnumConstantModel
+
+        if (id != other.id) return false
+
+        return value == other.value
+    }
 }
 
 /**

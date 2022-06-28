@@ -491,7 +491,6 @@ val SootMethod.isPreconditionCheckMethod
 val UtModel.concreteAddress: Address
     get() = when (this) {
         is UtNullModel -> 0
-        is UtEnumConstantModel -> id!!
         is UtReferenceModel -> id!!
         else -> throw IllegalStateException("Unsupported model: ${this::class}")
     }

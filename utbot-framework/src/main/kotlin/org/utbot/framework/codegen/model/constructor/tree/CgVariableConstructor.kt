@@ -101,12 +101,12 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtCompositeModel -> constructComposite(model, baseName)
                 is UtAssembleModel -> constructAssemble(model, baseName)
                 is UtArrayModel -> constructArray(model, baseName)
+                is UtEnumConstantModel -> constructEnumConstant(model, baseName)
             }
         } else valueByModel.getOrPut(model) {
             when (model) {
                 is UtNullModel -> nullLiteral()
                 is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
-                is UtEnumConstantModel -> constructEnumConstant(model, baseName)
                 is UtClassRefModel -> constructClassRef(model, baseName)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")

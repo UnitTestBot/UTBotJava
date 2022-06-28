@@ -1,5 +1,6 @@
 package org.utbot.engine.selectors.strategies
 
+import kotlinx.collections.immutable.PersistentList
 import mu.KotlinLogging
 import org.utbot.engine.*
 import org.utbot.engine.pc.UtSolverStatus
@@ -8,72 +9,114 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.id
+import soot.jimple.Stmt
+import soot.toolkits.graph.ExceptionalUnitGraph
 import kotlin.math.abs
 
-interface ScoringStrategy {
-    fun score(executionState: ExecutionState): Double
+abstract class ScoringStrategy(graph: InterProceduralUnitGraph) : TraverseGraphStatistics(graph), ChoosingStrategy {
+    abstract fun score(executionState: ExecutionState): Double
 
-    operator fun get(state: ExecutionState): Double
+    operator fun get(state: ExecutionState): Double = score(state)
 }
 
-internal object DefaultScoringStrategy : ScoringStrategy {
-    override fun score(executionState: ExecutionState): Double = 0.0
-    override fun get(state: ExecutionState): Double = 0.0
+class ScoringStrategyBuilder(
+    private val targets: Map<LocalVariable, UtModel>
+) {
+
+    constructor() : this(emptyMap())
+
+    fun build(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry): ScoringStrategy =
+        ModelSynthesisScoringStrategy(graph, targets, typeRegistry)
 }
 
+
+private typealias Path = PersistentList<Stmt>
 
 class ModelSynthesisScoringStrategy(
-    protected val targets: Map<LocalVariable, UtModel>,
-    protected val typeRegistry: TypeRegistry
-) : ScoringStrategy {
+    graph: InterProceduralUnitGraph,
+    private val targets: Map<LocalVariable, UtModel>,
+    private val typeRegistry: TypeRegistry
+) : ScoringStrategy(graph) {
     private val logger = KotlinLogging.logger("ModelSynthesisScoringStrategy")
+    private val distanceStatistics = DistanceStatistics(graph)
 
     companion object {
         private const val INF_SCORE = Double.MAX_VALUE
         private const val MAX_SCORE = 1.0
-        private const val MIN_SCORE = 0.0
+        private const val DEPTH_CHECK = 30
         private const val EPS = 1e-5
+        private const val SOFT_MAX_ARRAY_SIZE = 40
     }
 
     // needed for resolver
     private val hierarchy = Hierarchy(typeRegistry)
     private val typeResolver: TypeResolver = TypeResolver(typeRegistry, hierarchy)
-    private val softMaxArraySize = 40
-
 
     private val stateModels = hashMapOf<ExecutionState, UtSolverStatus>()
-    private val scores = hashMapOf<ExecutionState, Double>()
+    private val pathScores = hashMapOf<Path, Double>()
 
     private fun buildResolver(memory: Memory, holder: UtSolverStatusSAT) =
-        Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, "", softMaxArraySize)
+        Resolver(hierarchy, memory, typeRegistry, typeResolver, holder, "", SOFT_MAX_ARRAY_SIZE)
 
-    override fun get(state: ExecutionState): Double = scores.getValue(state)
+    override fun onTraversed(executionState: ExecutionState) {
+        distanceStatistics.onTraversed(executionState)
+    }
 
-    override fun score(executionState: ExecutionState): Double = scores.getOrPut(executionState) {
-        stateModels[executionState] = executionState.solver.check(respectSoft = false)
-        return (stateModels[executionState] as? UtSolverStatusSAT)?.let { holder ->
-            val resolver = buildResolver(executionState.memory, holder)
-            val firstStack = executionState.executionStack.first().localVariableMemory
-            val parameters = targets.keys.map { firstStack.local(it) }
-            when {
-                null in parameters -> INF_SCORE
-                else -> {
-                    val models =
-                        targets.keys.zip(resolver.resolveModels(parameters.filterNotNull()).modelsAfter.parameters)
-                            .toMap()
-                            .mapValues {
-                                val a = it.value
-                                if (a is UtAssembleModel) a.origin else a
-                            }
-                            .mapNotNull {
-                                if (it.value == null) null else it.key to it.value!!
-                            }
-                            .toMap()
-                    computeScore(targets, models)
-                }
+    override fun onVisit(edge: Edge) {
+        distanceStatistics.onVisit(edge)
+    }
+
+    override fun onVisit(executionState: ExecutionState) {
+        distanceStatistics.onVisit(executionState)
+    }
+
+    override fun onJoin(stmt: Stmt, graph: ExceptionalUnitGraph, shouldRegister: Boolean) {
+        distanceStatistics.onJoin(stmt, graph, shouldRegister)
+    }
+
+    override fun shouldDrop(state: ExecutionState): Boolean {
+        val previous = run {
+            var current = state.path
+            val res = mutableListOf<Path>()
+            repeat(DEPTH_CHECK) {
+                if (current.isEmpty()) return@repeat
+                res += current
+                current = current.removeAt(current.lastIndex)
             }
-        } ?: INF_SCORE
+            res.reversed()
+        }
+        val scores = previous.map { pathScores.getOrDefault(it, INF_SCORE) }
+        if (scores.size >= DEPTH_CHECK && (0 until scores.lastIndex).all { scores[it] <= scores[it + 1] })
+            return true
+        return distanceStatistics.shouldDrop(state)
+    }
+
+    override fun score(executionState: ExecutionState): Double = pathScores.getOrPut(executionState.path) {
+        val status = stateModels.getOrPut(executionState) {
+            executionState.solver.check(respectSoft = true)
+        } as? UtSolverStatusSAT ?: return@getOrPut INF_SCORE
+        val resolver = buildResolver(executionState.memory, status)
+        val entryStack = executionState.executionStack.first().localVariableMemory
+        val parameters = targets.keys.map { entryStack.local(it) }
+        when {
+            null in parameters -> INF_SCORE
+            else -> {
+                val nonNullParameters = parameters.map { it!! }
+                val afterParameters = resolver.resolveModels(nonNullParameters).modelsAfter.parameters
+                val models = targets.keys
+                    .zip(afterParameters)
+                    .mapNotNull { (local, model) ->
+                        when (model) {
+                            is UtAssembleModel -> local to model.origin!!
+                            is UtCompositeModel -> local to model
+                            is UtPrimitiveModel -> local to model
+                            else -> null
+                        }
+                    }
+                    .toMap()
+                computeScore(targets, models)
+            }
+        }
     }
 
     private fun computeScore(
@@ -82,9 +125,8 @@ class ModelSynthesisScoringStrategy(
     ): Double {
         var currentScore = 0.0
         for ((variable, model) in target) {
-            val computedModel = current[variable]
-            val comparison = when (computedModel) {
-                null -> MAX_SCORE
+            val comparison = when (val computedModel = current[variable]) {
+                null -> model.maxScore
                 else -> model.score(computedModel)
             }
             currentScore += comparison
@@ -92,9 +134,23 @@ class ModelSynthesisScoringStrategy(
         return currentScore
     }
 
+    private val UtModel.maxScore: Double
+        get() = when (this) {
+            is UtPrimitiveModel -> MAX_SCORE
+            is UtAssembleModel -> this.origin?.maxScore ?: MAX_SCORE
+            is UtCompositeModel -> {
+                var res = 0.0
+                for ((_, fieldModel) in this.fields) {
+                    res += fieldModel.maxScore
+                }
+                res
+            }
+            else -> INF_SCORE
+        }
+
     private fun UtModel.score(other: UtModel): Double = when {
-        this.javaClass != other.javaClass -> MAX_SCORE
-        this is UtPrimitiveModel -> MAX_SCORE - MAX_SCORE / (MAX_SCORE + (this - (other as UtPrimitiveModel)).abs()
+        this.javaClass != other.javaClass -> maxScore
+        this is UtPrimitiveModel -> maxScore - maxScore / (maxScore + (this - (other as UtPrimitiveModel)).abs()
             .toDouble() + EPS)
         this is UtCompositeModel -> {
             other as UtCompositeModel
@@ -102,7 +158,7 @@ class ModelSynthesisScoringStrategy(
             for ((field, fieldModel) in this.fields) {
                 val otherField = other.fields[field]
                 score += when (otherField) {
-                    null -> MAX_SCORE
+                    null -> fieldModel.maxScore
                     else -> fieldModel.score(otherField)
                 }
             }
@@ -113,7 +169,7 @@ class ModelSynthesisScoringStrategy(
         }
     }
 
-    private operator infix fun UtPrimitiveModel.minus(other: UtPrimitiveModel): Number = when (val value = this.value) {
+    private infix operator fun UtPrimitiveModel.minus(other: UtPrimitiveModel): Number = when (val value = this.value) {
         is Byte -> value - (other.value as Byte)
         is Short -> value - (other.value as Short)
         is Char -> value - (other.value as Char)

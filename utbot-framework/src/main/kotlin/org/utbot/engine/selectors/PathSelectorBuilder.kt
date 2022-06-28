@@ -417,10 +417,11 @@ class ScoringPathSelectorBuilder internal constructor(
     val scoringStrategy: ScoringStrategy,
     context: PathSelectorContext = PathSelectorContext(graph)
 ) : PathSelectorBuilder<ScoringPathSelector>(graph, context) {
+    var seed: Int = 42
     override fun build() = ScoringPathSelector(
-        withDistanceStrategy(),
+        scoringStrategy,
         requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },
-        scoringStrategy
+        seed
     )
 }
 

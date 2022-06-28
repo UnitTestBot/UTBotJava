@@ -9,18 +9,9 @@ import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.addr
 import org.utbot.engine.isThisAddr
 import org.utbot.engine.nullObjectAddr
-import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtFalse
-import org.utbot.engine.pc.UtIntSort
-import org.utbot.engine.pc.mkBVConst
-import org.utbot.engine.pc.mkEq
-import org.utbot.engine.pc.mkInt
-import org.utbot.engine.pc.mkNot
-import org.utbot.engine.pc.select
+import org.utbot.engine.pc.*
 import org.utbot.engine.primitiveToSymbolic
-import org.utbot.engine.symbolic.SymbolicStateUpdate
-import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.symbolic.*
 import org.utbot.engine.voidValue
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -61,6 +52,17 @@ class ModelBasedPostConditionConstructor(
                 buildSymbolicValue(symbValue, expectedModel)
                 constraints + mkEq(symbValue, symbolicResult.value).asHardConstraint()
             }
+        }
+
+    override fun constructSoftPostCondition(
+        engine: UtBotSymbolicEngine
+    ): SymbolicStateUpdate =
+        SoftConstraintBuilder(engine).run {
+            val sootType = expectedModel.classId.toSoot().type
+            val addr = UtAddrExpression(mkBVConst("post_condition", UtIntSort))
+            val symbValue = engine.createObject(addr, sootType, useConcreteType = addr.isThisAddr)
+            buildSymbolicValue(symbValue, expectedModel)
+            constraints
         }
 }
 
@@ -143,6 +145,92 @@ private class ConstraintBuilder(
 
                 UtVoidModel -> {
                     constraints += mkEq(voidValue, sv).asHardConstraint()
+                }
+            }
+        }
+    }
+}
+
+
+private class SoftConstraintBuilder(
+    private val engine: UtBotSymbolicEngine
+) {
+    var constraints = SymbolicStateUpdate()
+
+    fun buildSymbolicValue(
+        sv: SymbolicValue,
+        expectedModel: UtModel
+    ) {
+        with(expectedModel) {
+            when (this) {
+                is UtPrimitiveModel -> {
+                    value.primitiveToSymbolic().apply {
+                        constraints += mkEq(this, sv as PrimitiveValue).asSoftConstraint()
+                    }
+                }
+                is UtCompositeModel -> {
+                    constraints += mkNot(mkEq(nullObjectAddr, sv.addr)).asSoftConstraint().asUpdate()
+
+                    val type = classId.toSoot().type
+
+                    for ((field, fieldValue) in fields) {
+                        val sootField = field.declaringClass.toSoot().getFieldByName(field.name)
+                        val fieldSymbolicValue = engine.createFieldOrMock(
+                            type,
+                            sv.addr,
+                            sootField,
+                            mockInfoGenerator = null
+                        )
+                        engine.recordInstanceFieldRead(sv.addr, sootField)
+                        buildSymbolicValue(fieldSymbolicValue, fieldValue)
+                    }
+                }
+                is UtArrayModel -> {
+                    sv as ArrayValue
+
+                    constraints += mkNot(mkEq(nullObjectAddr, sv.addr)).asSoftConstraint().asUpdate()
+
+                    for ((index, model) in stores) {
+                        val storeSymbolicValue = when (val elementType = sv.type.elementType) {
+                            is RefType -> {
+                                val objectValue = engine.createObject(
+                                    org.utbot.engine.pc.UtAddrExpression(sv.addr.select(mkInt(index))),
+                                    elementType,
+                                    useConcreteType = false,
+                                    mockInfoGenerator = null
+                                )
+
+                                objectValue
+                            }
+                            is ArrayType -> engine.createArray(
+                                org.utbot.engine.pc.UtAddrExpression(sv.addr.select(mkInt(index))),
+                                elementType,
+                                useConcreteType = false
+                            )
+                            else -> PrimitiveValue(elementType, sv.addr.select(mkInt(index)))
+                        }
+
+                        buildSymbolicValue(storeSymbolicValue, model)
+                    }
+                }
+
+                is UtClassRefModel -> {
+                    val expected = engine.createClassRef(this.value.id.toSoot().type)
+                    constraints += mkEq(expected.addr, sv.addr).asSoftConstraint()
+                }
+
+                is UtEnumConstantModel -> {
+                    engine.createEnum(classId.toSoot().type, sv.addr, this.value.ordinal)
+                }
+
+                is UtNullModel -> {
+                    constraints += mkEq(nullObjectAddr, sv.addr).asSoftConstraint()
+                }
+
+                is UtAssembleModel -> error("Not supported")
+
+                UtVoidModel -> {
+                    constraints += mkEq(voidValue, sv).asSoftConstraint()
                 }
             }
         }

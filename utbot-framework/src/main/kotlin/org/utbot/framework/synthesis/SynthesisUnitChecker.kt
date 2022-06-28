@@ -3,6 +3,7 @@ package org.utbot.framework.synthesis
 import org.utbot.engine.LocalVariable
 import org.utbot.engine.TypeRegistry
 import org.utbot.engine.selectors.strategies.ModelSynthesisScoringStrategy
+import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -18,7 +19,6 @@ class SynthesisUnitChecker(
     val declaringClass: SootClass,
 ) {
     private val synthesizer = JimpleMethodSynthesizer()
-    private val typeRegistry: TypeRegistry = TypeRegistry()
 
     var id = 0
 
@@ -37,9 +37,8 @@ class SynthesisUnitChecker(
             )
             else -> emptyMap()
         }
-        val scoringStrategy = ModelSynthesisScoringStrategy(
-            targetMap,
-            typeRegistry
+        val scoringStrategy = ScoringStrategyBuilder(
+            targetMap
         )
         val execution = withPathSelector(PathSelectorType.SCORING_PATH_SELECTOR) {
             UtBotTestCaseGenerator.generateWithPostCondition(

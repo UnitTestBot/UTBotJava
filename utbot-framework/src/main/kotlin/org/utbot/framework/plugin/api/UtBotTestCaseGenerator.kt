@@ -43,15 +43,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
-import org.utbot.engine.*
-import org.utbot.engine.selectors.strategies.DefaultScoringStrategy
-import org.utbot.engine.selectors.strategies.ScoringStrategy
+import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
@@ -175,7 +172,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
-        scoringStrategy: ScoringStrategy = DefaultScoringStrategy
+        scoringStrategy: ScoringStrategyBuilder = ScoringStrategyBuilder()
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(
             controller,
@@ -196,7 +193,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator,
         postConditionConstructor: PostConditionConstructor,
-        scoringStrategy: ScoringStrategy
+        scoringStrategy: ScoringStrategyBuilder
     ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $sootMethod  --$mockStrategy--")
@@ -282,15 +279,17 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                         //yield one to
                         yield()
 
-                        generate(createSymbolicEngine(
-                            controller,
-                            method.toSootMethod(),
-                            mockStrategy,
-                            chosenClassesToMockAlways,
-                            executionTimeEstimator,
-                            EmptyPostCondition,
-                            DefaultScoringStrategy
-                        )).collect {
+                        generate(
+                            createSymbolicEngine(
+                                controller,
+                                method.toSootMethod(),
+                                mockStrategy,
+                                chosenClassesToMockAlways,
+                                executionTimeEstimator,
+                                EmptyPostCondition,
+                                ScoringStrategyBuilder()
+                            )
+                        ).collect {
                             when (it) {
                                 is UtExecution -> method2executions.getValue(method) += it
                                 is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
@@ -376,7 +375,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         method: SootMethod,
         mockStrategy: MockStrategyApi,
         postConditionConstructor: PostConditionConstructor,
-        scoringStrategy: ScoringStrategy
+        scoringStrategy: ScoringStrategyBuilder
     ): List<UtExecution> {
         if (isCanceled()) return emptyList()
 
@@ -409,13 +408,36 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
     ): UtTestCase {
-        val executions = generateWithPostCondition(method.toSootMethod(), mockStrategy, EmptyPostCondition, DefaultScoringStrategy)
+        val executions = generateWithPostCondition(
+            method.toSootMethod(), mockStrategy, EmptyPostCondition, ScoringStrategyBuilder()
+        )
 
         return UtTestCase(
             method,
             executions.toAssemble(),
             jimpleBody(method),
         )
+//        logger.trace { "UtSettings:${System.lineSeparator()}" + UtSettings.toString() }
+//
+//        if (isCanceled()) return UtTestCase(method)
+//
+//        val executions = mutableListOf<UtExecution>()
+//        val errors = mutableMapOf<String, Int>()
+//
+//
+//        runIgnoringCancellationException {
+//            runBlockingWithCancellationPredicate(isCanceled) {
+//                generateAsync(EngineController(), method.toSootMethod(), mockStrategy).collect {
+//                    when (it) {
+//                        is UtExecution -> executions += it
+//                        is UtError -> errors.merge(it.description, 1, Int::plus)
+//                    }
+//                }
+//            }
+//        }
+//
+//        val minimizedExecutions = minimizeExecutions(executions)
+//        return UtTestCase(method, minimizedExecutions, jimpleBody(method), errors)
     }
 
     private fun toAssembleModel(model: UtModel) = (model as? UtCompositeModel)?.let {
@@ -463,8 +485,8 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     private fun List<UtExecution>.toAssemble(): List<UtExecution> =
         map { execution ->
             val oldStateBefore = execution.stateBefore
-            val newThisModel = oldStateBefore.thisInstance?.let { UtBotTestCaseGenerator.toAssembleModel(it) }
-            val newParameters = oldStateBefore.parameters.map { UtBotTestCaseGenerator.toAssembleModel(it) }
+            val newThisModel = oldStateBefore.thisInstance?.let { toAssembleModel(it) }
+            val newParameters = oldStateBefore.parameters.map { toAssembleModel(it) }
 
             execution.copy(
                 stateBefore = EnvironmentModels(

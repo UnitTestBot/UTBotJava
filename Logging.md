@@ -1,12 +1,12 @@
-# How to enable IntelliJ Gradle Plugin logging
+# How to enable UTBot logging in IntelliJ IDEA
 
-We have loggers in UtBot IntelliJ Plugin like the following one:
+In UTBot we use loggers like the following one:
 
 
 `val logger = Logger.getInstance(CodeGenerator::class.java)`
 
 
-Instead of placing loggers output in the standard stream or a file, we can put them right into IntelliJ IDEA. So, let\`s do it then! 😃
+Instead of sending loggers output in the standard stream or a file, we can put them right into IntelliJ IDEA. So, let\`s do it then! 😃
 
 
 1. In UTBot repository find Gradle > Tasks > intellij > runIde and choose it with the right button click

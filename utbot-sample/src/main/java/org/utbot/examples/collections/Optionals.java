@@ -314,4 +314,8 @@ public class Optionals {
             return false;
         }
     }
+
+    public Optional<Integer> optionalOfPositive(int value) {
+        return value > 0 ? Optional.of(value) : Optional.empty();
+    }
 }

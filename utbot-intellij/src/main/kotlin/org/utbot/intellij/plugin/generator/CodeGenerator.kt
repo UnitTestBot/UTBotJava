@@ -14,6 +14,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
+import org.utbot.engine.UtBotSymbolicEngine
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.reflect.KClass
@@ -32,14 +33,15 @@ class CodeGenerator(
     buildDir: String,
     classpath: String,
     pluginJarsPath: String,
-    isCanceled: () -> Boolean
+    configureEngine: (UtBotSymbolicEngine) -> Unit = {},
+    isCanceled: () -> Boolean,
 ) {
     init {
         UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
     }
 
-    private val generator = project.service<Settings>().testCasesGenerator.apply {
-        init(Paths.get(buildDir), classpath, pluginJarsPath, isCanceled)
+    val generator = (project.service<Settings>().testCasesGenerator as UtBotTestCaseGenerator).apply {
+        init(Paths.get(buildDir), classpath, pluginJarsPath, configureEngine, isCanceled)
     }
 
     private val settingsState = project.service<Settings>().state
@@ -49,7 +51,7 @@ class CodeGenerator(
     fun generateForSeveralMethods(methods: List<UtMethod<*>>, timeout:Long = UtSettings.utBotGenerationTimeoutInMillis): List<UtTestCase> {
         logger.info("Tests generating parameters $settingsState")
 
-        return (generator as UtBotTestCaseGenerator)
+        return generator
             .generateForSeveralMethods(methods, mockStrategy, chosenClassesToMockAlways, methodsGenerationTimeout = timeout)
             .map { it.summarize(searchDirectory) }
     }

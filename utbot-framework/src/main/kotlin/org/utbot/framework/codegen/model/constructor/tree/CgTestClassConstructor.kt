@@ -188,6 +188,9 @@ data class TestsGenerationReport(
     val classUnderTest: KClass<*>
         get() = executables.firstOrNull()?.clazz ?: error("No executables found in test report")
 
+    // Initial message is generated lazily to avoid evaluation of classUnderTest
+    var initialMessage: () -> String = { "Unit tests for $classUnderTest were generated successfully." }
+
     fun addMethodErrors(testCase: UtTestCase, errors: Map<String, Int>) {
         this.errors[testCase.method] = errors
     }
@@ -212,7 +215,8 @@ data class TestsGenerationReport(
     }
 
     override fun toString(): String = buildString {
-        appendHtmlLine("Unit tests for $classUnderTest were generated successfully.")
+        appendHtmlLine(initialMessage())
+        appendHtmlLine()
         val testMethodsStatistic = executables.map { it.countTestMethods() }
         val errors = executables.map { it.countErrors() }
         val overallTestMethods = testMethodsStatistic.sumBy { it.count }

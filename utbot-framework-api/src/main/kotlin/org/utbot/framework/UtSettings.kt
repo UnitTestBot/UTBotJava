@@ -275,6 +275,14 @@ object UtSettings {
     )
 
     /**
+     * Determines whether should errors from a child process be written to a log file or suppressed.
+     * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
+     *
+     * True by default.
+     */
+    var logConcreteExecutionErrors by getBooleanProperty(true)
+
+    /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
      */
     var numberOfBranchInstructionsForClustering by getIntProperty(4)

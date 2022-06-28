@@ -493,8 +493,7 @@ class UtBotSymbolicEngine(
         val solver = state.solver
         val parameters = state.parameters.map { it.value }
         val symbolicResult = requireNotNull(state.methodResult?.symbolicResult) { "The state must have symbolicResult" }
-        // it's free to make a check, because in the result is SAT, it should be already cached
-        val holder = requireNotNull(solver.check(respectSoft = true) as? UtSolverStatusSAT) { "The state must be SAT!" }
+        val holder = requireNotNull(solver.lastStatus as? UtSolverStatusSAT) { "The state must be SAT!" }
 
         val predictedTestName = Predictors.testName.predict(state.path)
         Predictors.testName.provide(state.path, predictedTestName, "")

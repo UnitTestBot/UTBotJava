@@ -3330,12 +3330,12 @@ class Traverser(
             queuedSymbolicStateUpdates += mkNot(mkEq(symbolicResult.value.addr, nullObjectAddr)).asHardConstraint()
         }
 
-        val state = environment.state.update(queuedSymbolicStateUpdates)
-        val memory = state.memory
-        val solver = state.solver
+        val symbolicState = environment.state.symbolicState + queuedSymbolicStateUpdates
+        val memory = symbolicState.memory
+        val solver = symbolicState.solver
 
         //no need to respect soft constraints in NestedMethod
-        val holder = solver.check(respectSoft = !state.isInNestedMethod())
+        val holder = solver.check(respectSoft = !environment.state.isInNestedMethod())
 
         if (holder !is UtSolverStatusSAT) {
             logger.trace { "processResult<${environment.method.signature}> UNSAT" }
@@ -3344,7 +3344,7 @@ class Traverser(
         val methodResult = MethodResult(symbolicResult)
 
         //execution frame from level 2 or above
-        if (state.isInNestedMethod()) {
+        if (environment.state.isInNestedMethod()) {
             // static fields substitution
             // TODO: JIRA:1610 -- better way of working with statics
             val updates = if (environment.method.name == STATIC_INITIALIZER && substituteStaticsWithSymbolicVariable) {
@@ -3355,7 +3355,8 @@ class Traverser(
             } else {
                 MemoryUpdate() // all memory updates are already added in [environment.state]
             }
-            val stateToOffer = state.pop(methodResult.copy(symbolicStateUpdate = updates.asUpdate()))
+            val methodResultWithUpdates = methodResult.copy(symbolicStateUpdate = queuedSymbolicStateUpdates + updates)
+            val stateToOffer = environment.state.pop(methodResultWithUpdates)
             offerState(stateToOffer)
 
             logger.trace { "processResult<${environment.method.signature}> return from nested method" }
@@ -3363,7 +3364,8 @@ class Traverser(
         }
 
         //toplevel method
-        val terminalExecutionState = state.copy(
+        val terminalExecutionState = environment.state.copy(
+            symbolicState = symbolicState,
             methodResult = methodResult, // the way to put SymbolicResult into terminal state
             label = StateLabel.TERMINAL
         )

@@ -52,7 +52,7 @@ class FeatureProcessorWithStatesRepetition(
         val states = mutableListOf<Pair<Int, Long>>()
         var newCoverage = 0
 
-        generateSequence(executionState) { currentState ->
+        generateSequence(executionState) { it.parent }.forEach { currentState ->
             val stateHashCode = currentState.hashCode()
 
             if (currentState.features.isEmpty()) {
@@ -68,8 +68,6 @@ class FeatureProcessorWithStatesRepetition(
                     newCoverage++
                 }
             }
-
-            currentState.parent
         }
 
         generatedTestCases++

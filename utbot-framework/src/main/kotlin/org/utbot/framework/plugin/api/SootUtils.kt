@@ -25,11 +25,14 @@ import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.overrides.UtOverrideMock
+import org.utbot.engine.overrides.collections.Collection
 import org.utbot.engine.overrides.collections.UtGenericStorage
 import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
+import org.utbot.engine.overrides.stream.Stream
+import org.utbot.engine.overrides.stream.UtStream
 import java.io.File
 import java.nio.file.Path
 import kotlin.reflect.KClass
@@ -127,5 +130,9 @@ private val classesToLoad = arrayOf(
     UtNativeStringWrapper::class,
     UtString::class,
     UtStringBuilder::class,
-    UtStringBuffer::class
+    UtStringBuffer::class,
+    Stream::class,
+    Collection::class,
+    UtStream::class,
+    UtStream.UtStreamIterator::class
 )

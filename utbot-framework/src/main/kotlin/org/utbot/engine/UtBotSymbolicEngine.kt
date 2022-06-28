@@ -6,15 +6,17 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
@@ -103,6 +105,8 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.util.mockListeners.MockListener
+import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
@@ -330,7 +334,7 @@ class UtBotSymbolicEngine(
 
     private val classUnderTest: ClassId = methodUnderTest.clazz.id
 
-    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways)
+    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways, MockListenerController(controller))
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
@@ -541,6 +545,10 @@ class UtBotSymbolicEngine(
                             } else {
                                 traverseStmt(currentStmt)
                             }
+
+                            // Here job can be cancelled from within traverse, e.g. by using force mocking without Mockito.
+                            // So we need to make it throw CancelledException by method below:
+                            currentCoroutineContext().job.ensureActive()
                         } catch (ex: Throwable) {
                             environment.state.close()
 
@@ -1360,6 +1368,8 @@ class UtBotSymbolicEngine(
 
             queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
             parameterAddrToGenericType += value.addr to type
+
+            typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
         }
     }
 
@@ -2519,6 +2529,8 @@ class UtBotSymbolicEngine(
         )
     }
 
+    fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
+
     private fun staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
         val result = mockMakeSymbolic(invokeExpr) ?: mockStaticMethod(invokeExpr.method, parameters)
@@ -3470,18 +3482,10 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val numDimensions = typeAfterCast.numDimensions
-        val inheritors = if (baseTypeAfterCast is PrimType) {
-            setOf(typeAfterCast)
-        } else {
-            typeResolver
-                .findOrConstructInheritorsIncludingTypes(baseTypeAfterCast as RefType)
-                .mapTo(mutableSetOf()) { if (numDimensions > 0) it.makeArrayType(numDimensions) else it }
-        }
-        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritors }
+        val inheritorsTypeStorage = typeResolver.constructTypeStorage(typeAfterCast, useConcreteType = false)
+        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritorsTypeStorage.possibleConcreteTypes }
 
-        val typeStorage = typeResolver.constructTypeStorage(typeAfterCast, inheritors)
-        val isExpression = typeRegistry.typeConstraint(addr, typeStorage).isConstraint()
+        val isExpression = typeRegistry.typeConstraint(addr, inheritorsTypeStorage).isConstraint()
         val notIsExpression = mkNot(isExpression)
 
         val nullEqualityConstraint = addrEq(addr, nullObjectAddr)
@@ -3715,7 +3719,10 @@ class UtBotSymbolicEngine(
             // Still, we need overflows to act as implicit exceptions.
             (UtSettings.treatOverflowAsError && symbolicExecutionResult is UtOverflowFailure)
         ) {
-            logger.debug { "processResult<${methodUnderTest}>: no concrete execution allowed, emit purely symbolic result" }
+            logger.debug {
+                "processResult<${methodUnderTest}>: no concrete execution allowed, " +
+                        "emit purely symbolic result $symbolicUtExecution"
+            }
             emit(symbolicUtExecution)
             return
         }

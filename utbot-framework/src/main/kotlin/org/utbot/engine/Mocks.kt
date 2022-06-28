@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
 import kotlinx.collections.immutable.persistentListOf
+import org.utbot.engine.util.mockListeners.MockListenerController
 import soot.BooleanType
 import soot.RefType
 import soot.Scene
@@ -133,7 +134,8 @@ class Mocker(
     private val strategy: MockStrategy,
     private val classUnderTest: ClassId,
     private val hierarchy: Hierarchy,
-    chosenClassesToMockAlways: Set<ClassId>
+    chosenClassesToMockAlways: Set<ClassId>,
+    internal val mockListenerController: MockListenerController? = null,
 ) {
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
@@ -165,6 +167,11 @@ class Mocker(
      */
     fun shouldMock(
         type: RefType,
+        mockInfo: UtMockInfo,
+    ): Boolean = checkIfShouldMock(type, mockInfo).also { if (it) mockListenerController?.onShouldMock(strategy) }
+
+    private fun checkIfShouldMock(
+        type: RefType,
         mockInfo: UtMockInfo
     ): Boolean {
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
@@ -176,8 +183,14 @@ class Mocker(
         if (!isEngineClass(type) && type.sootClass.isPrivate) return false // could not mock private classes (even if it is in mock always list)
         if (mockAlways(type)) return true // always mock randoms and loggers
         if (mockInfo is UtFieldMockInfo) {
+            val declaringClass = mockInfo.fieldId.declaringClass
+
+            if (Scene.v().getSootClass(declaringClass.name).isArtificialEntity) {
+                return false // see BaseStreamExample::minExample for an example; cannot load java class for such class
+            }
+
             return when {
-                mockInfo.fieldId.declaringClass.packageName.startsWith("java.lang") -> false
+                declaringClass.packageName.startsWith("java.lang") -> false
                 !mockInfo.fieldId.type.isRefType -> false  // mocks are allowed for ref fields only
                 else -> return strategy.eligibleToMock(mockInfo.fieldId.type, classUnderTest) // if we have a field with Integer type, we should not mock it
             }

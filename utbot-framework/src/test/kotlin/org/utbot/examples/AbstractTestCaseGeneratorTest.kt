@@ -2564,7 +2564,7 @@ internal fun invokeMatcher(matcher: Function<Boolean>, params: List<Any?>) = whe
 fun ge(count: Int) = ExecutionsNumberMatcher("ge $count") { it >= count }
 fun eq(count: Int) = ExecutionsNumberMatcher("eq $count") { it == count }
 fun between(bounds: IntRange) = ExecutionsNumberMatcher("$bounds") { it in bounds }
-val ignoreExecutionsNumber = ExecutionsNumberMatcher("Do not calculate") { true }
+val ignoreExecutionsNumber = ExecutionsNumberMatcher("Do not calculate") { it > 0 }
 
 fun atLeast(percents: Int) = AtLeast(percents)
 
@@ -2618,6 +2618,17 @@ class AtLeast(percents: Int) : CoverageMatcher("at least $percents% coverage",
     { it.counters.all { 100 * it.covered >= percents * it.total } })
 
 object DoNotCalculate : CoverageMatcher("Do not calculate", { true })
+
+class FullWithAssumptions(assumeCallsNumber: Int) : CoverageMatcher(
+    "full coverage except failed assume calls",
+    { it.instructionCounter.let { it.covered >= it.total - assumeCallsNumber } }
+) {
+    init {
+        require(assumeCallsNumber > 0) {
+            "Non-positive number of assume calls $assumeCallsNumber passed (for zero calls use Full coverage matcher"
+        }
+    }
+}
 
 // simple matchers
 fun withResult(ex: UtValueExecution<*>) = ex.paramsBefore + ex.evaluatedResult
@@ -2704,7 +2715,7 @@ fun keyMatch(keyStmt: List<DocStatement>) = { summary: List<DocStatement>? ->
 fun Map<FieldId, UtConcreteValue<*>>.findByName(name: String) = entries.single { name == it.key.name }.value.value
 fun Map<FieldId, UtConcreteValue<*>>.singleValue() = values.single().value
 
-private typealias StaticsType = Map<FieldId, UtConcreteValue<*>>
+internal typealias StaticsType = Map<FieldId, UtConcreteValue<*>>
 private typealias Mocks = List<MockInfo>
 private typealias Instrumentation = List<UtInstrumentation>
 
@@ -2798,5 +2809,20 @@ inline fun <reified T> withPathSelectorType(pathSelectorType: PathSelectorType, 
         return block()
     } finally {
         UtSettings.pathSelectorType = prev
+    }
+}
+
+inline fun <reified T> withFeaturePath(featurePath: String, block: () -> T): T {
+    val prevFeaturePath = UtSettings.featurePath
+    val prevEnableFeatureProcess = UtSettings.enableFeatureProcess
+
+    UtSettings.featurePath = featurePath
+    UtSettings.enableFeatureProcess = true
+
+    try {
+        return block()
+    } finally {
+        UtSettings.featurePath = prevFeaturePath
+        UtSettings.enableFeatureProcess = prevEnableFeatureProcess
     }
 }

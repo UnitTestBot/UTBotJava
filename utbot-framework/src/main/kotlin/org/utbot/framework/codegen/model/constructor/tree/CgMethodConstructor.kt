@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.JUNIT5_PARAMETERIZED_PACKAGE
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
+import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.closeMethodIdOrNull
@@ -533,10 +534,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 doubleDelta
                             )
                         expectedModel.value is Boolean -> {
-                            if (expectedModel.value as Boolean) {
-                                assertions[assertTrue](actual)
-                            } else {
-                                assertions[assertFalse](actual)
+                            when (parameterizedTestSource) {
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
+                                    if (expectedModel.value as Boolean) {
+                                        assertions[assertTrue](actual)
+                                    } else {
+                                        assertions[assertFalse](actual)
+                                    }
+                                ParametrizedTestSource.PARAMETRIZE ->
+                                    assertions[assertEquals](expected, actual)
                             }
                         }
                         // other primitives and string
@@ -996,7 +1002,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                         "but `${resultModel::class}` found"
                             }
 
-                            generateDeepEqualsAssertion(expected, actual)
+                            generateDeepEqualsOrNullAssertion(expected, actual)
                         }
                     }
                 }
@@ -1017,10 +1023,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     )
                 }
                 expected == nullLiteral() -> testFrameworkManager.assertNull(actual)
-                expected is CgLiteral && expected.value is Boolean -> testFrameworkManager.assertBoolean(
-                    expected.value,
-                    actual
-                )
+                expected is CgLiteral && expected.value is Boolean -> {
+                    when (parameterizedTestSource) {
+                        ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
+                            testFrameworkManager.assertBoolean(expected.value, actual)
+                        ParametrizedTestSource.PARAMETRIZE ->
+                            testFrameworkManager.assertEquals(expected, actual)
+                    }
+                }
                 else -> {
                     if (expected is CgLiteral) {
                         // Literal can only be Primitive or String, can use equals here
@@ -1028,16 +1038,41 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         return
                     }
 
-                    generateDeepEqualsAssertion(expected, actual)
+                    generateDeepEqualsOrNullAssertion(expected, actual)
                 }
+            }
+        }
+    }
+
+    /**
+     * We can't use standard deepEquals method in parametrized tests
+     * because nullable objects require different asserts.
+     * See https://github.com/UnitTestBot/UTBotJava/issues/252 for more details.
+     */
+    private fun generateDeepEqualsOrNullAssertion(
+        expected: CgValue,
+        actual: CgVariable,
+    ) {
+        when (parameterizedTestSource) {
+            ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
+                currentBlock = currentBlock.addAll(generateDeepEqualsAssertion(expected, actual))
+            ParametrizedTestSource.PARAMETRIZE -> {
+                val assertNullStmt = listOf(testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement())
+                currentBlock = currentBlock.add(
+                    CgIfStatement(
+                        CgEqualTo(expected, nullLiteral()),
+                        assertNullStmt,
+                        generateDeepEqualsAssertion(expected, actual)
+                    )
+                )
             }
         }
     }
 
     private fun generateDeepEqualsAssertion(
         expected: CgValue,
-        actual: CgVariable
-    ) {
+        actual: CgVariable,
+    ): List<CgStatement> {
         require(expected is CgVariable) {
             "Expected value have to be Literal or Variable but `${expected::class}` found"
         }
@@ -1051,7 +1086,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             depth = 0,
             visitedModels = hashSetOf()
         )
-        currentBlock = currentBlock.addAll(statements.dropLastWhile { it is CgEmptyLine })
+
+        return statements.dropLastWhile { it is CgEmptyLine }
     }
 
     private fun recordActualResult() {
@@ -1166,7 +1202,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
 
         //TODO: orientation on arbitrary execution may be misleading, but what is the alternative?
-        val arbitraryExecution = utTestCase.executions.firstOrNull { it.result is UtExecutionSuccess }
+        //may be a heuristic to select a model with minimal number of internal nulls should be used
+        val arbitraryExecution = utTestCase.executions
+            .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
             ?: utTestCase.executions.first()
 
         return withTestMethodScope(arbitraryExecution) {
@@ -1217,7 +1255,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 //record result and generate result assertions
                 recordActualResult()
                 generateAssertionsForParameterizedTest()
-
             }
 
             methodType = PARAMETRIZED

@@ -1,17 +1,23 @@
 package org.utbot.intellij.plugin.ui.components
 
-import org.utbot.common.PathUtil
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
-import com.intellij.ide.ui.laf.darcula.DarculaUIUtil
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
+import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ComboboxWithBrowseButton
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
+import java.io.File
 import javax.swing.DefaultComboBoxModel
+import javax.swing.JList
+import org.utbot.common.PathUtil
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.intellij.plugin.ui.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
+import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : ComboboxWithBrowseButton() {
 
@@ -19,9 +25,29 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
 
     init {
         childComponent.isEditable = false
+        childComponent.renderer = object : ColoredListCellRenderer<Any?>() {
+            override fun customizeCellRenderer(
+                list: JList<out Any?>,
+                value: Any?,
+                index: Int,
+                selected: Boolean,
+                hasFocus: Boolean
+            ) {
+                if (value is String) {
+                    append(value)
+                    return
+                }
+                if (value is VirtualFile) {
+                    append(formatUrl(value, model))
+                }
+                if (value is FakeVirtualFile) {
+                    append(" (will be created)", SimpleTextAttributes.ERROR_ATTRIBUTES)
+                }
+            }
+        }
 
-        val testRoots = model.testModule.suitableTestSourceRoots()
-
+        val testRoots = model.testModule.suitableTestSourceRoots(CodegenLanguage.JAVA).toMutableList()
+        model.testModule.addDedicatedTestRoot(testRoots)
         if (testRoots.isNotEmpty()) {
             configureRootsCombo(testRoots)
         } else {
@@ -34,11 +60,11 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
                 model.testSourceRoot = it
 
                 if (childComponent.itemCount == 1 && childComponent.selectedItem == SET_TEST_FOLDER) {
-                    newItemList(setOf(formatUrl(it, model)))
+                    newItemList(setOf(it))
                 } else {
                     //Prepend and select newly added test root
-                    val testRootItems = linkedSetOf(formatUrl(it, model))
-                    testRootItems += (0 until childComponent.itemCount).map { i -> childComponent.getItemAt(i) as String}
+                    val testRootItems = linkedSetOf(it)
+                    testRootItems += (0 until childComponent.itemCount).map { i -> childComponent.getItemAt(i) as VirtualFile}
                     newItemList(testRootItems)
                 }
             }
@@ -59,17 +85,19 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
         val selectedRoot = testRoots.first()
 
         model.testSourceRoot = selectedRoot
-        newItemList(testRoots.map { root -> formatUrl(root, model) }.toSet())
+        newItemList(testRoots.toSet())
     }
 
-    private fun newItemList(comboItems: Set<String>) {
+    private fun newItemList(comboItems: Set<Any>) {
         childComponent.model = DefaultComboBoxModel(ArrayUtil.toObjectArray(comboItems))
-        childComponent.putClientProperty("JComponent.outline",
-                if (comboItems.isNotEmpty() && !comboItems.contains(SET_TEST_FOLDER)) null else DarculaUIUtil.Outline.error)
     }
 
     private fun formatUrl(virtualFile: VirtualFile, model: GenerateTestsModel): String {
-        var directoryUrl = virtualFile.presentableUrl
+        var directoryUrl = if (virtualFile is FakeVirtualFile) {
+            virtualFile.parent.presentableUrl + File.separatorChar + virtualFile.name
+        } else {
+            virtualFile.presentableUrl
+        }
         @Suppress("DEPRECATION")
         val projectHomeUrl = model.project.baseDir.presentableUrl
 

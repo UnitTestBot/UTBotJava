@@ -21,7 +21,7 @@
                 description="Cover code with auto-generated tests">
             <add-to-group group-id="ProjectViewPopupMenu"/>
             <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="control alt U"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="alt shift U"/>
             <keyboard-shortcut keymap="$default" first-keystroke="alt U" second-keystroke="alt T"/>
         </action>
     </actions>
@@ -33,6 +33,7 @@
         <!--suppress PluginXmlValidity -->
         <projectService serviceImplementation="org.utbot.intellij.plugin.settings.Settings" preload="true"/>
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
+        <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>
     </extensions>
 
     <!-- Minimum and maximum build of IDE compatible with the plugin -->

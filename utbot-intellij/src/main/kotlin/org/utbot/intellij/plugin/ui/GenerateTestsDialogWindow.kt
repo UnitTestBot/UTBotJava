@@ -28,33 +28,28 @@ import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
+import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
-import org.utbot.intellij.plugin.util.AndroidApiHelper
-import com.intellij.codeInsight.hint.HintUtil
-import com.intellij.icons.AllIcons
 import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
-import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.options.ShowSettingsUtil
-import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.roots.DependencyScope
-import com.intellij.openapi.roots.ExternalLibraryDescriptor
-import com.intellij.openapi.roots.JavaProjectModelModificationService
+import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
 import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.popup.IconButton
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.util.Computable
+import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
@@ -66,18 +61,11 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ContextHelpLabel
-import com.intellij.ui.HyperlinkLabel
-import com.intellij.ui.IdeBorderFactory.createBorder
-import com.intellij.ui.InplaceButton
-import com.intellij.ui.JBColor
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SideBorder
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.components.CheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.Panel
-import com.intellij.ui.components.panels.HorizontalLayout
-import com.intellij.ui.components.panels.NonOpaquePanel
 import com.intellij.ui.layout.Cell
 import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
@@ -85,21 +73,21 @@ import com.intellij.ui.layout.panel
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
 import com.intellij.util.lang.JavaVersion
-import com.intellij.util.ui.JBUI.Borders.empty
-import com.intellij.util.ui.JBUI.Borders.merge
-import com.intellij.util.ui.JBUI.scale
+import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.JBUI.size
-import com.intellij.util.ui.components.BorderLayoutPanel
+import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
-import java.awt.Color
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Objects
 import java.util.concurrent.TimeUnit
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JComboBox
+import javax.swing.JComponent
+import javax.swing.JList
+import javax.swing.JPanel
 import kotlin.streams.toList
-import org.jetbrains.concurrency.Promise
-import javax.swing.*
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -110,9 +98,6 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
-    companion object {
-        const val supportedSdkVersion = 8
-    }
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
 
@@ -233,74 +218,16 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
 
-    override fun createTitlePane(): JComponent? {
-        val sdkVersion = findSdkVersion()
-        //TODO:SAT-1571 investigate Android Studio specific sdk issues
-        if (sdkVersion?.feature == supportedSdkVersion || AndroidApiHelper.isAndroidStudio()) return null
-        isOKActionEnabled = false
-        return SdkNotificationPanel(model, sdkVersion)
+    private fun findSdkVersion(): Int {
+        val projectSdk = ModuleRootManager.getInstance(model.testModule).sdk
+        val sdkVersion = JavaVersion.tryParse(projectSdk?.versionString)
+            ?: error("No sdk found in ${model.testModule}")
+        return sdkVersion.feature
     }
 
     private fun findTestPackageComboValue(): String {
         val packageNames = model.srcClasses.map { it.packageName }.distinct()
         return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
-    }
-
-    private fun findSdkVersion(): JavaVersion? {
-        val projectSdk = ModuleRootManager.getInstance(model.testModule).sdk
-        return JavaVersion.tryParse(projectSdk?.versionString)
-    }
-
-    /**
-     * A panel to inform user about incorrect jdk in project.
-     *
-     * Note: this implementation was encouraged by NonModalCommitPromoter.
-     */
-    private inner class SdkNotificationPanel(
-        private val model: GenerateTestsModel,
-        private val sdkVersion: JavaVersion?,
-    ) : BorderLayoutPanel() {
-        init {
-            border = merge(empty(10), createBorder(JBColor.border(), SideBorder.BOTTOM), true)
-
-            addToLeft(JBLabel().apply {
-                icon = AllIcons.Ide.FatalError
-                text = if (sdkVersion != null) {
-                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8}"
-                } else {
-                    "SDK is not defined"
-                }
-            })
-
-            addToRight(NonOpaquePanel(HorizontalLayout(scale(12))).apply {
-                add(createConfigureAction())
-                add(createCloseAction())
-            })
-        }
-
-        override fun getBackground(): Color? =
-            EditorColorsManager.getInstance().globalScheme.getColor(HintUtil.ERROR_COLOR_KEY) ?: super.getBackground()
-
-        private fun createConfigureAction(): JComponent =
-            HyperlinkLabel("Setup SDK").apply {
-                addHyperlinkListener {
-                    val projectStructure = ProjectStructureConfigurable.getInstance(model.project)
-                    val isEdited = ShowSettingsUtil.getInstance().editConfigurable(model.project, projectStructure)
-                    { projectStructure.select(model.testModule.name, ClasspathEditor.getName(), true) }
-
-                    val sdkVersion = findSdkVersion()
-                    val sdkFixed = isEdited && sdkVersion?.feature == supportedSdkVersion
-                    if (sdkFixed) {
-                        this@SdkNotificationPanel.isVisible = false
-                        isOKActionEnabled = true
-                    }
-                }
-            }
-
-        private fun createCloseAction(): JComponent =
-            InplaceButton(IconButton(null, AllIcons.Actions.Close, AllIcons.Actions.CloseHovered)) {
-                this@SdkNotificationPanel.isVisible = false
-            }
     }
 
     private fun updateMembersTable() {
@@ -344,6 +271,34 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun checkMembers(members: List<MemberInfo>) = members.forEach { it.isChecked = true }
+
+    private fun getTestRoot() : VirtualFile? {
+        model.testSourceRoot?.let {
+            if (it.isDirectory || it is FakeVirtualFile) return it
+        }
+        return null
+    }
+
+    override fun doValidate(): ValidationInfo? {
+        val testRoot = getTestRoot()
+            ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
+
+        if (findReadOnlyContentEntry(testRoot) == null) {
+            return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
+        }
+
+        membersTable.tableHeader?.background = UIUtil.getTableBackground()
+        membersTable.background = UIUtil.getTableBackground()
+        if (membersTable.selectedMemberInfos.isEmpty()) {
+            membersTable.tableHeader?.background = JBUI.CurrentTheme.Validator.errorBackgroundColor()
+            membersTable.background = JBUI.CurrentTheme.Validator.errorBackgroundColor()
+            return ValidationInfo(
+                "Tick any methods to generate tests for", membersTable
+            )
+        }
+        return null
+    }
+
 
     override fun doOKAction() {
         model.testPackageName =
@@ -418,11 +373,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Creates test source root if absent and target packages for tests.
      */
     private fun createTestRootAndPackages(): Boolean {
+        model.testSourceRoot = createDirectoryIfMissing(model.testSourceRoot)
         val testSourceRoot = model.testSourceRoot ?: return false
         if (model.testSourceRoot?.isDirectory != true) return false
-
-        val rootExists = getOrCreateTestRoot(testSourceRoot)
-        if (rootExists) {
+        if (getOrCreateTestRoot(testSourceRoot)) {
             if (cbSpecifyTestPackage.isSelected) {
                 createSelectedPackage(testSourceRoot)
             } else {
@@ -430,8 +384,22 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
             return true
         }
-
         return false
+    }
+
+    private fun createDirectoryIfMissing(dir : VirtualFile?): VirtualFile? {
+        val file = if (dir is FakeVirtualFile) {
+            WriteCommandAction.runWriteCommandAction(model.project, Computable<VirtualFile> {
+                VfsUtil.createDirectoryIfMissing(dir.path)
+            })
+        } else {
+            dir
+        }?: return null
+        return if (VfsUtil.virtualToIoFile(file).isFile) {
+            null
+        } else {
+            StandardFileSystems.local().findFileByPath(file.path)
+        }
     }
 
     private fun createPackagesByClasses(testSourceRoot: VirtualFile) {
@@ -460,19 +428,33 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             "Generation error"
         )
 
+    private fun findReadOnlyContentEntry(testSourceRoot: VirtualFile?): ContentEntry? {
+        if (testSourceRoot == null) return null
+        if (testSourceRoot is FakeVirtualFile) {
+            return findReadOnlyContentEntry(testSourceRoot.parent)
+        }
+        return ModuleRootManager.getInstance(model.testModule).contentEntries
+            .filterNot { it.file == null }
+            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
+    }
+
     private fun getOrCreateTestRoot(testSourceRoot: VirtualFile): Boolean {
         val modifiableModel = ModuleRootManager.getInstance(model.testModule).modifiableModel
-        val contentEntry = modifiableModel.contentEntries
-            .filterNot { it.file == null }
-            .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) }
-            ?: return false
+        try {
+            val contentEntry = modifiableModel.contentEntries
+                .filterNot { it.file == null }
+                .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) }
+                ?: return false
 
-        VfsUtil.createDirectoryIfMissing(urlToPath(testSourceRoot.url))
-
-        contentEntry.addSourceFolder(testSourceRoot.url, codegenLanguages.item.testRootType())
-        WriteCommandAction.runWriteCommandAction(model.project) { modifiableModel.commit() }
-
-        return true
+            contentEntry.addSourceRootIfAbsent(
+                modifiableModel,
+                testSourceRoot.url,
+                codegenLanguages.item.testRootType()
+            )
+            return true
+        } finally {
+            if (modifiableModel.isWritable && !modifiableModel.isDisposed) modifiableModel.dispose()
+        }
     }
 
     private fun createPackageWrapper(packageName: String?): PackageWrapper =
@@ -530,8 +512,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val frameworkNotInstalled =
             mockStrategies.item != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled
 
-        if (frameworkNotInstalled && createMockFrameworkNotificationDialog() == Messages.YES) {
-            configureMockFramework()
+        if (frameworkNotInstalled && createMockFrameworkNotificationDialog(title) == Messages.YES) {
+            configureMockFramework(model.project, model.testModule)
         }
     }
 
@@ -558,20 +540,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         selectedTestFramework.isInstalled = true
-        addDependency(libraryDescriptor)
+        addDependency(model.project, model.testModule, libraryDescriptor)
             .onError { selectedTestFramework.isInstalled = false }
-    }
-
-    private fun configureMockFramework() {
-        val selectedMockFramework = MOCKITO
-
-        val libraryInProject =
-            findFrameworkLibrary(model.project, model.testModule, selectedMockFramework, LibrarySearchScope.Project)
-        val versionInProject = libraryInProject?.libraryName?.parseVersion()
-
-        selectedMockFramework.isInstalled = true
-        addDependency(mockitoCoreLibraryDescriptor(versionInProject))
-            .onError { selectedMockFramework.isInstalled = false }
     }
 
     private fun configureStaticMocking() {
@@ -602,30 +572,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    /**
-     * Adds the dependency for selected framework via [JavaProjectModelModificationService].
-     *
-     * Note that version restrictions will be applied only if they are present on target machine
-     * Otherwise latest release version will be installed.
-     */
-    private fun addDependency(libraryDescriptor: ExternalLibraryDescriptor): Promise<Void> {
-        return JavaProjectModelModificationService
-            .getInstance(model.project)
-            //this method returns JetBrains internal Promise that is difficult to deal with, but it is our way
-            .addDependency(model.testModule, libraryDescriptor, DependencyScope.TEST)
-    }
-
     private fun createTestFrameworkNotificationDialog() = Messages.showYesNoDialog(
         """Selected test framework ${testFrameworks.item.displayName} is not installed into current module. 
-            |Would you like to install it now?""".trimMargin(),
-        title,
-        "Yes",
-        "No",
-        Messages.getQuestionIcon(),
-    )
-
-    private fun createMockFrameworkNotificationDialog() = Messages.showYesNoDialog(
-        """Mock framework ${MOCKITO.displayName} is not installed into current module. 
             |Would you like to install it now?""".trimMargin(),
         title,
         "Yes",
@@ -702,9 +650,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         itemsToHelpTooltip.forEach { (box, tooltip) -> box.setHelpTooltipTextChanger(tooltip) }
 
         testSourceFolderField.childComponent.addActionListener { event ->
-            val item = (event.source as JComboBox<*>).selectedItem as String
-
-            pathToFile(item)?.let { model.testSourceRoot = it }
+            with((event.source as JComboBox<*>).selectedItem) {
+                if (this is VirtualFile) {
+                    model.testSourceRoot = this@with
+                }
+                else {
+                    model.testSourceRoot = null
+                }
+            }
         }
 
         mockStrategies.addActionListener { event ->
@@ -727,9 +680,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         parametrizedTestSources.addActionListener { event ->
             val comboBox = event.source as ComboBox<*>
-            val item = comboBox.item as ParametrizedTestSource
+            val parametrizedTestSource = comboBox.item as ParametrizedTestSource
 
-            val areMocksSupported = item == ParametrizedTestSource.DO_NOT_PARAMETRIZE
+            val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
 
             mockStrategies.isEnabled = areMocksSupported
             staticsMocking.isEnabled = areMocksSupported && mockStrategies.item != MockStrategyApi.NO_MOCKS
@@ -740,7 +693,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 staticsMocking.item = NoStaticMocking
             }
 
-            updateTestFrameworksList(item)
+            updateTestFrameworksList(parametrizedTestSource)
         }
 
         cbSpecifyTestPackage.addActionListener {
@@ -756,35 +709,33 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    private fun pathToFile(path: String): VirtualFile? {
-        val relativePath = path.substring(".../".length).replace('\\', '/')
-        return model.testModule
-            .suitableTestSourceRoots()
-            .firstOrNull { it.path.contains(relativePath) }
-    }
-
-
     private lateinit var currentFrameworkItem: TestFramework
 
     //We would like to remove JUnit4 from framework list in parametrized mode
     private fun updateTestFrameworksList(parametrizedTestSource: ParametrizedTestSource) {
         //We do not support parameterized tests for JUnit4
-        val enabledTestFrameworks = when (parametrizedTestSource) {
+        var enabledTestFrameworks = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.allItems
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.allItems.filterNot { it == Junit4 }
         }
 
-        enabledTestFrameworks.forEach {
-            it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
+        //Will be removed after gradle-intelij-plugin version update upper than 2020.2
+        //TestNg will be reverted after https://github.com/UnitTestBot/UTBotJava/issues/309
+        if (findSdkVersion() < 11) {
+            enabledTestFrameworks = enabledTestFrameworks.filterNot { it == TestNg }
         }
 
-        val defaultItem = when (parametrizedTestSource) {
+        var defaultItem = when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> TestFramework.defaultItem
             ParametrizedTestSource.PARAMETRIZE -> TestFramework.parametrizedDefaultItem
         }
+        enabledTestFrameworks.forEach {
+            it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
+            if (it.isInstalled && !defaultItem.isInstalled) defaultItem = it
+        }
 
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
-        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
+        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks && currentFrameworkItem.isInstalled) currentFrameworkItem else defaultItem
         testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
             override fun customizeCellRenderer(
                 list: JList<out TestFramework>, value: TestFramework?,
@@ -843,7 +794,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun staticsMockingConfigured(): Boolean {
-        val entries = ModuleRootManager.getInstance(model.testModule).modifiableModel.contentEntries
+        val entries = ModuleRootManager.getInstance(model.testModule).contentEntries
         val hasEntriesWithoutResources = entries
             .filterNot { it.sourceFolders.any { f -> f.rootType in testResourceRootTypes } }
             .isNotEmpty()

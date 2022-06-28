@@ -45,6 +45,7 @@ jobs:
           gradle buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
           cd utbot-intellij/build/distributions
           unzip utbot-intellij-${{ env.VERSION }}.zip
+          rm utbot-intellij-${{ env.VERSION }}.zip
           
       - name: Archive UTBot IntelliJ IDEA plugin
         uses: actions/upload-artifact@v2

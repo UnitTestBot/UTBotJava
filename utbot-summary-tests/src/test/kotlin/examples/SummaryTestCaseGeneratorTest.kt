@@ -109,6 +109,8 @@ open class SummaryTestCaseGeneratorTest(
     /**
      * It removes from the String all whitespaces, tabs etc.
      *
+     * Also, it replaces all randomly added words from [nextSynonyms] that totally influence on the determinism in test name generation.
+     *
      * @see <a href="https://www.baeldung.com/java-regex-s-splus">Explanation of the used regular expression.</a>
      */
     private fun String.normalize(): String {

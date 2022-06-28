@@ -653,6 +653,9 @@ open class ClassId(
 
     open val packageName: String get() = jClass.`package`?.name ?: "" // empty package for primitives
 
+    open val isInDefaultPackage: Boolean
+        get() = packageName.isEmpty()
+
     open val isPublic: Boolean
         get() = Modifier.isPublic(jClass.modifiers)
 

@@ -169,6 +169,8 @@ internal fun CgContextOwner.importIfNeeded(type: ClassId) {
         .takeIf { (it.isRefType && it.packageName != testClassPackageName && it.packageName != "java.lang") || it.isNested }
         // we cannot import inaccessible classes (builtin classes like JUnit are accessible here because they are public)
         ?.takeIf { it.isAccessibleFrom(testClassPackageName) }
+        // don't import classes from default package
+        ?.takeIf { !it.isInDefaultPackage }
         // cannot import anonymous classes
         ?.takeIf { !it.isAnonymous }
         // do not import if there is a simple name clash

@@ -1,18 +1,1 @@
-plugins {
-  id 'maven-publish'
-}
-
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
-publishing {
-  repositories {
-    maven {
-      name = "GitHubPackages"
-      url = "https://maven.pkg.github.com/UnitTestBot/UTBotJava"
-      credentials {
-        username = System.getenv("GITHUB_ACTOR")
-        password = System.getenv("GITHUB_TOKEN")
-      }
-    }
-  }
-}

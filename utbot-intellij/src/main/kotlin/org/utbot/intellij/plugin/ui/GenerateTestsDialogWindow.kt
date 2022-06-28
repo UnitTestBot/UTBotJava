@@ -138,6 +138,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     init {
         title = "Generate tests with UtBot"
+        setResizable(false)
         init()
     }
 

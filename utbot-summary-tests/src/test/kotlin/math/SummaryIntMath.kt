@@ -72,10 +72,10 @@ class SummaryIntMath : SummaryTestCaseGeneratorTest(
         val displayName1 = "switch(b) case: 2 -> return 1"
         val displayName2 = "k < Integer.SIZE : False -> return 0"
         val displayName3 = "k < Integer.SIZE : False -> return (k < Integer.SIZE) ? (1 << k) : 0"
-        val displayName4 = "-> return b * accum"
+        val displayName4 = "-> return b * accum" // TODO: weird display name with missed part before ->
         val displayName5 = "k < Integer.SIZE : True -> return (k < Integer.SIZE) ? (1 << k) : 0"
         val displayName6 = "k == 0 : False -> return (k == 0) ? 1 : 0"
-        val displayName7 = "-> return accum"
+        val displayName7 = "-> return accum" // TODO: weird display name with missed part before ->
         val displayName8 = "k == 0 : True -> return (k == 0) ? 1 : 0"
         val displayName9 = "(k & 1) == 0 : True -> return ((k & 1) == 0) ? (1 << k) : -(1 << k)"
         val displayName10 = "(k & 1) == 0 : False -> return ((k & 1) == 0) ? (1 << k) : -(1 << k)"
@@ -83,10 +83,6 @@ class SummaryIntMath : SummaryTestCaseGeneratorTest(
         val displayName12 = "(k & 1) == 0 : True -> return ((k & 1) == 0) ? 1 : -1"
         val displayName13 = "(k & 1) == 0 : False -> return b * accum"
         val displayName14 = "(k & 1) == 0 : True -> return b * accum"
-
-        val method = IntMath::pow
-        val mockStrategy = MockStrategyApi.NO_MOCKS
-        val coverage = DoNotCalculate
 
         val summaryKeys = listOf(
             summary1,
@@ -138,6 +134,10 @@ class SummaryIntMath : SummaryTestCaseGeneratorTest(
             methodName13,
             methodName14
         )
+
+        val method = IntMath::pow
+        val mockStrategy = MockStrategyApi.NO_MOCKS
+        val coverage = DoNotCalculate
 
         check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }

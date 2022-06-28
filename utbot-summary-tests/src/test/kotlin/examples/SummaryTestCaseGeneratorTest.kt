@@ -144,7 +144,7 @@ open class SummaryTestCaseGeneratorTest(
         val notMatchedExecutions = this.filter { execution ->
             methodNames.none { methodName -> execution.testMethodName?.equals(methodName) == true }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched display names ${summaries(notMatchedExecutions)}" }
+        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched test names ${summaries(notMatchedExecutions)}" }
     }
 
     fun List<UtExecution>.checkMatchersWithDisplayNames(

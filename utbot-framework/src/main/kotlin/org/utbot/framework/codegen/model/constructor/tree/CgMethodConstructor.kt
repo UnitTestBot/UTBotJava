@@ -534,10 +534,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 doubleDelta
                             )
                         expectedModel.value is Boolean -> {
-                            if (expectedModel.value as Boolean) {
-                                assertions[assertTrue](actual)
-                            } else {
-                                assertions[assertFalse](actual)
+                            when (parameterizedTestSource) {
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
+                                    if (expectedModel.value as Boolean) {
+                                        assertions[assertTrue](actual)
+                                    } else {
+                                        assertions[assertFalse](actual)
+                                    }
+                                ParametrizedTestSource.PARAMETRIZE ->
+                                    assertions[assertEquals](expected, actual)
                             }
                         }
                         // other primitives and string
@@ -1018,10 +1023,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     )
                 }
                 expected == nullLiteral() -> testFrameworkManager.assertNull(actual)
-                expected is CgLiteral && expected.value is Boolean -> testFrameworkManager.assertBoolean(
-                    expected.value,
-                    actual
-                )
+                expected is CgLiteral && expected.value is Boolean -> {
+                    when (parameterizedTestSource) {
+                        ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
+                            testFrameworkManager.assertBoolean(expected.value, actual)
+                        ParametrizedTestSource.PARAMETRIZE ->
+                            testFrameworkManager.assertEquals(expected, actual)
+                    }
+                }
                 else -> {
                     if (expected is CgLiteral) {
                         // Literal can only be Primitive or String, can use equals here

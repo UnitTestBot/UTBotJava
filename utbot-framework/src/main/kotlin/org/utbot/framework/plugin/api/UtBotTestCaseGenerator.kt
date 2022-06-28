@@ -58,6 +58,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     private val logger = KotlinLogging.logger {}
     private val timeoutLogger = KotlinLogging.logger(logger.name + ".timeout")
 
+    lateinit var configureEngine: (UtBotSymbolicEngine) -> Unit
     lateinit var isCanceled: () -> Boolean
 
     //properties to save time on soot initialization
@@ -71,8 +72,23 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         classpath: String?,
         dependencyPaths: String,
         isCanceled: () -> Boolean
+    ) = init(
+        buildDir,
+        classpath,
+        dependencyPaths,
+        configureEngine = {},
+        isCanceled
+    )
+
+    fun init(
+        buildDir: Path,
+        classpath: String?,
+        dependencyPaths: String,
+        configureEngine: (UtBotSymbolicEngine) -> Unit,
+        isCanceled: () -> Boolean
     ) {
         this.isCanceled = isCanceled
+        this.configureEngine = configureEngine
         if (isCanceled()) return
 
         checkFrameworkDependencies(dependencyPaths)
@@ -268,13 +284,15 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                         //yield one to
                         yield()
 
-                        generate(createSymbolicEngine(
+                        val engine: UtBotSymbolicEngine = createSymbolicEngine(
                             controller,
                             method,
                             mockStrategy,
                             chosenClassesToMockAlways,
                             executionTimeEstimator
-                        )).collect {
+                        ).apply(configureEngine)
+
+                        generate(engine).collect {
                             when (it) {
                                 is UtExecution -> method2executions.getValue(method) += it
                                 is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
@@ -363,7 +381,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
 
         val executions = mutableListOf<UtExecution>()
         val errors = mutableMapOf<String, Int>()
-
 
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {

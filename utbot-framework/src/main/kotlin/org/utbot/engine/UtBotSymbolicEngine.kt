@@ -6,15 +6,17 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
@@ -103,6 +105,8 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.util.mockListeners.MockListener
+import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
@@ -330,7 +334,7 @@ class UtBotSymbolicEngine(
 
     private val classUnderTest: ClassId = methodUnderTest.clazz.id
 
-    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways)
+    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways, MockListenerController(controller))
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
@@ -541,6 +545,10 @@ class UtBotSymbolicEngine(
                             } else {
                                 traverseStmt(currentStmt)
                             }
+
+                            // Here job can be cancelled from within traverse, e.g. by using force mocking without Mockito.
+                            // So we need to make it throw CancelledException by method below:
+                            currentCoroutineContext().job.ensureActive()
                         } catch (ex: Throwable) {
                             environment.state.close()
 
@@ -2520,6 +2528,8 @@ class UtBotSymbolicEngine(
             )
         )
     }
+
+    fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
 
     private fun staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)

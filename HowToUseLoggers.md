@@ -20,7 +20,7 @@ The easiest way is:
 
 - Go in the code that you are going to debug. Let’s assume it is a method in com.home.utbot.framework.plugin.api.UtBotTestCaseGenerator.
 - Find out if there is a KotlinLogging object that is used to create a **logger**
-- If such logger exists, use the fully qualified class name as the logger name in the next steps
+- If such a logger exists, use the fully qualified class name as the logger name in the next steps
 <br/>
 
 🟢**3. Add logger**
@@ -43,7 +43,7 @@ Depending on the desired amount of information, change the **level** attribute. 
 
 🟢**5. Output**
 
-Sometimes the logging information could be print in a wrong destination. In that case, change the AppenderRef tag. It can be used with Console value or some other value (for instance, FrameworkAppender) 
+Sometimes the logging information could be printed in a wrong destination. In that case, change the AppenderRef tag. It can be used with Console value or some other value (for instance, FrameworkAppender) 
 <br/>
 <br/>
 
@@ -71,7 +71,7 @@ Having this logger, you can use it in code with different log levels in parallel
 <br/>
 <br/>
 
-🟢**To enable the logger**
+🟢**7.1 To enable the logger**
 
 1. Go to the file you are currently working on
 2. Select the file in the project tab (alt-f1)

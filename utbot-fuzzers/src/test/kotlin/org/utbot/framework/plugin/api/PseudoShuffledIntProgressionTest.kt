@@ -173,8 +173,8 @@ class PseudoShuffledIntProgressionTest {
     @Test
     fun testSpecification() {
         val shuffle = PseudoShuffledIntProgression(
-            top = intArrayOf(2, 1, 3, 0),
-            left = intArrayOf(2, 3, 4, 0, 1),
+            columns = intArrayOf(2, 1, 3, 0),
+            rows = intArrayOf(2, 3, 4, 0, 1),
             tail = intArrayOf(22, 20, 21)
         )
         assertArrayEquals(
@@ -186,14 +186,30 @@ class PseudoShuffledIntProgressionTest {
     @Test
     fun testIterator() {
         val shuffle = PseudoShuffledIntProgression(
-            top = intArrayOf(2, 1, 3, 0),
-            left = intArrayOf(2, 3, 4, 0, 1),
+            columns = intArrayOf(2, 1, 3, 0),
+            rows = intArrayOf(2, 3, 4, 0, 1),
             tail = intArrayOf(22, 20, 21)
         )
         val expected = intArrayOf(12, 7, 17, 2, 22, 13, 8, 18, 3, 20, 14, 9, 19, 4, 21, 10, 5, 15, 0, 11, 6, 16, 1)
         shuffle.forEachIndexed { index, value ->
             assertEquals(expected[index], value)
         }
+    }
+
+    @Test
+    fun testIteratorIteratesAllValuesExclusively() {
+        val progression = PseudoShuffledIntProgression(
+            columns = intArrayOf(0, 1, 2, 3),
+            rows = intArrayOf(0, 1, 2),
+            tail = intArrayOf(12)
+        )
+        val iterated = mutableListOf<Int>()
+        val iterator = progression.iterator()
+        while (iterator.hasNext()) {
+            iterated.add(iterator.nextInt())
+        }
+        assertEquals(4 * 3 + 1, iterated.size)
+        assertEquals((0 until 4 * 3 + 1).toList(), iterated.sorted())
     }
 
     @Test

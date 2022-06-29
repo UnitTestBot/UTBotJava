@@ -107,6 +107,7 @@ import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
 import org.utbot.engine.util.mockListeners.MockListener
+import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
@@ -338,7 +339,13 @@ class UtBotSymbolicEngine(
 
     private val classUnderTest: ClassId = methodUnderTest.clazz.id
 
-    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways)
+    private val mocker: Mocker = Mocker(
+        mockStrategy,
+        classUnderTest,
+        hierarchy,
+        chosenClassesToMockAlways,
+        MockListenerController(controller)
+    )
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 

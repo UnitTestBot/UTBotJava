@@ -1,5 +1,9 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+configurations {
+    fetchInstrumentationJar
+}
+
 compileKotlin {
     kotlinOptions {
         allWarningsAsErrors = false
@@ -9,7 +13,6 @@ compileKotlin {
 dependencies {
     api project(":utbot-framework")
     api project(':utbot-summary')
-    api project(':utbot-instrumentation')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     // Without this dependency testng tests do not run.
@@ -24,6 +27,13 @@ dependencies {
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2_version
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
+}
+
+processResources {
+    from(configurations.fetchInstrumentationJar) {
+        into "lib"
+    }
 }
 
 task createProperties(dependsOn: processResources) {
@@ -57,3 +67,4 @@ jar {
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
+

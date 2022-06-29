@@ -2826,3 +2826,13 @@ inline fun <reified T> withFeaturePath(featurePath: String, block: () -> T): T {
         UtSettings.enableFeatureProcess = prevEnableFeatureProcess
     }
 }
+
+inline fun <reified T> withUsingReflectionForMaximizingCoverage(maximizeCoverage: Boolean, block: () -> T): T {
+    val prev = UtSettings.maximizeCoverageUsingReflection
+    UtSettings.maximizeCoverageUsingReflection = maximizeCoverage
+    try {
+        return block()
+    } finally {
+        UtSettings.maximizeCoverageUsingReflection = prev
+    }
+}

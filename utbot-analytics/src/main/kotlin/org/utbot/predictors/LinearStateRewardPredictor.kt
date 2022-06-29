@@ -4,6 +4,9 @@ import org.utbot.analytics.StateRewardPredictor
 import mu.KotlinLogging
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.predictors.util.PredictorLoadingException
+import org.utbot.predictors.util.WeightsLoadingException
+import org.utbot.predictors.util.splitByCommaIntoDoubleArray
 import smile.math.MathEx.dot
 import smile.math.matrix.Matrix
 import java.io.File
@@ -17,12 +20,17 @@ private val logger = KotlinLogging.logger {}
  */
 private fun loadWeights(path: String): Matrix {
     val weightsFile = File("${UtSettings.rewardModelPath}/${path}")
+    lateinit var weightsArray: DoubleArray
 
-    if (!weightsFile.exists()) {
-        error("There is no file with weights with path: ${weightsFile.absolutePath}")
+    try {
+        if (!weightsFile.exists()) {
+            error("There is no file with weights with path: ${weightsFile.absolutePath}")
+        }
+
+        weightsArray = weightsFile.readText().splitByCommaIntoDoubleArray()
+    } catch (e: Exception) {
+        throw WeightsLoadingException(e)
     }
-
-    val weightsArray = weightsFile.readText().splitByCommaIntoDoubleArray()
 
     return Matrix(weightsArray)
 }
@@ -36,7 +44,7 @@ class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH, scal
         try {
             weights = loadWeights(weightsPath)
             scaler = loadScaler(scalerPath)
-        } catch (e: Exception) {
+        } catch (e: PredictorLoadingException) {
             logger.info(e) {
                 "Error while initialization of LinearStateRewardPredictor. Changing pathSelectorType on INHERITORS_SELECTOR"
             }

@@ -136,7 +136,7 @@ Interface for reward predictors. Now it has three implementations in `analytics`
 
 * `NNStateRewardPredictorSmile`: it uses our own format to store feedforward neural network, and it uses `Smile` library to do multiplication of matrix.
 * `NNStateRewardPredictorTorch`: it assumed that a model is any type of model in `pt` format. It uses the `Deep Java library` to use such models.
-* `LinearStateRewardPredictor`: it read weights vector as line of doubles, separated by comma.
+* `LinearStateRewardPredictor`: it uses our own format to store weights vector: line of doubles, separated by comma with bias as last weight.
 
 It should be created at the beginning of work and stored at `Predictors` class to be used in `NNRewardGuidedSelector` from the `framework` module.
 

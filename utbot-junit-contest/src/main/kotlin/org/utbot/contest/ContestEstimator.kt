@@ -327,7 +327,12 @@ fun runEstimator(
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
     EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
-//    Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+
+    /**
+     * Uncomment if you want to use NN_REWARD_GUIDED_SELECTOR
+     *
+     * Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+    */
 
 
     // fix for CTRL-ALT-SHIFT-C from IDEA, which copies in class#method form

@@ -32,6 +32,5 @@ object EngineAnalyticsContext {
         override fun invoke(): StateRewardPredictor {
             error("NNStateRewardPredictor factory wasn't provided")
         }
-
     }
 }

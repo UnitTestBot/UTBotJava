@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.utbot.analytics.StateRewardPredictor
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.predictors.util.PredictorLoadingException
 import smile.math.matrix.Matrix
 
 private const val DEFAULT_MODEL_PATH = "nn.json"
@@ -21,7 +22,7 @@ class NNStateRewardPredictorBase(modelPath: String = DEFAULT_MODEL_PATH, scalerP
         try {
             nn = getModel(modelPath)
             scaler = loadScaler(scalerPath)
-        } catch (e: Exception) {
+        } catch (e: PredictorLoadingException) {
             logger.info(e) {
                 "Error while initialization of NNStateRewardPredictorBase. Changing pathSelectorType on INHERITORS_SELECTOR"
             }

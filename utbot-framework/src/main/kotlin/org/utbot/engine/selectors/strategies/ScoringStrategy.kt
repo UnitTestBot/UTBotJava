@@ -41,11 +41,15 @@ class ModelSynthesisScoringStrategy(
     private val distanceStatistics = DistanceStatistics(graph)
 
     companion object {
+        private const val SOFT_MAX_ARRAY_SIZE = 40
+        private const val DEPTH_CHECK = 10
+
+        private const val PATH_SCORE_COEFFICIENT = 1.0
+        private const val MODEL_SCORE_COEFFICIENT = 100.0
+
         private const val INF_SCORE = Double.MAX_VALUE
         private const val MAX_SCORE = 1.0
-        private const val DEPTH_CHECK = 30
-        private const val EPS = 1e-5
-        private const val SOFT_MAX_ARRAY_SIZE = 40
+        private const val EPS = 0.01
     }
 
     // needed for resolver
@@ -74,7 +78,7 @@ class ModelSynthesisScoringStrategy(
         distanceStatistics.onJoin(stmt, graph, shouldRegister)
     }
 
-    override fun shouldDrop(state: ExecutionState): Boolean {
+    private fun shouldDropBasedOnScores(state: ExecutionState): Boolean {
         val previous = run {
             var current = state.path
             val res = mutableListOf<Path>()
@@ -86,37 +90,42 @@ class ModelSynthesisScoringStrategy(
             res.reversed()
         }
         val scores = previous.map { pathScores.getOrDefault(it, INF_SCORE) }
-        if (scores.size >= DEPTH_CHECK && (0 until scores.lastIndex).all { scores[it] <= scores[it + 1] })
-            return true
-        return distanceStatistics.shouldDrop(state)
+        return scores.size >= DEPTH_CHECK && (0 until scores.lastIndex).all { scores[it] <= scores[it + 1] }
+    }
+
+    override fun shouldDrop(state: ExecutionState): Boolean {
+        return shouldDropBasedOnScores(state) || distanceStatistics.shouldDrop(state)
     }
 
     override fun score(executionState: ExecutionState): Double = pathScores.getOrPut(executionState.path) {
+        computePathScore(executionState) * PATH_SCORE_COEFFICIENT +
+                computeModelScore(executionState) * MODEL_SCORE_COEFFICIENT
+    }
+
+    private fun computePathScore(executionState: ExecutionState): Double =
+        executionState.path.groupBy { it }.mapValues { it.value.size - 1 }.values.sum().toDouble()
+
+    private fun computeModelScore(executionState: ExecutionState): Double {
         val status = stateModels.getOrPut(executionState) {
             executionState.solver.check(respectSoft = true)
-        } as? UtSolverStatusSAT ?: return@getOrPut INF_SCORE
+        } as? UtSolverStatusSAT ?: return INF_SCORE
         val resolver = buildResolver(executionState.memory, status)
         val entryStack = executionState.executionStack.first().localVariableMemory
-        val parameters = targets.keys.map { entryStack.local(it) }
-        when {
-            null in parameters -> INF_SCORE
-            else -> {
-                val nonNullParameters = parameters.map { it!! }
-                val afterParameters = resolver.resolveModels(nonNullParameters).modelsAfter.parameters
-                val models = targets.keys
-                    .zip(afterParameters)
-                    .mapNotNull { (local, model) ->
-                        when (model) {
-                            is UtAssembleModel -> local to model.origin!!
-                            is UtCompositeModel -> local to model
-                            is UtPrimitiveModel -> local to model
-                            else -> null
-                        }
-                    }
-                    .toMap()
-                computeScore(targets, models)
+        val parameters = targets.keys.mapNotNull { entryStack.local(it) }
+        if (parameters.size != targets.keys.size) return INF_SCORE
+
+        val afterParameters = resolver.resolveModels(parameters).modelsAfter.parameters
+        val models = targets.keys
+            .zip(afterParameters)
+            .toMap()
+            .mapValues { (_, model) ->
+                when (model) {
+                    is UtAssembleModel -> model.origin!!
+                    else -> model
+                }
             }
-        }
+
+        return computeScore(targets, models)
     }
 
     private fun computeScore(
@@ -150,8 +159,10 @@ class ModelSynthesisScoringStrategy(
 
     private fun UtModel.score(other: UtModel): Double = when {
         this.javaClass != other.javaClass -> maxScore
-        this is UtPrimitiveModel -> maxScore - maxScore / (maxScore + (this - (other as UtPrimitiveModel)).abs()
-            .toDouble() + EPS)
+        this is UtPrimitiveModel -> {
+            other as UtPrimitiveModel
+            maxScore - maxScore / (maxScore + (this - other).abs().toDouble() + EPS)
+        }
         this is UtCompositeModel -> {
             other as UtCompositeModel
             var score = 0.0

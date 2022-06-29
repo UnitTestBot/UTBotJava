@@ -7,8 +7,9 @@ PATH_SELECTOR=${3}
 items=(${PATH_SELECTOR//##/ })
 PATH_SELECTOR_TYPE=${items[0]}
 PATH_SELECTOR_PATH=${items[1]}
-IS_COMBINED_SELECTOR=${items[2]}
-ITERATIONS=${items[3]}
+PREDICTOR_TYPE=${items[2]}
+IS_COMBINED_SELECTOR=${items[3]}
+ITERATIONS=${items[4]}
 
 echo "PATH_SELECTOR=$PATH_SELECTOR"
 echo "PATH_SELECTOR_TYPE=$PATH_SELECTOR_TYPE"
@@ -45,6 +46,10 @@ fi
 
 if [[ -n $ITERATIONS ]]; then
   echo "iterations=$ITERATIONS" >> "$SETTING_PROPERTIES_FILE"
+fi
+
+if [[ -n $PREDICTOR_TYPE ]]; then
+  echo "nnStateRewardPredictorType=$PREDICTOR_TYPE" >> "$SETTING_PROPERTIES_FILE"
 fi
 
 if [[ -n $FEATURE_PROCESSING ]]; then

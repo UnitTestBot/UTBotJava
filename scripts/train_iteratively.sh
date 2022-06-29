@@ -5,7 +5,7 @@ ITERATIONS=${2}
 OUTPUT_DIR=${3}
 PYTHON_COMMAND=${4}
 
-declare -a models=("nn16" "nn32" "nn64" "nn128")
+declare -a models=("linear" "nn16" "nn32" "nn64" "nn128")
 
 WORKDIR="."
 
@@ -38,8 +38,13 @@ do
 
     for model in "${models[@]}"
     do
+      PREDICTOR="BASE"
 
-     $WORKDIR/scripts/run_contest_estimator.sh $prog $TIME_LIMIT "NN_REWARD_GUIDED_SELECTOR $OUTPUT_DIR/$model/$i" "true eval/features/jlearch/$model$i/$prog"
+      if [[ $model == *"linear"* ]]; then
+        PREDICTOR="LINEAR"
+      fi
+
+     $WORKDIR/scripts/run_contest_estimator.sh $prog $TIME_LIMIT "NN_REWARD_GUIDED_SELECTOR $OUTPUT_DIR/$model/$i $PREDICTOR" "true eval/features/jlearch/$model$i/$prog"
     done
   done <"$WORKDIR/scripts/prog_list"
 done

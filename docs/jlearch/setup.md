@@ -1,7 +1,7 @@
 # How to setup environment for experiments on Linux
 
 * Clone repository, go to root
-* Maybe you will need `chmod +x ./scripts/*` and `chmod +x gradlew`.
+* `chmod +x ./scripts/*` and `chmod +x gradlew`.
 * Set `Java 8` as default and set `JAVA_HOME` to this `Java`.
   For example
   * Go through [this](https://sdkman.io/install) until `Windows installation`
@@ -20,9 +20,16 @@
   * `pip install -r scripts/requirements.txt`
 * `./scripts/prepare.sh`
 * Change `scripts/prog_list` to run on smaller project or delete some classes from `contest_input/classes/<project>/list`.
-* Also you can reduce number of models in `models` variable in `scripts/train_iteratively.sh`
+
+# Default settings and how to change it
+* You can reduce number of models in `models` variable in `scripts/train_iteratively.sh`
+* You can change amount of required RAM in `run_contest_estimator.sh`: `16 gb`  by default
+* You can change `batch_size` or `device` n `train.py`: `4096` and `gpu` by default
+* If you are completing setup on server, then you will need to uncomment tmp directory option in `run_contest_estimator.sh`
+
+# Continue setup
 * `scripts/train_iteratively.sh 30 2 models <your python3 command>`
 * In `models/` you should get models.
 * `mkdir eval/jacoco`
-* `./scripts/run_with_coverage.sh <any project (guava-26.0, for example)> 30 "NN_REWARD_GUIDED_SELECTOR path/to/model" some_alias`. `path/to/model` should be something like `models/nn32/0`.
+* `./scripts/run_with_coverage.sh <any project (guava-26.0, for example)> 30 "NN_REWARD_GUIDED_SELECTOR path/to/model" some_alias`. `path/to/model` should be something like `models/nn32/0`, where `nn32` is a type of model and `0` is the iteration number
 * You should get jacoco report in `eval/jacoco/guava-26.0/some_alias/`

@@ -2,6 +2,7 @@ package org.utbot.predictors
 
 import com.google.gson.Gson
 import org.utbot.framework.UtSettings
+import org.utbot.predictors.util.ModelLoadingException
 import java.io.FileReader
 import java.nio.file.Paths
 
@@ -33,10 +34,16 @@ data class NNJson(
 
 internal fun loadModel(path: String): NNJson {
     val modelFile = Paths.get(UtSettings.rewardModelPath, path).toFile()
-    val nnJson: NNJson =
-        Gson().fromJson(FileReader(modelFile), NNJson::class.java) ?: run {
-            error("Empty model")
-        }
+    lateinit var nnJson: NNJson
+
+    try {
+        nnJson =
+            Gson().fromJson(FileReader(modelFile), NNJson::class.java) ?: run {
+                error("Empty model")
+            }
+    } catch (e: Exception) {
+        throw ModelLoadingException(e)
+    }
 
     return nnJson
 }

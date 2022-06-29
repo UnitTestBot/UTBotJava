@@ -27,4 +27,10 @@ object EngineAnalyticsContext {
         NNRewardGuidedSelectorType.WITHOUT_RECALCULATION -> NNRewardGuidedSelectorWithoutRecalculationFactory()
         NNRewardGuidedSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
     }
+
+    var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {
+        override fun invoke(): StateRewardPredictor {
+            error("NNStateRewardPredictor factory wasn't provided")
+        }
+    }
 }

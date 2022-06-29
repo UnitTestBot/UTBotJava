@@ -1,4 +1,4 @@
-package org.utbot.predictors
+package org.utbot.predictors.util
 
 fun String.splitByCommaIntoDoubleArray() =
     try {

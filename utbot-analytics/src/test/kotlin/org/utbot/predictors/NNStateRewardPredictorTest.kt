@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.withPathSelectorType
+import org.utbot.analytics.StateRewardPredictor
 import org.utbot.examples.withRewardModelPath
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
@@ -32,13 +33,13 @@ class NNStateRewardPredictorTest {
 
 
         withRewardModelPath("models") {
-            val averageTime = calcAverageTimeForModelPredict(::NNStateRewardPredictorTorch, 100, features)
+            val averageTime = calcAverageTimeForModelPredict(::StateRewardPredictorTorch, 100, features)
             println(averageTime)
         }
     }
 
     private fun calcAverageTimeForModelPredict(
-        model: () -> NNStateRewardPredictor,
+        model: () -> StateRewardPredictor,
         iterations: Int,
         features: List<Double>
     ): Double {

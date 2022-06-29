@@ -194,22 +194,4 @@ class ClassWithEnumTest : AbstractTestCaseGeneratorTest(testClass = ClassWithEnu
             coverage = DoNotCalculate
         )
     }
-
-    @Test
-    fun testEnumToEnumMapCountValues() {
-        check(
-            ClassWithEnum::enumToEnumMapCountValues,
-            eq(3),
-            { map, result -> map.values.count { it == ClassWithEnum.ManyConstantsEnum.A } == result }
-        )
-    }
-
-    @Test
-    fun testEnumToStringMapCountKeys() {
-        check(
-            ClassWithEnum::enumToStringMapCountKeys,
-            eq(3),
-            { map, result -> map.keys.count { it == ClassWithEnum.ManyConstantsEnum.A } == result }
-        )
-    }
 }

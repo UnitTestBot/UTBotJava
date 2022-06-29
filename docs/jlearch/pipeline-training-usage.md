@@ -26,7 +26,7 @@ Briefly:
 * Train `model_0` using `D`
 * For several `iterations` repeat (assume we on `i`-th step): 
   * Get dataset `D'` by running `ContestEstimator` on several projects using `NNRewardGuidedSelector`, which will use `model_i`
-  * $$D = D \union D'$$
+  * $$D = D \cup D'$$
   * Train `model_$(i+1)` using `D`
 
 To do this, you should:

@@ -39,4 +39,27 @@ Just run:
 ```bash
 ./scripts/quality_analysis.sh <project> <selector_aliases, separated by comma>
 ```
-It will take reports from relative report folders and generate charts in `eval/res/<project>/<timestamp>.html`.
+It will take coverage reports from relative report folders (at `eval/jacoco/project/alias`) and generate charts in `$outputDir/<project>/<timestamp>.html`.
+`outputDir` can be changed in `QualityAnalysisConfig`. Result file will contain information about 3 metrics:
+* $\frac{\sum_{c \in classSet} instCoverage(c)}{|classSet|}$
+* $\frac{\sum_{c \in classSet} coveredInstructions(c)}{\sum_{c \in classSet} allInstructions(c)}$
+* $\frac{\sum_{c \in classSet} branchCoverage(c)}{|classSet|}$
+
+For each metric for each selector you will have:
+* value of metric
+* some chart with median, $q_1$, $q_3$ and so on
+
+
+## To scrap solution classes from codeforces
+Note: You can't scrap many classes, because codeforces api has a request limit.
+
+It can be useful, if you want to train Jlearch on classes usually without virtual functions, but with many algorithms, so cycles and conditions.
+
+Just run:
+```bash
+python3 path/to/codeforces_scrapper.py --problem_count <val> --submission_count <val> --min_rating <val> --max_rating <val> --output_dir <val>
+```
+
+All arguments are optional. Default values: `100`, `10`, `0`, `1500`, `.`.
+
+At the end you should get `submission_count` classes for each of `problem_count` problems with rating between `min_rating` and `max_rating` at `output_dir`. Each class have package `p<contest_id>.p<submission_id>`.

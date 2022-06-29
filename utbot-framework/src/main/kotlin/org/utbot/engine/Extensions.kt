@@ -111,6 +111,7 @@ fun SootMethod.canRetrieveBody() =
  */
 fun SootMethod.jimpleBody(): JimpleBody {
     declaringClass.adjustLevel(BODIES)
+    require(canRetrieveBody()) { "Can't retrieve body for $this"}
     return retrieveActiveBody() as JimpleBody
 }
 

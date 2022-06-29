@@ -34,8 +34,8 @@ data class Edge(val src: Stmt, val dst: Stmt, val decisionNum: Int)
  * [UtExecution]. This state represents the final state of the program execution, that is a throw or return from the outer
  * method.
  *
- * [CONCRETE] is a label for a state which is not suitable for further symbolic analysis and it is also not a terminal
- * state. Such states are only suitable for a concrete execution and may appear from [Assumption]s.
+ * [CONCRETE] is a label for a state which is not suitable for further symbolic analysis, and it is also not a terminal
+ * state. Such states are only suitable for a concrete execution and may result from [Assumption]s.
  */
 enum class StateLabel {
     INTERMEDIATE,

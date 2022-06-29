@@ -6,7 +6,6 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.CancellationException
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.findField
@@ -213,6 +212,7 @@ class Traverser(
     private val classLoader: ClassLoader
         get() = utContext.classLoader
 
+    // TODO: move this and other mutable fields to [TraversalContext]
     lateinit var environment: Environment
     private val solver: UtSolver
         get() = environment.state.solver
@@ -281,13 +281,9 @@ class Traverser(
         } catch (ex: Throwable) {
             environment.state.close()
 
-            if (ex !is CancellationException) {
-                logger.error(ex) { "Test generation failed on stmt $currentStmt, symbolic stack trace:\n$symbolicStackTrace" }
-                // TODO: enrich with nice description for known issues
-                throw ex
-            } else {
-                logger.debug(ex) { "Cancellation happened" }
-            }
+            logger.error(ex) { "Test generation failed on stmt $currentStmt, symbolic stack trace:\n$symbolicStackTrace" }
+            // TODO: enrich with nice description for known issues
+            throw ex
         }
         queuedSymbolicStateUpdates = SymbolicStateUpdate()
         return context.nextStates
@@ -2991,7 +2987,8 @@ class Traverser(
             implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
         }
 
-        queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()    }
+        queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()
+    }
 
     private fun TraversalContext.divisionByZeroCheck(denom: PrimitiveValue) {
         val equalsToZero = Eq(denom, 0)
@@ -3363,7 +3360,8 @@ class Traverser(
             return
         }
 
-        //toplevel method
+        // toplevel method
+        // TODO: investigate very strange behavior when some constraints are not added leading to failing CodegenExampleTest::firstExampleTest fails
         val terminalExecutionState = environment.state.copy(
             symbolicState = symbolicState,
             methodResult = methodResult, // the way to put SymbolicResult into terminal state

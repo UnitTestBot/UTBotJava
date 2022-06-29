@@ -2,7 +2,7 @@ package org.utbot.engine
 
 /**
  * Represents a mutable _Context_ during the [ExecutionState] traversing. This _Context_ consists of all mutable and
- * immutable properties and fields which are created and updated during analysis of **one** Jimple instruction.
+ * immutable properties and fields which are created and updated during analysis of a **single** Jimple instruction.
  *
  * Traverser functions should be implemented as an extension functions with [TraversalContext] as a receiver.
  *
@@ -23,7 +23,7 @@ class TraversalContext {
     }
 
     /**
-     * New states from traversal.
+     * New states obtained from the traversal.
      */
     val nextStates: Collection<ExecutionState>
         get() = states

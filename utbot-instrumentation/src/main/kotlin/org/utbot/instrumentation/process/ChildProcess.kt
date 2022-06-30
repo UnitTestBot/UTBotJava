@@ -1,43 +1,21 @@
 package org.utbot.instrumentation.process
 
-import org.utbot.common.scanForClasses
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.instrumentation.agent.Agent
-import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.instrumentation.util.Protocol
-import org.utbot.instrumentation.util.UnexpectedCommand
 import java.io.File
 import java.io.OutputStream
 import java.io.PrintStream
-import java.net.URLClassLoader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
-
-/**
- * We use this ClassLoader to separate user's classes and our dependency classes.
- * Our classes won't be instrumented.
- */
-internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
-    fun addUrls(urls: Iterable<String>) {
-        urls.forEach { super.addURL(File(it).toURI().toURL()) }
-    }
-
-    /**
-     * System classloader can find org.slf4j thus when we want to mock something from org.slf4j
-     * we also want this class will be loaded by [HandlerClassesLoader]
-     */
-    override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        if (name.startsWith("org.slf4j")) {
-            return (findLoadedClass(name) ?: findClass(name)).apply {
-                if (resolve) resolveClass(this)
-            }
-        }
-        return super.loadClass(name, resolve)
-    }
-}
+import org.utbot.common.scanForClasses
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.instrumentation.agent.Agent
+import org.utbot.instrumentation.classloaders.HandlerClassLoader
+import org.utbot.instrumentation.classloaders.UserRuntimeClassLoader
+import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.util.KryoHelper
+import org.utbot.instrumentation.util.Protocol
+import org.utbot.instrumentation.util.UnexpectedCommand
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
@@ -60,21 +38,20 @@ fun main() {
     val classPaths = readClasspath()
     val pathsToUserClasses = classPaths.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
     val pathsToDependencyClasses = classPaths.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
-    HandlerClassesLoader.addUrls(pathsToUserClasses)
-    HandlerClassesLoader.addUrls(pathsToDependencyClasses)
-    kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
+    val handlerClassLoader = HandlerClassLoader(pathsToUserClasses + pathsToDependencyClasses)
+    kryoHelper.setKryoClassLoader(handlerClassLoader) // Now kryo will use our classloader when it encounters unregistered class.
 
     log("User classes:" + pathsToUserClasses.joinToString())
 
     kryoHelper.use {
-        UtContext.setUtContext(UtContext(HandlerClassesLoader)).use {
+        UtContext.setUtContext(UtContext(handlerClassLoader)).use {
             getInstrumentation()?.let { instrumentation ->
                 Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
                 Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
                 instrumentation.init(pathsToUserClasses)
 
                 try {
-                    loop(instrumentation)
+                    loop(instrumentation, handlerClassLoader)
                 } catch (e: Throwable) {
                     log("Terminating process because exception occured: ${e.stackTraceToString()}")
                     exitProcess(1)
@@ -110,7 +87,7 @@ private fun read(cmdId: Long): Protocol.Command {
 /**
  * Main loop. Processes incoming commands.
  */
-private fun loop(instrumentation: Instrumentation<*>) {
+private fun loop(instrumentation: Instrumentation<*>, userRuntimeClassLoader: UserRuntimeClassLoader) {
     while (true) {
         val cmdId = kryoHelper.readLong()
         val cmd = try {
@@ -123,13 +100,13 @@ private fun loop(instrumentation: Instrumentation<*>) {
         when (cmd) {
             is Protocol.WarmupCommand -> {
                 val time = measureTimeMillis {
-                    HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
+                    userRuntimeClassLoader.scanForClasses("").toList() // here we transform classes
                 }
                 System.err.println("warmup finished in $time ms")
             }
             is Protocol.InvokeMethodCommand -> {
                 val resultCmd = try {
-                    val clazz = HandlerClassesLoader.loadClass(cmd.className)
+                    val clazz = userRuntimeClassLoader.loadClass(cmd.className)
                     val res = instrumentation.invoke(
                         clazz,
                         cmd.signature,

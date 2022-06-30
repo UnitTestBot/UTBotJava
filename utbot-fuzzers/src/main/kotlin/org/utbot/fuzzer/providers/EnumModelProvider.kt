@@ -15,6 +15,7 @@ class EnumModelProvider : ModelProvider {
 
     private val idGenerator: IntSupplier
     private val limit: Int
+    private val idCache: MutableMap<Enum<*>, Int> = mutableMapOf()
 
     constructor(idGenerator: IntSupplier) : this(idGenerator, Int.MAX_VALUE)
 
@@ -29,7 +30,8 @@ class EnumModelProvider : ModelProvider {
             .filter { (classId, _) -> classId.isSubtypeOf(Enum::class.java.id) }
             .forEach { (classId, indices) ->
                 consumer.consumeAll(indices, classId.jClass.enumConstants.filterIsInstance<Enum<*>>().map {
-                    UtEnumConstantModel(idGenerator.asInt, classId, it).fuzzed { summary = "%var% = ${it.name}" }
+                    val id = idCache[it] ?: idGenerator.asInt
+                    UtEnumConstantModel(id, classId, it).fuzzed { summary = "%var% = ${it.name}" }
                 })
             }
     }

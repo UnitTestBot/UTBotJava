@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -397,7 +398,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateTo(mutableMapOf()) { i ->
                 val model = touchedValues.stores[i]
-                val addr = model?.concreteAddress ?: throw IllegalStateException("Model is null")
+                val addr = model?.idOrNull() ?: throw IllegalStateException("Unsupported model: $model")
                 addr to resolver.resolveModel(
                     ObjectValue(
                         TypeStorage(OBJECT_TYPE),

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.fuzzer.SimpleIdGenerator
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.EnumModelProvider.fuzzed
@@ -282,7 +283,7 @@ class ModelProviderTest {
     @Test
     fun `test enum model provider`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(EnumModelProvider { 1 }, parameters = listOf(OneTwoThree::class.java.id))
+            val result = collect(EnumModelProvider(SimpleIdGenerator()), parameters = listOf(OneTwoThree::class.java.id))
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
             OneTwoThree.values().forEachIndexed { index: Int, value ->

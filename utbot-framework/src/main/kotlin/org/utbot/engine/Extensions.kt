@@ -46,10 +46,6 @@ import kotlin.reflect.jvm.javaMethod
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.utbot.engine.pc.UtSolverStatusUNDEFINED
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtReferenceModel
 import soot.ArrayType
 import soot.PrimType
 import soot.RefLikeType
@@ -488,9 +484,3 @@ val SootMethod.isUtMockAssumeOrExecuteConcretely
 val SootMethod.isPreconditionCheckMethod
     get() = declaringClass.isOverridden && name == "preconditionCheck"
 
-val UtModel.concreteAddress: Address
-    get() = when (this) {
-        is UtNullModel -> 0
-        is UtReferenceModel -> id!!
-        else -> throw IllegalStateException("Unsupported model: ${this::class}")
-    }

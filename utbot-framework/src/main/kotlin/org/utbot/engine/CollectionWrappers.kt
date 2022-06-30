@@ -27,6 +27,7 @@ import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.graph
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.id
@@ -361,7 +362,7 @@ private fun constructKeysAndValues(keysModel: UtModel, valuesModel: UtModel, siz
         keysModel is UtArrayModel && valuesModel is UtArrayModel -> {
             List(size) {
                 keysModel.stores[it].let { model ->
-                    val addr = model?.concreteAddress ?: throw IllegalStateException("Model is null")
+                    val addr = model?.idOrNull() ?: throw IllegalStateException("Unsupported model: $model")
                     // as we do not support generics for now, valuesModel.classId.elementClassId is unknown,
                     // but it can be known with generics support
                     val defaultValue = UtNullModel(valuesModel.classId.elementClassId ?: objectClassId)

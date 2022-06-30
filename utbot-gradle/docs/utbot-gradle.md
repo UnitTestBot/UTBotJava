@@ -8,23 +8,22 @@ In addition, it creates one big SARIF-report containing the results from all the
 
 ### How to use
 
-_TODO: The plugin has not been published yet._
+Please, check for the available versions [here](https://plugins.gradle.org/plugin/org.utbot.gradle.plugin). 
 
 - Apply the plugin:
-  
-  <details>
-  <summary>Groovy</summary>
-  <pre>
-  apply plugin: 'org.utbot.gradle.plugin'
-  </pre>
-  </details>
 
-  <details>
-  <summary>Kotlin DSL</summary>
-  <pre>
-  apply(plugin = "org.utbot.gradle.plugin")
-  </pre>
-  </details>
+  __Groovy:__
+  ```Groovy
+  plugins {
+      id "org.utbot.gradle.plugin" version "..."
+  }
+  ```
+  __Kotlin DSL:__
+  ```Kotlin
+  plugins {
+      id("org.utbot.gradle.plugin") version "..."
+  }
+  ```
 
 - Run gradle task `utbot/generateTestsAndSarifReport` to create a report.
 
@@ -33,48 +32,42 @@ _TODO: The plugin has not been published yet._
 
 For example, the following configuration may be used:
 
-<details>
-<summary>Groovy</summary>
-<pre>
-sarifReport {
-    targetClasses = ['com.abc.Main', 'com.qwerty.Util']
-    projectRoot = 'C:/.../SomeDirectory'
-    generatedTestsRelativeRoot = 'build/generated/test'
-    sarifReportsRelativeRoot = 'build/generated/sarif'
-    markGeneratedTestsDirectoryAsTestSourcesRoot = true
-    testFramework = 'junit5'
-    mockFramework = 'mockito'
-    generationTimeout = 60000L
-    codegenLanguage = 'java'
-    mockStrategy = 'package-based'
-    staticsMocking = 'mock-statics'
-    forceStaticMocking = 'force'
-    classesToMockAlways = ['org.slf4j.Logger', 'java.util.Random']
-}
-</pre>
-</details>
-
-
-<details>
-<summary>Kotlin DSL</summary>
-<pre>
-configure&lt;SarifGradleExtension&gt; {
-    targetClasses.set(listOf("com.abc.Main", "com.qwerty.Util"))
-    projectRoot.set("C:/.../SomeDirectory")
-    generatedTestsRelativeRoot.set("build/generated/test")
-    sarifReportsRelativeRoot.set("build/generated/sarif")
-    markGeneratedTestsDirectoryAsTestSourcesRoot.set(true)
-    testFramework.set("junit5")
-    mockFramework.set("mockito")
-    generationTimeout.set(60000L)
-    codegenLanguage.set("java")
-    mockStrategy.set("package-based")
-    staticsMocking.set("mock-statics")
-    forceStaticMocking.set("force")
-    classesToMockAlways.set(listOf("org.slf4j.Logger", "java.util.Random"))
-}
-</pre>
-</details>
+__Groovy:__
+  ```Groovy
+  sarifReport {
+      targetClasses = ['com.abc.Main', 'com.qwerty.Util']
+      projectRoot = 'C:/.../SomeDirectory'
+      generatedTestsRelativeRoot = 'build/generated/test'
+      sarifReportsRelativeRoot = 'build/generated/sarif'
+      markGeneratedTestsDirectoryAsTestSourcesRoot = true
+      testFramework = 'junit5'
+      mockFramework = 'mockito'
+      generationTimeout = 60000L
+      codegenLanguage = 'java'
+      mockStrategy = 'package-based'
+      staticsMocking = 'mock-statics'
+      forceStaticMocking = 'force'
+      classesToMockAlways = ['org.slf4j.Logger', 'java.util.Random']
+  }
+  ```
+__Kotlin DSL:__
+  ```Kotlin
+  configure<SarifGradleExtension> {
+      targetClasses.set(listOf("com.abc.Main", "com.qwerty.Util"))
+      projectRoot.set("C:/.../SomeDirectory")
+      generatedTestsRelativeRoot.set("build/generated/test")
+      sarifReportsRelativeRoot.set("build/generated/sarif")
+      markGeneratedTestsDirectoryAsTestSourcesRoot.set(true)
+      testFramework.set("junit5")
+      mockFramework.set("mockito")
+      generationTimeout.set(60000L)
+      codegenLanguage.set("java")
+      mockStrategy.set("package-based")
+      staticsMocking.set("mock-statics")
+      forceStaticMocking.set("force")
+      classesToMockAlways.set(listOf("org.slf4j.Logger", "java.util.Random"))
+  }
+  ```
 
 **Note:** All configuration fields have default values, so there is no need to configure the plugin if you don't want to.
 
@@ -151,94 +144,45 @@ configure&lt;SarifGradleExtension&gt; {
 
 If you want to change the source code of the plugin or even the whole utbot-project,
 you need to do the following:
-- Publish the modified project to the local maven repository
-- Correctly specify the dependencies in the build file (in your project)
-- Apply the plugin (see the section __How to use__).
 
-There are two ways to do it.
+- Publish plugin to the local maven repository:  
+  `utbot-gradle/publishing/publishToMavenLocal`
 
-- **The first way**
-    - Run `publishing/publishToMavenLocal` (**utbot root** gradle task)
+- Add to your build file:
 
-    - Add to your build file:
-      
-      <details>
-      <summary>Groovy</summary>
-      <pre>
-      buildscript {
-          repositories {
-              mavenLocal()
-              mavenCentral()
-              maven { url 'https://jitpack.io' }
-          }
-      &nbsp;
-          dependencies {
-              classpath group: 'org.utbot', name: 'utbot-gradle', version: '1.0-SNAPSHOT'
-          }
+  __Groovy:__
+  ```Groovy
+  buildscript {
+      repositories {
+          mavenLocal()
       }
-      </pre>
-      </details>
-      
-      <details>
-      <summary>Kotlin DSL</summary>
-      <pre>
-      buildscript {
-          repositories {
-              mavenLocal()
-              mavenCentral()
-              maven { url 'https://jitpack.io' }
-          }
-      &nbsp;
-          dependencies {
-              classpath("org.utbot:utbot-gradle:1.0-SNAPSHOT")
-          }
+      dependencies {
+          classpath "org.utbot:utbot-gradle:1.0-SNAPSHOT"
       }
-      </pre>
-      </details>
-
-- **The second way** (faster, but more difficult)
-    - Run `publishing/publishToMavenLocal` (**utbot-gradle** gradle task)
-    - Add to your `build.gradle`:
-
-      <details>
-      <summary>Groovy</summary>
-      <pre>
-      buildscript {
-          repositories {
-              mavenLocal()
-              mavenCentral()
-              maven { url 'https://jitpack.io' }
-          }
-      &nbsp;
-          dependencies {
-              classpath group: 'org.utbot', name: 'utbot-gradle', version: '1.0-SNAPSHOT'
-              classpath files('C:/..[your-path]../UTBotJava/utbot-framework/build/libs/utbot-framework-1.0-SNAPSHOT.jar')
-              classpath files('C:/..[your-path]../UTBotJava/utbot-framework-api/build/libs/utbot-framework-api-1.0-SNAPSHOT.jar')
-              classpath files('C:/..[your-path]../UTBotJava/utbot-instrumentation/build/libs/utbot-instrumentation-1.0-SNAPSHOT.jar')
-          }
+  }
+  ```
+  __Kotlin DSL:__
+  ```Kotlin
+  buildscript {
+      repositories {
+          mavenLocal()
       }
-      </pre>
-      </details>
-
-      <details>
-      <summary>Kotlin DSL</summary>
-      <pre>
-      buildscript {
-          repositories {
-              mavenLocal()
-              mavenCentral()
-              maven { url 'https://jitpack.io' }
-          }
-      &nbsp;
-          dependencies {
-              classpath("org.utbot:utbot-gradle:1.0-SNAPSHOT")
-              classpath(files("C:/..[your-path]../UTBotJava/utbot-framework/build/libs/utbot-framework-1.0-SNAPSHOT.jar"))
-              classpath(files("C:/..[your-path]../UTBotJava/utbot-framework-api/build/libs/utbot-framework-api-1.0-SNAPSHOT.jar"))
-              classpath(files("C:/..[your-path]../UTBotJava/utbot-instrumentation/build/libs/utbot-instrumentation-1.0-SNAPSHOT.jar"))
-          }
+      dependencies {
+          classpath("org.utbot:utbot-gradle:1.0-SNAPSHOT")
       }
-      </pre>
-      </details>
+  }
+  ```
+
+- Apply the plugin:  
+
+  __Groovy:__
+  ```Groovy
+  apply plugin: 'org.utbot.gradle.plugin'
+  ```
+  __Kotlin DSL:__
+  ```Kotlin
+  apply(plugin = "org.utbot.gradle.plugin")
+  ```
 
 ### How to configure the log level
 
@@ -251,6 +195,16 @@ Note that the internal gradle log information will also be shown.
 Also note that the standard way to configure the log level (using the `log4j2.xml`) does not work from gradle.
 
 [Read more about gradle log levels](https://docs.gradle.org/current/userguide/logging.html)
+
+### Publishing
+
+1. Read the [documentation](https://docs.gradle.org/current/userguide/publishing_gradle_plugins.html) about plugin publishing
+2. Sign in to our [account](https://plugins.gradle.org/u/utbot) to get API keys (if you don't have a password, please contact [Nikita Stroganov](https://github.com/IdeaSeeker))
+3. Run `utbot-gradle/plugin portal/publishPlugins` gradle task
+
+You can check the published artifacts in the [remote repository](https://plugins.gradle.org/m2/org/utbot/utbot-gradle/).
+
+Please note that the maximum archive size for publishing on the Gradle Plugin Portal is ~60Mb.
 
 ### Requirements
 

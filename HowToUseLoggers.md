@@ -78,6 +78,6 @@ Having this logger, you can use it in code with different log levels in parallel
 3. Find the closest log4j2.xml file (usually it is located in the resources file), enable the logger with a desirable log level
  
 
-`<Logger name="com.huawei.utbot.engine.UtBotSymbolicEngine.timeout" level="debug"/>`
+`<Logger name="com.home.utbot.engine.UtBotSymbolicEngine.timeout" level="debug"/>`
 
 

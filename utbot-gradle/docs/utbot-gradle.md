@@ -200,9 +200,11 @@ Also note that the standard way to configure the log level (using the `log4j2.xm
 
 1. Read the [documentation](https://docs.gradle.org/current/userguide/publishing_gradle_plugins.html) about plugin publishing
 2. Sign in to our [account](https://plugins.gradle.org/u/utbot) to get API keys (if you don't have a password, please contact [Nikita Stroganov](https://github.com/IdeaSeeker))
-3. Run `utbot-gradle/publishPlugins` gradle task
+3. Run `utbot-gradle/plugin portal/publishPlugins` gradle task
 
-You can check the published artifacts in the [remote repository](https://plugins.gradle.org/m2/org/utbot/utbot-gradle/). 
+You can check the published artifacts in the [remote repository](https://plugins.gradle.org/m2/org/utbot/utbot-gradle/).
+
+Please note that the maximum archive size for publishing on the Gradle Plugin Portal is ~60Mb.
 
 ### Requirements
 

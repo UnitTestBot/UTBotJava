@@ -184,7 +184,7 @@ object UtSettings {
     var checkNpeInNestedNotPrivateMethods by getBooleanProperty(false)
 
     /**
-     * This option determines whether should we generate [NullPointerException] checks for final or non-public fields
+     * This option determines whether we should generate [NullPointerException] checks for final or non-public fields
      * in non-application classes. Set by true, this option highly decreases test's readability in some cases
      * because of using reflection API for setting final/non-public fields in non-application classes.
      *

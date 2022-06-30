@@ -18,7 +18,7 @@ most of generated branches would be `NPE` branches, while useful paths could be 
 Beyond that, in many cases the `null` value of a field can't be generated using the public API
 of the class. This is particularly true for final fields, especially in system classes.
 it is also often true for non-public fields from standard library and third-party libraries (even setters often do not
-allow `null` values). Automatically generated tests assign `null` values to fields in questions using reflection,
+allow `null` values). Automatically generated tests assign `null` values to fields using reflection,
 but these tests may be uninformative as the corresponding `NPE` branches would never occur
 in the real code that limits itself to the public API.
 

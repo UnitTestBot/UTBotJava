@@ -250,9 +250,11 @@ class ConstructorAnalyzer {
      */
     private fun getParameterType(type: ClassId): Type? =
         try {
-            if (type.isRefType) scene.getRefType(type.name)
-            else if (type.isArray) scene.getType(type.jClass.canonicalName)
-            else scene.getType(type.name)
+            when {
+                type.isRefType -> scene.getRefType(type.name)
+                type.isArray -> scene.getType(type.jClass.canonicalName)
+                else ->  scene.getType(type.name)
+            }
         } catch (e: Exception) {
             null
         }

@@ -11,7 +11,7 @@ assignees: ''
 
 *Check that the IntelliJ Idea UTBot plugin can be successfully installed*
 
-- [ ] Choose appropriate workflow from the next list (by default, use the latest one) https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli.yml
+- [ ] Choose appropriate workflow from the list (by default, filter by main branch and take the latest one) https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli.yml
 - [ ] Download plugin
 - [ ] Check downloaded zip-file size < 100 MB
 - [ ] Open IntelliJ IDE

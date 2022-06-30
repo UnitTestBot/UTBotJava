@@ -2245,15 +2245,30 @@ class UtBotSymbolicEngine(
         return createdField
     }
 
+    /**
+     * Marks the [createdField] as speculatively not null if the [field] is considering as
+     * not producing [NullPointerException].
+     *
+     * @see [SootField.speculativelyCannotProduceNullPointerException], [markAsSpeculativelyNotNull]
+     */
     private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
         if (maximizeCoverageUsingReflection || !field.declaringClass.isLibraryClass) {
             return
         }
 
-        if (field.isFinal || !field.isPublic) {
+        if (field.speculativelyCannotProduceNullPointerException()) {
             markAsSpeculativelyNotNull(createdField.addr)
         }
     }
+
+    /**
+     * Checks whether accessing [this] field (with a method invocation or field access) speculatively can produce
+     * [NullPointerException] (according to its finality or accessibility).
+     *
+     * @see docs/SpeculativeFieldNonNullability.md for more information.
+     */
+    @Suppress("KDocUnresolvedReference")
+    private fun SootField.speculativelyCannotProduceNullPointerException(): Boolean = isFinal || !isPublic
 
     private fun createArray(pName: String, type: ArrayType): ArrayValue {
         val addr = UtAddrExpression(mkBVConst(pName, UtIntSort))

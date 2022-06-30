@@ -11,6 +11,7 @@ import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.classloaders.HandlerClassLoader
+import org.utbot.instrumentation.classloaders.InstrumentationClassLoader
 import org.utbot.instrumentation.classloaders.UserRuntimeClassLoader
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.util.KryoHelper
@@ -38,20 +39,24 @@ fun main() {
     val classPaths = readClasspath()
     val pathsToUserClasses = classPaths.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
     val pathsToDependencyClasses = classPaths.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
-    val handlerClassLoader = HandlerClassLoader(pathsToUserClasses + pathsToDependencyClasses)
-    kryoHelper.setKryoClassLoader(handlerClassLoader) // Now kryo will use our classloader when it encounters unregistered class.
+
+    val (userRuntimeClassLoader, instrumentationClassLoader) = getClassLoaders(
+        pathsToUserClasses + pathsToDependencyClasses
+    )
+
+    kryoHelper.setKryoClassLoader(instrumentationClassLoader) // Now kryo will use our classloader when it encounters unregistered class.
 
     log("User classes:" + pathsToUserClasses.joinToString())
 
     kryoHelper.use {
-        UtContext.setUtContext(UtContext(handlerClassLoader)).use {
+        UtContext.setUtContext(UtContext(userRuntimeClassLoader)).use {
             getInstrumentation()?.let { instrumentation ->
                 Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
                 Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
                 instrumentation.init(pathsToUserClasses)
 
                 try {
-                    loop(instrumentation, handlerClassLoader)
+                    loop(instrumentation, userRuntimeClassLoader)
                 } catch (e: Throwable) {
                     log("Terminating process because exception occured: ${e.stackTraceToString()}")
                     exitProcess(1)
@@ -162,6 +167,23 @@ private fun readClasspath(): Protocol.AddPathsCommand {
         } else {
             send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
             error("No classpath!")
+        }
+    }
+}
+
+private fun getClassLoaders(userPaths: Iterable<String>): Pair<UserRuntimeClassLoader, ClassLoader> {
+    val cmdId = kryoHelper.readLong()
+    return kryoHelper.readCommand().let { cmd ->
+        if (cmd is Protocol.UseSeparateClassLoadersCommand) {
+            if (cmd.useSeparate) {
+                UserRuntimeClassLoader(userPaths) to InstrumentationClassLoader(userPaths)
+            } else {
+                val handlerClassLoader = HandlerClassLoader(userPaths)
+                handlerClassLoader to handlerClassLoader
+            }
+        } else {
+            send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+            error("ClassLoaders can't initialized!")
         }
     }
 }

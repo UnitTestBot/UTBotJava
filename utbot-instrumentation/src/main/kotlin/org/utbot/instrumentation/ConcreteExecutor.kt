@@ -1,5 +1,23 @@
 package org.utbot.instrumentation
 
+import java.io.Closeable
+import java.io.InputStream
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+import kotlin.reflect.KCallable
+import kotlin.reflect.KFunction
+import kotlin.reflect.KProperty
+import kotlin.reflect.jvm.javaConstructor
+import kotlin.reflect.jvm.javaGetter
+import kotlin.reflect.jvm.javaMethod
+import kotlin.streams.toList
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.utbot.common.bracket
 import org.utbot.common.catch
 import org.utbot.common.currentThreadInfo
@@ -15,26 +33,6 @@ import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
-import java.io.Closeable
-import java.io.InputStream
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
-import kotlin.reflect.KCallable
-import kotlin.reflect.KFunction
-import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaGetter
-import kotlin.reflect.jvm.javaMethod
-import kotlin.streams.toList
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
@@ -294,6 +292,10 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                             pathsToDependencyClasses
                         )
                     )
+
+                    // send use separate classloaders or not
+                    // we don't expect ProcessReadyCommand here
+                    sendCommand(Protocol.UseSeparateClassLoadersCommand(instrumentation.useSeparateClassLoaders))
 
                     // send instrumentation
                     // we don't expect ProcessReadyCommand here

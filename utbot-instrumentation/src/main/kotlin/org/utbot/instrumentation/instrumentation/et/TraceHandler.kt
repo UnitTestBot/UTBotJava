@@ -8,6 +8,7 @@ import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.IIns
  * The Class for working with trace collecting and bytecode instrumenting to make collecting possible.
  */
 class TraceHandler {
+    private val rtsProvider = RTSProvider()
     private val processingStorage = ProcessingStorage()
     private val inserter = TraceInstructionBytecodeInserter()
 
@@ -36,11 +37,11 @@ class TraceHandler {
      */
     fun computeInstructionList(): List<EtInstruction> {
         if (instructionsList == null) {
-            instructionsList = (0 until RuntimeTraceStorage.`$__counter__`).map { ptr ->
-                val instrId = RuntimeTraceStorage.`$__trace__`[ptr]
+            instructionsList = (0 until rtsProvider.counter).map { ptr ->
+                val instrId = rtsProvider.trace[ptr]
                 val curInstrData = processingStorage.getInstruction(instrId)
                 val (className, _) = processingStorage.computeClassNameAndLocalId(instrId)
-                val callId = RuntimeTraceStorage.`$__trace_call_id__`[ptr]
+                val callId = rtsProvider.traceCallId[ptr]
                 EtInstruction(className, curInstrData.methodSignature, callId, instrId, curInstrData.line, curInstrData)
             }
         }
@@ -130,6 +131,7 @@ class TraceHandler {
      */
     fun resetTrace() {
         instructionsList = null
-        RuntimeTraceStorage.`$__counter__` = 0
+        rtsProvider.counter = 0
+        rtsProvider.reset()
     }
 }

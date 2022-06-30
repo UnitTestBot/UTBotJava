@@ -2,194 +2,38 @@ package org.utbot.instrumentation.instrumentation.et
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.instrumentation.Settings
-import kotlin.reflect.jvm.javaField
-import kotlin.reflect.jvm.javaMethod
-import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.commons.LocalVariablesSorter
-
-sealed class InstructionData {
-    abstract val line: Int
-    abstract val methodSignature: String
-}
-
-data class CommonInstruction(
-    override val line: Int,
-    override val methodSignature: String
-) : InstructionData()
-
-data class InvokeInstruction(
-    override val line: Int,
-    override val methodSignature: String
-) : InstructionData()
-
-data class ReturnInstruction(
-    override val line: Int,
-    override val methodSignature: String
-) : InstructionData()
-
-data class ImplicitThrowInstruction(
-    override val line: Int,
-    override val methodSignature: String
-) : InstructionData()
-
-data class ExplicitThrowInstruction(
-    override val line: Int,
-    override val methodSignature: String
-) : InstructionData()
-
-data class PutStaticInstruction(
-    override val line: Int,
-    override val methodSignature: String,
-    val owner: String,
-    val name: String,
-    val descriptor: String
-) : InstructionData()
-
-private data class ClassToMethod(
-    val className: String,
-    val methodName: String
-)
-
-class ProcessingStorage {
-    private val classToId = mutableMapOf<String, Int>()
-    private val idToClass = mutableMapOf<Int, String>()
-
-    private val classMethodToId = mutableMapOf<ClassToMethod, Int>()
-    private val idToClassMethod = mutableMapOf<Int, ClassToMethod>()
-
-    private val instructionsData = mutableMapOf<Long, InstructionData>()
-
-    fun addClass(className: String): Int {
-        val id = classToId.getOrPut(className) { classToId.size }
-        idToClass.putIfAbsent(id, className)
-        return id
-    }
-
-    fun computeId(className: String, localId: Int): Long {
-        return classToId[className]!!.toLong() * SHIFT + localId
-    }
-
-    fun addClassMethod(className: String, methodName: String): Int {
-        val classToMethod = ClassToMethod(className, methodName)
-        val id = classMethodToId.getOrPut(classToMethod) { classMethodToId.size }
-        idToClassMethod.putIfAbsent(id, classToMethod)
-        return id
-    }
-
-    fun computeClassNameAndLocalId(id: Long): Pair<String, Int> {
-        val className = idToClass.getValue((id / SHIFT).toInt())
-        val localId = (id % SHIFT).toInt()
-        return className to localId
-    }
-
-    fun addInstruction(id: Long, instructionData: InstructionData) {
-        instructionsData.putIfAbsent(id, instructionData)
-    }
-
-    fun getInstruction(id: Long): InstructionData {
-        return instructionsData.getValue(id)
-    }
-
-    companion object {
-        private const val SHIFT = 1.toLong().shl(32) // 2 ^ 32
-    }
-}
-
+import org.utbot.instrumentation.instrumentation.instrumenter.visitors.util.IInstructionVisitor
 
 /**
- * Storage to which instrumented classes will write execution data.
+ * The Class for working with trace collecting and bytecode instrumenting to make collecting possible.
  */
-object RuntimeTraceStorage {
-    /**
-     * Contains ids of instructions in the order of execution.
-     */
-    @Suppress("Unused")
-    @JvmField
-    val `$__trace__`: LongArray = LongArray(Settings.TRACE_ARRAY_SIZE)
-    const val DESC_TRACE = "[J"
-
-    /**
-     * Contains call ids in the order of execution. Call id is a unique number for each function execution.
-     */
-    @Suppress("Unused")
-    @JvmField
-    var `$__trace_call_id__`: IntArray = IntArray(Settings.TRACE_ARRAY_SIZE)
-    const val DESC_TRACE_CALL_ID = "[I"
-
-    /**
-     * Contains current instruction number.
-     */
-    @Suppress("Unused")
-    @JvmField
-    var `$__counter__`: Int = 0
-    const val DESC_COUNTER = "I"
-
-    /**
-     * Contains current call id.
-     */
-    @Suppress("Unused")
-    @JvmField
-    var `$__counter_call_id__`: Int = 0
-    const val DESC_CALL_ID_COUNTER = "I"
-
-    @JvmStatic
-    fun visit(callId: Int, id: Long) {
-        val current = this.`$__counter__`
-        if (current < Settings.TRACE_ARRAY_SIZE) {
-            this.`$__trace_call_id__`[current] = callId
-            this.`$__trace__`[current] = id
-            this.`$__counter__` = current + 1
-        } else {
-            System.err.println("Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)")
-        }
-    }
-}
-
-class TraceInstructionBytecodeInserter {
-    private var localVariable = -1
-
-    private val internalName = Type.getInternalName(RuntimeTraceStorage::class.java)
-    private val counterCallIdName = RuntimeTraceStorage::`$__counter_call_id__`.javaField!!.name
-    private val visitMethodDescriptor = Type.getMethodDescriptor(RuntimeTraceStorage::visit.javaMethod)
-
-    fun visitMethodBeginning(mv: MethodVisitor, lvs: LocalVariablesSorter) {
-        localVariable = lvs.newLocal(Type.INT_TYPE)
-
-        mv.visitFieldInsn(Opcodes.GETSTATIC, internalName, counterCallIdName, RuntimeTraceStorage.DESC_CALL_ID_COUNTER)
-        mv.visitInsn(Opcodes.ICONST_1)
-        mv.visitInsn(Opcodes.IADD)
-        mv.visitInsn(Opcodes.DUP)
-
-        mv.visitFieldInsn(Opcodes.PUTSTATIC, internalName, counterCallIdName, RuntimeTraceStorage.DESC_CALL_ID_COUNTER)
-        mv.visitVarInsn(Opcodes.ISTORE, localVariable)
-    }
-
-    fun insertUtilityInstructions(mv: MethodVisitor, id: Long): MethodVisitor {
-        mv.visitVarInsn(Opcodes.ILOAD, localVariable)
-        mv.visitLdcInsn(id)
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, internalName, "visit", visitMethodDescriptor, false)
-
-        return mv
-    }
-}
-
 class TraceHandler {
     private val processingStorage = ProcessingStorage()
     private val inserter = TraceInstructionBytecodeInserter()
 
     private var instructionsList: List<EtInstruction>? = null
 
+    /**
+     * Register class if it's new.
+     *
+     * @param className name of class to register.
+     */
     fun registerClass(className: String) {
         processingStorage.addClass(className)
     }
 
+    /**
+     * Get [IInstructionVisitor] that register and instrument bytecode of class to collect execution trace.
+     *
+     * @param className name of class to instrument.
+     */
     fun computeInstructionVisitor(className: String): TraceListStrategy {
         return TraceListStrategy(className, processingStorage, inserter)
     }
 
+    /**
+     * Collect data from [RuntimeTraceStorage] into list of [EtInstruction].
+     */
     fun computeInstructionList(): List<EtInstruction> {
         if (instructionsList == null) {
             instructionsList = (0 until RuntimeTraceStorage.`$__counter__`).map { ptr ->
@@ -203,11 +47,14 @@ class TraceHandler {
         return instructionsList!!
     }
 
-    fun computePutStatics(): List<FieldId> =
+    private fun computePutStatics(): List<FieldId> =
         computeInstructionList().map { it.instructionData }
             .filterIsInstance<PutStaticInstruction>()
             .map { FieldId(ClassId(it.owner.replace("/", ".")), it.name) }
 
+    /**
+     * Collect data from [RuntimeTraceStorage] into [Trace].
+     */
     fun computeTrace(): Trace {
         val instructionList = computeInstructionList()
 
@@ -278,6 +125,9 @@ class TraceHandler {
         return Trace(root!!, computePutStatics())
     }
 
+    /**
+     * Clear [RuntimeTraceStorage] and collected [instructionsList].
+     */
     fun resetTrace() {
         instructionsList = null
         RuntimeTraceStorage.`$__counter__` = 0

@@ -28,6 +28,7 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbServiceImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.JavaDirectoryService
@@ -83,7 +84,7 @@ object TestGenerator {
                 val classPackageName = if (model.testPackageName.isNullOrEmpty())
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
-                val testClass = createTestClass(srcClass, testDirectory, model.codegenLanguage) ?: continue
+                val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
                 val file = testClass.containingFile
 
                 addTestMethodsAndSaveReports(testClass, file, testCases, model)
@@ -133,7 +134,7 @@ object TestGenerator {
         }
     }
 
-    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, codegenLanguage: CodegenLanguage): PsiClass? {
+    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
         val testClassName = createTestClassName(srcClass)
         val aPackage = JavaDirectoryService.getInstance().getPackage(testDirectory)
 
@@ -144,19 +145,25 @@ object TestGenerator {
             // findClassByShortName() may return two identical objects.
             // Be careful, do not use singleOrNull() here, because it expects
             // the array to contain strictly one element and otherwise returns null.
-            aPackage.findClassByShortName(testClassName, scope)
-                .firstOrNull {
-                    when (codegenLanguage) {
-                        CodegenLanguage.JAVA ->  it !is KtUltraLightClass
-                        CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+            var testClass: PsiClass? = null
+
+            // runWhenSmart to avoid IndexNotReadyException
+            DumbServiceImpl(model.project).runWhenSmart {
+                testClass = aPackage.findClassByShortName(testClassName, scope)
+                    .firstOrNull {
+                        when (model.codegenLanguage) {
+                            CodegenLanguage.JAVA -> it !is KtUltraLightClass
+                            CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                        }
                     }
-                }?.let {
-                    return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
-                }
+            }
+            testClass?.let {
+                return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
+            }
         }
 
         val fileTemplate = FileTemplateManager.getInstance(testDirectory.project).getInternalTemplate(
-            when (codegenLanguage) {
+            when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
             }

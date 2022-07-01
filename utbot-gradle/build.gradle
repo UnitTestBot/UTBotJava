@@ -6,11 +6,16 @@ plugins {
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+configurations {
+    fetchInstrumentationJar
+}
+
 dependencies {
     shadow gradleApi()
     shadow localGroovy()
 
     implementation project(":utbot-framework")
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 }
@@ -30,9 +35,22 @@ jar {
     }
 }
 
+/**
+ * Shadow plugin unpacks the nested `utbot-instrumentation-<version>.jar`.
+ * But we need it to be packed. Workaround: double-nest the jar.
+ */
+task shadowBugWorkaround(type: Jar) {
+    destinationDir file('build/shadow-bug-workaround')
+    from(configurations.fetchInstrumentationJar) {
+        into "lib"
+    }
+}
+
+// Documentation: https://imperceptiblethoughts.com/shadow/
 shadowJar {
     archiveClassifier.set('')
     minimize()
+    from shadowBugWorkaround
 }
 
 // no module metadata => no dependency on the `utbot-framework`

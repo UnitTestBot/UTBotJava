@@ -44,7 +44,7 @@ __Groovy:__
       mockFramework = 'mockito'
       generationTimeout = 60000L
       codegenLanguage = 'java'
-      mockStrategy = 'package-based'
+      mockStrategy = 'other-packages'
       staticsMocking = 'mock-statics'
       forceStaticMocking = 'force'
       classesToMockAlways = ['org.slf4j.Logger', 'java.util.Random']
@@ -62,7 +62,7 @@ __Kotlin DSL:__
       mockFramework.set("mockito")
       generationTimeout.set(60000L)
       codegenLanguage.set("java")
-      mockStrategy.set("package-based")
+      mockStrategy.set("other-packages")
       staticsMocking.set("mock-statics")
       forceStaticMocking.set("force")
       classesToMockAlways.set(listOf("org.slf4j.Logger", "java.util.Random"))
@@ -118,9 +118,9 @@ __Kotlin DSL:__
 - `mockStrategy` &ndash;
   - The mock strategy to be used.
   - Can be one of:
-    - `'do-not-mock'` &ndash; do not use mock frameworks at all
-    - `'package-based'` &ndash; mock all classes outside the current package except system ones _(by default)_
-    - `'all-except-cut'` &ndash; mock all classes outside the class under test except system ones
+    - `'no-mocks'` &ndash; do not use mock frameworks at all
+    - `'other-packages'` &ndash; mock all classes outside the current package except system ones _(by default)_
+    - `'other-classes'` &ndash; mock all classes outside the class under test except system ones
 
 - `staticsMocking` &ndash;
   - Use static methods mocking or not.

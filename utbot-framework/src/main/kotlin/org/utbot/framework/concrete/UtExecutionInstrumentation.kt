@@ -1,5 +1,8 @@
 package org.utbot.framework.concrete
 
+import java.security.ProtectionDomain
+import java.util.IdentityHashMap
+import kotlin.reflect.jvm.javaMethod
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
@@ -37,9 +40,6 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
-import java.security.ProtectionDomain
-import java.util.IdentityHashMap
-import kotlin.reflect.jvm.javaMethod
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -241,9 +241,9 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         val mockClassVisitor = instrumenter.visitClass { writer ->
             MockClassVisitor(
                 writer,
-                InstrumentationContext.MockGetter::getMock.javaMethod!!,
-                InstrumentationContext.MockGetter::checkCallSite.javaMethod!!,
-                InstrumentationContext.MockGetter::hasMock.javaMethod!!
+                MockGetter::getMock.javaMethod!!,
+                MockGetter::checkCallSite.javaMethod!!,
+                MockGetter::hasMock.javaMethod!!
             )
         }
 

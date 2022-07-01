@@ -41,7 +41,7 @@ class MethodMockController(
         }
 
         if (method.returnType != Void.TYPE) {
-            InstrumentationContext.MockGetter.updateMocks(instance, method, mockedValues)
+            MockGetter.updateMocks(instance, method, mockedValues)
         }
     }
 

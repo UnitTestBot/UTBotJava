@@ -1,8 +1,8 @@
 package org.utbot.framework.concrete
 
+import org.objectweb.asm.Type
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.jClass
-import org.objectweb.asm.Type
 
 class InstanceMockController(
     clazz: ClassId,
@@ -12,11 +12,11 @@ class InstanceMockController(
     private val type = Type.getInternalName(clazz.jClass)
 
     init {
-        InstrumentationContext.MockGetter.updateCallSites(type, callSites)
-        InstrumentationContext.MockGetter.updateMocks(null, "$type.<init>", instances)
+        MockGetter.updateCallSites(type, callSites)
+        MockGetter.updateMocks(null, "$type.<init>", instances)
     }
 
     override fun close() {
-        InstrumentationContext.MockGetter.updateCallSites(type, emptySet())
+        MockGetter.updateCallSites(type, emptySet())
     }
 }

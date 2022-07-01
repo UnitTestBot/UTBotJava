@@ -87,7 +87,7 @@ pluginBundle {
 gradlePlugin {
     plugins {
         sarifReportPlugin {
-            version = '1.0.0-alpha-9' // last published version
+            version = '1.0.0-alpha' // last published version
             id = 'org.utbot.gradle.plugin'
             displayName = 'UnitTestBot gradle plugin'
             description = 'The gradle plugin for generating tests and creating SARIF reports based on UnitTestBot'

@@ -1178,9 +1178,10 @@ class UtBotSymbolicEngine(
                 value = valueToExpression(value, left.field.type)
             )
 
-            // This hack solves the problem with static final fields, which are equal by reference with parameter
+            // This hack solves the problem with static final fields, which are equal by reference with parameter,
+            // and with Enum fields
             workaround(HACK) {
-                if (left.field.isFinal) {
+                if (left.field.isFinal /* || left.field.declaringClass.isEnum */) {
                     addConstraintsForFinalAssign(left.resolve(), value)
                 }
             }
@@ -3727,6 +3728,7 @@ class UtBotSymbolicEngine(
             Resolver(hierarchy, updatedMemory, typeRegistry, typeResolver, holder, methodUnderTest, softMaxArraySize)
 
         val (modelsBefore, modelsAfter, instrumentation) = resolver.resolveModels(resolvedParameters)
+        logger.trace { "${newSolver.expectUndefined}" }
 
         val symbolicExecutionResult = resolver.resolveResult(symbolicResult)
 

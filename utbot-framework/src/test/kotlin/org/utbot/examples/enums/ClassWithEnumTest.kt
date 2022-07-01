@@ -152,7 +152,7 @@ class ClassWithEnumTest : AbstractTestCaseGeneratorTest(testClass = ClassWithEnu
     }
 
     @Test
-    // @Disabled("TODO JIRA:1450")
+    @Disabled("TODO JIRA:1450")
     fun testPublicGetCodeMethod() {
         checkWithThis(
             ClassWithEnum.StatusEnum::publicGetCode,

@@ -1,9 +1,5 @@
 package org.utbot.examples.enums;
 
-import org.jetbrains.annotations.NotNull;
-
-import java.util.Map;
-
 import static org.utbot.examples.enums.ClassWithEnum.ManyConstantsEnum.A;
 import static org.utbot.examples.enums.ClassWithEnum.ManyConstantsEnum.B;
 import static org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR;

@@ -51,7 +51,6 @@ class EnumCollectionsTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
-    @Disabled
     fun testEnumToEnumMapCountValues() {
         check(
             EnumCollections::enumToEnumMapCountValues,

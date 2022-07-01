@@ -1599,6 +1599,15 @@ class UtBotSymbolicEngine(
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
         queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(addr), UtFalse).asHardConstraint()
 
+        if (type.sootClass?.isEnum == true) {
+            val enumValueConstraints = memory.getEnumValueUpdates(type)
+                .map { addrEq(addr, it.addr) }
+                .toList()
+            if (enumValueConstraints.isNotEmpty()) {
+                queuedSymbolicStateUpdates += mkOr(enumValueConstraints).asHardConstraint()
+            }
+        }
+
         return ObjectValue(typeStorage, addr, concreteImplementation)
     }
 

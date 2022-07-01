@@ -56,6 +56,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
+import org.utbot.engine.pc.UtBvLiteral
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -348,6 +349,15 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun findStaticInstanceOrNull(id: ClassId): ObjectValue? = staticInstanceStorage[id]
 
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
+
+    data class EnumValueUpdate(val addr: UtAddrExpression, val value: UtExpression)
+
+    fun getEnumValueUpdates(type: RefType): List<EnumValueUpdate> {
+        return updates.stores
+            .filter {it.chunkDescriptor.type == type && it.index is UtAddrExpression }
+            .map { EnumValueUpdate(it.index as UtAddrExpression, it.value) }
+            .toList()
+    }
 }
 
 /**

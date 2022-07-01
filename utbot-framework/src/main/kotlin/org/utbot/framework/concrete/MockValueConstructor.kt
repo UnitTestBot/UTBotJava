@@ -1,8 +1,17 @@
 package org.utbot.framework.concrete
 
+import java.io.Closeable
+import java.lang.reflect.Field
+import java.lang.reflect.Modifier
+import java.util.IdentityHashMap
+import kotlin.reflect.KClass
+import org.mockito.Mockito
+import org.mockito.stubbing.Answer
+import org.objectweb.asm.Type
 import org.utbot.common.findField
 import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -37,15 +46,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
-import java.io.Closeable
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import kotlin.reflect.KClass
-import org.mockito.Mockito
-import org.mockito.stubbing.Answer
-import org.objectweb.asm.Type
-import org.utbot.common.withAccessibility
 
 /**
  * Constructs values (including mocks) from models.
@@ -63,6 +63,8 @@ class MockValueConstructor(
 ) : Closeable {
     private val classLoader: ClassLoader
         get() = utContext.classLoader
+
+    private val mockGetterProvider = MockGetterProvider(classLoader)
 
     val objectToModelCache: IdentityHashMap<Any, UtModel>
         get() {
@@ -172,19 +174,17 @@ class MockValueConstructor(
         model.fields.forEach { (field, fieldModel) ->
             val declaredField =
                 javaClass.findFieldOrNull(field.name) ?: error("Can't find field: $field for $javaClass")
-            val accessible = declaredField.isAccessible
-            declaredField.isAccessible = true
+            declaredField.withAccessibility {
+                val modifiersField = Field::class.java.getDeclaredField("modifiers")
+                modifiersField.isAccessible = true
 
-            val modifiersField = Field::class.java.getDeclaredField("modifiers")
-            modifiersField.isAccessible = true
-
-            val target = mockTarget(fieldModel) {
-                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), field.name)
+                val target = mockTarget(fieldModel) {
+                    FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), field.name)
+                }
+                val value = construct(fieldModel, target).value
+                val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
+                declaredField.set(instance, value)
             }
-            val value = construct(fieldModel, target).value
-            val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
-            declaredField.set(instance, value)
-            declaredField.isAccessible = accessible
         }
 
         return classInstance
@@ -249,7 +249,8 @@ class MockValueConstructor(
                 method.method,
                 instance,
                 values,
-                instrumentationContext
+                instrumentationContext,
+                mockGetterProvider
             )
         }
 
@@ -275,7 +276,8 @@ class MockValueConstructor(
             InstanceMockController(
                 mock.classId,
                 mock.instances.map { mockAndGet(it) },
-                mock.callSites.map { Type.getType(it.jClass).internalName }.toSet()
+                mock.callSites.map { Type.getType(it.jClass).internalName }.toSet(),
+                mockGetterProvider
             )
         }
     }
@@ -395,13 +397,7 @@ class MockValueConstructor(
         val fieldModel = directSetterModel.fieldModel
 
         val field = instance::class.java.findField(directSetterModel.fieldId.name)
-        val isAccessible = field.isAccessible
-
-        try {
-            //set field accessible to support protected or package-private direct setters
-            field.isAccessible = true
-
-            //prepare mockTarget for field if it is a mock
+        field.withAccessibility {
             val mockTarget = mockTarget(fieldModel) {
                 FieldMockTarget(
                     fieldModel.classId.name,
@@ -414,9 +410,6 @@ class MockValueConstructor(
             //construct and set the value
             val fieldValue = construct(fieldModel, mockTarget).value
             field.set(instance, fieldValue)
-        } finally {
-            //restore accessibility property of the field
-            field.isAccessible = isAccessible
         }
     }
 

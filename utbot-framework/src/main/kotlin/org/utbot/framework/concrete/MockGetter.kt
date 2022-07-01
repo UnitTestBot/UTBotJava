@@ -1,8 +1,6 @@
 package org.utbot.framework.concrete
 
-import java.lang.reflect.Method
 import java.util.IdentityHashMap
-import org.utbot.framework.plugin.api.util.signature
 
 /**
  * Class for getting mock objects in runtime.
@@ -46,18 +44,5 @@ object MockGetter {
     @JvmStatic
     fun checkCallSite(instanceType: String, callSite: String): Boolean {
         return callSites.getOrDefault(instanceType, emptySet()).contains(callSite)
-    }
-
-    fun updateCallSites(instanceType: String, instanceCallSites: Set<String>) {
-        callSites[instanceType] = instanceCallSites
-    }
-
-    fun updateMocks(obj: Any?, methodSignature: String, values: List<*>) {
-        val methodMocks = mocks.getOrPut(obj) { mutableMapOf() }
-        methodMocks[methodSignature] = MockContainer(values)
-    }
-
-    fun updateMocks(obj: Any?, method: Method, values: List<*>) {
-        updateMocks(obj, method.signature, values)
     }
 }

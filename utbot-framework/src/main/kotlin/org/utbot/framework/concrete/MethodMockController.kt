@@ -22,7 +22,8 @@ class MethodMockController(
     method: Method,
     val instance: Any?,
     mockedValues: List<Any?>,
-    instrumentationContext: InstrumentationContext
+    instrumentationContext: InstrumentationContext,
+    mockGetterProvider: MockGetterProvider
 ) : MockController {
     private val isMockField: Field
 
@@ -41,7 +42,7 @@ class MethodMockController(
         }
 
         if (method.returnType != Void.TYPE) {
-            MockGetter.updateMocks(instance, method, mockedValues)
+            mockGetterProvider.updateMocks(instance, method, mockedValues)
         }
     }
 

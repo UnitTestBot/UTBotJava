@@ -8,15 +8,16 @@ class InstanceMockController(
     clazz: ClassId,
     instances: List<Any?>,
     callSites: Set<String>,
+    private val mockGetterProvider: MockGetterProvider,
 ) : MockController {
     private val type = Type.getInternalName(clazz.jClass)
 
     init {
-        MockGetter.updateCallSites(type, callSites)
-        MockGetter.updateMocks(null, "$type.<init>", instances)
+        mockGetterProvider.updateCallSites(type, callSites)
+        mockGetterProvider.updateMocks(null, "$type.<init>", instances)
     }
 
     override fun close() {
-        MockGetter.updateCallSites(type, emptySet())
+        mockGetterProvider.updateCallSites(type, emptySet())
     }
 }

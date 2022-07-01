@@ -1,6 +1,7 @@
 package org.utbot.instrumentation.instrumentation.et
 
 import kotlin.reflect.KProperty
+import kotlin.reflect.jvm.isAccessible
 import org.utbot.framework.plugin.api.util.utContext
 
 /**
@@ -19,8 +20,10 @@ class RTSProvider(private val targetClassLoader: ClassLoader = utContext.classLo
     private inner class FieldDelegate<R>(
         fieldName: String
     ) {
-        private val field = rts.getField(fieldName).apply {
-            isAccessible = true
+        private val field by lazy {
+            rts.getField(fieldName).apply {
+                isAccessible = true
+            }
         }
         private var cache: R? = null
 
@@ -43,7 +46,9 @@ class RTSProvider(private val targetClassLoader: ClassLoader = utContext.classLo
 
     fun reset() {
         listOf(this::trace, this::traceCallId, this::counter, this::counterCallId).forEach { field ->
-            (field.getDelegate() as FieldDelegate<*>).reset()
+            (field.apply {
+                isAccessible = true
+            }.getDelegate() as FieldDelegate<*>).reset()
         }
     }
 

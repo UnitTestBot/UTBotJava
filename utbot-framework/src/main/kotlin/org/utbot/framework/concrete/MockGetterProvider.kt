@@ -12,11 +12,11 @@ import org.utbot.framework.plugin.api.util.signature
 class MockGetterProvider(classLoader: ClassLoader) {
     private val mockGetterClass = classLoader.loadClass(MockGetter::class.java.name)
 
-    private val callSites = mockGetterClass.getField("callSites").run {
+    private val callSites = mockGetterClass.getDeclaredField("callSites").run {
         withAccessibility { get(null) }
     } as HashMap<String, Set<String>>
 
-    private val mocks = mockGetterClass.getField("mocks").run {
+    private val mocks = mockGetterClass.getDeclaredField("mocks").run {
         withAccessibility { get(null) }
     } as IdentityHashMap<Any?, MutableMap<String, Any>>
 

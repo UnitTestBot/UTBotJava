@@ -15,7 +15,10 @@ object MockGetter {
     /**
      * Instance -> method -> list of values in the return order
      */
+    @JvmStatic
     private val mocks = IdentityHashMap<Any?, MutableMap<String, MockContainer>>()
+
+    @JvmStatic
     private val callSites = HashMap<String, Set<String>>()
 
     /**

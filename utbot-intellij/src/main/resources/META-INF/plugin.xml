@@ -6,7 +6,7 @@
     <vendor>utbot.org</vendor>
 
     <description>UnitTestBot plugin for IntelliJ IDEA for Java</description>
-    <version>2022.6-alpha</version>
+    <version>2022.7-beta</version>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
@@ -64,7 +64,7 @@
                 You can <a href="http://utbot.org">try the engine online</a> without installation.
                 <br />
                 <br />
-                Got ideas? Give us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava">GitHub page</a>
+                Got ideas? Let us know or become a contributor on our <a href="https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md">GitHub page</a>
                 <br />
                 <br />
                 Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.

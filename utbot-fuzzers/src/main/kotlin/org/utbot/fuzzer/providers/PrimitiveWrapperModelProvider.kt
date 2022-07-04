@@ -1,13 +1,13 @@
 package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.consumeAll
 import java.util.function.BiConsumer
@@ -20,7 +20,7 @@ object PrimitiveWrapperModelProvider: ModelProvider {
         StringConstantModelProvider
     )
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
         val primitiveWrapperTypesAsPrimitiveTypes = description.parametersMap
             .keys
             .asSequence()
@@ -39,7 +39,7 @@ object PrimitiveWrapperModelProvider: ModelProvider {
             return
         }
 
-        val constants = mutableMapOf<ClassId, MutableList<UtModel>>()
+        val constants = mutableMapOf<ClassId, MutableList<FuzzedValue>>()
         constantModels.generate(FuzzedMethodDescription(
             name = this::class.simpleName + " constant generation ",
             returnType = voidClassId,

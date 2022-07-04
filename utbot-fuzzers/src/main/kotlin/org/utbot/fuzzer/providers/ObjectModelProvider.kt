@@ -4,7 +4,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isPrimitive
@@ -12,10 +11,12 @@ import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.objectModelProviders
+import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import java.lang.reflect.Constructor
 import java.lang.reflect.Modifier
 import java.util.function.BiConsumer
@@ -43,8 +44,8 @@ class ObjectModelProvider : ModelProvider {
         this.modelProvider = objectModelProviders(idGenerator)
     }
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
-        val assembleModels = with(description) {
+    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+        val fuzzedValues = with(description) {
             parameters.asSequence()
                 .filterNot { it == stringClassId || it.isPrimitiveWrapper }
                 .flatMap { classId ->
@@ -77,9 +78,9 @@ class ObjectModelProvider : ModelProvider {
                 }
         }
 
-        assembleModels.forEach { assembleModel ->
-            description.parametersMap[assembleModel.classId]?.forEach { index ->
-                consumer.accept(index, assembleModel)
+        fuzzedValues.forEach { fuzzedValue ->
+            description.parametersMap[fuzzedValue.model.classId]?.forEach { index ->
+                consumer.accept(index, fuzzedValue)
             }
         }
     }
@@ -97,7 +98,7 @@ class ObjectModelProvider : ModelProvider {
             return javaConstructor.modifiers and Modifier.PUBLIC != 0
         }
 
-        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<UtModel>> {
+        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
             val fuzzedMethod = FuzzedMethodDescription(
                 executableId = constructorId,
                 concreteValues = this.concreteValues
@@ -105,7 +106,7 @@ class ObjectModelProvider : ModelProvider {
             return fuzz(fuzzedMethod, *modelProviders)
         }
 
-        private fun assembleModel(id: Int, constructorId: ConstructorId, params: List<UtModel>): UtAssembleModel {
+        private fun assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
             val instantiationChain = mutableListOf<UtStatementModel>()
             return UtAssembleModel(
                 id,
@@ -113,7 +114,9 @@ class ObjectModelProvider : ModelProvider {
                 "${constructorId.classId.name}${constructorId.parameters}#" + id.toString(16),
                 instantiationChain
             ).apply {
-                instantiationChain += UtExecutableCallModel(null, constructorId, params, this)
+                instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model }, this)
+            }.fuzzed {
+                summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
             }
         }
 

@@ -15,10 +15,6 @@ import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
 import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
-import org.utbot.intellij.plugin.ui.SarifReportNotifier
-import org.utbot.intellij.plugin.ui.TestsReportNotifier
-import org.utbot.intellij.plugin.ui.packageName
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.sarif.SarifReport
@@ -32,6 +28,7 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbServiceImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.JavaDirectoryService
@@ -63,6 +60,11 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.intellij.plugin.error.showErrorDialogLater
+import org.utbot.intellij.plugin.ui.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.SarifReportNotifier
+import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
+import org.utbot.intellij.plugin.ui.TestsReportNotifier
+import org.utbot.intellij.plugin.ui.packageName
 
 object TestGenerator {
     fun generateTests(model: GenerateTestsModel, testCases: Map<PsiClass, List<UtTestCase>>) {
@@ -82,7 +84,7 @@ object TestGenerator {
                 val classPackageName = if (model.testPackageName.isNullOrEmpty())
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
-                val testClass = createTestClass(srcClass, testDirectory, model.codegenLanguage) ?: continue
+                val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
                 val file = testClass.containingFile
 
                 addTestMethodsAndSaveReports(testClass, file, testCases, model)
@@ -132,7 +134,7 @@ object TestGenerator {
         }
     }
 
-    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, codegenLanguage: CodegenLanguage): PsiClass? {
+    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
         val testClassName = createTestClassName(srcClass)
         val aPackage = JavaDirectoryService.getInstance().getPackage(testDirectory)
 
@@ -143,19 +145,25 @@ object TestGenerator {
             // findClassByShortName() may return two identical objects.
             // Be careful, do not use singleOrNull() here, because it expects
             // the array to contain strictly one element and otherwise returns null.
-            aPackage.findClassByShortName(testClassName, scope)
-                .firstOrNull {
-                    when (codegenLanguage) {
-                        CodegenLanguage.JAVA ->  it !is KtUltraLightClass
-                        CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+            var testClass: PsiClass? = null
+
+            // runWhenSmart to avoid IndexNotReadyException
+            DumbServiceImpl(model.project).runWhenSmart {
+                testClass = aPackage.findClassByShortName(testClassName, scope)
+                    .firstOrNull {
+                        when (model.codegenLanguage) {
+                            CodegenLanguage.JAVA -> it !is KtUltraLightClass
+                            CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                        }
                     }
-                }?.let {
-                    return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
-                }
+            }
+            testClass?.let {
+                return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
+            }
         }
 
         val fileTemplate = FileTemplateManager.getInstance(testDirectory.project).getInternalTemplate(
-            when (codegenLanguage) {
+            when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
             }
@@ -317,6 +325,8 @@ object TestGenerator {
         VfsUtil.createDirectories(parent.toString())
         resultedReportedPath.toFile().writeText(testsCodeWithTestReport.testsGenerationReport.getFileContent())
 
+        processInitialWarnings(testsCodeWithTestReport, model)
+
         val notifyMessage = buildString {
             appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString())
             appendHtmlLine()
@@ -334,7 +344,38 @@ object TestGenerator {
             """.trimIndent()
             appendHtmlLine(savedFileMessage)
         }
-        TestsReportNotifier.notify(notifyMessage)
+        TestsReportNotifier.notify(notifyMessage, model.project, model.testModule)
+    }
+
+    private fun processInitialWarnings(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
+        val hasInitialWarnings = model.forceMockHappened || model.hasTestFrameworkConflict
+        if (!hasInitialWarnings) {
+            return
+        }
+
+        testsCodeWithTestReport.testsGenerationReport.apply {
+            summaryMessage = { "Unit tests for $classUnderTest were generated with warnings.<br>" }
+
+            if (model.forceMockHappened) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
+                """.trimIndent()
+                }
+            }
+            if (model.hasTestFrameworkConflict) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: There are several test frameworks in the project. 
+                    To select run configuration, please refer to the documentation depending on the project build system:
+                     <a href=" https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests">Gradle</a>, 
+                     <a href=" https://maven.apache.org/surefire/maven-surefire-plugin/examples/providers.html">Maven</a> 
+                     or <a href=" https://www.jetbrains.com/help/idea/run-debug-configuration.html#compound-configs">Idea</a>.
+                """.trimIndent()
+                }
+            }
+        }
     }
 
     @Suppress("unused")

@@ -6,7 +6,6 @@ import org.utbot.common.FileUtil.findAllFilesOnly
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.replaceSeparator
 import org.utbot.common.tryLoadClass
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.sarif.util.ClassUtil
 import org.utbot.framework.plugin.sarif.TargetClassWrapper
 import java.io.File
@@ -97,33 +96,22 @@ class SourceSetWrapper(
 
     /**
      * Creates and returns a file for a future SARIF report.
-     * For example, ".../main/com/qwerty/MainReport.sarif".
+     * For example, ".../com/qwerty/MainReport.sarif".
      */
     private fun createSarifReportFile(classFqn: String): File {
-        val relativePath = "${sourceSet.name}/${classFqnToPath(classFqn)}Report.sarif"
+        val relativePath = "${classFqnToPath(classFqn)}Report.sarif"
         val absolutePath = Paths.get(parentProject.generatedSarifDirectory.path, relativePath)
         return absolutePath.toFile().apply { createNewFileWithParentDirectories() }
     }
 
     /**
      * Creates and returns a file for future generated tests.
-     * For example, ".../java/main/com/qwerty/MainTest.java".
+     * For example, ".../com/qwerty/MainTest.java".
      */
     private fun createTestsCodeFile(classFqn: String): File {
         val fileExtension = parentProject.sarifProperties.codegenLanguage.extension
-        val sourceRoot = parentProject.sarifProperties.codegenLanguage.toSourceRootName()
-        val relativePath = "$sourceRoot/${sourceSet.name}/${classFqnToPath(classFqn)}Test$fileExtension"
+        val relativePath = "${classFqnToPath(classFqn)}Test$fileExtension"
         val absolutePath = Paths.get(parentProject.generatedTestsDirectory.path, relativePath)
         return absolutePath.toFile().apply { createNewFileWithParentDirectories() }
     }
-
-    /**
-     * Returns the source root name by [CodegenLanguage].
-     */
-    private fun CodegenLanguage.toSourceRootName(): String =
-        when (this) {
-            CodegenLanguage.JAVA -> "java"
-            CodegenLanguage.KOTLIN -> "kotlin"
-            else -> "unknown"
-        }
 }

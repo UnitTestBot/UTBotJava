@@ -1,10 +1,10 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import java.util.function.BiConsumer
 
@@ -13,23 +13,25 @@ import java.util.function.BiConsumer
  */
 object ConstantsModelProvider : ModelProvider {
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
         description.concreteValues
             .asSequence()
             .filter { (classId, _) -> classId.isPrimitive }
             .forEach { (_, value, op) ->
-                sequenceOf(value, modifyValue(value, op))
+                sequenceOf(
+                    UtPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
+                    modifyValue(value, op)
+                )
                     .filterNotNull()
-                    .map(::UtPrimitiveModel)
-                    .forEach { model ->
-                        description.parametersMap.getOrElse(model.classId) { emptyList() }.forEach { index ->
-                            consumer.accept(index, model)
+                    .forEach { m ->
+                        description.parametersMap.getOrElse(m.model.classId) { emptyList() }.forEach { index ->
+                            consumer.accept(index, m)
                         }
                     }
         }
     }
 
-    private fun modifyValue(value: Any, op: FuzzedOp): Any? {
+    private fun modifyValue(value: Any, op: FuzzedOp): FuzzedValue? {
         if (!op.isComparisonOp()) return null
         val multiplier = if (op == FuzzedOp.LT || op == FuzzedOp.GE) -1 else 1
         return when(value) {
@@ -42,6 +44,10 @@ object ConstantsModelProvider : ModelProvider {
             is Float -> value + multiplier.toDouble()
             is Double -> value + multiplier.toDouble()
             else -> null
-        }
+        }?.let { UtPrimitiveModel(it).fuzzed { summary = "%var% ${
+            (if (op == FuzzedOp.EQ || op == FuzzedOp.LE || op == FuzzedOp.GE) {
+                op.reverseOrNull() ?: error("cannot find reverse operation for $op")
+            } else op).sign
+        } $value" } }
     }
 }

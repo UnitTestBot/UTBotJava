@@ -1,6 +1,7 @@
 package org.utbot.intellij.plugin.ui
 
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.notification.Notification
 import com.intellij.notification.NotificationDisplayType
 import com.intellij.notification.NotificationGroup
 import com.intellij.notification.NotificationListener
@@ -11,12 +12,14 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.GotItMessage
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.JBFont
 import java.awt.Point
+import javax.swing.event.HyperlinkEvent
 
 abstract class Notifier {
     protected abstract val notificationType: NotificationType
@@ -76,6 +79,7 @@ object UnsupportedTestFrameworkNotifier : ErrorNotifier() {
 abstract class UrlNotifier : Notifier() {
 
     protected abstract val titleText: String
+    protected abstract val urlOpeningListener: NotificationListener
 
     override fun notify(info: String, project: Project?, module: Module?) {
         notificationGroup
@@ -83,7 +87,7 @@ abstract class UrlNotifier : Notifier() {
                 titleText,
                 content(project, module, info),
                 notificationType,
-                NotificationListener.UrlOpeningListener(false)
+                urlOpeningListener,
             ).notify(project)
     }
 }
@@ -98,6 +102,8 @@ object SarifReportNotifier : InformationUrlNotifier() {
 
     override val titleText: String = "" // no title
 
+    override val urlOpeningListener: NotificationListener = NotificationListener.UrlOpeningListener(false)
+
     override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
@@ -106,7 +112,54 @@ object TestsReportNotifier : InformationUrlNotifier() {
 
     override val titleText: String = "Report of the unit tests generation via UtBot"
 
-    override fun content(project: Project?, module: Module?, info: String): String = info
+    override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener()
+
+    override fun content(project: Project?, module: Module?, info: String): String {
+        // Remember last project and module to use them for configurations.
+        urlOpeningListener.project = project
+        urlOpeningListener.module = module
+        return info
+    }
+}
+
+/**
+ * Listener that handles URLs starting with [prefix], like "#utbot/configure-mockito".
+ *
+ * Current implementation
+ */
+class TestReportUrlOpeningListener: NotificationListener.Adapter() {
+    companion object {
+        const val prefix = "#utbot/"
+        const val mockitoSuffix = "configure-mockito"
+    }
+    private val defaultListener = NotificationListener.UrlOpeningListener(false)
+
+    // Last project and module to be able to use them when activated for configuration tasks.
+    var project: Project? = null
+    var module: Module? = null
+
+    override fun hyperlinkActivated(notification: Notification, e: HyperlinkEvent) {
+        val description = e.description
+        if (description.startsWith(prefix)) {
+            handleDescription(description.removePrefix(prefix))
+        } else {
+            return defaultListener.hyperlinkUpdate(notification, e)
+        }
+    }
+
+    private fun handleDescription(descriptionSuffix: String) {
+        when {
+            descriptionSuffix.startsWith(mockitoSuffix) -> {
+                project?.let { project -> module?.let { module ->
+                        if (createMockFrameworkNotificationDialog("Configure mock framework") == Messages.YES) {
+                            configureMockFramework(project, module)
+                        }
+                    } ?: error("Could not configure mock framework: module is null for project $project")
+                } ?: error("Could not configure mock framework: project is null")
+            }
+            else -> error("No such command with #utbot prefix: $descriptionSuffix")
+        }
+    }
 }
 
 object GotItTooltipActivity : StartupActivity {
@@ -119,7 +172,7 @@ object GotItTooltipActivity : StartupActivity {
             val shortcutText = KeymapUtil.getShortcutText(shortcut)
             val message = GotItMessage.createMessage("UTBot is ready!",
                 "<div style=\"font-size:${JBFont.label().biggerOn(2.toFloat()).size}pt;\">" +
-                        "You can get test coverage for methods, Java classes<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
+                        "You can get test coverage for methods, Java classes,<br>and even for whole source roots<br> with <b>$shortcutText</b></div>")
             message.setCallback { PropertiesComponent.getInstance().setValue(KEY, true) }
             WindowManager.getInstance().getFrame(project)?.rootPane?.let {
                 message.show(RelativePoint(it, Point(it.width, it.height)), Balloon.Position.above)

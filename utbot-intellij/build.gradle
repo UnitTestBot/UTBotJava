@@ -20,8 +20,6 @@ buildscript {
 }
 
 dependencies {
-    api project(':utbot-summary')
-    api project(':utbot-analytics')
     api ('com.esotericsoftware:kryo:5.1.1')
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version

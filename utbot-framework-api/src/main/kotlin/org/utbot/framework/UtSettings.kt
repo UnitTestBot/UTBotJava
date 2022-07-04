@@ -115,6 +115,11 @@ object UtSettings {
     var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
 
     /**
+     * Type of [StateRewardPredictor]
+     */
+    var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
+
+    /**
      * Steps limit for path selector.
      */
     var pathSelectorStepsLimit by getIntProperty(3500)
@@ -275,6 +280,14 @@ object UtSettings {
     )
 
     /**
+     * Determines whether should errors from a child process be written to a log file or suppressed.
+     * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
+     *
+     * False by default (for saving disk space).
+     */
+    var logConcreteExecutionErrors by getBooleanProperty(false)
+
+    /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
      */
     var numberOfBranchInstructionsForClustering by getIntProperty(4)
@@ -413,4 +426,24 @@ enum class NNRewardGuidedSelectorType {
      * [NNRewardGuidedSelectorWithoutRecalculation]
      */
     WITHOUT_RECALCULATION
+}
+
+/**
+ * Enum to specify [StateRewardPredictor], see implementations for details
+ */
+enum class StateRewardPredictorType {
+    /**
+     * [NNStateRewardPredictorBase]
+     */
+    BASE,
+
+    /**
+     * [StateRewardPredictorTorch]
+     */
+    TORCH,
+
+    /**
+     * [NNStateRewardPredictorBase]
+     */
+    LINEAR
 }

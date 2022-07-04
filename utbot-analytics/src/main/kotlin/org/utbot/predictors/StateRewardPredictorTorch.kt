@@ -6,11 +6,12 @@ import ai.djl.ndarray.NDArray
 import ai.djl.ndarray.NDList
 import ai.djl.translate.Translator
 import ai.djl.translate.TranslatorContext
+import org.utbot.analytics.StateRewardPredictor
 import org.utbot.framework.UtSettings
 import java.io.Closeable
 import java.nio.file.Paths
 
-class NNStateRewardPredictorTorch : NNStateRewardPredictor, Closeable {
+class StateRewardPredictorTorch : StateRewardPredictor, Closeable {
     val model: Model = Model.newInstance("model")
 
     init {

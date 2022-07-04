@@ -6,7 +6,6 @@ import org.utbot.common.workaround
 import org.utbot.examples.AbstractTestCaseGeneratorTest
 import org.utbot.examples.CoverageMatcher
 import org.utbot.examples.DoNotCalculate
-import org.utbot.framework.UtSettings.checkNpeForFinalFields
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -96,11 +95,11 @@ open class SummaryTestCaseGeneratorTest(
             checkSolverTimeoutMillis = 0
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true
-            checkNpeForFinalFields = true
         }
         val utMethod = UtMethod.from(method)
         val testCase = executionsModel(utMethod, mockStrategy)
         testCase.summarize(searchDirectory)
+
         testCase.executions.checkMatchersWithTextSummary(summaryKeys)
         testCase.executions.checkMatchersWithMethodNames(methodNames)
         testCase.executions.checkMatchersWithDisplayNames(displayNames)

@@ -1,7 +1,3 @@
-plugins {
-  id 'maven-publish'
-}
-
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 repositories {
@@ -12,20 +8,17 @@ repositories {
 
 configurations {
     z3native
-    fetchInstrumentationJar
 }
 
 dependencies {
-    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 
     api project(':utbot-core')
+    api project(':utbot-instrumentation')
     api project(':utbot-summary')
     implementation 'junit:junit:4.13.1'
     api project(':utbot-framework-api')
 
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
-
-    api group: 'com.google.guava', name: 'guava', version: guava_version
 
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmt_solver_z3_version
@@ -37,7 +30,6 @@ dependencies {
     // we need this for construction mocks from composite models
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     api project(':utbot-api')
-    api project(':utbot-instrumentation')
     api project(':utbot-fuzzers')
 
     testImplementation project(':utbot-summary')
@@ -52,6 +44,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     testImplementation group: 'org.testng', name: 'testng', version: testng_version
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
+    testImplementation group: 'com.google.guava', name: 'guava', version: guava_version
 
     testCompile group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
     testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
@@ -67,28 +60,10 @@ processResources {
             into "lib/x64"
         }
     }
-
-    // We will extract this jar in `ChildProcessRunner` class.
-    from(configurations.fetchInstrumentationJar) {
-        into "instrumentation-lib"
-    }
 }
 
 test {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }
-}
-
-publishing {
-  repositories {
-    maven {
-      name = "GitHubPackages"
-      url = "https://maven.pkg.github.com/UnitTestBot/UTBotJava"
-      credentials {
-        username = System.getenv("GITHUB_ACTOR")
-        password = System.getenv("GITHUB_TOKEN")
-      }
-    }
-  }
 }

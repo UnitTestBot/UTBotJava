@@ -186,7 +186,12 @@ data class TestsGenerationReport(
     var errors: MutableMap<UtMethod<*>, ErrorsCount> = mutableMapOf()
 ) {
     val classUnderTest: KClass<*>
-        get() = executables.firstOrNull()?.clazz ?: error("No executables found in test report")
+        get() = executables.firstOrNull()?.clazz
+            ?: error("No executables found in test report")
+
+    // Summary message is generated lazily to avoid evaluation of classUnderTest
+    var summaryMessage: () -> String = { "Unit tests for $classUnderTest were generated successfully." }
+    val initialWarnings: MutableList<() -> String> = mutableListOf()
 
     fun addMethodErrors(testCase: UtTestCase, errors: Map<String, Int>) {
         this.errors[testCase.method] = errors
@@ -212,7 +217,11 @@ data class TestsGenerationReport(
     }
 
     override fun toString(): String = buildString {
-        appendHtmlLine("Unit tests for $classUnderTest were generated successfully.")
+        appendHtmlLine(summaryMessage())
+        appendHtmlLine()
+        initialWarnings.forEach { appendHtmlLine(it()) }
+        appendHtmlLine()
+
         val testMethodsStatistic = executables.map { it.countTestMethods() }
         val errors = executables.map { it.countErrors() }
         val overallTestMethods = testMethodsStatistic.sumBy { it.count }

@@ -1,10 +1,10 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import java.util.function.BiConsumer
 
@@ -12,7 +12,7 @@ import java.util.function.BiConsumer
  * Collects all char constants and creates string with them.
  */
 object CharToStringModelProvider : ModelProvider {
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
         val indices = description.parametersMap[stringClassId] ?: return
         if (indices.isNotEmpty()) {
             val string = description.concreteValues.asSequence()
@@ -21,7 +21,7 @@ object CharToStringModelProvider : ModelProvider {
                 .filterIsInstance<Char>()
                 .joinToString(separator = "")
             if (string.isNotEmpty()) {
-                val model = UtPrimitiveModel(string)
+                val model = UtPrimitiveModel(string).fuzzed()
                 indices.forEach {
                     consumer.accept(it, model)
                 }

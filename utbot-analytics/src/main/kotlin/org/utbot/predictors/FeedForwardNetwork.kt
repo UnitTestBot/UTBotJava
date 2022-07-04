@@ -1,5 +1,6 @@
 package org.utbot.predictors
 
+import org.utbot.predictors.util.ModelBuildingException
 import smile.math.matrix.Matrix
 import kotlin.math.max
 
@@ -26,7 +27,7 @@ internal fun buildModel(nnJson: NNJson): FeedForwardNetwork {
             operations.add {
                 when (nnJson.activationLayers[i]) {
                     ActivationFunctions.ReLU -> reLU(it)
-                    else -> error("Unsupported activation")
+                    else -> throw ModelBuildingException("Unsupported activation")
                 }
             }
         }

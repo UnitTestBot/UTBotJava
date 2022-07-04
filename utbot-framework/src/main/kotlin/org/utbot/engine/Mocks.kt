@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
 import kotlinx.collections.immutable.persistentListOf
+import org.utbot.engine.util.mockListeners.MockListenerController
 import soot.BooleanType
 import soot.RefType
 import soot.Scene
@@ -133,7 +134,8 @@ class Mocker(
     private val strategy: MockStrategy,
     private val classUnderTest: ClassId,
     private val hierarchy: Hierarchy,
-    chosenClassesToMockAlways: Set<ClassId>
+    chosenClassesToMockAlways: Set<ClassId>,
+    internal val mockListenerController: MockListenerController? = null,
 ) {
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
@@ -165,6 +167,11 @@ class Mocker(
      */
     fun shouldMock(
         type: RefType,
+        mockInfo: UtMockInfo,
+    ): Boolean = checkIfShouldMock(type, mockInfo).also { if (it) mockListenerController?.onShouldMock(strategy) }
+
+    private fun checkIfShouldMock(
+        type: RefType,
         mockInfo: UtMockInfo
     ): Boolean {
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
@@ -177,9 +184,13 @@ class Mocker(
         if (mockAlways(type)) return true // always mock randoms and loggers
         if (mockInfo is UtFieldMockInfo) {
             val declaringClass = mockInfo.fieldId.declaringClass
+            val sootDeclaringClass = Scene.v().getSootClass(declaringClass.name)
 
-            if (Scene.v().getSootClass(declaringClass.name).isArtificialEntity) {
-                return false // see BaseStreamExample::minExample for an example; cannot load java class for such class
+            if (sootDeclaringClass.isArtificialEntity || sootDeclaringClass.isOverridden) {
+                // Cannot load Java class for artificial classes, see BaseStreamExample::minExample for an example.
+                // Wrapper classes that override system classes ([org.utbot.engine.overrides] package) are also
+                // unavailable to the [UtContext] class loader used by the plugin.
+                return false
             }
 
             return when {

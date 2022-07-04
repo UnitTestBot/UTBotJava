@@ -6,15 +6,17 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
@@ -75,6 +77,7 @@ import org.utbot.engine.pc.mkBVConst
 import org.utbot.engine.pc.mkBoolConst
 import org.utbot.engine.pc.mkChar
 import org.utbot.engine.pc.mkEq
+import org.utbot.engine.pc.mkFalse
 import org.utbot.engine.pc.mkFpConst
 import org.utbot.engine.pc.mkInt
 import org.utbot.engine.pc.mkNot
@@ -103,6 +106,8 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.util.mockListeners.MockListener
+import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
 import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
@@ -111,6 +116,7 @@ import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.UtSettings.checkNpeForFinalFields
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.enableFeatureProcess
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
@@ -155,6 +161,8 @@ import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.names.MethodBasedNameSuggester
+import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.instrumentation.ConcreteExecutor
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
@@ -248,6 +256,7 @@ import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
+import soot.tagkit.ParamNamesTag
 import soot.toolkits.graph.ExceptionalUnitGraph
 import sun.reflect.Reflection
 import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
@@ -330,7 +339,7 @@ class UtBotSymbolicEngine(
 
     private val classUnderTest: ClassId = methodUnderTest.clazz.id
 
-    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways)
+    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways, MockListenerController(controller))
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
@@ -541,6 +550,10 @@ class UtBotSymbolicEngine(
                             } else {
                                 traverseStmt(currentStmt)
                             }
+
+                            // Here job can be cancelled from within traverse, e.g. by using force mocking without Mockito.
+                            // So we need to make it throw CancelledException by method below:
+                            currentCoroutineContext().job.ensureActive()
                         } catch (ex: Throwable) {
                             environment.state.close()
 
@@ -598,12 +611,16 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph))
+        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
+            compilableName = if (methodUnderTest.isMethod) executableId.name else null
+            val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
+            parameterNameMap = { index -> names?.getOrNull(index) }
+        }
         val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = mutableSetOf<Instruction>()
         var attempts = UtSettings.fuzzingMaxAttemps
-        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEachIndexed { index, parameters ->
-            val initialEnvironmentModels = EnvironmentModels(thisInstance, parameters, mapOf())
+        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
+            val initialEnvironmentModels = EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
 
             try {
                 val concreteExecutionResult =
@@ -624,6 +641,14 @@ class UtBotSymbolicEngine(
                     }
                 }
 
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
+                    null
+                }
+
                 emit(
                     UtExecution(
                         stateBefore = initialEnvironmentModels,
@@ -633,7 +658,8 @@ class UtBotSymbolicEngine(
                         path = mutableListOf(),
                         fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
-                        testMethodName = if (methodUnderTest.isMethod) "test${methodUnderTest.callable.name.capitalize()}ByFuzzer${index}" else null
+                        testMethodName = testMethodName?.testName,
+                        displayName = testMethodName?.displayName
                     )
                 )
             } catch (e: CancellationException) {
@@ -2191,8 +2217,15 @@ class UtBotSymbolicEngine(
         val chunkId = hierarchy.chunkIdForField(objectType, field)
         val createdField = createField(objectType, addr, field.type, chunkId, mockInfoGenerator)
 
-        if (field.type is RefLikeType && field.shouldBeNotNull()) {
-            queuedSymbolicStateUpdates += mkNot(mkEq(createdField.addr, nullObjectAddr)).asHardConstraint()
+        if (field.type is RefLikeType) {
+            if (field.shouldBeNotNull()) {
+                queuedSymbolicStateUpdates += mkNot(mkEq(createdField.addr, nullObjectAddr)).asHardConstraint()
+            }
+
+            // See docs/SpeculativeFieldNonNullability.md for details
+            if (field.isFinal && field.declaringClass.isLibraryClass && !checkNpeForFinalFields) {
+                markAsSpeculativelyNotNull(createdField.addr)
+            }
         }
 
         return createdField
@@ -2362,6 +2395,10 @@ class UtBotSymbolicEngine(
         queuedSymbolicStateUpdates += MemoryUpdate(touchedAddresses = persistentListOf(addr))
     }
 
+    private fun markAsSpeculativelyNotNull(addr: UtAddrExpression) {
+        queuedSymbolicStateUpdates += MemoryUpdate(speculativelyNotNullAddresses = persistentListOf(addr))
+    }
+
     /**
      * Add a memory update to reflect that a field was read.
      *
@@ -2520,6 +2557,8 @@ class UtBotSymbolicEngine(
             )
         )
     }
+
+    fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
 
     private fun staticInvoke(invokeExpr: JStaticInvokeExpr): List<MethodResult> {
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
@@ -3280,9 +3319,11 @@ class UtBotSymbolicEngine(
     private fun nullPointerExceptionCheck(addr: UtAddrExpression) {
         val canBeNull = addrEq(addr, nullObjectAddr)
         val canNotBeNull = mkNot(canBeNull)
+        val notMarked = mkEq(memory.isSpeculativelyNotNull(addr), mkFalse())
+        val notMarkedAndNull = mkAnd(notMarked, canBeNull)
 
         if (environment.method.checkForNPE(environment.state.executionStack.size)) {
-            implicitlyThrowException(NullPointerException(), setOf(canBeNull))
+            implicitlyThrowException(NullPointerException(), setOf(notMarkedAndNull))
         }
 
         queuedSymbolicStateUpdates += canNotBeNull.asHardConstraint()

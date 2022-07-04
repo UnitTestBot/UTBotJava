@@ -23,6 +23,9 @@ import com.intellij.codeInsight.FileModificationService
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
@@ -41,8 +44,10 @@ import com.intellij.util.IncorrectOperationException
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.io.exists
 import com.siyeh.ig.psiutils.ImportUtils
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
@@ -56,7 +61,10 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.error.showErrorDialogLater
+import org.utbot.intellij.plugin.generator.TestGenerator.Target.*
 import org.utbot.intellij.plugin.ui.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
@@ -106,9 +114,9 @@ object TestGenerator {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
             }
         }
-        run(Target.READ_ACTION) {
+        run(READ_ACTION) {
             val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
-            run(Target.THREAD_POOL) {
+            run(THREAD_POOL) {
                 waitForCountDown(latch, model, sarifReportsPath)
             }
         }

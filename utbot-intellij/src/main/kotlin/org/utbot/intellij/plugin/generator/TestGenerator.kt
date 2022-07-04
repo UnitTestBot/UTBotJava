@@ -151,7 +151,9 @@ object TestGenerator {
                 }
             }.get()
 
-            return if (FileModificationService.getInstance().preparePsiElementForWrite(testClass)) testClass else null
+            testClass?.let {
+                return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
+            }
         }
 
         val fileTemplate = FileTemplateManager.getInstance(testDirectory.project).getInternalTemplate(

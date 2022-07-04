@@ -206,7 +206,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         val kek = Lifetime.Eternal
         println(kek.hashCode())
         restartIfNeeded()
-        sendCommand(Command.WarmupCommand())
+        sendCommand(Command.WarmupCommand)
     }
 
     /**
@@ -378,7 +378,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         if (!process.isAlive) {
             return
         }
-        logger.catch { kryoHelper.writeCommand(nextCommandId++, Command.StopProcessCommand()) }
+        logger.catch { kryoHelper.writeCommand(nextCommandId++, Command.StopProcessCommand) }
         logger.catch { kryoHelper.close() }
 
         logger.catch { receiveChannel.close() }

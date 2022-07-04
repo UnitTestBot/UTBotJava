@@ -23,8 +23,10 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import org.utbot.instrumentation.util.JsonSubtypeRegistration
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
+import kotlin.reflect.KClass
 import kotlin.reflect.jvm.javaMethod
 
 object UtConcreteExecutionResultSerializer : KSerializer<UtConcreteExecutionResult> {
@@ -143,7 +145,9 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val pathsToUserClasses = mutableSetOf<String>()
 
     init {
-
+        JsonSubtypeRegistration.instrumentationPolymorphicSubclasses.add {
+            subclass(UtExecutionInstrumentation::class, UtExecutionInstrumentationSerializer)
+        }
     }
 
     override fun init(pathsToUserClasses: Set<String>) {

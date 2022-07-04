@@ -18,7 +18,7 @@ sealed class Command() {
      * The child process sends this command to the main process to indicate readiness.
      */
     @Serializable
-    class ProcessReadyCommand : Command()
+    object ProcessReadyCommand : Command()
 
     /**
      * The main process tells where the child process should search for the classes.
@@ -64,7 +64,7 @@ sealed class Command() {
      * Warmup - load classes from classpath and instrument them
      */
     @Serializable
-    class WarmupCommand() : Command()
+    object WarmupCommand : Command()
 
     /**
      * The child process sends this command if unexpected exception was thrown.
@@ -83,7 +83,7 @@ sealed class Command() {
      * This command tells the child process to stop.
      */
     @Serializable
-    class StopProcessCommand : Command()
+    object StopProcessCommand : Command()
 
     /**
      * [org.utbot.instrumentation.ConcreteExecutor] can send other commands depending on specific instrumentation.

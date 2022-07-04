@@ -14,7 +14,9 @@ import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.PolymorphicModuleBuilder
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 import mu.KotlinLogging
 import org.objenesis.instantiator.ObjectInstantiator
 import org.objenesis.strategy.StdInstantiatorStrategy
@@ -26,22 +28,28 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.lang.reflect.InvocationHandler
 import java.util.*
-import kotlinx.serialization.modules.*
+import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger("kryo logger")
 var shouldLog = true
 
-object JsonSubtypeRegistrator {
-    private val
+object JsonSubtypeRegistration {
+    val instrumentationPolymorphicSubclasses = mutableListOf<PolymorphicModuleBuilder<Instrumentation<*>>.() -> Unit>()
 }
 
 var customJson = Json {
+    allowStructuredMapKeys = true
     serializersModule = SerializersModule {
         polymorphic(Instrumentation::class) {
-                subclass(UtExecutionInstrumentation::)
+            JsonSubtypeRegistration.instrumentationPolymorphicSubclasses.forEach { it() }
         }
     }
 }
+
+val counter = AtomicInteger(0)
+val success = AtomicInteger(0)
+val notEqual = AtomicInteger(0)
+val stackOverflow = AtomicInteger(0)
 
 /**
  * Helpful class for working with the kryo.
@@ -67,32 +75,38 @@ class KryoHelper internal constructor(
         return receiveKryo.readObject(kryoInput, Long::class.java)
     }
 
-    private data class KotlinxTestResult(val serializeResult: Boolean, val deserializeResult: Boolean = false, val isEqual: Boolean = false)
+    private data class KotlinxTestResult(
+        val serializeResult: Boolean,
+        val deserializeResult: Boolean = false,
+        val isEqual: Boolean = false
+    )
 
     private fun testKotlinx(cmd: Command): KotlinxTestResult {
         val serialized: String
 
         try {
-            serialized = Json.encodeToString(cmd)
+            serialized = customJson.encodeToString(cmd)
+        }
+        catch (e: StackOverflowError) {
+            stackOverflow.incrementAndGet()
+            return KotlinxTestResult(false)
         }
         catch (e: Throwable) {
-            logger.error(e) {"serialization failed"}
+//            logger.error(e) { "serialization failed" }
             return KotlinxTestResult(false)
         }
 
         val deserialized: Command
 
         try {
-            deserialized = Json.decodeFromString(serialized)
-        }
-        catch (e: Throwable) {
+            deserialized = customJson.decodeFromString(serialized)
+        } catch (e: Throwable) {
             return KotlinxTestResult(serializeResult = true, deserializeResult = false)
         }
 
         try {
             return KotlinxTestResult(serializeResult = true, deserializeResult = true, isEqual = cmd == deserialized)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             return KotlinxTestResult(serializeResult = true, deserializeResult = true, isEqual = false)
         }
     }
@@ -100,8 +114,17 @@ class KryoHelper internal constructor(
     private fun reportKotlinx(cmd: Command) {
         if (shouldLog) {
             logger.info {
+                counter.incrementAndGet()
                 val (serializeResult, deserializeResult, isEqual) = testKotlinx(cmd)
-                "Kotlinx.serialization result of $cmd:\nserialize - $serializeResult, deserialize - $deserializeResult, equality - $isEqual"
+                if (serializeResult && deserializeResult && isEqual)
+                    success.incrementAndGet()
+
+                if (serializeResult && deserializeResult && !isEqual)
+                    notEqual.incrementAndGet()
+
+                "Kotlinx.serialization result of $cmd:\nserialize - $serializeResult, deserialize - $deserializeResult, equality - $isEqual\n" +
+                        "all - ${counter.get()}, success - ${success.get()}, notEqual - ${notEqual.get()}\n" +
+                        "stackOverflow - ${stackOverflow.get()}"
             }
         }
     }

@@ -462,7 +462,8 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val methodName5 = "testInnerReturnCallCompare_ALessThanB"
         val methodName6 = "testInnerReturnCallCompare_AGreaterOrEqualB"
 
-        val displayName1 = "b < 0 : True -> return a" // TODO: the same display names for many tests with different test names
+        val displayName1 =
+            "b < 0 : True -> return a" // TODO: the same display names for many tests with different test names
         val displayName2 = "a > b : True -> return b"
         val displayName3 = "b == 10 : True -> return c"
         val displayName4 = "a < 0 : False -> return a"

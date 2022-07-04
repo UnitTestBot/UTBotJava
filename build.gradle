@@ -1,3 +1,5 @@
+import org.cqfn.diktat.plugin.gradle.DiktatJavaExecTaskBase
+
 group 'org.utbot'
 
 apply plugin: 'java'
@@ -41,6 +43,13 @@ subprojects {
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }
+    }
+
+    /*
+     * A workaround for <https://github.com/saveourtool/diktat/issues/1269>.
+     */
+    tasks.withType(DiktatJavaExecTaskBase).configureEach {
+        systemProperty("user.home", rootDir.toString())
     }
 }
 

@@ -11,10 +11,15 @@ import kotlin.reflect.KProperty
 private val logger = KotlinLogging.logger {}
 
 /**
+ * Path to the utbot home folder.
+ */
+internal val utbotHomePath = "${System.getProperty("user.home")}/.utbot"
+
+/**
  * Default path for properties file
  */
-internal val defaultSettingsPath = "${System.getProperty("user.home")}/.utbot/settings.properties"
-internal const val defaultKeyForSettingsPath = "utbot.settings.path"
+private val defaultSettingsPath = "$utbotHomePath/settings.properties"
+private const val defaultKeyForSettingsPath = "utbot.settings.path"
 
 internal class SettingDelegate<T>(val initializer: () -> T) {
     private var value = initializer()

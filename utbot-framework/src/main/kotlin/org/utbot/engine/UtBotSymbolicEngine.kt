@@ -106,6 +106,7 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.mockListeners.MockListener
 import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
@@ -2249,10 +2250,10 @@ class UtBotSymbolicEngine(
      * Marks the [createdField] as speculatively not null if the [field] is considering as
      * not producing [NullPointerException].
      *
-     * @see [SootField.speculativelyCannotProduceNullPointerException], [markAsSpeculativelyNotNull]
+     * @see [SootField.speculativelyCannotProduceNullPointerException], [markAsSpeculativelyNotNull], [isFromTrustedLibrary].
      */
     private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
-        if (maximizeCoverageUsingReflection || !field.declaringClass.isLibraryClass) {
+        if (maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()) {
             return
         }
 

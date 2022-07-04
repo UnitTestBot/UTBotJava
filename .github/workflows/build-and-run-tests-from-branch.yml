@@ -14,41 +14,62 @@ jobs:
       run: |
         set -x
         apt update
-        apt install -y unzip fonts-dejavu fontconfig
+        apt install -y unzip fonts-dejavu fontconfig wget zip unzip
 
     - uses: actions/checkout@v2
-    - uses: actions/setup-java@v2
-      with:
-        java-version: '8'
-        distribution: 'zulu'
-        java-package: jdk+fx
-        cache: gradle
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.8
+
+    - name: Manual environment configuration
+      run: |
+        export GRADLE_VERSION=gradle-6.8
+        wget https://downloads.gradle-dn.com/distributions/${GRADLE_VERSION}-bin.zip -O /tmp/${GRADLE_VERSION}-bin.zip
+        unzip -d /opt/gradle /tmp/${GRADLE_VERSION}-bin.zip
+        export PATH="/opt/gradle/${GRADLE_VERSION}/bin:${PATH}"
+        export KOTLIN_COMPILER_VERSION=kotlin-compiler-1.6.21
+
+        wget https://github.com/JetBrains/kotlin/releases/download/v1.6.21/${KOTLIN_COMPILER_VERSION}.zip -O /tmp/${KOTLIN_COMPILER_VERSION}.zip
+        unzip -d /opt/kotlin /tmp/${KOTLIN_COMPILER_VERSION}.zip
+        export PATH="/opt/kotlin/kotlinc/bin:${PATH}"
         
+        export KOTLIN_HOME="/opt/kotlin/kotlinc/"
+
     - name: Build and run tests in UTBot Java
       run: |
-        export KOTLIN_HOME="/usr"
+#        export KOTLIN_HOME="/usr"
         gradle clean build --no-daemon
-        
-    - name: Upload utbot-framework logs
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
-      
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_tests_report
-        path: utbot-framework/build/reports/tests/test/*
-        
-    - name: Upload utbot-intellij tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_intellij_tests_report
-        path: utbot-intellij/build/reports/tests/test/*
+
+#    - uses: actions/checkout@v2
+#    - uses: actions/setup-java@v2
+#      with:
+#        java-version: '8'
+#        distribution: 'zulu'
+#        java-package: jdk+fx
+#        cache: gradle
+#    - uses: gradle/gradle-build-action@v2
+#      with:
+#        gradle-version: 6.8
+#
+#    - name: Build and run tests in UTBot Java
+#      run: |
+#        export KOTLIN_HOME="/usr"
+#        gradle clean build --no-daemon
+#
+#    - name: Upload utbot-framework logs
+#      if: ${{ always() }}
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: utbot_framework_logs
+#        path: utbot-framework/logs/*
+#
+#    - name: Upload utbot-framework tests report artifacts if tests have failed
+#      if: ${{ failure() }}
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: utbot_framework_tests_report
+#        path: utbot-framework/build/reports/tests/test/*
+#
+#    - name: Upload utbot-intellij tests report artifacts if tests have failed
+#      if: ${{ failure() }}
+#      uses: actions/upload-artifact@v2
+#      with:
+#        name: utbot_intellij_tests_report
+#        path: utbot-intellij/build/reports/tests/test/*

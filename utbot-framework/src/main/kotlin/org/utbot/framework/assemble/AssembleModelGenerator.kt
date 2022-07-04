@@ -202,7 +202,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
             // Note that we use constModel from the source model as is here to avoid
             // possible stack overflow error in case when const model has the same
             // id as the source one. Later we will try to transform it.
-            val assembleModel = UtArrayModel(id, classId, length, constModel, stores = mutableMapOf())
+            val assembleModel = UtArrayModel(id!!, classId, length, constModel, _stores = mutableMapOf())
 
             instantiatedModels[this] = assembleModel
 
@@ -280,9 +280,9 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         val instantiationChain = mutableListOf<UtStatementModel>()
         val modificationChain = mutableListOf<UtStatementModel>()
 
-        return modelBefore.copy(
-            instantiationChain = instantiationChain,
-            modificationsChain = modificationChain,
+        return UtAssembleModel(modelBefore.id, modelBefore.classId, modelBefore.modelName, _origin = modelBefore.origin,
+            _instantiationChain = instantiationChain,
+            _modificationsChain = modificationChain
         ).apply {
             instantiatedModels[modelBefore] = this
 
@@ -295,8 +295,8 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      * Assembles internal structure of [UtStatementModel].
      */
     private fun assembleStatementModel(statementModel: UtStatementModel): UtStatementModel = when (statementModel) {
-        is UtExecutableCallModel -> statementModel.copy(params = statementModel.params.map { assembleModel(it) })
-        is UtDirectSetFieldModel -> statementModel.copy(fieldModel = assembleModel(statementModel.fieldModel))
+        is UtExecutableCallModel -> UtExecutableCallModel(statementModel.instance, statementModel.executable, _returnValue = statementModel.returnValue, _params = statementModel.params.map { assembleModel(it) })
+        is UtDirectSetFieldModel -> UtDirectSetFieldModel(statementModel.instance!!, statementModel.fieldId, _fieldModel = assembleModel(statementModel.fieldModel))
     }
 
     /**
@@ -308,7 +308,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         val assembledModel = UtCompositeModel(
             compositeModel.id,
             compositeModel.classId,
-            isMock = true,
+            _isMock = true,
         )
 
         instantiatedModels[compositeModel] = assembledModel

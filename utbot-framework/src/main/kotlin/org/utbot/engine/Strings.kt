@@ -170,7 +170,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
             charArrayClassId,
             length,
             charClassId.defaultValueModel(),
-            stores = (0 until length).associateWithTo(mutableMapOf()) { i ->
+            _stores = (0 until length).associateWithTo(mutableMapOf()) { i ->
                 resolver.resolveModel(
                     valuesArrayExpression.select(mkInt(i)).toCharValue()
                 )
@@ -327,7 +327,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
             charArrayClassId,
             length,
             charClassId.defaultValueModel(),
-            stores = (0 until length).associateWithTo(mutableMapOf()) { i ->
+            _stores = (0 until length).associateWithTo(mutableMapOf()) { i ->
                 resolver.resolveModel(valuesArrayExpression.select(mkInt(i)).toCharValue())
             })
 

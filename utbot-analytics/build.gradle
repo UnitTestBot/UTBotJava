@@ -74,5 +74,6 @@ jar {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 
+    zip64 = true
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

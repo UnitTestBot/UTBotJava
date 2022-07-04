@@ -7,19 +7,41 @@ import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.esotericsoftware.kryo.serializers.JavaSerializer
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy
-import org.utbot.framework.plugin.api.TimeoutException
 import de.javakaffee.kryoserializers.GregorianCalendarSerializer
 import de.javakaffee.kryoserializers.JdkProxySerializer
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import mu.KotlinLogging
+import org.objenesis.instantiator.ObjectInstantiator
+import org.objenesis.strategy.StdInstantiatorStrategy
+import org.utbot.framework.plugin.api.TimeoutException
+import org.utbot.instrumentation.instrumentation.Instrumentation
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream
 import java.lang.reflect.InvocationHandler
-import java.util.GregorianCalendar
-import org.objenesis.instantiator.ObjectInstantiator
-import org.objenesis.strategy.StdInstantiatorStrategy
+import java.util.*
+import kotlinx.serialization.modules.*
+
+private val logger = KotlinLogging.logger("kryo logger")
+var shouldLog = true
+
+object JsonSubtypeRegistrator {
+    private val
+}
+
+var customJson = Json {
+    serializersModule = SerializersModule {
+        polymorphic(Instrumentation::class) {
+                subclass(UtExecutionInstrumentation::)
+        }
+    }
+}
 
 /**
  * Helpful class for working with the kryo.
@@ -45,13 +67,54 @@ class KryoHelper internal constructor(
         return receiveKryo.readObject(kryoInput, Long::class.java)
     }
 
+    private data class KotlinxTestResult(val serializeResult: Boolean, val deserializeResult: Boolean = false, val isEqual: Boolean = false)
+
+    private fun testKotlinx(cmd: Command): KotlinxTestResult {
+        val serialized: String
+
+        try {
+            serialized = Json.encodeToString(cmd)
+        }
+        catch (e: Throwable) {
+            logger.error(e) {"serialization failed"}
+            return KotlinxTestResult(false)
+        }
+
+        val deserialized: Command
+
+        try {
+            deserialized = Json.decodeFromString(serialized)
+        }
+        catch (e: Throwable) {
+            return KotlinxTestResult(serializeResult = true, deserializeResult = false)
+        }
+
+        try {
+            return KotlinxTestResult(serializeResult = true, deserializeResult = true, isEqual = cmd == deserialized)
+        }
+        catch (e: Exception) {
+            return KotlinxTestResult(serializeResult = true, deserializeResult = true, isEqual = false)
+        }
+    }
+
+    private fun reportKotlinx(cmd: Command) {
+        if (shouldLog) {
+            logger.info {
+                val (serializeResult, deserializeResult, isEqual) = testKotlinx(cmd)
+                "Kotlinx.serialization result of $cmd:\nserialize - $serializeResult, deserialize - $deserializeResult, equality - $isEqual"
+            }
+        }
+    }
+
     /**
      * Kryo tries to write the [cmd] to the [temporaryBuffer].
      * If no exception occurs, the output is flushed to the [outputStream].
      *
      * If an exception occurs, rethrows it wrapped in [WritingToKryoException].
      */
-    fun <T : Protocol.Command> writeCommand(id: Long, cmd: T) {
+    fun <T : Command> writeCommand(id: Long, cmd: T) {
+        reportKotlinx(cmd)
+
         try {
             sendKryo.writeObject(kryoOutput, id)
             sendKryo.writeClassAndObject(kryoOutput, cmd)
@@ -74,9 +137,9 @@ class KryoHelper internal constructor(
      *
      * @return successfully read command.
      */
-    fun readCommand(): Protocol.Command =
+    fun readCommand(): Command =
         try {
-            receiveKryo.readClassAndObject(kryoInput) as Protocol.Command
+            receiveKryo.readClassAndObject(kryoInput) as Command
         } catch (e: Exception) {
             throw ReadingFromKryoException(e)
         }
@@ -128,7 +191,7 @@ internal class TunedKryo : Kryo() {
         this.setDefaultSerializer(factory)
 
         // Registration of the classes of our protocol commands.
-        Protocol::class.nestedClasses.forEach {
+        Command::class.nestedClasses.forEach {
             register(it.java)
         }
     }

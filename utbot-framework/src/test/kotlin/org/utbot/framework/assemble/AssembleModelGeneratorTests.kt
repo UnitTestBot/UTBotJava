@@ -76,7 +76,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "a" to 5, "b" to 3)
         )
 
@@ -95,7 +95,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "a" to 5, "b" to 0)
         )
 
@@ -113,7 +113,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "a" to 5, "b" to 3)
         )
 
@@ -132,7 +132,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "a" to 5, "b" to 3)
         )
 
@@ -150,7 +150,7 @@ class AssembleModelGeneratorTests {
         val innerCompositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 4)
         )
 
@@ -160,7 +160,7 @@ class AssembleModelGeneratorTests {
             "s" to innerCompositeModel,
         )
         val compositeModel = UtCompositeModel(
-            modelIdCounter.incrementAndGet(), testClassId, isMock = false, complexObjectFields
+            modelIdCounter.incrementAndGet(), testClassId, _isMock = false, complexObjectFields
         )
 
         val v1 = statementsChain.addExpectedVariableDecl<ComplexField>()
@@ -188,7 +188,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 5),
         )
 
@@ -206,14 +206,14 @@ class AssembleModelGeneratorTests {
         val secondModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             listClassId,
-            isMock = false,
+            _isMock = false,
             fields(listClassId, "value" to 2, "next" to UtNullModel(listClassId))
         )
 
         val firstModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             listClassId,
-            isMock = false,
+            _isMock = false,
             fields(listClassId, "value" to 1, "next" to secondModel)
         )
 
@@ -238,9 +238,9 @@ class AssembleModelGeneratorTests {
     fun testOnObjectsTriangle() {
         val listClassId = ListItem::class.id
 
-        val firstModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, isMock = false)
-        val secondModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, isMock = false)
-        val thirdModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, isMock = false)
+        val firstModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, _isMock = false)
+        val secondModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, _isMock = false)
+        val thirdModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, _isMock = false)
 
         firstModel.fields += fields(listClassId, "value" to 1, "next" to secondModel)
         secondModel.fields += fields(listClassId, "value" to 2, "next" to thirdModel)
@@ -285,11 +285,11 @@ class AssembleModelGeneratorTests {
             "s" to UtCompositeModel(
                 modelIdCounter.incrementAndGet(),
                 innerClassId,
-                isMock = false,
+                _isMock = false,
                 primitiveFields
             ),
         )
-        val compositeModel = UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, fields)
+        val compositeModel = UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, _isMock = false, fields)
 
         val v1 = statementsChain.addExpectedVariableDecl<DirectAccess>()
         statementsChain.add("$v1." + addExpectedSetter("a", 5))
@@ -314,11 +314,11 @@ class AssembleModelGeneratorTests {
             "p" to UtCompositeModel(
                 modelIdCounter.incrementAndGet(),
                 innerClassId,
-                isMock = false,
+                _isMock = false,
                 primitiveFields
             ),
         )
-        val compositeModel = UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, fields)
+        val compositeModel = UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, _isMock = false, fields)
 
         val v1 = statementsChain.addExpectedVariableDecl<DirectAccessAndSetter>()
         statementsChain.add("$v1." + ("a" `=` 3))
@@ -338,13 +338,13 @@ class AssembleModelGeneratorTests {
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
                 intArrayClassId,
-                length = 2,
+                _length = 2,
                 UtPrimitiveModel(0),
                 mutableMapOf(0 to UtPrimitiveModel(1), 1 to UtPrimitiveModel(2)),
             ),
         )
         val compositeModel =
-            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, arrayObjectFields)
+            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, _isMock = false, arrayObjectFields)
 
         createModelAndAssert(compositeModel, null)
     }
@@ -358,7 +358,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 5, "d" to 3.0)
         )
 
@@ -381,7 +381,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             inheritedFieldClassId,
-            isMock = false,
+            _isMock = false,
             (thisFields + baseFields).toMutableMap(),
         )
 
@@ -404,7 +404,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             inheritedFieldClassId,
-            isMock = false,
+            _isMock = false,
             (thisFields + baseFields).toMutableMap(),
         )
 
@@ -427,7 +427,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5),
         )
 
@@ -441,7 +441,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 3),
         )
 
@@ -458,7 +458,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 0),
         )
 
@@ -475,7 +475,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 3),
         )
 
@@ -492,7 +492,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 3, "staticField" to 4),
         )
 
@@ -510,7 +510,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             inheritedClassId,
-            isMock = false,
+            _isMock = false,
             (thisFields + baseFields).toMutableMap(),
         )
 
@@ -531,7 +531,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             inheritedClassId,
-            isMock = false,
+            _isMock = false,
             (thisFields + baseFields).toMutableMap(),
         )
 
@@ -545,7 +545,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "z" to 5),
         )
 
@@ -559,7 +559,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "z" to 0),
         )
 
@@ -577,7 +577,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "z" to 5),
         )
 
@@ -595,7 +595,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "z" to 5),
         )
 
@@ -613,7 +613,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "z" to 5),
         )
 
@@ -631,7 +631,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "z" to 5),
         )
 
@@ -646,7 +646,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "x" to 5),
         )
 
@@ -660,7 +660,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 3),
         )
 
@@ -674,7 +674,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 3),
         )
 
@@ -692,7 +692,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5),
         )
 
@@ -710,7 +710,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5, "b" to 3),
         )
 
@@ -724,7 +724,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             modelClassId,
-            isMock = false,
+            _isMock = false,
             fields(modelClassId, "a" to 5),
         )
 
@@ -743,13 +743,13 @@ class AssembleModelGeneratorTests {
         val firstModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "a" to 5, "b" to 3),
         )
         val secondModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "a" to 4, "b" to 2),
         )
 
@@ -778,26 +778,26 @@ class AssembleModelGeneratorTests {
         val firstSimpleObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 4),
         )
         val secondSimpleObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 3, "b" to 5),
         )
 
         val firstComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 5, "s" to firstSimpleObjectModel),
         )
         val secondComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 6, "s" to secondSimpleObjectModel),
         )
 
@@ -830,20 +830,20 @@ class AssembleModelGeneratorTests {
         val primitiveObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 4),
         )
 
         val firstComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 5, "s" to primitiveObjectModel),
         )
         val secondComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 6, "s" to primitiveObjectModel),
         )
 
@@ -875,26 +875,26 @@ class AssembleModelGeneratorTests {
         val primitiveObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 4),
         )
 
         val firstComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 1, "s" to primitiveObjectModel),
         )
         val secondComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 2, "s" to primitiveObjectModel),
         )
         val thirdComplexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 3, "s" to primitiveObjectModel),
         )
 
@@ -930,14 +930,14 @@ class AssembleModelGeneratorTests {
         val primitiveObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 4),
         )
 
         val complexObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "i" to 5, "s" to primitiveObjectModel),
         )
 
@@ -957,14 +957,14 @@ class AssembleModelGeneratorTests {
         val secondModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             listClassId,
-            isMock = false,
+            _isMock = false,
             fields(listClassId, "value" to 2, "next" to UtNullModel(listClassId)),
         )
 
         val firstModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             listClassId,
-            isMock = false,
+            _isMock = false,
             fields(listClassId, "value" to 1, "next" to secondModel),
         )
 
@@ -989,8 +989,8 @@ class AssembleModelGeneratorTests {
     fun testOnTwoCrossCoupledListObjects() {
         val listClassId = ListItem::class.id
 
-        val firstModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, isMock = false)
-        val secondModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, isMock = false)
+        val firstModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, _isMock = false)
+        val secondModel = UtCompositeModel(modelIdCounter.incrementAndGet(), listClassId, _isMock = false)
 
         firstModel.fields += fields(listClassId, "value" to 1, "next" to secondModel)
         secondModel.fields += fields(listClassId, "value" to 2, "next" to firstModel)
@@ -1022,14 +1022,14 @@ class AssembleModelGeneratorTests {
         val simpleModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             simpleClassId,
-            isMock = false,
+            _isMock = false,
             fields(simpleClassId, "a" to 5),
         )
 
         val nonConstructableModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             nonConstructableClassId,
-            isMock = false,
+            _isMock = false,
             fields(nonConstructableClassId, "a" to 5, "b" to 3),
         )
 
@@ -1057,13 +1057,13 @@ class AssembleModelGeneratorTests {
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
                 intArrayClassId,
-                length = 3,
+                _length = 3,
                 UtPrimitiveModel(0),
                 mutableMapOf(0 to UtPrimitiveModel(1), 1 to UtPrimitiveModel(2)),
             ),
         )
         val compositeModel =
-            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, arrayObjectFields)
+            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, _isMock = false, arrayObjectFields)
 
         val v1 = statementsChain.addExpectedVariableDecl<PrimitiveArray>()
         statementsChain.add("$v1." + ("array" `=` "[1, 2, 0]"))
@@ -1081,13 +1081,13 @@ class AssembleModelGeneratorTests {
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
                 intArrayClassId,
-                length = 3,
+                _length = 3,
                 UtPrimitiveModel(0),
                 mutableMapOf(0 to UtPrimitiveModel(1), 1 to UtPrimitiveModel(2)),
             ),
         )
         val compositeModel =
-            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, arrayObjectFields)
+            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, _isMock = false, arrayObjectFields)
 
         val v1 = statementsChain.addExpectedVariableDecl<AssignedArray>()
         statementsChain.add("$v1." + ("array" `=` "[1, 2, 0]"))
@@ -1106,20 +1106,20 @@ class AssembleModelGeneratorTests {
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
                 ClassId("[L${innerClassId.canonicalName}", innerClassId),
-                length = 3,
+                _length = 3,
                 UtNullModel(innerClassId),
                 mutableMapOf(
                     1 to UtCompositeModel(
                         modelIdCounter.incrementAndGet(),
                         innerClassId,
-                        isMock = false,
+                        _isMock = false,
                         fields(innerClassId, "a" to 5)
                     )
                 ),
             ),
         )
         val compositeModel =
-            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, isMock = false, arrayObjectFields)
+            UtCompositeModel(modelIdCounter.incrementAndGet(), testClassId, _isMock = false, arrayObjectFields)
 
         val v1 = statementsChain.addExpectedVariableDecl<ComplexArray>()
         val v2 = createExpectedVariableName<PrimitiveFields>()
@@ -1143,7 +1143,7 @@ class AssembleModelGeneratorTests {
         val innerArrayModel = UtArrayModel(
             modelIdCounter.incrementAndGet(),
             intArrayClassId,
-            length = 2,
+            _length = 2,
             UtPrimitiveModel(0),
             mutableMapOf(0 to UtPrimitiveModel(1)),
         )
@@ -1151,7 +1151,7 @@ class AssembleModelGeneratorTests {
         val arrayModel = UtArrayModel(
             modelIdCounter.incrementAndGet(),
             intArrayClassId,
-            length = 2,
+            _length = 2,
             innerArrayModel,
             mutableMapOf(0 to innerArrayModel, 1 to innerArrayModel),
         )
@@ -1159,7 +1159,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "array" to arrayModel)
         )
 
@@ -1180,19 +1180,19 @@ class AssembleModelGeneratorTests {
         val arrayOfArraysModel = UtArrayModel(
             modelIdCounter.incrementAndGet(),
             ClassId("[Lorg.utbot.examples.assemble.ComplexArray", testClassId),
-            length = 2,
+            _length = 2,
             UtNullModel(innerArrayClassId),
             mutableMapOf(
                 0 to UtArrayModel(
                     modelIdCounter.incrementAndGet(),
                     innerArrayClassId,
-                    length = 2,
+                    _length = 2,
                     UtNullModel(testClassId),
                     mutableMapOf(
                         0 to UtCompositeModel(
                             modelIdCounter.incrementAndGet(),
                             innerClassId,
-                            isMock = false,
+                            _isMock = false,
                             fields(innerClassId, "a" to 5)
                         )
                     )
@@ -1200,13 +1200,13 @@ class AssembleModelGeneratorTests {
                 1 to UtArrayModel(
                     modelIdCounter.incrementAndGet(),
                     innerArrayClassId,
-                    length = 2,
+                    _length = 2,
                     UtNullModel(testClassId),
                     mutableMapOf(
                         0 to UtCompositeModel(
                             modelIdCounter.incrementAndGet(),
                             innerClassId,
-                            isMock = false,
+                            _isMock = false,
                             fields(innerClassId, "b" to 4)
                         )
                     ),
@@ -1217,7 +1217,7 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = false,
+            _isMock = false,
             fields(testClassId, "array" to arrayOfArraysModel)
         )
 
@@ -1250,8 +1250,8 @@ class AssembleModelGeneratorTests {
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = true,
-            mocks = mutableMapOf(
+            _isMock = true,
+            _mocks = mutableMapOf(
                 executableId to listOf(UtPrimitiveModel(5), UtPrimitiveModel(3))
             )
         )
@@ -1269,15 +1269,15 @@ class AssembleModelGeneratorTests {
         val mockObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 3),
         )
 
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = true,
-            mocks = mutableMapOf(executableId to listOf(mockObjectModel))
+            _isMock = true,
+            _mocks = mutableMapOf(executableId to listOf(mockObjectModel))
         )
 
         val v1 = statementsChain.addExpectedVariableDecl<PrimitiveFields>()
@@ -1298,23 +1298,23 @@ class AssembleModelGeneratorTests {
         val mockObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2),
         )
 
         val fieldObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "b" to 3),
         )
 
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = true,
-            fields = fields(testClassId, "field" to fieldObjectModel),
-            mocks = mutableMapOf(executableId to listOf(mockObjectModel)),
+            _isMock = true,
+            _fields = fields(testClassId, "field" to fieldObjectModel),
+            _mocks = mutableMapOf(executableId to listOf(mockObjectModel)),
         )
 
         val v1 = statementsChain.addExpectedVariableDecl<PrimitiveFields>()
@@ -1343,29 +1343,29 @@ class AssembleModelGeneratorTests {
         val innerObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             innerClassId,
-            isMock = false,
+            _isMock = false,
             fields(innerClassId, "a" to 2, "b" to 4),
         )
 
         val firstMockObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             mockObjectClassId,
-            isMock = false,
+            _isMock = false,
             fields(mockObjectClassId, "i" to 1, "s" to innerObjectModel),
         )
 
         val secondMockObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             mockObjectClassId,
-            isMock = false,
+            _isMock = false,
             fields(mockObjectClassId, "i" to 2, "s" to innerObjectModel),
         )
 
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
             testClassId,
-            isMock = true,
-            mocks = mutableMapOf(executableId to listOf(firstMockObjectModel, secondMockObjectModel))
+            _isMock = true,
+            _mocks = mutableMapOf(executableId to listOf(firstMockObjectModel, secondMockObjectModel))
         )
 
         val v1 = statementsChain.addExpectedVariableDecl<ComplexField>()

@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.et
 
+import kotlinx.serialization.Serializable
 import org.utbot.framework.plugin.api.FieldId
 
 // TODO: refactor this later
@@ -11,6 +12,7 @@ sealed class Node {
 }
 
 // TODO: document this
+@Serializable
 data class EtInstruction(
     val className: String,
     val methodSignature: String,

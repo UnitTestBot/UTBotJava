@@ -60,7 +60,7 @@ intellij {
 
 tasks {
     runIde {
-        jvmArgs("-Xmx2048m")
+        jvmArgs("-Xmx4096m")
         //// Uncomment and set correct path to Android Studio to run it
         // ideDirectory = file('d:/AS2021')
     }

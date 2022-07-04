@@ -15,6 +15,7 @@ class NoProbesArrayException(clazz: Class<*>, arrayName: String) :
                 "All fields: ${clazz.fields.joinToString { it.name }}"
     )
 
+// TODO kononov: serialize this all
 class CastProbesArrayException :
     InstrumentationException("Can't cast probes array to Boolean array")
 
@@ -27,5 +28,5 @@ class WritingToKryoException(e: Throwable) :
 class ChildProcessError(e: Throwable) :
     InstrumentationException("Error in the child process |> ${e.stackTraceToString()}", e)
 
-class UnexpectedCommand(cmd: Protocol.Command) :
+class UnexpectedCommand(cmd: Command) :
     InstrumentationException("Got unexpected command: $cmd")

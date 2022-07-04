@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.instrumentation
 
-import org.utbot.instrumentation.util.Protocol
+import org.utbot.instrumentation.util.Command
 import java.lang.instrument.ClassFileTransformer
 
 /**
@@ -10,7 +10,6 @@ import java.lang.instrument.ClassFileTransformer
  *
  * @param TInvocationInstrumentation the return type of `invoke` function.
  */
-
 interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer {
     /**
      * Invokes a method with the given [methodSignature], the declaring class of which is [clazz], with the supplied
@@ -31,7 +30,7 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
      * @return Handles [cmd] and returns command which should be sent back to the [org.utbot.instrumentation.ConcreteExecutor].
      * If returns `null`, nothing will be sent.
      */
-    fun <T : Protocol.InstrumentationCommand> handle(cmd: T): Protocol.Command? {
+    fun <T : Command.InstrumentationCommand> handle(cmd: T): Command? {
         return null
     }
 

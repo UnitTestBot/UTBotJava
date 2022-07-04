@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.et
 
+import kotlinx.serialization.Serializable
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.instrumentation.Settings
@@ -10,36 +11,43 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.LocalVariablesSorter
 
+@Serializable
 sealed class InstructionData {
     abstract val line: Int
     abstract val methodSignature: String
 }
 
+@Serializable
 data class CommonInstruction(
     override val line: Int,
     override val methodSignature: String
 ) : InstructionData()
 
+@Serializable
 data class InvokeInstruction(
     override val line: Int,
     override val methodSignature: String
 ) : InstructionData()
 
+@Serializable
 data class ReturnInstruction(
     override val line: Int,
     override val methodSignature: String
 ) : InstructionData()
 
+@Serializable
 data class ImplicitThrowInstruction(
     override val line: Int,
     override val methodSignature: String
 ) : InstructionData()
 
+@Serializable
 data class ExplicitThrowInstruction(
     override val line: Int,
     override val methodSignature: String
 ) : InstructionData()
 
+@Serializable
 data class PutStaticInstruction(
     override val line: Int,
     override val methodSignature: String,
@@ -48,11 +56,13 @@ data class PutStaticInstruction(
     val descriptor: String
 ) : InstructionData()
 
+@Serializable
 private data class ClassToMethod(
     val className: String,
     val methodName: String
 )
 
+@Serializable
 class ProcessingStorage {
     private val classToId = mutableMapOf<String, Int>()
     private val idToClass = mutableMapOf<Int, String>()
@@ -148,6 +158,7 @@ object RuntimeTraceStorage {
     }
 }
 
+@Serializable
 class TraceInstructionBytecodeInserter {
     private var localVariable = -1
 
@@ -176,6 +187,7 @@ class TraceInstructionBytecodeInserter {
     }
 }
 
+@Serializable
 class TraceHandler {
     private val processingStorage = ProcessingStorage()
     private val inserter = TraceInstructionBytecodeInserter()

@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.et
 
+import kotlinx.serialization.Serializable
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
@@ -9,7 +10,7 @@ import java.security.ProtectionDomain
 /**
  * This instrumentation allows to get execution trace during each call.
  */
-
+@Serializable
 class ExecutionTraceInstrumentation : Instrumentation<Trace> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
     private val traceHandler = TraceHandler()

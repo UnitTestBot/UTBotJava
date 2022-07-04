@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation
 
+import kotlinx.serialization.Serializable
 import org.utbot.common.withRemovedFinalModifier
 import org.utbot.framework.plugin.api.util.field
 import org.utbot.instrumentation.util.StaticEnvironment
@@ -10,6 +11,7 @@ import java.security.ProtectionDomain
 /**
  * This instrumentation allows supplying [StaticEnvironment] and saving static fields. This makes call pure.
  */
+@Serializable
 class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
     private val invokeInstrumentation = InvokeInstrumentation()
 

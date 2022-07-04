@@ -9,7 +9,7 @@ import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.ModelBasedCodeGeneratorService
-import org.utbot.framework.concrete.UtConcreteExecutionData
+import org.utbot.framework.plugin.api.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.ClassId

@@ -119,7 +119,7 @@ import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.UtSettings.processUnknownStatesDuringConcreteExecution
-import org.utbot.framework.concrete.UtConcreteExecutionData
+import org.utbot.framework.plugin.api.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.ClassId

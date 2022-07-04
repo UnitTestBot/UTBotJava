@@ -25,33 +25,33 @@ internal val mockitoBuiltins: Set<MethodId>
 
 internal val mockitoClassId = BuiltinClassId(
     name = "org.mockito.Mockito",
-    canonicalName = "org.mockito.Mockito",
-    simpleName = "Mockito",
+    _canonicalName = "org.mockito.Mockito",
+    _simpleName = "Mockito",
 )
 
 internal val ongoingStubbingClassId = BuiltinClassId(
     name = "org.mockito.stubbing.OngoingStubbing",
-    canonicalName = "org.mockito.stubbing.OngoingStubbing",
-    simpleName = "OngoingStubbing",
+    _canonicalName = "org.mockito.stubbing.OngoingStubbing",
+    _simpleName = "OngoingStubbing",
 )
 
 internal val answerClassId = BuiltinClassId(
     name = "org.mockito.stubbing.Answer",
-    canonicalName = "org.mockito.stubbing.Answer",
-    simpleName = "Answer",
+    _canonicalName = "org.mockito.stubbing.Answer",
+    _simpleName = "Answer",
 )
 
 internal val argumentMatchersClassId = BuiltinClassId(
     name = "org.mockito.ArgumentMatchers",
-    canonicalName = "org.mockito.ArgumentMatchers",
-    simpleName = "ArgumentMatchers",
+    _canonicalName = "org.mockito.ArgumentMatchers",
+    _simpleName = "ArgumentMatchers",
 )
 
 internal val mockedConstructionContextClassId = BuiltinClassId(
     name = "org.mockito.MockedConstruction.Context",
-    canonicalName = "org.mockito.MockedConstruction.Context", // TODO use $ as a delimiter of outer and nested classes?
-    simpleName = "Context",
-    isNested = true
+    _canonicalName = "org.mockito.MockedConstruction.Context", // TODO use $ as a delimiter of outer and nested classes?
+    _simpleName = "Context",
+    _isNested = true
 )
 
 internal val mockMethodId = builtinStaticMethodId(

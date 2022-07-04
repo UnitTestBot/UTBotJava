@@ -8,31 +8,18 @@
 
 package org.utbot.framework.plugin.api
 
+import kotlinx.serialization.Serializable
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
-import org.utbot.framework.UtSettings
+import org.utbot.framework.*
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
 import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.findFieldOrNull
-import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
-import org.utbot.framework.plugin.api.util.voidClassId
+import soot.*
+import soot.jimple.JimpleBody
+import soot.jimple.Stmt
 import java.io.File
 import java.lang.reflect.Modifier
 import java.nio.file.Path
@@ -43,21 +30,21 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaType
-import soot.ArrayType
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.LongType
-import soot.RefType
-import soot.ShortType
-import soot.SootClass
-import soot.Type
-import soot.VoidType
-import soot.jimple.JimpleBody
-import soot.jimple.Stmt
+
+/**
+ * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
+ *
+ * @property [stateBefore] is necessary for construction of parameters of a concrete call.
+ * @property [instrumentation] is necessary for mocking static methods and new instances.
+ * @property [timeout] is timeout for specific concrete execution (in milliseconds).
+ * By default is initialized from [UtSettings.concreteExecutionTimeoutInChildProcess]
+ */
+@Serializable
+data class UtConcreteExecutionData(
+    val stateBefore: EnvironmentModels,
+    val instrumentation: List<UtInstrumentation>,
+    val timeout: Long = UtSettings.concreteExecutionTimeoutInChildProcess
+)
 
 data class UtMethod<R>(
     val callable: KCallable<R>,
@@ -206,6 +193,7 @@ data class UtExecution(
     }
 }
 
+@Serializable
 open class EnvironmentModels(
     val thisInstance: UtModel?,
     val parameters: List<UtModel>,
@@ -225,6 +213,7 @@ open class EnvironmentModels(
 /**
  * Represents missing state. Useful for [UtConcreteExecutionFailure] because it does not have [UtExecution.stateAfter]
  */
+@Serializable
 object MissingState : EnvironmentModels(
     thisInstance = null,
     parameters = emptyList(),
@@ -244,24 +233,35 @@ data class UtError(
  *
  * UtNullModel represents nulls, other models represent not-nullable entities.
  */
+@Serializable
 sealed class UtModel(
-    open val classId: ClassId
+    val classId: ClassId
 )
 
 /**
  * Class representing models for values that might have an address.
- *
- * @param [id] is a unique identifier of the object this model representing. If two models have the same [id], it means
- * that they represent the same object (for example, its initial and final states).
- * It is null if the model represents something that doesn't have an address (i.e. mock of the static primitive field)
- *
- * @param [modelName] is a name used for pretty implementation of toString methods
  */
-sealed class UtReferenceModel(
-    open val id: Int?,
-    classId: ClassId,
-    open val modelName: String = id.toString()
-) : UtModel(classId)
+@Serializable
+sealed class UtReferenceModel : UtModel {
+    val id: Int?
+    val modelName: String
+
+    /**
+     * @property [id] is a unique identifier of the object this model representing. If two models have the same [id], it means
+     * that they represent the same object (for example, its initial and final states).
+     * It is null if the model represents something that doesn't have an address (i.e. mock of the static primitive field)
+     *
+     * @property [modelName] is a name used for pretty implementation of toString methods
+     */
+    constructor(
+        _id: Int?,
+        classId: ClassId,
+        _modelName: String = _id.toString()
+    ) : super(classId) {
+        id = _id
+        modelName = _modelName
+    }
+}
 
 /**
  * Checks if [UtModel] is a null.
@@ -288,15 +288,19 @@ fun UtModel.isMockModel() = this is UtCompositeModel && isMock
 /**
  * Model for nulls.
  */
-data class UtNullModel(
-    override val classId: ClassId
-) : UtModel(classId) {
+@Serializable
+class UtNullModel : UtModel {
+    constructor(
+        classId: ClassId
+    ) : super(classId)
+
     override fun toString() = "null"
 }
 
 /**
  * Model for primitive value, string literal, void (Unit).
  */
+@Serializable(with = UtPrimitiveModelSerializer::class)
 data class UtPrimitiveModel(
     val value: Any,
 ) : UtModel(primitiveModelValueToClassId(value)) {
@@ -320,25 +324,22 @@ fun primitiveModelValueToClassId(value: Any) = when (value) {
     else -> value.javaClass.id
 }
 
+@Serializable
 object UtVoidModel : UtModel(voidClassId)
 
 /**
  * Model for enum constant
  */
-data class UtEnumConstantModel(
-    override val classId: ClassId,
-    val value: Enum<*>
-) : UtModel(classId) {
+@Serializable(with = UtEnumConstantModelSerializer::class)
+class UtEnumConstantModel(classId: ClassId, val value: Enum<*>) : UtModel(classId) {
     override fun toString(): String = "$value"
 }
 
 /**
  * Model for class reference
  */
-data class UtClassRefModel(
-    override val classId: ClassId,
-    val value: Class<*>
-) : UtModel(classId) {
+@Serializable(with = UtClassRefModelSerializer::class)
+class UtClassRefModel(classId: ClassId, val value: Class<*>) : UtModel(classId) {
     override fun toString(): String = "$value"
 }
 
@@ -352,13 +353,24 @@ data class UtClassRefModel(
  *
  * [fields] contains non-static fields
  */
-data class UtCompositeModel(
-    override val id: Int?,
-    override val classId: ClassId,
-    val isMock: Boolean,
-    val fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
-    val mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
-) : UtReferenceModel(id, classId) {
+@Serializable
+class UtCompositeModel : UtReferenceModel {
+    val isMock: Boolean
+    val fields: MutableMap<FieldId, UtModel>
+    val mocks: MutableMap<ExecutableId, List<UtModel>>
+
+    constructor(
+        id: Int?,
+        classId: ClassId,
+        _isMock: Boolean,
+        _fields: MutableMap<FieldId, UtModel> = mutableMapOf(),
+        _mocks: MutableMap<ExecutableId, List<UtModel>> = mutableMapOf(),
+    ) : super(id, classId) {
+        isMock = _isMock
+        fields = _fields
+        mocks = _mocks
+    }
+
     //TODO: SAT-891 - rewrite toString() method
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
@@ -416,13 +428,24 @@ data class UtCompositeModel(
  * Contains const value and stores, which in summary represent all values in array.
  */
 
-data class UtArrayModel(
-    override val id: Int,
-    override val classId: ClassId,
-    val length: Int = 0,
-    var constModel: UtModel,
+@Serializable
+class UtArrayModel : UtReferenceModel {
+    val length: Int
+    var constModel: UtModel
     val stores: MutableMap<Int, UtModel>
-) : UtReferenceModel(id, classId) {
+
+    constructor(
+        id: Int,
+        classId: ClassId,
+        _length: Int = 0,
+        _constModel: UtModel,
+        _stores: MutableMap<Int, UtModel>
+    ) : super(id, classId) {
+        length = _length
+        constModel = _constModel
+        stores = _stores
+    }
+
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         (0 until length).map { stores[it] ?: constModel }.joinToString(", ", "[", "]")
     }
@@ -439,24 +462,36 @@ data class UtArrayModel(
     }
 
     override fun hashCode(): Int {
-        return id
+        return id!!
     }
 }
 
 /**
  * Model for complex objects with assemble instructions.
- *
- * @param instantiationChain is a chain of [UtStatementModel] to instantiate represented object
- * @param modificationsChain is a chain of [UtStatementModel] to construct object state
  */
-data class UtAssembleModel(
-    override val id: Int?,
-    override val classId: ClassId,
-    override val modelName: String,
-    val instantiationChain: List<UtStatementModel> = emptyList(),
-    val modificationsChain: List<UtStatementModel> = emptyList(),
-    val origin: UtCompositeModel? = null
-) : UtReferenceModel(id, classId, modelName) {
+@Serializable
+class UtAssembleModel : UtReferenceModel {
+    val instantiationChain: List<UtStatementModel>
+    val modificationsChain: List<UtStatementModel>
+    val origin: UtCompositeModel?
+
+    /**
+     * @param _instantiationChain is a chain of [UtStatementModel] to instantiate represented object
+     * @param _modificationsChain is a chain of [UtStatementModel] to construct object state
+     */
+    constructor(
+        id: Int?,
+        classId: ClassId,
+        modelName: String,
+        _instantiationChain: List<UtStatementModel> = emptyList(),
+        _modificationsChain: List<UtStatementModel> = emptyList(),
+        _origin: UtCompositeModel? = null
+    ) : super(id, classId, modelName) {
+        instantiationChain = _instantiationChain
+        modificationsChain = _modificationsChain
+        origin = _origin
+    }
+
     val allStatementsChain
         get() = instantiationChain + modificationsChain
     val finalInstantiationModel
@@ -489,8 +524,9 @@ data class UtAssembleModel(
 /**
  * Model for a step to obtain [UtAssembleModel].
  */
+@Serializable
 sealed class UtStatementModel(
-    open val instance: UtReferenceModel?,
+    val instance: UtReferenceModel?,
 )
 
 /**
@@ -499,12 +535,24 @@ sealed class UtStatementModel(
  * Contains executable to call, call parameters and an instance model before call.
  * Return value is used for tracking objects and call others methods with these tracking objects as parameters.
  */
-data class UtExecutableCallModel(
-    override val instance: UtReferenceModel?,
-    val executable: ExecutableId,
-    val params: List<UtModel>,
-    val returnValue: UtReferenceModel? = null,
-) : UtStatementModel(instance) {
+@Serializable
+class UtExecutableCallModel : UtStatementModel {
+
+    val executable: ExecutableId
+    val params: List<UtModel>
+    val returnValue: UtReferenceModel?
+
+    constructor(
+        instance: UtReferenceModel?,
+        _executable: ExecutableId,
+        _params: List<UtModel>,
+        _returnValue: UtReferenceModel? = null,
+    ) : super(instance) {
+        executable = _executable
+        params = _params
+        returnValue = _returnValue
+    }
+
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
 
@@ -536,19 +584,27 @@ data class UtExecutableCallModel(
  *
  * Contains instance model, fieldId to set value and a model of this value.
  */
-data class UtDirectSetFieldModel(
-    override val instance: UtReferenceModel,
-    val fieldId: FieldId,
-    val fieldModel: UtModel,
-) : UtStatementModel(instance) {
-    override fun toString(): String = withToStringThreadLocalReentrancyGuard {
-            val modelRepresentation = when (fieldModel) {
-                is UtAssembleModel -> fieldModel.modelName
-                else -> fieldModel.toString()
-            }
-            "${instance.modelName}.${fieldId.name} = $modelRepresentation"
-        }
+@Serializable
+class UtDirectSetFieldModel : UtStatementModel {
+    val fieldId: FieldId
+    val fieldModel: UtModel
 
+    constructor(
+        instance: UtReferenceModel,
+        _fieldId: FieldId,
+        _fieldModel: UtModel,
+    ) : super(instance) {
+        fieldId = _fieldId
+        fieldModel = _fieldModel
+    }
+
+    override fun toString(): String = withToStringThreadLocalReentrancyGuard {
+        val modelRepresentation = when (fieldModel) {
+            is UtAssembleModel -> fieldModel.modelName
+            else -> fieldModel.toString()
+        }
+        "${instance!!.modelName}.${fieldId.name} = $modelRepresentation"
+    }
 }
 
 /**
@@ -556,6 +612,7 @@ data class UtDirectSetFieldModel(
  *
  * Used for mocking new instance creation and mocking static method.
  */
+@Serializable
 sealed class UtInstrumentation
 
 /**
@@ -566,6 +623,7 @@ sealed class UtInstrumentation
  *
  * Note: call sites required by mock framework to know which classes to instrument.
  */
+@Serializable
 data class UtNewInstanceInstrumentation(
     val classId: ClassId,
     val instances: List<UtModel>,
@@ -632,6 +690,7 @@ val Type.classId: ClassId
  * [elementClassId] if this class id represents an array class, then this property
  * represents the class id of the array's elements. Otherwise, this property is null.
  */
+@Serializable
 open class ClassId(
     val name: String,
     val elementClassId: ClassId? = null
@@ -758,36 +817,54 @@ open class ClassId(
         }
 }
 
-/**
- * By default, we assume that class represented by BuiltinClassId is not nested and package is calculated in this assumption
- * (it is important because name for nested classes contains $ as a delimiter between nested and outer classes)
- */
-class BuiltinClassId(
+@Serializable(with = BuiltinClassIdSerializer::class)
+class BuiltinClassId// by default we assume that the class is not a member class
+    (
     name: String,
-    override val canonicalName: String,
-    override val simpleName: String,
-    // by default we assume that the class is not a member class
-    override val simpleNameWithEnclosings: String = simpleName,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
-    override val isStatic: Boolean = false,
-    override val isAbstract: Boolean = false,
-    override val isAnonymous: Boolean = false,
-    override val isLocal: Boolean = false,
-    override val isInner: Boolean = false,
-    override val isNested: Boolean = false,
-    override val isSynthetic: Boolean = false,
-    override val allMethods: Sequence<MethodId> = emptySequence(),
-    override val allConstructors: Sequence<ConstructorId> = emptySequence(),
-    override val outerClass: Class<*>? = null,
-    override val packageName: String =
-        when (val index = canonicalName.lastIndexOf('.')) {
+    _canonicalName: String,
+    _simpleName: String,
+    _simpleNameWithEnclosings: String = _simpleName,
+    _isPublic: Boolean = true,
+    _isProtected: Boolean = false,
+    _isPrivate: Boolean = false,
+    _isFinal: Boolean = false,
+    _isStatic: Boolean = false,
+    _isAbstract: Boolean = false,
+    _isAnonymous: Boolean = false,
+    _isLocal: Boolean = false,
+    _isInner: Boolean = false,
+    _isNested: Boolean = false,
+    _isSynthetic: Boolean = false,
+    _allMethods: Sequence<MethodId> = emptySequence(),
+    _allConstructors: Sequence<ConstructorId> = emptySequence(),
+    _outerClass: Class<*>? = null,
+    _packageName: String =
+        when (val index = _canonicalName.lastIndexOf('.')) {
             -1, 0 -> ""
-            else -> canonicalName.substring(0, index)
-        },
-) : ClassId(name) {
+            else -> _canonicalName.substring(0, index)
+        }
+) : SurrogateBuiltinClassId(
+    name,
+    _canonicalName,
+    _simpleName,
+    _simpleNameWithEnclosings,
+    _isPublic,
+    _isProtected,
+    _isPrivate,
+    _isFinal,
+    _isStatic,
+    _isAbstract,
+    _isAnonymous,
+    _isLocal,
+    _isInner,
+    _isNested,
+    _isSynthetic,
+    _allMethods,
+    _allConstructors,
+    _packageName
+) {
+    override val outerClass: Class<*>? = _outerClass
+
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }
@@ -806,6 +883,73 @@ class BuiltinClassId(
     }
 }
 
+/**
+ * By default, we assume that class represented by BuiltinClassId is not nested and package is calculated in this assumption
+ * (it is important because name for nested classes contains $ as a delimiter between nested and outer classes)
+ */
+@Serializable
+abstract class SurrogateBuiltinClassId : ClassId {
+    final override val canonicalName: String
+    final override val simpleName: String
+
+    // by default we assume that the class is not a member class
+    final override val simpleNameWithEnclosings: String
+    final override val isPublic: Boolean
+    final override val isProtected: Boolean
+    final override val isPrivate: Boolean
+    final override val isFinal: Boolean
+    final override val isStatic: Boolean
+    final override val isAbstract: Boolean
+    final override val isAnonymous: Boolean
+    final override val isLocal: Boolean
+    final override val isInner: Boolean
+    final override val isNested: Boolean
+    final override val isSynthetic: Boolean
+    final override val packageName: String
+    final override val allMethods: Sequence<MethodId>
+    final override val allConstructors: Sequence<ConstructorId>
+
+    protected constructor(
+        name: String,
+        _canonicalName: String,
+        _simpleName: String,
+        // by default we assume that the class is not a member class
+        _simpleNameWithEnclosings: String,
+        _isPublic: Boolean,
+        _isProtected: Boolean,
+        _isPrivate: Boolean,
+        _isFinal: Boolean,
+        _isStatic: Boolean,
+        _isAbstract: Boolean,
+        _isAnonymous: Boolean,
+        _isLocal: Boolean,
+        _isInner: Boolean,
+        _isNested: Boolean,
+        _isSynthetic: Boolean,
+        _allMethods: Sequence<MethodId>,
+        _allConstructors: Sequence<ConstructorId>,
+        _packageName: String
+    ) : super(name) {
+        canonicalName = _canonicalName
+        simpleName = _simpleName
+        simpleNameWithEnclosings = _simpleNameWithEnclosings
+        isPublic = _isPublic
+        isProtected = _isProtected
+        isPrivate = _isPrivate
+        isFinal = _isFinal
+        isStatic = _isStatic
+        isAbstract = _isAbstract
+        isAnonymous = _isAnonymous
+        isLocal = _isLocal
+        isInner = _isInner
+        isNested = _isNested
+        isSynthetic = _isSynthetic
+        allMethods = _allMethods
+        allConstructors = _allConstructors
+        packageName = _packageName
+    }
+}
+
 enum class FieldIdStrategyValues {
     Reflection,
     Soot
@@ -816,6 +960,7 @@ enum class FieldIdStrategyValues {
  *
  * Created to avoid usage String objects as a key.
  */
+@Serializable
 open class FieldId(val declaringClass: ClassId, val name: String) {
 
     object Strategy {
@@ -889,17 +1034,34 @@ inline fun <T> withReflection(block: () -> T): T {
  * avoid using class loader to load a possibly missing class.
  */
 @Suppress("unused")
-class BuiltinFieldId(
-    declaringClass: ClassId,
-    name: String,
-    override val type: ClassId,
-    // by default we assume that the builtin field is public and non-final
-    override val isPublic: Boolean = true,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
-    override val isSynthetic: Boolean = false,
-) : FieldId(declaringClass, name)
+@Serializable
+class BuiltinFieldId : FieldId {
+    override val type: ClassId
 
+    // by default, we assume that the builtin field is public and non-final
+    override val isPublic: Boolean
+    override val isPrivate: Boolean
+    override val isFinal: Boolean
+    override val isSynthetic: Boolean
+
+    constructor(
+        declaringClass: ClassId,
+        name: String,
+        _type: ClassId,
+        _isPublic: Boolean = true,
+        _isPrivate: Boolean = false,
+        _isFinal: Boolean = false,
+        _isSynthetic: Boolean = false
+    ) : super(declaringClass, name) {
+        type = _type
+        isPublic = _isPublic
+        isPrivate = _isPrivate
+        isFinal = _isFinal
+        isSynthetic = _isSynthetic
+    }
+}
+
+@Serializable
 sealed class StatementId {
     abstract val classId: ClassId
     abstract val name: String
@@ -908,6 +1070,7 @@ sealed class StatementId {
 /**
  * Direct access to public field id.
  */
+@Serializable
 class DirectFieldAccessId(
     override val classId: ClassId,
     override val name: String,
@@ -915,6 +1078,7 @@ class DirectFieldAccessId(
 ) : StatementId()
 
 
+@Serializable
 sealed class ExecutableId : StatementId() {
     abstract override val classId: ClassId
     abstract override val name: String
@@ -962,6 +1126,7 @@ sealed class ExecutableId : StatementId() {
  * Using extension property 'signature' of this class
  * one can get a signature that identifies method unambiguously
  */
+@Serializable
 open class MethodId(
     override val classId: ClassId,
     override val name: String,
@@ -981,6 +1146,7 @@ open class MethodId(
         get() = Modifier.isPrivate(method.modifiers)
 }
 
+@Serializable
 class ConstructorId(
     override val classId: ClassId,
     override val parameters: List<ClassId>
@@ -998,21 +1164,36 @@ class ConstructorId(
         get() = Modifier.isPrivate(constructor.modifiers)
 }
 
-class BuiltinMethodId(
-    classId: ClassId,
-    name: String,
-    returnType: ClassId,
-    parameters: List<ClassId>,
-    // by default we assume that the builtin method is non-static and public
-    override val isStatic: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters)
+@Serializable
+class BuiltinMethodId : MethodId {
+    override val isStatic: Boolean
+    override val isPublic: Boolean
+    override val isProtected: Boolean
+    override val isPrivate: Boolean
 
+    constructor(
+        classId: ClassId,
+        name: String,
+        returnType: ClassId,
+        parameters: List<ClassId>,
+        // by default we assume that the builtin method is non-static and public
+        _isStatic: Boolean = false,
+        _isPublic: Boolean = true,
+        _isProtected: Boolean = false,
+        _isPrivate: Boolean = false
+    ) : super(classId, name, returnType, parameters) {
+        isStatic = _isStatic
+        isPublic = _isPublic
+        isProtected = _isProtected
+        isPrivate = _isPrivate
+    }
+}
+
+@Serializable
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
-class WildcardTypeParameter: TypeParameters(emptyList())
+@Serializable
+class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface TestCaseGenerator {
     fun init(

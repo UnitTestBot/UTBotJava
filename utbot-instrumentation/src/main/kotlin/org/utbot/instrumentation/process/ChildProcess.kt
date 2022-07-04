@@ -4,9 +4,11 @@ import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.util.Command
+import org.utbot.instrumentation.util.Command.*
 import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
+import org.utbot.instrumentation.util.shouldLog
 import java.io.File
 import java.io.OutputStream
 import java.io.PrintStream
@@ -51,6 +53,7 @@ private val kryoHelper: KryoHelper = KryoHelper(System.`in`, System.`out`)
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
  */
 fun main() {
+    shouldLog = false
     // We don't want user code to litter the standard output, so we redirect it.
     val tmpStream = PrintStream(object : OutputStream() {
         override fun write(b: Int) {}
@@ -84,19 +87,19 @@ fun main() {
     }
 }
 
-private fun send(cmdId: Long, cmd: Protocol.Command) {
+private fun send(cmdId: Long, cmd: Command) {
     try {
         kryoHelper.writeCommand(cmdId, cmd)
         log("Send << $cmdId")
     } catch (e: Exception) {
         log("Failed to serialize << $cmdId with exception: ${e.stackTraceToString()}")
         log("Writing it to kryo...")
-        kryoHelper.writeCommand(cmdId, Protocol.ExceptionInChildProcess(e))
+        kryoHelper.writeCommand(cmdId, ExceptionInChildProcess(e))
         log("Successfuly wrote.")
     }
 }
 
-private fun read(cmdId: Long): Protocol.Command {
+private fun read(cmdId: Long): Command {
     try {
         val cmd = kryoHelper.readCommand()
         log("Received :> $cmdId")
@@ -116,18 +119,18 @@ private fun loop(instrumentation: Instrumentation<*>) {
         val cmd = try {
             read(cmdId)
         } catch (e: Exception) {
-            send(cmdId, Protocol.ExceptionInChildProcess(e))
+            send(cmdId, ExceptionInChildProcess(e))
             continue
         }
 
         when (cmd) {
-            is Protocol.WarmupCommand -> {
+            is WarmupCommand -> {
                 val time = measureTimeMillis {
                     HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
                 }
                 System.err.println("warmup finished in $time ms")
             }
-            is Protocol.InvokeMethodCommand -> {
+            is InvokeMethodCommand -> {
                 val resultCmd = try {
                     val clazz = HandlerClassesLoader.loadClass(cmd.className)
                     val res = instrumentation.invoke(
@@ -136,24 +139,24 @@ private fun loop(instrumentation: Instrumentation<*>) {
                         cmd.arguments,
                         cmd.parameters
                     )
-                    Protocol.InvocationResultCommand(res)
+                    InvocationResultCommand(res)
                 } catch (e: Throwable) {
                     System.err.println(e.stackTraceToString())
-                    Protocol.ExceptionInChildProcess(e)
+                    ExceptionInChildProcess(e)
                 }
                 send(cmdId, resultCmd)
             }
-            is Protocol.StopProcessCommand -> {
+            is StopProcessCommand -> {
                 break
             }
-            is Protocol.InstrumentationCommand -> {
+            is InstrumentationCommand -> {
                 val result = instrumentation.handle(cmd)
                 result?.let {
                     send(cmdId, it)
                 }
             }
             else -> {
-                send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+                send(cmdId, ExceptionInChildProcess(UnexpectedCommand(cmd)))
             }
         }
     }
@@ -166,24 +169,24 @@ private fun loop(instrumentation: Instrumentation<*>) {
 private fun getInstrumentation(): Instrumentation<*>? {
     val cmdId = kryoHelper.readLong()
     return when (val cmd = kryoHelper.readCommand()) {
-        is Protocol.SetInstrumentationCommand<*> -> {
+        is SetInstrumentationCommand<*> -> {
             cmd.instrumentation
         }
-        is Protocol.StopProcessCommand -> null
+        is StopProcessCommand -> null
         else -> {
-            send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+            send(cmdId, ExceptionInChildProcess(UnexpectedCommand(cmd)))
             null
         }
     }
 }
 
-private fun readClasspath(): Protocol.AddPathsCommand {
+private fun readClasspath(): AddPathsCommand {
     val cmdId = kryoHelper.readLong()
     return kryoHelper.readCommand().let { cmd ->
-        if (cmd is Protocol.AddPathsCommand) {
+        if (cmd is AddPathsCommand) {
             cmd
         } else {
-            send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+            send(cmdId, ExceptionInChildProcess(UnexpectedCommand(cmd)))
             error("No classpath!")
         }
     }

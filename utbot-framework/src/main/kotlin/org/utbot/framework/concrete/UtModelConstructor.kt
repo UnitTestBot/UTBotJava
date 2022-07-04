@@ -271,7 +271,7 @@ internal class UtModelConstructor(
                 handleId(value),
                 javaClazz.id,
                 isMock,
-                fields = mutableMapOf() // we don't want to construct any further fields.
+                _fields = mutableMapOf() // we don't want to construct any further fields.
             )
         }
 

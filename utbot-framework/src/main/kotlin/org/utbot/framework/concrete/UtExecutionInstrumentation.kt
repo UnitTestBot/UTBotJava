@@ -1,35 +1,20 @@
 package org.utbot.framework.concrete
 
+import kotlinx.serialization.*
+import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.encoding.*
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
 import org.utbot.common.withRemovedFinalModifier
-import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.field
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.api.withReflection
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
@@ -42,20 +27,45 @@ import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
 
-/**
- * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
- *
- * @property [stateBefore] is necessary for construction of parameters of a concrete call.
- * @property [instrumentation] is necessary for mocking static methods and new instances.
- * @property [timeout] is timeout for specific concrete execution (in milliseconds).
- * By default is initialized from [UtSettings.concreteExecutionTimeoutInChildProcess]
- */
-data class UtConcreteExecutionData(
-    val stateBefore: EnvironmentModels,
-    val instrumentation: List<UtInstrumentation>,
-    val timeout: Long = UtSettings.concreteExecutionTimeoutInChildProcess
-)
+object UtConcreteExecutionResultSerializer : KSerializer<UtConcreteExecutionResult> {
+    override fun deserialize(decoder: Decoder): UtConcreteExecutionResult {
+        return decoder.decodeStructure(descriptor) {
+            var stateAfter: EnvironmentModels? = null
+            var result: UtExecutionResult? = null
+            var coverage: Coverage? = null
 
+            while (true) {
+                val index = decodeElementIndex(descriptor)
+
+                when (index) {
+                    0 -> stateAfter = decodeSerializableElement(descriptor, 0, serializer<EnvironmentModels>())
+                    1 -> result = decodeSerializableElement(descriptor, 1, serializer<UtExecutionResult>())
+                    2 -> coverage = decodeSerializableElement(descriptor, 2, serializer<Coverage>())
+                    CompositeDecoder.DECODE_DONE -> break
+                    else -> error("Unknown index: $index")
+                }
+            }
+
+            return@decodeStructure UtConcreteExecutionResult(stateAfter!!, result!!, coverage!!)
+        }
+    }
+
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("UtConcreteExecutionResult") {
+        element<EnvironmentModels>("stateAfter")
+        element<UtExecutionResult>("result")
+        element<Coverage>("coverage")
+    }
+
+    override fun serialize(encoder: Encoder, value: UtConcreteExecutionResult) {
+        encoder.encodeStructure(descriptor) {
+            encodeSerializableElement(descriptor, 0, serializer(), value.stateAfter)
+            encodeSerializableElement(descriptor, 1, serializer(), value.result)
+            encodeSerializableElement(descriptor, 2, serializer(), value.coverage)
+        }
+    }
+}
+
+@Serializable(with = UtConcreteExecutionResultSerializer::class)
 class UtConcreteExecutionResult(
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
@@ -104,6 +114,26 @@ class UtConcreteExecutionResult(
     }
 }
 
+object UtExecutionInstrumentationSerializer : KSerializer<UtExecutionInstrumentation> {
+    @InternalSerializationApi
+    @ExperimentalSerializationApi
+    override fun deserialize(decoder: Decoder): UtExecutionInstrumentation {
+        decoder.beginStructure(descriptor).run { endStructure(descriptor) }
+        return UtExecutionInstrumentation
+    }
+
+    @InternalSerializationApi
+    @ExperimentalSerializationApi
+    override val descriptor: SerialDescriptor = buildSerialDescriptor("UtExecutionInstrumentation", StructureKind.OBJECT)
+
+    @InternalSerializationApi
+    @ExperimentalSerializationApi
+    override fun serialize(encoder: Encoder, value: UtExecutionInstrumentation) {
+        encoder.beginStructure(descriptor).run { endStructure(descriptor) }
+    }
+}
+
+@Serializable(with = UtExecutionInstrumentationSerializer::class)
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
@@ -111,6 +141,10 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
     private val traceHandler = TraceHandler()
     private val pathsToUserClasses = mutableSetOf<String>()
+
+    init {
+
+    }
 
     override fun init(pathsToUserClasses: Set<String>) {
         this.pathsToUserClasses.clear()
@@ -130,73 +164,75 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         parameters: Any?
     ): UtConcreteExecutionResult {
         withReflection {
-        if (parameters !is UtConcreteExecutionData) {
-            throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
-        }
-        val (stateBefore, instrumentations, timeout) = parameters // smart cast to UtConcreteExecutionData
-        val parametersModels = listOfNotNull(stateBefore.thisInstance) + stateBefore.parameters
-
-        val methodId = clazz.singleExecutableId(methodSignature)
-        val returnClassId = methodId.returnType
-        traceHandler.resetTrace()
-
-        return MockValueConstructor(instrumentationContext).use { constructor ->
-            val params = constructor.constructMethodParameters(parametersModels)
-            val staticFields = constructor
-                .constructStatics(
-                    stateBefore
-                        .statics
-                        .filterKeys { !it.isInaccessibleViaReflection }
-                )
-                .mapValues { (_, value) -> value.value }
-
-            val concreteExecutionResult = withStaticFields(staticFields) {
-                val staticMethodsInstrumentation = instrumentations.filterIsInstance<UtStaticMethodInstrumentation>()
-                constructor.mockStaticMethods(staticMethodsInstrumentation)
-                val newInstanceInstrumentation = instrumentations.filterIsInstance<UtNewInstanceInstrumentation>()
-                constructor.mockNewInstances(newInstanceInstrumentation)
-
-                traceHandler.resetTrace()
-                val stopWatch = StopWatch()
-                val context = UtContext(utContext.classLoader, stopWatch)
-                val concreteResult = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout, stopWatch) {
-                    withUtContext(context) {
-                        delegateInstrumentation.invoke(clazz, methodSignature, params.map { it.value })
-                    }
-                }?.getOrThrow() as? Result<*> ?: Result.failure<Any?>(TimeoutException("Timeout $timeout elapsed"))
-                val traceList = traceHandler.computeInstructionList()
-
-                val cache = constructor.objectToModelCache
-                val utCompositeModelStrategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(pathsToUserClasses, cache)
-                val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
-                utModelConstructor.run {
-                    val concreteUtModelResult = concreteResult.fold({
-                        UtExecutionSuccess(construct(it, returnClassId))
-                    }) {
-                        sortOutException(it)
-                    }
-
-                    val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
-                    val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
-                        .associateWith { fieldId ->
-                            fieldId.field.run { construct(withAccessibility { get(null) }, fieldId.type) }
-                        }
-                    val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
-                        null to stateAfterParametersWithThis
-                    } else {
-                        stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
-                    }
-                    val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
-                    UtConcreteExecutionResult(
-                        stateAfter,
-                        concreteUtModelResult,
-                        traceList.toApiCoverage()
-                    )
-                }
+            if (parameters !is UtConcreteExecutionData) {
+                throw IllegalArgumentException("Argument parameters must be of type UtConcreteExecutionData, but was: ${parameters?.javaClass}")
             }
+            val (stateBefore, instrumentations: List<UtInstrumentation>, timeout) = parameters // smart cast to UtConcreteExecutionData
+            val parametersModels = listOfNotNull(stateBefore.thisInstance) + stateBefore.parameters
 
-            concreteExecutionResult
-        }
+            val methodId = clazz.singleExecutableId(methodSignature)
+            val returnClassId = methodId.returnType
+            traceHandler.resetTrace()
+
+            return MockValueConstructor(instrumentationContext).use { constructor ->
+                val params = constructor.constructMethodParameters(parametersModels)
+                val staticFields = constructor
+                    .constructStatics(
+                        stateBefore
+                            .statics
+                            .filterKeys { !it.isInaccessibleViaReflection }
+                    )
+                    .mapValues { (_, value) -> value.value }
+
+                val concreteExecutionResult = withStaticFields(staticFields) {
+                    val staticMethodsInstrumentation =
+                        instrumentations.filterIsInstance<UtStaticMethodInstrumentation>()
+                    constructor.mockStaticMethods(staticMethodsInstrumentation)
+                    val newInstanceInstrumentation = instrumentations.filterIsInstance<UtNewInstanceInstrumentation>()
+                    constructor.mockNewInstances(newInstanceInstrumentation)
+
+                    traceHandler.resetTrace()
+                    val stopWatch = StopWatch()
+                    val context = UtContext(utContext.classLoader, stopWatch)
+                    val concreteResult = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout, stopWatch) {
+                        withUtContext(context) {
+                            delegateInstrumentation.invoke(clazz, methodSignature, params.map { it.value })
+                        }
+                    }?.getOrThrow() as? Result<*> ?: Result.failure<Any?>(TimeoutException("Timeout $timeout elapsed"))
+                    val traceList = traceHandler.computeInstructionList()
+
+                    val cache = constructor.objectToModelCache
+                    val utCompositeModelStrategy =
+                        ConstructOnlyUserClassesOrCachedObjectsStrategy(pathsToUserClasses, cache)
+                    val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
+                    utModelConstructor.run {
+                        val concreteUtModelResult = concreteResult.fold({
+                            UtExecutionSuccess(construct(it, returnClassId))
+                        }) {
+                            sortOutException(it)
+                        }
+
+                        val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
+                        val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
+                            .associateWith { fieldId ->
+                                fieldId.field.run { construct(withAccessibility { get(null) }, fieldId.type) }
+                            }
+                        val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
+                            null to stateAfterParametersWithThis
+                        } else {
+                            stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
+                        }
+                        val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
+                        UtConcreteExecutionResult(
+                            stateAfter,
+                            concreteUtModelResult,
+                            traceList.toApiCoverage()
+                        )
+                    }
+                }
+
+                concreteExecutionResult
+            }
         }
     }
 

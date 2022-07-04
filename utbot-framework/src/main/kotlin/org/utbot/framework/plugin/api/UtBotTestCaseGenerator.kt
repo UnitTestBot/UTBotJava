@@ -18,7 +18,6 @@ import org.utbot.framework.UtSettings.disableCoroutinesDebug
 import org.utbot.framework.UtSettings.utBotGenerationTimeoutInMillis
 import org.utbot.framework.UtSettings.warmupConcreteExecution
 import org.utbot.framework.codegen.model.util.checkFrameworkDependencies
-import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.minimization.minimizeTestCase

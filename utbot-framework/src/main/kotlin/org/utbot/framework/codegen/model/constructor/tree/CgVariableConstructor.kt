@@ -164,7 +164,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         for (statementModel in model.allStatementsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
-                    val instance = declareOrGet(statementModel.instance)
+                    val instance = declareOrGet(statementModel.instance!!)
                     // fields here are supposed to be accessible, so we assign them directly without any checks
                     instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                 }

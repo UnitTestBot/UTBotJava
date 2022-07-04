@@ -51,7 +51,7 @@ internal val ClassId.getUnsafeInstanceMethodId: MethodId
 internal val ClassId.createInstanceMethodId: MethodId
     get() = utilMethodId(
             name = "createInstance",
-            returnType = CgClassId(objectClassId, isNullable = true),
+            returnType = CgClassId(objectClassId, _isNullable = true),
             arguments = arrayOf(stringClassId)
     )
 

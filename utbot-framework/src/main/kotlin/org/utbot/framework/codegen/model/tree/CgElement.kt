@@ -1,5 +1,12 @@
 package org.utbot.framework.codegen.model.tree
 
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.element
+import kotlinx.serialization.encoding.*
+import kotlinx.serialization.serializer
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
@@ -450,7 +457,7 @@ data class CgTryCatch(
 data class CgErrorWrapper(
     val message: String,
     val expression: CgExpression,
-): CgExpression {
+) : CgExpression {
     override val type: ClassId
         get() = expression.type
 }
@@ -628,7 +635,7 @@ class CgLiteral(override val type: ClassId, val value: Any?) : CgValue {
 }
 
 // Runnable like this::toString or (new Object())::toString (non-static) or Random::nextRandomInt (static) etc
-abstract class CgRunnable(override val type: ClassId, val methodId: MethodId): CgValue
+abstract class CgRunnable(override val type: ClassId, val methodId: MethodId) : CgValue
 
 /**
  * [referenceExpression] is "this" in this::toString or (new Object()) in (new Object())::toString (non-static)
@@ -637,18 +644,23 @@ class CgNonStaticRunnable(
     type: ClassId,
     val referenceExpression: CgReferenceExpression,
     methodId: MethodId
-): CgRunnable(type, methodId)
+) : CgRunnable(type, methodId)
 
 /**
  * [classId] is Random is Random::nextRandomInt (static) etc
  */
-class CgStaticRunnable(type: ClassId, val classId: ClassId, methodId: MethodId): CgRunnable(type, methodId)
+class CgStaticRunnable(type: ClassId, val classId: ClassId, methodId: MethodId) : CgRunnable(type, methodId)
 
 // Array allocation
 
-open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int)
-    : CgReferenceExpression {
-    override val type: ClassId by lazy { CgClassId(type.name, updateElementType(elementType), isNullable = type.isNullable) }
+open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int) : CgReferenceExpression {
+    override val type: ClassId by lazy {
+        CgClassId(
+            name = type.name,
+            updateElementType(elementType),
+            _isNullable = type.isNullable
+        )
+    }
     val elementType: ClassId by lazy {
         workaround(WorkaroundReason.ARRAY_ELEMENT_TYPES_ALWAYS_NULLABLE) {
             // for now all array element types are nullable
@@ -658,19 +670,19 @@ open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int)
 
     private fun updateElementType(type: ClassId): ClassId =
         if (type.elementClassId != null) {
-            CgClassId(type.name, updateElementType(type.elementClassId!!), isNullable = true)
+            CgClassId(type.name, updateElementType(type.elementClassId!!), _isNullable = true)
         } else {
-            CgClassId(type, isNullable = true)
+            CgClassId(type, _isNullable = true)
         }
 }
 
-class CgAllocateInitializedArray(val model: UtArrayModel)
-    : CgAllocateArray(model.classId, model.classId.elementClassId!!, model.length)
+class CgAllocateInitializedArray(val model: UtArrayModel) :
+    CgAllocateArray(model.classId, model.classId.elementClassId!!, model.length)
 
 
 // Spread operator (for Kotlin, empty for Java)
 
-class CgSpread(override val type: ClassId, val array: CgExpression): CgExpression
+class CgSpread(override val type: ClassId, val array: CgExpression) : CgExpression
 
 // Enum constant
 
@@ -798,15 +810,61 @@ class CgThrowStatement(
 
 class CgEmptyLine : CgStatement
 
-class CgClassId(
-    name: String,
-    elementClassId: ClassId? = null,
-    override val typeParameters: TypeParameters = TypeParameters(),
-    override val isNullable: Boolean = true,
-) : ClassId(name, elementClassId) {
+object CgClassIdSerializer : KSerializer<CgClassId> {
+    override fun deserialize(decoder: Decoder): CgClassId {
+        return decoder.decodeStructure(descriptor) {
+            var typeParameters: TypeParameters? = null
+            var isNullable: Boolean? = null
+            var classId: ClassId? = null
+
+            while(true) {
+                val index = decodeElementIndex(descriptor)
+                when(index) {
+                    0 -> typeParameters = decodeSerializableElement(descriptor, 0, serializer<TypeParameters>())
+                    1 -> isNullable = decodeBooleanElement(descriptor, 1)
+                    2 -> classId = decodeSerializableElement(descriptor, 2, serializer<ClassId>())
+                    CompositeDecoder.DECODE_DONE -> break
+                    else -> error("Unknown index $index")
+                }
+            }
+
+            return@decodeStructure CgClassId(classId!!, typeParameters!!, isNullable!!)
+        }
+    }
+
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("CgClassId") {
+        element<TypeParameters>("typeParameters")
+        element<Boolean>("isNullable")
+        element<ClassId>("parent")
+    }
+
+    override fun serialize(encoder: Encoder, value: CgClassId) {
+        encoder.encodeStructure(descriptor) {
+            encodeSerializableElement(descriptor, 0, serializer(), value.typeParameters)
+            encodeSerializableElement(descriptor, 1, serializer(), value.isNullable)
+            encodeSerializableElement(descriptor, 2, serializer(), value as ClassId)
+        }
+    }
+}
+
+@Serializable(with = CgClassIdSerializer::class)
+class CgClassId : ClassId {
+    override val typeParameters: TypeParameters
+    override val isNullable: Boolean
+
+    constructor(
+        name: String,
+        elementClassId: ClassId? = null,
+        _typeParameters: TypeParameters = TypeParameters(),
+        _isNullable: Boolean = true,
+    ) : super(name, elementClassId) {
+        typeParameters = _typeParameters
+        isNullable = _isNullable
+    }
+
     constructor(
         classId: ClassId,
-        typeParameters: TypeParameters = TypeParameters(),
-        isNullable: Boolean = true,
-    ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
+        _typeParameters: TypeParameters = TypeParameters(),
+        _isNullable: Boolean = true,
+    ) : this(classId.name, classId.elementClassId, _typeParameters, _isNullable)
 }

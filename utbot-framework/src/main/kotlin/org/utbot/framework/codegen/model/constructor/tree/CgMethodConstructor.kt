@@ -228,7 +228,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             val fieldAccessible = field.isAccessibleFrom(testClassPackageName)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
-            val prevValue = newVar(CgClassId(field.type, isNullable = !fieldAccessible),
+            val prevValue = newVar(CgClassId(field.type, _isNullable = !fieldAccessible),
                 "prev${field.name.capitalize()}") {
                 if (fieldAccessible) {
                     declaringClass[field]
@@ -1069,7 +1069,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     emptyLineIfNeeded()
 
                     actual = newVar(
-                        CgClassId(executable.returnType, isNullable = result is UtNullModel),
+                        CgClassId(executable.returnType, _isNullable = result is UtNullModel),
                         "actual"
                     ) {
                         thisInstance[executable](*methodArguments.toTypedArray())
@@ -1140,7 +1140,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val varType = CgClassId(
                             it.variableType,
                             TypeParameters(listOf(typeParameter)),
-                            isNullable = true,
+                            _isNullable = true,
                         )
                         +CgDeclaration(
                             varType,
@@ -1428,18 +1428,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun argListClassId(): ClassId = when (testFramework) {
         Junit5 -> BuiltinClassId(
             name = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            simpleName = "ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            canonicalName = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            packageName = "java.util",
+            _simpleName = "ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
+            _canonicalName = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
+            _packageName = "java.util",
         )
         TestNg -> BuiltinClassId(
             name = Array<Array<Any?>?>::class.java.name,
-            simpleName = when (codegenLanguage) {
+            _simpleName = when (codegenLanguage) {
                 CodegenLanguage.JAVA -> "Object[][]"
                 CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
             },
-            canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
-            packageName = Array<Array<Any?>?>::class.java.packageName,
+            _canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
+            _packageName = Array<Array<Any?>?>::class.java.packageName,
         )
         Junit4 -> error("Parameterized tests are not supported for JUnit4")
     }
@@ -1461,9 +1461,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun argumentsMethodId(): MethodId {
         val argumentsClassId = BuiltinClassId(
             name = "org.junit.jupiter.params.provider.Arguments",
-            simpleName = "Arguments",
-            canonicalName = "org.junit.jupiter.params.provider.Arguments",
-            packageName = "org.junit.jupiter.params.provider",
+            _simpleName = "Arguments",
+            _canonicalName = "org.junit.jupiter.params.provider.Arguments",
+            _packageName = "org.junit.jupiter.params.provider",
         )
 
         return methodId(
@@ -1494,9 +1494,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun throwableClassId(): ClassId = BuiltinClassId(
         name = "java.lang.Class<Throwable>",
-        simpleName = "Class<Throwable>",
-        canonicalName = "java.lang.Class<Throwable>",
-        packageName = "java.lang",
+        _simpleName = "Class<Throwable>",
+        _canonicalName = "java.lang.Class<Throwable>",
+        _packageName = "java.lang",
     )
 
 

@@ -1,28 +1,28 @@
 package org.utbot.instrumentation.instrumentation.coverage
 
+import kotlinx.serialization.Serializable
+import org.utbot.common.IntRangeSerializer
 import org.utbot.common.withRemovedFinalModifier
+import org.utbot.framework.UtContextClassSerializer
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
-import org.utbot.instrumentation.util.CastProbesArrayException
-import org.utbot.instrumentation.util.ChildProcessError
-import org.utbot.instrumentation.util.InstrumentationException
-import org.utbot.instrumentation.util.NoProbesArrayException
-import org.utbot.instrumentation.util.Protocol
-import org.utbot.instrumentation.util.UnexpectedCommand
+import org.utbot.instrumentation.util.*
 import java.security.ProtectionDomain
 
+@Serializable
 data class CoverageInfo(
-    val methodToInstrRange: Map<String, IntRange>,
+    val methodToInstrRange: Map<String, @Serializable(with = IntRangeSerializer::class) IntRange>,
     val visitedInstrs: List<Int>
 )
 
 /**
  * This instrumentation allows collecting coverage after several calls.
  */
+@Serializable
 object CoverageInstrumentation : Instrumentation<Result<*>> {
     private val invokeWithStatics = InvokeWithStaticsInstrumentation()
 
@@ -99,11 +99,11 @@ object CoverageInstrumentation : Instrumentation<Result<*>> {
      *
      * @return [CoverageInfoCommand] with wrapped [CoverageInfo] if [cmd] is [CollectCoverageCommand] and `null` otherwise.
      */
-    override fun <T : Protocol.InstrumentationCommand> handle(cmd: T): Protocol.Command? = when (cmd) {
+    override fun <T : Command.InstrumentationCommand> handle(cmd: T): Command? = when (cmd) {
         is CollectCoverageCommand<*> -> try {
             CoverageInfoCommand(collectCoverageInfo(cmd.clazz))
         } catch (e: InstrumentationException) {
-            Protocol.ExceptionInChildProcess(e)
+            Command.ExceptionInChildProcess(e)
         }
         else -> null
     }
@@ -113,12 +113,14 @@ object CoverageInstrumentation : Instrumentation<Result<*>> {
  * This command is sent to the child process from the [ConcreteExecutor] if user wants to collect coverage for the
  * [clazz].
  */
-data class CollectCoverageCommand<T : Any>(val clazz: Class<out T>) : Protocol.InstrumentationCommand()
+@Serializable
+data class CollectCoverageCommand<T : Any>(val clazz: @Serializable(with = UtContextClassSerializer::class)Class<out T>) : Command.InstrumentationCommand()
 
 /**
  * This command is sent back to the [ConcreteExecutor] with the [coverageInfo].
  */
-data class CoverageInfoCommand(val coverageInfo: CoverageInfo) : Protocol.InstrumentationCommand()
+@Serializable
+data class CoverageInfoCommand(val coverageInfo: CoverageInfo) : Command.InstrumentationCommand()
 
 /**
  * Extension function for the [ConcreteExecutor], which allows to collect the coverage of the given [clazz].
@@ -128,7 +130,7 @@ fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: 
     return this.request(collectCoverageCommand) {
         when (it) {
             is CoverageInfoCommand -> it.coverageInfo
-            is Protocol.ExceptionInChildProcess -> throw ChildProcessError(it.exception)
+            is Command.ExceptionInChildProcess -> throw ChildProcessError(it.exception)
             else -> throw UnexpectedCommand(it)
         }
     }!!

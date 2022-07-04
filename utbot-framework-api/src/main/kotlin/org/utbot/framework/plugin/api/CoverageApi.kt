@@ -1,5 +1,7 @@
 package org.utbot.framework.plugin.api
 
+import kotlinx.serialization.Serializable
+
 /**
  * Represents a covered bytecode instruction.
  *
@@ -10,6 +12,7 @@ package org.utbot.framework.plugin.api
  *
  * @see <a href="CONFLUENCE:Test+Minimization">Test minimization</a>
  */
+@Serializable
 data class Instruction(
     val className: String,
     val methodSignature: String,
@@ -25,6 +28,7 @@ data class Instruction(
  * @param coveredInstructions a list of the covered instructions in the order they are visited.
  *
  */
+@Serializable
 class Coverage(
     val coveredInstructions: List<Instruction> = emptyList()
 )

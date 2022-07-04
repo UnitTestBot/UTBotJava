@@ -22,7 +22,7 @@ class ArrayModelProvider(
                     UtArrayModel(
                         id = idGenerator.asInt,
                         arrayClassId,
-                        length = arraySize,
+                        _length = arraySize,
                         arrayClassId.elementClassId!!.defaultValueModel(),
                         mutableMapOf()
                     )

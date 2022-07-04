@@ -390,7 +390,7 @@ class MockValueConstructor(
         val instanceModel = directSetterModel.instance
         val instance = resultsCache[instanceModel] ?: error("Model $instanceModel is not instantiated")
 
-        val instanceClassId = instanceModel.classId
+        val instanceClassId = instanceModel!!.classId
         val fieldModel = directSetterModel.fieldModel
 
         val field = instance::class.java.findField(directSetterModel.fieldId.name)

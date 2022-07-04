@@ -53,7 +53,7 @@ open class FallbackModelProvider(
                 UtArrayModel(
                     id = idGenerator.asInt,
                     classId,
-                    length = 0,
+                    _length = 0,
                     classId.elementClassId!!.defaultValueModel(),
                     mutableMapOf()
                 )
@@ -99,7 +99,7 @@ open class FallbackModelProvider(
             UtCompositeModel(
                 id = idGenerator.asInt,
                 kclass.id,
-                isMock = false
+                _isMock = false
             )
         }
     }

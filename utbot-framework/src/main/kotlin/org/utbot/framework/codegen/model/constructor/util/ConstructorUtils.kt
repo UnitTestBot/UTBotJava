@@ -119,7 +119,7 @@ internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
 
-val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
+val classCgClassId = CgClassId(Class::class.id, _typeParameters = WildcardTypeParameter(), _isNullable = false)
 
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()

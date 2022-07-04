@@ -331,7 +331,7 @@ class Resolver(
 
         findConstructedModelOrNull(concreteAddr)?.let { return it }
 
-        val mockInstanceModel = UtCompositeModel(concreteAddr, mockInfo.classId, isMock = true)
+        val mockInstanceModel = UtCompositeModel(concreteAddr, mockInfo.classId, _isMock = true)
         addConstructedModel(concreteAddr, mockInstanceModel)
 
         mockInstanceModel.fields += collectFieldModels(
@@ -521,7 +521,7 @@ class Resolver(
         val mockInfo = mockInfos[concreteAddr]
 
         return tryConstructAssembleModel(concreteAddr, clazz.id, actualType, isMock = mockInfo != null)
-            ?: UtCompositeModel(concreteAddr, clazz.id, isMock = mockInfo != null).also { instanceModel ->
+            ?: UtCompositeModel(concreteAddr, clazz.id, _isMock = mockInfo != null).also { instanceModel ->
                 addConstructedModel(concreteAddr, instanceModel)
 
                 instanceModel.fields += collectFieldModels(addr, actualType)

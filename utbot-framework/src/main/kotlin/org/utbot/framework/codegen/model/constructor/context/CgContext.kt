@@ -417,8 +417,8 @@ internal data class CgContext(
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
                 name = name,
-                canonicalName = name,
-                simpleName = simpleName
+                _canonicalName = name,
+                _simpleName = simpleName
         )
     }
 

@@ -122,14 +122,14 @@ object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocki
 
     val mockedStaticClassId = BuiltinClassId(
         name = "org.mockito.MockedStatic",
-        canonicalName = "org.mockito.MockedStatic",
-        simpleName = "MockedStatic"
+        _canonicalName = "org.mockito.MockedStatic",
+        _simpleName = "MockedStatic"
     )
 
     val mockedConstructionClassId = BuiltinClassId(
         name = "org.mockito.MockedConstruction",
-        canonicalName = "org.mockito.MockedConstruction",
-        simpleName = "MockedConstruction"
+        _canonicalName = "org.mockito.MockedConstruction",
+        _simpleName = "MockedConstruction"
     )
 
     val mockStaticMethodId = builtinStaticMethodId(
@@ -158,7 +158,7 @@ object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocki
     fun mockedStaticWhen(nullable: Boolean): MethodId = builtinMethodId(
         classId = mockedStaticClassId,
         name = "when",
-        returnType = CgClassId(ongoingStubbingClassId, isNullable = nullable),
+        returnType = CgClassId(ongoingStubbingClassId, _isNullable = nullable),
         // argument type is actually a functional interface
         arguments = arrayOf(objectClassId)
     )
@@ -251,22 +251,22 @@ object TestNg : TestFramework(displayName = "TestNG") {
 
     override val assertionsClass: ClassId = BuiltinClassId(
         name = TEST_NG_ASSERTIONS,
-        canonicalName = TEST_NG_ASSERTIONS,
-        simpleName = "Assert"
+        _canonicalName = TEST_NG_ASSERTIONS,
+        _simpleName = "Assert"
     )
 
     override val arraysAssertionsClass: ClassId = BuiltinClassId(
         name = TEST_NG_ARRAYS_ASSERTIONS,
-        canonicalName = TEST_NG_ARRAYS_ASSERTIONS,
-        simpleName = "ArrayAsserts"
+        _canonicalName = TEST_NG_ARRAYS_ASSERTIONS,
+        _simpleName = "ArrayAsserts"
     )
 
     override val assertBooleanArrayEquals by lazy { assertionId("assertEquals", booleanArrayClassId, booleanArrayClassId) }
 
     val throwingRunnableClassId = BuiltinClassId(
         name = "${assertionsClass.name}\$ThrowingRunnable",
-        canonicalName = "${assertionsClass.canonicalName}.ThrowingRunnable",
-        simpleName = "ThrowingRunnable"
+        _canonicalName = "${assertionsClass.canonicalName}.ThrowingRunnable",
+        _simpleName = "ThrowingRunnable"
     )
 
     val assertThrows = builtinStaticMethodId(
@@ -282,20 +282,20 @@ object TestNg : TestFramework(displayName = "TestNG") {
 
     override val testAnnotationId: ClassId = BuiltinClassId(
         name = "$mainPackage.annotations.Test",
-        canonicalName = "$mainPackage.annotations.Test",
-        simpleName = "Test"
+        _canonicalName = "$mainPackage.annotations.Test",
+        _simpleName = "Test"
     )
 
     override val parameterizedTestAnnotationId: ClassId = BuiltinClassId(
         name = "$mainPackage.annotations.Test",
-        canonicalName = "$mainPackage.annotations.Test",
-        simpleName = "Test"
+        _canonicalName = "$mainPackage.annotations.Test",
+        _simpleName = "Test"
     )
 
     override val methodSourceAnnotationId: ClassId = BuiltinClassId(
         name = "$mainPackage.annotations.DataProvider",
-        canonicalName = "$mainPackage.annotations.DataProvider",
-        simpleName = "DataProvider"
+        _canonicalName = "$mainPackage.annotations.DataProvider",
+        _simpleName = "DataProvider"
     )
 
     override fun getRunTestsCommand(
@@ -347,8 +347,8 @@ object Junit4 : TestFramework("JUnit4") {
 
     override val testAnnotationId = BuiltinClassId(
         name = "$JUNIT4_PACKAGE.Test",
-        canonicalName = "$JUNIT4_PACKAGE.Test",
-        simpleName = "Test"
+        _canonicalName = "$JUNIT4_PACKAGE.Test",
+        _simpleName = "Test"
     )
 
     override val parameterizedTestAnnotationId = voidClassId
@@ -356,22 +356,22 @@ object Junit4 : TestFramework("JUnit4") {
 
     val runWithAnnotationClassId = BuiltinClassId(
         name = "$JUNIT4_PACKAGE.runner.RunWith",
-        canonicalName = "$JUNIT4_PACKAGE.runner.RunWith",
-        simpleName = "RunWith"
+        _canonicalName = "$JUNIT4_PACKAGE.runner.RunWith",
+        _simpleName = "RunWith"
     )
 
     override val assertionsClass = BuiltinClassId(
         name = JUNIT4_ASSERTIONS,
-        canonicalName = JUNIT4_ASSERTIONS,
-        simpleName = "Assert"
+        _canonicalName = JUNIT4_ASSERTIONS,
+        _simpleName = "Assert"
     )
     override val arraysAssertionsClass = assertionsClass
 
     val ignoreAnnotationClassId = with("$JUNIT4_PACKAGE.Ignore") {
         BuiltinClassId(
             name = this,
-            canonicalName = this,
-            simpleName = "Ignore"
+            _canonicalName = this,
+            _simpleName = "Ignore"
         )
     }
 
@@ -394,44 +394,44 @@ object Junit5 : TestFramework("JUnit5") {
 
     val executableClassId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.function.Executable",
-        canonicalName = "$JUNIT5_PACKAGE.function.Executable",
-        simpleName = "Executable"
+        _canonicalName = "$JUNIT5_PACKAGE.function.Executable",
+        _simpleName = "Executable"
     )
 
     val timeoutClassId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.Timeout",
-        canonicalName = "$JUNIT5_PACKAGE.Timeout",
-        simpleName = "Timeout"
+        _canonicalName = "$JUNIT5_PACKAGE.Timeout",
+        _simpleName = "Timeout"
     )
 
     val timeunitClassId = BuiltinClassId(
         name = "TimeUnit",
-        canonicalName = "java.util.concurrent.TimeUnit",
-        simpleName = "TimeUnit"
+        _canonicalName = "java.util.concurrent.TimeUnit",
+        _simpleName = "TimeUnit"
     )
 
     override val testAnnotationId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.Test",
-        canonicalName = "$JUNIT5_PACKAGE.Test",
-        simpleName = "Test"
+        _canonicalName = "$JUNIT5_PACKAGE.Test",
+        _simpleName = "Test"
     )
 
     override val parameterizedTestAnnotationId = BuiltinClassId(
         name = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest",
-        canonicalName = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest",
-        simpleName = "ParameterizedTest"
+        _canonicalName = "$JUNIT5_PARAMETERIZED_PACKAGE.ParameterizedTest",
+        _simpleName = "ParameterizedTest"
     )
 
     override val methodSourceAnnotationId: ClassId = BuiltinClassId(
         name = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource",
-        canonicalName = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource",
-        simpleName = "MethodSource"
+        _canonicalName = "$JUNIT5_PARAMETERIZED_PACKAGE.provider.MethodSource",
+        _simpleName = "MethodSource"
     )
 
     override val assertionsClass = BuiltinClassId(
         name = JUNIT5_ASSERTIONS,
-        canonicalName = JUNIT5_ASSERTIONS,
-        simpleName = "Assertions"
+        _canonicalName = JUNIT5_ASSERTIONS,
+        _simpleName = "Assertions"
     )
 
     override val arraysAssertionsClass = assertionsClass
@@ -449,15 +449,15 @@ object Junit5 : TestFramework("JUnit5") {
 
     val displayNameClassId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.DisplayName",
-        canonicalName = "$JUNIT5_PACKAGE.DisplayName",
-        simpleName = "DisplayName"
+        _canonicalName = "$JUNIT5_PACKAGE.DisplayName",
+        _simpleName = "DisplayName"
     )
 
     val disabledAnnotationClassId = with("$JUNIT5_PACKAGE.Disabled") {
         BuiltinClassId(
             name = this,
-            canonicalName = this,
-            simpleName = "Disabled"
+            _canonicalName = this,
+            _simpleName = "Disabled"
         )
     }
 

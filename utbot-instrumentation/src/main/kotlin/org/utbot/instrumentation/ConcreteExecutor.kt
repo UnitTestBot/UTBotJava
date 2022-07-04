@@ -13,7 +13,6 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
 import java.io.Closeable
 import java.io.InputStream
@@ -35,6 +34,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
+import org.utbot.instrumentation.util.Command
 
 private val logger = KotlinLogging.logger {}
 
@@ -163,7 +163,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             else -> error("Unknown KCallable: $kCallable")
         } // actually executableId implements the same logic, but it requires UtContext
 
-        val invokeMethodCommand = Protocol.InvokeMethodCommand(
+        val invokeMethodCommand = Command.InvokeMethodCommand(
             clazz.name,
             signature,
             arguments.asList(),
@@ -174,7 +174,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         logger.trace("executeAsync, request: $cmdId , $invokeMethodCommand")
 
         try {
-            val res = awaitCommand<Protocol.InvocationResultCommand<*>, TIResult>(cmdId) {
+            val res = awaitCommand<Command.InvocationResultCommand<*>, TIResult>(cmdId) {
                 @Suppress("UNCHECKED_CAST")
                 it.result as TIResult
             }
@@ -189,7 +189,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     /**
      * Send command and return its sequential_id
      */
-    private fun sendCommand(cmd: Protocol.Command): Long {
+    private fun sendCommand(cmd: Command): Long {
         lastSendTimeMs = System.currentTimeMillis()
 
         val kryoHelper = state?.kryoHelper ?: error("State is null")
@@ -203,7 +203,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
     fun warmup() {
         restartIfNeeded()
-        sendCommand(Protocol.WarmupCommand())
+        sendCommand(Command.WarmupCommand)
     }
 
     /**
@@ -220,7 +220,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
     data class CommandResult(
         val commandId: Long,
-        val command: Protocol.Command,
+        val command: Command,
         val processStdout: InputStream
     )
 
@@ -260,7 +260,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                                     s.disposed = true
                                     CommandResult(
                                         ERROR_CMD_ID,
-                                        Protocol.ExceptionInKryoCommand(e),
+                                        Command.ExceptionInKryoCommand(e),
                                         process.inputStream
                                     )
                                 } finally {
@@ -289,7 +289,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                     // send classpath
                     // we don't expect ProcessReadyCommand here
                     sendCommand(
-                        Protocol.AddPathsCommand(
+                        Command.AddPathsCommand(
                             pathsToUserClasses,
                             pathsToDependencyClasses
                         )
@@ -297,7 +297,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
                     // send instrumentation
                     // we don't expect ProcessReadyCommand here
-                    sendCommand(Protocol.SetInstrumentationCommand(instrumentation))
+                    sendCommand(Command.SetInstrumentationCommand(instrumentation))
 
                 } catch (e: Throwable) {
                     state?.terminateResources()
@@ -313,14 +313,14 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
      * This function is helpful for creating extensions for specific instrumentations.
      * @see [org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation].
      */
-    fun <T : Protocol.Command, R> request(requestCmd: T, action: ((Protocol.Command) -> R)): R = runBlocking {
+    fun <T : Command, R> request(requestCmd: T, action: ((Command) -> R)): R = runBlocking {
         awaitCommand(sendCommand(requestCmd), action)
     }
 
     /**
      * Read next command of type [T]  or throw exception
      */
-    private suspend inline fun <reified T : Protocol.Command, R> awaitCommand(
+    private suspend inline fun <reified T : Command, R> awaitCommand(
         awaitingCmdId: Long,
         action: (T) -> R
     ): R {
@@ -336,8 +336,8 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             if (receivedId == awaitingCmdId || receivedId == ERROR_CMD_ID) {
                 return when (cmd) {
                     is T -> action(cmd)
-                    is Protocol.ExceptionInChildProcess -> throw ChildProcessError(cmd.exception)
-                    is Protocol.ExceptionInKryoCommand -> {
+                    is Command.ExceptionInChildProcess -> throw ChildProcessError(cmd.exception)
+                    is Command.ExceptionInKryoCommand -> {
                         // we assume that exception in Kryo means child process death
                         // and we do not need to check is it alive
                         throw ConcreteExecutionFailureException(
@@ -375,7 +375,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         if (!process.isAlive) {
             return
         }
-        logger.catch { kryoHelper.writeCommand(nextCommandId++, Protocol.StopProcessCommand()) }
+        logger.catch { kryoHelper.writeCommand(nextCommandId++, Command.StopProcessCommand) }
         logger.catch { kryoHelper.close() }
 
         logger.catch { receiveChannel.close() }

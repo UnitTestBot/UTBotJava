@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation
 
+import kotlinx.serialization.Serializable
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.util.signature
 import java.lang.reflect.Constructor
@@ -14,6 +15,7 @@ typealias ArgumentList = List<Any?>
 /**
  * This instrumentation just invokes a given function and wraps result in [Result].
  */
+@Serializable
 class InvokeInstrumentation : Instrumentation<Result<*>> {
     /**
      * Invokes a method with the given [methodSignature], the declaring class of which is [clazz], with the supplied

@@ -74,9 +74,9 @@ abstract class StreamWrapper(
 
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
-                    executable = builder,
-                    params = params,
-                    returnValue = this
+                    _executable = builder,
+                    _params = params,
+                    _returnValue = this
                 )
             }
     }

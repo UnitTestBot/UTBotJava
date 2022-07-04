@@ -2536,7 +2536,8 @@ class UtBotSymbolicEngine(
         if (methodSignature != makeSymbolicMethod.signature && methodSignature != nonNullableMakeSymbolic.signature) return null
 
         val method = environment.method
-        val isInternalMock = method.hasInternalMockAnnotation || method.declaringClass.allMethodsAreInternalMocks
+        val declaringClass = method.declaringClass
+        val isInternalMock = method.hasInternalMockAnnotation || declaringClass.allMethodsAreInternalMocks || declaringClass.isOverridden
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
         val mockMethodResult = mockStaticMethod(invokeExpr.method, parameters)?.single()
             ?: error("Unsuccessful mock attempt of the `makeSymbolic` method call: $invokeExpr")

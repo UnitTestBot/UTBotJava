@@ -161,6 +161,8 @@ import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.names.MethodBasedNameSuggester
+import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.instrumentation.ConcreteExecutor
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
@@ -254,6 +256,7 @@ import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
+import soot.tagkit.ParamNamesTag
 import soot.toolkits.graph.ExceptionalUnitGraph
 import sun.reflect.Reflection
 import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
@@ -608,12 +611,16 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph))
+        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
+            compilableName = if (methodUnderTest.isMethod) executableId.name else null
+            val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
+            parameterNameMap = { index -> names?.getOrNull(index) }
+        }
         val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = mutableSetOf<Instruction>()
         var attempts = UtSettings.fuzzingMaxAttemps
-        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEachIndexed { index, parameters ->
-            val initialEnvironmentModels = EnvironmentModels(thisInstance, parameters, mapOf())
+        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
+            val initialEnvironmentModels = EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
 
             try {
                 val concreteExecutionResult =
@@ -634,6 +641,14 @@ class UtBotSymbolicEngine(
                     }
                 }
 
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
+                    null
+                }
+
                 emit(
                     UtExecution(
                         stateBefore = initialEnvironmentModels,
@@ -643,7 +658,8 @@ class UtBotSymbolicEngine(
                         path = mutableListOf(),
                         fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
-                        testMethodName = if (methodUnderTest.isMethod) "test${methodUnderTest.callable.name.capitalize()}ByFuzzer${index}" else null
+                        testMethodName = testMethodName?.testName,
+                        displayName = testMethodName?.displayName
                     )
                 )
             } catch (e: CancellationException) {

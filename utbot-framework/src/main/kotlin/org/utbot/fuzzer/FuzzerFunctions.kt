@@ -108,7 +108,7 @@ private object ConstantsFromIfStatement: ConstantsFinder {
             val local = useBoxes[(valueIndex + 1) % 2]
             var op = sootIfToFuzzedOp(ifStatement)
             if (valueIndex == 0) {
-                op = reverse(op)
+                op = op.reverseOrElse { it }
             }
             // Soot loads any integer type as an Int,
             // therefore we try to guess target type using second value
@@ -224,14 +224,6 @@ private fun sootIfToFuzzedOp(unit: JIfStmt) = when (unit.condition) {
     is JLtExpr -> FuzzedOp.GE
     is JLeExpr -> FuzzedOp.GT
     else -> FuzzedOp.NONE
-}
-
-private fun reverse(op: FuzzedOp) = when(op) {
-    FuzzedOp.GT -> FuzzedOp.LT
-    FuzzedOp.LT -> FuzzedOp.GT
-    FuzzedOp.LE -> FuzzedOp.GE
-    FuzzedOp.GE -> FuzzedOp.LE
-    else -> op
 }
 
 private fun nextDirectUnit(graph: ExceptionalUnitGraph, unit: Unit): Unit? = graph.getSuccsOf(unit).takeIf { it.size == 1 }?.first()

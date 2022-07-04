@@ -38,6 +38,7 @@ import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
+import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
 
 /**
@@ -256,7 +257,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     }
                     //fill field value if it hasn't been filled by constructor, and it is not default
                     if (fieldId in constructorInfo.affectedFields ||
-                        (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
+                            (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
                     ) {
                         val modifierCall = modifierCall(this, fieldId, assembleModel(fieldModel))
                         callChain.add(modifierCall)
@@ -357,14 +358,20 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      */
     private fun findBestConstructorOrNull(compositeModel: UtCompositeModel): ConstructorId? {
         val classId = compositeModel.classId
-        if (!classId.isPublic || classId.isInner) return null
+        if (!classId.isVisible || classId.isInner) return null
 
         return classId.jClass.declaredConstructors
-            .filter { it.isPublic || !it.isPrivate && it.declaringClass.packageName.startsWith(methodPackageName) }
+            .filter { it.isVisible }
             .sortedByDescending { it.parameterCount }
             .map { it.executableId }
             .firstOrNull { constructorAnalyzer.isAppropriate(it) }
     }
+
+    private val ClassId.isVisible : Boolean
+        get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(methodPackageName)
+
+    private val Constructor<*>.isVisible : Boolean
+        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(methodPackageName)
 
     /**
      * Creates setter or direct setter call to set a field.

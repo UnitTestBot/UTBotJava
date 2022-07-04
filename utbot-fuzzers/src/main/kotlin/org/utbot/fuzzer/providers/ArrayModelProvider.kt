@@ -1,10 +1,10 @@
 package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.consumeAll
 import java.util.function.BiConsumer
@@ -13,7 +13,7 @@ import java.util.function.IntSupplier
 class ArrayModelProvider(
     private val idGenerator: IntSupplier
 ) : ModelProvider {
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
         description.parametersMap
             .asSequence()
             .filter { (classId, _) -> classId.isArray }
@@ -25,7 +25,9 @@ class ArrayModelProvider(
                         length = arraySize,
                         arrayClassId.elementClassId!!.defaultValueModel(),
                         mutableMapOf()
-                    )
+                    ).fuzzed {
+                        this.summary = "%var% = ${arrayClassId.elementClassId!!.simpleName}[$arraySize]"
+                    }
                 })
             }
     }

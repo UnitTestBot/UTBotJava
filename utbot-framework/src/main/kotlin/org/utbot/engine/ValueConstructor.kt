@@ -3,6 +3,7 @@ package org.utbot.engine
 import org.utbot.common.findField
 import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.EnvironmentModels
@@ -390,12 +391,19 @@ class ValueConstructor {
      */
     private fun value(model: UtModel) = construct(model, null).value
 
-
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
-        method.invokeCatching(obj = instance, args = args).getOrThrow()
+        method.run {
+            withAccessibility {
+                invokeCatching(obj = instance, args = args).getOrThrow()
+            }
+        }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.newInstance(*args.toTypedArray())
+        constructor.run {
+            withAccessibility {
+                newInstance(*args.toTypedArray())
+            }
+        }
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

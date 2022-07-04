@@ -1,10 +1,10 @@
 package org.utbot.examples.primitives
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class FloatExamplesTest : AbstractTestCaseGeneratorTest(testClass = FloatExamples::class) {
+internal class FloatExamplesTest : UtTestCaseChecker(testClass = FloatExamples::class) {
     @Test
     fun testFloatInfinity() {
         check(

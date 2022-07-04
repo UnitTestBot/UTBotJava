@@ -1,10 +1,10 @@
 package org.utbot.examples.structures
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.ignoreExecutionsNumber
 import org.junit.jupiter.api.Test
 
-internal class HeapTest : AbstractTestCaseGeneratorTest(testClass = Heap::class) {
+internal class HeapTest : UtTestCaseChecker(testClass = Heap::class) {
     @Test
     fun testIsHeap() {
         val method = Heap::isHeap

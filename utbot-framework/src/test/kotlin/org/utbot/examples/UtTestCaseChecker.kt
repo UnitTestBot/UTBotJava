@@ -2,11 +2,14 @@
 
 package org.utbot.examples
 
+import mu.KotlinLogging
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.ClassLocation
 import org.utbot.common.FileUtil.clearTempDirectory
 import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
 import org.utbot.engine.prettify
+import org.utbot.framework.PathSelectorType
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkCoverageInCodeGenerationTests
@@ -14,11 +17,11 @@ import org.utbot.framework.UtSettings.daysLimitForTempFiles
 import org.utbot.framework.UtSettings.testDisplayName
 import org.utbot.framework.UtSettings.testName
 import org.utbot.framework.UtSettings.testSummary
-import org.utbot.framework.codegen.BaseTestCodeGeneratorPipeline
 import org.utbot.framework.codegen.ClassStages
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.codegen.ExecutionStatus
 import org.utbot.framework.codegen.StageStatusCheck
+import org.utbot.framework.codegen.TestCodeGeneratorPipeline
 import org.utbot.framework.codegen.TestExecution
 import org.utbot.framework.coverage.Coverage
 import org.utbot.framework.coverage.counters
@@ -39,7 +42,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.ObjectMockTarget
 import org.utbot.framework.plugin.api.ParameterMockTarget
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtInstrumentation
@@ -52,6 +55,7 @@ import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toValueTestCase
 import org.utbot.summary.summarize
 import java.io.File
@@ -65,21 +69,17 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.KFunction5
-import mu.KotlinLogging
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.utbot.framework.PathSelectorType
-import org.utbot.framework.plugin.api.jimpleBody
 
 val logger = KotlinLogging.logger {}
 
-abstract class AbstractTestCaseGeneratorTest(
+abstract class UtTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
     languagePipelines: List<CodeGenerationLanguageLastStage> = listOf(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
     )
-) : CodeTestCaseGeneratorTest(testClass, testCodeGeneration, languagePipelines) {
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, languagePipelines) {
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
 
@@ -2310,7 +2310,7 @@ abstract class AbstractTestCaseGeneratorTest(
                     )
                     val classStages = listOf(ClassStages(testClass, stageStatusCheck, listOf(testCase)))
 
-                    BaseTestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
+                    TestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
                 }
             }
         }
@@ -2493,8 +2493,8 @@ abstract class AbstractTestCaseGeneratorTest(
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String
     ): UtTestCase {
-        UtBotTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
-        return UtBotTestCaseGenerator.generate(method, mockStrategy)
+        TestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
+        return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
     }
 
     fun executionsModel(
@@ -2504,9 +2504,9 @@ abstract class AbstractTestCaseGeneratorTest(
     ): UtTestCase {
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method, additionalDependencies)
-        UtBotTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
+        TestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
         withUtContext(UtContext(method.clazz.java.classLoader)) {
-            return UtBotTestCaseGenerator.generate(method, mockStrategy)
+            return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
         }
     }
 

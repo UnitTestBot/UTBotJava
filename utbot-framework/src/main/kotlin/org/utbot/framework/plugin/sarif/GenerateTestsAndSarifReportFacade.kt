@@ -2,8 +2,8 @@ package org.utbot.framework.plugin.sarif
 
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.codegen.model.CodeGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategy
@@ -66,11 +66,11 @@ class GenerateTestsAndSarifReportFacade(
     }
 
     private fun initializeEngine(classPath: String, workingDirectory: Path) {
-        UtBotTestCaseGenerator.init(workingDirectory, classPath, dependencyPaths) { false }
+        TestCaseGenerator.init(workingDirectory, classPath, dependencyPaths)
     }
 
     private fun generateTestCases(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtTestCase> =
-        UtBotTestCaseGenerator.generateForSeveralMethods(
+        TestCaseGenerator.generateTestCases(
             targetClass.targetMethods(),
             sarifProperties.mockStrategy,
             sarifProperties.classesToMockAlways,
@@ -84,9 +84,10 @@ class GenerateTestsAndSarifReportFacade(
             .generateAsString(testCases, targetClass.testsCodeFile.nameWithoutExtension)
 
     private fun initializeCodeGenerator(targetClass: TargetClassWrapper) =
-        ModelBasedTestCodeGenerator().apply {
+        CodeGenerator().apply {
             val isNoStaticMocking = sarifProperties.staticsMocking is NoStaticMocking
             val isForceStaticMocking = sarifProperties.forceStaticMocking == ForceStaticMocking.FORCE
+
             init(
                 classUnderTest = targetClass.classUnderTest.java,
                 testFramework = sarifProperties.testFramework,

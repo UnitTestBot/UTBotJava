@@ -1,12 +1,12 @@
 package org.utbot.examples.mock.aliasing
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 
-internal class AliasingInParamsExampleTest : AbstractTestCaseGeneratorTest(testClass = AliasingInParamsExample::class) {
+internal class AliasingInParamsExampleTest : UtTestCaseChecker(testClass = AliasingInParamsExample::class) {
     @Test
     fun testExamplePackageBased() {
         check(

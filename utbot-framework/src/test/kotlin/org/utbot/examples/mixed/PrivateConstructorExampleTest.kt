@@ -1,11 +1,11 @@
 package org.utbot.examples.mixed
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class PrivateConstructorExampleTest : AbstractTestCaseGeneratorTest(testClass = PrivateConstructorExample::class) {
+internal class PrivateConstructorExampleTest : UtTestCaseChecker(testClass = PrivateConstructorExample::class) {
 
     /**
      * Two branches need to be covered:

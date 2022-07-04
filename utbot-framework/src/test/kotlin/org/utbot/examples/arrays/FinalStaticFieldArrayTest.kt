@@ -1,10 +1,10 @@
 package org.utbot.examples.arrays
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.ignoreExecutionsNumber
 import org.junit.jupiter.api.Test
 
-internal class FinalStaticFieldArrayTest : AbstractTestCaseGeneratorTest(testClass = FinalStaticFieldArray::class) {
+internal class FinalStaticFieldArrayTest : UtTestCaseChecker(testClass = FinalStaticFieldArray::class) {
 
     @Test
     fun testFactorial() {

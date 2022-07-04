@@ -1,6 +1,6 @@
 package org.utbot.examples.casts
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.ge
@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-internal class InstanceOfExampleTest : AbstractTestCaseGeneratorTest(
+internal class InstanceOfExampleTest : UtTestCaseChecker(
     testClass = InstanceOfExample::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

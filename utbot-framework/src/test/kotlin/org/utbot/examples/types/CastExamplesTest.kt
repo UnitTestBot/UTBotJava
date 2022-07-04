@@ -1,11 +1,11 @@
 package org.utbot.examples.types
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 @Suppress("SimplifyNegatedBinaryExpression")
-internal class CastExamplesTest : AbstractTestCaseGeneratorTest(testClass = CastExamples::class) {
+internal class CastExamplesTest : UtTestCaseChecker(testClass = CastExamples::class) {
     @Test
     fun testLongToByte() {
         check(

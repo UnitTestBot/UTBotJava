@@ -1,11 +1,11 @@
 package org.utbot.examples.invokes
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.between
 import kotlin.math.max
 import org.junit.jupiter.api.Test
 
-internal class StaticInvokeExampleTest : AbstractTestCaseGeneratorTest(testClass = StaticInvokeExample::class) {
+internal class StaticInvokeExampleTest : UtTestCaseChecker(testClass = StaticInvokeExample::class) {
     // TODO: inline local variables when types inference bug in Kotlin fixed
     @Test
     fun testMaxForThree() {

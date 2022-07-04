@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.ge
 import org.utbot.examples.mock.others.FinalClass
@@ -9,7 +9,7 @@ import org.utbot.examples.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
 import org.junit.jupiter.api.Test
 
-internal class MockFinalClassTest : AbstractTestCaseGeneratorTest(testClass = MockReturnObjectExample::class) {
+internal class MockFinalClassTest : UtTestCaseChecker(testClass = MockReturnObjectExample::class) {
     @Test
     fun testFinalClass() {
         checkMocks(

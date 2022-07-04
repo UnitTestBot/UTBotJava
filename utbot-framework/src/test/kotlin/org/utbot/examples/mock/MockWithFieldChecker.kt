@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractModelBasedTest
+import org.utbot.examples.UtModelChecker
 import org.utbot.examples.eq
 import org.utbot.examples.primitiveValue
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
@@ -10,7 +10,7 @@ import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
 
-internal class MockWithFieldExampleTest : AbstractModelBasedTest(testClass = MockWithFieldExample::class) {
+internal class MockWithFieldChecker : UtModelChecker(testClass = MockWithFieldExample::class) {
     @Test
     fun testCheckAndUpdate() {
         check(

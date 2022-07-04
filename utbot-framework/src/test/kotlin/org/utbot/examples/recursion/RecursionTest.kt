@@ -1,6 +1,6 @@
 package org.utbot.examples.recursion
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.between
 import org.utbot.examples.eq
@@ -16,7 +16,7 @@ import kotlin.math.pow
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class RecursionTest : AbstractTestCaseGeneratorTest(testClass = Recursion::class) {
+internal class RecursionTest : UtTestCaseChecker(testClass = Recursion::class) {
     @Test
     fun testFactorial() {
         val factorialSummary = listOf<DocStatement>(

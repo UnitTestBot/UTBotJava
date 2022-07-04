@@ -3,7 +3,7 @@ package examples
 import org.junit.jupiter.api.*
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.CoverageMatcher
 import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
@@ -33,7 +33,7 @@ open class SummaryTestCaseGeneratorTest(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, TestExecution)
     )
-) : AbstractTestCaseGeneratorTest(testClass, testCodeGeneration, languagePipelines) {
+) : UtTestCaseChecker(testClass, testCodeGeneration, languagePipelines) {
     private lateinit var cookie: AutoCloseable
 
     @BeforeEach

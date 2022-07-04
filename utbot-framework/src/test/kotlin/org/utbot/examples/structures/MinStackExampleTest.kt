@@ -1,13 +1,13 @@
 package org.utbot.examples.structures
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
 import org.utbot.examples.eq
 import kotlin.math.min
 import org.junit.jupiter.api.Test
 
-internal class MinStackExampleTest : AbstractTestCaseGeneratorTest(testClass = MinStackExample::class) {
+internal class MinStackExampleTest : UtTestCaseChecker(testClass = MinStackExample::class) {
     @Test
     fun testCreate() {
         check(

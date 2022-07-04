@@ -18,7 +18,7 @@ The file is usually in the resource folder.
 
 The easiest way is:
 
-- Go in the code that you are going to debug. Let’s assume it is a method in org.utbot.framework.plugin.api.UtBotTestCaseGenerator.
+- Go in the code that you are going to debug. Let’s assume it is a method in org.utbot.framework.plugin.api.TestCaseGenerator.
 - Find out if there is a KotlinLogging object that is used to create a **logger**
 - If such a logger exists, use the fully qualified class name as the logger name in the next steps
 <br/>
@@ -28,7 +28,7 @@ The easiest way is:
 Open log4j2.xml and add the logger in the loggers section like this
 
 ```
-<Logger name=" org.utbot.framework.plugin.api.UtBotTestCaseGenerator " level="info">
+<Logger name=" org.utbot.framework.plugin.api.TestCaseGenerator " level="info">
     <AppenderRef ref="Console"/>
 </Logger>
 ```

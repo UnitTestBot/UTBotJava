@@ -1,12 +1,12 @@
 package org.utbot.examples.codegen
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 @Suppress("INACCESSIBLE_TYPE")
-internal class ClassWithStaticAndInnerClassesTest : AbstractTestCaseGeneratorTest(testClass = ClassWithStaticAndInnerClasses::class) {
+internal class ClassWithStaticAndInnerClassesTest : UtTestCaseChecker(testClass = ClassWithStaticAndInnerClasses::class) {
     @Test
     fun testUsePrivateStaticClassWithPrivateField() {
         check(

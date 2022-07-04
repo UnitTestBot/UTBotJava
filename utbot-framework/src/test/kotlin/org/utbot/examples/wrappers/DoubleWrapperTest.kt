@@ -1,12 +1,12 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 @Suppress("SimplifyNegatedBinaryExpression")
-internal class DoubleWrapperTest : AbstractTestCaseGeneratorTest(testClass = DoubleWrapper::class) {
+internal class DoubleWrapperTest : UtTestCaseChecker(testClass = DoubleWrapper::class) {
     @Test
     fun primitiveToWrapperTest() {
         check(

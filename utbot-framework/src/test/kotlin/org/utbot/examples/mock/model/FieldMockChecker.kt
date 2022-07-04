@@ -1,6 +1,6 @@
 package org.utbot.examples.mock.model
 
-import org.utbot.examples.AbstractModelBasedTest
+import org.utbot.examples.UtModelChecker
 import org.utbot.examples.eq
 import org.utbot.examples.mock.provider.impl.ProviderImpl
 import org.utbot.examples.mock.service.impl.ServiceWithField
@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
 
-internal class FieldMockModelBasedTest : AbstractModelBasedTest(testClass = ServiceWithField::class) {
+internal class FieldMockChecker : UtModelChecker(testClass = ServiceWithField::class) {
     @Test
     fun testMockForField_IntPrimitive() {
         checkStatic(

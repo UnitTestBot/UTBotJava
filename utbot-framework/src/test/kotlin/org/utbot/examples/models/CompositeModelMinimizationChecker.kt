@@ -1,6 +1,6 @@
 package org.utbot.examples.models
 
-import org.utbot.examples.AbstractModelBasedTest
+import org.utbot.examples.UtModelChecker
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.junit.Test
 
-internal class CompositeModelMinimizationExampleTest : AbstractModelBasedTest(
+internal class CompositeModelMinimizationChecker : UtModelChecker(
     testClass = CompositeModelMinimizationExample::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

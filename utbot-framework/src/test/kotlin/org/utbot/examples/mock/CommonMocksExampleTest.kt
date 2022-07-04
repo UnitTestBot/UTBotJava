@@ -1,12 +1,12 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 
-internal class CommonMocksExampleTest: AbstractTestCaseGeneratorTest(testClass = CommonMocksExample::class) {
+internal class CommonMocksExampleTest: UtTestCaseChecker(testClass = CommonMocksExample::class) {
     @Test
     fun testMockInterfaceWithoutImplementors() {
         checkMocks(

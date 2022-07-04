@@ -8,7 +8,7 @@ import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.ModelBasedCodeGeneratorService
+import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
@@ -16,7 +16,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -81,10 +81,9 @@ object UtBotJavaApi {
         }
 
         return withUtContext(utContext) {
-            val testGenerator = ModelBasedCodeGeneratorService().serviceProvider.apply {
+            val testGenerator = CodeGenerator().apply {
                 init(
                     classUnderTest = classUnderTest,
-                    params = mutableMapOf(),
                     testFramework = testFramework,
                     mockFramework = mockFramework,
                     codegenLanguage = codegenLanguage,
@@ -122,13 +121,13 @@ object UtBotJavaApi {
         val testCases: MutableList<UtTestCase> = mutableListOf()
 
         testCases.addAll(withUtContext(utContext) {
-            UtBotTestCaseGenerator
+            TestCaseGenerator
                 .apply {
                     init(
                         FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
                     )
                 }
-                .generateForSeveralMethods(
+                .generateTestCases(
                     methodsForAutomaticGeneration.map {
                         toUtMethod(
                             it.methodToBeTestedFromUserInput,
@@ -187,12 +186,12 @@ object UtBotJavaApi {
         }
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
-            UtBotTestCaseGenerator
+            TestCaseGenerator
                 .apply {
                     init(
                         FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
                     )
-                }.generateForSeveralMethods(
+                }.generateTestCases(
                     methodsForAutomaticGeneration.map {
                         toUtMethod(
                             it.methodToBeTestedFromUserInput,

@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractModelBasedTest
+import org.utbot.examples.UtModelChecker
 import org.utbot.examples.eq
 import org.utbot.examples.primitiveValue
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.isNotNull
 import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
 
-internal class InnerMockWithFieldExampleTest : AbstractModelBasedTest(testClass = InnerMockWithFieldExample::class) {
+internal class InnerMockWithFieldChecker : UtModelChecker(testClass = InnerMockWithFieldExample::class) {
     @Test
     fun testCheckAndUpdate() {
         checkStatic(

@@ -34,7 +34,7 @@
                     <mockFramework>mockito</mockFramework>
                     <generationTimeout>10000</generationTimeout>
                     <codegenLanguage>java</codegenLanguage>
-                    <mockStrategy>package-based</mockStrategy>
+                    <mockStrategy>other-packages</mockStrategy>
                     <staticsMocking>mock-statics</staticsMocking>
                     <forceStaticMocking>force</forceStaticMocking>
                     <classesToMockAlways>

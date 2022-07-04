@@ -96,9 +96,9 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     internal lateinit var codegenLanguage: String
 
     /**
-     * Can be one of: 'do-not-mock', 'package-based', 'all-except-cut'.
+     * Can be one of: 'no-mocks', 'other-packages', 'other-classes'.
      */
-    @Parameter(defaultValue = "do-not-mock")
+    @Parameter(defaultValue = "no-mocks")
     internal lateinit var mockStrategy: String
 
     /**

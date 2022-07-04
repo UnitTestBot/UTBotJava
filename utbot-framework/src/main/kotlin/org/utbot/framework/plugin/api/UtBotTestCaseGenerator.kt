@@ -219,7 +219,10 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     private fun createDefaultFlow(engine: UtBotSymbolicEngine): Flow<UtResult> {
         var flow = engine.traverse()
         if (UtSettings.useFuzzing) {
-            flow = flowOf(flow, engine.fuzzing()).flattenConcat()
+            flow = flowOf(
+                engine.fuzzing(System.currentTimeMillis() + UtSettings.fuzzingTimeoutInMillis),
+                flow,
+            ).flattenConcat()
         }
         return flow
     }

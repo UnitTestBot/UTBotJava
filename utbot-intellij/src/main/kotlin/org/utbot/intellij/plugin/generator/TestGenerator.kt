@@ -1,44 +1,21 @@
 package org.utbot.intellij.plugin.generator
 
-import org.utbot.common.HTML_LINE_SEPARATOR
-import org.utbot.common.PathUtil.classFqnToPath
-import org.utbot.common.PathUtil.toHtmlLinkTag
-import org.utbot.common.appendHtmlLine
-import org.utbot.framework.codegen.Import
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.TestsCodeWithTestReport
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
-import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.intellij.plugin.sarif.SarifReportIdea
-import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
-import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
-import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
-import org.utbot.sarif.SarifReport
 import com.intellij.codeInsight.CodeInsightUtil
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.project.DumbServiceImpl
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.psi.JavaDirectoryService
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiClassOwner
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiMethod
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
@@ -46,7 +23,6 @@ import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.io.exists
 import com.siyeh.ig.psiutils.ImportUtils
-import java.nio.file.Paths
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
@@ -59,18 +35,31 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
+import org.utbot.common.HTML_LINE_SEPARATOR
+import org.utbot.common.PathUtil.classFqnToPath
+import org.utbot.common.PathUtil.toHtmlLinkTag
+import org.utbot.common.appendHtmlLine
+import org.utbot.framework.codegen.Import
+import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.StaticImport
+import org.utbot.framework.codegen.TestsCodeWithTestReport
+import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
+import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.intellij.plugin.error.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
-import org.utbot.intellij.plugin.ui.SarifReportNotifier
-import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
-import org.utbot.intellij.plugin.ui.TestsReportNotifier
-import org.utbot.intellij.plugin.ui.packageName
+import org.utbot.intellij.plugin.sarif.SarifReportIdea
+import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
+import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.ui.*
+import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
+import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
+import org.utbot.sarif.SarifReport
+import java.nio.file.Paths
 
 object TestGenerator {
     fun generateTests(model: GenerateTestsModel, testCases: Map<PsiClass, List<UtTestCase>>) {
-        runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
-            generateTestsInternal(model, testCases)
-        })
+        generateTestsInternal(model, testCases)
     }
 
     private fun generateTestsInternal(model: GenerateTestsModel, testCasesByClass: Map<PsiClass, List<UtTestCase>>) {
@@ -87,7 +76,9 @@ object TestGenerator {
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
                 val file = testClass.containingFile
 
-                addTestMethodsAndSaveReports(testClass, file, testCases, model)
+                runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
+                    addTestMethodsAndSaveReports(testClass, file, testCases, model)
+                })
             } catch (e: IncorrectOperationException) {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
             }
@@ -141,25 +132,26 @@ object TestGenerator {
         if (aPackage != null) {
             val scope = GlobalSearchScopesCore.directoryScope(testDirectory, false)
 
-            // Here we use firstOrNull(), because by some unknown reason
-            // findClassByShortName() may return two identical objects.
-            // Be careful, do not use singleOrNull() here, because it expects
-            // the array to contain strictly one element and otherwise returns null.
-            var testClass: PsiClass? = null
+            val application = ApplicationManager.getApplication()
+            val testClass = application.executeOnPooledThread<PsiClass?> {
+                return@executeOnPooledThread application.runReadAction<PsiClass?> {
+                    DumbService.getInstance(model.project).runReadActionInSmartMode(Computable<PsiClass?> {
+                        // Here we use firstOrNull(), because by some unknown reason
+                        // findClassByShortName() may return two identical objects.
+                        // Be careful, do not use singleOrNull() here, because it expects
+                        // the array to contain strictly one element and otherwise returns null.
+                        return@Computable aPackage.findClassByShortName(testClassName, scope)
+                            .firstOrNull {
+                                when (model.codegenLanguage) {
+                                    CodegenLanguage.JAVA -> it !is KtUltraLightClass
+                                    CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                                }
+                            }
+                    })
+                }
+            }.get()
 
-            // runWhenSmart to avoid IndexNotReadyException
-            DumbServiceImpl(model.project).runWhenSmart {
-                testClass = aPackage.findClassByShortName(testClassName, scope)
-                    .firstOrNull {
-                        when (model.codegenLanguage) {
-                            CodegenLanguage.JAVA -> it !is KtUltraLightClass
-                            CodegenLanguage.KOTLIN -> it is KtUltraLightClass
-                        }
-                    }
-            }
-            testClass?.let {
-                return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
-            }
+            return if (FileModificationService.getInstance().preparePsiElementForWrite(testClass)) testClass else null
         }
 
         val fileTemplate = FileTemplateManager.getInstance(testDirectory.project).getInternalTemplate(

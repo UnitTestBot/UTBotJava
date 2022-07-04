@@ -63,6 +63,14 @@ public class UtArrayList<E> extends AbstractList<E>
         addAll(c);
     }
 
+    public UtArrayList(E[] data) {
+        visit(this);
+        int length = data.length;
+        elementData = new RangeModifiableUnlimitedArray<>();
+        elementData.setRange(0, data, 0, length);
+        elementData.end = length;
+    }
+
     /**
      * Precondition check is called only once by object,
      * if it was passed as parameter to method under test.

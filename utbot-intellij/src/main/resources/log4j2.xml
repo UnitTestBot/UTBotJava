@@ -9,6 +9,11 @@
         <Logger name="org.utbot.intellij" level="info">
             <AppenderRef ref="Console"/>
         </Logger>
-        <Root level="info"/>
+        <Logger name="org.utbot" level="error">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Root level="error">
+            <AppenderRef ref="Console"/>
+        </Root>
     </Loggers>
 </Configuration>

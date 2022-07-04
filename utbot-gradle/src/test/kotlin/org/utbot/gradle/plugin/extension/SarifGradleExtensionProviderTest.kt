@@ -256,19 +256,19 @@ class SarifGradleExtensionProviderTest {
 
         @Test
         fun `should be equal to NO_MOCKS`() {
-            setMockStrategy("do-not-mock")
+            setMockStrategy("no-mocks")
             assertEquals(MockStrategyApi.NO_MOCKS, extensionProvider.mockStrategy)
         }
 
         @Test
         fun `should be equal to OTHER_PACKAGES`() {
-            setMockStrategy("package-based")
+            setMockStrategy("other-packages")
             assertEquals(MockStrategyApi.OTHER_PACKAGES, extensionProvider.mockStrategy)
         }
 
         @Test
         fun `should be equal to OTHER_CLASSES`() {
-            setMockStrategy("all-except-cut")
+            setMockStrategy("other-classes")
             assertEquals(MockStrategyApi.OTHER_CLASSES, extensionProvider.mockStrategy)
         }
 

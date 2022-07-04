@@ -10,6 +10,7 @@ import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
+import org.utbot.engine.pc.UtFalse
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
@@ -84,10 +85,15 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
 
         val overriddenMethod = overriddenClass.findMethodOrNull(method.subSignature)
 
-        val jimpleBody = overriddenMethod?.jimpleBody() ?: method.jimpleBody()
-        val graphResult = GraphResult(jimpleBody.graph())
-
-        return listOf(graphResult)
+        if (overriddenMethod == null) {
+            // No overridden method has been found, switch to concrete execution
+            pathLogger.warn("Method ${overriddenClass.name}::${method.subSignature} not found, executing concretely")
+            return emptyList()
+        } else {
+            val jimpleBody = overriddenMethod.jimpleBody()
+            val graphResult = GraphResult(jimpleBody.graph())
+            return listOf(graphResult)
+        }
     }
 }
 

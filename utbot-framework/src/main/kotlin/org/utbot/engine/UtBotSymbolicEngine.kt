@@ -3079,6 +3079,11 @@ class UtBotSymbolicEngine(
 
         instanceAsWrapperOrNull?.run {
             val results = invoke(instance as ObjectValue, invocation.method, invocation.parameters)
+            if (results.isEmpty()) {
+                // Drop the branch and switch to concrete execution
+                statesForConcreteExecution += environment.state
+                queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+            }
             return OverrideResult(success = true, results)
         }
 

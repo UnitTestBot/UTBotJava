@@ -26,6 +26,7 @@ import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.overrides.UtOverrideMock
 import org.utbot.engine.overrides.collections.Collection
+import org.utbot.engine.overrides.collections.List
 import org.utbot.engine.overrides.collections.UtGenericStorage
 import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
@@ -133,6 +134,7 @@ private val classesToLoad = arrayOf(
     UtStringBuffer::class,
     Stream::class,
     Collection::class,
+    List::class,
     UtStream::class,
     UtStream.UtStreamIterator::class
 )

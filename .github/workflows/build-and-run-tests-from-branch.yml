@@ -7,14 +7,14 @@ jobs:
   build-and-run-tests:
 #    runs-on: ubuntu-20.04
     runs-on: [self-hosted, cloud]
-    container: ubuntu:20.04
+    container: azul/zulu-openjdk-debian:8u332-8.62.0.19
 
     steps:
     - name: Install prerequisites
       run: |
         set -x
         apt update
-        apt install -y unzip fonts-dejavu fontconfig wget zip unzip
+        apt install -y unzip fonts-dejavu fontconfig wget zip
 
     - uses: actions/checkout@v2
 
@@ -25,16 +25,10 @@ jobs:
         unzip -d /opt/gradle /tmp/${GRADLE_VERSION}-bin.zip
         export PATH="/opt/gradle/${GRADLE_VERSION}/bin:${PATH}"
         export KOTLIN_COMPILER_VERSION=kotlin-compiler-1.6.21
-
         wget https://github.com/JetBrains/kotlin/releases/download/v1.6.21/${KOTLIN_COMPILER_VERSION}.zip -O /tmp/${KOTLIN_COMPILER_VERSION}.zip
         unzip -d /opt/kotlin /tmp/${KOTLIN_COMPILER_VERSION}.zip
         export PATH="/opt/kotlin/kotlinc/bin:${PATH}"
-        
         export KOTLIN_HOME="/opt/kotlin/kotlinc/"
-
-    - name: Build and run tests in UTBot Java
-      run: |
-#        export KOTLIN_HOME="/usr"
         gradle clean build --no-daemon
 
 #    - uses: actions/checkout@v2

@@ -2,12 +2,12 @@
 - name: DIKTAT_COMMON
   configuration:
     # put your package name here - it will be autofixed and checked
-    domainName: your.name.here
+    domainName: org.utbot
     testDirs: test
     # expected values:  disabledChapters: "Naming, Comments, General, Variables, Functions, Classes"
     # or: "1, 2, 3, 4, 5, 6"
     disabledChapters: ""
-    kotlinVersion: 1.7
+    kotlinVersion: 1.4
     srcDirectories: "main"
 # Checks that the Class/Enum/Interface name matches Pascal case
 - name: CLASS_NAME_INCORRECT

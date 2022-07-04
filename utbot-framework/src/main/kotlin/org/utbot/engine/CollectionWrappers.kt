@@ -83,16 +83,23 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
             return listOf(GraphResult(method.jimpleBody().graph()))
         }
 
-        val overriddenMethod = overriddenClass.findMethodOrNull(method.subSignature)
+        // We need to find either an override from the class (for example, implementation
+        // of the method from the wrapper) or a method from its ancestors.
+        // Note that the method from the ancestor might have substitutions as well.
+        // I.e., it is `toString` method for `UtArrayList` that is defined in
+        // `AbstractCollection` and has its own overridden implementation.
+        val overriddenMethod = overriddenClass
+            .findMethodOrNull(method.subSignature)
+            ?.let { typeRegistry.findSubstitutionOrNull(it) ?: it }
 
-        if (overriddenMethod == null) {
+        return if (overriddenMethod == null) {
             // No overridden method has been found, switch to concrete execution
             pathLogger.warn("Method ${overriddenClass.name}::${method.subSignature} not found, executing concretely")
-            return emptyList()
+            emptyList()
         } else {
             val jimpleBody = overriddenMethod.jimpleBody()
             val graphResult = GraphResult(jimpleBody.graph())
-            return listOf(graphResult)
+            listOf(graphResult)
         }
     }
 }

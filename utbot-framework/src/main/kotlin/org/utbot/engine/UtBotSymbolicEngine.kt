@@ -574,8 +574,13 @@ class UtBotSymbolicEngine(
     }
 
 
-    //Simple fuzzing
-    fun fuzzing(modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
+    /**
+     * Run fuzzing flow.
+     *
+     * @param until is used by fuzzer to cancel all tasks if the current time is over this value
+     * @param modelProvider provides model values for a method
+     */
+    fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
         val executableId = if (methodUnderTest.isConstructor) {
             methodUnderTest.javaConstructor!!.executableId
         } else {
@@ -618,8 +623,13 @@ class UtBotSymbolicEngine(
         }
         val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = mutableSetOf<Instruction>()
-        var attempts = UtSettings.fuzzingMaxAttemps
+        var attempts = UtSettings.fuzzingMaxAttempts
         fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
+            if (System.currentTimeMillis() >= until) {
+                logger.info { "Fuzzing overtime: $methodUnderTest" }
+                return@flow
+            }
+
             val initialEnvironmentModels = EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
 
             try {

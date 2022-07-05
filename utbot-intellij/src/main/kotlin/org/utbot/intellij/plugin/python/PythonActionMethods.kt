@@ -15,7 +15,11 @@ object PythonActionMethods {
         val project = e.project ?: return
         val (functions, focusedFunction) = getPsiTargets(e) ?: return
 
-        // PythonDialogProcessor.createDialogAndGenerateTests
+         PythonDialogProcessor.createDialogAndGenerateTests(
+             project,
+             functions,
+             focusedFunction
+         )
     }
 
     fun update(e: AnActionEvent) {

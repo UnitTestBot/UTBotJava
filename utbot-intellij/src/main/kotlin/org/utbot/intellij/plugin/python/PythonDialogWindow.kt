@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
 import com.intellij.ui.layout.panel
@@ -25,6 +26,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     private fun findTestPackageComboValue(): String {
         return SAME_PACKAGE_LABEL  // TODO("add path selector")
     }
+    private lateinit var panel: DialogPanel
 
     init {
         title = "Generate tests with UtBot"
@@ -32,7 +34,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         init()
     }
 
-    override fun createCenterPanel(): JComponent? {
+    override fun createCenterPanel(): JComponent {
         panel = panel {
 //            row("Test source root:") {
 //                component(testSourceFolderField)

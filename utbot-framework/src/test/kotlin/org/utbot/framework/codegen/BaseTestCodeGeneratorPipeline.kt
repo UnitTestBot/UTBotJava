@@ -16,7 +16,7 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.util.description
+import org.utbot.framework.plugin.api.util.description
 import kotlin.reflect.KClass
 import mu.KotlinLogging
 import org.junit.jupiter.api.Assertions.assertTrue

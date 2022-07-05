@@ -127,15 +127,12 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
         if (methodId is BuiltinMethodId) {
-            methodId.findExceptionTypes().forEach { addException(it) }
+            methodId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
             return
         }
-        //If [InvocationTargetException] is thrown manually in test, we need
-        // to add "throws Throwable" and other exceptions are not required so on.
+
         if (methodId == getTargetException) {
-            collectedExceptions.clear()
-            addException(Throwable::class.id)
-            return
+            addExceptionIfNeeded(Throwable::class.id)
         }
 
         val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
@@ -148,13 +145,13 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return
         }
 
-        methodId.method.exceptionTypes.forEach { addException(it.id) }
+        methodId.method.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
     }
 
     private fun newConstructorCall(constructorId: ConstructorId) {
         importIfNeeded(constructorId.classId)
         for (exception in constructorId.exceptions) {
-            addException(exception)
+            addExceptionIfNeeded(exception)
         }
     }
 

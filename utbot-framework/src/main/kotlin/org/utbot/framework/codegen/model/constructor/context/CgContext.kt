@@ -46,7 +46,6 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.framework.plugin.api.util.executableId
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -55,6 +54,11 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
+import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.isNotSubtypeOf
+import org.utbot.framework.plugin.api.util.isCheckedException
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.executableId
 
 /**
  * Interface for all code generation context aware entities
@@ -232,7 +236,25 @@ internal interface CgContextOwner {
         currentExecutable = method.callable.executableId
     }
 
-    fun addException(exception: ClassId) {
+    fun addExceptionIfNeeded(exception: ClassId) {
+        when (exception) {
+            is BuiltinClassId -> {}
+            else -> {
+                if (exception isNotSubtypeOf Throwable::class.id) {
+                    error("Class $exception which is not a Throwable was passed")
+                }
+
+                val isUnchecked = !exception.isCheckedException
+                val alreadyAdded =
+                    collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
+
+                if (isUnchecked || alreadyAdded) return
+
+                collectedExceptions
+                    .removeIf { existingException -> existingException isSubtypeOf exception }
+            }
+        }
+
         if (collectedExceptions.add(exception)) {
             importIfNeeded(exception)
         }
@@ -416,9 +438,9 @@ internal data class CgContext(
         val simpleName = testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
-                name = name,
-                canonicalName = name,
-                simpleName = simpleName
+            name = name,
+            canonicalName = name,
+            simpleName = simpleName
         )
     }
 

@@ -42,8 +42,8 @@ import org.utbot.framework.UtSettings
 private val logger = KotlinLogging.logger {}
 
 private val classPathSeparator = System.getProperty("path.separator")
-//To hack it to debug something be like Dima
-// if (System.getProperty("user.name") == "d00555580") my_path else "JAVA_HOME"
+//To hack it to debug something be like Duke
+// if (System.getProperty("user.name") == "duke") my_path else "JAVA_HOME"
 private val javaHome = System.getenv("JAVA_HOME")
 
 private val javacCmd = "$javaHome/bin/javac"

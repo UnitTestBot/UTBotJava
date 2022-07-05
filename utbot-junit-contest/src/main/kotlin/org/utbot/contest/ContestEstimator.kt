@@ -38,7 +38,6 @@ import org.utbot.framework.JdkPathService
 import org.utbot.predictors.StateRewardPredictorFactoryImpl
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
-import org.utbot.predictors.NNStateRewardPredictorBase
 
 private val logger = KotlinLogging.logger {}
 

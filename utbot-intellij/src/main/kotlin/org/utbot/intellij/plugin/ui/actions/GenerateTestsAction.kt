@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.ui.actions
 
+import com.intellij.lang.Language
 import org.utbot.intellij.plugin.ui.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.KotlinPsiElementHandler
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
@@ -20,16 +21,31 @@ import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.jetbrains.kotlin.psi.KtClass
+import org.utbot.intellij.plugin.python.PythonActionMethods
 import java.util.*
 
 class GenerateTestsAction : AnAction() {
+    private fun getLanguage(e: AnActionEvent): String {
+        return e.getData(CommonDataKeys.PSI_FILE)?.language?.id ?: ""
+    }
+
     override fun actionPerformed(e: AnActionEvent) {
+        if (getLanguage(e) == PythonActionMethods.pythonID) {
+            PythonActionMethods.actionPerformed(e)
+            return
+        }
+
         val project = e.project ?: return
         val psiTargets = getPsiTargets(e) ?: return
         UtTestsDialogProcessor.createDialogAndGenerateTests(project, psiTargets.first, psiTargets.second)
     }
 
     override fun update(e: AnActionEvent) {
+        if (getLanguage(e) == PythonActionMethods.pythonID) {
+            PythonActionMethods.update(e)
+            return
+        }
+
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 

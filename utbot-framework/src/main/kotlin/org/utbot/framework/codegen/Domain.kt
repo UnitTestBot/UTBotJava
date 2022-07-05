@@ -115,7 +115,7 @@ sealed class StaticsMocking(
 
 object NoStaticMocking : StaticsMocking(
     displayName = "No static mocking",
-    description = "Don't use additional settings to mock static fields"
+    description = "Do not use additional settings to mock static fields"
 )
 
 object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocking") {
@@ -551,7 +551,7 @@ enum class ParametrizedTestSource(
 ) : CodeGenerationSettingItem {
     DO_NOT_PARAMETRIZE(
         displayName = "Not parametrized",
-        description = "Don't generate parametrized tests"
+        description = "Do not generate parametrized tests"
     ),
     PARAMETRIZE(
         displayName = "Parametrized",

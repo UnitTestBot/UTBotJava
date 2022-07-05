@@ -14,6 +14,8 @@
     <!--Optional dependency on org.jetbrains.android-->
     <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
 
+    <depends optional="true" config-file="withPython.xml">PythonCore</depends>
+
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
                 class="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"

@@ -15,10 +15,8 @@ class CartesianProduct<T>(
     override fun iterator(): Iterator<List<T>> {
         val combinations = Combinations(*lists.map { it.size }.toIntArray())
         val sequence = if (random != null) {
-            // todo create lazy random algo for this because this method can cause OOME even if we take only one value
-            val permutation = IntArray(combinations.size) { it }
-            permutation.shuffle(random)
-            permutation.asSequence().map(combinations::get)
+            val permutation = PseudoShuffledIntProgression(combinations.size, random)
+            (0 until combinations.size).asSequence().map { combinations[permutation[it]] }
         } else {
             combinations.asSequence()
         }

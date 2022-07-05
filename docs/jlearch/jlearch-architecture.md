@@ -37,7 +37,7 @@ classDiagram
     UtBotSymbolicEngine *-- InterproceduralUnitGraph
 
     class Predictors 
-    class NNStateRewardPredictor
+    class StateRewardPredictor
     class NNRewardGuidedSelector
 
    
@@ -50,12 +50,13 @@ classDiagram
 
     UtBotSymbolicEngine *-- BasePathSelector  
     
-    Predictors o-- NNStateRewardPredictor
+    Predictors o-- StateRewardPredictor
     NNRewardGuidedSelector ..> Predictors
     NNRewardGuidedSelector *-- FeatureExtractor
     
-    NNStateRewardPredictorSmile --|> NNStateRewardPredictor
-    NNStateRewardPredictorTorch --|> NNStateRewardPredictor
+    NNStateRewardPredictorSmile --|> StateRewardPredictor
+    StateRewardPredictorTorch --|> StateRewardPredictor
+    LinearStateRewardPredictor --|> StateRewardPredictor
     
     NNStateRewardGuidedSelectorWithRecalculationWeight --|> NNRewardGuidedSelector
     NNStateRewardGuidedSelectorWithoutRecalculationWeight --|> NNRewardGuidedSelector      
@@ -129,12 +130,13 @@ For creating `FeatureExtractor`, it uses `FeatureExtractorFactory` from `EngineA
 It is interface in framework-module, that allows to use implementation from analytics module.
 * `extractFeatures(state: ExecutionState)` - create features list for state and store it in `state.features`. Now we extract all features, which were described in [paper](https://files.sri.inf.ethz.ch/website/papers/ccs21-learch.pdf). In feature, we can extend the feature list by other features, for example, NeuroSMT.
 
-# NNStateRewardPredictor
+# StateRewardPredictor
 
-Interface for reward predictors. Now it has two implementations in `analytics` module:
+Interface for reward predictors. Now it has three implementations in `analytics` module:
 
 * `NNStateRewardPredictorSmile`: it uses our own format to store feedforward neural network, and it uses `Smile` library to do multiplication of matrix.
 * `NNStateRewardPredictorTorch`: it assumed that a model is any type of model in `pt` format. It uses the `Deep Java library` to use such models.
+* `LinearStateRewardPredictor`: it uses our own format to store weights vector: line of doubles, separated by comma with bias as last weight.
 
 It should be created at the beginning of work and stored at `Predictors` class to be used in `NNRewardGuidedSelector` from the `framework` module.
 

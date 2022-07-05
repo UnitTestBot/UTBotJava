@@ -19,9 +19,9 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.ResolverKt.MAX_LIST_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
-import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
@@ -61,6 +61,14 @@ public class UtArrayList<E> extends AbstractList<E>
         // mark this as visited to not traverse preconditionCheck next time
         visit(this);
         addAll(c);
+    }
+
+    public UtArrayList(E[] data) {
+        visit(this);
+        int length = data.length;
+        elementData = new RangeModifiableUnlimitedArray<>();
+        elementData.setRange(0, data, 0, length);
+        elementData.end = length;
     }
 
     /**

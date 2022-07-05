@@ -44,7 +44,7 @@ For example, the following configuration may be used:
     <mockFramework>mockito</mockFramework>
     <generationTimeout>60000L</generationTimeout>
     <codegenLanguage>java</codegenLanguage>
-    <mockStrategy>package-based</mockStrategy>
+    <mockStrategy>other-packages</mockStrategy>
     <staticsMocking>mock-statics</staticsMocking>
     <forceStaticMocking>force</forceStaticMocking>
     <classesToMockAlways>
@@ -104,9 +104,9 @@ For example, the following configuration may be used:
 - `mockStrategy` &ndash;
     - The mock strategy to be used.
     - Can be one of:
-        - `'do-not-mock'` &ndash; do not use mock frameworks at all
-        - `'package-based'` &ndash; mock all classes outside the current package except system ones _(by default)_
-        - `'all-except-cut'` &ndash; mock all classes outside the class under test except system ones
+        - `'no-mocks'` &ndash; do not use mock frameworks at all
+        - `'other-packages'` &ndash; mock all classes outside the current package except system ones _(by default)_
+        - `'other-classes'` &ndash; mock all classes outside the class under test except system ones
 
 - `staticsMocking` &ndash;
     - Use static methods mocking or not.

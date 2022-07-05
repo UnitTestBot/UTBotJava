@@ -115,6 +115,11 @@ object UtSettings {
     var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
 
     /**
+     * Type of [StateRewardPredictor]
+     */
+    var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
+
+    /**
      * Steps limit for path selector.
      */
     var pathSelectorStepsLimit by getIntProperty(3500)
@@ -241,12 +246,17 @@ object UtSettings {
     /**
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */
-    var useFuzzing: Boolean by getBooleanProperty(false)
+    var useFuzzing: Boolean by getBooleanProperty(true)
 
     /**
      * Set the total attempts to improve coverage by fuzzer.
      */
-    var fuzzingMaxAttemps: Int by getIntProperty(Int.MAX_VALUE)
+    var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE)
+
+    /**
+     * Fuzzer tries to generate and run tests during this time.
+     */
+    var fuzzingTimeoutInMillis: Int by getIntProperty(3_000)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
@@ -273,6 +283,14 @@ object UtSettings {
     var concreteExecutionTimeoutInChildProcess: Long by getLongProperty(
         DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
     )
+
+    /**
+     * Determines whether should errors from a child process be written to a log file or suppressed.
+     * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
+     *
+     * False by default (for saving disk space).
+     */
+    var logConcreteExecutionErrors by getBooleanProperty(false)
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
@@ -413,4 +431,24 @@ enum class NNRewardGuidedSelectorType {
      * [NNRewardGuidedSelectorWithoutRecalculation]
      */
     WITHOUT_RECALCULATION
+}
+
+/**
+ * Enum to specify [StateRewardPredictor], see implementations for details
+ */
+enum class StateRewardPredictorType {
+    /**
+     * [NNStateRewardPredictorBase]
+     */
+    BASE,
+
+    /**
+     * [StateRewardPredictorTorch]
+     */
+    TORCH,
+
+    /**
+     * [NNStateRewardPredictorBase]
+     */
+    LINEAR
 }

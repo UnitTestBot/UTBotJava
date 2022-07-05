@@ -1,18 +1,11 @@
 plugins {
-  id 'maven-publish'
+  id "com.github.johnrengelman.shadow" version "6.1.0"
 }
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-publishing {
-  repositories {
-    maven {
-      name = "GitHubPackages"
-      url = "https://maven.pkg.github.com/UnitTestBot/UTBotJava"
-      credentials {
-        username = System.getenv("GITHUB_ACTOR")
-        password = System.getenv("GITHUB_TOKEN")
-      }
-    }
-  }
+shadowJar {
+  configurations = [project.configurations.compileClasspath]
+  archiveClassifier.set('')
+  minimize()
 }

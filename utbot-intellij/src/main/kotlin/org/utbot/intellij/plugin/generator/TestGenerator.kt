@@ -23,34 +23,37 @@ import com.intellij.codeInsight.FileModificationService
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
+import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.psi.JavaDirectoryService
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiClassOwner
-import com.intellij.psi.PsiDirectory
-import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiMethod
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.io.exists
 import com.siyeh.ig.psiutils.ImportUtils
+import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.ImportInsertHelperImpl
+import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -58,7 +61,10 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.error.showErrorDialogLater
+import org.utbot.intellij.plugin.generator.TestGenerator.Target.*
 import org.utbot.intellij.plugin.ui.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
@@ -66,16 +72,28 @@ import org.utbot.intellij.plugin.ui.TestsReportNotifier
 import org.utbot.intellij.plugin.ui.packageName
 
 object TestGenerator {
-    fun generateTests(model: GenerateTestsModel, testCases: Map<PsiClass, List<UtTestCase>>) {
-        runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
-            generateTestsInternal(model, testCases)
-        })
+    private enum class Target {THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER}
+
+    private fun run(target: Target, runnable: Runnable) {
+        UtContext.currentContext()?.let {
+            when (target) {
+                THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit {
+                    withUtContext(it) {
+                        runnable.run()
+                    }
+                }
+                READ_ACTION -> runReadAction { withUtContext(it) { runnable.run() } }
+                WRITE_ACTION -> runWriteAction { withUtContext(it) { runnable.run() } }
+                EDT_LATER -> invokeLater { withUtContext(it) { runnable.run() } }
+            }
+        } ?: error("No context in thread ${Thread.currentThread()}")
     }
 
-    private fun generateTestsInternal(model: GenerateTestsModel, testCasesByClass: Map<PsiClass, List<UtTestCase>>) {
+    fun generateTests(model: GenerateTestsModel, testCasesByClass: Map<PsiClass, List<UtTestCase>>) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
+        val latch = CountDownLatch(testCasesByClass.size)
 
         for (srcClass in testCasesByClass.keys) {
             val testCases = testCasesByClass[srcClass] ?: continue
@@ -83,20 +101,39 @@ object TestGenerator {
                 val classPackageName = if (model.testPackageName.isNullOrEmpty())
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
-                val testClass = createTestClass(srcClass, testDirectory, model.codegenLanguage) ?: continue
+                val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
                 val file = testClass.containingFile
-
-                addTestMethodsAndSaveReports(testClass, file, testCases, model)
+                runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
+                    try {
+                        addTestMethodsAndSaveReports(testClass, file, testCases, model, latch)
+                    } catch (e: IncorrectOperationException) {
+                        showCreatingClassError(model.project, createTestClassName(srcClass))
+                    }
+                })
             } catch (e: IncorrectOperationException) {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
             }
         }
-
-        mergeSarifReports(model)
+        run(READ_ACTION) {
+            val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+            run(THREAD_POOL) {
+                waitForCountDown(latch, model, sarifReportsPath)
+            }
+        }
     }
 
-    private fun mergeSarifReports(model: GenerateTestsModel) {
-        val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
+    private fun waitForCountDown(latch: CountDownLatch, model: GenerateTestsModel, sarifReportsPath : Path) {
+        try {
+            if (!latch.await(5, TimeUnit.SECONDS)) {
+                run(THREAD_POOL) { waitForCountDown(latch, model, sarifReportsPath) }
+            } else {
+                mergeSarifReports(model, sarifReportsPath)
+            }
+        } catch (ignored: InterruptedException) {
+        }
+    }
+
+    private fun mergeSarifReports(model: GenerateTestsModel, sarifReportsPath : Path) {
         val sarifReports = sarifReportsPath.toFile()
             .walkTopDown()
             .filter { it.extension == "sarif" }
@@ -133,30 +170,39 @@ object TestGenerator {
         }
     }
 
-    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, codegenLanguage: CodegenLanguage): PsiClass? {
+    private fun createTestClass(srcClass: PsiClass, testDirectory: PsiDirectory, model: GenerateTestsModel): PsiClass? {
         val testClassName = createTestClassName(srcClass)
         val aPackage = JavaDirectoryService.getInstance().getPackage(testDirectory)
 
         if (aPackage != null) {
             val scope = GlobalSearchScopesCore.directoryScope(testDirectory, false)
 
-            // Here we use firstOrNull(), because by some unknown reason
-            // findClassByShortName() may return two identical objects.
-            // Be careful, do not use singleOrNull() here, because it expects
-            // the array to contain strictly one element and otherwise returns null.
-            aPackage.findClassByShortName(testClassName, scope)
-                .firstOrNull {
-                    when (codegenLanguage) {
-                        CodegenLanguage.JAVA ->  it !is KtUltraLightClass
-                        CodegenLanguage.KOTLIN -> it is KtUltraLightClass
-                    }
-                }?.let {
-                    return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
+            val application = ApplicationManager.getApplication()
+            val testClass = application.executeOnPooledThread<PsiClass?> {
+                return@executeOnPooledThread application.runReadAction<PsiClass?> {
+                    DumbService.getInstance(model.project).runReadActionInSmartMode(Computable<PsiClass?> {
+                        // Here we use firstOrNull(), because by some unknown reason
+                        // findClassByShortName() may return two identical objects.
+                        // Be careful, do not use singleOrNull() here, because it expects
+                        // the array to contain strictly one element and otherwise returns null.
+                        return@Computable aPackage.findClassByShortName(testClassName, scope)
+                            .firstOrNull {
+                                when (model.codegenLanguage) {
+                                    CodegenLanguage.JAVA -> it !is KtUltraLightClass
+                                    CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                                }
+                            }
+                    })
                 }
+            }.get()
+
+            testClass?.let {
+                return if (FileModificationService.getInstance().preparePsiElementForWrite(it)) it else null
+            }
         }
 
         val fileTemplate = FileTemplateManager.getInstance(testDirectory.project).getInternalTemplate(
-            when (codegenLanguage) {
+            when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
             }
@@ -176,6 +222,7 @@ object TestGenerator {
         file: PsiFile,
         testCases: List<UtTestCase>,
         model: GenerateTestsModel,
+        reportsCountDown: CountDownLatch,
     ) {
         val selectedMethods = TestIntegrationUtils.extractClassMethods(testClass, false)
         val testFramework = model.testFramework
@@ -206,33 +253,50 @@ object TestGenerator {
         when (generator) {
             is ModelBasedTestCodeGenerator -> {
                 val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, file, testClass)
-                val testsCodeWithTestReport = generator.generateAsStringWithTestReport(testCases)
-                val generatedTestsCode = testsCodeWithTestReport.generatedCode
+                //TODO Use PsiDocumentManager.getInstance(model.project).getDocument(file)
+                // if we don't want to open _all_ new files with tests in editor one-by-one
+                run(THREAD_POOL) {
+                    val testsCodeWithTestReport = generator.generateAsStringWithTestReport(testCases)
+                    val generatedTestsCode = testsCodeWithTestReport.generatedCode
+                    run(EDT_LATER) {
+                        run(WRITE_ACTION) {
+                            unblockDocument(testClass.project, editor.document)
+                            // TODO: JIRA:1246 - display warnings if we rewrite the file
+                            executeCommand(testClass.project, "Insert Generated Tests") {
+                                editor.document.setText(generatedTestsCode)
+                            }
+                            unblockDocument(testClass.project, editor.document)
 
-                unblockDocument(testClass.project, editor.document)
-                // TODO: JIRA:1246 - display warnings if we rewrite the file
-                executeCommand(testClass.project, "Insert Generated Tests") {
-                    editor.document.setText(generatedTestsCode)
+                            // after committing the document the `testClass` is invalid in PsiTree,
+                            // so we have to reload it from the corresponding `file`
+                            val testClassUpdated = (file as PsiClassOwner).classes.first() // only one class in the file
+
+                            // reformatting before creating reports due to
+                            // SarifReport requires the final version of the generated tests code
+                            runWriteCommandAction(testClassUpdated.project, "UtBot tests reformatting", null, {
+                                reformat(model, file, testClassUpdated)
+                            })
+                            unblockDocument(testClassUpdated.project, editor.document)
+
+                            // uploading formatted code
+                            val testsCodeWithTestReportFormatted =
+                                testsCodeWithTestReport.copy(generatedCode = file.text)
+
+                            // creating and saving reports
+                            saveSarifAndTestReports(
+                                testClassUpdated,
+                                testCases,
+                                model,
+                                testsCodeWithTestReportFormatted,
+                                reportsCountDown
+                            )
+
+                            unblockDocument(testClassUpdated.project, editor.document)
+                        }
+                    }
                 }
-                unblockDocument(testClass.project, editor.document)
-
-                // after committing the document the `testClass` is invalid in PsiTree,
-                // so we have to reload it from the corresponding `file`
-                val testClassUpdated = (file as PsiClassOwner).classes.first() // only one class in the file
-
-                // reformatting before creating reports due to
-                // SarifReport requires the final version of the generated tests code
-                reformat(model, file, testClassUpdated)
-                unblockDocument(testClassUpdated.project, editor.document)
-
-                // uploading formatted code
-                val testsCodeWithTestReportFormatted = testsCodeWithTestReport.copy(generatedCode = file.text)
-
-                // creating and saving reports
-                saveSarifAndTestReports(testClassUpdated, testCases, model, testsCodeWithTestReportFormatted)
-
-                unblockDocument(testClassUpdated.project, editor.document)
             }
+            //Note that reportsCountDown.countDown() has to be called in every generator implementation to complete whole process
             else -> TODO("Only model based code generator supported, but got: ${generator::class}")
         }
     }
@@ -258,7 +322,8 @@ object TestGenerator {
         testClass: PsiClass,
         testCases: List<UtTestCase>,
         model: GenerateTestsModel,
-        testsCodeWithTestReport: TestsCodeWithTestReport
+        testsCodeWithTestReport: TestsCodeWithTestReport,
+        reportsCountDown: CountDownLatch
     ) {
         val project = model.project
         val generatedTestsCode = testsCodeWithTestReport.generatedCode
@@ -275,6 +340,8 @@ object TestGenerator {
                 message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",
                 title = "Failed to save Sarif report"
             )
+        } finally {
+            reportsCountDown.countDown()
         }
 
         try {
@@ -318,17 +385,8 @@ object TestGenerator {
         VfsUtil.createDirectories(parent.toString())
         resultedReportedPath.toFile().writeText(testsCodeWithTestReport.testsGenerationReport.getFileContent())
 
-        if (model.forceMockHappened) {
-            testsCodeWithTestReport.testsGenerationReport.apply {
-                initialMessage = {
-                    """
-                    Unit tests for $classUnderTest were generated partially.<br>
-                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
-                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
-                """.trimIndent()
-                }
-            }
-        }
+        processInitialWarnings(testsCodeWithTestReport, model)
+
         val notifyMessage = buildString {
             appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString())
             appendHtmlLine()
@@ -347,6 +405,37 @@ object TestGenerator {
             appendHtmlLine(savedFileMessage)
         }
         TestsReportNotifier.notify(notifyMessage, model.project, model.testModule)
+    }
+
+    private fun processInitialWarnings(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
+        val hasInitialWarnings = model.forceMockHappened || model.hasTestFrameworkConflict
+        if (!hasInitialWarnings) {
+            return
+        }
+
+        testsCodeWithTestReport.testsGenerationReport.apply {
+            summaryMessage = { "Unit tests for $classUnderTest were generated with warnings.<br>" }
+
+            if (model.forceMockHappened) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
+                """.trimIndent()
+                }
+            }
+            if (model.hasTestFrameworkConflict) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: There are several test frameworks in the project. 
+                    To select run configuration, please refer to the documentation depending on the project build system:
+                     <a href=" https://docs.gradle.org/current/userguide/java_testing.html#sec:configuring_java_integration_tests">Gradle</a>, 
+                     <a href=" https://maven.apache.org/surefire/maven-surefire-plugin/examples/providers.html">Maven</a> 
+                     or <a href=" https://www.jetbrains.com/help/idea/run-debug-configuration.html#compound-configs">Idea</a>.
+                """.trimIndent()
+                }
+            }
+        }
     }
 
     @Suppress("unused")

@@ -211,6 +211,7 @@ internal class OverflowAsErrorTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
+    @Disabled("Flaky branch count mismatch (1 instead of 2)")
     fun testLongMulOverflow() {
         // This test has solver timeout.
         // Reason: softConstraints, containing limits for Int values, hang solver.

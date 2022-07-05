@@ -88,10 +88,10 @@ abstract class AbstractTestCaseGeneratorTest(
         UtSettings.checkSolverTimeoutMillis = 0
         UtSettings.checkNpeInNestedMethods = true
         UtSettings.checkNpeInNestedNotPrivateMethods = true
-        UtSettings.checkNpeForFinalFields = true
         UtSettings.substituteStaticsWithSymbolicVariable = true
         UtSettings.useAssembleModelGenerator = true
         UtSettings.saveRemainingStatesForConcreteExecution = false
+        UtSettings.useFuzzing = false
     }
 
     // checks paramsBefore and result

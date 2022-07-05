@@ -433,7 +433,7 @@ data class SquashedStmtTexts(
             for (i in 0 until stmtTexts.size) {
                 val stmtText = stmtTexts[i]
                 if ((tab + stmtText.prefix).isNotEmpty()) stmts += DocRegularStmt(tab + stmtText.prefix)
-                stmts += DocCodeStmt(stmtText.description)
+                stmts += DocCodeStmt(stmtText.description.replace(CARRIAGE_RETURN, ""))
 
                 if (i != stmtTexts.lastIndex) {
                     if (separation.isNotEmpty()) stmts += DocRegularStmt(separation)

@@ -152,7 +152,7 @@ fun getFieldValue(language: CodegenLanguage): String =
                         field.setAccessible(true);
                         java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
                         modifiersField.setAccessible(true);
-                        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+                        modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
                         
                         return field.get(obj);
                     } catch (NoSuchFieldException e) {

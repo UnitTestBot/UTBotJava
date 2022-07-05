@@ -28,6 +28,7 @@ import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.providers.EnumModelProvider
+import org.utbot.fuzzer.providers.EnumModelProvider.fuzzed
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
 
@@ -252,7 +253,7 @@ class ModelProviderTest {
     @Test
     fun `test fallback model can create custom values for any parameter`() {
         val firstParameterIsUserGenerated = ModelProvider { _, consumer ->
-            consumer.accept(0, UtPrimitiveModel(-123))
+            consumer.accept(0, UtPrimitiveModel(-123).fuzzed())
         }.withFallback(PrimitivesModelProvider)
 
         val result = collect(
@@ -439,7 +440,7 @@ class ModelProviderTest {
     ): Map<Int, List<UtModel>> {
         return mutableMapOf<Int, MutableList<UtModel>>().apply {
             modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants)) { i, m ->
-                computeIfAbsent(i) { mutableListOf() }.add(m)
+                computeIfAbsent(i) { mutableListOf() }.add(m.model)
             }
         }
     }

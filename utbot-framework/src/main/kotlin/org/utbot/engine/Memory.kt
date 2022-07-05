@@ -137,7 +137,17 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         UtFalse,
         UtArraySort(UtAddrSort, UtBoolSort)
     ),
-    private val instanceFieldReadOperations: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf()
+    private val instanceFieldReadOperations: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
+
+    /**
+     * Storage for addresses that we speculatively consider non-nullable (e.g., final fields of system classes).
+     * See [org.utbot.engine.UtBotSymbolicEngine.createFieldOrMock] for usage,
+     * and [docs/SpeculativeFieldNonNullability.md] for details.
+     */
+    private val speculativelyNotNullAddresses: UtArrayExpressionBase = UtConstArrayExpression(
+        UtFalse,
+        UtArraySort(UtAddrSort, UtBoolSort)
+    )
 ) {
     val chunkIds: Set<ChunkId>
         get() = initial.keys
@@ -166,6 +176,11 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      * Returns symbolic information about whether [addr] has been touched during the analysis or not.
      */
     fun isTouched(addr: UtAddrExpression): UtArraySelectExpression = touchedAddresses.select(addr)
+
+    /**
+     * Returns symbolic information about whether [addr] corresponds to a final field known to be not null.
+     */
+    fun isSpeculativelyNotNull(addr: UtAddrExpression): UtArraySelectExpression = speculativelyNotNullAddresses.select(addr)
 
     /**
      * @return ImmutableCollection of the initial values for all the arrays we touched during the execution
@@ -260,6 +275,10 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
+        val updSpeculativelyNotNullAddresses = update.speculativelyNotNullAddresses.fold(speculativelyNotNullAddresses) { acc, addr ->
+            acc.store(addr, UtTrue)
+        }
+
         return this.copy(
             initial = updInitial,
             current = updCurrent,
@@ -275,7 +294,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             updates = updates + update,
             visitedValues = updVisitedValues,
             touchedAddresses = updTouchedAddresses,
-            instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads)
+            instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads),
+            speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses
         )
     }
 
@@ -955,7 +975,8 @@ data class MemoryUpdate(
     val visitedValues: PersistentList<UtAddrExpression> = persistentListOf(),
     val touchedAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
     val classIdToClearStatics: ClassId? = null,
-    val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf()
+    val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
+    val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =
         this.copy(
@@ -972,7 +993,8 @@ data class MemoryUpdate(
             visitedValues = visitedValues.addAll(other.visitedValues),
             touchedAddresses = touchedAddresses.addAll(other.touchedAddresses),
             classIdToClearStatics = other.classIdToClearStatics,
-            instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads)
+            instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads),
+            speculativelyNotNullAddresses = speculativelyNotNullAddresses.addAll(other.speculativelyNotNullAddresses),
         )
 }
 

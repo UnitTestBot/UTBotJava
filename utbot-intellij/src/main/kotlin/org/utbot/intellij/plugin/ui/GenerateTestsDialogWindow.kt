@@ -2,6 +2,68 @@
 
 package org.utbot.intellij.plugin.ui
 
+import com.intellij.codeInsight.hint.HintUtil
+import com.intellij.icons.AllIcons
+import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.projectRoots.JavaSdkVersion
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
+import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.popup.IconButton
+import com.intellij.openapi.util.Computable
+import com.intellij.openapi.vfs.StandardFileSystems
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiMethod
+import com.intellij.refactoring.PackageWrapper
+import com.intellij.refactoring.ui.MemberSelectionTable
+import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
+import com.intellij.refactoring.util.RefactoringUtil
+import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.testIntegration.TestIntegrationUtils
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.HyperlinkLabel
+import com.intellij.ui.IdeBorderFactory.createBorder
+import com.intellij.ui.InplaceButton
+import com.intellij.ui.JBColor
+import com.intellij.ui.JBIntSpinner
+import com.intellij.ui.SideBorder
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.components.CheckBox
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.Panel
+import com.intellij.ui.components.panels.HorizontalLayout
+import com.intellij.ui.components.panels.NonOpaquePanel
+import com.intellij.ui.layout.Cell
+import com.intellij.ui.layout.CellBuilder
+import com.intellij.ui.layout.Row
+import com.intellij.ui.layout.panel
+import com.intellij.util.IncorrectOperationException
+import com.intellij.util.io.exists
+import com.intellij.util.lang.JavaVersion
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.JBUI.Borders.empty
+import com.intellij.util.ui.JBUI.Borders.merge
+import com.intellij.util.ui.JBUI.scale
+import com.intellij.util.ui.JBUI.size
+import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.components.BorderLayoutPanel
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -24,59 +86,16 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
+import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
-import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
-import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
-import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.components.service
-import com.intellij.openapi.options.ShowSettingsUtil
-import com.intellij.openapi.roots.ContentEntry
-import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.StandardFileSystems
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiMethod
-import com.intellij.refactoring.PackageWrapper
-import com.intellij.refactoring.ui.MemberSelectionTable
-import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
-import com.intellij.refactoring.util.RefactoringUtil
-import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
-import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.ContextHelpLabel
-import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.components.CheckBox
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.Panel
-import com.intellij.ui.layout.Cell
-import com.intellij.ui.layout.CellBuilder
-import com.intellij.ui.layout.Row
-import com.intellij.ui.layout.panel
-import com.intellij.util.IncorrectOperationException
-import com.intellij.util.io.exists
-import com.intellij.util.lang.JavaVersion
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.JBUI.size
-import com.intellij.util.ui.UIUtil
+import org.utbot.intellij.plugin.util.AndroidApiHelper
 import java.awt.BorderLayout
+import java.awt.Color
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -98,6 +117,10 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
+    companion object {
+        const val minSupportedSdkVersion = 8
+        const val maxSupportedSdkVersion = 11
+    }
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
 
@@ -138,6 +161,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     init {
         title = "Generate tests with UtBot"
+        setResizable(false)
         init()
     }
 
@@ -218,16 +242,74 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
 
-    private fun findSdkVersion(): Int {
-        val projectSdk = ModuleRootManager.getInstance(model.testModule).sdk
-        val sdkVersion = JavaVersion.tryParse(projectSdk?.versionString)
-            ?: error("No sdk found in ${model.testModule}")
-        return sdkVersion.feature
+    private fun findSdkVersion(): JavaVersion? {
+        val projectSdk = ModuleRootManager.getInstance(model.srcModule).sdk
+        return JavaVersion.tryParse(projectSdk?.versionString)
+    }
+
+    override fun createTitlePane(): JComponent? {
+        val sdkVersion = findSdkVersion()
+        //TODO:SAT-1571 investigate Android Studio specific sdk issues
+        if (sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion || AndroidApiHelper.isAndroidStudio()) return null
+        isOKActionEnabled = false
+        return SdkNotificationPanel(model, sdkVersion)
     }
 
     private fun findTestPackageComboValue(): String {
         val packageNames = model.srcClasses.map { it.packageName }.distinct()
         return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
+    }
+
+    /**
+     * A panel to inform user about incorrect jdk in project.
+     *
+     * Note: this implementation was encouraged by NonModalCommitPromoter.
+     */
+    private inner class SdkNotificationPanel(
+        private val model: GenerateTestsModel,
+        private val sdkVersion: JavaVersion?,
+    ) : BorderLayoutPanel() {
+        init {
+            border = merge(empty(10), createBorder(JBColor.border(), SideBorder.BOTTOM), true)
+
+            addToLeft(JBLabel().apply {
+                icon = AllIcons.Ide.FatalError
+                text = if (sdkVersion != null) {
+                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8} or ${JavaSdkVersion.JDK_11}."
+                } else {
+                    "SDK is not defined"
+                }
+            })
+
+            addToRight(NonOpaquePanel(HorizontalLayout(scale(12))).apply {
+                add(createConfigureAction())
+                add(createCloseAction())
+            })
+        }
+
+        override fun getBackground(): Color? =
+            EditorColorsManager.getInstance().globalScheme.getColor(HintUtil.ERROR_COLOR_KEY) ?: super.getBackground()
+
+        private fun createConfigureAction(): JComponent =
+            HyperlinkLabel("Setup SDK").apply {
+                addHyperlinkListener {
+                    val projectStructure = ProjectStructureConfigurable.getInstance(model.project)
+                    val isEdited = ShowSettingsUtil.getInstance().editConfigurable(model.project, projectStructure)
+                    { projectStructure.select(model.srcModule.name, ClasspathEditor.getName(), true) }
+
+                    val sdkVersion = findSdkVersion()
+                    val sdkFixed = isEdited && sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion
+                    if (sdkFixed) {
+                        this@SdkNotificationPanel.isVisible = false
+                        isOKActionEnabled = true
+                    }
+                }
+            }
+
+        private fun createCloseAction(): JComponent =
+            InplaceButton(IconButton(null, AllIcons.Actions.Close, AllIcons.Actions.CloseHovered)) {
+                this@SdkNotificationPanel.isVisible = false
+            }
     }
 
     private fun updateMembersTable() {
@@ -506,6 +588,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (frameworkNotInstalled && createTestFrameworkNotificationDialog() == Messages.YES) {
             configureTestFramework()
         }
+
+        model.hasTestFrameworkConflict = TestFramework.allItems.count { it.isInstalled  } > 1
     }
 
     private fun configureMockFrameworkIfRequired() {
@@ -721,7 +805,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         //Will be removed after gradle-intelij-plugin version update upper than 2020.2
         //TestNg will be reverted after https://github.com/UnitTestBot/UTBotJava/issues/309
-        if (findSdkVersion() < 11) {
+        if (findSdkVersion()?.let { it.feature < 11 } == true) {
             enabledTestFrameworks = enabledTestFrameworks.filterNot { it == TestNg }
         }
 

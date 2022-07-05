@@ -482,4 +482,14 @@ class OptionalsTest : AbstractTestCaseGeneratorTest(
             coverage = DoNotCalculate
         )
     }
+
+    @Test
+    fun testOptionalOfPositive() {
+        check(
+            Optionals::optionalOfPositive,
+            eq(2),
+            { value, result -> value > 0 && result != null && result.isPresent && result.get() == value },
+            { value, result -> value <= 0 && result != null && !result.isPresent }
+        )
+    }
 }

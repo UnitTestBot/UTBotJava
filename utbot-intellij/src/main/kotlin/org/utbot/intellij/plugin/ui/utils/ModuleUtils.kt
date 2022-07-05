@@ -39,7 +39,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun Module.jdkVersion(): JavaSdkVersion {
     val moduleRootManager = ModuleRootManager.getInstance(this)
-    val sdk = moduleRootManager.sdk ?: error("No sdk found for module $this") // TODO: get sdk from project?
+    val sdk = moduleRootManager.sdk
     return jdkVersionBy(sdk)
 }
 
@@ -223,10 +223,10 @@ fun ContentEntry.addSourceRootIfAbsent(
         model.dispose()
         return
     }
-    VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(sourceRootUrl))
-    addSourceFolder(sourceRootUrl, type)
     WriteCommandAction.runWriteCommandAction(rootModel.module.project) {
         try {
+            VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(sourceRootUrl))
+            addSourceFolder(sourceRootUrl, type)
             model.commit()
         } catch (e: Exception) {
             logger.error { e }
@@ -238,7 +238,12 @@ fun ContentEntry.addSourceRootIfAbsent(
 /**
  * Obtain JDK version and make sure that it is JDK8 or JDK11
  */
-private fun jdkVersionBy(sdk: Sdk): JavaSdkVersion {
+private fun jdkVersionBy(sdk: Sdk?): JavaSdkVersion {
+    if (sdk == null) {
+        CommonErrorNotifier.notify("Failed to obtain JDK version of the project")
+    }
+    requireNotNull(sdk)
+
     val jdkVersion = when (sdk.sdkType) {
         is JavaSdk -> {
             (sdk.sdkType as JavaSdk).getVersion(sdk)

@@ -17,14 +17,17 @@ import soot.CharType
 import soot.DoubleType
 import soot.FloatType
 import soot.IntType
+import soot.Local
 import soot.LongType
 import soot.ShortType
 import soot.Unit
 import soot.Value
 import soot.ValueBox
 import soot.jimple.Constant
+import soot.jimple.IntConstant
 import soot.jimple.InvokeExpr
 import soot.jimple.NullConstant
+import soot.jimple.internal.AbstractSwitchStmt
 import soot.jimple.internal.ImmediateBox
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JCastExpr
@@ -33,8 +36,10 @@ import soot.jimple.internal.JGeExpr
 import soot.jimple.internal.JGtExpr
 import soot.jimple.internal.JIfStmt
 import soot.jimple.internal.JLeExpr
+import soot.jimple.internal.JLookupSwitchStmt
 import soot.jimple.internal.JLtExpr
 import soot.jimple.internal.JNeExpr
+import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
 
@@ -45,17 +50,18 @@ private val logger = KotlinLogging.logger {}
  */
 fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteValue> {
     return graph.body.units.reversed().asSequence()
-        .filter { it is JIfStmt || it is JAssignStmt }
+        .filter { it is JIfStmt || it is JAssignStmt || it is AbstractSwitchStmt}
         .flatMap { unit ->
             unit.useBoxes.map { unit to it.value }
         }
         .filter { (_, value) ->
-            value is Constant || value is JCastExpr || value is InvokeExpr
+            value is Constant || value is Local || value is JCastExpr || value is InvokeExpr
         }
         .flatMap { (unit, value) ->
             sequenceOf(
                 ConstantsFromIfStatement,
                 ConstantsFromCast,
+                ConstantsFromSwitchCase,
                 BoundValuesForDoubleChecks,
                 StringConstant,
             ).flatMap { finder ->
@@ -108,7 +114,7 @@ private object ConstantsFromIfStatement: ConstantsFinder {
             val local = useBoxes[(valueIndex + 1) % 2]
             var op = sootIfToFuzzedOp(ifStatement)
             if (valueIndex == 0) {
-                op = reverse(op)
+                op = op.reverseOrElse { it }
             }
             // Soot loads any integer type as an Int,
             // therefore we try to guess target type using second value
@@ -156,6 +162,24 @@ private object ConstantsFromCast: ConstantsFinder {
         return emptyList()
     }
 
+}
+
+private object ConstantsFromSwitchCase: ConstantsFinder {
+    override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
+        if (unit !is JTableSwitchStmt && unit !is JLookupSwitchStmt) return emptyList()
+        val result = mutableListOf<FuzzedConcreteValue>()
+        if (unit is JTableSwitchStmt) {
+            for (i in unit.lowIndex..unit.highIndex) {
+                result.add(FuzzedConcreteValue(intClassId, i, FuzzedOp.EQ))
+            }
+        }
+        if (unit is JLookupSwitchStmt) {
+            unit.lookupValues.asSequence().filterIsInstance<IntConstant>().forEach {
+                result.add(FuzzedConcreteValue(intClassId, it.value, FuzzedOp.EQ))
+            }
+        }
+        return result
+    }
 }
 
 private object BoundValuesForDoubleChecks: ConstantsFinder {
@@ -224,14 +248,6 @@ private fun sootIfToFuzzedOp(unit: JIfStmt) = when (unit.condition) {
     is JLtExpr -> FuzzedOp.GE
     is JLeExpr -> FuzzedOp.GT
     else -> FuzzedOp.NONE
-}
-
-private fun reverse(op: FuzzedOp) = when(op) {
-    FuzzedOp.GT -> FuzzedOp.LT
-    FuzzedOp.LT -> FuzzedOp.GT
-    FuzzedOp.LE -> FuzzedOp.GE
-    FuzzedOp.GE -> FuzzedOp.LE
-    else -> op
 }
 
 private fun nextDirectUnit(graph: ExceptionalUnitGraph, unit: Unit): Unit? = graph.getSuccsOf(unit).takeIf { it.size == 1 }?.first()

@@ -1,19 +1,20 @@
 package org.utbot.predictors
 
 import mu.KotlinLogging
+import org.utbot.analytics.StateRewardPredictor
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.predictors.util.PredictorLoadingException
 import smile.math.matrix.Matrix
 
 private const val DEFAULT_MODEL_PATH = "nn.json"
-private const val DEFAULT_SCALER_PATH = "scaler.txt"
 
 private val logger = KotlinLogging.logger {}
 
 private fun getModel(path: String) = buildModel(loadModel(path))
 
 class NNStateRewardPredictorBase(modelPath: String = DEFAULT_MODEL_PATH, scalerPath: String = DEFAULT_SCALER_PATH) :
-    NNStateRewardPredictor {
+    StateRewardPredictor {
     private lateinit var nn: FeedForwardNetwork
     private lateinit var scaler: StandardScaler
 
@@ -21,7 +22,7 @@ class NNStateRewardPredictorBase(modelPath: String = DEFAULT_MODEL_PATH, scalerP
         try {
             nn = getModel(modelPath)
             scaler = loadScaler(scalerPath)
-        } catch (e: Exception) {
+        } catch (e: PredictorLoadingException) {
             logger.info(e) {
                 "Error while initialization of NNStateRewardPredictorBase. Changing pathSelectorType on INHERITORS_SELECTOR"
             }

@@ -45,6 +45,7 @@ import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
+import org.utbot.common.withAccessibility
 
 /**
  * Constructs values (including mocks) from models.
@@ -433,10 +434,18 @@ class MockValueConstructor(
     }
 
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
-        method.invokeCatching(obj = instance, args = args).getOrThrow()
+        method.run {
+            withAccessibility {
+                invokeCatching(obj = instance, args = args).getOrThrow()
+            }
+        }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.newInstance(*args.toTypedArray())
+        constructor.run {
+            withAccessibility {
+                newInstance(*args.toTypedArray())
+            }
+        }
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

@@ -223,10 +223,10 @@ fun ContentEntry.addSourceRootIfAbsent(
         model.dispose()
         return
     }
-    VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(sourceRootUrl))
-    addSourceFolder(sourceRootUrl, type)
     WriteCommandAction.runWriteCommandAction(rootModel.module.project) {
         try {
+            VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(sourceRootUrl))
+            addSourceFolder(sourceRootUrl, type)
             model.commit()
         } catch (e: Exception) {
             logger.error { e }

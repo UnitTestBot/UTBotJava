@@ -11,7 +11,7 @@ private const val userTrustedLibrariesKey: String = "utbot.settings.trusted.libr
 
 object TrustedLibraries {
     /**
-     * JDK and some "trustworthy" open-source libraries.
+     * Always "trust" JDK.
      */
     private val defaultTrustedLibraries: List<String> = listOf(
         "java",
@@ -21,14 +21,6 @@ object TrustedLibraries {
         "org.omg",
         "org.xml",
         "org.w3c.dom",
-        "com.google.common",
-        "org.antlr.v4",
-        "org.antlr.runtime",
-        "com.alibaba.fastjson",
-        "com.alibaba.fescar.core",
-        "org.apache.pdfbox",
-        "io.seata.core",
-        "spoon"
     )
 
     private val userTrustedLibraries: List<String>

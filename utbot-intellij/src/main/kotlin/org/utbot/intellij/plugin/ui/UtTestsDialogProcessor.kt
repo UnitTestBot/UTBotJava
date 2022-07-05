@@ -52,24 +52,27 @@ object UtTestsDialogProcessor {
         srcClasses: Set<PsiClass>,
         focusedMethod: MemberInfo?,
     ) {
-        val dialog = createDialog(project, srcClasses, focusedMethod)
-        if (!dialog.showAndGet()) {
-            return
+        createDialog(project, srcClasses, focusedMethod)?.let {
+            if (it.showAndGet()) createTests(project, it.model)
         }
-
-        createTests(project, dialog.model)
     }
 
     private fun createDialog(
         project: Project,
         srcClasses: Set<PsiClass>,
         focusedMethod: MemberInfo?,
-    ): GenerateTestsDialogWindow {
+    ): GenerateTestsDialogWindow? {
         val srcModule = findSrcModule(srcClasses)
         val testModule = srcModule.testModule(project)
 
         JdkPathService.jdkPathProvider = PluginJdkPathProvider(project, testModule)
-        val jdkVersion = testModule.jdkVersion()
+        val jdkVersion = try {
+            testModule.jdkVersion()
+        } catch (e: IllegalStateException) {
+            // Just ignore it here, notification will be shown in
+            // org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
+            return null
+        }
 
         return GenerateTestsDialogWindow(
             GenerateTestsModel(

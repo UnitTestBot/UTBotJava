@@ -12,20 +12,10 @@ private const val SAME_PACKAGE_LABEL = "same as for sources"
 
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
-    private val testPackageField = PackageNameReferenceEditorCombo(
-        findTestPackageComboValue(),
-        model.project,
-        RECENTS_KEY,
-        "Choose destination package"
-    )
-
 //    private val functionsTable = PythonFunctionsSelectionTable(emptyList(), null)
 
-//    private val testSourceFolderField = PythonTestFolderComboWithBrowseButton(model)
+    private val testSourceFolderField = PythonTestFolderComboWithBrowseButton(model)
 
-    private fun findTestPackageComboValue(): String {
-        return SAME_PACKAGE_LABEL  // TODO("add path selector")
-    }
     private lateinit var panel: DialogPanel
 
     init {
@@ -36,11 +26,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     override fun createCenterPanel(): JComponent {
         panel = panel {
-//            row("Test source root:") {
-//                component(testSourceFolderField)
-//            }
-            row("Destination package:") {
-                component(testPackageField)
+            row("Test source root:") {
+                component(testSourceFolderField)
             }
             row("Generate test methods for:") {}
 //            row {
@@ -53,7 +40,6 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     }
 
     private fun initDefaultValues() {
-        testPackageField.isEnabled = false
     }
     private fun setListeners() {
     }

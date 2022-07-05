@@ -1,13 +1,9 @@
 package org.utbot.summary.clustering
 
 import org.utbot.framework.plugin.api.Step
-import smile.math.distance.Distance
+import org.utbot.summary.clustering.dbscan.Distance
 
 class ExecutionDistance : Distance<Iterable<Step>> {
-    override fun d(x: Iterable<Step>, y: Iterable<Step>): Double {
-        return compareTwoPaths(x, y)
-    }
-
     /**
      * Minimum Edit Distance
      */
@@ -30,5 +26,9 @@ class ExecutionDistance : Distance<Iterable<Step>> {
 
     private fun distance(stmt1: Step, stmt2: Step): Int {
         return if (stmt1 == stmt2) 0 else 2
+    }
+
+    override fun compute(object1: Iterable<Step>, object2: Iterable<Step>): Double {
+        return compareTwoPaths(object1, object2)
     }
 }

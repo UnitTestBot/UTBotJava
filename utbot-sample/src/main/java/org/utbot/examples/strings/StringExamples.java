@@ -1,5 +1,7 @@
 package org.utbot.examples.strings;
 
+import java.util.Arrays;
+
 import static java.lang.Boolean.valueOf;
 
 class IntPair {
@@ -410,5 +412,9 @@ public class StringExamples {
         } else {
             return "failure";
         }
+    }
+
+    public String listToString() {
+        return Arrays.asList("a", "b", "c").toString();
     }
 }

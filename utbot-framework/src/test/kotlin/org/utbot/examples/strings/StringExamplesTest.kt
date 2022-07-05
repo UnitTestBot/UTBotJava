@@ -589,4 +589,14 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
             )
         }
     }
+
+    @Test
+    fun testListToString() {
+        check(
+            StringExamples::listToString,
+            eq(1),
+            { r -> r == "[a, b, c]"},
+            coverage = DoNotCalculate
+        )
+    }
 }

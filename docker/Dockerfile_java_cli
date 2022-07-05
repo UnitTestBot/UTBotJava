@@ -22,5 +22,5 @@ RUN curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     && unzip "${JAVA_CLI_ZIP_NAME}" \
     && rm "${JAVA_CLI_ZIP_NAME}"
 
-ENV JAVA_CLI_PATH="$(find $pwd -type f -name "utbot-cli*")"
+ENV JAVA_CLI_PATH="$(find /usr/src -type f -name utbot-cli*)"
 RUN ln -s "${JAVA_CLI_PATH}" $pwd/utbot-cli.jar

@@ -5,8 +5,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.jetbrains.python.psi.PyFile
-import com.jetbrains.python.psi.PyFunction
+import com.jetbrains.python.psi.*
 
 object PythonActionMethods {
     const val pythonID = "Python"
@@ -34,15 +33,15 @@ object PythonActionMethods {
         val functions = file.topLevelFunctions
         val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
 
-        return Pair(functions.toSet(), focusedFunction);
+        return Pair(functions.toSet(), focusedFunction)
     }
 
     private fun getContainingFunction(element: PsiElement): PyFunction? {
         if (element is PyFunction)
-            return element;
+            return element
 
         val parent = element.parent ?: return null
-        return getContainingFunction(parent);
+        return getContainingFunction(parent)
     }
 
     // this method is copy-paste from GenerateTestsActions.kt

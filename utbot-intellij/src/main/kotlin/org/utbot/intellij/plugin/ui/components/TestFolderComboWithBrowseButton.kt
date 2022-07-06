@@ -16,10 +16,11 @@ import javax.swing.JList
 import org.utbot.common.PathUtil
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
-class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : ComboboxWithBrowseButton() {
+class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) : ComboboxWithBrowseButton() {
 
     private val SET_TEST_FOLDER = "set test folder"
 
@@ -71,7 +72,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
         }
     }
 
-    private fun createNewTestSourceRoot(model: GenerateTestsModel): VirtualFile? =
+    private fun createNewTestSourceRoot(model: BaseTestsModel): VirtualFile? =
         ReadAction.compute<VirtualFile, RuntimeException> {
             val desc = FileChooserDescriptor(false, true, false, false, false, false)
             val initialFile = model.project.guessProjectDir()
@@ -92,7 +93,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
         childComponent.model = DefaultComboBoxModel(ArrayUtil.toObjectArray(comboItems))
     }
 
-    private fun formatUrl(virtualFile: VirtualFile, model: GenerateTestsModel): String {
+    private fun formatUrl(virtualFile: VirtualFile, model: BaseTestsModel): String {
         var directoryUrl = if (virtualFile is FakeVirtualFile) {
             virtualFile.parent.presentableUrl + File.separatorChar + virtualFile.name
         } else {

@@ -17,11 +17,12 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
+import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
 
-data class GenerateTestsModel(
-    val project: Project,
-    val srcModule: Module,
-    val testModule: Module,
+class GenerateTestsModel(
+    project: Project,
+    srcModule: Module,
+    testModule: Module,
     val jdkVersion: JavaSdkVersion,
     var srcClasses: Set<PsiClass>,
     var selectedMethods: Set<MemberInfo>?,
@@ -29,8 +30,11 @@ data class GenerateTestsModel(
     var generateWarningsForStaticMocking: Boolean = false,
     var forceMockHappened: Boolean = false,
     var hasTestFrameworkConflict: Boolean = false,
+): BaseTestsModel(
+    project,
+    srcModule,
+    testModule
 ) {
-    var testSourceRoot: VirtualFile? = null
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi

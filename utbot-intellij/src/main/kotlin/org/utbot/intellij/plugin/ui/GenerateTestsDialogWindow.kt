@@ -85,14 +85,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
-import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
-import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
-import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
-import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
-import org.utbot.intellij.plugin.ui.utils.parseVersion
-import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
-import org.utbot.intellij.plugin.ui.utils.testRootType
+import org.utbot.intellij.plugin.ui.utils.*
 import org.utbot.intellij.plugin.util.AndroidApiHelper
 import java.awt.BorderLayout
 import java.awt.Color

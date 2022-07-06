@@ -23,6 +23,7 @@ import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
@@ -428,6 +429,48 @@ class ModelProviderTest {
                 assertEquals(intClassId, innerConstructorParameters.params[0].classId)
                 assertEquals(doubleClassId, innerConstructorParameters.params[1].classId)
             }
+        }
+    }
+
+    @Test
+    fun `test complex object is created with setters`() {
+        val j = FieldSetterClass::class.java
+        assertEquals(6, j.declaredFields.size)
+        assertTrue(
+            setOf(
+                "pubStaticField",
+                "pubFinalField",
+                "pubField",
+                "pubFieldWithSetter",
+                "prvField",
+                "prvFieldWithSetter",
+            ).containsAll(j.declaredFields.map { it.name })
+        )
+        assertEquals(4, j.declaredMethods.size)
+        assertTrue(
+            setOf(
+                "getPubFieldWithSetter",
+                "setPubFieldWithSetter",
+                "getPrvFieldWithSetter",
+                "setPrvFieldWithSetter",
+            ).containsAll(j.declaredMethods.map { it.name })
+        )
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider { 0 }.apply {
+                modelProvider = PrimitiveDefaultsModelProvider
+            }, parameters = listOf(FieldSetterClass::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(2, result[0]!!.size)
+            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            val expectedModificationSize = 3
+            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val actualModificationSize = modificationsChain.size
+            assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
+
+            assertEquals("pubField", (modificationsChain[0] as UtDirectSetFieldModel).fieldId.name)
+            assertEquals("setPubFieldWithSetter", (modificationsChain[1] as UtExecutableCallModel).executable.name)
+            assertEquals("setPrvFieldWithSetter", (modificationsChain[2] as UtExecutableCallModel).executable.name)
         }
     }
 

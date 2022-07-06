@@ -5,7 +5,7 @@ apply plugin: 'java'
 if (project.hasProperty('semVer')) {
     project.version = project.semVer
 } else {
-    project.version = '1.0-SNAPSHOT'
+    project.version = '2022.7-SNAPSHOT'
 }
 
 buildscript {

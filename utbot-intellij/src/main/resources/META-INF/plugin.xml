@@ -4,8 +4,7 @@
     <id>org.utbot.intellij.plugin.id</id>
     <name>UnitTestBot</name>
     <vendor>utbot.org</vendor>
-
-    <description>UnitTestBot plugin for IntelliJ IDEA for Java</description>
+    <idea-version since-build="202.8194.7"/>
     <version>2022.7-beta</version>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
@@ -70,5 +69,21 @@
                 Found an issue? Please, submit <a href="https://github.com/UnitTestBot/UTBotJava/issues">it here</a>.
         ]]>
     </description>
+    <change-notes>
+        <![CDATA[
+        In this version we have implemented multiple features and improvements:
+        <ul>
+        <li>Java 11 support.</li>
+        <li>Smart Fuzzer significantly improves test generation results.</li>
+        <li>Generated tests have become even more human-readable and user-friendly.</li>
+        <li>We have enabled Mac OS X platform, give it a try.</li>
+        <li>The UnitTestBot engine generates SARIF reports.</li>
+        <li>We have polished plugin UX.</li>
+        <li>Mocking support is enhanced.</li>
+        <li>Java Streams, better Java Optional support, Java String support is improved, package-private constructors now are used for the test generation.</li>
+        </ul>
+        Discover everything mentioned above and much more in this release.
+        ]]>
+    </change-notes>
 
 </idea-plugin>

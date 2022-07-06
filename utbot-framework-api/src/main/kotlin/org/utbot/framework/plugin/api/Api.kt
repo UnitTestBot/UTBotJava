@@ -1044,7 +1044,7 @@ enum class MockStrategyApi(
     override val displayName: String,
     override val description: String
 ) : CodeGenerationSettingItem {
-    NO_MOCKS("No mocks", "Do not use Mock frameworks at all"),
+    NO_MOCKS("No mocks", "Do not use mock frameworks at all"),
     OTHER_PACKAGES(
         "Other packages: $MOCKITO",
         "Mock all classes outside the current package except system ones"
@@ -1105,7 +1105,7 @@ enum class MockFramework(
 
 enum class CodegenLanguage(
     override val displayName: String,
-    @Suppress("unused") override val description: String = "Generating unit tests in $displayName"
+    @Suppress("unused") override val description: String = "Generate unit tests in $displayName"
 ) : CodeGenerationSettingItem {
     JAVA(displayName = "Java"),
     KOTLIN(displayName = "Kotlin");

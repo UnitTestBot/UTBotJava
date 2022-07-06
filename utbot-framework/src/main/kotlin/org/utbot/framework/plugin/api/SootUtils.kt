@@ -26,11 +26,14 @@ import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.overrides.UtOverrideMock
 import org.utbot.engine.overrides.collections.Collection
+import org.utbot.engine.overrides.collections.List
 import org.utbot.engine.overrides.collections.UtGenericStorage
 import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
+import org.utbot.engine.overrides.collections.AbstractCollection
+import org.utbot.engine.overrides.stream.Arrays
 import org.utbot.engine.overrides.stream.Stream
 import org.utbot.engine.overrides.stream.UtStream
 import java.io.File
@@ -90,6 +93,7 @@ private fun addBasicClasses(vararg classes: KClass<*>) {
 }
 
 private val classesToLoad = arrayOf(
+    AbstractCollection::class,
     UtMock::class,
     UtOverrideMock::class,
     UtLogicMock::class,
@@ -132,7 +136,9 @@ private val classesToLoad = arrayOf(
     UtStringBuilder::class,
     UtStringBuffer::class,
     Stream::class,
+    Arrays::class,
     Collection::class,
+    List::class,
     UtStream::class,
     UtStream.UtStreamIterator::class
 )

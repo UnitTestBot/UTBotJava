@@ -91,6 +91,7 @@ abstract class AbstractTestCaseGeneratorTest(
         UtSettings.substituteStaticsWithSymbolicVariable = true
         UtSettings.useAssembleModelGenerator = true
         UtSettings.saveRemainingStatesForConcreteExecution = false
+        UtSettings.useFuzzing = false
     }
 
     // checks paramsBefore and result

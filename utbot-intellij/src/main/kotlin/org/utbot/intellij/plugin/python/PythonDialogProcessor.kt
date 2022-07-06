@@ -3,7 +3,9 @@ package org.utbot.intellij.plugin.python
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
+import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFunction
+import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.testModule
@@ -11,10 +13,11 @@ import org.utbot.intellij.plugin.ui.utils.testModule
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
         project: Project,
-        fileMethods: Set<PyFunction>,
+        srcModule: Module,
+        fileMethods: Set<PyMemberInfo<PyElement>>,
         focusedMethod: PyFunction?,
     ) {
-        val dialog = PythonDialogProcessor.createDialog(project, fileMethods, focusedMethod)
+        val dialog = PythonDialogProcessor.createDialog(project, srcModule, fileMethods, focusedMethod)
         if (!dialog.showAndGet()) {
             return
         }
@@ -24,10 +27,10 @@ object PythonDialogProcessor {
 
     private fun createDialog(
         project: Project,
-        fileMethods: Set<PyFunction>,
+        srcModule: Module,
+        fileMethods: Set<PyMemberInfo<PyElement>>,
         focusedMethod: PyFunction?,
     ): PythonDialogWindow {
-        val srcModule = findSrcModule(fileMethods)
         val testModule = srcModule.testModule(project)
 
         return PythonDialogWindow(
@@ -43,14 +46,5 @@ object PythonDialogProcessor {
 
     private fun createTests(project: Project, model: PythonTestsModel) {
         // TODO
-    }
-}
-
-fun findSrcModule(fileMethods: Set<PyFunction>): Module {
-    val srcModules = fileMethods.mapNotNull { it.module }.distinct()
-    return when (srcModules.size) {
-        0 -> error("Module for source classes not found")
-        1 -> srcModules.first()
-        else -> error("Can not generate tests for classes from different modules")
     }
 }

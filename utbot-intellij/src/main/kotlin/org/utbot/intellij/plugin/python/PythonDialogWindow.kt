@@ -54,11 +54,11 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     }
 
     private fun updateFunctionsTable() {
-        val items = pyFunctionsToPyMemberInfo(model.project, model.fileMethods!!)
+        val items = model.fileMethods!!
         updateMethodsTable(items)
     }
 
-    private fun updateMethodsTable(allMethods: List<PyMemberInfo<PyElement>>) {
+    private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
         val focusedNames = model.focusedMethod?.map { it.name }
         val selectedMethods = allMethods.filter {
             focusedNames?.contains(it.member.name) ?: false
@@ -73,21 +73,5 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         functionsTable.setMemberInfos(allMethods)
     }
 
-    private fun checkMembers(members: List<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
-}
-
-
-fun pyFunctionsToPyMemberInfo(project: Project, functions: Set<PyFunction>): List<PyMemberInfo<PyElement>> {
-    val generator = PyElementGenerator.getInstance(project)
-    val newClass = generator.createFromText(
-        LanguageLevel.getDefault(),
-        PyClass::class.java,
-        "class A:\npass"
-    )
-    functions.forEach {
-        newClass.add(it)
-    }
-    val storage = PyMemberInfoStorage(newClass)
-    val infos = storage.getClassMemberInfos(newClass)
-    return infos
+    private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
 }

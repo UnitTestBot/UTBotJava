@@ -92,14 +92,19 @@ internal class CgVariableConstructor(val context: CgContext) :
      *
      * We use [valueByModelId] for [UtReferenceModel] by id to not create new variable in case state before
      * was not transformed.
+     *
+     * @param baseType is the preferred type of the variable being created.
+     * For example, we may be creating an argument of type `List` using the model with class id `ArrayList`.
+     * In order to make the type of variable `List` instead of `ArrayList` we may specify [baseType] `List`
+     * so that the variable is created with a desired type.
      */
-    fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
+    fun getOrCreateVariable(model: UtModel, name: String? = null, baseType: ClassId = model.classId): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return if (model is UtReferenceModel) valueByModelId.getOrPut(model.id) {
             when (model) {
-                is UtCompositeModel -> constructComposite(model, baseName)
-                is UtAssembleModel -> constructAssemble(model, baseName)
+                is UtCompositeModel -> constructComposite(model, baseName, baseType)
+                is UtAssembleModel -> constructAssemble(model, baseName, baseType)
                 is UtArrayModel -> constructArray(model, baseName)
             }
         } else valueByModel.getOrPut(model) {
@@ -122,7 +127,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         return if (isNotNull) CgNotNullVariable(name, classId) else CgVariable(name, classId)
     }
 
-    private fun constructComposite(model: UtCompositeModel, baseName: String): CgVariable {
+    private fun constructComposite(model: UtCompositeModel, baseName: String, baseType: ClassId): CgVariable {
         val obj = if (model.isMock) {
             mockFrameworkManager.createMockFor(model, baseName)
         } else {
@@ -160,7 +165,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+    private fun constructAssemble(model: UtAssembleModel, baseName: String?, baseType: ClassId): CgValue {
         for (statementModel in model.allStatementsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
@@ -187,14 +192,9 @@ internal class CgVariableConstructor(val context: CgContext) :
                     if (statementModel.returnValue == null) {
                         +cgCall
                     } else {
-                        val type = when (executable) {
-                            is MethodId -> executable.returnType
-                            is ConstructorId -> executable.classId
-                        }
-
                         // Don't use redundant constructors for primitives and String
-                        val initExpr = if (isPrimitiveWrapperOrString(type)) cgLiteralForWrapper(params) else cgCall
-                        newVar(type, statementModel.returnValue, baseName) { initExpr }
+                        val initExpr = if (isPrimitiveWrapperOrString(baseType)) cgLiteralForWrapper(params) else cgCall
+                        newVar(baseType, statementModel.returnValue, baseName) { initExpr }
                             .takeIf { statementModel == model.finalInstantiationModel }
                             ?.also { valueByModelId[model.id] = it }
                     }

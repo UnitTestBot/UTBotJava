@@ -1117,6 +1117,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     fun createTestMethod(utMethod: UtMethod<*>, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
+            val methodParameters = currentExecutable?.parameters
+                ?: error("Code generation context must be aware of the current executable under test")
             val testMethodName = nameGenerator.testMethodNameFor(utMethod, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${utMethod.callable.name}: $it" }
@@ -1130,12 +1132,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     setupInstrumentation()
                     // build this instance
                     thisInstance = execution.stateBefore.thisInstance?.let {
-                        variableConstructor.getOrCreateVariable(it)
+                        variableConstructor.getOrCreateVariable(it, baseType = classUnderTest)
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[utMethod]?.get(index)
-                        methodArguments += variableConstructor.getOrCreateVariable(param, name)
+                        val paramType = methodParameters[index]
+                        methodArguments += variableConstructor.getOrCreateVariable(param, name, baseType = paramType)
                     }
                     rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()

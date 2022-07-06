@@ -5,12 +5,16 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.jetbrains.kotlin.idea.util.module
+import org.jetbrains.kotlin.j2k.getContainingConstructor
 
 object PythonActionMethods {
     const val pythonID = "Python"
@@ -42,6 +46,7 @@ object PythonActionMethods {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
         val element = findPsiElement(file, editor) ?: return null
+
 
         val containingFunction = IterationUtils.getContainingElement<PyFunction>(element)
         val containingClass = IterationUtils.getContainingElement<PyClass>(element)

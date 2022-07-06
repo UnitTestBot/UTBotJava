@@ -2,9 +2,13 @@ package org.utbot.intellij.plugin.python
 
 import com.intellij.lang.jvm.actions.updateMethodParametersRequest
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.ContextHelpLabel
@@ -13,27 +17,33 @@ import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
-import com.jetbrains.python.psi.LanguageLevel
-import com.jetbrains.python.psi.PyClass
-import com.jetbrains.python.psi.PyElement
-import com.jetbrains.python.psi.PyElementGenerator
-import com.jetbrains.python.psi.PyFunction
+import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
+import org.utbot.intellij.plugin.ui.packageName
 import java.awt.BorderLayout
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
 import javax.swing.JPanel
+
+private const val SAME_PACKAGE_LABEL = "same as for sources"
 
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
+
+    private val testPackageField = PackageNameReferenceEditorCombo(
+        findTestPackageComboValue(),
+        model.project,
+        "org.utbot.recents",
+        "Choose destination package"
+    )
 
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
 
@@ -50,6 +60,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         init()
     }
 
+
+    @Suppress("UNCHECKED_CAST")
     override fun createCenterPanel(): JComponent {
         panel = panel {
             row("Test source root:") {
@@ -60,6 +72,9 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                     testFrameworks as ComboBox<CodeGenerationSettingItem>,
                     itemsToHelpTooltip[testFrameworks]
                 )
+            }
+            row("Destination package:") {
+                component(testPackageField)
             }
             row("Generate test methods for:") {}
             row {
@@ -75,6 +90,21 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     private fun initDefaultValues() {
     }
     private fun setListeners() {
+    }
+
+    private fun findTestPackageComboValue(): String {
+        val packageNames = model.fileMethods?.mapNotNull { method ->
+            IterationUtils.getContainingElement<PyFile>(method.member)?.let { it ->
+                val absoluteFilePath = it.virtualFile
+                ProjectFileIndex.SERVICE.getInstance(model.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
+                    VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
+                }
+            }
+        }?.distinct()
+        if (packageNames != null && packageNames.size == 1) {
+            return packageNames.first()
+        }
+        return SAME_PACKAGE_LABEL
     }
 
     private fun updateFunctionsTable() {

@@ -15,7 +15,6 @@ import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.utbot.common.PathUtil
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots

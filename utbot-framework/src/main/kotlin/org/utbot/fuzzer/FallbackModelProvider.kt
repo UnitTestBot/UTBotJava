@@ -21,7 +21,6 @@ import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.fuzzer.providers.AbstractModelProvider
 import java.util.*
 import java.util.function.IntSupplier
-import kotlin.collections.ArrayDeque
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.reflect.KClass
@@ -58,12 +57,13 @@ open class FallbackModelProvider(
                     mutableMapOf()
                 )
             classId.isIterable -> {
+                @Suppress("RemoveRedundantQualifierName") // ArrayDeque must be taken from java, not from kotlin
                 val defaultInstance = when {
                     defaultConstructor != null -> defaultConstructor.newInstance()
                     classId.jClass.isAssignableFrom(java.util.ArrayList::class.java) -> ArrayList<Any>()
                     classId.jClass.isAssignableFrom(java.util.TreeSet::class.java) -> TreeSet<Any>()
                     classId.jClass.isAssignableFrom(java.util.HashMap::class.java) -> HashMap<Any, Any>()
-                    classId.jClass.isAssignableFrom(java.util.ArrayDeque::class.java) -> ArrayDeque<Any>()
+                    classId.jClass.isAssignableFrom(java.util.ArrayDeque::class.java) -> java.util.ArrayDeque<Any>()
                     classId.jClass.isAssignableFrom(java.util.BitSet::class.java) -> BitSet()
                     else -> null
                 }

@@ -2471,7 +2471,7 @@ class UtBotSymbolicEngine(
             is JInterfaceInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
             is JVirtualInvokeExpr -> virtualAndInterfaceInvoke(invokeExpr.base, invokeExpr.methodRef, invokeExpr.args)
             is JSpecialInvokeExpr -> specialInvoke(invokeExpr)
-            is JDynamicInvokeExpr -> TODO("$invokeExpr")
+            is JDynamicInvokeExpr -> dynamicInvoke(invokeExpr)
             else -> error("Unknown class ${invokeExpr::class}")
         }
 
@@ -2729,6 +2729,15 @@ class UtBotSymbolicEngine(
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
         return commonInvokePart(invocation)
+    }
+
+    private fun dynamicInvoke(invokeExpr: JDynamicInvokeExpr): List<MethodResult> {
+        workaround(HACK) {
+            // The engine does not yet support JDynamicInvokeExpr, so switch to concrete execution if we encounter it
+            statesForConcreteExecution += environment.state
+            queuedSymbolicStateUpdates += UtFalse.asHardConstraint()
+            return emptyList()
+        }
     }
 
     /**

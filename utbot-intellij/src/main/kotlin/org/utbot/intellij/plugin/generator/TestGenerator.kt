@@ -207,6 +207,7 @@ object TestGenerator {
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
             }
         )
+        runWriteAction { testDirectory.findFile(testClassName + model.codegenLanguage.extension)?.delete() }
         val createFromTemplate: PsiElement = FileTemplateUtil.createFromTemplate(
             fileTemplate,
             testClassName,

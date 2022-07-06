@@ -1,9 +1,13 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.lang.jvm.actions.updateMethodParametersRequest
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.layout.panel
+import com.intellij.util.ui.JBUI
 import com.jetbrains.python.psi.LanguageLevel
 import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
@@ -40,15 +44,36 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         }
 
         initDefaultValues()
+        updateFunctionsTable()
         return panel
     }
 
     private fun initDefaultValues() {
-        val allMethods = pyFunctionsToPyMemberInfo(model.project, model.fileMethods!!)
-        functionsTable.setMemberInfos(allMethods)
     }
     private fun setListeners() {
     }
+
+    private fun updateFunctionsTable() {
+        val items = pyFunctionsToPyMemberInfo(model.project, model.fileMethods!!)
+        updateMethodsTable(items)
+    }
+
+    private fun updateMethodsTable(allMethods: List<PyMemberInfo<PyElement>>) {
+        val focusedNames = model.focusedMethod?.map { it.name }
+        val selectedMethods = allMethods.filter {
+            focusedNames?.contains(it.member.name) ?: false
+        }
+
+        if (selectedMethods.isEmpty()) {
+            checkMembers(allMethods)
+        } else {
+            checkMembers(selectedMethods)
+        }
+
+        functionsTable.setMemberInfos(allMethods)
+    }
+
+    private fun checkMembers(members: List<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
 }
 
 

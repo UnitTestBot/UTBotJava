@@ -50,6 +50,8 @@ object PythonActionMethods {
         }
 
         val infos = PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass).filter { it.member is PyFunction }
+        if (infos.isEmpty())
+            return null
         return Triple(infos.toSet(), containingFunction, findSrcModule(infos) { (it.member as? PyFunction)?.module })
     }
 

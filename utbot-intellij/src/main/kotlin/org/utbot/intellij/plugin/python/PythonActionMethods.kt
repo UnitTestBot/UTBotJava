@@ -43,8 +43,8 @@ object PythonActionMethods {
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
         val element = findPsiElement(file, editor) ?: return null
 
-        val containingFunction = getContainingFunction(element)
-        val containingClass = getContainingClass(element)
+        val containingFunction = IterationUtils.getContainingElement<PyFunction>(element)
+        val containingClass = IterationUtils.getContainingElement<PyClass>(element)
 
         if (containingClass == null) {
             val functions = file.topLevelFunctions
@@ -69,22 +69,6 @@ object PythonActionMethods {
             focusedFunction,
             findSrcModule(infos) { (it.member as? PyFunction)?.module }
         )
-    }
-
-    private fun getContainingFunction(element: PsiElement): PyFunction? {
-        if (element is PyFunction)
-            return element
-
-        val parent = element.parent ?: return null
-        return getContainingFunction(parent)
-    }
-
-    private fun getContainingClass(element: PsiElement): PyClass? {
-        if (element is PyClass)
-            return element
-
-        val parent = element.parent ?: return null
-        return getContainingClass(parent)
     }
 
     // this method is copy-paste from GenerateTestsActions.kt

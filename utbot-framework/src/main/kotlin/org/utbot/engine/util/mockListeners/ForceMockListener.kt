@@ -1,7 +1,7 @@
 package org.utbot.engine.util.mockListeners
 import org.utbot.engine.EngineController
 import org.utbot.engine.MockStrategy
-import org.utbot.engine.util.mockListeners.exceptions.ForceMockCancellationException
+import org.utbot.engine.UtMockInfo
 
 /**
  * Listener for mocker events in [org.utbot.engine.UtBotSymbolicEngine].
@@ -13,7 +13,7 @@ class ForceMockListener: MockListener {
     var forceMockHappened = false
         private set
 
-    override fun onShouldMock(controller: EngineController, strategy: MockStrategy) {
+    override fun onShouldMock(controller: EngineController, strategy: MockStrategy, mockInfo: UtMockInfo) {
         // If force mocking happened -- сancel engine job
         controller.job?.cancel(ForceMockCancellationException())
         forceMockHappened = true

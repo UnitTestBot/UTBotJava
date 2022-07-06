@@ -405,11 +405,11 @@ object TestGenerator {
             """.trimIndent()
             appendHtmlLine(savedFileMessage)
         }
-        TestsReportNotifier.notify(notifyMessage, model.project, model.testModule)
+        TestsReportNotifier.notify(notifyMessage)
     }
 
     private fun processInitialWarnings(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
-        val hasInitialWarnings = model.forceMockHappened || model.hasTestFrameworkConflict
+        val hasInitialWarnings = model.forceMockHappened || model.forceStaticMockHappened || model.hasTestFrameworkConflict
         if (!hasInitialWarnings) {
             return
         }
@@ -422,6 +422,14 @@ object TestGenerator {
                     """
                     <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
                     Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoSuffix}">installing mocking framework</a>.
+                """.trimIndent()
+                }
+            }
+            if (model.forceStaticMockHappened) {
+                initialWarnings.add {
+                    """
+                    <b>Warning</b>: Some test cases were ignored, because mockito-inline is not installed in the project.<br>
+                    Better results could be achieved by <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.mockitoInlineSuffix}">configuring mockito-inline</a>.
                 """.trimIndent()
                 }
             }

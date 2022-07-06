@@ -29,8 +29,12 @@ object PythonActionMethods {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
         val element = findPsiElement(file, editor) ?: return null
-        val containingFunction = getContainingFunction(element)
         val functions = file.topLevelFunctions
+
+        if (functions.isEmpty())
+            return null
+
+        val containingFunction = getContainingFunction(element)
         val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
 
         return Pair(functions.toSet(), focusedFunction)

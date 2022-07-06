@@ -15,6 +15,12 @@ import org.jetbrains.kotlin.idea.util.module
 object PythonActionMethods {
     const val pythonID = "Python"
 
+    data class Targets(
+        val functions: Set<PyMemberInfo<PyElement>>,
+        val focusedFunction: PyFunction?,
+        val module: Module
+    )
+
     fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val (functions, focusedFunction, module) = getPsiTargets(e) ?: return
@@ -31,7 +37,7 @@ object PythonActionMethods {
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 
-    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PyMemberInfo<PyElement>>, PyFunction?, Module>? {
+    private fun getPsiTargets(e: AnActionEvent): Targets? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
@@ -45,14 +51,24 @@ object PythonActionMethods {
             if (functions.isEmpty())
                 return null
 
-            // val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
-            return Triple(pyFunctionsToPyMemberInfo(project, functions), containingFunction, findSrcModule(functions) { it.module })
+            val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
+            return Targets(
+                pyFunctionsToPyMemberInfo(project, functions),
+                focusedFunction,
+                findSrcModule(functions) { it.module }
+            )
         }
 
         val infos = PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass).filter { it.member is PyFunction }
         if (infos.isEmpty())
             return null
-        return Triple(infos.toSet(), containingFunction, findSrcModule(infos) { (it.member as? PyFunction)?.module })
+
+        val focusedFunction = if (infos.any {it.member.name == containingFunction?.name}) containingFunction else null
+        return Targets(
+            infos.toSet(),
+            focusedFunction,
+            findSrcModule(infos) { (it.member as? PyFunction)?.module }
+        )
     }
 
     private fun getContainingFunction(element: PsiElement): PyFunction? {
@@ -82,8 +98,11 @@ object PythonActionMethods {
         return element
     }
 
-    private fun <T> findSrcModule(fileMethods: Collection<T>, get_module: (T) -> Module?): Module {
-        val srcModules = fileMethods.mapNotNull(get_module).distinct()
+    private fun <T> findSrcModule(
+        fileMethods: Collection<T>,
+        getElementModule: (T) -> Module?,
+    ): Module {
+        val srcModules = fileMethods.mapNotNull(getElementModule).distinct()
         return when (srcModules.size) {
             0 -> error("Module for source classes not found")
             1 -> srcModules.first()
@@ -96,7 +115,7 @@ object PythonActionMethods {
         val newClass = generator.createFromText(
             LanguageLevel.getDefault(),
             PyClass::class.java,
-            "class A:\npass"
+            "class __ivtdjvrdkgbmpmsclaro__:\npass"
         )
         functions.forEach {
             newClass.add(it)

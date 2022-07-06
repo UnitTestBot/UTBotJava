@@ -246,7 +246,7 @@ object UtSettings {
     /**
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */
-    var useFuzzing: Boolean by getBooleanProperty(true)
+    var useFuzzing: Boolean by getBooleanProperty(false)
 
     /**
      * Set the total attempts to improve coverage by fuzzer.

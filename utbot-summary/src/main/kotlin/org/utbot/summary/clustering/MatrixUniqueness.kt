@@ -90,7 +90,7 @@ class MatrixUniqueness {
             radius: Double = UtSummarySettings.RADIUS_DBSCAN
         ): Map<Int, List<UtExecution>> {
             val executionPaths = methodExecutions.map { it.path.asIterable() }.toTypedArray()
-            val dbscan = DBSCANTrainer(eps = radius.toFloat(), minSamples = minPts, metric = ExecutionMetric(), rangeQuery = LinearRangeQuery())
+            val dbscan = DBSCANTrainer(eps = 5.0f, minSamples = 1, metric = ExecutionMetric(), rangeQuery = LinearRangeQuery())
             val dbscanModel = dbscan.fit(executionPaths)
             val clusterLabels = dbscanModel.clusterLabels
             return methodExecutions.withIndex().groupBy({ clusterLabels[it.index] }, { it.value })

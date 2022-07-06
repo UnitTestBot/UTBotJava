@@ -56,6 +56,9 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     private fun updateFunctionsTable() {
         val items = model.fileMethods!!
         updateMethodsTable(items)
+
+        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
+        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
     private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {

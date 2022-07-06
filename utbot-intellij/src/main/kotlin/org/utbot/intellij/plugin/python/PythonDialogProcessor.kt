@@ -4,6 +4,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.jetbrains.python.psi.PyElement
+import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.jetbrains.kotlin.idea.util.module
@@ -16,8 +17,9 @@ object PythonDialogProcessor {
         srcModule: Module,
         fileMethods: Set<PyMemberInfo<PyElement>>,
         focusedMethod: PyFunction?,
+        files: Set<PyFile>
     ) {
-        val dialog = PythonDialogProcessor.createDialog(project, srcModule, fileMethods, focusedMethod)
+        val dialog = PythonDialogProcessor.createDialog(project, srcModule, fileMethods, focusedMethod, files)
         if (!dialog.showAndGet()) {
             return
         }
@@ -30,6 +32,7 @@ object PythonDialogProcessor {
         srcModule: Module,
         fileMethods: Set<PyMemberInfo<PyElement>>,
         focusedMethod: PyFunction?,
+        files: Set<PyFile>
     ): PythonDialogWindow {
         val testModule = srcModule.testModule(project)
 
@@ -40,6 +43,7 @@ object PythonDialogProcessor {
                 testModule,
                 fileMethods,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
+                files
             )
         )
     }

@@ -1,7 +1,5 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.lang.jvm.actions.updateMethodParametersRequest
-import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
@@ -9,8 +7,6 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
-import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.CellBuilder
@@ -18,13 +14,11 @@ import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import com.jetbrains.python.psi.*
-import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.plugin.ui.packageName
 import java.awt.BorderLayout
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
@@ -89,22 +83,17 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     private fun initDefaultValues() {
     }
-    private fun setListeners() {
-    }
 
     private fun findTestPackageComboValue(): String {
-        val packageNames = model.fileMethods?.mapNotNull { method ->
-            IterationUtils.getContainingElement<PyFile>(method.member)?.let { it ->
-                val absoluteFilePath = it.virtualFile
-                ProjectFileIndex.SERVICE.getInstance(model.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
-                    VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
-                }
-            }
-        }?.distinct()
-        if (packageNames != null && packageNames.size == 1) {
-            return packageNames.first()
+        if (model.files.size != 1) {
+            return SAME_PACKAGE_LABEL
         }
-        return SAME_PACKAGE_LABEL
+        val file = model.files.first()
+        return file.virtualFile?.let { absoluteFilePath ->
+            ProjectFileIndex.SERVICE.getInstance(model.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
+                VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
+            }
+        } ?: SAME_PACKAGE_LABEL
     }
 
     private fun updateFunctionsTable() {

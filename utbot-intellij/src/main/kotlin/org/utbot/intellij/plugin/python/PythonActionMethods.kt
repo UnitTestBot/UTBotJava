@@ -5,16 +5,12 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.jetbrains.kotlin.idea.util.module
-import org.jetbrains.kotlin.j2k.getContainingConstructor
 
 object PythonActionMethods {
     const val pythonID = "Python"
@@ -22,18 +18,20 @@ object PythonActionMethods {
     data class Targets(
         val functions: Set<PyMemberInfo<PyElement>>,
         val focusedFunction: PyFunction?,
-        val module: Module
+        val module: Module,
+        val files: Set<PyFile>
     )
 
     fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (functions, focusedFunction, module) = getPsiTargets(e) ?: return
+        val (functions, focusedFunction, module, files) = getPsiTargets(e) ?: return
 
          PythonDialogProcessor.createDialogAndGenerateTests(
              project,
              module,
              functions,
-             focusedFunction
+             focusedFunction,
+             files
          )
     }
 
@@ -60,7 +58,8 @@ object PythonActionMethods {
             return Targets(
                 pyFunctionsToPyMemberInfo(project, functions),
                 focusedFunction,
-                findSrcModule(functions) { it.module }
+                findSrcModule(functions) { it.module },
+                setOf(file)
             )
         }
 
@@ -72,7 +71,8 @@ object PythonActionMethods {
         return Targets(
             infos.toSet(),
             focusedFunction,
-            findSrcModule(infos) { (it.member as? PyFunction)?.module }
+            findSrcModule(infos) { (it.member as? PyFunction)?.module },
+            setOf(file)
         )
     }
 

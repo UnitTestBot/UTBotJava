@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.clustering.dbscan.DBSCANTrainer
-import smile.clustering.dbscan
+import org.utbot.summary.clustering.dbscan.neighbor.LinearRangeQuery
 
 class MatrixUniqueness {
 
@@ -90,7 +90,7 @@ class MatrixUniqueness {
             radius: Double = UtSummarySettings.RADIUS_DBSCAN
         ): Map<Int, List<UtExecution>> {
             val executionPaths = methodExecutions.map { it.path.asIterable() }.toTypedArray()
-            val dbscan = DBSCANTrainer(eps = radius.toFloat(), minSamples = minPts, metric = ExecutionDistance())
+            val dbscan = DBSCANTrainer(eps = radius.toFloat(), minSamples = minPts, metric = ExecutionMetric(), rangeQuery = LinearRangeQuery())
             val dbscanModel = dbscan.fit(executionPaths)
             val clusterLabels = dbscanModel.clusterLabels
             //val cluster = dbscan(executionPaths, ExecutionDistance(), minPts, radius)

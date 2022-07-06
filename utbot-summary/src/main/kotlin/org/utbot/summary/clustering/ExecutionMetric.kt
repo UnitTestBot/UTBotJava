@@ -1,9 +1,9 @@
 package org.utbot.summary.clustering
 
 import org.utbot.framework.plugin.api.Step
-import org.utbot.summary.clustering.dbscan.Distance
+import org.utbot.summary.clustering.dbscan.Metric
 
-class ExecutionDistance : Distance<Iterable<Step>> {
+class ExecutionMetric : Metric<Iterable<Step>> {
     /**
      * Minimum Edit Distance
      */

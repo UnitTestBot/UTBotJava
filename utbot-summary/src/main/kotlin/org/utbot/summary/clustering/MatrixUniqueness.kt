@@ -93,7 +93,6 @@ class MatrixUniqueness {
             val dbscan = DBSCANTrainer(eps = radius.toFloat(), minSamples = minPts, metric = ExecutionMetric(), rangeQuery = LinearRangeQuery())
             val dbscanModel = dbscan.fit(executionPaths)
             val clusterLabels = dbscanModel.clusterLabels
-            //val cluster = dbscan(executionPaths, ExecutionDistance(), minPts, radius)
             return methodExecutions.withIndex().groupBy({ clusterLabels[it.index] }, { it.value })
         }
     }

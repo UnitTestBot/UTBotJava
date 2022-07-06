@@ -12,7 +12,6 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.GotItMessage
@@ -112,31 +111,27 @@ object TestsReportNotifier : InformationUrlNotifier() {
 
     override val titleText: String = "Report of the unit tests generation via UtBot"
 
-    override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener()
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener()
 
-    override fun content(project: Project?, module: Module?, info: String): String {
-        // Remember last project and module to use them for configurations.
-        urlOpeningListener.project = project
-        urlOpeningListener.module = module
-        return info
-    }
+    override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
 /**
  * Listener that handles URLs starting with [prefix], like "#utbot/configure-mockito".
- *
- * Current implementation
  */
 class TestReportUrlOpeningListener: NotificationListener.Adapter() {
     companion object {
         const val prefix = "#utbot/"
         const val mockitoSuffix = "configure-mockito"
+        const val mockitoInlineSuffix = "mockito-inline"
     }
-    private val defaultListener = NotificationListener.UrlOpeningListener(false)
 
-    // Last project and module to be able to use them when activated for configuration tasks.
-    var project: Project? = null
-    var module: Module? = null
+    val callbacks: Map<String, MutableList<() -> Unit>> = hashMapOf(
+        Pair(mockitoSuffix, mutableListOf()),
+        Pair(mockitoInlineSuffix, mutableListOf()),
+    )
+
+    private val defaultListener = NotificationListener.UrlOpeningListener(false)
 
     override fun hyperlinkActivated(notification: Notification, e: HyperlinkEvent) {
         val description = e.description
@@ -147,19 +142,8 @@ class TestReportUrlOpeningListener: NotificationListener.Adapter() {
         }
     }
 
-    private fun handleDescription(descriptionSuffix: String) {
-        when {
-            descriptionSuffix.startsWith(mockitoSuffix) -> {
-                project?.let { project -> module?.let { module ->
-                        if (createMockFrameworkNotificationDialog("Configure mock framework") == Messages.YES) {
-                            configureMockFramework(project, module)
-                        }
-                    } ?: error("Could not configure mock framework: module is null for project $project")
-                } ?: error("Could not configure mock framework: project is null")
-            }
-            else -> error("No such command with #utbot prefix: $descriptionSuffix")
-        }
-    }
+    private fun handleDescription(descriptionSuffix: String) =
+        callbacks[descriptionSuffix]?.map { it() } ?: error("No such command with #utbot prefix: $descriptionSuffix")
 }
 
 object GotItTooltipActivity : StartupActivity {

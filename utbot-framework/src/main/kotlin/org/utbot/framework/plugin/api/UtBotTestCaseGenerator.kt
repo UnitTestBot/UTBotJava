@@ -58,7 +58,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     private val logger = KotlinLogging.logger {}
     private val timeoutLogger = KotlinLogging.logger(logger.name + ".timeout")
 
-    lateinit var configureEngine: (UtBotSymbolicEngine) -> Unit
+    lateinit var engineActions: MutableList<(UtBotSymbolicEngine) -> Unit>
     lateinit var isCanceled: () -> Boolean
 
     //properties to save time on soot initialization
@@ -76,7 +76,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         buildDir,
         classpath,
         dependencyPaths,
-        configureEngine = {},
+        engineActions = mutableListOf(),
         isCanceled
     )
 
@@ -84,11 +84,11 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         buildDir: Path,
         classpath: String?,
         dependencyPaths: String,
-        configureEngine: (UtBotSymbolicEngine) -> Unit,
+        engineActions: MutableList<(UtBotSymbolicEngine) -> Unit>,
         isCanceled: () -> Boolean
     ) {
         this.isCanceled = isCanceled
-        this.configureEngine = configureEngine
+        this.engineActions = engineActions
         if (isCanceled()) return
 
         checkFrameworkDependencies(dependencyPaths)
@@ -293,7 +293,9 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                             mockStrategy,
                             chosenClassesToMockAlways,
                             executionTimeEstimator
-                        ).apply(configureEngine)
+                        )
+
+                        engineActions.map { engine.apply(it) }
 
                         generate(engine).collect {
                             when (it) {

@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.engine.util.mockListeners.ForceMockListener
+import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.intellij.plugin.error.showErrorDialogLater
 
 object UtTestsDialogProcessor {
@@ -166,8 +167,16 @@ object UtTestsDialogProcessor {
 
                                     val forceMockListener = if (!mockFrameworkInstalled) {
                                          ForceMockListener().apply {
-                                             codeGenerator.generator.configureEngine = { engine -> engine.attachMockListener(this) }
+                                             codeGenerator.generator.engineActions.add { engine -> engine.attachMockListener(this) }
                                          }
+                                    } else {
+                                        null
+                                    }
+
+                                    val forceStaticMockListener = if (!model.staticsMocking.isConfigured) {
+                                        ForceStaticMockListener().apply {
+                                            codeGenerator.generator.engineActions.add { engine -> engine.attachMockListener(this) }
+                                        }
                                     } else {
                                         null
                                     }
@@ -192,6 +201,10 @@ object UtTestsDialogProcessor {
                                         model.forceMockHappened = forceMockHappened
                                     }
 
+                                    forceStaticMockListener?.run {
+                                        model.forceStaticMockHappened = forceStaticMockHappened
+                                    }
+
                                     timerHandler.cancel(true)
                                 }
                                 processedClasses++
@@ -214,8 +227,10 @@ object UtTestsDialogProcessor {
     }
 
     private fun errorMessage(className: String?, timeout: Long) = buildString {
-        append("UtBot failed to generate any test cases for class $className.")
-        append("You could try to increase current timeout $timeout sec for generating tests in generation dialog.")
+        appendLine("UtBot failed to generate any test cases for class $className.")
+        appendLine()
+        appendLine("Try to alter test generation configuration, e.g. enable mocking and static mocking.")
+        appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
 }
 

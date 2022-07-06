@@ -168,7 +168,7 @@ class Mocker(
     fun shouldMock(
         type: RefType,
         mockInfo: UtMockInfo,
-    ): Boolean = checkIfShouldMock(type, mockInfo).also { if (it) mockListenerController?.onShouldMock(strategy) }
+    ): Boolean = checkIfShouldMock(type, mockInfo).also { if (it) mockListenerController?.onShouldMock(strategy, mockInfo) }
 
     private fun checkIfShouldMock(
         type: RefType,

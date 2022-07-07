@@ -54,11 +54,11 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.isNotSubtypeOf
-import org.utbot.framework.plugin.api.util.isCheckedException
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isCheckedException
+import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.jClass
 
 /**
  * Interface for all code generation context aware entities
@@ -237,22 +237,19 @@ internal interface CgContextOwner {
     }
 
     fun addExceptionIfNeeded(exception: ClassId) {
-        when (exception) {
-            is BuiltinClassId -> {}
-            else -> {
-                if (exception isNotSubtypeOf Throwable::class.id) {
-                    error("Class $exception which is not a Throwable was passed")
-                }
-
-                val isUnchecked = !exception.isCheckedException
-                val alreadyAdded =
-                    collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
-
-                if (isUnchecked || alreadyAdded) return
-
-                collectedExceptions
-                    .removeIf { existingException -> existingException isSubtypeOf exception }
+        if (exception !is BuiltinClassId) {
+            require(exception isSubtypeOf Throwable::class.id) {
+                "Class $exception which is not a Throwable was passed"
             }
+
+            val isUnchecked = !exception.jClass.isCheckedException
+            val alreadyAdded =
+                collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
+
+            if (isUnchecked || alreadyAdded) return
+
+            collectedExceptions
+                .removeIf { existingException -> existingException isSubtypeOf exception }
         }
 
         if (collectedExceptions.add(exception)) {

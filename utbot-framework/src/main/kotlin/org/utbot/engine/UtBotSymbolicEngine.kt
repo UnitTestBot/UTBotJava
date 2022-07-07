@@ -106,6 +106,7 @@ import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.engine.symbolic.asAssumption
 import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.mockListeners.MockListener
 import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
@@ -116,7 +117,7 @@ import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
 import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.checkNpeForFinalFields
+import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.enableFeatureProcess
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
@@ -339,7 +340,13 @@ class UtBotSymbolicEngine(
 
     private val classUnderTest: ClassId = methodUnderTest.clazz.id
 
-    private val mocker: Mocker = Mocker(mockStrategy, classUnderTest, hierarchy, chosenClassesToMockAlways, MockListenerController(controller))
+    private val mocker: Mocker = Mocker(
+        mockStrategy,
+        classUnderTest,
+        hierarchy,
+        chosenClassesToMockAlways,
+        MockListenerController(controller)
+    )
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
@@ -2250,13 +2257,36 @@ class UtBotSymbolicEngine(
             }
 
             // See docs/SpeculativeFieldNonNullability.md for details
-            if (field.isFinal && field.declaringClass.isLibraryClass && !checkNpeForFinalFields) {
-                markAsSpeculativelyNotNull(createdField.addr)
-            }
+            checkAndMarkLibraryFieldSpeculativelyNotNull(field, createdField)
         }
 
         return createdField
     }
+
+    /**
+     * Marks the [createdField] as speculatively not null if the [field] is considering as
+     * not producing [NullPointerException].
+     *
+     * @see [SootField.speculativelyCannotProduceNullPointerException], [markAsSpeculativelyNotNull], [isFromTrustedLibrary].
+     */
+    private fun checkAndMarkLibraryFieldSpeculativelyNotNull(field: SootField, createdField: SymbolicValue) {
+        if (maximizeCoverageUsingReflection || !field.declaringClass.isFromTrustedLibrary()) {
+            return
+        }
+
+        if (field.speculativelyCannotProduceNullPointerException()) {
+            markAsSpeculativelyNotNull(createdField.addr)
+        }
+    }
+
+    /**
+     * Checks whether accessing [this] field (with a method invocation or field access) speculatively can produce
+     * [NullPointerException] (according to its finality or accessibility).
+     *
+     * @see docs/SpeculativeFieldNonNullability.md for more information.
+     */
+    @Suppress("KDocUnresolvedReference")
+    private fun SootField.speculativelyCannotProduceNullPointerException(): Boolean = isFinal || !isPublic
 
     private fun createArray(pName: String, type: ArrayType): ArrayValue {
         val addr = UtAddrExpression(mkBVConst(pName, UtIntSort))

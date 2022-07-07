@@ -6,6 +6,11 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.collections.ListWrapperReturnsVoidExample
 import org.utbot.framework.plugin.api.MockStrategyApi
 
+/**
+ * Tests verify that the previously discovered bug is not reproducible anymore.
+ *
+ * To get more details, see [issue-437](https://github.com/UnitTestBot/UTBotJava/issues/437)
+ */
 class SummaryListWrapperReturnsVoidTest : SummaryTestCaseGeneratorTest(
     ListWrapperReturnsVoidExample::class,
 ) {

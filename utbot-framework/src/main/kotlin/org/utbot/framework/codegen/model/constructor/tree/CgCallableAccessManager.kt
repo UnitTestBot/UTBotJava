@@ -155,6 +155,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
     }
 
+    //WARN: if you make changes in the following sets of exceptions,
+    //don't forget to change them in hardcoded [UtilMethods] as well
     private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
         if (!this.isUtil) return emptySet()
 
@@ -164,9 +166,9 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 getStaticFieldValueMethodId,
                 getFieldValueMethodId,
                 setStaticFieldMethodId,
-                setFieldMethodId,
-                createInstanceMethodId,
-                getUnsafeInstanceMethodId -> setOf(Exception::class.id)
+                setFieldMethodId -> setOf(IllegalAccessException::class.id, NoSuchFieldException::class.id)
+                createInstanceMethodId -> setOf(Exception::class.id)
+                getUnsafeInstanceMethodId -> setOf(ClassNotFoundException::class.id, NoSuchFieldException::class.id, IllegalAccessException::class.id)
                 createArrayMethodId -> setOf(ClassNotFoundException::class.id)
                 deepEqualsMethodId,
                 arraysDeepEqualsMethodId,

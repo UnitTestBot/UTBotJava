@@ -32,13 +32,6 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
 
-    private val testPackageField = PackageNameReferenceEditorCombo(
-        findTestPackageComboValue(),
-        model.project,
-        "org.utbot.recents",
-        "Choose destination package"
-    )
-
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
 
     private lateinit var panel: DialogPanel
@@ -66,9 +59,6 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                     testFrameworks as ComboBox<CodeGenerationSettingItem>,
                     itemsToHelpTooltip[testFrameworks]
                 )
-            }
-            row("Destination package:") {
-                component(testPackageField)
             }
             row("Generate test methods for:") {}
             row {

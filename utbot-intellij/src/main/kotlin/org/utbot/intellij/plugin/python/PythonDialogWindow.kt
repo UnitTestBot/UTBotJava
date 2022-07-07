@@ -89,19 +89,21 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             return SAME_PACKAGE_LABEL
         }
         val file = model.files.first()
-        return file.virtualFile?.let { absoluteFilePath ->
+        val path = file.virtualFile?.let { absoluteFilePath ->
             ProjectFileIndex.SERVICE.getInstance(model.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
                 VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
             }
         } ?: SAME_PACKAGE_LABEL
+        return path.replace('/', '.')
     }
 
     private fun updateFunctionsTable() {
-        val items = model.fileMethods!!
-        updateMethodsTable(items)
-
-        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
-        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
+        val items = model.fileMethods
+        if (items != null) {
+            updateMethodsTable(items)
+            val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
+            functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
+        }
     }
 
     private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {

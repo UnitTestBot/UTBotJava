@@ -906,11 +906,21 @@ class UtBotSymbolicEngine(
         // Gets concrete value, converts to symbolic value
         val declaringClass = field.declaringClass
 
-        val (edge, updates) = if (declaringClass.isEnum) {
+        val updates = if (declaringClass.isEnum) {
             makeConcreteUpdatesForEnums(fieldId, declaringClass, stmt)
         } else {
-            makeConcreteUpdatesForNonEnumStaticField(field, fieldId, declaringClass)
+            makeConcreteUpdatesForNonEnumStaticField(field, fieldId, declaringClass, stmt)
         }
+
+        // a static initializer can be the first statement in method so there will be no last edge
+        // for example, as it is during Enum::values method analysis:
+        // public static ClassWithEnum$StatusEnum[] values()
+        // {
+        //      ClassWithEnum$StatusEnum[] $r0, $r2;
+        //      java.lang.Object $r1;
+
+        //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
+        val edge = environment.state.lastEdge ?: globalGraph.succ(stmt)
 
         val newState = environment.state.updateQueued(edge, updates)
         pathSelector.offer(newState)
@@ -918,11 +928,12 @@ class UtBotSymbolicEngine(
         return true
     }
 
+    @Suppress("UnnecessaryVariable")
     private fun makeConcreteUpdatesForEnums(
         fieldId: FieldId,
         declaringClass: SootClass,
         stmt: Stmt
-    ): Pair<Edge, SymbolicStateUpdate> {
+    ): SymbolicStateUpdate {
         val type = declaringClass.type
         val jClass = type.id.jClass
 
@@ -966,46 +977,21 @@ class UtBotSymbolicEngine(
             meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet()
         )
 
-        var allUpdates = staticFieldUpdates + nonStaticFieldsUpdates + initializedStaticFieldsMemoryUpdate
+        val allUpdates = staticFieldUpdates +
+                nonStaticFieldsUpdates +
+                initializedStaticFieldsMemoryUpdate +
+                createConcreteLocalValueUpdate(stmt, curFieldSymbolicValueForLocalVariable)
 
-        // we need to make locals update if it is an assignment statement
-        // for enums we have only two types for assignment with enums — enum constant or $VALUES field
-        // for example, a jimple body for Enum::values method starts with the following lines:
-        //  public static ClassWithEnum$StatusEnum[] values()
-        //  {
-        //      ClassWithEnum$StatusEnum[] $r0, $r2;
-        //      java.lang.Object $r1;
-        //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
-        //      $r1 = virtualinvoke $r0.<java.lang.Object: java.lang.Object clone()>();
-
-        // so, we have to make an update for the local $r0
-        if (stmt is JAssignStmt) {
-            val local = stmt.leftOp as JimpleLocal
-            val localUpdate = localMemoryUpdate(
-                local.variable to curFieldSymbolicValueForLocalVariable
-            )
-
-            allUpdates += localUpdate
-        }
-
-        // enum static initializer can be the first statement in method so there will be no last edge
-        // for example, as it is during Enum::values method analysis:
-        // public static ClassWithEnum$StatusEnum[] values()
-        // {
-        //      ClassWithEnum$StatusEnum[] $r0, $r2;
-        //      java.lang.Object $r1;
-
-        //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
-        val edge = environment.state.lastEdge ?: globalGraph.succ(stmt)
-
-        return edge to allUpdates
+        return allUpdates
     }
 
+    @Suppress("UnnecessaryVariable")
     private fun makeConcreteUpdatesForNonEnumStaticField(
         field: SootField,
         fieldId: FieldId,
-        declaringClass: SootClass
-    ): Pair<Edge, SymbolicStateUpdate> {
+        declaringClass: SootClass,
+        stmt: Stmt
+    ): SymbolicStateUpdate {
         val concreteValue = extractConcreteValue(field, declaringClass)
         val (symbolicResult, symbolicStateUpdate) = toMethodResult(concreteValue, field.type)
         val symbolicValue = (symbolicResult as SymbolicSuccess).value
@@ -1019,9 +1005,40 @@ class UtBotSymbolicEngine(
             field = field,
             value = valueToExpression(symbolicValue, field.type)
         )
-        val allUpdates = symbolicStateUpdate + initializedFieldUpdate + objectUpdate
+        val allUpdates = symbolicStateUpdate +
+                initializedFieldUpdate +
+                objectUpdate +
+                createConcreteLocalValueUpdate(stmt, symbolicValue)
 
-        return environment.state.lastEdge!! to allUpdates
+        return allUpdates
+    }
+
+    /**
+     * Creates a local update consisting [symbolicValue] for a local variable from [stmt] in case [stmt] is [JAssignStmt].
+     */
+    private fun createConcreteLocalValueUpdate(
+        stmt: Stmt,
+        symbolicValue: SymbolicValue?,
+    ): LocalMemoryUpdate {
+        // we need to make locals update if it is an assignment statement
+        // for enums we have only two types for assignment with enums — enum constant or $VALUES field
+        // for example, a jimple body for Enum::values method starts with the following lines:
+        //  public static ClassWithEnum$StatusEnum[] values()
+        //  {
+        //      ClassWithEnum$StatusEnum[] $r0, $r2;
+        //      java.lang.Object $r1;
+        //      $r0 = <ClassWithEnum$StatusEnum: ClassWithEnum$StatusEnum[] $VALUES>;
+        //      $r1 = virtualinvoke $r0.<java.lang.Object: java.lang.Object clone()>();
+
+        // so, we have to make an update for the local $r0
+
+        return if (stmt is JAssignStmt) {
+            val local = stmt.leftOp as JimpleLocal
+
+            localMemoryUpdate(local.variable to symbolicValue)
+        } else {
+            LocalMemoryUpdate()
+        }
     }
 
     // Some fields are inaccessible with reflection, so we have to instantiate it by ourselves.

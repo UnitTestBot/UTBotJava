@@ -144,9 +144,9 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val sourceRegion = SarifRegion(
-            startLine = extractLineNumber(utExecution) ?: defaultLineNumber
-        )
+        val startLine = extractLineNumber(utExecution) ?: defaultLineNumber
+        val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
+        val sourceRegion = SarifRegion.fromStartLine(startLine, sourceCode)
         return listOf(
             SarifPhysicalLocationWrapper(
                 SarifPhysicalLocation(SarifArtifact(sourceRelativePath), sourceRegion)
@@ -155,14 +155,13 @@ class SarifReport(
     }
 
     private fun getRelatedLocations(utExecution: UtExecution): List<SarifRelatedPhysicalLocationWrapper> {
-        val lineNumber = generatedTestsCode.split('\n').indexOfFirst { line ->
-            utExecution.testMethodName?.let { testMethodName ->
+        val startLine = utExecution.testMethodName?.let { testMethodName ->
+            val neededLine = generatedTestsCode.split('\n').indexOfFirst { line ->
                 line.contains(testMethodName)
-            } ?: false
-        }
-        val sourceRegion = SarifRegion(
-            startLine = if (lineNumber != -1) lineNumber + 1 else defaultLineNumber
-        )
+            }
+            if (neededLine == -1) null else neededLine + 1 // to one-based
+        } ?: defaultLineNumber
+        val sourceRegion = SarifRegion.fromStartLine(startLine, generatedTestsCode)
         return listOf(
             SarifRelatedPhysicalLocationWrapper(
                 relatedLocationId,
@@ -228,6 +227,7 @@ class SarifReport(
             return null
         val extension = stackTraceElement.fileName?.toPath()?.fileExtension
         val relativePath = sourceFinding.getSourceRelativePath(stackTraceElement.className, extension)
+        val sourceCode = sourceFinding.getSourceFile(stackTraceElement.className, extension)?.readText() ?: ""
         return SarifFlowLocationWrapper(
             SarifFlowLocation(
                 message = Message(
@@ -235,7 +235,7 @@ class SarifReport(
                 ),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(relativePath),
-                    SarifRegion(lineNumber)
+                    SarifRegion.fromStartLine(lineNumber, sourceCode)
                 )
             )
         )
@@ -264,9 +264,10 @@ class SarifReport(
         if (methodCallLineNumber == -1)
             return null
 
+        val startLine = methodCallLineNumber + 1 + testMethodStartsAt + 1
         return SarifPhysicalLocation(
             SarifArtifact(sourceFinding.testsRelativePath),
-            SarifRegion(startLine = methodCallLineNumber + 1 + testMethodStartsAt + 1)
+            SarifRegion.fromStartLine(startLine, generatedTestsCode)
         )
     }
 
@@ -290,6 +291,6 @@ class SarifReport(
         try {
             utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
         } catch (t: Throwable) {
-            null
+            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
         }
 }

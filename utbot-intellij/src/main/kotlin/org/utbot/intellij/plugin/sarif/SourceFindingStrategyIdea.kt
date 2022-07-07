@@ -7,6 +7,7 @@ import org.utbot.sarif.SourceFindingStrategy
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import org.jetbrains.kotlin.idea.search.allScope
+import java.io.File
 
 /**
  * The search strategy based on the information available to the PsiClass
@@ -28,6 +29,16 @@ class SourceFindingStrategyIdea(testClass: PsiClass) : SourceFindingStrategy() {
             .findClass(classFqn, project.allScope())?.let { psiClass ->
                 safeRelativize(project.basePath, psiClass.containingFile.virtualFile.path)
             } ?: (classFqnToPath(classFqn) + (extension ?: defaultExtension))
+
+    /**
+     * Finds the source file containing the class [classFqn].
+     * Returns null if the file does not exist.
+     */
+    override fun getSourceFile(classFqn: String, extension: String?): File? {
+        val psiClass = JavaPsiFacade.getInstance(project).findClass(classFqn, project.allScope())
+        val sourceCodeFile = psiClass?.containingFile?.virtualFile?.path?.let(::File)
+        return if (sourceCodeFile?.exists() == true) sourceCodeFile else null
+    }
 
     // internal
 

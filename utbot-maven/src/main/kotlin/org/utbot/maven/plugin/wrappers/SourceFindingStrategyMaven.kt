@@ -3,6 +3,7 @@ package org.utbot.maven.plugin.wrappers
 import org.utbot.common.PathUtil
 import org.utbot.common.PathUtil.toPath
 import org.utbot.sarif.SourceFindingStrategy
+import java.io.File
 
 /**
  * The search strategy based on the information available to the Maven.
@@ -36,6 +37,13 @@ class SourceFindingStrategyMaven(
             PathUtil.safeRelativize(projectRootPath, sourceCodeFile.absolutePath)
         } ?: defaultPath
     }
+
+    /**
+     * Finds the source file containing the class [classFqn].
+     * Returns null if the file does not exist.
+     */
+    override fun getSourceFile(classFqn: String, extension: String?): File? =
+        mavenProjectWrapper.findSourceCodeFile(classFqn)
 
     // internal
 

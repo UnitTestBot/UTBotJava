@@ -34,6 +34,8 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
      */
     @TaskAction
     fun generateTestsAndSarifReport() {
+        // the user specifies the parameters using "-Pname=value"
+        sarifProperties.taskParameters = project.gradle.startParameter.projectProperties
         val rootGradleProject = try {
             GradleProjectWrapper(project, sarifProperties)
         } catch (t: Throwable) {

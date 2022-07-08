@@ -977,7 +977,7 @@ private data class ArrayExtractionDetails(
     val oneDimensionalArray: UtArrayExpressionBase
 )
 
-private const val NULL_ADDR = 0
+internal const val NULL_ADDR = 0
 internal val nullObjectAddr = UtAddrExpression(mkInt(NULL_ADDR))
 
 

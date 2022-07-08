@@ -3684,13 +3684,16 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(state.executionStack.first().method)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
+        val resolvedConstraints = ConstraintResolver(updatedMemory, holder).run { resolveModels(resolvedParameters) }
+
         val symbolicUtExecution = UtExecution(
             stateBefore,
             stateAfter,
             symbolicExecutionResult,
             instrumentation,
             entryMethodPath(),
-            state.fullPath()
+            state.fullPath(),
+            hole = resolvedConstraints
         )
 
         globalGraph.traversed(state)

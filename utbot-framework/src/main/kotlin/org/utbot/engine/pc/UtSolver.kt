@@ -22,7 +22,6 @@ import org.utbot.engine.z3.Z3Initializer
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.preferredCexOption
-import org.utbot.framework.plugin.api.UtReferenceModel
 import com.microsoft.z3.BoolExpr
 import com.microsoft.z3.Context
 import com.microsoft.z3.Params
@@ -221,7 +220,7 @@ data class UtSolver constructor(
                 }
 
                 when (val status = check(translatedSoft)) {
-                    SAT -> UtSolverStatusSAT(translator, z3Solver)
+                    SAT -> UtSolverStatusSAT(translator, z3Solver, constraints)
                     else -> UtSolverStatusUNSAT(status)
                 }
             }

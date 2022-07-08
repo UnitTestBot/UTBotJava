@@ -40,6 +40,7 @@ class CompositeUnitExpander(
         if (objectUnit.isPrimitive()) {
             return emptyList()
         }
+        statementsStorage.update(setOf(objectUnit.classId))
         val mutators = findMutators(objectUnit.classId)
 
         val expanded = mutators.map { method ->

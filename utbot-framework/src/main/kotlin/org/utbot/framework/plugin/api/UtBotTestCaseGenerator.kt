@@ -5,12 +5,6 @@ import org.utbot.common.bracket
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
-import org.utbot.engine.EngineController
-import org.utbot.engine.MockStrategy
-import org.utbot.engine.Mocker
-import org.utbot.engine.UtBotSymbolicEngine
-import org.utbot.engine.jimpleBody
-import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -48,8 +42,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
+import org.utbot.engine.*
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.modifications.StatementsStorage
+import org.utbot.framework.synthesis.ConstrainedSynthesizer
 import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
@@ -485,6 +481,10 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
     private fun List<UtExecution>.toAssemble(): List<UtExecution> =
         map { execution ->
             val oldStateBefore = execution.stateBefore
+
+            val aa = ConstrainedSynthesizer((execution.hole as ResolvedExecutionConstraints).modelsAfter)
+            aa.synthesize()
+
             val newThisModel = oldStateBefore.thisInstance?.let { toAssembleModel(it) }
             val newParameters = oldStateBefore.parameters.map { toAssembleModel(it) }
 

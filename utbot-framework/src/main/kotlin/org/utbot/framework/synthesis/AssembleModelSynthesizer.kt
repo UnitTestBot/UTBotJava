@@ -59,6 +59,8 @@ class SynthesisUnitQueue(
     fun poll() =
         queue.poll()?.unit
 
+    fun peek() = queue.peek()?.unit
+
     fun isEmpty() =
         queue.isEmpty()
 

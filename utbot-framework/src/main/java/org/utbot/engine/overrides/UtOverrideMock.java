@@ -2,13 +2,13 @@ package org.utbot.engine.overrides;
 
 /**
  * Auxiliary class with static methods without implementation.
- * These static methods are just markers for UtBotSymbolicEngine,
+ * These static methods are just markers for {@link org.utbot.engine.Traverser},
  * to do some corresponding behavior, that can't be represent
  * with java instructions.
  *
  * Set of methods in UtOverrideMock is used in code of classes,
  * that override implementation of some standard class by new implementation,
- * that is more simple for UtBotSymbolicEngine to traverse.
+ * that is more simple for {@link org.utbot.engine.Traverser} to traverse.
  */
 @SuppressWarnings("unused")
 public class UtOverrideMock {
@@ -25,7 +25,7 @@ public class UtOverrideMock {
     }
 
     /**
-     * If UtBotSymbolicEngine meets invoke of this method in code,
+     * If {@link org.utbot.engine.Traverser} meets invoke of this method in code,
      * then it marks the address of object o in memory as visited
      * and creates new MemoryUpdate with parameter isVisited, equal to o.addr
      * @param o parameter, that need to be marked as visited.
@@ -34,7 +34,7 @@ public class UtOverrideMock {
     }
 
     /**
-     * If UtBotSymbolicEngine meets invoke of this method in code,
+     * If {@link org.utbot.engine.Traverser} meets invoke of this method in code,
      * then it marks the method, where met instruction is placed,
      * and all the methods that will be traversed in nested invokes
      * as methods that couldn't throw exceptions.
@@ -44,7 +44,7 @@ public class UtOverrideMock {
     }
 
     /**
-     * If UtBotSymbolicEngine meets invoke of this method in code,
+     * If {@link org.utbot.engine.Traverser} meets invoke of this method in code,
      * then it assumes that the specified object is parameter,
      * and need to be marked as parameter.
      * As address space of parameters in engine is non-positive, while
@@ -63,7 +63,7 @@ public class UtOverrideMock {
     }
 
     /**
-     * If UtBotSymbolicEngine meets invoke of this method in code,
+     * If {@link org.utbot.engine.Traverser} meets invoke of this method in code,
      * then it starts concrete execution from this point.
      */
     public static void executeConcretely() {

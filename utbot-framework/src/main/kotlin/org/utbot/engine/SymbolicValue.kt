@@ -88,7 +88,7 @@ sealed class ReferenceValue(open val addr: UtAddrExpression) : SymbolicValue()
  * otherwise it is possible for an object to have inappropriate or incorrect typeId and dimensionNum.
  *
  * @see TypeRegistry.typeConstraint
- * @see UtBotSymbolicEngine.createObject
+ * @see Traverser.createObject
  */
 data class ObjectValue(
     override val typeStorage: TypeStorage,
@@ -127,7 +127,7 @@ data class ObjectValue(
  * otherwise it is possible for an object to have inappropriate or incorrect typeId and dimensionNum.
  *
  * @see TypeRegistry.typeConstraint
- * @see UtBotSymbolicEngine.createObject
+ * @see Traverser.createObject
  */
 data class ArrayValue(
     override val typeStorage: TypeStorage,

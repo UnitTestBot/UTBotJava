@@ -33,15 +33,11 @@ class CodeGenerator(
     buildDir: String,
     classpath: String,
     pluginJarsPath: String,
-    configureEngine: (UtBotSymbolicEngine) -> Unit = {},
+    engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean,
 ) {
-    init {
-        UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
-    }
-
     val generator = (project.service<Settings>().testCasesGenerator as UtBotTestCaseGenerator).apply {
-        init(Paths.get(buildDir), classpath, pluginJarsPath, configureEngine, isCanceled)
+        init(Paths.get(buildDir), classpath, pluginJarsPath, engineActions, isCanceled)
     }
 
     private val settingsState = project.service<Settings>().state

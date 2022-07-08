@@ -213,7 +213,8 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         //we do not have a good string representation for two-dimensional array, so this strange if-else is required
         val returnType =
             if (element.returnType.simpleName == "Object[][]") "java.lang.Object[][]" else "${element.returnType}"
-        print("public static $returnType ${element.name}() throws Exception")
+        print("public static $returnType ${element.name}()")
+        renderExceptions(element)
     }
 
     override fun visit(element: CgInnerBlock) {

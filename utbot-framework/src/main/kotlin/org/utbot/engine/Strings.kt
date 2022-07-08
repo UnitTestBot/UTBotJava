@@ -64,10 +64,10 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
     private val charAtMethodSignature =
         overriddenClass.getMethodByName(UtString::charAtImpl.name).subSignature
 
-    private fun UtBotSymbolicEngine.getValueArray(addr: UtAddrExpression) =
+    private fun Traverser.getValueArray(addr: UtAddrExpression) =
         getArrayField(addr, overriddenClass, STRING_VALUE)
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -128,7 +128,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
                         explicitThrown(
                             StringIndexOutOfBoundsException(),
                             findNewAddr(),
-                            isInNestedMethod()
+                            environment.state.isInNestedMethod()
                         ),
                         hardConstraints = mkNot(inBoundsCondition).asHardConstraint()
                     )
@@ -200,7 +200,7 @@ private fun nextStringName() = "\$string${stringNameIndex++}"
 
 class UtNativeStringWrapper : WrapperInterface {
     private val valueDescriptor = NATIVE_STRING_VALUE_DESCRIPTOR
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -292,7 +292,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
     private val asStringBuilderMethodSignature =
         overriddenClass.getMethodByName("asStringBuilder").subSignature
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>

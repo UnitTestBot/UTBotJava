@@ -5,7 +5,7 @@ import java.util.Arrays;
 
 /**
  * Auxiliary class with static methods without implementation.
- * These static methods are just markers for <code>UtBotSymbolicEngine</code>,
+ * These static methods are just markers for {@link org.utbot.engine.Traverser}.,
  * to do some corresponding behavior, that can't be represent
  * with java instructions.
  * <p>
@@ -15,7 +15,7 @@ import java.util.Arrays;
 @SuppressWarnings("unused")
 public class UtArrayMock {
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of {@link java.util.Arrays#copyOf(Object[], int)}
      * if length is less or equals to src.length, otherwise first
      * src.length elements are equal to src, but the rest are undefined.
@@ -45,7 +45,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -67,7 +67,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -83,7 +83,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -99,7 +99,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -115,7 +115,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -131,7 +131,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -147,7 +147,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -163,7 +163,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.
@@ -179,7 +179,7 @@ public class UtArrayMock {
     }
 
     /**
-     * Traversing this instruction by <code>UtBotSymbolicEngine</code> should
+     * Traversing this instruction by {@link org.utbot.engine.Traverser} should
      * behave similar to call of
      * {@link java.lang.System#arraycopy(Object, int, Object, int, int)}
      * if all the arguments are valid.

@@ -23,7 +23,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 
 /**
- * Class represents hybrid implementation (java + engine instructions) of Map interface for UtBotSymbolicEngine.
+ * Class represents hybrid implementation (java + engine instructions) of Map interface for {@link org.utbot.engine.Traverser}.
  * <p>
  * Implementation is based on using org.utbot.engine.overrides.collections.RangeModifiableArray as keySet
  * and org.utbot.engine.overrides.collections.UtArray as associative array from keys to values.

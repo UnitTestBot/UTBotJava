@@ -13,7 +13,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 /**
- * Class represents hybrid implementation (java + engine instructions) of Optional for UtBotSymbolicEngine.
+ * Class represents hybrid implementation (java + engine instructions) of Optional for {@link org.utbot.engine.Traverser}.
  * <p>
  * Should behave the same as {@link java.util.Optional}.
  * @see org.utbot.engine.OptionalWrapper

@@ -238,12 +238,14 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         val previousMemoryStates = staticFieldsStates.toMutableMap()
 
 
-        // sometimes we want to change initial memory states of fields of a certain class, so we erase all the
-        // information about previous states and update it with the current state. For now, this processing only takes
-        // place after receiving MethodResult from [STATIC_INITIALIZER] method call at the end of
-        // [UtBotSymbolicEngine.processStaticInitializer]. The value of `update.classIdToClearStatics` is equal to the
-        // class for which the static initialization has performed.
-        // TODO: JIRA:1610 -- refactor working with statics later
+        /**
+         * sometimes we want to change initial memory states of fields of a certain class, so we erase all the
+         * information about previous states and update it with the current state. For now, this processing only takes
+         * place after receiving MethodResult from [STATIC_INITIALIZER] method call at the end of
+         * [Traverser.processStaticInitializer]. The value of `update.classIdToClearStatics` is equal to the
+         * class for which the static initialization has performed.
+         * TODO: JIRA:1610 -- refactor working with statics later
+         */
         update.classIdToClearStatics?.let { classId ->
             Scene.v().getSootClass(classId.name).fields.forEach { sootField ->
                 previousMemoryStates.remove(sootField.fieldId)
@@ -535,17 +537,6 @@ class TypeRegistry {
         if (sootClass.type.sootClass.isInappropriate) finalCost += -8192
 
         finalCost
-    }
-
-    private val objectCounter = AtomicInteger(objectCounterInitialValue)
-    fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
-        val newAddr = objectCounter.getAndIncrement()
-        // return negative address for objects created inside static initializer
-        // to make their address space be intersected with address space of
-        // parameters of method under symbolic execution
-        // @see ObjectWithFinalStaticTest::testParameterEqualsFinalStatic
-        val signedAddr = if (insideStaticInitializer) -newAddr else newAddr
-        return UtAddrExpression(signedAddr)
     }
 
     private val classRefCounter = AtomicInteger(classRefAddrsInitialValue)

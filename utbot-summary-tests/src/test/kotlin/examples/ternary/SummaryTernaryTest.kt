@@ -1,17 +1,12 @@
 package examples.ternary
 
 import examples.SummaryTestCaseGeneratorTest
-import org.junit.Ignore
-import org.junit.jupiter.api.Disabled
-import org.utbot.examples.ternary.Ternary
-import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
-import org.utbot.examples.inner.InnerCalls
-import org.utbot.examples.inner.NestedCalls
+import org.utbot.examples.ternary.Ternary
 import org.utbot.framework.plugin.api.MockStrategyApi
 
-class SummaryTernary : SummaryTestCaseGeneratorTest(
+class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
     Ternary::class,
 ) {
     @Test
@@ -96,9 +91,12 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
         val methodName2 = "testStringExpr_NumLessOrEqual5"
         val methodName3 = "testStringExpr_NumGreaterThan5"
 
-        val displayName1 = "num > 10 : True -> return num > 10 ? \"Number is greater than 10\" : num > 5 ? \"Number is greater than 5\" : \"Number is less than equal to 5\""
-        val displayName2 = "num > 5 : False -> return num > 10 ? \"Number is greater than 10\" : num > 5 ? \"Number is greater than 5\" : \"Number is less than equal to 5\""
-        val displayName3 = "num > 5 : True -> return num > 10 ? \"Number is greater than 10\" : num > 5 ? \"Number is greater than 5\" : \"Number is less than equal to 5\""
+        val displayName1 =
+            "num > 10 : True -> return num > 10 ? \"Number is greater than 10\" : num > 5 ? \"Number is greater than 5\" : \"Number is less than equal to 5\""
+        val displayName2 =
+            "num > 5 : False -> return num > 10 ? \"Number is greater than 10\" : num > 5 ? \"Number is greater than 5\" : \"Number is less than equal to 5\""
+        val displayName3 =
+            "num > 5 : True -> return num > 10 ? \"Number is greater than 10\" : num > 5 ? \"Number is greater than 5\" : \"Number is less than equal to 5\""
 
         val method = Ternary::stringExpr
         val mockStrategy = MockStrategyApi.NO_MOCKS
@@ -133,15 +131,17 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
         val summary2 = "Test executes conditions:\n" +
                 "    (input == null || input.equals(\"\")): True\n" +
                 "invokes:\n" +
-                "    String::equals once\n" +
+                "    {@link java.lang.String#equals(java.lang.Object)} once\n" +
                 "returns from: return value;\n"
         val summary3 = "Test executes conditions:\n" +
-                "    (input == null || input.equals(\"\")): True,\n" +
+                "    (input == null || input.equals(\"\")): True\n" +
+                "invokes:\n" +
+                "    {@link java.lang.String#equals(java.lang.Object)} once\n" +
+                "executes conditions:\n" +
                 "    (input == null || input.equals(\"\")): False\n" +
                 "invokes:\n" +
-                "    Integer::parseInt once\n" +
-                "\n" +
-                "throws NumberFormatException in: Integer.parseInt(input)\n"
+                "    {@link java.lang.Integer#parseInt(java.lang.String)} once\n" +
+                "throws NumberFormatException in: Integer.parseInt(input)"
 
         val methodName1 = "testParse_InputEqualsNullOrInputEquals"
         val methodName2 = "testParse_InputNotEqualsNullOrInputEquals"
@@ -175,6 +175,7 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
 
         check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
+
     @Test
     fun testMinValue() {
         val summary1 = "Test executes conditions:\n" +
@@ -366,11 +367,16 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
         val methodName4 = "testVeryLongTernary_Num2EqualsNum3"
         val methodName5 = "testVeryLongTernary_Num2GreaterThanNum3"
 
-        val displayName1 = "num1 > num2 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
-        val displayName2 = "num2 == num3 : False -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
-        val displayName3 = "num1 == num2 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
-        val displayName4 = "num2 == num3 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
-        val displayName5 = "num2 > num3 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
+        val displayName1 =
+            "num1 > num2 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
+        val displayName2 =
+            "num2 == num3 : False -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
+        val displayName3 =
+            "num1 == num2 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
+        val displayName4 =
+            "num2 == num3 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
+        val displayName5 =
+            "num2 > num3 : True -> return num1 > num2 ? 1 : num1 == num2 ? 2 : num2 > num3 ? 3 : num2 == num3 ? 4 : 5"
 
         val method = Ternary::veryLongTernary
         val mockStrategy = MockStrategyApi.NO_MOCKS
@@ -407,7 +413,7 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
     fun testMinMax() {
         val summary1 = "Test executes conditions:\n" +
                 "    (num1 > num2): False\n" +
-                "calls Ternary::minValue,\n" +
+                "calls {@link org.utbot.examples.ternary.Ternary#minValue(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        ((a < b)): True\n" +
                 "    returns from: return (a < b) ? a : b;\n" +
@@ -415,7 +421,7 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
                 "Test then returns from: return a;\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (num1 > num2): True\n" +
-                "calls Ternary::max,\n" +
+                "calls {@link org.utbot.examples.ternary.Ternary#max(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (val1 >= val2): True\n" +
                 "    returns from: return val1 >= val2 ? val1 : val2;\n" +
@@ -423,7 +429,7 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
                 "Test further returns from: return a;\n"
         val summary3 = "Test executes conditions:\n" +
                 "    (num1 > num2): False\n" +
-                "calls Ternary::minValue,\n" +
+                "calls {@link org.utbot.examples.ternary.Ternary#minValue(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        ((a < b)): False\n" +
                 "    returns from: return (a < b) ? a : b;\n" +
@@ -469,12 +475,12 @@ class SummaryTernary : SummaryTestCaseGeneratorTest(
         val summary1 = "Test executes conditions:\n" +
                 "    (num1 > num2): True\n" +
                 "invokes:\n" +
-                "    Ternary::intFunc1 once\n" +
+                "    {@link org.utbot.examples.ternary.Ternary#intFunc1()} once\n" +
                 "returns from: return num1 > num2 ? intFunc1() : intFunc2();\n"
         val summary2 = "Test executes conditions:\n" +
                 "    (num1 > num2): False\n" +
                 "invokes:\n" +
-                "    Ternary::intFunc2 once\n" +
+                "    {@link org.utbot.examples.ternary.Ternary#intFunc2()} once\n" +
                 "returns from: return num1 > num2 ? intFunc1() : intFunc2();\n"
 
         val methodName1 = "testIntFunc_Num1GreaterThanNum2"

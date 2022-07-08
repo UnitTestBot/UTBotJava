@@ -154,10 +154,11 @@ data class SarifRegion(
          * Makes [startColumn] the first non-whitespace character in [startLine] in the [text].
          * If the [text] contains less than [startLine] lines, [startColumn] == null.
          */
-        fun fromStartLine(startLine: Int, text: String): SarifRegion {
+        fun withStartLine(text: String, startLine: Int): SarifRegion {
             val neededLine = text.split('\n').getOrNull(startLine - 1) // to zero-based
-            val startColumnZeroBased = neededLine?.takeWhile { it.toString().isBlank() }?.length
-            val startColumn = startColumnZeroBased?.let { it + 1 }
+            val startColumn = neededLine?.let {
+                neededLine.takeWhile { it.toString().isBlank() }.length + 1 // to one-based
+            }
             return SarifRegion(startLine = startLine, startColumn = startColumn)
         }
     }

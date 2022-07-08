@@ -146,7 +146,7 @@ class SarifReport(
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
         val startLine = extractLineNumber(utExecution) ?: defaultLineNumber
         val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
-        val sourceRegion = SarifRegion.fromStartLine(startLine, sourceCode)
+        val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
             SarifPhysicalLocationWrapper(
                 SarifPhysicalLocation(SarifArtifact(sourceRelativePath), sourceRegion)
@@ -157,11 +157,11 @@ class SarifReport(
     private fun getRelatedLocations(utExecution: UtExecution): List<SarifRelatedPhysicalLocationWrapper> {
         val startLine = utExecution.testMethodName?.let { testMethodName ->
             val neededLine = generatedTestsCode.split('\n').indexOfFirst { line ->
-                line.contains(testMethodName)
+                line.contains("$testMethodName(")
             }
             if (neededLine == -1) null else neededLine + 1 // to one-based
         } ?: defaultLineNumber
-        val sourceRegion = SarifRegion.fromStartLine(startLine, generatedTestsCode)
+        val sourceRegion = SarifRegion.withStartLine(generatedTestsCode, startLine)
         return listOf(
             SarifRelatedPhysicalLocationWrapper(
                 relatedLocationId,
@@ -235,7 +235,7 @@ class SarifReport(
                 ),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(relativePath),
-                    SarifRegion.fromStartLine(lineNumber, sourceCode)
+                    SarifRegion.withStartLine(sourceCode, lineNumber)
                 )
             )
         )
@@ -256,18 +256,23 @@ class SarifReport(
         // searching needed method call
         val publicMethodCallPattern = "$methodName("
         val privateMethodCallPattern = Regex("""$methodName.*\.invoke\(""") // using reflection
-        val methodCallLineNumber = testsBodyLines
+        val methodCallShiftInTestMethod = testsBodyLines
             .drop(testMethodStartsAt + 1) // for search after it
             .indexOfFirst { line ->
                 line.contains(publicMethodCallPattern) || line.contains(privateMethodCallPattern)
             }
-        if (methodCallLineNumber == -1)
+        if (methodCallShiftInTestMethod == -1)
             return null
 
-        val startLine = methodCallLineNumber + 1 + testMethodStartsAt + 1
+        // `startLine` consists of:
+        //     shift to the testMethod call (+ testMethodStartsAt)
+        //     the line with testMethodName (+ 1)
+        //     shift to the method call     (+ methodCallShiftInTestMethod)
+        //     to one-based                 (+ 1)
+        val startLine = testMethodStartsAt + 1 + methodCallShiftInTestMethod + 1
         return SarifPhysicalLocation(
             SarifArtifact(sourceFinding.testsRelativePath),
-            SarifRegion.fromStartLine(startLine, generatedTestsCode)
+            SarifRegion.withStartLine(generatedTestsCode, startLine)
         )
     }
 

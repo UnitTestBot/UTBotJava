@@ -4,7 +4,7 @@ import com.intellij.openapi.roots.ExternalLibraryDescriptor
 
 //TODO: think about using JUnitExternalLibraryDescriptor from intellij-community sources (difficult to install)
 fun jUnit4LibraryDescriptor(versionInProject: String?) =
-    ExternalLibraryDescriptor("junit", "junit", "4.0", null, versionInProject ?: "4.13.2")
+    ExternalLibraryDescriptor("junit", "junit", "4.12", null, versionInProject ?: "4.13.2")
 
 fun jUnit5LibraryDescriptor(versionInProject: String?) =
     ExternalLibraryDescriptor("org.junit.jupiter", "junit-jupiter", "5.8.1", null, versionInProject ?: "5.8.1")

@@ -38,13 +38,18 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.roots.ContentEntry
 import com.intellij.openapi.roots.DependencyScope
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import com.intellij.openapi.roots.JavaProjectModelModificationService
+import com.intellij.openapi.roots.LibraryOrderEntry
+import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ModuleRootModificationUtil
+import com.intellij.openapi.roots.ModuleSourceOrderEntry
 import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
 import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
 import com.intellij.openapi.ui.ComboBox
@@ -111,6 +116,8 @@ import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
 import kotlin.streams.toList
+import org.jetbrains.concurrency.thenRun
+import org.utbot.intellij.plugin.ui.utils.allLibraries
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -642,7 +649,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         selectedTestFramework.isInstalled = true
-        addDependency(libraryDescriptor)
+        addDependency(model.testModule, libraryDescriptor)
             .onError { selectedTestFramework.isInstalled = false }
     }
 
@@ -663,7 +670,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val versionInProject = libraryInProject?.libraryName?.parseVersion()
 
         selectedMockFramework.isInstalled = true
-        addDependency(mockitoCoreLibraryDescriptor(versionInProject))
+        addDependency(model.testModule, mockitoCoreLibraryDescriptor(versionInProject))
             .onError { selectedMockFramework.isInstalled = false }
     }
 
@@ -701,11 +708,34 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Note that version restrictions will be applied only if they are present on target machine
      * Otherwise latest release version will be installed.
      */
-    private fun addDependency(libraryDescriptor: ExternalLibraryDescriptor): Promise<Void> {
-        return JavaProjectModelModificationService
+    private fun addDependency(module: Module, libraryDescriptor: ExternalLibraryDescriptor): Promise<Void> {
+        val promise = JavaProjectModelModificationService
             .getInstance(model.project)
             //this method returns JetBrains internal Promise that is difficult to deal with, but it is our way
             .addDependency(model.testModule, libraryDescriptor, DependencyScope.TEST)
+        promise.thenRun {
+            module.allLibraries()
+                .lastOrNull { library -> library.libraryName == libraryDescriptor.presentableName }?.let {
+                    ModuleRootModificationUtil.updateModel(module) { model -> placeEntryToCorrectPlace(model, it) }
+                }
+        }
+        return promise
+    }
+
+    /**
+     * Reorders library list to unsure that just added library with proper version is listed prior to old-versioned one
+     */
+    private fun placeEntryToCorrectPlace(model: ModifiableRootModel, addedEntry: LibraryOrderEntry) {
+        val order = model.orderEntries
+        val lastEntry = order.last()
+        if (lastEntry is LibraryOrderEntry && lastEntry.library == addedEntry.library) {
+            val insertionPoint = order.indexOfFirst { it is ModuleSourceOrderEntry } + 1
+            if (insertionPoint > 0) {
+                System.arraycopy(order, insertionPoint, order, insertionPoint + 1, order.size - 1 - insertionPoint)
+                order[insertionPoint] = lastEntry
+                model.rearrangeOrderEntries(order)
+            }
+        }
     }
 
     private fun createMockFrameworkNotificationDialog() = Messages.showYesNoDialog(

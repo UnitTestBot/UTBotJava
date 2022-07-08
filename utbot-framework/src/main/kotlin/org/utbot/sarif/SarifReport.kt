@@ -252,6 +252,14 @@ class SarifReport(
         }
         if (testMethodStartsAt == -1)
             return null
+        /**
+         * ...
+         * public void testMethodName() { // <- `testMethodStartsAt`
+         *     ...
+         *     className.methodName(...) // <- needed `startLine`
+         *     ...
+         * }
+         */
 
         // searching needed method call
         val publicMethodCallPattern = "$methodName("
@@ -270,6 +278,7 @@ class SarifReport(
         //     shift to the method call     (+ methodCallShiftInTestMethod)
         //     to one-based                 (+ 1)
         val startLine = testMethodStartsAt + 1 + methodCallShiftInTestMethod + 1
+
         return SarifPhysicalLocation(
             SarifArtifact(sourceFinding.testsRelativePath),
             SarifRegion.withStartLine(generatedTestsCode, startLine)

@@ -305,6 +305,6 @@ class SarifReport(
         try {
             utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
         } catch (t: Throwable) {
-            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
+            null
         }
 }

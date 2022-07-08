@@ -101,10 +101,10 @@ class CgParameterizedTestDataProviderBuilder : CgMethodBuilder<CgParameterizedTe
     override val parameters: List<CgParameterDeclaration> = mutableListOf()
     override lateinit var statements: List<CgStatement>
     override lateinit var annotations: MutableList<CgAnnotation>
-    override val exceptions: MutableSet<ClassId> = mutableSetOf()
+    override lateinit var exceptions: MutableSet<ClassId>
     override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
 
-    override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations)
+    override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations, exceptions)
 }
 
 fun buildParameterizedTestDataProviderMethod(

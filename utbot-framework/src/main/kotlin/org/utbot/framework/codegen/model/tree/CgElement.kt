@@ -223,9 +223,8 @@ class CgParameterizedTestDataProviderMethod(
     override val statements: List<CgStatement>,
     override val returnType: ClassId,
     override val annotations: List<CgAnnotation>,
+    override val exceptions: Set<ClassId>,
 ) : CgMethod(isStatic = true) {
-    override val exceptions: Set<ClassId> = emptySet()
-
     override val parameters: List<CgParameterDeclaration> = emptyList()
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
     override val requiredFields: List<CgParameterDeclaration> = emptyList()

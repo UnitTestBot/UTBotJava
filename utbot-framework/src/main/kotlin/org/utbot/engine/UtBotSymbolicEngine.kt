@@ -154,7 +154,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.util.description
+import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.executableId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.ModelProvider

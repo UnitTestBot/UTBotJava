@@ -26,7 +26,7 @@ import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.framework.util.description
+import org.utbot.framework.plugin.api.util.description
 import kotlin.reflect.KClass
 
 internal class CgTestClassConstructor(val context: CgContext) :

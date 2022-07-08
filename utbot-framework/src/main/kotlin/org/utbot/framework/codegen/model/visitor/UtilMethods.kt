@@ -329,8 +329,7 @@ fun createInstance(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object createInstance(String className) 
-                    throws ClassNotFoundException, NoSuchMethodException, NoSuchFieldException, IllegalAccessException, InvocationTargetException {
+            private static Object createInstance(String className) throws Exception {
                 Class<?> clazz = Class.forName(className);
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class.class)
                     .invoke(getUnsafeInstance(), clazz);

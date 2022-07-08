@@ -1,5 +1,6 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
@@ -27,6 +28,7 @@ dependencies {
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2_version
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+    //noinspection GroovyAssignabilityCheck
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 }
 
@@ -40,6 +42,7 @@ task createProperties(dependsOn: processResources) {
     doLast {
         new File("$buildDir/resources/main/version.properties").withWriter { w ->
             Properties properties = new Properties()
+            //noinspection GroovyAssignabilityCheck
             properties['version'] = project.version.toString()
             properties.store w, null
         }

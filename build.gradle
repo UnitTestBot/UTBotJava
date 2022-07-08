@@ -8,7 +8,9 @@ if (project.hasProperty('semVer')) {
     project.version = '1.0-SNAPSHOT'
 }
 
+//noinspection GroovyAssignabilityCheck
 buildscript {
+    //noinspection GroovyAssignabilityCheck
     repositories {
         mavenCentral()
     }
@@ -29,6 +31,7 @@ subprojects {
 
     publishing {
         publications {
+            //noinspection GroovyAssignabilityCheck
             jar(MavenPublication) {
                 from components.java
                 groupId 'org.utbot'
@@ -37,6 +40,7 @@ subprojects {
         }
     }
 
+    //noinspection GroovyAssignabilityCheck
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }
@@ -53,6 +57,7 @@ configure([
     project(':utbot-summary')
 ]) {
     publishing {
+        //noinspection GroovyAssignabilityCheck
         repositories {
             maven {
                 name = "GitHubPackages"

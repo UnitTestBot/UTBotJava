@@ -1,9 +1,11 @@
+//noinspection GroovyAssignabilityCheck
 plugins {
-    id 'maven'
+    id 'maven-publish'
 }
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     mavenEmbedder // it is used to run maven tasks from gradle
 }
@@ -90,8 +92,9 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     outputs.file pluginDescriptorFile
 
     workingDir projectDir
-    main = 'org.apache.maven.cli.MavenCli'
+    mainClass.set('org.apache.maven.cli.MavenCli')
     classpath = configurations.mavenEmbedder
+    //noinspection GroovyAssignabilityCheck
     systemProperties['maven.multiModuleProjectDirectory'] = projectDir
     args = [
         '--errors',
@@ -107,6 +110,6 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     }
 }
 
-project.install.dependsOn(generatePluginDescriptor)
+project.publishToMavenLocal.dependsOn(generatePluginDescriptor)
 
 // Please, use `utbot-maven/other/install` task for publishing

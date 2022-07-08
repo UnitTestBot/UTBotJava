@@ -7,7 +7,9 @@ compileKotlin {
     }
 }
 
+//noinspection GroovyAssignabilityCheck
 buildscript {
+    //noinspection GroovyAssignabilityCheck
     repositories {
         maven {
             url "https://plugins.gradle.org/m2/"

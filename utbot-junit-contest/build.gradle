@@ -2,6 +2,7 @@ apply from: "${rootProject.projectDir}/gradle/include/jvm-project.gradle"
 
 apply plugin: 'jacoco'
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
@@ -46,7 +47,7 @@ test {
 
 jacocoTestReport {
     reports {
-        html.enabled = true
+        html.enabled true
     }
 }
 
@@ -66,6 +67,7 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
     testImplementation 'junit:junit:4.13.2'
+    //noinspection GroovyAssignabilityCheck
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 }
 

@@ -16,6 +16,8 @@ dependencies {
 }
 
 jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     manifest {
         attributes (
                 'Main-Class': 'org.utbot.instrumentation.process.ChildProcessKt',
@@ -25,6 +27,7 @@ jar {
     from { configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
 }
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     instrumentationArchive
 }

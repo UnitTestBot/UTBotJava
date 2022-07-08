@@ -1,11 +1,12 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-
+//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
 dependencies {
+    //noinspection GroovyAssignabilityCheck
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 
     testImplementation project(':utbot-instrumentation')

@@ -1,11 +1,13 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+//noinspection GroovyAssignabilityCheck
 repositories {
     flatDir {
         dirs 'dist'
     }
 }
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     z3native
 }

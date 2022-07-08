@@ -3,7 +3,6 @@ package org.utbot.framework.concrete
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
-import org.utbot.common.withRemovedFinalModifier
 import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.Coverage
@@ -260,7 +259,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         try {
             staticFields.forEach { (fieldId, value) ->
                 fieldId.field.run {
-                    withRemovedFinalModifier {
+                    withAccessibility {
                         savedFields[fieldId] = get(null)
                         set(null, value)
                     }
@@ -270,7 +269,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         } finally {
             savedFields.forEach { (fieldId, value) ->
                 fieldId.field.run {
-                    withRemovedFinalModifier {
+                    withAccessibility {
                         set(null, value)
                     }
                 }

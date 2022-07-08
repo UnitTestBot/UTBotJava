@@ -144,9 +144,9 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val sourceRegion = SarifRegion(
-            startLine = extractLineNumber(utExecution) ?: defaultLineNumber
-        )
+        val startLine = extractLineNumber(utExecution) ?: defaultLineNumber
+        val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
+        val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
             SarifPhysicalLocationWrapper(
                 SarifPhysicalLocation(SarifArtifact(sourceRelativePath), sourceRegion)
@@ -155,14 +155,13 @@ class SarifReport(
     }
 
     private fun getRelatedLocations(utExecution: UtExecution): List<SarifRelatedPhysicalLocationWrapper> {
-        val lineNumber = generatedTestsCode.split('\n').indexOfFirst { line ->
-            utExecution.testMethodName?.let { testMethodName ->
-                line.contains(testMethodName)
-            } ?: false
-        }
-        val sourceRegion = SarifRegion(
-            startLine = if (lineNumber != -1) lineNumber + 1 else defaultLineNumber
-        )
+        val startLine = utExecution.testMethodName?.let { testMethodName ->
+            val neededLine = generatedTestsCode.split('\n').indexOfFirst { line ->
+                line.contains("$testMethodName(")
+            }
+            if (neededLine == -1) null else neededLine + 1 // to one-based
+        } ?: defaultLineNumber
+        val sourceRegion = SarifRegion.withStartLine(generatedTestsCode, startLine)
         return listOf(
             SarifRelatedPhysicalLocationWrapper(
                 relatedLocationId,
@@ -228,6 +227,7 @@ class SarifReport(
             return null
         val extension = stackTraceElement.fileName?.toPath()?.fileExtension
         val relativePath = sourceFinding.getSourceRelativePath(stackTraceElement.className, extension)
+        val sourceCode = sourceFinding.getSourceFile(stackTraceElement.className, extension)?.readText() ?: ""
         return SarifFlowLocationWrapper(
             SarifFlowLocation(
                 message = Message(
@@ -235,7 +235,7 @@ class SarifReport(
                 ),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(relativePath),
-                    SarifRegion(lineNumber)
+                    SarifRegion.withStartLine(sourceCode, lineNumber)
                 )
             )
         )
@@ -252,21 +252,36 @@ class SarifReport(
         }
         if (testMethodStartsAt == -1)
             return null
+        /**
+         * ...
+         * public void testMethodName() { // <- `testMethodStartsAt`
+         *     ...
+         *     className.methodName(...) // <- needed `startLine`
+         *     ...
+         * }
+         */
 
         // searching needed method call
         val publicMethodCallPattern = "$methodName("
         val privateMethodCallPattern = Regex("""$methodName.*\.invoke\(""") // using reflection
-        val methodCallLineNumber = testsBodyLines
+        val methodCallShiftInTestMethod = testsBodyLines
             .drop(testMethodStartsAt + 1) // for search after it
             .indexOfFirst { line ->
                 line.contains(publicMethodCallPattern) || line.contains(privateMethodCallPattern)
             }
-        if (methodCallLineNumber == -1)
+        if (methodCallShiftInTestMethod == -1)
             return null
+
+        // `startLine` consists of:
+        //     shift to the testMethod call (+ testMethodStartsAt)
+        //     the line with testMethodName (+ 1)
+        //     shift to the method call     (+ methodCallShiftInTestMethod)
+        //     to one-based                 (+ 1)
+        val startLine = testMethodStartsAt + 1 + methodCallShiftInTestMethod + 1
 
         return SarifPhysicalLocation(
             SarifArtifact(sourceFinding.testsRelativePath),
-            SarifRegion(startLine = methodCallLineNumber + 1 + testMethodStartsAt + 1)
+            SarifRegion.withStartLine(generatedTestsCode, startLine)
         )
     }
 

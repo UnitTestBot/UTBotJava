@@ -86,6 +86,7 @@ class SarifReportTest {
         assert(location.region.startLine == 1337)
         assert(relatedLocation.artifactLocation.uri.contains("MainTest.java"))
         assert(relatedLocation.region.startLine == 1)
+        assert(relatedLocation.region.startColumn == 1)
     }
 
     @Test
@@ -158,6 +159,7 @@ class SarifReportTest {
         }
         assert(codeFlowPhysicalLocations[0].artifactLocation.uri.contains("MainTest.java"))
         assert(codeFlowPhysicalLocations[0].region.startLine == 3)
+        assert(codeFlowPhysicalLocations[0].region.startColumn == 7)
     }
 
     @Test
@@ -181,6 +183,7 @@ class SarifReportTest {
         }
         assert(codeFlowPhysicalLocations[0].artifactLocation.uri.contains("MainTest.java"))
         assert(codeFlowPhysicalLocations[0].region.startLine == 4)
+        assert(codeFlowPhysicalLocations[0].region.startColumn == 5)
     }
 
     // internal
@@ -217,7 +220,7 @@ class SarifReportTest {
     private val generatedTestsCodeMain = """
         public void testMain_ThrowArithmeticException() {
             Main main = new Main();
-            main.main(0);
+              main.main(0); // shift for `startColumn` == 7
         }
     """.trimIndent()
 

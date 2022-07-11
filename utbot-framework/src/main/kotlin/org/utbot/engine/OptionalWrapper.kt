@@ -58,7 +58,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
     private val AS_OPTIONAL_METHOD_SIGNATURE =
         overriddenClass.getMethodByName(UtOptional<*>::asOptional.name).signature
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>

@@ -164,6 +164,7 @@ fun setOptions() {
     UtSettings.warmupConcreteExecution = true
     UtSettings.testMinimizationStrategyType = TestSelectionStrategyType.COVERAGE_STRATEGY
     UtSettings.ignoreStringLiterals = true
+    UtSettings.maximizeCoverageUsingReflection = true
 }
 
 

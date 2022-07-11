@@ -1300,14 +1300,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         utTestCase: UtTestCase,
         dataProviderMethodName: String
     ): CgParameterizedTestDataProviderMethod {
-        val parametersStatements = mutableListOf<CgStatement>()
+        val dataProviderStatements = mutableListOf<CgStatement>()
+        val dataProviderExceptions = mutableSetOf<ClassId>()
 
         val argListLength = utTestCase.executions.size
         val argListDeclaration = createArgList(argListLength)
         val argListVariable = argListDeclaration.variable
 
-        parametersStatements += argListDeclaration
-        parametersStatements += CgEmptyLine()
+        dataProviderStatements += argListDeclaration
+        dataProviderStatements += CgEmptyLine()
 
         for ((execIndex, execution) in utTestCase.executions.withIndex()) {
             withTestMethodScope(execution) {
@@ -1347,22 +1348,25 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
 
                 //create a block for current test case
-                parametersStatements += innerBlock(
+                dataProviderStatements += innerBlock(
                     {},
                     block(executionArgumentsBody)
                             + createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
                 )
+
+                dataProviderExceptions += collectedExceptions
             }
         }
 
-        parametersStatements.addEmptyLineIfNeeded()
-        parametersStatements += CgReturnStatement(argListVariable)
+        dataProviderStatements.addEmptyLineIfNeeded()
+        dataProviderStatements += CgReturnStatement(argListVariable)
 
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
             returnType = argListClassId()
-            statements = parametersStatements
+            statements = dataProviderStatements
             annotations = createDataProviderAnnotations(dataProviderMethodName)
+            exceptions = dataProviderExceptions
         }
     }
 

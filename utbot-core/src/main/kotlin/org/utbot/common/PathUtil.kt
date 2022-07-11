@@ -7,14 +7,14 @@ import java.nio.file.Paths
 object PathUtil {
 
     /**
-     * Creates a Path from the String
+     * Creates a Path from the String.
      */
     fun String.toPath(): Path = Paths.get(this)
 
     /**
-     * Finds a path for the [other] relative to the [root] if it is possible
+     * Finds a path for the [other] relative to the [root] if it is possible.
      *
-     * Example: safeRelativize("C:/project/", "C:/project/src/Main.java") = "src/Main.java"
+     * Example: safeRelativize("C:/project/", "C:/project/src/Main.java") = "src/Main.java".
      */
     fun safeRelativize(root: String?, other: String?): String? {
         if (root == null || other == null)
@@ -28,9 +28,9 @@ object PathUtil {
     }
 
     /**
-     * Removes class fully qualified name from absolute path to the file if it is possible
+     * Removes class fully qualified name from absolute path to the file if it is possible.
      *
-     * Example: removeClassFqnFromPath("C:/project/src/com/Main.java", "com.Main") = "C:/project/src/"
+     * Example: removeClassFqnFromPath("C:/project/src/com/Main.java", "com.Main") = "C:/project/src/".
      */
     fun removeClassFqnFromPath(sourceAbsolutePath: String?, classFqn: String?): String? {
         if (sourceAbsolutePath == null || classFqn == null)
@@ -48,9 +48,9 @@ object PathUtil {
     }
 
     /**
-     * Resolves `pathToResolve` against `absolutePath` and checks if a resolved path exists
+     * Resolves [toResolve] against [absolute] and checks if a resolved path exists.
      *
-     * Example: resolveIfExists("C:/project/src/", "Main.java") = "C:/project/src/Main.java"
+     * Example: resolveIfExists("C:/project/src/", "Main.java") = "C:/project/src/Main.java".
      */
     fun resolveIfExists(absolute: String, toResolve: String): String? {
         val absolutePath = absolute.toPath()
@@ -64,19 +64,19 @@ object PathUtil {
     }
 
     /**
-     * Replaces '\\' in the [path] with '/'
+     * Replaces '\\' in the [path] with '/'.
      */
     fun replaceSeparator(path: String): String =
         path.replace('\\', '/')
 
     /**
-     * Replaces '.' in the [classFqn] with '/'
+     * Replaces '.' in the [classFqn] with '/'.
      */
     fun classFqnToPath(classFqn: String): String =
         classFqn.replace('.', '/')
 
     /**
-     * Returns a URL to represent this path
+     * Returns a URL to represent this path.
      */
     fun Path.toURL(): URL =
         this.toUri().toURL()
@@ -88,7 +88,7 @@ object PathUtil {
         """<a href="file:///$filePath">${fileName}</a>"""
 
     /**
-     * Returns the extension of this file (including the dot)
+     * Returns the extension of this file (including the dot).
      */
     val Path.fileExtension: String
         get() = "." + this.toFile().extension

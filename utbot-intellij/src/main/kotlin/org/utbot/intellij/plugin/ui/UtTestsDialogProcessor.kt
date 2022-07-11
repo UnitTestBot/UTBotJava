@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.engine.util.mockListeners.ForceMockListener
+import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.intellij.plugin.error.showErrorDialogLater
 
 object UtTestsDialogProcessor {
@@ -52,24 +53,27 @@ object UtTestsDialogProcessor {
         srcClasses: Set<PsiClass>,
         focusedMethod: MemberInfo?,
     ) {
-        val dialog = createDialog(project, srcClasses, focusedMethod)
-        if (!dialog.showAndGet()) {
-            return
+        createDialog(project, srcClasses, focusedMethod)?.let {
+            if (it.showAndGet()) createTests(project, it.model)
         }
-
-        createTests(project, dialog.model)
     }
 
     private fun createDialog(
         project: Project,
         srcClasses: Set<PsiClass>,
         focusedMethod: MemberInfo?,
-    ): GenerateTestsDialogWindow {
+    ): GenerateTestsDialogWindow? {
         val srcModule = findSrcModule(srcClasses)
         val testModule = srcModule.testModule(project)
 
         JdkPathService.jdkPathProvider = PluginJdkPathProvider(project, testModule)
-        val jdkVersion = testModule.jdkVersion()
+        val jdkVersion = try {
+            testModule.jdkVersion()
+        } catch (e: IllegalStateException) {
+            // Just ignore it here, notification will be shown in
+            // org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
+            return null
+        }
 
         return GenerateTestsDialogWindow(
             GenerateTestsModel(
@@ -163,8 +167,16 @@ object UtTestsDialogProcessor {
 
                                     val forceMockListener = if (!mockFrameworkInstalled) {
                                          ForceMockListener().apply {
-                                             codeGenerator.generator.configureEngine = { engine -> engine.attachMockListener(this) }
+                                             codeGenerator.generator.engineActions.add { engine -> engine.attachMockListener(this) }
                                          }
+                                    } else {
+                                        null
+                                    }
+
+                                    val forceStaticMockListener = if (!model.staticsMocking.isConfigured) {
+                                        ForceStaticMockListener().apply {
+                                            codeGenerator.generator.engineActions.add { engine -> engine.attachMockListener(this) }
+                                        }
                                     } else {
                                         null
                                     }
@@ -189,6 +201,10 @@ object UtTestsDialogProcessor {
                                         model.forceMockHappened = forceMockHappened
                                     }
 
+                                    forceStaticMockListener?.run {
+                                        model.forceStaticMockHappened = forceStaticMockHappened
+                                    }
+
                                     timerHandler.cancel(true)
                                 }
                                 processedClasses++
@@ -211,8 +227,10 @@ object UtTestsDialogProcessor {
     }
 
     private fun errorMessage(className: String?, timeout: Long) = buildString {
-        append("UtBot failed to generate any test cases for class $className.")
-        append("You could try to increase current timeout $timeout sec for generating tests in generation dialog.")
+        appendLine("UtBot failed to generate any test cases for class $className.")
+        appendLine()
+        appendLine("Try to alter test generation configuration, e.g. enable mocking and static mocking.")
+        appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
 }
 

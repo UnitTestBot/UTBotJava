@@ -108,6 +108,8 @@ open class SummaryTestCaseGeneratorTest(
     /**
      * It removes from the String all whitespaces, tabs etc.
      *
+     * Also, it replaces all randomly added words from [nextSynonyms] that totally influence on the determinism in test name generation.
+     *
      * @see <a href="https://www.baeldung.com/java-regex-s-splus">Explanation of the used regular expression.</a>
      */
     private fun String.normalize(): String {
@@ -141,7 +143,7 @@ open class SummaryTestCaseGeneratorTest(
         val notMatchedExecutions = this.filter { execution ->
             methodNames.none { methodName -> execution.testMethodName?.equals(methodName) == true }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched display names ${summaries(notMatchedExecutions)}" }
+        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched test names ${summaries(notMatchedExecutions)}" }
     }
 
     fun List<UtExecution>.checkMatchersWithDisplayNames(

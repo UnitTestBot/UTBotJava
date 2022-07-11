@@ -2,7 +2,7 @@ package org.utbot.engine.overrides;
 
 /**
  * Auxiliary class with static methods without implementation.
- * These static methods are just markers for <code>UtBotSymbolicEngine</code>,
+ * These static methods are just markers for {@link org.utbot.engine.Traverser},
  * to do some corresponding behavior, that can be represented with smt expressions.
  * <p>
  * <code>UtLogicMock</code> is used to store bool smt bool expressions in

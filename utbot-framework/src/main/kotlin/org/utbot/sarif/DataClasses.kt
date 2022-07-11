@@ -142,12 +142,27 @@ data class SarifArtifact(
     val uriBaseId: String = "%SRCROOT%"
 )
 
+// all fields should be one-based
 data class SarifRegion(
     val startLine: Int,
     val endLine: Int? = null,
     val startColumn: Int? = null,
     val endColumn: Int? = null
-)
+) {
+    companion object {
+        /**
+         * Makes [startColumn] the first non-whitespace character in [startLine] in the [text].
+         * If the [text] contains less than [startLine] lines, [startColumn] == null.
+         */
+        fun withStartLine(text: String, startLine: Int): SarifRegion {
+            val neededLine = text.split('\n').getOrNull(startLine - 1) // to zero-based
+            val startColumn = neededLine?.let {
+                neededLine.takeWhile { it.toString().isBlank() }.length + 1 // to one-based
+            }
+            return SarifRegion(startLine = startLine, startColumn = startColumn)
+        }
+    }
+}
 
 // related locations
 

@@ -69,6 +69,25 @@ __Kotlin DSL:__
   }
   ```
 
+Also, you can configure the task using `-P<parameterName>=<value>` syntax.
+
+For example, 
+```Kotlin
+generateTestsAndSarifReport
+    -PtargetClasses='[com.abc.Main, com.qwerty.Util]'
+    -PprojectRoot='C:/.../SomeDirectory'
+    -PgeneratedTestsRelativeRoot='build/generated/test'
+    -PsarifReportsRelativeRoot='build/generated/sarif'
+    -PtestFramework=junit5
+    -PmockFramework=mockito
+    -PgenerationTimeout=60000
+    -PcodegenLanguage=java
+    -PmockStrategy='other-packages'
+    -PstaticsMocking='mock-statics'
+    -PforceStaticMocking=force
+    -PclassesToMockAlways='[org.slf4j.Logger, java.util.Random]'
+```
+
 **Note:** All configuration fields have default values, so there is no need to configure the plugin if you don't want to.
 
 **Description of fields:**

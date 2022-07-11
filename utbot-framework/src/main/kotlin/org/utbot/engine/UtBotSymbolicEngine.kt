@@ -81,7 +81,9 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.Trie
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
@@ -408,7 +410,8 @@ class UtBotSymbolicEngine(
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
         val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
-        val coveredInstructionTracker = mutableSetOf<Instruction>()
+        val coveredInstructionTracker = Trie(Instruction::id)
+        val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = UtSettings.fuzzingMaxAttempts
         fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
             if (System.currentTimeMillis() >= until) {
@@ -431,12 +434,14 @@ class UtBotSymbolicEngine(
                     }
                 }
 
-                if (!coveredInstructionTracker.addAll(concreteExecutionResult.coverage.coveredInstructions)) {
+                val count = coveredInstructionTracker.add(concreteExecutionResult.coverage.coveredInstructions)
+                if (count.count > 1) {
                     if (--attempts < 0) {
                         return@flow
                     }
+                    return@forEach
                 }
-
+                coveredInstructionValues[count] = values
                 val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
                 val testMethodName = try {
                     nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()

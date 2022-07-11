@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.OrderEnumerator
+import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
 
 /**
@@ -41,7 +42,12 @@ fun String.parseVersion(): String? {
 fun List<LibraryOrderEntry>.matchesAnyOf(patterns: List<Regex>): LibraryOrderEntry? =
     firstOrNull { entry ->
         patterns.any { pattern ->
-            entry.libraryName?.let { pattern.containsMatchIn(it) } ?: false
+            entry.libraryName?.let {
+                if (pattern.containsMatchIn(it)) return@any true
+            }
+            //Fallback to filenames in case library has no name at all, or the name is too generic (e.g. 'JUnit' or 'JUnit4')
+            return@any entry.library?.getFiles(OrderRootType.CLASSES)
+                ?.any { virtualFile -> pattern.containsMatchIn(virtualFile.name) } ?: false
         }
     }
 

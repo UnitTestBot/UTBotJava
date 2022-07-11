@@ -40,6 +40,8 @@ object Reflection {
 
 inline fun <R> AccessibleObject.withAccessibility(block: () -> R): R {
     val prevAccessibility = isAccessible
+    isAccessible = true
+
     try {
         return block()
     } finally {

@@ -90,10 +90,24 @@ class SarifReport(
         return Sarif.fromRun(
             SarifRun(
                 SarifTool.fromRules(sarifRules.toList()),
-                sarifResults
+                minimizeResults(sarifResults)
             )
         )
     }
+
+    /**
+     * Minimizes detected errors and removes duplicates.
+     * Between two [SarifResult]s with the same `ruleId` and `locations`
+     * it chooses the one with the shorter length of the execution trace.
+     */
+    private fun minimizeResults(sarifResults: List<SarifResult>): List<SarifResult> =
+         sarifResults.groupBy { sarifResult ->
+            Pair(sarifResult.ruleId, sarifResult.locations)
+         }.map { (_, sarifResultsGroup) ->
+             sarifResultsGroup.minByOrNull { sarifResult ->
+                 sarifResult.totalCodeFlowLocations()
+             }!!
+        }
 
     private fun processUncheckedException(
         method: UtMethod<*>,

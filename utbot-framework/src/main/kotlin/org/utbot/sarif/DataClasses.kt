@@ -99,7 +99,17 @@ data class SarifResult(
     val locations: List<SarifPhysicalLocationWrapper> = listOf(),
     val relatedLocations: List<SarifRelatedPhysicalLocationWrapper> = listOf(),
     val codeFlows: List<SarifCodeFlow> = listOf()
-)
+) {
+    /**
+     * Returns the total number of locations in all [codeFlows].
+     */
+    fun totalCodeFlowLocations() =
+        codeFlows.sumBy { codeFlow ->
+            codeFlow.threadFlows.sumBy { threadFlow ->
+                threadFlow.locations.size
+            }
+        }
+}
 
 /**
  * The severity of the result. "Error" for detected unchecked exceptions.

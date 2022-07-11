@@ -133,7 +133,13 @@ object TestGenerator {
         }
     }
 
-    private fun mergeSarifReports(model: GenerateTestsModel, sarifReportsPath : Path) {
+    private fun mergeSarifReports(model: GenerateTestsModel, sarifReportsPath: Path) {
+        val mergedReportFile = sarifReportsPath
+            .resolve("${model.project.name}Report.sarif")
+            .toFile()
+        // deleting the old report so that `sarifReports` does not contain it
+        mergedReportFile.delete()
+
         val sarifReports = sarifReportsPath.toFile()
             .walkTopDown()
             .filter { it.extension == "sarif" }
@@ -141,13 +147,12 @@ object TestGenerator {
             .toList()
 
         val mergedReport = SarifReport.mergeReports(sarifReports)
-        val mergedReportPath = sarifReportsPath.resolve("${model.project.name}Report.sarif")
-        mergedReportPath.toFile().writeText(mergedReport)
+        mergedReportFile.writeText(mergedReport)
 
         // notifying the user
         SarifReportNotifier.notify(
             info = """
-                SARIF report was saved to ${toHtmlLinkTag(mergedReportPath.toString())}$HTML_LINE_SEPARATOR
+                SARIF report was saved to ${toHtmlLinkTag(mergedReportFile.path)}$HTML_LINE_SEPARATOR
                 You can open it using the VS Code extension "Sarif Viewer"
             """.trimIndent()
         )

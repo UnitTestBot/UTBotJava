@@ -48,17 +48,34 @@ class TrieTest {
         trie.add("abcde")
         assertEquals(3, trie.toList().size)
 
-        assertNotNull(trie.remove("abcd"))
+        assertNotNull(trie.removeCompletely("abcd"))
         assertEquals(2, trie.toList().size)
 
-        assertNull(trie.remove("ffff"))
+        assertNull(trie.removeCompletely("ffff"))
         assertEquals(2, trie.toList().size)
 
-        assertNotNull(trie.remove("abcde"))
+        assertNotNull(trie.removeCompletely("abcde"))
         assertEquals(1, trie.toList().size)
 
-        assertNotNull(trie.remove("abc"))
+        assertNotNull(trie.removeCompletely("abc"))
         assertEquals(0, trie.toList().size)
+    }
+
+    @Test
+    fun testSearchingAfterDeletion() {
+        val trie = stringTrieOf("abc", "abc", "abcde")
+        assertEquals(2, trie.toList().size)
+        assertEquals(2, trie["abc"]?.count)
+
+        val removed1 = trie.remove("abc")
+        assertNotNull(removed1)
+
+        val find = trie["abc"]
+        assertNotNull(find)
+        assertEquals(1, find!!.count)
+
+        val removed2 = trie.remove("abc")
+        assertNotNull(removed2)
     }
 
     @Test

@@ -10,13 +10,17 @@ fun stringTrieOf(vararg values: String): StringTrie = StringTrie().apply {
 
 class StringTrie : IdentityTrie<Char>() {
     fun add(string: String) = super.add(string.toCharArray().asIterable())
+    fun removeCompletely(string: String) = super.removeCompletely(string.toCharArray().asIterable())
     fun remove(string: String) = super.remove(string.toCharArray().asIterable())
     operator fun get(string: String) = super.get(string.toCharArray().asIterable())
     fun collect() = asSequence().map { String(it.toCharArray()) }.toSet()
 }
 
-open class IdentityTrie<T> : Trie<T, T>({it})
+open class IdentityTrie<T> : Trie<T, T>({ it })
 
+/**
+ * Implementation of a trie for any iterable values.
+ */
 open class Trie<T, K>(
     private val keyExtractor: (T) -> K
 ) : Iterable<List<T>> {
@@ -24,6 +28,14 @@ open class Trie<T, K>(
     private val roots = HashMap<K, NodeImpl<T, K>>()
     private val implementations = HashMap<Node<T>, NodeImpl<T, K>>()
 
+    /**
+     * Adds value into a trie.
+     *
+     * If value already exists then do nothing except increasing internal counter of added values.
+     * The counter can be returned by [Node.count].
+     *
+     * @return corresponding [Node] of the last element in the `values`
+     */
     fun add(values: Iterable<T>): Node<T> {
         val root = try { values.first() } catch (e: NoSuchElementException) { error("Empty list are not allowed") }
         var key = keyExtractor(root)
@@ -37,7 +49,37 @@ open class Trie<T, K>(
         return node
     }
 
+    /**
+     * Decreases node counter value or removes the value completely if `counter == 1`.
+     *
+     * Use [removeCompletely] to remove the value from the trie regardless of counter value.
+     *
+     * @return removed node if value exists.
+     */
     fun remove(values: Iterable<T>): Node<T>? {
+        val node = findImpl(values) ?: return null
+        return when {
+            node.count == 1 -> removeCompletely(values)
+            node.count > 1 -> node.apply { count-- }
+            else -> throw IllegalStateException("count should be 1 or greater")
+        }
+    }
+
+    /**
+     * Removes value from a trie.
+     *
+     * The value is removed completely from the trie. Thus, the next code is true:
+     *
+     * ```
+     * trie.remove(someValue)
+     * trie.get(someValue) == null
+     * ```
+     *
+     * Use [remove] to decrease counter value instead of removal.
+     *
+     * @return removed node if value exists
+     */
+    fun removeCompletely(values: Iterable<T>): Node<T>? {
         val node = findImpl(values) ?: return null
         if (node.count > 0 && node.children.isEmpty()) {
             var n: NodeImpl<T, K>? = node
@@ -108,7 +150,7 @@ open class Trie<T, K>(
         return generateSequence(node) { it.parent }.map { it.data }.toList().asReversed()
     }
 
-    interface Node<T>{
+    interface Node<T> {
         val data: T
         val count: Int
     }

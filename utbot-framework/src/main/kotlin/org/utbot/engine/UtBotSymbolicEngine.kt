@@ -411,7 +411,7 @@ class UtBotSymbolicEngine(
         }
         val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = Trie(Instruction::id)
-        val coveredInstructorValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
+        val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = UtSettings.fuzzingMaxAttempts
         fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
             if (System.currentTimeMillis() >= until) {
@@ -441,7 +441,7 @@ class UtBotSymbolicEngine(
                     }
                     return@forEach
                 }
-                coveredInstructorValues[count] = values
+                coveredInstructionValues[count] = values
                 val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
                 val testMethodName = try {
                     nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()

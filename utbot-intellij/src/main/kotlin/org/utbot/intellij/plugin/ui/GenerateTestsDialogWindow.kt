@@ -156,12 +156,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     @Suppress("UNCHECKED_CAST")
     private val itemsToHelpTooltip = hashMapOf(
-        (codegenLanguages as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (testFrameworks as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (mockStrategies as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (staticsMocking as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (parametrizedTestSources as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create("")
+        (codegenLanguages as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (testFrameworks as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (mockStrategies as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (staticsMocking as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (parametrizedTestSources as ComboBox<CodeGenerationSettingItem>) to createHelpLabel()
     )
+
+    private fun createHelpLabel() = JBLabel(AllIcons.General.ContextHelp)
 
     init {
         title = "Generate tests with UtBot"
@@ -253,11 +255,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun Row.makePanelWithHelpTooltip(
         mainComponent: JComponent,
-        contextHelpLabel: ContextHelpLabel?
+        label: JBLabel?
     ): CellBuilder<JPanel> =
         component(Panel().apply {
             add(mainComponent, BorderLayout.LINE_START)
-            contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
+            label?.let { add(it, BorderLayout.LINE_END) }
         })
 
     private fun findSdkVersion(): JavaVersion? {
@@ -957,7 +959,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 }
 
-private fun ComboBox<CodeGenerationSettingItem>.setHelpTooltipTextChanger(helpLabel: ContextHelpLabel) {
+private fun ComboBox<CodeGenerationSettingItem>.setHelpTooltipTextChanger(helpLabel: JBLabel) {
     addActionListener { event ->
         val comboBox = event.source as ComboBox<*>
         val item = comboBox.item as CodeGenerationSettingItem

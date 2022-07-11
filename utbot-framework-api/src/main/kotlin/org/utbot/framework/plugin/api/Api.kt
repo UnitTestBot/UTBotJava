@@ -642,14 +642,21 @@ open class ClassId(
     open val simpleName: String get() = jClass.simpleName
 
     /**
-     * For regular classes this is just a simple name
-     * For anonymous classes this includes the containing class and numeric indices of the anonymous class
+     * For regular classes this is just a simple name.
+     * For anonymous classes this includes the containing class and numeric indices of the anonymous class.
+     *
+     * Note: according to [java.lang.Class.getCanonicalName] documentation, local and anonymous classes
+     * do not have canonical names, as well as arrays whose elements don't have canonical classes themselves.
+     * In these cases prettified names are constructed using [ClassId.name] instead of [ClassId.canonicalName].
      */
     val prettifiedName: String
-        get() = canonicalName
-            .substringAfterLast(".")
-            .replace(Regex("[^a-zA-Z0-9]"), "")
-            .let { if (this.isArray) it + "Array" else it }
+        get() {
+            val className = jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
+            return className
+                .substringAfterLast(".")
+                .replace(Regex("[^a-zA-Z0-9]"), "")
+                .let { if (this.isArray) it + "Array" else it }
+        }
 
     open val packageName: String get() = jClass.`package`?.name ?: "" // empty package for primitives
 

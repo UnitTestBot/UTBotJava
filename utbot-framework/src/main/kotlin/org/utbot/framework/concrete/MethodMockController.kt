@@ -1,6 +1,6 @@
 package org.utbot.framework.concrete
 
-import org.utbot.common.withRemovedFinalModifier
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.mock.MockConfig
 import java.lang.reflect.Field
@@ -36,7 +36,7 @@ class MethodMockController(
         isMockField = clazz.declaredFields.firstOrNull { it.name == MockConfig.IS_MOCK_FIELD + id }
             ?: error("No field ${MockConfig.IS_MOCK_FIELD + id} in $clazz")
 
-        isMockField.withRemovedFinalModifier {
+        isMockField.withAccessibility {
             isMockField.set(instance, true)
         }
 
@@ -46,7 +46,7 @@ class MethodMockController(
     }
 
     override fun close() {
-        isMockField.withRemovedFinalModifier {
+        isMockField.withAccessibility {
             isMockField.set(instance, false)
         }
     }

@@ -1,0 +1,3 @@
+class PythonCode {
+    fromPsi()
+}

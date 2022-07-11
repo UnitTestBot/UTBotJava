@@ -141,7 +141,7 @@ internal class SortTest : UtValueTestCaseChecker(testClass = Sort::class) {
                     DocCodeStmt("(array.length < 4): False"),
                     DocRegularStmt("\n"),
                     DocRegularStmt("invokes:\n"),
-                    DocRegularStmt("    Arrays::sort once"),
+                    DocRegularStmt("    {@link java.util.Arrays#sort(int[])} once"),
                     DocRegularStmt("\n"),
                     DocRegularStmt("returns from: "),
                     DocCodeStmt("return array;"),

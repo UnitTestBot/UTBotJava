@@ -1,22 +1,28 @@
 package org.utbot.instrumentation
 
-import org.utbot.common.bracket
-import org.utbot.common.catch
-import org.utbot.common.currentThreadInfo
-import org.utbot.common.debug
-import org.utbot.common.pid
-import org.utbot.common.trace
+import com.jetbrains.rd.framework.base.static
+import com.jetbrains.rd.framework.impl.RdSignal
+import com.jetbrains.rd.framework.serverPort
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition
+import com.jetbrains.rd.util.reactive.adviseOnce
+import com.jetbrains.rd.util.threading.SingleThreadScheduler
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import mu.KotlinLogging
+import org.utbot.common.*
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
+import org.utbot.instrumentation.rd.RdUtil
 import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
 import java.io.Closeable
 import java.io.InputStream
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.reflect.KCallable
@@ -26,15 +32,6 @@ import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 import kotlin.streams.toList
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
@@ -213,7 +210,8 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         val receiverThread: Thread,
         val process: Process,
         val kryoHelper: KryoHelper,
-        val receiveChannel: Channel<CommandResult>
+        val receiveChannel: Channel<CommandResult>,
+        val lifetimeDefinition: LifetimeDefinition
     ) {
         var disposed = false
     }
@@ -235,15 +233,30 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 //stop old thread
                 oldState?.terminateResources()
 
+                val def = LifetimeDefinition()
                 try {
-                    val process = childProcessRunner.start()
-                    val kryoHelper = KryoHelper(
-                        process.inputStream ?: error("Can't get the standard output of the subprocess"),
-                        process.outputStream ?: error("Can't get the standard input of the subprocess")
+                    val lifetime = def.lifetime
+                    val protocol = RdUtil.createServer(
+                        lifetime,
+                        scheduler = SingleThreadScheduler(lifetime, "Server scheduler")
                     )
+                    val mainToProcess = RdSignal<ByteArray>().static(1).apply { async = true }
+                    val processToMain = RdSignal<ByteArray>().static(2).apply { async = true }
+                    val isAvailableChildAvailable = RdSignal<Unit>().static(3).apply { async = true }
+
+                    protocol.scheduler.invokeOrQueue {
+                        mainToProcess.bind(lifetime, protocol, "mainToProcess")
+                        processToMain.bind(lifetime, protocol, "processToMain")
+                        isAvailableChildAvailable.bind(lifetime, protocol, "isAvailable")
+                    }
+
+                    val latch = CountDownLatch(1)
+                    val process = childProcessRunner.start(protocol.wire.serverPort)
+                    val readCommandsChannel = Channel<CommandResult>(capacity = Channel.UNLIMITED)
+
+                    val kryoHelper = KryoHelper(lifetime, processToMain, mainToProcess, { process.isAlive }) { logger.trace(it) }
                     classLoader?.let { kryoHelper.setKryoClassLoader(it) }
 
-                    val readCommandsChannel = Channel<CommandResult>(capacity = Channel.UNLIMITED)
                     val receiverThread =
                         thread(name = "ConcreteExecutor-${process.pid}-receiver", isDaemon = true, start = false) {
                             val s = state!!
@@ -283,23 +296,29 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                             }
                         }
 
-                    state = ConnectorState(receiverThread, process, kryoHelper, readCommandsChannel)
-                    receiverThread.start()
+                    state = ConnectorState(receiverThread, process, kryoHelper, readCommandsChannel, def)
+                    isAvailableChildAvailable.adviseOnce(lifetime) {
+                        logger.debug("child available, starting instrumentation")
+                        receiverThread.start()
 
-                    // send classpath
-                    // we don't expect ProcessReadyCommand here
-                    sendCommand(
-                        Protocol.AddPathsCommand(
-                            pathsToUserClasses,
-                            pathsToDependencyClasses
+                        // send classpath
+                        // we don't expect ProcessReadyCommand here
+                        sendCommand(
+                            Protocol.AddPathsCommand(
+                                pathsToUserClasses,
+                                pathsToDependencyClasses
+                            )
                         )
-                    )
 
-                    // send instrumentation
-                    // we don't expect ProcessReadyCommand here
-                    sendCommand(Protocol.SetInstrumentationCommand(instrumentation))
+                        // send instrumentation
+                        // we don't expect ProcessReadyCommand here
+                        sendCommand(Protocol.SetInstrumentationCommand(instrumentation))
+                        latch.countDown()
+                    }
 
+                    latch.await()
                 } catch (e: Throwable) {
+                    def.terminate()
                     state?.terminateResources()
                     throw  e
                 }
@@ -381,6 +400,8 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         logger.catch { receiveChannel.close() }
 
         logger.catch { process.waitUntilExitWithTimeout() }
+
+        logger.catch { lifetimeDefinition.terminate() }
     }
 
     override fun close() {

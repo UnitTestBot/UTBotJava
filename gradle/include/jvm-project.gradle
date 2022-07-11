@@ -1,6 +1,12 @@
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
+repositories {
+    flatDir {
+        dir new File("rd_libs", project.parent.projectDir).path
+    }
+}
+
 dependencies {
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: coroutines_version
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-collections-immutable-jvm', version: collections_version

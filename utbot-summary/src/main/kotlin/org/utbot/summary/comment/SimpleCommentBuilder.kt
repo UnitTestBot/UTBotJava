@@ -350,11 +350,7 @@ open class SimpleCommentBuilder(
      * to render the reference.
      */
     protected fun invokeDescription(className: String, methodName: String, methodParameterTypes: List<Type>): String {
-        val prettyClassName: String = if (className.contains("$")) {
-            className.replace("$", ".")
-        } else {
-            className
-        }
+        val prettyClassName: String = className.replace("$", ".")
 
         return if (methodParameterTypes.isEmpty()) {
             "{@link $prettyClassName#$methodName()}"

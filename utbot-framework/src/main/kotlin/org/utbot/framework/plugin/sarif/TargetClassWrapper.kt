@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.UtMethod
 import java.io.File
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
+import kotlin.reflect.KVisibility
 import kotlin.reflect.jvm.kotlinFunction
 
 /**
@@ -14,13 +15,22 @@ data class TargetClassWrapper(
     val classUnderTest: KClass<*>,
     val sourceCodeFile: File,
     val testsCodeFile: File,
-    val sarifReportFile: File
+    val sarifReportFile: File,
+    val testPrivateMethods: Boolean = false
 ) {
     /**
      * Returns the methods of the class [classUnderTest] declared by the user.
      */
-    fun targetMethods() =
-        classUnderTest.java.declaredMethods.map {
+    val targetMethods: List<UtMethod<*>> = run {
+        val declaredMethods = classUnderTest.java.declaredMethods.map {
             UtMethod(it.kotlinFunction as KCallable<*>, classUnderTest)
         }
+        if (testPrivateMethods) {
+            declaredMethods
+        } else {
+            declaredMethods.filter {
+                it.callable.visibility != KVisibility.PRIVATE
+            }
+        }
+    }
 }

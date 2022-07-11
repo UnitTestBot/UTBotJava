@@ -66,16 +66,13 @@ class SarifReport(
      */
     private val relatedLocationId = 1 // for attaching link to generated test in related locations
 
-    private fun shouldProcessUncheckedException(result: UtExecutionResult) = (result is UtImplicitlyThrownException)
-            || ((result is UtOverflowFailure) && UtSettings.treatOverflowAsError)
-
     private fun constructSarif(): Sarif {
         val sarifResults = mutableListOf<SarifResult>()
         val sarifRules = mutableSetOf<SarifRule>()
 
         for (testCase in testCases) {
             for (execution in testCase.executions) {
-                if (shouldProcessUncheckedException(execution.result)) {
+                if (shouldProcessExecutionResult(execution.result)) {
                     val (sarifResult, sarifRule) = processUncheckedException(
                         method = testCase.method,
                         utExecution = execution,
@@ -144,7 +141,7 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val startLine = extractLineNumber(utExecution) ?: defaultLineNumber
+        val startLine = getLastLineNumber(utExecution) ?: defaultLineNumber
         val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
         val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
@@ -301,10 +298,24 @@ class SarifReport(
         return "..."
     }
 
-    private fun extractLineNumber(utExecution: UtExecution): Int? =
-        try {
+    /**
+     * Returns the number of the last line in the execution path.
+     */
+    private fun getLastLineNumber(utExecution: UtExecution): Int? {
+        val lastPathLine = try {
             utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
         } catch (t: Throwable) {
             null
         }
+        // if for some reason we can't extract the last line from the path
+        val lastCoveredInstruction =
+            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
+        return lastPathLine ?: lastCoveredInstruction
+    }
+
+    private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
+        val implicitlyThrown = result is UtImplicitlyThrownException
+        val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
+        return implicitlyThrown || overflowFailure
+    }
 }

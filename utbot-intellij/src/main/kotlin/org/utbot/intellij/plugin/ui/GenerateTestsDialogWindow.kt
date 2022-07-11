@@ -903,7 +903,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
-        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks && currentFrameworkItem.isInstalled) currentFrameworkItem else defaultItem
+        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
         testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
             override fun customizeCellRenderer(
                 list: JList<out TestFramework>, value: TestFramework?,

@@ -24,9 +24,9 @@ dependencies {
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmt_solver_z3_version
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgen_version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2_version
+    implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
-    implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
     // we need this for construction mocks from composite models
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     api project(':utbot-api')
@@ -40,11 +40,9 @@ dependencies {
     testImplementation group: 'commons-io', name: 'commons-io', version: commons_io_version
     testImplementation group: 'junit', name: 'junit', version: junit4_version
     testImplementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4_platform_version
-    testImplementation group: 'org.antlr', name: 'antlr4', version: antlr_version
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     testImplementation group: 'org.testng', name: 'testng', version: testng_version
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
-    testImplementation group: 'com.google.guava', name: 'guava', version: guava_version
 
     testCompile group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
     testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version

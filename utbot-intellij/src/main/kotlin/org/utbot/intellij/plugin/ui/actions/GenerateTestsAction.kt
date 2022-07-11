@@ -45,8 +45,18 @@ class GenerateTestsAction : AnAction() {
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
+                val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMethods = TestIntegrationUtils.extractClassMethods(srcClass, false)
                 val focusedMethod = focusedMethodOrNull(element, srcMethods, psiElementHandler)
+
+                val module = ModuleUtil.findModuleForFile(srcSourceRoot, project) ?: return null
+                val matchingRoot = ModuleRootManager.getInstance(module).contentEntries
+                    .flatMap { entry -> entry.sourceFolders.toList() }
+                    .singleOrNull { folder -> folder.file == srcSourceRoot }
+                if (matchingRoot == null || matchingRoot.rootType.isForTests) {
+                    return null
+                }
+
                 return Pair(setOf(srcClass), focusedMethod)
             }
         } else {

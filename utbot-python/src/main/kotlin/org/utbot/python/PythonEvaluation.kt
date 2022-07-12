@@ -32,10 +32,10 @@ object PythonEvaluation {
 //        val result = context.eval("python", methodWithArgs)
 
         val resultFile = File(outputFilename)
-        file.delete()
 
         val output = resultFile.readText()
         resultFile.delete()
+        file.delete()
         return output
     }
 

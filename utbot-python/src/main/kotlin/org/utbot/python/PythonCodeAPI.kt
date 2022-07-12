@@ -15,6 +15,7 @@ import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import java.util.*
 
@@ -85,7 +86,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     companion object {
         fun typeAsStringToClassId(typeAsString: String): ClassId? =
             when (typeAsString) {
-                "int" -> longClassId // change to long arithmetics?
+                "int" -> intClassId // change to long arithmetics?
                 "float" -> doubleClassId
                 else -> null
             }

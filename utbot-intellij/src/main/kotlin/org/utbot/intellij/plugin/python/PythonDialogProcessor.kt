@@ -86,9 +86,11 @@ object PythonDialogProcessor {
                 val pythonMethods = findSelectedPythonMethods(model)
                 val testSourseRoot = model.testSourceRoot!!.path
 
-                pythonMethods.forEach { method ->
+                val tests = pythonMethods.map { method ->
                     PythonTestCaseGenerator.generate(method, testSourseRoot)
                 }
+
+                val x = tests.toList()
             }
         })
     }
@@ -104,7 +106,6 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 }
 
 fun getPyCodeFromPyFile(file: PyFile): PythonCode {
-    val content = file.virtualFile.contentsToByteArray()
-    val code = String(content, StandardCharsets.UTF_8)
-    return getFromString(code)
+    val content = file.viewProvider.contents.toString()
+    return getFromString(content)
 }

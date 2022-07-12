@@ -1,11 +1,12 @@
 package org.utbot.python
 
-import org.utbot.framework.plugin.api.UtResult
+import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import java.lang.Long.parseLong
 
 //all id values of synthetic default models must be greater that for real ones
 private var nextDefaultModelId = 1500_000_000
@@ -42,22 +43,30 @@ class PythonEngine(
         fuzz(methodUnderTestDescription, modelProvider /* with fallback? */ ).forEach { values ->
             val modelList = values.map { it.model }
 
-            val result = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
-
-            val x = Unit
-
             // execute method to get function return
             // what if exception happens?
+            val resultAsString = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
+            val resultAsInt = parseLong(resultAsString, 10) // for now only int results
+            val resultAsModel = UtPrimitiveModel(resultAsInt)
+            val result = UtExecutionSuccess(resultAsModel)
 
-            /*
             val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
             val testMethodName = try {
-                nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()
+                nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
             } catch (t: Throwable) {
-                logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
                 null
             }
-             */
+
+            yield(UtExecution(
+                stateBefore = EnvironmentModels(null, modelList, emptyMap()),
+                stateAfter = EnvironmentModels(null, modelList, emptyMap()),
+                result = result,
+                instrumentation = emptyList(),
+                path = mutableListOf(), // ??
+                fullPath = emptyList(), // ??
+                testMethodName = testMethodName?.testName,
+                displayName = testMethodName?.displayName
+            ))
 
             // emit(UtExecution(/* .... */))
         }

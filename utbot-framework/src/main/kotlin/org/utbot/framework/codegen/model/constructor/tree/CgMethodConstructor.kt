@@ -94,6 +94,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TimeoutException
@@ -155,6 +156,7 @@ import org.utbot.framework.plugin.api.util.shortWrapperClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.util.isUnit
+import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.jvm.javaType
@@ -396,13 +398,26 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun writeWarningAboutFailureTest(exception: Throwable) {
-        +CgMultilineComment(
-            listOf(
-                "This test fails because executable under testing $currentExecutable",
-                "produces Runtime exception $exception",
-            )
-            // TODO add stacktrace JIRA:1644
+        require(currentExecutable is ExecutableId)
+        val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
+
+        val warningLine = mutableListOf(
+            "This test fails because method [$executableName] produces [$exception]"
         )
+
+        val neededStackTraceLines = mutableListOf<String>()
+        var executableCallFound = false
+        exception.stackTrace.reversed().forEach { stackTraceElement ->
+            val line = stackTraceElement.toString()
+            if (line.startsWith(executableName)) {
+                executableCallFound = true
+            }
+            if (executableCallFound) {
+                neededStackTraceLines += TAB + line
+            }
+        }
+
+        +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
     }
 
     private fun writeWarningAboutCrash() {

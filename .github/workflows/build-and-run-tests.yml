@@ -16,20 +16,14 @@ jobs:
         fetch-depth: 0
         
     - name: "Add commits number ahead of the main to env"
-      run: |
-        set -o xtrace
-        echo COMMITS_AHEAD_MAIN=$(git rev-list --left-only --count ${GITHUB_REF_NAME}...origin/main) >> $GITHUB_ENV
+      run: echo COMMITS_AHEAD_MAIN=$(git rev-list --left-only --count ${GITHUB_REF_NAME}...origin/main) >> $GITHUB_ENV
         
     - name: "Output information"
-      run: |
-        set -o xtrace
-        echo "The ${GITHUB_REF_NAME} is ahead of the [origin/main] by ${{ env.COMMITS_AHEAD_MAIN }} commits"
+      run: echo "The ${GITHUB_REF_NAME} is ahead of the [origin/main] by ${{ env.COMMITS_AHEAD_MAIN }} commits"
         
     - name: "Fails if the current branch is ahead of the [origin/main] by more than 5 commits"
       if: ${{ env.COMMITS_AHEAD_MAIN > 5 }}
-      run: |
-        set -o xtrace
-        exit 1
+      run: exit 1
 
   build_and_run_tests:
     needs: commits_behind_the_main

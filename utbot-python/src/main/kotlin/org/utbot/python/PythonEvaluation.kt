@@ -14,8 +14,8 @@ object PythonEvaluation {
 
         val arguments = methodArguments.joinToString(transform = { it.toString() })
 
-        val outputFilename = "$testSourceRoot/output_${method.name}.txt"
-        val codeFilename = "$testSourceRoot/test_${method.name}.py"
+        val outputFilename = "$testSourceRoot/output_utbot_run_${method.name}.txt"
+        val codeFilename = "$testSourceRoot/test_utbot_run_${method.name}.py"
 
         val methodWithArgs =
             method.asString() +
@@ -24,11 +24,13 @@ object PythonEvaluation {
 
         val file = File(codeFilename)
         file.writeText(methodWithArgs)
-
         file.createNewFile()
-        Runtime.getRuntime().exec("python3 $codeFilename")
+
+        val process = Runtime.getRuntime().exec("python3 $codeFilename")
+        process.waitFor()
 
 //        val result = context.eval("python", methodWithArgs)
+
         val resultFile = File(outputFilename)
         file.delete()
 
@@ -40,13 +42,4 @@ object PythonEvaluation {
     private fun createDirectory(path: String) {
         File(path).mkdir()
     }
-}
-
-fun String.runCommand(workingDir: File) {
-    ProcessBuilder(*split(" ").toTypedArray())
-        .directory(workingDir)
-        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
-        .redirectError(ProcessBuilder.Redirect.INHERIT)
-        .start()
-        .waitFor(60, TimeUnit.MINUTES)
 }

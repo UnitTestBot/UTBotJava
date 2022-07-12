@@ -706,7 +706,6 @@ open class ClassId(
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
      */
-    // TODO for now it duplicates overridden methods JIRA:1458
     open val allMethods: Sequence<MethodId>
         get() = generateSequence(jClass) { it.superclass }
             .mapNotNull { it.declaredMethods }

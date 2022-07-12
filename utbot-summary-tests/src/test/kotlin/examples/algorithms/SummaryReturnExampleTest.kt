@@ -126,9 +126,9 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    2nd return statement: return a;\n"
 
         val methodName1 = "testCompareChars_NLessThan1"
-        val methodName2 = "testCompareChars_0OfCharactertoCharsiEqualsA" // TODO: a weird unclear naming
-        val methodName3 = "testCompareChars_0OfCharactertoCharsiEqualsB"
-        val methodName4 = "testCompareChars_0OfCharactertoCharsiNotEqualsB" // TODO: si -> is
+        val methodName2 = "testCompareChars_0OfCharacterToCharsIEqualsA" // TODO: a weird unclear naming
+        val methodName3 = "testCompareChars_0OfCharacterToCharsIEqualsB"
+        val methodName4 = "testCompareChars_0OfCharacterToCharsINotEqualsB"
 
         val displayName1 = "n < 1 : True -> return ' '"
         val displayName2 = "Character.toChars(i)[0] == a : True -> return b"
@@ -196,9 +196,9 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return a;"
 
         val methodName1 = "testInnerVoidCompareChars_NLessThan1"
-        val methodName2 = "testInnerVoidCompareChars_0OfCharactertoCharsiEqualsA" // TODO: a weird unclear naming
-        val methodName3 = "testInnerVoidCompareChars_0OfCharactertoCharsiNotEqualsB"
-        val methodName4 = "testInnerVoidCompareChars_0OfCharactertoCharsiEqualsB" // TODO: si -> is
+        val methodName2 = "testInnerVoidCompareChars_0OfCharacterToCharsIEqualsA" // TODO: a weird unclear naming
+        val methodName3 = "testInnerVoidCompareChars_0OfCharacterToCharsINotEqualsB"
+        val methodName4 = "testInnerVoidCompareChars_0OfCharacterToCharsIEqualsB"
 
         val displayName1 = "n < 1 : True -> return ' '"
         val displayName2 = "Character.toChars(i)[0] == a : True -> return b"
@@ -270,9 +270,9 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "Test afterwards returns from: return compareChars(a, b, n);\n"
 
         val methodName1 = "testInnerReturnCompareChars_NLessThan1"
-        val methodName2 = "testInnerReturnCompareChars_0OfCharactertoCharsiEqualsA" // TODO: a weird unclear naming
-        val methodName3 = "testInnerReturnCompareChars_0OfCharactertoCharsiNotEqualsB"
-        val methodName4 = "testInnerReturnCompareChars_0OfCharactertoCharsiEqualsB" // TODO: si -> is
+        val methodName2 = "testInnerReturnCompareChars_0OfCharacterToCharsIEqualsA" // TODO: a weird unclear naming
+        val methodName3 = "testInnerReturnCompareChars_0OfCharacterToCharsINotEqualsB"
+        val methodName4 = "testInnerReturnCompareChars_0OfCharacterToCharsIEqualsB"
 
         val displayName1 = "n < 1 : True -> return ' '"
         val displayName2 = "Character.toChars(i)[0] == a : True -> return b"

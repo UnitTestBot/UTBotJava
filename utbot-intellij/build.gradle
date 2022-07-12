@@ -28,8 +28,6 @@ dependencies {
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.1'
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
 
-    implementation group: "io.github.danielnaczo", name: "python3parser", version: "1.0.4"
-
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
     implementation(project(":utbot-fuzzers"))
 

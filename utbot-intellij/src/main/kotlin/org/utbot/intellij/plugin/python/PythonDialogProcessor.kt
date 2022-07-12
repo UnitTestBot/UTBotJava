@@ -83,6 +83,7 @@ object PythonDialogProcessor {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
                 val pythonMethods = findSelectedPythonMethods(model)
+                val pythonMethodsAsStrings = pythonMethods.map { it.asString() }
 
                 val x = "here"
             }

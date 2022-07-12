@@ -1,6 +1,5 @@
 package org.utbot.python
 
-import PythonEngine
 import org.utbot.framework.plugin.api.UtExecution
 
 class PythonTestCaseGenerator { // : TestCaseGenerator() ?

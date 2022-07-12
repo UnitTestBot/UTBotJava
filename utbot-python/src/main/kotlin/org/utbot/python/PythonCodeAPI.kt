@@ -9,12 +9,15 @@ import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
+import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
+import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import java.util.*
+
 
 class PythonCode(private val body: Module) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
@@ -74,10 +77,15 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
             )
         }
 
+    override fun asString(): String {
+        val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
+        return modulePrettyPrintVisitor.visitModule(Module(listOf(ast)), IndentationPrettyPrint(0))
+    }
+
     companion object {
         fun typeAsStringToClassId(typeAsString: String): ClassId? =
             when (typeAsString) {
-                "int" -> longClassId // TODO: change to long arithmetic
+                "int" -> longClassId // change to long arithmetics?
                 "float" -> doubleClassId
                 else -> null
             }

@@ -9,6 +9,7 @@ interface PythonMethod {
     val name: String
     val returnType: ClassId?
     val arguments: List<PythonArgument>
+    fun asString(): String
 }
 
 data class PythonTestCase(

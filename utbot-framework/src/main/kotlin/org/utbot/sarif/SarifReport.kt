@@ -100,14 +100,17 @@ class SarifReport(
      * Between two [SarifResult]s with the same `ruleId` and `locations`
      * it chooses the one with the shorter length of the execution trace.
      */
-    private fun minimizeResults(sarifResults: List<SarifResult>): List<SarifResult> =
-         sarifResults.groupBy { sarifResult ->
+    private fun minimizeResults(sarifResults: List<SarifResult>): List<SarifResult> {
+        val groupedResults = sarifResults.groupBy { sarifResult ->
             Pair(sarifResult.ruleId, sarifResult.locations)
-         }.map { (_, sarifResultsGroup) ->
-             sarifResultsGroup.minByOrNull { sarifResult ->
-                 sarifResult.totalCodeFlowLocations()
-             }!!
         }
+        val minimizedResults = groupedResults.map { (_, sarifResultsGroup) ->
+            sarifResultsGroup.minByOrNull { sarifResult ->
+                sarifResult.totalCodeFlowLocations()
+            }!!
+        }
+        return minimizedResults
+    }
 
     private fun processUncheckedException(
         method: UtMethod<*>,

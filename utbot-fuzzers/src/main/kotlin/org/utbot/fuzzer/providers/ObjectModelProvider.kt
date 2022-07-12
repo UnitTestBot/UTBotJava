@@ -36,6 +36,10 @@ import java.util.function.IntSupplier
 class ObjectModelProvider : ModelProvider {
 
     var modelProvider: ModelProvider
+    var limitValuesCreatedByFieldAccessors: Int = 100
+        set(value) {
+            field = maxOf(0, value)
+        }
 
     private val idGenerator: IntSupplier
     private val recursion: Int
@@ -100,6 +104,7 @@ class ObjectModelProvider : ModelProvider {
     }
 
     private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
+        if (limitValuesCreatedByFieldAccessors == 0) return emptySequence()
         val fields = findSuitableFields(constructorId.classId, description)
         val syntheticClassFieldsSetterMethodDescription = FuzzedMethodDescription(
             "${constructorId.classId.simpleName}<syntheticClassFieldSetter>",
@@ -109,6 +114,7 @@ class ObjectModelProvider : ModelProvider {
         )
 
         return fuzz(syntheticClassFieldsSetterMethodDescription, nonRecursiveModelProvider)
+            .take(limitValuesCreatedByFieldAccessors) // limit the number of fuzzed values in this particular case
             .map { fieldValues ->
                 val fuzzedModel = assembleModel(idGenerator.asInt, constructorId, emptyList())
                 val assembleModel = fuzzedModel.model as? UtAssembleModel ?: error("Expected UtAssembleModel but ${fuzzedModel.model::class.java} found")

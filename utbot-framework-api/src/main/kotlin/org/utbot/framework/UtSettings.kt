@@ -375,6 +375,11 @@ object UtSettings {
      */
     var singleSelector by getBooleanProperty(true)
 
+    /**
+     * Flag that indicates whether tests for synthetic methods (values, valueOf in enums) should be generated, or not
+     */
+    var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
+
     override fun toString(): String =
         properties
             .entries

@@ -15,6 +15,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
+import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.concurrency.AppExecutorUtil
@@ -45,6 +46,7 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
+import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
@@ -134,6 +136,9 @@ object UtTestsDialogProcessor {
                                     val clazz = classLoader.loadClass(srcClass.qualifiedName).kotlin
                                     val srcMethods = model.selectedMethods?.toList() ?:
                                         TestIntegrationUtils.extractClassMethods(srcClass, false)
+                                            .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
+                                                it.member !is SyntheticElement
+                                            }
                                     findMethodsInClassMatchingSelected(clazz, srcMethods)
                                 }.executeSynchronously()
 

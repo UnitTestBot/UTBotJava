@@ -26,6 +26,16 @@ class FuzzedMethodDescription(
     var compilableName: String? = null
 
     /**
+     * Class Name
+     */
+    var className: String? = null
+
+    /**
+     * Package Name
+     */
+    var packageName: String? = null
+
+    /**
      * Returns parameter name by its index in the signature
      */
     var parameterNameMap: (Int) -> String? = { null }

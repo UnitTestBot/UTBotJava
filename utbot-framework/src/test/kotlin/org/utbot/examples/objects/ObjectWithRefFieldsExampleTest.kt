@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
@@ -8,7 +8,7 @@ import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.isException
 import org.junit.jupiter.api.Test
 
-internal class ObjectWithRefFieldsExampleTest : AbstractTestCaseGeneratorTest(testClass = ObjectWithRefFieldExample::class) {
+internal class ObjectWithRefFieldsExampleTest : UtValueTestCaseChecker(testClass = ObjectWithRefFieldExample::class) {
     @Test
     fun testDefaultValue() {
         check(

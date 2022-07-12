@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.ui
+package org.utbot.intellij.plugin.models
 
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout

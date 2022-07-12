@@ -1,6 +1,6 @@
 package org.utbot.examples.invokes
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
 import org.utbot.examples.ge
@@ -10,7 +10,7 @@ import kotlin.math.sqrt
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
-internal class NativeExampleTest : AbstractTestCaseGeneratorTest(testClass = NativeExample::class) {
+internal class NativeExampleTest : UtValueTestCaseChecker(testClass = NativeExample::class) {
     @Test
     fun testPartialEx() {
         check(

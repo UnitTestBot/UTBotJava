@@ -97,7 +97,7 @@ class GenerateTestsCommand :
             if (targetMethods.isEmpty()) {
                 throw Exception("Nothing to process. No methods were provided")
             }
-            // utContext is used in `generateTestCases`, `generateTest`, `generateReport`
+            // utContext is used in `generate`, `generateTest`, `generateReport`
             withUtContext(UtContext(targetMethods.first().clazz.java.classLoader)) {
 
                 val testClassName = output?.toPath()?.toFile()?.nameWithoutExtension

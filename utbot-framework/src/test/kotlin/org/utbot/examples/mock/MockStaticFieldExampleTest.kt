@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.mock.others.Generator
@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import kotlin.reflect.KClass
 import org.junit.jupiter.api.Test
 
-internal class MockStaticFieldExampleTest : AbstractTestCaseGeneratorTest(testClass = MockStaticFieldExample::class) {
+internal class MockStaticFieldExampleTest : UtValueTestCaseChecker(testClass = MockStaticFieldExample::class) {
 
     @Test
     fun testMockStaticField() {

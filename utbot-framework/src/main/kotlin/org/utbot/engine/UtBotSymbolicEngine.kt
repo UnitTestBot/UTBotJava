@@ -72,13 +72,13 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.graph
-import org.utbot.framework.plugin.api.jimpleBody
+import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.util.jimpleBody
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue

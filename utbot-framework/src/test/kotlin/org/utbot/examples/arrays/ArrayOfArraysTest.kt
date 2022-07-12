@@ -1,6 +1,6 @@
 package org.utbot.examples.arrays
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.atLeast
 import org.utbot.examples.casts.ColoredPoint
@@ -11,7 +11,7 @@ import org.utbot.examples.withoutMinimization
 import org.junit.jupiter.api.Test
 
 @Suppress("NestedLambdaShadowedImplicitParameter")
-internal class ArrayOfArraysTest : AbstractTestCaseGeneratorTest(testClass = ArrayOfArrays::class) {
+internal class ArrayOfArraysTest : UtValueTestCaseChecker(testClass = ArrayOfArrays::class) {
     @Test
     fun testDefaultValues() {
         check(

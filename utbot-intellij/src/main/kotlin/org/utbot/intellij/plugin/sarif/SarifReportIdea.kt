@@ -2,10 +2,10 @@ package org.utbot.intellij.plugin.sarif
 
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.sarif.SarifReport
 import com.intellij.openapi.vfs.VfsUtil
+import org.utbot.intellij.plugin.models.GenerateTestsModel
 
 object SarifReportIdea {
 

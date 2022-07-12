@@ -1,7 +1,7 @@
 package org.utbot.framework
 
 import org.utbot.common.FileUtil
-import org.utbot.framework.plugin.api.runSoot
+import org.utbot.framework.util.runSoot
 import java.nio.file.Path
 import kotlin.reflect.KClass
 

@@ -5,13 +5,12 @@ import org.utbot.common.bracket
 import org.utbot.common.info
 import org.utbot.common.packageName
 import org.utbot.examples.TestFrameworkConfiguration
-import org.utbot.framework.codegen.ExecutionStatus.FAILED
 import org.utbot.framework.codegen.ExecutionStatus.SUCCESS
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
+import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
@@ -23,7 +22,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 
 private val logger = KotlinLogging.logger {}
 
-class BaseTestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFrameworkConfiguration) {
+class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFrameworkConfiguration) {
 
     fun runClassesCodeGenerationTests(classesStages: List<ClassStages>) {
         val pipelines = classesStages.map {
@@ -206,14 +205,13 @@ class BaseTestCodeGeneratorPipeline(private val testFrameworkConfiguration: Test
     ): String {
         val params = mutableMapOf<UtMethod<*>, List<String>>()
 
-        val modelBasedTestCodeGenerator = with(testFrameworkConfiguration) {
-            ModelBasedTestCodeGenerator()
+        val codeGenerator = with(testFrameworkConfiguration) {
+            CodeGenerator()
                 .apply {
                     init(
                         classUnderTest.java,
                         params = params,
                         testFramework = testFramework,
-                        mockFramework = MockFramework.MOCKITO,
                         staticsMocking = staticsMocking,
                         forceStaticMocking = forceStaticMocking,
                         generateWarningsForStaticMocking = false,
@@ -226,7 +224,7 @@ class BaseTestCodeGeneratorPipeline(private val testFrameworkConfiguration: Test
         }
         val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        return modelBasedTestCodeGenerator.generateAsString(testCases, testClassCustomName)
+        return codeGenerator.generateAsString(testCases, testClassCustomName)
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {
@@ -281,7 +279,7 @@ class BaseTestCodeGeneratorPipeline(private val testFrameworkConfiguration: Test
         val buildDir = FileUtil.isolateClassFiles(it).toPath()
         val classPath = System.getProperty("java.class.path")
         val dependencyPath = System.getProperty("java.class.path")
-        UtBotTestCaseGenerator.init(buildDir, classPath, dependencyPath, isCanceled = { false })
+        TestCaseGenerator.init(buildDir, classPath, dependencyPath)
 
         val pipelineStages = runPipelinesStages(
             listOf(
@@ -297,8 +295,8 @@ class BaseTestCodeGeneratorPipeline(private val testFrameworkConfiguration: Test
 
 
     companion object {
-        val CodegenLanguage.defaultCodegenPipeline: BaseTestCodeGeneratorPipeline
-            get() = BaseTestCodeGeneratorPipeline(
+        val CodegenLanguage.defaultCodegenPipeline: TestCodeGeneratorPipeline
+            get() = TestCodeGeneratorPipeline(
                 TestFrameworkConfiguration(
                     testFramework = TestFramework.defaultItem,
                     codegenLanguage = this,
@@ -397,12 +395,6 @@ private fun constructPipelineResultCheck(
 
         statuses[lastStage] == status
     }
-
-private fun failed(stage: Stage) = StageStatusCheck(lastStage = stage, status = FAILED)
-private fun succeeded(stage: Stage) = StageStatusCheck(lastStage = stage, status = SUCCESS)
-
-// Everything succeeded because last step succeeded
-val everythingSucceeded = succeeded(TestExecution)
 
 data class CompilationResult(val buildDirectory: String, val testClassName: String)
 

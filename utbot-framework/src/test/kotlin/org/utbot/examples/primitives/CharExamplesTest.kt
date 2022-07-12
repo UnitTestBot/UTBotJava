@@ -1,11 +1,11 @@
 package org.utbot.examples.primitives
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import org.junit.jupiter.api.Test
 
-internal class CharExamplesTest : AbstractTestCaseGeneratorTest(testClass = CharExamples::class) {
+internal class CharExamplesTest : UtValueTestCaseChecker(testClass = CharExamples::class) {
     @Test
     fun testCharDiv() {
         checkWithException(

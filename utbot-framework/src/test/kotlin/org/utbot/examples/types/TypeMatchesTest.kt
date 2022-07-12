@@ -1,11 +1,11 @@
 package org.utbot.examples.types
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 @Suppress("SimplifyNegatedBinaryExpression")
-internal class TypeMatchesTest : AbstractTestCaseGeneratorTest(testClass = TypeMatches::class) {
+internal class TypeMatchesTest : UtValueTestCaseChecker(testClass = TypeMatches::class) {
     @Test
     fun testCompareDoubleByte() {
         check(

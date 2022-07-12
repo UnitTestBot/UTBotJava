@@ -99,7 +99,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
 
             initializeEngine(workingDirectory)
 
-            // utContext is used in `generateTestCases`, `generateTest`, `generateReport`
+            // utContext is used in `generate`, `generateTest`, `generateReport`
             withUtContext(UtContext(classLoader)) {
 
                 val testClassName = "${classUnderTest.simpleName}Test"

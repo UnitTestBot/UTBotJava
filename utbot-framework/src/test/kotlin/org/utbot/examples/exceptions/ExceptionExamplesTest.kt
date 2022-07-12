@@ -1,6 +1,6 @@
 package org.utbot.examples.exceptions
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
 import org.utbot.examples.ignoreExecutionsNumber
@@ -9,7 +9,7 @@ import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
-internal class ExceptionExamplesTest : AbstractTestCaseGeneratorTest(
+internal class ExceptionExamplesTest : UtValueTestCaseChecker(
     testClass = ExceptionExamples::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

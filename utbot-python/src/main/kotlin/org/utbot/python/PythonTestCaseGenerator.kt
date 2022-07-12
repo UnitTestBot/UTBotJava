@@ -3,8 +3,8 @@ package org.utbot.python
 import org.utbot.framework.plugin.api.UtExecution
 
 object PythonTestCaseGenerator { // : TestCaseGenerator() ?
-    fun generate(method: PythonMethod): PythonTestCase {
-        val engine = PythonEngine(method)
+    fun generate(method: PythonMethod, testSourceRoot: String): PythonTestCase {
+        val engine = PythonEngine(method, testSourceRoot)
         val executions = mutableListOf<UtExecution>()
 
         engine.fuzzing().forEach {

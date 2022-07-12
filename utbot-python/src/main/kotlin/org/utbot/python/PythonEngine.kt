@@ -10,7 +10,10 @@ import org.utbot.fuzzer.names.ModelBasedNameSuggester
 //all id values of synthetic default models must be greater that for real ones
 private var nextDefaultModelId = 1500_000_000
 
-class PythonEngine(private val methodUnderTest: PythonMethod) {
+class PythonEngine(
+    private val methodUnderTest: PythonMethod,
+    private val testSourceRoot: String,
+) {
     // TODO: change sequence to flow
     fun fuzzing(until: Long = Long.MAX_VALUE /*, modelProvider: (ModelProvider) -> ModelProvider = { it }*/): Sequence<UtResult> = sequence {
 
@@ -39,7 +42,7 @@ class PythonEngine(private val methodUnderTest: PythonMethod) {
         fuzz(methodUnderTestDescription, modelProvider /* with fallback? */ ).forEach { values ->
             val modelList = values.map { it.model }
 
-            val result = PythonEvaluation.evaluate(methodUnderTest, modelList)
+            val result = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
 
             val x = Unit
 

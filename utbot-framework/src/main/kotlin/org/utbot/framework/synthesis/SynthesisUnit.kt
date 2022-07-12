@@ -14,6 +14,14 @@ data class ObjectUnit(
     fun isPrimitive() = classId in primitives
 }
 
+data class NullUnit(
+    override val classId: ClassId
+) : SynthesisUnit()
+
+data class RefUnit(
+    override val classId: ClassId,
+    val referenceParam: Int
+) : SynthesisUnit()
 
 data class MethodUnit(
     override val classId: ClassId,
@@ -22,6 +30,8 @@ data class MethodUnit(
 ) : SynthesisUnit()
 
 fun SynthesisUnit.isFullyDefined(): Boolean = when (this) {
+    is NullUnit -> true
+    is RefUnit -> true
     is ObjectUnit -> isPrimitive()
     is MethodUnit -> params.all { it.isFullyDefined() }
 }

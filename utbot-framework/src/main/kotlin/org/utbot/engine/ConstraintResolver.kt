@@ -4,10 +4,8 @@ import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
 import org.utbot.engine.z3.value
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.engine.pc.*
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.*
 import soot.VoidType
 
 data class ResolvedObject(
@@ -31,11 +29,13 @@ data class ResolvedExecutionConstraints(
 class ConstraintResolver(
     private val memory: Memory,
     val holder: UtSolverStatusSAT,
+    val typeRegistry: TypeRegistry,
+    val typeResolver: TypeResolver,
 ) {
 
     lateinit var state: MemoryState
-    private val resolvedConstraints = mutableMapOf<Address, Set<UtBoolExpression>>()
-    private val validSymbols = mutableSetOf<UtExpression>()
+    lateinit var varBuilder: UtVarBuilder
+    private val resolvedConstraints = mutableMapOf<Address, UtModel>()
 
     /**
      * Contains FieldId of the static field which is construction at the moment and null of there is no such field.
@@ -45,7 +45,6 @@ class ConstraintResolver(
 
     private fun clearState() {
         resolvedConstraints.clear()
-        validSymbols.clear()
         resolvedConstraints.clear()
     }
 
@@ -74,8 +73,8 @@ class ConstraintResolver(
         }
     }
 
-    internal fun resolveModels(parameters: List<SymbolicValue>): ResolvedExecutionConstraints {
-        validSymbols.addAll(parameters.map { it.asExpr })
+    internal fun resolveModels(parameters: List<SymbolicValue>): ResolvedExecution {
+        varBuilder = UtVarBuilder(holder, typeRegistry, typeResolver)
         val allAddresses = UtExprCollector { it is UtAddrExpression }.let {
             holder.constraints.hard.forEach { constraint -> constraint.accept(it) }
             holder.constraints.soft.forEach { constraint -> constraint.accept(it) }
@@ -93,14 +92,14 @@ class ConstraintResolver(
             resolvedModels
         }
 
-        return ResolvedExecutionConstraints(modelsBefore, modelsAfter)
+        return ResolvedExecution(modelsBefore, modelsAfter, emptyList())
     }
 
     private fun internalResolveModel(
         parameters: List<SymbolicValue>,
         statics: List<Pair<FieldId, SymbolicValue>>,
         addrs: Map<UtAddrExpression, Address>
-    ): ResolvedConstraints {
+    ): ResolvedModels {
         val parameterModels = parameters.map { resolveModel(it, addrs) }
 
         val staticModels = statics.map { (fieldId, value) ->
@@ -110,61 +109,58 @@ class ConstraintResolver(
         }
 
         val allStatics = staticModels.mapIndexed { i, model -> statics[i].first to model }.toMap()
-        return ResolvedConstraints(parameterModels, allStatics)
+        return ResolvedModels(parameterModels, allStatics)
     }
 
-    fun resolveModel(value: SymbolicValue, addrs: Map<UtAddrExpression, Address>): ResolvedObject = when (value) {
+    fun resolveModel(value: SymbolicValue, addrs: Map<UtAddrExpression, Address>): UtModel = when (value) {
         is PrimitiveValue -> resolvePrimitiveValue(value, addrs)
         is ReferenceValue -> resolveReferenceValue(value, addrs)
     }
 
-    private fun collectConstraintAtoms(predicate: (UtExpression) -> Boolean): Set<UtBoolExpression> = UtAtomCollector(predicate).run {
-        holder.constraints.hard.forEach {
-            it.accept(this)
-        }
-        holder.constraints.soft.forEach {
-            it.accept(this)
-        }
-        result
-    }.map {
-        val rhv = if (holder.eval(it).value() as Boolean) UtTrue else UtFalse
-        UtEqExpression(it, rhv)
-    }.toSet()
+    private fun collectConstraintAtoms(predicate: (UtExpression) -> Boolean): Set<UtConstraint> =
+        UtAtomCollector(predicate).run {
+            holder.constraints.hard.forEach {
+                it.accept(this)
+            }
+            holder.constraints.soft.forEach {
+                it.accept(this)
+            }
+            result
+        }.mapNotNull {
+            it.accept(UtConstraintBuilder(varBuilder))
+        }.toSet()
 
-    private fun collectAtoms(value: SymbolicValue, addrs: Map<UtAddrExpression, Address>): Set<UtBoolExpression> =
+    private fun collectAtoms(value: SymbolicValue, addrs: Map<UtAddrExpression, Address>): Set<UtConstraint> =
         when (value) {
             is PrimitiveValue -> collectConstraintAtoms { it == value.expr }
             is ReferenceValue -> {
                 val concreteAddr = addrs[value.addr]!!
-                if (concreteAddr == NULL_ADDR) {
-                    setOf(
-                        UtEqExpression(UtEqExpression(value.addr, nullObjectAddr), UtTrue)
-                    )
-                } else {
-                    val valueExprs = addrs.filter { it.value == concreteAddr }.keys
-                    validSymbols.addAll(valueExprs)
-                    resolvedConstraints.getOrPut(concreteAddr) {
-                        val set = collectConstraintAtoms { it in valueExprs }.toMutableSet()
-                        set += UtEqExpression(UtEqExpression(value.addr, nullObjectAddr), UtFalse)
-                        set
-                    }
-                }
+                val valueExprs = addrs.filter { it.value == concreteAddr }.keys
+                collectConstraintAtoms { it in valueExprs }
             }
         }
 
-    private fun resolvePrimitiveValue(value: PrimitiveValue, addrs: Map<UtAddrExpression, Address>): ResolvedObject =
+    private fun resolvePrimitiveValue(value: PrimitiveValue, addrs: Map<UtAddrExpression, Address>): UtModel =
         if (value.type == VoidType.v()) {
-            ResolvedObject(value.type.classId, value, Unit, emptySet())
+            UtPrimitiveConstraintModel(Parameter("void", value.type.classId), emptySet())
         } else {
-            ResolvedObject(value.type.classId, value, holder.eval(value.expr), collectAtoms(value, addrs))
+            UtPrimitiveConstraintModel(value.expr.accept(varBuilder), collectAtoms(value, addrs))
         }
 
-    private fun resolveReferenceValue(value: ReferenceValue, addrs: Map<UtAddrExpression, Address>): ResolvedObject =
-        ResolvedObject(value.type.classId, value, holder.concreteAddr(value.addr), collectAtoms(value, addrs))
-
-    private val SymbolicValue.asExpr: UtExpression get() = when (this) {
-        is PrimitiveValue -> expr
-        is ReferenceValue -> addr
+    private fun resolveReferenceValue(value: ReferenceValue, addrs: Map<UtAddrExpression, Address>): UtModel {
+        return when (val address = addrs[value.addr]) {
+            NULL_ADDR -> UtNullModel(value.type.classId)
+            in resolvedConstraints -> UtReferenceToConstraintModel(
+                value.addr.accept(varBuilder),
+                resolvedConstraints[address]!!
+            )
+            else -> UtReferenceConstraintModel(
+                value.addr.accept(varBuilder),
+                collectAtoms(value, addrs)
+            ).also {
+                resolvedConstraints[address!!] = it
+            }
+        }
     }
 }
 

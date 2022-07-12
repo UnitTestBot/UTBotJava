@@ -23,6 +23,7 @@ class Resolver(
         when (unit) {
             is MethodUnit -> resolveMethodUnit(unit)
             is ObjectUnit -> unitToModel[unit] ?: error("Can't map $unit")
+            else -> TODO()
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =

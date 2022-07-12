@@ -482,7 +482,11 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         map { execution ->
             val oldStateBefore = execution.stateBefore
 
-            val aa = ConstrainedSynthesizer((execution.hole as ResolvedExecutionConstraints).modelsAfter)
+            System.err.println("-------------------------------")
+            System.err.println("CONSTRAINTS")
+            System.err.println((execution.hole as ResolvedExecution).modelsAfter)
+            System.err.println("-------------------------------")
+            val aa = ConstrainedSynthesizer((execution.hole as ResolvedExecution).modelsAfter)
             aa.synthesize()
 
             val newThisModel = oldStateBefore.thisInstance?.let { toAssembleModel(it) }

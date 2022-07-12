@@ -24,23 +24,24 @@ class ConstrainedSynthesisUnitChecker(
         val context = synthesizer.synthesize(units)
         val method = context.method("\$initializer_${id++}", declaringClass)
 
+        logger.error { "Generated constraint method" }
         logger.error { method.activeBody }
 
-        System.err.println("Running engine...")
-        val scoringStrategy = ScoringStrategyBuilder(
-            emptyMap()
-        )
-        val execution = withPathSelector(PathSelectorType.INHERITORS_SELECTOR) {
-            UtBotTestCaseGenerator.generateWithPostCondition(
-                method,
-                MockStrategyApi.NO_MOCKS,
-                postCondition,
-                scoringStrategy
-            ).firstOrNull()
-        } ?: return null
-
-
-        logger.error { execution }
+//        System.err.println("Running engine...")
+//        val scoringStrategy = ScoringStrategyBuilder(
+//            emptyMap()
+//        )
+//        val execution = withPathSelector(PathSelectorType.INHERITORS_SELECTOR) {
+//            UtBotTestCaseGenerator.generateWithPostCondition(
+//                method,
+//                MockStrategyApi.NO_MOCKS,
+//                postCondition,
+//                scoringStrategy
+//            ).firstOrNull()
+//        } ?: return null
+//
+//
+//        logger.error { execution }
         return null
 //        return context.resolve(listOfNotNull(execution.stateBefore.thisInstance) + execution.stateBefore.parameters)
 //            .also {

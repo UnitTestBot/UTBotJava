@@ -82,6 +82,7 @@ class JimpleMethodSynthesizer {
         private fun synthesizeUnit(unit: SynthesisUnit): JimpleLocal = when (unit) {
             is ObjectUnit -> synthesizeCompositeUnit(unit)
             is MethodUnit -> synthesizeMethodUnit(unit)
+            else -> TODO()
         }
 
         private fun synthesizeCompositeUnit(unit: SynthesisUnit): JimpleLocal {

@@ -174,6 +174,7 @@ class ValueConstructor {
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            else -> error("Unexpected ut model: $model")
         }
     }
 

@@ -27,7 +27,6 @@ class Synthesizer(
         while (!queue.isEmpty()) {
 
             val unit = queue.poll()!!
-            System.err.println("Visiting state: $unit")
 
             val assembleModel = unitChecker.tryGenerate(unit, postConditionChecker)
             if (assembleModel != null) {
@@ -73,7 +72,9 @@ class SynthesisUnitQueue(
             methodsCount.compareTo(other.methodsCount)
 
         private fun SynthesisUnit.countMethodCalls(): Int = when (this) {
+            is NullUnit -> 0
             is ObjectUnit -> 0
+            is RefUnit -> 0
             is MethodUnit -> 1 + this.params.fold(0) { sum, unit -> sum + unit.countMethodCalls() }
         }
     }

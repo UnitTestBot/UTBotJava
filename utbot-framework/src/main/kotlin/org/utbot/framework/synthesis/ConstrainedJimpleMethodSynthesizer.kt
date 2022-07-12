@@ -12,6 +12,7 @@ import soot.Type
 import soot.VoidType
 import soot.jimple.IdentityStmt
 import soot.jimple.JimpleBody
+import soot.jimple.NullConstant
 import soot.jimple.Stmt
 import soot.jimple.internal.JimpleLocal
 import java.util.*
@@ -47,9 +48,6 @@ class ConstrainedJimpleMethodSynthesizer {
                 val local = synthesizeUnit(unit)
                 unitToLocal_[unit] = local
             }
-//            val local = synthesizeUnit(rootUnit)
-//            returnType = local.type
-//
             val returnStmt = returnVoidStatement()
 
             body = (identities + stmts + returnStmt).toGraphBody()
@@ -63,14 +61,11 @@ class ConstrainedJimpleMethodSynthesizer {
             }
         }
 
-//        fun resolve(parameterModels: List<UtModel>): UtModel {
-//            val resolver = Resolver(parameterModels, unitToParameter)
-//            return resolver.resolve(rootUnit)
-//        }
-
         private fun synthesizeUnit(unit: SynthesisUnit): JimpleLocal = when (unit) {
             is ObjectUnit -> synthesizeCompositeUnit(unit)
             is MethodUnit -> synthesizeMethodUnit(unit)
+            is NullUnit -> synthesizeNullUnit(unit)
+            is RefUnit -> synthesizeRefUnit(unit)
         }
 
         private fun synthesizeCompositeUnit(unit: SynthesisUnit): JimpleLocal {
@@ -99,6 +94,23 @@ class ConstrainedJimpleMethodSynthesizer {
                 }
             }
             return result
+        }
+
+        private fun synthesizeNullUnit(unit: NullUnit): JimpleLocal {
+            val sootType = unit.classId.toSootType()
+            val local = JimpleLocal(nextName(), sootType)
+            val assign = assignStmt(local, NullConstant.v())
+            stmts += assign
+            return local
+        }
+
+        private fun synthesizeRefUnit(unit: RefUnit): JimpleLocal {
+            val sootType = unit.classId.toSootType()
+            val ref = unitToLocal[rootUnits[unit.referenceParam]]!!
+            val local = JimpleLocal(nextName(), sootType)
+            val assign = assignStmt(local, ref)
+            stmts += assign
+            return local
         }
 
         private fun synthesizeVirtualInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {
@@ -131,11 +143,5 @@ class ConstrainedJimpleMethodSynthesizer {
 
             return local
         }
-
-/*
-        private fun synthesizePrimitiveUnit(unit: ObjectUnit): JimpleLocal {
-
-        }
-*/
     }
 }

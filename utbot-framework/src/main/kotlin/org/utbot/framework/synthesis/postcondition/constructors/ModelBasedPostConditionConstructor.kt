@@ -146,6 +146,7 @@ private class ConstraintBuilder(
                 UtVoidModel -> {
                     constraints += mkEq(voidValue, sv).asHardConstraint()
                 }
+                else -> TODO()
             }
         }
     }
@@ -232,6 +233,7 @@ private class SoftConstraintBuilder(
                 UtVoidModel -> {
                     constraints += mkEq(voidValue, sv).asSoftConstraint()
                 }
+                else -> TODO()
             }
         }
     }

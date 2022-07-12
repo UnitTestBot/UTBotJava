@@ -127,6 +127,7 @@ class MockValueConstructor(
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtVoidModel -> UtConcreteValue(Unit)
+            else -> error("Unexpected model ${model::class}")
         }
     }
 

@@ -1,23 +1,7 @@
 package org.utbot.framework.minimization
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 
 /**
  * Minimizes [executions] in each test suite independently. Test suite is computed with [executionToTestSuite] function.
@@ -218,7 +202,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
 
     return when (this) {
         is UtNullModel, is UtPrimitiveModel, UtVoidModel -> 0
-        is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel -> 1
+        is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel, is UtConstraintModel -> 1
         is UtAssembleModel -> 1 + allStatementsChain.sumOf { it.calculateSize(used) }
         is UtCompositeModel -> 1 + fields.values.sumOf { it.calculateSize(used) }
     }

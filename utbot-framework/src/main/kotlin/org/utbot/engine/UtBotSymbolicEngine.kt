@@ -3684,7 +3684,12 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(state.executionStack.first().method)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
-        val resolvedConstraints = ConstraintResolver(updatedMemory, holder).run { resolveModels(resolvedParameters) }
+        val resolvedConstraints = ConstraintResolver(
+            updatedMemory,
+            holder,
+            typeRegistry,
+            typeResolver
+        ).run { resolveModels(resolvedParameters) }
 
         val symbolicUtExecution = UtExecution(
             stateBefore,

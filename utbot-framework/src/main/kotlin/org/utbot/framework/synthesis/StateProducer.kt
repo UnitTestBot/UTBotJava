@@ -30,6 +30,8 @@ class LeafExpanderProducer(
                 }
             }
             is ObjectUnit -> leafExpander.expand(state)
+            is NullUnit -> emptyList()
+            is RefUnit -> emptyList()
         }
 }
 
@@ -40,7 +42,9 @@ class CompositeUnitExpander(
         if (objectUnit.isPrimitive()) {
             return emptyList()
         }
-        statementsStorage.update(setOf(objectUnit.classId))
+        if (objectUnit.classId !in statementsStorage.items.keys.map { it.classId }.toSet()) {
+            statementsStorage.update(setOf(objectUnit.classId))
+        }
         val mutators = findMutators(objectUnit.classId)
 
         val expanded = mutators.map { method ->

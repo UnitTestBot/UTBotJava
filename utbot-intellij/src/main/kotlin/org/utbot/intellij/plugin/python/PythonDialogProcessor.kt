@@ -1,14 +1,12 @@
 package org.utbot.intellij.plugin.python
 
+import org.utbot.python.PythonEvaluation
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiClass
 import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
-import org.jetbrains.kotlin.idea.util.module
-import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.testModule
 
 object PythonDialogProcessor {
@@ -49,6 +47,5 @@ object PythonDialogProcessor {
     }
 
     private fun createTests(project: Project, model: PythonTestsModel) {
-        // TODO
     }
 }

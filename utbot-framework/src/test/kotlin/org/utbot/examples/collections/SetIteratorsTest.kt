@@ -1,6 +1,6 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.between
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
@@ -10,7 +10,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-class SetIteratorsTest : UtTestCaseChecker(
+class SetIteratorsTest : UtValueTestCaseChecker(
     testClass = SetIterators::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

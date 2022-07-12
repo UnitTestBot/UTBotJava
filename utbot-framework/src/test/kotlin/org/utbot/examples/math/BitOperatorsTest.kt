@@ -1,11 +1,11 @@
 package org.utbot.examples.math
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class BitOperatorsTest : UtTestCaseChecker(testClass = BitOperators::class) {
+internal class BitOperatorsTest : UtValueTestCaseChecker(testClass = BitOperators::class) {
     @Test
     fun testComplement() {
         check(

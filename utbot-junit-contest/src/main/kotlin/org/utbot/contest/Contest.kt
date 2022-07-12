@@ -331,7 +331,7 @@ fun runGeneration(
 
                         }
 
-                        testCaseGenerator.generateTestCasesAsync(controller, method, mockStrategyApi)
+                        testCaseGenerator.generateAsync(controller, method, mockStrategyApi)
                             .collect { result ->
                                 when (result) {
                                     is UtExecution -> {

@@ -15,7 +15,6 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecution
@@ -40,7 +39,7 @@ import kotlin.reflect.KFunction3
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.framework.UtSettings.useFuzzing
 
-internal abstract class UtModelChecker(
+internal abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
     languagePipelines: List<CodeGenerationLanguageLastStage> = listOf(
@@ -138,7 +137,7 @@ internal abstract class UtModelChecker(
             buildDir = findPathToClassFiles(classLocation)
             previousClassLocation = classLocation
         }
-        TestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
+        TestSpecificTestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
         return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
     }
 

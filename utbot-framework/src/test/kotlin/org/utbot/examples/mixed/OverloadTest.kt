@@ -1,10 +1,10 @@
 package org.utbot.examples.mixed
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class OverloadTest : UtTestCaseChecker(testClass = Overload::class) {
+internal class OverloadTest : UtValueTestCaseChecker(testClass = Overload::class) {
     @Test
     fun testSignOneParam() {
         check(

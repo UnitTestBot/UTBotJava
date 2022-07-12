@@ -1,6 +1,6 @@
 package org.utbot.examples.models
 
-import org.utbot.examples.UtModelChecker
+import org.utbot.examples.UtModelTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.UtReferenceModel
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-internal class ModelsIdEqualityChecker : UtModelChecker(
+internal class ModelsIdEqualityChecker : UtModelTestCaseChecker(
     testClass = ModelsIdEqualityExample::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

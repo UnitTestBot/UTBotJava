@@ -1,11 +1,11 @@
 package org.utbot.examples.codegen
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-class VoidStaticMethodsTest : UtTestCaseChecker(testClass = VoidStaticMethodsTestingClass::class) {
+class VoidStaticMethodsTest : UtValueTestCaseChecker(testClass = VoidStaticMethodsTestingClass::class) {
     @Test
     fun testInvokeChangeStaticFieldMethod() {
         check(

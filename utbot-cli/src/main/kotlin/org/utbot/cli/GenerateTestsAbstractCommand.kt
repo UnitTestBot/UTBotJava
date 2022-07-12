@@ -159,7 +159,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
     ): List<UtTestCase> =
-        TestCaseGenerator.generateTestCases(
+        TestCaseGenerator.generate(
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,

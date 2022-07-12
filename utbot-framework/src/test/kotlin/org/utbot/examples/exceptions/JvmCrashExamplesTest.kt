@@ -1,12 +1,12 @@
 package org.utbot.examples.exceptions
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class JvmCrashExamplesTest : UtTestCaseChecker(testClass = JvmCrashExamples::class) {
+internal class JvmCrashExamplesTest : UtValueTestCaseChecker(testClass = JvmCrashExamples::class) {
     @Test
     @Disabled("JIRA:1527")
     fun testExit() {

@@ -1,6 +1,6 @@
 package org.utbot.examples.exceptions
 
-import org.utbot.examples.UtModelChecker
+import org.utbot.examples.UtModelTestCaseChecker
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.primitiveValue
@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.junit.jupiter.api.Test
 
 internal class ExceptionClusteringChecker :
-    UtModelChecker(testClass = ExceptionClusteringExamples::class) {
+    UtModelTestCaseChecker(testClass = ExceptionClusteringExamples::class) {
     /**
      * Difference is in throwing unchecked exceptions - for method under test is [UtExpectedCheckedThrow].
      */

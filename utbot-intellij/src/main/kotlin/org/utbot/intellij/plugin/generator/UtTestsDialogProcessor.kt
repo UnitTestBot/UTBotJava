@@ -30,7 +30,7 @@ import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withSubstitutionCondition
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.intellij.plugin.generator.CodeGenerationProcessor.generateTests
+import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
@@ -187,7 +187,7 @@ object UtTestsDialogProcessor {
 
                                     val notEmptyCases = withUtContext(context) {
                                         testCaseGenerator
-                                            .generateTestCases(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
+                                            .generate(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
                                             .map { it.summarize(searchDirectory) }
                                             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
                                     }

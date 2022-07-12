@@ -1,10 +1,10 @@
 package org.utbot.examples.mixed
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class StaticMethodExamplesTest : UtTestCaseChecker(testClass = StaticMethodExamples::class) {
+internal class StaticMethodExamplesTest : UtValueTestCaseChecker(testClass = StaticMethodExamples::class) {
     // TODO: inline local variables when types inference bug in Kotlin fixed
     @Test
     fun testComplement() {

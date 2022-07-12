@@ -1,11 +1,11 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class ByteWrapperTest : UtTestCaseChecker(testClass = ByteWrapper::class) {
+internal class ByteWrapperTest : UtValueTestCaseChecker(testClass = ByteWrapper::class) {
     @Test
     fun primitiveToWrapperTest() {
         check(

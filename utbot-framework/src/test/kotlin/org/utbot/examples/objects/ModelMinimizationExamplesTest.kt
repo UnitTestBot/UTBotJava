@@ -1,11 +1,11 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.UtTestCaseChecker
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.Test
 
-internal class ModelMinimizationExamplesTest : UtTestCaseChecker(testClass = ModelMinimizationExamples::class) {
+internal class ModelMinimizationExamplesTest : UtValueTestCaseChecker(testClass = ModelMinimizationExamples::class) {
     @Test
     fun singleValueComparisonTest() {
         check(

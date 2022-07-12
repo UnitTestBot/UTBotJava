@@ -125,7 +125,7 @@ object TestCaseGenerator {
         }
 
     @Throws(CancellationException::class)
-    fun generateTestCasesAsync(
+    fun generateAsync(
         controller: EngineController,
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
@@ -136,7 +136,7 @@ object TestCaseGenerator {
         return createDefaultFlow(engine)
     }
 
-    fun generateTestCases(
+    fun generate(
         methods: List<UtMethod<*>>,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },

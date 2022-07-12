@@ -127,7 +127,7 @@ object UtBotJavaApi {
                         FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
                     )
                 }
-                .generateTestCases(
+                .generate(
                     methodsForAutomaticGeneration.map {
                         toUtMethod(
                             it.methodToBeTestedFromUserInput,
@@ -191,7 +191,7 @@ object UtBotJavaApi {
                     init(
                         FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
                     )
-                }.generateTestCases(
+                }.generate(
                     methodsForAutomaticGeneration.map {
                         toUtMethod(
                             it.methodToBeTestedFromUserInput,

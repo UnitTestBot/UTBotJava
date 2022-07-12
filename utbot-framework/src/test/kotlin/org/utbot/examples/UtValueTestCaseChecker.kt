@@ -42,7 +42,6 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.ObjectMockTarget
 import org.utbot.framework.plugin.api.ParameterMockTarget
-import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtInstrumentation
@@ -72,7 +71,7 @@ import kotlin.reflect.KFunction5
 
 val logger = KotlinLogging.logger {}
 
-abstract class UtTestCaseChecker(
+abstract class UtValueTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
     languagePipelines: List<CodeGenerationLanguageLastStage> = listOf(
@@ -2493,7 +2492,7 @@ abstract class UtTestCaseChecker(
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String
     ): UtTestCase {
-        TestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
+        TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
         return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
     }
 
@@ -2504,7 +2503,7 @@ abstract class UtTestCaseChecker(
     ): UtTestCase {
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method, additionalDependencies)
-        TestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
+        TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
         withUtContext(UtContext(method.clazz.java.classLoader)) {
             return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
         }

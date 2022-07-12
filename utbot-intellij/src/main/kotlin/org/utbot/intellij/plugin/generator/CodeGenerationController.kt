@@ -62,10 +62,10 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.intellij.plugin.generator.CodeGenerationProcessor.Target.EDT_LATER
-import org.utbot.intellij.plugin.generator.CodeGenerationProcessor.Target.READ_ACTION
-import org.utbot.intellij.plugin.generator.CodeGenerationProcessor.Target.THREAD_POOL
-import org.utbot.intellij.plugin.generator.CodeGenerationProcessor.Target.WRITE_ACTION
+import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.EDT_LATER
+import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.READ_ACTION
+import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.THREAD_POOL
+import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.WRITE_ACTION
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
@@ -85,7 +85,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
-object CodeGenerationProcessor {
+object CodeGenerationController {
     private enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
     fun generateTests(model: GenerateTestsModel, testCasesByClass: Map<PsiClass, List<UtTestCase>>) {

@@ -226,7 +226,7 @@ class SarifReportTest {
 
         val testCases = listOf(
             UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
-            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // duplicate with longer stack trace
+            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // duplicate with a longer stack trace
         )
 
         val report = SarifReport(
@@ -236,7 +236,7 @@ class SarifReportTest {
         ).createReport().toSarif()
 
         assert(report.runs.first().results.size == 1) // no duplicates
-        assert(report.runs.first().results.first().totalCodeFlowLocations() == 1) // with shorter stack trace
+        assert(report.runs.first().results.first().totalCodeFlowLocations() == 1) // with a shorter stack trace
     }
 
     // internal

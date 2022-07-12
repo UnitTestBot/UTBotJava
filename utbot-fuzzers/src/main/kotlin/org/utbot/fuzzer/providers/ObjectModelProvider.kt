@@ -24,8 +24,9 @@ import org.utbot.fuzzer.objectModelProviders
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
+import java.lang.reflect.Member
 import java.lang.reflect.Method
-import java.lang.reflect.Modifier
+import java.lang.reflect.Modifier.*
 import java.util.function.BiConsumer
 import java.util.function.IntSupplier
 
@@ -67,7 +68,7 @@ class ObjectModelProvider : ModelProvider {
                 .filterNot { it == stringClassId || it.isPrimitiveWrapper }
                 .flatMap { classId ->
                     collectConstructors(classId) { javaConstructor ->
-                        isPublic(javaConstructor)
+                        isAccessible(javaConstructor, description.packageName)
                     }.sortedWith(
                         primitiveParameterizedConstructorsFirstAndThenByParameterCount
                     ).take(limit)
@@ -81,7 +82,7 @@ class ObjectModelProvider : ModelProvider {
                 .flatMap { (constructorId, fuzzedParameters) ->
                     if (constructorId.parameters.isEmpty()) {
                         sequenceOf(assembleModel(idGenerator.asInt, constructorId, emptyList())) +
-                                generateModelsWithFieldsInitialization(constructorId, concreteValues)
+                                generateModelsWithFieldsInitialization(constructorId, description, concreteValues)
                     }
                     else {
                         fuzzedParameters.map { params ->
@@ -98,8 +99,8 @@ class ObjectModelProvider : ModelProvider {
         }
     }
 
-    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
-        val fields = findSuitableFields(constructorId.classId)
+    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
+        val fields = findSuitableFields(constructorId.classId, description)
         val syntheticClassFieldsSetterMethodDescription = FuzzedMethodDescription(
             "${constructorId.classId.simpleName}<syntheticClassFieldSetter>",
             voidClassId,
@@ -115,15 +116,15 @@ class ObjectModelProvider : ModelProvider {
                 fieldValues.asSequence().mapIndexedNotNull { index, value ->
                     val field = fields[index]
                     when {
-                        field.setter != null -> UtExecutableCallModel(
-                            fuzzedModel.model,
-                            MethodId(constructorId.classId, field.setter.name, field.setter.returnType.id, listOf(field.classId)),
-                            listOf(value.model)
-                        )
                         field.canBeSetDirectly -> UtDirectSetFieldModel(
                             fuzzedModel.model,
                             FieldId(constructorId.classId, field.name),
                             value.model
+                        )
+                        field.setter != null -> UtExecutableCallModel(
+                            fuzzedModel.model,
+                            MethodId(constructorId.classId, field.setter.name, field.setter.returnType.id, listOf(field.classId)),
+                            listOf(value.model)
                         )
                         else -> null
                     }
@@ -141,8 +142,16 @@ class ObjectModelProvider : ModelProvider {
                 }
         }
 
-        private fun isPublic(javaConstructor: Constructor<*>): Boolean {
-            return javaConstructor.modifiers and Modifier.PUBLIC != 0
+        private fun isAccessible(member: Member, packageName: String?): Boolean {
+            return isPublic(member.modifiers) ||
+                    (isPackagePrivate(member.modifiers) && member.declaringClass.`package`.name == packageName)
+        }
+
+        private fun isPackagePrivate(modifiers: Int): Boolean {
+            val hasAnyAccessModifier = isPrivate(modifiers)
+                    || isProtected(modifiers)
+                    || isProtected(modifiers)
+            return !hasAnyAccessModifier
         }
 
         private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
@@ -168,26 +177,26 @@ class ObjectModelProvider : ModelProvider {
             }
         }
 
-        private fun findSuitableFields(classId: ClassId): List<FieldDescription>  {
+        private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {
             val jClass = classId.jClass
             return jClass.declaredFields.map { field ->
                 FieldDescription(
                     field.name,
                     field.type.id,
-                    field.isPublic && !field.isFinal && !field.isStatic,
-                    jClass.findPublicSetterIfHasPublicGetter(field)
+                    isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
+                    jClass.findPublicSetterIfHasPublicGetter(field, description)
                 )
             }
         }
 
-        private fun Class<*>.findPublicSetterIfHasPublicGetter(field: Field): Method? {
+        private fun Class<*>.findPublicSetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): Method? {
             val postfixName = field.name.capitalize()
             val setterName = "set$postfixName"
             val getterName = "get$postfixName"
             val getter = try { getDeclaredMethod(getterName) } catch (_: NoSuchMethodException) { return null }
-            return if (getter has Modifier.PUBLIC && getter.returnType == field.type) {
+            return if (isAccessible(getter, description.packageName) && getter.returnType == field.type) {
                 declaredMethods.find {
-                    it has Modifier.PUBLIC &&
+                    isAccessible(it, description.packageName) &&
                             it.name == setterName &&
                             it.parameterCount == 1 &&
                             it.parameterTypes[0] == field.type
@@ -196,18 +205,6 @@ class ObjectModelProvider : ModelProvider {
                 null
             }
         }
-        private val Field.isPublic
-            get() = has(Modifier.PUBLIC)
-
-        private val Field.isFinal
-            get() = has(Modifier.FINAL)
-
-        private val Field.isStatic
-            get() = has(Modifier.STATIC)
-
-        private infix fun Field.has(modifier: Int) = (modifiers and modifier) != 0
-
-        private infix fun Method.has(modifier: Int) = (modifiers and modifier) != 0
 
         private val primitiveParameterizedConstructorsFirstAndThenByParameterCount =
             compareByDescending<ConstructorId> { constructorId ->

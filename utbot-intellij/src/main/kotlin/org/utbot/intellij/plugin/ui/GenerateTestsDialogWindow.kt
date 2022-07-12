@@ -238,10 +238,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
             row {
                 component(cbSpecifyTestPackage)
-            }
+            }.apply { visible = false }
             row("Destination package:") {
                 component(testPackageField)
-            }
+            }.apply { visible = false }
+
             row("Generate test methods for:") {}
             row {
                 scrollPane(membersTable)
@@ -465,11 +466,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         }
 
-        if (cbSpecifyTestPackage.isSelected && testPackageField.text.isEmpty()) {
-            showTestPackageAbsenceErrorMessage()
-            return
-        }
-
         configureJvmTargetIfRequired()
         configureTestFrameworkIfRequired()
         configureMockFrameworkIfRequired()
@@ -528,12 +524,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun showTestRootAbsenceErrorMessage() =
         Messages.showErrorDialog(
             "Test source root is not configured or is located out of content entry!",
-            "Generation error"
-        )
-
-    private fun showTestPackageAbsenceErrorMessage() =
-        Messages.showErrorDialog(
-            "Specify a package to store tests in.",
             "Generation error"
         )
 
@@ -866,14 +856,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         cbSpecifyTestPackage.addActionListener {
             val testPackageName = findTestPackageComboValue()
+            val packageNameIsNeeded = testPackageField.isEnabled || testPackageName != SAME_PACKAGE_LABEL
 
-            if (testPackageField.isEnabled) {
-                testPackageField.isEnabled = false
-                testPackageField.text = testPackageName
-            } else {
-                testPackageField.isEnabled = true
-                testPackageField.text = if (testPackageName != SAME_PACKAGE_LABEL) testPackageName else ""
-            }
+            testPackageField.text = if (packageNameIsNeeded) testPackageName else ""
+            testPackageField.isEnabled = !testPackageField.isEnabled
         }
     }
 

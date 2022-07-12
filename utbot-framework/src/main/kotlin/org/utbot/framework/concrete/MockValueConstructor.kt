@@ -2,11 +2,10 @@ package org.utbot.framework.concrete
 
 import java.io.Closeable
 import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.IdentityHashMap
 import kotlin.reflect.KClass
-import org.mockito.Mockito
-import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
 import org.utbot.common.findField
 import org.utbot.common.findFieldOrNull
@@ -65,6 +64,7 @@ class MockValueConstructor(
         get() = utContext.classLoader
 
     private val mockGetterProvider = MockGetterProvider(classLoader)
+    private val mockitoProvider = MockitoProvider(classLoader)
 
     val objectToModelCache: IdentityHashMap<Any, UtModel>
         get() {
@@ -190,7 +190,7 @@ class MockValueConstructor(
         return classInstance
     }
 
-    private fun generateMockitoAnswer(methodToValues: Map<in ExecutableId, List<UtModel>>): Answer<*> {
+    private fun generateMockitoAnswer(methodToValues: Map<in ExecutableId, List<UtModel>>): Any {
         val pointers = methodToValues.mapValues { (_, _) -> 0 }.toMutableMap()
         val concreteValues = methodToValues.mapValues { (_, models) ->
             models.map { model ->
@@ -200,24 +200,11 @@ class MockValueConstructor(
                 // This model has to be already constructed, so it is OK to pass null as a target
             }
         }
-        return Answer { invocation ->
-            with(invocation.method) {
-                pointers[executableId].let { pointer ->
-                    concreteValues[executableId].let { values ->
-                        if (pointer != null && values != null && pointer < values.size) {
-                            pointers[executableId] = pointer + 1
-                            values[pointer]
-                        } else {
-                            invocation.callRealMethod()
-                        }
-                    }
-                }
-            }
-        }
+        return mockitoProvider.buildAnswer(concreteValues, pointers, Method::executableId)
     }
 
     private fun generateMockitoMock(clazz: Class<*>, mocks: Map<ExecutableId, List<UtModel>>): Any {
-        return Mockito.mock(clazz, generateMockitoAnswer(mocks))
+        return mockitoProvider.mock(clazz, generateMockitoAnswer(mocks))
     }
 
     private fun computeConcreteValuesForMethods(

@@ -2,7 +2,7 @@ package org.utbot.python
 
 import org.utbot.framework.plugin.api.UtExecution
 
-class PythonTestCaseGenerator { // : TestCaseGenerator() ?
+object PythonTestCaseGenerator { // : TestCaseGenerator() ?
     fun generate(method: PythonMethod): PythonTestCase {
         val engine = PythonEngine(method)
         val executions = mutableListOf<UtExecution>()

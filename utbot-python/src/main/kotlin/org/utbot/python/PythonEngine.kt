@@ -39,6 +39,10 @@ class PythonEngine(private val methodUnderTest: PythonMethod) {
         fuzz(methodUnderTestDescription, modelProvider /* with fallback? */ ).forEach { values ->
             val modelList = values.map { it.model }
 
+            val result = PythonEvaluation.evaluate(methodUnderTest, modelList)
+
+            val x = Unit
+
             // execute method to get function return
             // what if exception happens?
 

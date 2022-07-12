@@ -13,6 +13,7 @@ import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
+import org.utbot.python.PythonTestCaseGenerator
 import java.nio.charset.StandardCharsets
 
 
@@ -83,9 +84,10 @@ object PythonDialogProcessor {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
                 val pythonMethods = findSelectedPythonMethods(model)
-                val pythonMethodsAsStrings = pythonMethods.map { it.asString() }
 
-                val x = "here"
+                pythonMethods.forEach { method ->
+                    PythonTestCaseGenerator.generate(method)
+                }
             }
         })
     }

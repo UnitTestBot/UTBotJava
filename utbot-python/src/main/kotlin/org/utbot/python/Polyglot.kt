@@ -1,5 +1,6 @@
 package org.utbot.python
 
+/*
 import org.graalvm.polyglot.Context
 
 object Polyglot {
@@ -11,3 +12,4 @@ object Polyglot {
         println(result)
     }
 }
+*/

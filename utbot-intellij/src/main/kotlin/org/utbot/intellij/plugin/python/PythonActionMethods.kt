@@ -1,5 +1,7 @@
 package org.utbot.intellij.plugin.python
 
+import org.utbot.python.PythonCode
+import org.utbot.python.PythonCode.Companion.getFromString
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
@@ -11,27 +13,29 @@ import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.jetbrains.kotlin.idea.util.module
+import java.nio.charset.StandardCharsets
+
 
 object PythonActionMethods {
     const val pythonID = "Python"
 
     data class Targets(
-        val functions: Set<PyMemberInfo<PyElement>>,
+        val functions: Set<PyFunction>,
+        val containingClass: PyClass?,
         val focusedFunction: PyFunction?,
-        val module: Module,
-        val files: Set<PyFile>
+        val file: PyFile
     )
 
     fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (functions, focusedFunction, module, files) = getPsiTargets(e) ?: return
+        val (functions, containingClass, focusedFunction, file) = getPsiTargets(e) ?: return
 
          PythonDialogProcessor.createDialogAndGenerateTests(
              project,
-             module,
              functions,
+             containingClass,
              focusedFunction,
-             files
+             file
          )
     }
 
@@ -40,11 +44,9 @@ object PythonActionMethods {
     }
 
     private fun getPsiTargets(e: AnActionEvent): Targets? {
-        val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
         val file = e.getData(CommonDataKeys.PSI_FILE) as? PyFile ?: return null
         val element = findPsiElement(file, editor) ?: return null
-
 
         val containingFunction = IterationUtils.getContainingElement<PyFunction>(element)
         val containingClass = IterationUtils.getContainingElement<PyClass>(element)
@@ -55,25 +57,15 @@ object PythonActionMethods {
                 return null
 
             val focusedFunction = if (functions.contains(containingFunction)) containingFunction else null
-            return Targets(
-                pyFunctionsToPyMemberInfo(project, functions),
-                focusedFunction,
-                findSrcModule(functions) { it.module },
-                setOf(file)
-            )
+            return Targets(functions.toSet(), null, focusedFunction, file)
         }
 
-        val infos = PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass).filter { it.member is PyFunction }
-        if (infos.isEmpty())
+        val functions = containingClass.methods
+        if (functions.isEmpty())
             return null
 
-        val focusedFunction = if (infos.any {it.member.name == containingFunction?.name}) containingFunction else null
-        return Targets(
-            infos.toSet(),
-            focusedFunction,
-            findSrcModule(infos) { (it.member as? PyFunction)?.module },
-            setOf(file)
-        )
+        val focusedFunction = if (functions.any {it.name == containingFunction?.name}) containingFunction else null
+        return Targets(functions.toSet(), containingClass, focusedFunction, file)
     }
 
     // this method is copy-paste from GenerateTestsActions.kt
@@ -85,32 +77,5 @@ object PythonActionMethods {
         }
 
         return element
-    }
-
-    private fun <T> findSrcModule(
-        fileMethods: Collection<T>,
-        getElementModule: (T) -> Module?,
-    ): Module {
-        val srcModules = fileMethods.mapNotNull(getElementModule).distinct()
-        return when (srcModules.size) {
-            0 -> error("Module for source classes not found")
-            1 -> srcModules.first()
-            else -> error("Can not generate tests for classes from different modules")
-        }
-    }
-
-    private fun pyFunctionsToPyMemberInfo(project: Project, functions: List<PyFunction>): Set<PyMemberInfo<PyElement>> {
-        val generator = PyElementGenerator.getInstance(project)
-        val newClass = generator.createFromText(
-            LanguageLevel.getDefault(),
-            PyClass::class.java,
-            "class __ivtdjvrdkgbmpmsclaro__:\npass"
-        )
-        functions.forEach {
-            newClass.add(it)
-        }
-        val storage = PyMemberInfoStorage(newClass)
-        val infos = storage.getClassMemberInfos(newClass)
-        return infos.toSet()
     }
 }

@@ -5,20 +5,32 @@ import io.github.danielnaczo.python3parser.Python3Parser
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.mods.Module
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
+import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
+import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.longClassId
 import java.util.*
 
-class PythonCode(private val body: Module) {
 
+class PythonCode(private val body: Module) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.statements.mapNotNull { statement ->
             (statement as? FunctionDef)?.let { functionDef: FunctionDef ->
                 PythonMethodBody(functionDef)
+            }
+        }
+
+    fun getToplevelClasses(): List<PythonClass> =
+        body.statements.mapNotNull { statement ->
+            (statement as? ClassDef)?.let { classDef: ClassDef ->
+                PythonClass(classDef)
             }
         }
 
@@ -35,6 +47,14 @@ class PythonCode(private val body: Module) {
     }
 }
 
+class PythonClass(private val ast: ClassDef) {
+    val name: String
+        get() = ast.name.name
+
+    val methods: List<PythonMethodBody>
+        get() = ast.functionDefs.map { PythonMethodBody(it) }
+}
+
 class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     override val name: String
         get() = ast.name.name
@@ -46,7 +66,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         get() = returnTypeAsString?.let { typeAsStringToClassId(it) }
 
     // TODO: consider cases of default and named arguments
-    /* private */ val getParams: List<Parameter> =
+    private val getParams: List<Parameter> =
         if (ast.parameters.isPresent) ast.parameters.get().params else emptyList()
 
     override val arguments: List<PythonArgument>
@@ -57,8 +77,18 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
             )
         }
 
+    override fun asString(): String {
+        val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
+        return modulePrettyPrintVisitor.visitModule(Module(listOf(ast)), IndentationPrettyPrint(0))
+    }
+
     companion object {
-        fun typeAsStringToClassId(typeAsString: String): ClassId? = TODO("Not yet implemented")
+        fun typeAsStringToClassId(typeAsString: String): ClassId? =
+            when (typeAsString) {
+                "int" -> longClassId // change to long arithmetics?
+                "float" -> doubleClassId
+                else -> null
+            }
 
         fun annotationToString(annotation: Optional<Expression>): String? =
             if (annotation.isPresent) (annotation.get() as? Name)?.id?.name else null

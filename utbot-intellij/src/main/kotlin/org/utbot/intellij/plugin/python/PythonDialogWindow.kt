@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
@@ -14,6 +15,7 @@ import com.intellij.ui.layout.Row
 import com.intellij.ui.layout.panel
 import com.intellij.util.ui.JBUI
 import com.jetbrains.python.psi.*
+import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.codegen.TestFramework
@@ -87,13 +89,33 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         return path.replace('/', '.')
     }
 
-    private fun updateFunctionsTable() {
-        val items = model.fileMethods
-        if (items != null) {
-            updateMethodsTable(items)
-            val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
-            functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
+    private fun globalPyFunctionsToPyMemberInfo(project: Project, functions: Collection<PyFunction>): List<PyMemberInfo<PyElement>> {
+        val generator = PyElementGenerator.getInstance(project)
+        val newClass = generator.createFromText(
+            LanguageLevel.getDefault(),
+            PyClass::class.java,
+            "class __ivtdjvrdkgbmpmsclaro__:\npass"
+        )
+        functions.forEach {
+            newClass.add(it)
         }
+        val storage = PyMemberInfoStorage(newClass)
+        val infos = storage.getClassMemberInfos(newClass)
+        return infos
+    }
+
+    private fun pyFunctionsToPyMemberInfo(project: Project, functions: Collection<PyFunction>, containingClass: PyClass?): List<PyMemberInfo<PyElement>> {
+        if (containingClass == null) {
+            return globalPyFunctionsToPyMemberInfo(project, functions)
+        }
+        return PyMemberInfoStorage(containingClass).getClassMemberInfos(containingClass).filter { it.member is PyFunction }
+    }
+
+    private fun updateFunctionsTable() {
+        val items = pyFunctionsToPyMemberInfo(model.project, model.functionsToDisplay, model.containingClass)
+        updateMethodsTable(items)
+        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
+        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
     private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
@@ -121,4 +143,11 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             add(mainComponent, BorderLayout.LINE_START)
             contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
         })
+
+    override fun doOKAction() {
+        val selectedMembers = functionsTable.selectedMemberInfos
+        model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
+
+        super.doOKAction()
+    }
 }

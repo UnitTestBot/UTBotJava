@@ -2,6 +2,7 @@ package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
+import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyElement
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
@@ -13,7 +14,9 @@ class PythonTestsModel(
     project: Project,
     srcModule: Module,
     testModule: Module,
-    val fileMethods: Set<PyMemberInfo<PyElement>>?,
+    // val fileMethods: Set<PyMemberInfo<PyElement>>?,
+    val functionsToDisplay: Set<PyFunction>,
+    val containingClass: PyClass?,
     val focusedMethod: Set<PyFunction>?,
     val files: Set<PyFile>
 ): BaseTestsModel(
@@ -22,4 +25,5 @@ class PythonTestsModel(
     testModule
 ) {
      lateinit var testFramework: TestFramework
+     lateinit var selectedFunctions: Set<PyFunction>
 }

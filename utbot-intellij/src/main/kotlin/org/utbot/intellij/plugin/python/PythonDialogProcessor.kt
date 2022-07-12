@@ -1,39 +1,45 @@
 package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
-import com.intellij.psi.PsiClass
-import com.jetbrains.python.psi.PyElement
+import com.jetbrains.python.psi.PyClass
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
-import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.jetbrains.kotlin.idea.util.module
-import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.testModule
+import org.utbot.python.PythonCode
+import org.utbot.python.PythonCode.Companion.getFromString
+import org.utbot.python.PythonMethod
+import java.nio.charset.StandardCharsets
+
 
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
         project: Project,
-        srcModule: Module,
-        fileMethods: Set<PyMemberInfo<PyElement>>,
+        functionsToShow: Set<PyFunction>,
+        containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        files: Set<PyFile>
+        file: PyFile
     ) {
-        val dialog = PythonDialogProcessor.createDialog(project, srcModule, fileMethods, focusedMethod, files)
+        val dialog = createDialog(project, functionsToShow, containingClass, focusedMethod, file)
         if (!dialog.showAndGet()) {
             return
         }
 
-        PythonDialogProcessor.createTests(project, dialog.model)
+        createTests(project, dialog.model)
     }
 
     private fun createDialog(
         project: Project,
-        srcModule: Module,
-        fileMethods: Set<PyMemberInfo<PyElement>>,
+        functionsToShow: Set<PyFunction>,
+        containingClass: PyClass?,
         focusedMethod: PyFunction?,
-        files: Set<PyFile>
+        file: PyFile
     ): PythonDialogWindow {
+        val srcModule = findSrcModule(functionsToShow)
         val testModule = srcModule.testModule(project)
 
         return PythonDialogWindow(
@@ -41,14 +47,60 @@ object PythonDialogProcessor {
                 project,
                 srcModule,
                 testModule,
-                fileMethods,
+                functionsToShow,
+                containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
-                files
+                setOf(file)
             )
         )
     }
 
-    private fun createTests(project: Project, model: PythonTestsModel) {
-        // TODO
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod> {
+        if (model.files.size != 1) {
+            error("Can't process several files yet")
+        }
+
+        val code = getPyCodeFromPyFile(model.files.first())
+
+        val shownFunctions: Set<PythonMethod> =
+            if (model.containingClass == null) {
+                code.getToplevelFunctions().toSet()
+            } else {
+                val classes = code.getToplevelClasses()
+                val myClass = classes.find { it.name == model.containingClass.name }
+                    ?: error("Didn't find containing class")
+                myClass.methods.toSet()
+            }
+
+        return model.selectedFunctions.map { pyFunction ->
+            shownFunctions.find { pythonMethod ->
+                pythonMethod.name == pyFunction.name
+            } ?: error("Didn't find PythonMethod ${pyFunction.name}")
+        }
     }
+
+    private fun createTests(project: Project, model: PythonTestsModel) {
+        ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
+            override fun run(indicator: ProgressIndicator) {
+                val pythonMethods = findSelectedPythonMethods(model)
+
+                val x = "here"
+            }
+        })
+    }
+}
+
+fun findSrcModule(functions: Collection<PyFunction>): Module {
+    val srcModules = functions.mapNotNull { it.module }.distinct()
+    return when (srcModules.size) {
+        0 -> error("Module for source classes not found")
+        1 -> srcModules.first()
+        else -> error("Can not generate tests for classes from different modules")
+    }
+}
+
+fun getPyCodeFromPyFile(file: PyFile): PythonCode {
+    val content = file.virtualFile.contentsToByteArray()
+    val code = String(content, StandardCharsets.UTF_8)
+    return getFromString(code)
 }

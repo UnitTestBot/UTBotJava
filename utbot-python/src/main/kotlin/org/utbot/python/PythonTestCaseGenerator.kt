@@ -1,17 +1,20 @@
-package org.utbot.python/*
+package org.utbot.python
+
+import PythonEngine
+import org.utbot.framework.plugin.api.UtExecution
+
 class PythonTestCaseGenerator { // : TestCaseGenerator() ?
     fun generate(method: PythonMethod): PythonTestCase {
-        engine = PythonEngine(method)
+        val engine = PythonEngine(method)
         val executions = mutableListOf<UtExecution>()
-        engine.fuzz(method).collect {
+
+        engine.fuzzing().forEach {
             when (it) {
                 is UtExecution -> executions += it
-                else -> ()
+                else -> Unit
             }
         }
-        // TODO: make async
 
         return PythonTestCase(method, executions)
     }
 }
- */

@@ -2,6 +2,7 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
     api project(':utbot-framework-api')
+    api project(':utbot-fuzzers')
     implementation group: "io.github.danielnaczo", name: "python3parser", version: "1.0.4"
 }
 

@@ -151,6 +151,7 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
             // use backticks for first variable with keyword name and use indexed names for all next such variables
             if (baseName !in existingVariableNames) "`$baseName`" else nextIndexedVarName(baseName)
         }
+        CodegenLanguage.PYTHON -> nextIndexedMethodName(baseName)
     }
 }
 

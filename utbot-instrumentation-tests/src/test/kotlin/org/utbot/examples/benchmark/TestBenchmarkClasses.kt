@@ -6,7 +6,6 @@ import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import java.math.BigInteger
-import javafx.util.Pair
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

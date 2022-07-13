@@ -16,6 +16,12 @@ private val kotlinHardKeywords = setOf(
     "val", "var", "when", "while"
 )
 
+private val pythonKeywords = setOf(
+    "True", "False", "None", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else",
+    "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not",
+    "or", "pass", "raise", "return", "try", "while", "with", "yield"
+)
+
 @Suppress("unused")
 private val kotlinSoftKeywords = setOf(
     "by", "catch", "constructor", "delegate", "dynamic", "field", "file", "finally", "get", "import", "init",
@@ -35,6 +41,7 @@ private val kotlinKeywords = kotlinHardKeywords
 private fun getLanguageKeywords(codegenLanguage: CodegenLanguage): Set<String> = when(codegenLanguage) {
     CodegenLanguage.JAVA -> javaKeywords
     CodegenLanguage.KOTLIN -> kotlinKeywords
+    CodegenLanguage.PYTHON -> pythonKeywords
 }
 
 fun isLanguageKeyword(word: String, codegenLanguage: CodegenLanguage): Boolean =

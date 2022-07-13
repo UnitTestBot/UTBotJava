@@ -124,4 +124,5 @@ fun Array<*>.resolve(): List<CgExpression> = map { it.resolve() }
 fun classLiteralAnnotationArgument(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass = when (codegenLanguage) {
     CodegenLanguage.JAVA -> CgGetJavaClass(id)
     CodegenLanguage.KOTLIN -> CgGetKotlinClass(id)
+    CodegenLanguage.PYTHON -> CgGetKotlinClass(id)
 }

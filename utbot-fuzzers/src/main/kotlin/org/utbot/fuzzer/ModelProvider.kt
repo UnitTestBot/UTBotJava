@@ -2,7 +2,6 @@ package org.utbot.fuzzer
 
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.ClassId
-import java.util.function.BiConsumer
 
 fun interface ModelProvider {
 
@@ -10,9 +9,9 @@ fun interface ModelProvider {
      * Generates values for the method.
      *
      * @param description a fuzzed method description
-     * @param consumer accepts index in the parameter list and [UtModel] for this parameter.
+     * @return sequence that produces [FuzzedParameter].
      */
-    fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>)
+    fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter>
 
     /**
      * Combines this model provider with `anotherModelProvider` into one instance.
@@ -51,25 +50,24 @@ fun interface ModelProvider {
      * @param modelProvider is called and every value of [ClassId] is collected which wasn't created by this model provider.
      */
     fun withFallback(modelProvider: ModelProvider) : ModelProvider {
-        return ModelProvider { description, consumer ->
-            val providedByDelegateMethodParameters = mutableMapOf<Int, MutableList<FuzzedValue>>()
-            this@ModelProvider.generate(description) { index, model ->
-                providedByDelegateMethodParameters.computeIfAbsent(index) { mutableListOf() }.add(model)
-            }
-            providedByDelegateMethodParameters.forEach { (index, models) ->
-                models.forEach { model ->
-                    consumer.accept(index, model)
+        val thisModelProvider = this
+        return ModelProvider { description ->
+            sequence {
+                val providedByDelegateMethodParameters = mutableSetOf<Int>()
+                thisModelProvider.generate(description).forEach { (index, model) ->
+                    providedByDelegateMethodParameters += index
+                    yieldValue(index, model)
                 }
-            }
-            val missingParameters =
-                (0 until description.parameters.size).filter { !providedByDelegateMethodParameters.containsKey(it) }
-            if (missingParameters.isNotEmpty()) {
-                val values = mutableMapOf<Int, MutableList<FuzzedValue>>()
-                modelProvider.generate(description) { i, m -> values.computeIfAbsent(i) { mutableListOf() }.add(m) }
-                missingParameters.forEach { index ->
-                    values[index]?.let { models ->
-                        models.forEach { model ->
-                            consumer.accept(index, model)
+                val missingParameters =
+                    (0 until description.parameters.size).filter { !providedByDelegateMethodParameters.contains(it) }
+                if (missingParameters.isNotEmpty()) {
+                    val values = mutableMapOf<Int, MutableList<FuzzedValue>>()
+                    modelProvider.generate(description).forEach { (i, m) -> values.computeIfAbsent(i) { mutableListOf() }.add(m) }
+                    missingParameters.forEach { index ->
+                        values[index]?.let { models ->
+                            models.forEach { model ->
+                                yieldValue(index, model)
+                            }
                         }
                     }
                 }
@@ -86,15 +84,17 @@ fun interface ModelProvider {
      * @param fallbackModelSupplier is called for every [ClassId] which wasn't created by this model provider.
      */
     fun withFallback(fallbackModelSupplier: (ClassId) -> UtModel?) : ModelProvider {
-        return withFallback { description, consumer ->
-            description.parametersMap.forEach { (classId, indices) ->
-                fallbackModelSupplier(classId)?.let { model ->
-                    indices.forEach { index ->
-                        consumer.accept(index, model.fuzzed())
+        return withFallback( ModelProvider { description ->
+            sequence {
+                description.parametersMap.forEach { (classId, indices) ->
+                    fallbackModelSupplier(classId)?.let { model ->
+                        indices.forEach { index ->
+                            yieldValue(index, model.fuzzed())
+                        }
                     }
                 }
             }
-        }
+        })
     }
 
     companion object {
@@ -103,16 +103,20 @@ fun interface ModelProvider {
             return Combined(providers.toList())
         }
 
-        fun BiConsumer<Int, FuzzedValue>.consumeAll(indices: List<Int>, models: Sequence<FuzzedValue>) {
-            models.forEach { model ->
-                indices.forEach { index ->
-                    accept(index, model)
+        suspend fun SequenceScope<FuzzedParameter>.yieldValue(index: Int, value: FuzzedValue) {
+            yield(FuzzedParameter(index, value))
+        }
+
+        suspend fun SequenceScope<FuzzedParameter>.yieldAllValues(indices: List<Int>, models: Sequence<FuzzedValue>) {
+            indices.forEach { index ->
+                models.forEach { model ->
+                    yieldValue(index, model)
                 }
             }
         }
 
-        fun BiConsumer<Int, FuzzedValue>.consumeAll(indices: List<Int>, models: List<FuzzedValue>) {
-            consumeAll(indices, models.asSequence())
+        suspend fun SequenceScope<FuzzedParameter>.yieldAllValues(indices: List<Int>, models: List<FuzzedValue>) {
+            yieldAllValues(indices, models.asSequence())
         }
     }
 
@@ -120,9 +124,11 @@ fun interface ModelProvider {
      * Wrapper class that delegates implementation to the [providers].
      */
     private class Combined(val providers: List<ModelProvider>): ModelProvider {
-        override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+        override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
             providers.forEach { provider ->
-                provider.generate(description, consumer)
+                provider.generate(description).forEach {
+                    yieldValue(it.index, it.value)
+                }
             }
         }
     }

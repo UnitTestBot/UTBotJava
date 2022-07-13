@@ -16,8 +16,10 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.objectModelProviders
@@ -27,7 +29,6 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier.*
-import java.util.function.BiConsumer
 import java.util.function.IntSupplier
 
 /**
@@ -66,7 +67,7 @@ class ObjectModelProvider : ModelProvider {
         this.modelProvider = objectModelProviders(idGenerator)
     }
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         val fuzzedValues = with(description) {
             parameters.asSequence()
                 .filterNot { it == stringClassId || it.isPrimitiveWrapper }
@@ -98,7 +99,7 @@ class ObjectModelProvider : ModelProvider {
 
         fuzzedValues.forEach { fuzzedValue ->
             description.parametersMap[fuzzedValue.model.classId]?.forEach { index ->
-                consumer.accept(index, fuzzedValue)
+                yieldValue(index, fuzzedValue)
             }
         }
     }
@@ -111,7 +112,9 @@ class ObjectModelProvider : ModelProvider {
             voidClassId,
             fields.map { it.classId },
             concreteValues
-        )
+        ).apply {
+            packageName = description.packageName
+        }
 
         return fuzz(syntheticClassFieldsSetterMethodDescription, nonRecursiveModelProvider)
             .take(limitValuesCreatedByFieldAccessors) // limit the number of fuzzed values in this particular case
@@ -164,7 +167,9 @@ class ObjectModelProvider : ModelProvider {
             val fuzzedMethod = FuzzedMethodDescription(
                 executableId = constructorId,
                 concreteValues = this.concreteValues
-            )
+            ).apply {
+                this.packageName = this@fuzzParameters.packageName
+            }
             return fuzz(fuzzedMethod, *modelProviders)
         }
 

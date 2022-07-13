@@ -45,7 +45,7 @@ class FuzzedValueDescriptionTest {
                 parameters = listOf(intClassId),
                 concreteValues = concreteValues
             )
-        ) { _, value -> values.add(value) }
+        ).forEach { (_, value) -> values.add(value) }
         assertEquals(expected, values.size) {
             "Expected $expected values: a half is origin values and another is modified, but only ${values.size} are generated"
         }

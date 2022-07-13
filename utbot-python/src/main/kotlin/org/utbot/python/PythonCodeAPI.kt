@@ -24,6 +24,8 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.longClassId
 import java.util.*
 import java.util.function.Consumer
 import javax.xml.bind.DatatypeConverter.parseLong
@@ -99,7 +101,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         return res
     }
 
-    private class ConcreteValuesVisitor: ModifierVisitor<MutableList<FuzzedConcreteValue>>() {
+    private class ConcreteValuesVisitor : ModifierVisitor<MutableList<FuzzedConcreteValue>>() {
         override fun visitNum(num: Num, res: MutableList<FuzzedConcreteValue>): AST {
             res += (FuzzedConcreteValue(longClassId, parseLong(num.n)))
             return super.visitNum(num, res)
@@ -122,8 +124,6 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
                 "str" -> stringClassId
                 else -> null
             }
-    companion object {
-        fun typeAsStringToClassId(typeAsString: String): ClassId? = TODO("Not yet implemented")
 
         fun annotationToString(annotation: Optional<Expression>): String? =
             if (annotation.isPresent) (annotation.get() as? Name)?.id?.name else null

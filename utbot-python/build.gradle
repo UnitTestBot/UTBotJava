@@ -19,6 +19,7 @@ dependencies {
     api project(':utbot-fuzzers')
     api project(':utbot-framework-api')
     api project(':utbot-framework')
+    api project(':utbot-fuzzers')
 
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"

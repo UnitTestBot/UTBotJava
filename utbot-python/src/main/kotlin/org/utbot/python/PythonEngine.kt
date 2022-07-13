@@ -46,7 +46,6 @@ class PythonEngine(
 
         fuzz(methodUnderTestDescription, modelProvider /* with fallback? */ ).forEach { values ->
             val modelList = values.map { it.model }
-
             // execute method to get function return
             // what if exception happens?
             val resultAsString = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)

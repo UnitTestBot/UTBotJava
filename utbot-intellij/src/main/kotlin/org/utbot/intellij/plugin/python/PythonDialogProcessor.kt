@@ -9,6 +9,8 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
+import com.jetbrains.python.psi.PyElement
+import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString

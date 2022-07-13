@@ -122,6 +122,8 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
                 "str" -> stringClassId
                 else -> null
             }
+    companion object {
+        fun typeAsStringToClassId(typeAsString: String): ClassId? = TODO("Not yet implemented")
 
         fun annotationToString(annotation: Optional<Expression>): String? =
             if (annotation.isPresent) (annotation.get() as? Name)?.id?.name else null

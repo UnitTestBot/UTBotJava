@@ -17,6 +17,11 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     api project(':utbot-fuzzers')
+    api project(':utbot-framework-api')
+    api project(':utbot-framework')
+
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation group: "io.github.danielnaczo", name: "python3parser", version: "1.0.4"
 }
 

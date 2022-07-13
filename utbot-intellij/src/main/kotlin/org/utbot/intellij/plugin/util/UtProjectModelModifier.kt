@@ -28,34 +28,33 @@ import org.jetbrains.jps.model.library.JpsMavenRepositoryLibraryDescriptor
 
 class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(project) {
     override fun addExternalLibraryDependency(
-        modules: Collection<Module?>,
+        modules: Collection<Module>,
         descriptor: ExternalLibraryDescriptor,
         scope: DependencyScope
     ): Promise<Void> {
         val defaultRoots = descriptor.libraryClassesRoots
-        val classesRoots: List<String?>
-        val firstModule = ContainerUtil.getFirstItem(modules)
-        classesRoots = if (defaultRoots.isNotEmpty()) {
-            LocateLibraryDialog(firstModule!!, defaultRoots, descriptor.presentableName).showAndGetResult()
+        val firstModule = ContainerUtil.getFirstItem(modules) ?: return rejectedPromise()
+        val classesRoots = if (defaultRoots.isNotEmpty()) {
+            LocateLibraryDialog(
+                firstModule,
+                defaultRoots,
+                descriptor.presentableName
+            ).showAndGetResult()
         } else {
-            val version = descriptor.preferredVersion
-            val mavenCoordinates = descriptor.libraryGroupId + ":" +
-                    descriptor.libraryArtifactId + ":" +
-                    (version ?: RepositoryLibraryDescription.ReleaseVersionId)
-
-            val libraryProperties = RepositoryLibraryProperties(JpsMavenRepositoryLibraryDescriptor(mavenCoordinates))
+            val libraryProperties = RepositoryLibraryProperties(JpsMavenRepositoryLibraryDescriptor(descriptor.mavenCoordinates()))
             val roots = JarRepositoryManager.loadDependenciesModal(
                 project,
                 libraryProperties,
-                false,
-                false,
-                null,
-                null
+                /* loadSources = */ false,
+                /* loadJavadoc = */ false,
+                /* copyTo = */ null,
+                /* repositories = */ null
             )
             if (roots.isEmpty()) {
                 @Suppress("SpellCheckingInspection")
                 Messages.showErrorDialog(
-                    project, JavaUiBundle.message("dialog.mesage.0.was.not.loaded", descriptor.presentableName),
+                    project,
+                    JavaUiBundle.message("dialog.mesage.0.was.not.loaded", descriptor.presentableName),
                     JavaUiBundle.message("dialog.title.failed.to.download.library")
                 )
                 return rejectedPromise()
@@ -73,7 +72,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
             val libraryName = if (classesRoots.size > 1) descriptor.presentableName else null
             val urls = OrderEntryFix.refreshAndConvertToUrls(classesRoots)
             if (modules.size == 1) {
-                ModuleRootModificationUtil.addModuleLibrary(firstModule!!, libraryName, urls, emptyList(), scope)
+                ModuleRootModificationUtil.addModuleLibrary(firstModule, libraryName, urls, emptyList(), scope)
             } else {
                 WriteAction.run<RuntimeException> {
                     val library =
@@ -86,11 +85,15 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
                     }
                     model.commit()
                     for (module in modules) {
-                        ModuleRootModificationUtil.addDependency(module!!, library, scope, false)
+                        ModuleRootModificationUtil.addDependency(module, library, scope, false)
                     }
                 }
             }
         }
         return resolvedPromise()
+    }
+
+    private fun ExternalLibraryDescriptor.mavenCoordinates() : String {
+        return "$libraryGroupId:$libraryArtifactId:${preferredVersion ?: RepositoryLibraryDescription.ReleaseVersionId}"
     }
 }

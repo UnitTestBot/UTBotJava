@@ -451,7 +451,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             longClassId -> "${longWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
                             byteClassId -> "${byteWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
                             booleanClassId -> "${booleanWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
-                            charClassId -> "${intWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
+                            charClassId -> "${charWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
                             floatClassId -> "${floatWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
                             doubleWrapperClassId -> "${doubleWrapperClassId.simpleName.capitalize()}.valueOf(actual)"
                             else -> "actual"

@@ -46,6 +46,7 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
             return
         }
         try {
+
             generateForProjectRecursively(rootGradleProject)
             GenerateTestsAndSarifReportFacade.mergeReports(
                 sarifReports = rootGradleProject.collectReportsRecursively(),

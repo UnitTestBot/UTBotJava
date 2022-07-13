@@ -54,7 +54,6 @@ import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toValueTestCase
 import org.utbot.summary.summarize
 import java.io.File
@@ -2343,7 +2342,7 @@ abstract class UtValueTestCaseChecker(
                 walk(utMethod, mockStrategy, additionalDependenciesClassPath)
             }
             testCase.summarize(searchDirectory)
-            val valueTestCase = testCase.toValueTestCase(jimpleBody(utMethod))
+            val valueTestCase = testCase.toValueTestCase()
 
             assertTrue(testCase.errors.isEmpty()) {
                 "We have errors: ${
@@ -2478,10 +2477,9 @@ abstract class UtValueTestCaseChecker(
         additionalDependenciesClassPath: String = ""
     ): MethodResult {
         val testCase = executions(method, mockStrategy, additionalDependenciesClassPath)
-        val jimpleBody = jimpleBody(method)
         val methodCoverage = methodCoverage(
             method,
-            testCase.toValueTestCase(jimpleBody).executions,
+            testCase.toValueTestCase().executions,
             buildDir.toString() + File.pathSeparator + additionalDependenciesClassPath
         )
         return MethodResult(testCase, methodCoverage)

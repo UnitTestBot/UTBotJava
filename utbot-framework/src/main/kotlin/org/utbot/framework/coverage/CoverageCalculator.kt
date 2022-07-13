@@ -2,7 +2,7 @@ package org.utbot.framework.coverage
 
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtValueExecution
-import org.utbot.framework.plugin.api.UtValueTestCase
+import org.utbot.framework.plugin.api.UtMethodValueTestSet
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.util.anyInstance
 import org.utbot.instrumentation.ConcreteExecutor
@@ -140,7 +140,7 @@ class MemoryClassLoader : ClassLoader() {
     }
 }
 
-fun classCoverage(testCases: List<UtValueTestCase<*>>): Coverage =
+fun classCoverage(testCases: List<UtMethodValueTestSet<*>>): Coverage =
     testCases.map { methodCoverageWithJaCoCo(it.method, it.executions) }.toClassCoverage()
 
 fun methodCoverageWithJaCoCo(utMethod: UtMethod<*>, executions: List<UtValueExecution<*>>): Coverage {

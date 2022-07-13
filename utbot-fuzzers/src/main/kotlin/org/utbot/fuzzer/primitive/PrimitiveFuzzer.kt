@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtValueExecution
-import org.utbot.framework.plugin.api.UtValueTestCase
+import org.utbot.framework.plugin.api.UtMethodValueTestSet
 import org.utbot.fuzzer.ObsoleteTestCaseGenerator
 import kotlin.Result.Companion.success
 import kotlin.reflect.KCallable
@@ -13,8 +13,8 @@ import kotlin.reflect.KParameter.Kind
 import kotlin.reflect.KType
 
 object PrimitiveFuzzer : ObsoleteTestCaseGenerator {
-    override fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtValueTestCase<*> =
-            UtValueTestCase(method, executions(method.callable))
+    override fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtMethodValueTestSet<*> =
+            UtMethodValueTestSet(method, executions(method.callable))
 }
 
 private fun executions(method: KCallable<Any?>) = listOf(execution(method))

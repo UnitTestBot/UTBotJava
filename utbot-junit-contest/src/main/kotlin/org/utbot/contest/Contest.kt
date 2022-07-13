@@ -34,7 +34,6 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtValueTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -43,9 +42,6 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
-import org.utbot.instrumentation.execute
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
-import org.utbot.instrumentation.util.StaticEnvironment
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.lang.reflect.Method
@@ -421,21 +417,6 @@ fun runGeneration(
 
 
     statsForClass
-}
-
-private fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.executeTestCase(testCase: UtValueTestCase<*>) {
-    testCase.executions.forEach {
-        val method = testCase.method.callable
-        for (execution in testCase.executions) {
-            val args = (listOfNotNull(execution.stateBefore.caller) + execution.stateBefore.params)
-                .map { it.value }.toMutableList()
-            val staticEnvironment = StaticEnvironment(
-                execution.stateBefore.statics.map { it.key to it.value.value }
-            )
-            this.execute(method, args.toTypedArray(), parameters = staticEnvironment)
-        }
-    }
-
 }
 
 private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): List<UtMethod<*>> {

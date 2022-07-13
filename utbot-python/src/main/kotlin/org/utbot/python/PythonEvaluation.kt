@@ -17,8 +17,8 @@ object PythonEvaluation {
             if (model.classId == stringClassId) "\"\"\"" + model.toString() + "\"\"\"" else model.toString()
         })
 
-        val outputFilename = "$testSourceRoot/output_utbot_run_${method.name}.txt"
-        val codeFilename = "$testSourceRoot/test_utbot_run_${method.name}.py"
+        val outputFilename = "$testSourceRoot/output_${method.name}.txt"
+        val codeFilename = "$testSourceRoot/test_${method.name}.py"
 
         val methodWithArgs =
             method.asString() +

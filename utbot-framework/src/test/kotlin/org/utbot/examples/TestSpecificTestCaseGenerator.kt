@@ -12,12 +12,12 @@ import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
 
 /**
- * Special [UtTestCase] generator for test methods that has a correct
+ * Special [UtMethodTestSet] generator for test methods that has a correct
  * wrapper for suspend function [TestCaseGenerator.generateAsync].
  */
 object TestSpecificTestCaseGenerator {
@@ -30,10 +30,10 @@ object TestSpecificTestCaseGenerator {
              isCanceled: () -> Boolean = { false },
     ) = TestCaseGenerator.init(buildDir, classpath, dependencyPaths, engineActions, isCanceled)
 
-    fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtTestCase {
+    fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtMethodTestSet {
         logger.trace { "UtSettings:${System.lineSeparator()}" + UtSettings.toString() }
 
-        if (TestCaseGenerator.isCanceled()) return UtTestCase(method)
+        if (TestCaseGenerator.isCanceled()) return UtMethodTestSet(method)
 
         val executions = mutableListOf<UtExecution>()
         val errors = mutableMapOf<String, Int>()
@@ -50,6 +50,6 @@ object TestSpecificTestCaseGenerator {
         }
 
         val minimizedExecutions = TestCaseGenerator.minimizeExecutions(executions)
-        return UtTestCase(method, minimizedExecutions, jimpleBody(method), errors)
+        return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)
     }
 }

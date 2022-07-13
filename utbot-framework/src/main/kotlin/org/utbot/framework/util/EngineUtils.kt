@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtValueTestCase
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.classId
@@ -74,7 +74,7 @@ val instanceCounter = AtomicInteger(0)
 
 fun nextModelName(base: String): String = "$base${instanceCounter.incrementAndGet()}"
 
-fun UtTestCase.toValueTestCase(jimpleBody: JimpleBody? = null): UtValueTestCase<*> {
+fun UtMethodTestSet.toValueTestCase(jimpleBody: JimpleBody? = null): UtValueTestCase<*> {
     val valueExecutions = executions.map { ValueConstructor().construct(it) }
     return UtValueTestCase(method, valueExecutions, jimpleBody, errors)
 }

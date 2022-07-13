@@ -117,7 +117,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.onFailure
@@ -1208,19 +1208,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
-    fun createParameterizedTestMethod(utTestCase: UtTestCase, dataProviderMethodName: String): CgTestMethod? {
-        val methodUnderTest = utTestCase.method
-        val methodUnderTestParameters = utTestCase.method.callable.parameters
+    fun createParameterizedTestMethod(testSet: UtMethodTestSet, dataProviderMethodName: String): CgTestMethod? {
+        val methodUnderTest = testSet.method
+        val methodUnderTestParameters = testSet.method.callable.parameters
 
-        if (utTestCase.executions.isEmpty()) {
+        if (testSet.executions.isEmpty()) {
             return null
         }
 
         //TODO: orientation on arbitrary execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
-        val arbitraryExecution = utTestCase.executions
+        val arbitraryExecution = testSet.executions
             .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
-            ?: utTestCase.executions.first()
+            ?: testSet.executions.first()
 
         return withTestMethodScope(arbitraryExecution) {
             val testName = nameGenerator.parameterizedTestMethodName(dataProviderMethodName)
@@ -1252,7 +1252,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     )
                 }
                 val method = currentExecutable as MethodId
-                val containsFailureExecution = containsFailureExecution(utTestCase)
+                val containsFailureExecution = containsFailureExecution(testSet)
                 if (method.returnType != voidClassId) {
                     testArguments += CgParameterDeclaration(
                         expectedResultVarName, resultClassId(method.returnType),
@@ -1280,7 +1280,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 parameterized = true,
                 dataProviderMethodName
             ) {
-                if (containsFailureExecution(utTestCase)) {
+                if (containsFailureExecution(testSet)) {
                     +tryBlock(mainBody)
                         .catch(Throwable::class.java.id) { e ->
                             val pseudoExceptionVarName = when (codegenLanguage) {
@@ -1312,20 +1312,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Standard logic for generating each test case parameter code is used.
      */
     fun createParameterizedTestDataProvider(
-        utTestCase: UtTestCase,
+        testSet: UtMethodTestSet,
         dataProviderMethodName: String
     ): CgParameterizedTestDataProviderMethod {
         val dataProviderStatements = mutableListOf<CgStatement>()
         val dataProviderExceptions = mutableSetOf<ClassId>()
 
-        val argListLength = utTestCase.executions.size
+        val argListLength = testSet.executions.size
         val argListDeclaration = createArgList(argListLength)
         val argListVariable = argListDeclaration.variable
 
         dataProviderStatements += argListDeclaration
         dataProviderStatements += CgEmptyLine()
 
-        for ((execIndex, execution) in utTestCase.executions.withIndex()) {
+        for ((execIndex, execution) in testSet.executions.withIndex()) {
             withTestMethodScope(execution) {
                 //collect arguments
                 val arguments = mutableListOf<CgExpression>()
@@ -1335,13 +1335,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
 
                     for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
-                        val argumentName = paramNames[utTestCase.method]?.get(paramIndex)
+                        val argumentName = paramNames[testSet.method]?.get(paramIndex)
                         arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
                     }
 
                     val method = currentExecutable as MethodId
                     val needsReturnValue = method.returnType != voidClassId
-                    val containsFailureExecution = containsFailureExecution(utTestCase)
+                    val containsFailureExecution = containsFailureExecution(testSet)
                     execution.result
                         .onSuccess {
                             if (needsReturnValue) {
@@ -1530,8 +1530,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         )
     }
 
-    private fun containsFailureExecution(testCase: UtTestCase) =
-        testCase.executions.any { it.result is UtExecutionFailure }
+    private fun containsFailureExecution(testSet: UtMethodTestSet) =
+        testSet.executions.any { it.result is UtExecutionFailure }
 
     private fun resultClassId(returnType: ClassId): ClassId = when (returnType) {
         booleanClassId -> booleanWrapperClassId

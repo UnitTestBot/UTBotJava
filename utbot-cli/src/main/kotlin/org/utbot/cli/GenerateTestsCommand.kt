@@ -11,7 +11,7 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.engine.Mocker
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.sarif.SarifReport
@@ -128,7 +128,7 @@ class GenerateTestsCommand :
         }
     }
 
-    private fun generateReport(classFqn: String, testCases: List<UtTestCase>, testClassBody: String) = try {
+    private fun generateReport(classFqn: String, testSets: List<UtMethodTestSet>, testClassBody: String) = try {
         // reassignments for smart casts
         val testsFilePath = output
         val projectRootPath = projectRoot
@@ -143,7 +143,7 @@ class GenerateTestsCommand :
             else -> {
                 val sourceFinding =
                     SourceFindingStrategyDefault(classFqn, sourceCodeFile, testsFilePath, projectRootPath)
-                val report = SarifReport(testCases, testClassBody, sourceFinding).createReport()
+                val report = SarifReport(testSets, testClassBody, sourceFinding).createReport()
                 saveToFile(report, sarifReport)
                 println("The report was saved to \"$sarifReport\". You can open it using the VS Code extension \"Sarif Viewer\".")
             }

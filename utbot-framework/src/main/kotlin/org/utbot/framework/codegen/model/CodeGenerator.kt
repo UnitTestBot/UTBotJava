@@ -15,7 +15,7 @@ import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
 
 class CodeGenerator {
@@ -56,17 +56,17 @@ class CodeGenerator {
     }
 
     //TODO: we support custom test class name only in utbot-online, probably support them in plugin as well
-    fun generateAsString(testCases: Collection<UtTestCase>, testClassCustomName: String? = null): String =
-        generateAsStringWithTestReport(testCases, testClassCustomName).generatedCode
+    fun generateAsString(testSets: Collection<UtMethodTestSet>, testClassCustomName: String? = null): String =
+        generateAsStringWithTestReport(testSets, testClassCustomName).generatedCode
 
     //TODO: we support custom test class name only in utbot-online, probably support them in plugin as well
     fun generateAsStringWithTestReport(
-        testCases: Collection<UtTestCase>,
+        testSets: Collection<UtMethodTestSet>,
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport =
             withCustomContext(testClassCustomName) {
                 context.withClassScope {
-                    val testClassFile = CgTestClassConstructor(context).construct(testCases)
+                    val testClassFile = CgTestClassConstructor(context).construct(testSets)
                     TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
                 }
             }

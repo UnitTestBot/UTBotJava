@@ -26,7 +26,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withSubstitutionCondition
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -125,7 +125,7 @@ object UtTestsDialogProcessor {
                             val classLoader = urlClassLoader(listOf(buildDir) + classpathList)
                             val context = UtContext(classLoader)
 
-                            val testCasesByClass = mutableMapOf<PsiClass, List<UtTestCase>>()
+                            val testSetsByClass = mutableMapOf<PsiClass, List<UtMethodTestSet>>()
                             var processedClasses = 0
                             val totalClasses = model.srcClasses.size
 
@@ -199,7 +199,7 @@ object UtTestsDialogProcessor {
                                             title = "Failed to generate unit tests for class $className"
                                         )
                                     } else {
-                                        testCasesByClass[srcClass] = notEmptyCases
+                                        testSetsByClass[srcClass] = notEmptyCases
                                     }
 
                                     forceMockListener?.run {
@@ -222,7 +222,7 @@ object UtTestsDialogProcessor {
 
                             invokeLater {
                                 withUtContext(context) {
-                                    generateTests(model, testCasesByClass)
+                                    generateTests(model, testSetsByClass)
                                 }
                             }
                         }

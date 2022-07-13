@@ -59,7 +59,7 @@ import org.utbot.framework.codegen.model.TestsCodeWithTestReport
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.EDT_LATER
@@ -88,14 +88,14 @@ import kotlin.reflect.full.functions
 object CodeGenerationController {
     private enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
-    fun generateTests(model: GenerateTestsModel, testCasesByClass: Map<PsiClass, List<UtTestCase>>) {
+    fun generateTests(model: GenerateTestsModel, testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
-        val latch = CountDownLatch(testCasesByClass.size)
+        val latch = CountDownLatch(testSetsByClass.size)
 
-        for (srcClass in testCasesByClass.keys) {
-            val testCases = testCasesByClass[srcClass] ?: continue
+        for (srcClass in testSetsByClass.keys) {
+            val testCases = testSetsByClass[srcClass] ?: continue
             try {
                 val classPackageName = if (model.testPackageName.isNullOrEmpty())
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
@@ -240,7 +240,7 @@ object CodeGenerationController {
     private fun generateCodeAndSaveReports(
         testClass: PsiClass,
         file: PsiFile,
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
     ) {
@@ -249,7 +249,7 @@ object CodeGenerationController {
         val mockito = model.mockFramework
         val staticsMocking = model.staticsMocking
 
-        val classUnderTest = testCases.first().method.clazz
+        val classUnderTest = testSets.first().method.clazz
 
         val params = findMethodParams(classUnderTest, selectedMethods)
 
@@ -275,7 +275,7 @@ object CodeGenerationController {
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
-            val testsCodeWithTestReport = codeGenerator.generateAsStringWithTestReport(testCases)
+            val testsCodeWithTestReport = codeGenerator.generateAsStringWithTestReport(testSets)
             val generatedTestsCode = testsCodeWithTestReport.generatedCode
             run(EDT_LATER) {
                 run(WRITE_ACTION) {
@@ -304,7 +304,7 @@ object CodeGenerationController {
                     // creating and saving reports
                     saveSarifAndTestReports(
                         testClassUpdated,
-                        testCases,
+                        testSets,
                         model,
                         testsCodeWithTestReportFormatted,
                         reportsCountDown
@@ -346,7 +346,7 @@ object CodeGenerationController {
 
     private fun saveSarifAndTestReports(
         testClass: PsiClass,
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
         testsCodeWithTestReport: TestsCodeWithTestReport,
         reportsCountDown: CountDownLatch
@@ -358,7 +358,7 @@ object CodeGenerationController {
             // saving sarif report
             val sourceFinding = SourceFindingStrategyIdea(testClass)
             executeCommand(testClass.project, "Saving Sarif report") {
-                SarifReportIdea.createAndSave(model, testCases, generatedTestsCode, sourceFinding)
+                SarifReportIdea.createAndSave(model, testSets, generatedTestsCode, sourceFinding)
             }
         } catch (e: Exception) {
             showErrorDialogLater(

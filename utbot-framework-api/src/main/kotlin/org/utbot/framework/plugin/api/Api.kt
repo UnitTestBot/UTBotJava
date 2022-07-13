@@ -90,34 +90,13 @@ data class UtMethod<R>(
     }
 }
 
-/**
- * Test case.
- *
- * Note: it should not be transformed into data class since it is used as a key in maps.
- * The clusters in it are mutable objects, therefore, we might have problems with hash because of it.
- */
-@Suppress("unused")
-class UtTestCase(
+data class UtMethodTestSet(
     val method: UtMethod<*>,
     val executions: List<UtExecution> = emptyList(),
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
-    private val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
-) {
-    operator fun component1() = method
-    operator fun component2() = executions
-    operator fun component3() = jimpleBody
-    operator fun component4() = errors
-    operator fun component5() = clustersInfo
-
-    fun copy(
-        method: UtMethod<*> = this.method,
-        executions: List<UtExecution> = this.executions,
-        jimpleBody: JimpleBody? = this.jimpleBody,
-        errors: Map<String, Int> = this.errors,
-        clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = this.clustersInfo
-    ) = UtTestCase(method, executions, jimpleBody, errors, clustersInfo)
-}
+    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
+)
 
 data class Step(
     val stmt: Stmt,

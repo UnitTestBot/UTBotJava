@@ -142,8 +142,8 @@ object TestCaseGenerator {
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
         generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = ::createDefaultFlow
-    ): List<UtTestCase> {
-        if (isCanceled()) return methods.map { UtTestCase(it) }
+    ): List<UtMethodTestSet> {
+        if (isCanceled()) return methods.map { UtMethodTestSet(it) }
 
         val executionStartInMillis = System.currentTimeMillis()
         val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
@@ -218,7 +218,7 @@ object TestCaseGenerator {
 
 
         return methods.map { method ->
-            UtTestCase(
+            UtMethodTestSet(
                 method,
                 minimizeExecutions(method2executions.getValue(method)),
                 jimpleBody(method),

@@ -49,7 +49,7 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMockValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
@@ -2491,7 +2491,7 @@ abstract class UtValueTestCaseChecker(
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String
-    ): UtTestCase {
+    ): UtMethodTestSet {
         TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
         return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
     }
@@ -2500,7 +2500,7 @@ abstract class UtValueTestCaseChecker(
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
         additionalDependencies: Array<KClass<*>> = emptyArray()
-    ): UtTestCase {
+    ): UtMethodTestSet {
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method, additionalDependencies)
         TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
@@ -2535,7 +2535,7 @@ abstract class UtValueTestCaseChecker(
         val substituteStatics: Boolean
     )
 
-    data class MethodResult(val testCase: UtTestCase, val coverage: Coverage)
+    data class MethodResult(val testSet: UtMethodTestSet, val coverage: Coverage)
 }
 
 @Suppress("UNCHECKED_CAST")

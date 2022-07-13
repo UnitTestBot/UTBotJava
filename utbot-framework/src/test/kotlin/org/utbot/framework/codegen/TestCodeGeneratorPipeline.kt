@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.description
@@ -26,7 +26,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
 
     fun runClassesCodeGenerationTests(classesStages: List<ClassStages>) {
         val pipelines = classesStages.map {
-            with(it) { ClassPipeline(StageContext(testClass, testCases, testCases.size), check) }
+            with(it) { ClassPipeline(StageContext(testClass, testSets, testSets.size), check) }
         }
 
         if (pipelines.isEmpty()) return
@@ -69,11 +69,11 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     private fun processCodeGenerationStage(classPipeline: ClassPipeline) {
         with(classPipeline.stageContext) {
             val information = StageExecutionInformation(CodeGeneration)
-            val testCases = data as List<UtTestCase>
+            val testSets = data as List<UtMethodTestSet>
 
             val codegenLanguage = testFrameworkConfiguration.codegenLanguage
 
-            val testClass = callToCodeGenerator(testCases, classUnderTest)
+            val testClass = callToCodeGenerator(testSets, classUnderTest)
 
             // actual number of the tests in the generated testClass
             val generatedMethodsCount = testClass
@@ -87,7 +87,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                     }
                 }
             // expected number of the tests in the generated testClass
-            val expectedNumberOfGeneratedMethods = testCases.sumOf { it.executions.size }
+            val expectedNumberOfGeneratedMethods = testSets.sumOf { it.executions.size }
 
             // check for error in the generated file
             runCatching {
@@ -200,7 +200,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     }
 
     private fun callToCodeGenerator(
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         classUnderTest: KClass<*>
     ): String {
         val params = mutableMapOf<UtMethod<*>, List<String>>()
@@ -224,7 +224,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         }
         val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        return codeGenerator.generateAsString(testCases, testClassCustomName)
+        return codeGenerator.generateAsString(testSets, testClassCustomName)
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {
@@ -236,11 +236,11 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     @Suppress("unused")
     internal fun checkResults(
         targetClasses: List<KClass<*>>,
-        testCases: List<UtTestCase> = listOf(),
+        testSets: List<UtMethodTestSet> = listOf(),
         lastStage: Stage = TestExecution,
         vararg checks: StageStatusCheck
     ) {
-        val results = executeTestGenerationPipeline(targetClasses, testCases, lastStage)
+        val results = executeTestGenerationPipeline(targetClasses, testSets, lastStage)
         processResults(results, results.map { it.classUnderTest to checks.toList() })
     }
 
@@ -273,7 +273,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
 
     private fun executeTestGenerationPipeline(
         targetClasses: List<KClass<*>>,
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         lastStage: Stage = TestExecution
     ): List<CodeGenerationResult> = targetClasses.map {
         val buildDir = FileUtil.isolateClassFiles(it).toPath()
@@ -284,7 +284,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         val pipelineStages = runPipelinesStages(
             listOf(
                 ClassPipeline(
-                    StageContext(it, testCases, testCases.size),
+                    StageContext(it, testSets, testSets.size),
                     StageStatusCheck(lastStage = lastStage, status = SUCCESS)
                 )
             )
@@ -413,7 +413,7 @@ data class StageContext(
 data class ClassStages(
     val testClass: KClass<*>,
     val check: StageStatusCheck,
-    val testCases: List<UtTestCase> = emptyList()
+    val testSets: List<UtMethodTestSet> = emptyList()
 )
 
 data class ClassPipeline(var stageContext: StageContext, val check: StageStatusCheck)

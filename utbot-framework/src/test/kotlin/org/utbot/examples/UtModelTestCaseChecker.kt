@@ -21,7 +21,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.getOrThrow
 import org.utbot.framework.plugin.api.util.UtContext
@@ -131,7 +131,7 @@ internal abstract class UtModelTestCaseChecker(
     private fun executions(
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi
-    ): UtTestCase {
+    ): UtMethodTestSet {
         val classLocation = locateClass(method.clazz)
         if (classLocation != previousClassLocation) {
             buildDir = findPathToClassFiles(classLocation)

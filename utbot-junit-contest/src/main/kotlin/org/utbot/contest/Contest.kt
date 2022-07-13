@@ -33,7 +33,7 @@ import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtValueTestCase
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
@@ -179,7 +179,7 @@ fun runGeneration(
 
 
 
-    val testCases: MutableList<UtTestCase> = mutableListOf()
+    val testSets: MutableList<UtMethodTestSet> = mutableListOf()
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
@@ -341,7 +341,7 @@ fun runGeneration(
                                             statsForMethod.testsGeneratedCount++
 
                                             //TODO: it is a strange hack to create fake test case for one [UtResult]
-                                            testCases.add(UtTestCase(method, listOf(result)))
+                                            testSets.add(UtMethodTestSet(method, listOf(result)))
                                         } catch (e: Throwable) {
                                             //Here we need isolation
                                             logger.error(e) { "Code generation failed" }
@@ -394,7 +394,7 @@ fun runGeneration(
         cancellator.cancel()
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
-            writeTestClass(cut, codeGenerator.generateAsString(testCases))
+            writeTestClass(cut, codeGenerator.generateAsString(testSets))
         }
         //write classes
     }

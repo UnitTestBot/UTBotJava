@@ -25,6 +25,7 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import java.util.*
 import java.util.function.Consumer

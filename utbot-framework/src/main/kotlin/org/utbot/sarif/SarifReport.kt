@@ -87,9 +87,43 @@ class SarifReport(
         return Sarif.fromRun(
             SarifRun(
                 SarifTool.fromRules(sarifRules.toList()),
-                sarifResults
+                minimizeResults(sarifResults)
             )
         )
+    }
+
+    /**
+     * Minimizes detected errors and removes duplicates.
+     *
+     * Between two [SarifResult]s with the same `ruleId` and `locations`
+     * it chooses the one with the shorter length of the execution trace.
+     *
+     * __Example:__
+     *
+     * The SARIF report for the code below contains only one unchecked exception in `methodB`.
+     * But without minimization, the report will contain two results: for `methodA` and for `methodB`.
+     *
+     * ```
+     * class Example {
+     *     int methodA(int a) {
+     *         return methodB(a);
+     *     }
+     *     int methodB(int b) {
+     *         return 1 / b;
+     *     }
+     * }
+     * ```
+     */
+    private fun minimizeResults(sarifResults: List<SarifResult>): List<SarifResult> {
+        val groupedResults = sarifResults.groupBy { sarifResult ->
+            Pair(sarifResult.ruleId, sarifResult.locations)
+        }
+        val minimizedResults = groupedResults.map { (_, sarifResultsGroup) ->
+            sarifResultsGroup.minByOrNull { sarifResult ->
+                sarifResult.totalCodeFlowLocations()
+            }!!
+        }
+        return minimizedResults
     }
 
     private fun processUncheckedException(

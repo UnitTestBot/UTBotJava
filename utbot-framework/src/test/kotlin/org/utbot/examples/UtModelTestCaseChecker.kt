@@ -15,7 +15,6 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecution
@@ -38,15 +37,16 @@ import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.utbot.framework.UtSettings.useFuzzing
 
-internal abstract class AbstractModelBasedTest(
+internal abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
     testCodeGeneration: Boolean = true,
     languagePipelines: List<CodeGenerationLanguageLastStage> = listOf(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
     )
-) : CodeTestCaseGeneratorTest(testClass, testCodeGeneration, languagePipelines) {
+) : CodeGenerationIntegrationTest(testClass, testCodeGeneration, languagePipelines) {
     protected fun check(
         method: KFunction2<*, *, *>,
         branches: ExecutionsNumberMatcher,
@@ -88,6 +88,7 @@ internal abstract class AbstractModelBasedTest(
         workaround(HACK) {
             // @todo change to the constructor parameter
             checkSolverTimeoutMillis = 0
+            useFuzzing = false
         }
         val utMethod = UtMethod.from(method)
 
@@ -136,8 +137,8 @@ internal abstract class AbstractModelBasedTest(
             buildDir = findPathToClassFiles(classLocation)
             previousClassLocation = classLocation
         }
-        UtBotTestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
-        return UtBotTestCaseGenerator.generate(method, mockStrategy)
+        TestSpecificTestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
+        return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
     }
 
     protected inline fun <reified T> UtExecutionResult.isException(): Boolean = exceptionOrNull() is T

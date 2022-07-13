@@ -1,12 +1,12 @@
 package org.utbot.examples.primitives
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 @Suppress("ConvertTwoComparisonsToRangeCheck")
-internal class IntExamplesTest : AbstractTestCaseGeneratorTest(testClass = IntExamples::class) {
+internal class IntExamplesTest : UtValueTestCaseChecker(testClass = IntExamples::class) {
     @Test
     @Disabled("SAT-1009 [JAVA] Engine can't analyze isInteger")
     fun testIsInteger() {

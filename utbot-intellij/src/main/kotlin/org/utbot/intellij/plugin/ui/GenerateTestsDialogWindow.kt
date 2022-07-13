@@ -100,8 +100,14 @@ import com.intellij.util.ui.JBUI.Borders.merge
 import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
+import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
+import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.jetbrains.concurrency.Promise
+import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.util.AndroidApiHelper
 import java.awt.BorderLayout
 import java.awt.Color

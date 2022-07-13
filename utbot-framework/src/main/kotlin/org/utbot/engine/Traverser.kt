@@ -89,13 +89,13 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
+import org.utbot.framework.util.graph
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign

@@ -1,20 +1,5 @@
-package org.utbot.intellij.plugin.ui
+package org.utbot.intellij.plugin.generator
 
-import org.utbot.framework.JdkPathService
-import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.withSubstitutionCondition
-import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.intellij.plugin.generator.CodeGenerator
-import org.utbot.intellij.plugin.generator.TestGenerator.generateTests
-import org.utbot.intellij.plugin.generator.findMethodsInClassMatchingSelected
-import org.utbot.intellij.plugin.ui.utils.jdkVersion
-import org.utbot.intellij.plugin.ui.utils.testModule
-import org.utbot.intellij.plugin.util.AndroidApiHelper
-import org.utbot.intellij.plugin.util.PluginJdkPathProvider
 import com.intellij.compiler.impl.CompositeScope
 import com.intellij.compiler.impl.OneProjectItemCompileScope
 import com.intellij.openapi.application.PathManager
@@ -33,16 +18,36 @@ import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.concurrency.AppExecutorUtil
+import mu.KotlinLogging
+import org.jetbrains.kotlin.idea.util.module
+import org.utbot.engine.util.mockListeners.ForceMockListener
+import org.utbot.framework.JdkPathService
+import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.plugin.api.TestCaseGenerator
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.withSubstitutionCondition
+import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
+import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
+import org.utbot.intellij.plugin.ui.utils.jdkVersion
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.intellij.plugin.ui.utils.testModule
+import org.utbot.intellij.plugin.util.AndroidApiHelper
+import org.utbot.intellij.plugin.util.PluginJdkPathProvider
+import org.utbot.intellij.plugin.util.signature
+import org.utbot.summary.summarize
 import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import mu.KotlinLogging
-import org.jetbrains.kotlin.idea.util.module
-import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
-import org.utbot.intellij.plugin.error.showErrorDialogLater
+import kotlin.reflect.KClass
+import kotlin.reflect.full.functions
 
 object UtTestsDialogProcessor {
 
@@ -155,19 +160,18 @@ object UtTestsDialogProcessor {
 
                                 withSubstitutionCondition(shouldSubstituteStatics) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
-                                    val codeGenerator = CodeGenerator(
-                                        searchDirectory = searchDirectory,
-                                        mockStrategy = model.mockStrategy,
-                                        project = model.project,
-                                        buildDir = buildDir,
-                                        classpath = classpath,
-                                        pluginJarsPath = pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                        chosenClassesToMockAlways = model.chosenClassesToMockAlways
-                                    ) { indicator.isCanceled }
+
+                                    val testCaseGenerator = TestCaseGenerator.apply {
+                                        init(
+                                            Paths.get(buildDir),
+                                            classpath,
+                                            pluginJarsPath.joinToString(separator = File.pathSeparator),
+                                        ) { indicator.isCanceled }
+                                    }
 
                                     val forceMockListener = if (!mockFrameworkInstalled) {
                                          ForceMockListener().apply {
-                                             codeGenerator.generator.engineActions.add { engine -> engine.attachMockListener(this) }
+                                             testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
                                          }
                                     } else {
                                         null
@@ -175,15 +179,16 @@ object UtTestsDialogProcessor {
 
                                     val forceStaticMockListener = if (!model.staticsMocking.isConfigured) {
                                         ForceStaticMockListener().apply {
-                                            codeGenerator.generator.engineActions.add { engine -> engine.attachMockListener(this) }
+                                            testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
                                         }
                                     } else {
                                         null
                                     }
 
                                     val notEmptyCases = withUtContext(context) {
-                                        codeGenerator
-                                            .generateForSeveralMethods(methods, model.timeout)
+                                        testCaseGenerator
+                                            .generate(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
+                                            .map { it.summarize(searchDirectory) }
                                             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
                                     }
 
@@ -232,54 +237,61 @@ object UtTestsDialogProcessor {
         appendLine("Try to alter test generation configuration, e.g. enable mocking and static mocking.")
         appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
-}
 
-
-internal fun urlClassLoader(classpath: List<String>) =
-    URLClassLoader(classpath.map { File(it).toURI().toURL() }.toTypedArray())
-
-fun findSrcModule(srcClasses: Set<PsiClass>): Module {
-    val srcModules = srcClasses.mapNotNull { it.module }.distinct()
-    return when (srcModules.size) {
-        0 -> error("Module for source classes not found")
-        1 -> srcModules.first()
-        else -> error("Can not generate tests for classes from different modules")
+    private fun findMethodsInClassMatchingSelected(clazz: KClass<*>, selectedMethods: List<MemberInfo>): List<UtMethod<*>> {
+        val selectedSignatures = selectedMethods.map { it.signature() }
+        return clazz.functions
+            .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
+            .filter { it.signature().normalized() in selectedSignatures }
+            .map { UtMethod(it, clazz) }
     }
-}
 
-internal fun findPaths(srcClasses: Set<PsiClass>): BuildPaths? {
-    val srcModule = findSrcModule(srcClasses)
-    val buildDir = CompilerPaths.getModuleOutputPath(srcModule, false) ?: return null
-    val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
+    private fun urlClassLoader(classpath: List<String>) =
+        URLClassLoader(classpath.map { File(it).toURI().toURL() }.toTypedArray())
 
-    val (classpath, classpathList) = if (AndroidApiHelper.isAndroidStudio()) {
-        // Add $JAVA_HOME/jre/lib/rt.jar to path.
-        // This allows Soot to analyze real java instead of stub version in Android SDK on local machine.
-        pathsList.add(
-            System.getenv("JAVA_HOME") + File.separator + Paths.get("jre", "lib", "rt.jar")
-        )
-
-        // Filter out manifests from classpath.
-        val filterPredicate = { it: String ->
-            !it.contains("manifest", ignoreCase = true)
+    private fun findSrcModule(srcClasses: Set<PsiClass>): Module {
+        val srcModules = srcClasses.mapNotNull { it.module }.distinct()
+        return when (srcModules.size) {
+            0 -> error("Module for source classes not found")
+            1 -> srcModules.first()
+            else -> error("Can not generate tests for classes from different modules")
         }
-        val classpathList = pathsList.pathList.filter(filterPredicate)
-        val classpath = StringUtil.join(classpathList, File.pathSeparator)
-        Pair(classpath, classpathList)
-    } else {
-        val classpath = pathsList.pathsString
-        val classpathList = pathsList.pathList
-        Pair(classpath, classpathList)
     }
-    val pluginJarsPath = Paths.get(PathManager.getPluginsPath(), "utbot-intellij", "lib").toFile().listFiles()
-        ?: error("Can't find plugin folder.")
-    return BuildPaths(buildDir, classpath, classpathList, pluginJarsPath.map { it.path })
-}
 
-data class BuildPaths(
-    val buildDir: String,
-    val classpath: String,
-    val classpathList: List<String>,
-    val pluginJarsPath: List<String>
-    // ^ TODO: Now we collect ALL dependent libs and pass them to the child process. Most of them are redundant.
-)
+    private fun findPaths(srcClasses: Set<PsiClass>): BuildPaths? {
+        val srcModule = findSrcModule(srcClasses)
+        val buildDir = CompilerPaths.getModuleOutputPath(srcModule, false) ?: return null
+        val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
+
+        val (classpath, classpathList) = if (AndroidApiHelper.isAndroidStudio()) {
+            // Add $JAVA_HOME/jre/lib/rt.jar to path.
+            // This allows Soot to analyze real java instead of stub version in Android SDK on local machine.
+            pathsList.add(
+                System.getenv("JAVA_HOME") + File.separator + Paths.get("jre", "lib", "rt.jar")
+            )
+
+            // Filter out manifests from classpath.
+            val filterPredicate = { it: String ->
+                !it.contains("manifest", ignoreCase = true)
+            }
+            val classpathList = pathsList.pathList.filter(filterPredicate)
+            val classpath = StringUtil.join(classpathList, File.pathSeparator)
+            Pair(classpath, classpathList)
+        } else {
+            val classpath = pathsList.pathsString
+            val classpathList = pathsList.pathList
+            Pair(classpath, classpathList)
+        }
+        val pluginJarsPath = Paths.get(PathManager.getPluginsPath(), "utbot-intellij", "lib").toFile().listFiles()
+            ?: error("Can't find plugin folder.")
+        return BuildPaths(buildDir, classpath, classpathList, pluginJarsPath.map { it.path })
+    }
+
+    data class BuildPaths(
+        val buildDir: String,
+        val classpath: String,
+        val classpathList: List<String>,
+        val pluginJarsPath: List<String>
+        // ^ TODO: Now we collect ALL dependent libs and pass them to the child process. Most of them are redundant.
+    )
+}

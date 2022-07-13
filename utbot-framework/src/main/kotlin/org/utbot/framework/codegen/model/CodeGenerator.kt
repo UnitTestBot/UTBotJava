@@ -1,15 +1,15 @@
 package org.utbot.framework.codegen.model
 
+import org.utbot.common.packageName
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestCodeGenerator
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestsCodeWithTestReport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
+import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -18,23 +18,23 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.framework.plugin.api.util.id
 
-class ModelBasedTestCodeGenerator : TestCodeGenerator {
+class CodeGenerator {
     private lateinit var context: CgContext
 
-    override fun init(
+    fun init(
         classUnderTest: Class<*>,
-        params: MutableMap<UtMethod<*>, List<String>>,
-        testFramework: TestFramework,
-        mockFramework: MockFramework?,
-        staticsMocking: StaticsMocking,
-        forceStaticMocking: ForceStaticMocking,
-        generateWarningsForStaticMocking: Boolean,
-        codegenLanguage: CodegenLanguage,
-        parameterizedTestSource: ParametrizedTestSource,
-        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour,
-        hangingTestsTimeout: HangingTestsTimeout,
-        enableTestsTimeout: Boolean,
-        testClassPackageName: String
+        params: MutableMap<UtMethod<*>, List<String>> = mutableMapOf(),
+        testFramework: TestFramework = TestFramework.defaultItem,
+        mockFramework: MockFramework? = MockFramework.defaultItem,
+        staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
+        forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
+        generateWarningsForStaticMocking: Boolean = true,
+        codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
+        parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
+        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
+        hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
+        enableTestsTimeout: Boolean = true,
+        testClassPackageName: String = classUnderTest.packageName,
     ) {
         context = CgContext(
             classUnderTest = classUnderTest.id,
@@ -56,13 +56,13 @@ class ModelBasedTestCodeGenerator : TestCodeGenerator {
     }
 
     //TODO: we support custom test class name only in utbot-online, probably support them in plugin as well
-    override fun generateAsString(testCases: Collection<UtTestCase>, testClassCustomName: String?): String =
+    fun generateAsString(testCases: Collection<UtTestCase>, testClassCustomName: String? = null): String =
         generateAsStringWithTestReport(testCases, testClassCustomName).generatedCode
 
     //TODO: we support custom test class name only in utbot-online, probably support them in plugin as well
-    override fun generateAsStringWithTestReport(
+    fun generateAsStringWithTestReport(
         testCases: Collection<UtTestCase>,
-        testClassCustomName: String?
+        testClassCustomName: String? = null,
     ): TestsCodeWithTestReport =
             withCustomContext(testClassCustomName) {
                 context.withClassScope {
@@ -95,3 +95,6 @@ class ModelBasedTestCodeGenerator : TestCodeGenerator {
         return renderer.toString()
     }
 }
+
+data class TestsCodeWithTestReport(val generatedCode: String, val testsGenerationReport: TestsGenerationReport)
+

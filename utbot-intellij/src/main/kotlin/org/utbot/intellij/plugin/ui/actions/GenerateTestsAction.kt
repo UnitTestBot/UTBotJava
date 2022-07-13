@@ -1,6 +1,6 @@
 package org.utbot.intellij.plugin.ui.actions
 
-import org.utbot.intellij.plugin.ui.UtTestsDialogProcessor
+import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.KotlinPsiElementHandler
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
@@ -25,8 +25,8 @@ import java.util.*
 class GenerateTestsAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val psiTargets = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, psiTargets.first, psiTargets.second)
+        val (srcClasses, focusedMethod) = getPsiTargets(e) ?: return
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, focusedMethod)
     }
 
     override fun update(e: AnActionEvent) {

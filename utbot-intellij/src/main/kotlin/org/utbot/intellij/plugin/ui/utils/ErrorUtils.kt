@@ -1,4 +1,4 @@
-package org.utbot.intellij.plugin.error
+package org.utbot.intellij.plugin.ui.utils
 
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.project.Project

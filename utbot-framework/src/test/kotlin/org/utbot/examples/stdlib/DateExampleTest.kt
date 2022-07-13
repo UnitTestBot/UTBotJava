@@ -2,13 +2,13 @@ package org.utbot.examples.stdlib
 
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import org.utbot.examples.withUsingReflectionForMaximizingCoverage
 import java.util.Date
 
-class DateExampleTest : AbstractTestCaseGeneratorTest(testClass = DateExample::class) {
+class DateExampleTest : UtValueTestCaseChecker(testClass = DateExample::class) {
     @Suppress("SpellCheckingInspection")
     @Tag("slow")
     @Test

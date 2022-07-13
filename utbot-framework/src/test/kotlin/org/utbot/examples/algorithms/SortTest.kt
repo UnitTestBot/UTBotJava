@@ -1,6 +1,6 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 
-internal class SortTest : AbstractTestCaseGeneratorTest(testClass = Sort::class) {
+internal class SortTest : UtValueTestCaseChecker(testClass = Sort::class) {
     @Test
     fun testQuickSort() {
         check(

@@ -1,6 +1,6 @@
 package org.utbot.examples.controlflow
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.keyContain
@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 
-internal class ConditionsTest : AbstractTestCaseGeneratorTest(testClass = Conditions::class) {
+internal class ConditionsTest : UtValueTestCaseChecker(testClass = Conditions::class) {
     @Test
     fun testSimpleCondition() {
         val conditionSummary = listOf<DocStatement>(

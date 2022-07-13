@@ -1,6 +1,6 @@
 package org.utbot.examples.controlflow
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.between
 import org.utbot.examples.eq
@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 
-internal class CyclesTest : AbstractTestCaseGeneratorTest(testClass = Cycles::class) {
+internal class CyclesTest : UtValueTestCaseChecker(testClass = Cycles::class) {
     @Test
     fun testForCycle() {
         check(

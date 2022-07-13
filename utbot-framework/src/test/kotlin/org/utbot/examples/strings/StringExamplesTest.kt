@@ -1,6 +1,6 @@
 package org.utbot.examples.strings
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.atLeast
 import org.utbot.examples.between
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.withSolverTimeoutInMillis
 
-internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
+internal class StringExamplesTest : UtValueTestCaseChecker(
     testClass = StringExamples::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

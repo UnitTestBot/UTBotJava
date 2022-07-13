@@ -1,11 +1,11 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import org.junit.jupiter.api.Test
 
-internal class PrivateFieldsTest : AbstractTestCaseGeneratorTest(testClass = PrivateFields::class) {
+internal class PrivateFieldsTest : UtValueTestCaseChecker(testClass = PrivateFields::class) {
     @Test
     fun testAccessWithGetter() {
         checkWithException(

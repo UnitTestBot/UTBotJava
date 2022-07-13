@@ -1,10 +1,10 @@
 package org.utbot.examples.invokes
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class SimpleInterfaceExampleTest : AbstractTestCaseGeneratorTest(
+internal class SimpleInterfaceExampleTest : UtValueTestCaseChecker(
     testClass = SimpleInterfaceExample::class
 ) {
     @Test

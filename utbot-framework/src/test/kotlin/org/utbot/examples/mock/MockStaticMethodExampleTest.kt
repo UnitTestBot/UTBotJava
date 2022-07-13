@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -10,7 +10,7 @@ import org.utbot.framework.util.singleStaticMethod
 import org.utbot.framework.util.singleValue
 import org.junit.jupiter.api.Test
 
-internal class MockStaticMethodExampleTest : AbstractTestCaseGeneratorTest(testClass = MockStaticMethodExample::class) {
+internal class MockStaticMethodExampleTest : UtValueTestCaseChecker(testClass = MockStaticMethodExample::class) {
     @Test
     fun testUseStaticMethod() {
         checkMocksAndInstrumentation(

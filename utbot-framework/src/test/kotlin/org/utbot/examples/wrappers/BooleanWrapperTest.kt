@@ -1,12 +1,11 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class BooleanWrapperTest : AbstractTestCaseGeneratorTest(testClass = BooleanWrapper::class) {
+internal class BooleanWrapperTest : UtValueTestCaseChecker(testClass = BooleanWrapper::class) {
     @Test
     fun primitiveToWrapperTest() {
         check(

@@ -1,6 +1,6 @@
 package org.utbot.examples.mixed
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.isNull
 import org.junit.jupiter.api.Test
 
-internal class LoggerExampleTest : AbstractTestCaseGeneratorTest(
+internal class LoggerExampleTest : UtValueTestCaseChecker(
     testClass = LoggerExample::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

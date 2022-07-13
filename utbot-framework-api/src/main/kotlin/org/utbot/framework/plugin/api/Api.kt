@@ -33,16 +33,6 @@ import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
-import java.io.File
-import java.lang.reflect.Modifier
-import java.nio.file.Path
-import kotlin.jvm.internal.CallableReference
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -58,6 +48,15 @@ import soot.Type
 import soot.VoidType
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
+import java.io.File
+import java.lang.reflect.Modifier
+import kotlin.jvm.internal.CallableReference
+import kotlin.reflect.KCallable
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaConstructor
+import kotlin.reflect.jvm.javaType
 
 data class UtMethod<R>(
     val callable: KCallable<R>,
@@ -1023,17 +1022,6 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
 class WildcardTypeParameter: TypeParameters(emptyList())
 
-interface TestCaseGenerator {
-    fun init(
-        buildDir: Path,
-        classpath: String? = null,
-        dependencyPaths: String,
-        isCanceled: () -> Boolean = { false }
-    )
-
-    fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtTestCase
-}
-
 interface CodeGenerationSettingItem {
     val displayName: String
     val description: String
@@ -1191,13 +1179,6 @@ fun isolateCommandLineArgumentsToArgumentFile(arguments: List<String>): String {
     )
     return argumentFile.absolutePath.let { "@$it" }
 }
-
-interface UtService<T> {
-    val displayName: String
-    val serviceProvider: T
-}
-
-interface TestGeneratorService : UtService<TestCaseGenerator>
 
 private fun StringBuilder.appendOptional(name: String, value: Collection<*>) {
     if (value.isNotEmpty()) {

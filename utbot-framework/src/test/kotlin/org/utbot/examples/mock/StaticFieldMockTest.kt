@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.mock.provider.Provider
@@ -11,7 +11,7 @@ import org.utbot.examples.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 
-internal class StaticFieldMockTest : AbstractTestCaseGeneratorTest(testClass = ServiceWithStaticField::class) {
+internal class StaticFieldMockTest : UtValueTestCaseChecker(testClass = ServiceWithStaticField::class) {
 
     @Test
     fun testMockForStaticField_callMultipleMethods() {

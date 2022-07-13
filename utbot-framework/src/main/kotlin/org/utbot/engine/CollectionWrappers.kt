@@ -10,7 +10,6 @@ import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
-import org.utbot.engine.pc.UtFalse
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
@@ -26,7 +25,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.graph
+import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.constructorId

@@ -2,14 +2,12 @@ package org.utbot.python
 
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.fuzzer.providers.*
 import java.lang.Long.parseLong
-
-//all id values of synthetic default models must be greater that for real ones
-private var nextDefaultModelId = 1500_000_000
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -29,13 +27,19 @@ class PythonEngine(
             methodUnderTest.name,
             returnType,
             argumentTypes.map { it!! },
-            emptyList()
+            methodUnderTest.getConcreteValues()
         ).apply {
             compilableName = methodUnderTest.name // what's the difference with ordinary name?
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        val modelProvider = defaultModelProviders { nextDefaultModelId++ }
+        val modelProvider = ModelProvider.of(
+            ConstantsModelProvider,
+            StringConstantModelProvider,
+            CharToStringModelProvider,
+            PrimitivesModelProvider,
+            PrimitiveWrapperModelProvider
+        )
 
         // model provider with fallback?
         // attempts?

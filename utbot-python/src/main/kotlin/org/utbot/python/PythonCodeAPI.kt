@@ -2,22 +2,31 @@ package org.utbot.python
 
 import io.github.danielnaczo.python3parser.Python3Lexer
 import io.github.danielnaczo.python3parser.Python3Parser
+import io.github.danielnaczo.python3parser.model.AST
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
+import io.github.danielnaczo.python3parser.model.expr.atoms.Num
+import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
+import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.fuzzer.FuzzedConcreteValue
 import java.util.*
+import java.util.function.Consumer
+import javax.xml.bind.DatatypeConverter.parseLong
 
 
 class PythonCode(private val body: Module) {
@@ -83,11 +92,34 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         return modulePrettyPrintVisitor.visitModule(Module(listOf(ast)), IndentationPrettyPrint(0))
     }
 
+    override fun getConcreteValues(): List<FuzzedConcreteValue> {
+        val visitor = ConcreteValuesVisitor()
+        val res = mutableListOf<FuzzedConcreteValue>()
+        visitor.visitFunctionDef(ast, res)
+        return res
+    }
+
+    private class ConcreteValuesVisitor: ModifierVisitor<MutableList<FuzzedConcreteValue>>() {
+        override fun visitNum(num: Num, res: MutableList<FuzzedConcreteValue>): AST {
+            res += (FuzzedConcreteValue(longClassId, parseLong(num.n)))
+            return super.visitNum(num, res)
+        }
+
+        override fun visitStr(str: Str, res: MutableList<FuzzedConcreteValue>): AST {
+            res += FuzzedConcreteValue(
+                stringClassId,
+                str.s.removeSurrounding("\"", "\"").removeSurrounding("'", "'")
+            )
+            return super.visitStr(str, res)
+        }
+    }
+
     companion object {
         fun typeAsStringToClassId(typeAsString: String): ClassId? =
             when (typeAsString) {
                 "int" -> intClassId // change to long arithmetics?
                 "float" -> doubleClassId
+                "str" -> stringClassId
                 else -> null
             }
 

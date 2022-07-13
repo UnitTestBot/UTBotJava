@@ -1,6 +1,7 @@
 package org.utbot.python
 
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.util.stringClassId
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -12,7 +13,9 @@ object PythonEvaluation {
 //        val context = Context.newBuilder().allowIO(true).build()
         createDirectory(testSourceRoot)
 
-        val arguments = methodArguments.joinToString(transform = { it.toString() })
+        val arguments = methodArguments.joinToString(transform = { model ->
+            if (model.classId == stringClassId) "\"\"\"" + model.toString() + "\"\"\"" else model.toString()
+        })
 
         val outputFilename = "$testSourceRoot/output_utbot_run_${method.name}.txt"
         val codeFilename = "$testSourceRoot/test_utbot_run_${method.name}.py"

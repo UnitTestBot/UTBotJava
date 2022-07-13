@@ -1,7 +1,6 @@
 package org.utbot.intellij.plugin.ui.actions
 
-import com.intellij.lang.Language
-import org.utbot.intellij.plugin.ui.UtTestsDialogProcessor
+import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.KotlinPsiElementHandler
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
@@ -36,8 +35,8 @@ class GenerateTestsAction : AnAction() {
         }
 
         val project = e.project ?: return
-        val psiTargets = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, psiTargets.first, psiTargets.second)
+        val (srcClasses, focusedMethod) = getPsiTargets(e) ?: return
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, focusedMethod)
     }
 
     override fun update(e: AnActionEvent) {
@@ -61,8 +60,19 @@ class GenerateTestsAction : AnAction() {
 
             if (psiElementHandler.isCreateTestActionAvailable(element)) {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
+                if (srcClass.isInterface) return null
+                val srcSourceRoot = srcClass.getSourceRoot() ?: return null
                 val srcMethods = TestIntegrationUtils.extractClassMethods(srcClass, false)
                 val focusedMethod = focusedMethodOrNull(element, srcMethods, psiElementHandler)
+
+                val module = ModuleUtil.findModuleForFile(srcSourceRoot, project) ?: return null
+                val matchingRoot = ModuleRootManager.getInstance(module).contentEntries
+                    .flatMap { entry -> entry.sourceFolders.toList() }
+                    .singleOrNull { folder -> folder.file == srcSourceRoot }
+                if (matchingRoot == null || matchingRoot.rootType.isForTests) {
+                    return null
+                }
+
                 return Pair(setOf(srcClass), focusedMethod)
             }
         } else {

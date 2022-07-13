@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.instrumentation.coverage
 
-import org.utbot.common.withRemovedFinalModifier
+import org.utbot.common.withAccessibility
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.instrumentation.ArgumentList
@@ -43,7 +43,7 @@ object CoverageInstrumentation : Instrumentation<Result<*>> {
         val visitedLinesField = clazz.fields.firstOrNull { it.name == probesFieldName }
             ?: throw NoProbesArrayException(clazz, Settings.PROBES_ARRAY_NAME)
 
-        return visitedLinesField.withRemovedFinalModifier {
+        return visitedLinesField.withAccessibility {
             invokeWithStatics.invoke(clazz, methodSignature, arguments, parameters)
         }
     }
@@ -57,7 +57,7 @@ object CoverageInstrumentation : Instrumentation<Result<*>> {
         val visitedLinesField = clazz.fields.firstOrNull { it.name == probesFieldName }
             ?: throw NoProbesArrayException(clazz, Settings.PROBES_ARRAY_NAME)
 
-        return visitedLinesField.withRemovedFinalModifier {
+        return visitedLinesField.withAccessibility {
             val visitedLines = visitedLinesField.get(null) as? BooleanArray
                 ?: throw CastProbesArrayException()
 
@@ -131,5 +131,5 @@ fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: 
             is Protocol.ExceptionInChildProcess -> throw ChildProcessError(it.exception)
             else -> throw UnexpectedCommand(it)
         }
-    }!!
+    }
 }

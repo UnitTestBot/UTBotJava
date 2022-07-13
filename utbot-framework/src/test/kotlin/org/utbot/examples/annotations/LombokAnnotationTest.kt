@@ -1,6 +1,6 @@
 package org.utbot.examples.annotations
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.annotations.lombok.EnumWithAnnotations
 import org.utbot.examples.annotations.lombok.EnumWithoutAnnotations
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
  * (see, i.e. https://stackoverflow.com/questions/44584487/improve-lombok-data-code-coverage)
  * and Lombok code is considered to be already tested itself.
  */
-class LombokAnnotationTest : AbstractTestCaseGeneratorTest(testClass = EnumWithAnnotations::class) {
+class LombokAnnotationTest : UtValueTestCaseChecker(testClass = EnumWithAnnotations::class) {
 
     @Test
     fun testGetterWithAnnotations() {

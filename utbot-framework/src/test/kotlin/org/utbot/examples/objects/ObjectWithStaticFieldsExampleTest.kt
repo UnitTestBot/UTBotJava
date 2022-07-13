@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.findByName
@@ -8,7 +8,7 @@ import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.singleValue
 import org.junit.jupiter.api.Test
 
-internal class ObjectWithStaticFieldsExampleTest : AbstractTestCaseGeneratorTest(testClass = ObjectWithStaticFieldsExample::class) {
+internal class ObjectWithStaticFieldsExampleTest : UtValueTestCaseChecker(testClass = ObjectWithStaticFieldsExample::class) {
     @Test
     fun testReadFromStaticArray() {
         checkStatics(

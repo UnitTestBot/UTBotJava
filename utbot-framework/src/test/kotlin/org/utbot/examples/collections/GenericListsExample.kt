@@ -1,6 +1,6 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 // TODO disabled tests should be fixes with SAT-1441
-internal class GenericListsExampleTest : AbstractTestCaseGeneratorTest(
+internal class GenericListsExampleTest : UtValueTestCaseChecker(
     testClass = GenericListsExample::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

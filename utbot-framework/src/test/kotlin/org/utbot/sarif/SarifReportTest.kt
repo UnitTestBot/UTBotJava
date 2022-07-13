@@ -186,6 +186,116 @@ class SarifReportTest {
         assert(codeFlowPhysicalLocations[0].region.startColumn == 5)
     }
 
+    @Test
+    fun testMinimizationRemovesDuplicates() {
+        mockUtMethodNames()
+
+        val mockUtExecution = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        Mockito.`when`(mockUtExecution.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
+
+        val testCases = listOf(
+            UtTestCase(mockUtMethod, listOf(mockUtExecution)),
+            UtTestCase(mockUtMethod, listOf(mockUtExecution)) // duplicate
+        )
+
+        val report = SarifReport(
+            testCases = testCases,
+            generatedTestsCode = "",
+            sourceFindingMain
+        ).createReport().toSarif()
+
+        assert(report.runs.first().results.size == 1) // no duplicates
+    }
+
+    @Test
+    fun testMinimizationDoesNotRemoveResultsWithDifferentRuleId() {
+        mockUtMethodNames()
+
+        val mockUtExecution1 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution2 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+
+        // different ruleId's
+        Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
+        Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(ArithmeticException(), false))
+
+        val testCases = listOf(
+            UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
+            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
+        )
+
+        val report = SarifReport(
+            testCases = testCases,
+            generatedTestsCode = "",
+            sourceFindingMain
+        ).createReport().toSarif()
+
+        assert(report.runs.first().results.size == 2) // no results have been removed
+    }
+
+    @Test
+    fun testMinimizationDoesNotRemoveResultsWithDifferentLocations() {
+        mockUtMethodNames()
+
+        val mockUtExecution1 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution2 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+
+        // the same ruleId's
+        Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
+        Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
+
+        // different locations
+        Mockito.`when`(mockUtExecution1.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(11)
+        Mockito.`when`(mockUtExecution2.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(22)
+
+        val testCases = listOf(
+            UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
+            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
+        )
+
+        val report = SarifReport(
+            testCases = testCases,
+            generatedTestsCode = "",
+            sourceFindingMain
+        ).createReport().toSarif()
+
+        assert(report.runs.first().results.size == 2) // no results have been removed
+    }
+
+    @Test
+    fun testMinimizationChoosesShortestCodeFlow() {
+        mockUtMethodNames()
+
+        val mockNPE1 = Mockito.mock(NullPointerException::class.java)
+        val mockNPE2 = Mockito.mock(NullPointerException::class.java)
+
+        val mockUtExecution1 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution2 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+
+        // the same ruleId's
+        Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(mockNPE1, false))
+        Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(mockNPE2, false))
+
+        // but different stack traces
+        val stackTraceElement1 = StackTraceElement("Main", "main", "Main.java", 3)
+        val stackTraceElement2 = StackTraceElement("Main", "main", "Main.java", 7)
+        Mockito.`when`(mockNPE1.stackTrace).thenReturn(arrayOf(stackTraceElement1))
+        Mockito.`when`(mockNPE2.stackTrace).thenReturn(arrayOf(stackTraceElement1, stackTraceElement2))
+
+        val testCases = listOf(
+            UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
+            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // duplicate with a longer stack trace
+        )
+
+        val report = SarifReport(
+            testCases = testCases,
+            generatedTestsCode = "",
+            sourceFindingMain
+        ).createReport().toSarif()
+
+        assert(report.runs.first().results.size == 1) // no duplicates
+        assert(report.runs.first().results.first().totalCodeFlowLocations() == 1) // with a shorter stack trace
+    }
+
     // internal
 
     private val mockUtMethod = Mockito.mock(UtMethod::class.java, Mockito.RETURNS_DEEP_STUBS)

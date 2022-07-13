@@ -37,13 +37,10 @@ fun MockFramework.patterns(): Patterns {
     return Patterns(moduleLibraryPatterns, libraryPatterns)
 }
 
-val JUNIT_4_JAR_PATTERN = Regex("junit-4(\\.[0-9]+){1,2}")
-val JUNIT_4_MVN_PATTERN = Regex("junit:junit:4(\\.[0-9]+){1,2}")
-val JUNIT_4_BASIC_PATTERN = Regex("JUnit4")
-val junit4Patterns = listOf(JUNIT_4_JAR_PATTERN, JUNIT_4_MVN_PATTERN, JUNIT_4_BASIC_PATTERN)
-
-val JUNIT4_BASIC_MODULE_PATTERN = Regex("junit$")
-val junit4ModulePatterns = listOf(JUNIT4_BASIC_MODULE_PATTERN)
+val JUNIT_4_JAR_PATTERN = Regex("junit-4(\\.1[2-9])(\\.[0-9]+)?")
+val JUNIT_4_MVN_PATTERN = Regex("junit:junit:4(\\.1[2-9])(\\.[0-9]+)?")
+val junit4Patterns = listOf(JUNIT_4_JAR_PATTERN, JUNIT_4_MVN_PATTERN)
+val junit4ModulePatterns = listOf(JUNIT_4_JAR_PATTERN, JUNIT_4_MVN_PATTERN)
 
 val JUNIT_5_JAR_PATTERN = Regex("junit-jupiter-5(\\.[0-9]+){1,2}")
 val JUNIT_5_MVN_PATTERN = Regex("org\\.junit\\.jupiter:junit-jupiter-api:5(\\.[0-9]+){1,2}")

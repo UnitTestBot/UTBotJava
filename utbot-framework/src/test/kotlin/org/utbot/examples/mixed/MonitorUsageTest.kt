@@ -1,11 +1,11 @@
 package org.utbot.examples.mixed
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.ignoreExecutionsNumber
 import org.junit.jupiter.api.Test
 
-internal class MonitorUsageTest : AbstractTestCaseGeneratorTest(testClass = MonitorUsage::class) {
+internal class MonitorUsageTest : UtValueTestCaseChecker(testClass = MonitorUsage::class) {
     @Test
     fun testSimpleMonitor() {
         check(

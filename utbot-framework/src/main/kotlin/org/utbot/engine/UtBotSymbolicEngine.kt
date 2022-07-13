@@ -72,16 +72,18 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.graph
-import org.utbot.framework.plugin.api.jimpleBody
+import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.util.jimpleBody
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.Trie
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
@@ -404,11 +406,14 @@ class UtBotSymbolicEngine(
 
         val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
             compilableName = if (methodUnderTest.isMethod) executableId.name else null
+            className = executableId.classId.simpleName
+            packageName = executableId.classId.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
         val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
-        val coveredInstructionTracker = mutableSetOf<Instruction>()
+        val coveredInstructionTracker = Trie(Instruction::id)
+        val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = UtSettings.fuzzingMaxAttempts
         fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
             if (System.currentTimeMillis() >= until) {
@@ -431,12 +436,14 @@ class UtBotSymbolicEngine(
                     }
                 }
 
-                if (!coveredInstructionTracker.addAll(concreteExecutionResult.coverage.coveredInstructions)) {
+                val count = coveredInstructionTracker.add(concreteExecutionResult.coverage.coveredInstructions)
+                if (count.count > 1) {
                     if (--attempts < 0) {
                         return@flow
                     }
+                    return@forEach
                 }
-
+                coveredInstructionValues[count] = values
                 val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
                 val testMethodName = try {
                     nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()

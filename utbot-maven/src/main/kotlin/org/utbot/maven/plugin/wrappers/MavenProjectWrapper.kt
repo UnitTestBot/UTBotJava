@@ -125,7 +125,8 @@ class MavenProjectWrapper(
             classUnderTest,
             sourceCodeFile,
             createTestsCodeFile(classFqn),
-            createSarifReportFile(classFqn)
+            createSarifReportFile(classFqn),
+            sarifProperties.testPrivateMethods
         )
     }
 

@@ -30,6 +30,7 @@
                     <generatedTestsRelativeRoot>target/generated/test</generatedTestsRelativeRoot>
                     <sarifReportsRelativeRoot>target/generated/sarif</sarifReportsRelativeRoot>
                     <markGeneratedTestsDirectoryAsTestSourcesRoot>true</markGeneratedTestsDirectoryAsTestSourcesRoot>
+                    <testPrivateMethods>true</testPrivateMethods>
                     <testFramework>junit5</testFramework>
                     <mockFramework>mockito</mockFramework>
                     <generationTimeout>10000</generationTimeout>

@@ -1,5 +1,22 @@
 package org.utbot.contest
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
+import mu.KotlinLogging
+import org.apache.commons.io.FileUtils
 import org.utbot.common.bracket
 import org.utbot.common.info
 import org.utbot.engine.EngineController
@@ -9,11 +26,10 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.junitByVersion
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
+import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
@@ -49,23 +65,6 @@ import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
-import mu.KotlinLogging
-import org.apache.commons.io.FileUtils
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -124,7 +123,7 @@ fun main(args: Array<String>) {
     withUtContext(context) {
 
         //soot initialization
-        UtBotTestCaseGenerator.init(classfileDir, classpathString, dependencyPath)
+        TestCaseGenerator.init(classfileDir, classpathString, dependencyPath)
 
         logger.info().bracket("warmup: kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class, "")
@@ -180,7 +179,7 @@ fun runGeneration(
 
 
 
-    val testCases: MutableMap<String, UtTestCase> = mutableMapOf()
+    val testCases: MutableList<UtTestCase> = mutableListOf()
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
@@ -196,7 +195,7 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            UtBotTestCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            TestCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class, "")
@@ -217,13 +216,10 @@ fun runGeneration(
 
     val statsForClass = StatsForClass()
 
-    // TODO: this generates not only test method, but also imports, etc
-    // TODO: replace it by a more lightweight code generator
-    val codeGenerator = ModelBasedTestCodeGenerator().also {
-        it.init(
+    val codeGenerator = CodeGenerator().apply {
+        init(
             cut.classId.jClass,
             testFramework = junitByVersion(junitVersion),
-            mockFramework = MockFramework.MOCKITO,
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
             generateWarningsForStaticMocking = false
@@ -254,9 +250,9 @@ fun runGeneration(
         // nothing to process further
         if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
-        val generator = UtBotTestCaseGenerator
+        val testCaseGenerator = TestCaseGenerator
         logger.info().bracket("2nd optional soot initialization") {
-            generator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            testCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
         }
 
 
@@ -322,7 +318,7 @@ fun runGeneration(
                     }
 
 
-                    var testCounter = 0
+                    var testsCounter = 0
                     logger.info().bracket("method $method", { statsForMethod }) {
                         logger.info {
                             " -- Remaining time budget: $remainingBudget ms, " +
@@ -335,18 +331,17 @@ fun runGeneration(
 
                         }
 
-                        generator.generateAsync(controller, method, mockStrategyApi)
+                        testCaseGenerator.generateAsync(controller, method, mockStrategyApi)
                             .collect { result ->
                                 when (result) {
                                     is UtExecution -> {
                                         try {
-                                            val testCase = UtTestCase(method, listOf(result))
-                                            val newName = testMethodName(testCase.method.toString(), ++testCounter)
-                                            logger.debug { "--new testCase collected, to generate: $newName" }
-                                            statsForMethod.testcasesGeneratedCount++
+                                            val testMethodName = testMethodName(method.toString(), ++testsCounter)
+                                            logger.debug { "--new testCase collected, to generate: $testMethodName" }
+                                            statsForMethod.testsGeneratedCount++
 
-                                            testCases[newName] = testCase
-
+                                            //TODO: it is a strange hack to create fake test case for one [UtResult]
+                                            testCases.add(UtTestCase(method, listOf(result)))
                                         } catch (e: Throwable) {
                                             //Here we need isolation
                                             logger.error(e) { "Code generation failed" }
@@ -399,7 +394,7 @@ fun runGeneration(
         cancellator.cancel()
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
-            writeTestClass(cut, codeGenerator.generateAsString(testCases.values))
+            writeTestClass(cut, codeGenerator.generateAsString(testCases))
         }
         //write classes
     }
@@ -437,7 +432,7 @@ private fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.executeTestCase
             val staticEnvironment = StaticEnvironment(
                 execution.stateBefore.statics.map { it.key to it.value.value }
             )
-            this.execute(method, *args.toTypedArray(), parameters = staticEnvironment)
+            this.execute(method, args.toTypedArray(), parameters = staticEnvironment)
         }
     }
 

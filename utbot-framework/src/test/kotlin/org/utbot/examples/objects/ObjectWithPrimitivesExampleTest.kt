@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
@@ -9,7 +9,7 @@ import org.utbot.examples.isException
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class ObjectWithPrimitivesExampleTest : AbstractTestCaseGeneratorTest(testClass = ObjectWithPrimitivesExample::class) {
+internal class ObjectWithPrimitivesExampleTest : UtValueTestCaseChecker(testClass = ObjectWithPrimitivesExample::class) {
     @Test
     fun testMax() {
         checkWithException(

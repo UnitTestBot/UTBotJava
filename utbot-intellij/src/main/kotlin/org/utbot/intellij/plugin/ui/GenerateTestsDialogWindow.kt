@@ -436,7 +436,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             .toSet()
 
         val selectedMethods = selectedMembers.filter { it.member is PsiMethod }.toSet()
-        model.selectedMethods = selectedMethods.ifEmpty { null }
+        model.selectedMethods = if (selectedMethods.any()) selectedMethods else null
 
         model.testFramework = testFrameworks.item
         model.mockStrategy = mockStrategies.item

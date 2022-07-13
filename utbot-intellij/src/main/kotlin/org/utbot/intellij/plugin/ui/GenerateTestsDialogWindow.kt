@@ -76,6 +76,7 @@ import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
+import org.utbot.common.filterWhen
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -126,7 +127,6 @@ import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
 import kotlin.streams.toList
-import org.utbot.common.filterWhen
 
 private const val RECENTS_KEY = "org.utbot.recents"
 

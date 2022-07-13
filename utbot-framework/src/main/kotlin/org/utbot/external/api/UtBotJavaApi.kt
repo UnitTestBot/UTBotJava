@@ -102,13 +102,13 @@ object UtBotJavaApi {
     }
 
     /**
-     * Generates test cases using default workflow.
+     * Generates test sets using default workflow.
      *
-     * @see [fuzzingTestCases]
+     * @see [fuzzingTestSets]
      */
     @JvmStatic
     @JvmOverloads
-    fun generateTestCases(
+    fun generateTestSets(
         methodsForAutomaticGeneration: List<TestMethodInfo>,
         classUnderTest: Class<*>,
         classpath: String,
@@ -146,11 +146,11 @@ object UtBotJavaApi {
     /**
      * Generates test cases using only fuzzing workflow.
      *
-     * @see [generateTestCases]
+     * @see [generateTestSets]
      */
     @JvmStatic
     @JvmOverloads
-    fun fuzzingTestCases(
+    fun fuzzingTestSets(
         methodsForAutomaticGeneration: List<TestMethodInfo>,
         classUnderTest: Class<*>,
         classpath: String,

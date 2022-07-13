@@ -140,8 +140,8 @@ class MemoryClassLoader : ClassLoader() {
     }
 }
 
-fun classCoverage(testCases: List<UtMethodValueTestSet<*>>): Coverage =
-    testCases.map { methodCoverageWithJaCoCo(it.method, it.executions) }.toClassCoverage()
+fun classCoverage(testSets: List<UtMethodValueTestSet<*>>): Coverage =
+    testSets.map { methodCoverageWithJaCoCo(it.method, it.executions) }.toClassCoverage()
 
 fun methodCoverageWithJaCoCo(utMethod: UtMethod<*>, executions: List<UtValueExecution<*>>): Coverage {
     val methodSignature = utMethod.callable.signature

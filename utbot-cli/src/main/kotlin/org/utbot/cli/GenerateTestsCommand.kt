@@ -102,20 +102,20 @@ class GenerateTestsCommand :
 
                 val testClassName = output?.toPath()?.toFile()?.nameWithoutExtension
                     ?: "${classUnderTest.simpleName}Test"
-                val testCases = generateTestCases(
+                val testSets = generateTestSets(
                     targetMethods,
                     Paths.get(sourceCodeFile),
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
                         .mapTo(mutableSetOf()) { ClassId(it) }
                 )
-                val testClassBody = generateTest(classUnderTest, testClassName, testCases)
+                val testClassBody = generateTest(classUnderTest, testClassName, testSets)
 
                 if (printToStdOut) {
                     logger.info { testClassBody }
                 }
                 if (sarifReport != null) {
-                    generateReport(targetClassFqn, testCases, testClassBody)
+                    generateReport(targetClassFqn, testSets, testClassBody)
                 }
                 saveToFile(testClassBody, output)
             }

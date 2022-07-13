@@ -41,7 +41,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
     private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
-     * Given a list of test cases constructs CgTestClass
+     * Given a list of test sets constructs CgTestClass
      */
     fun construct(testSets: Collection<UtMethodTestSet>): CgTestClassFile {
         return buildTestClassFile {
@@ -50,9 +50,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 id = currentTestClass
                 body = buildTestClassBody {
                     cgDataProviderMethods.clear()
-                    for (testCase in testSets) {
-                        updateCurrentExecutable(testCase.method)
-                        val currentMethodUnderTestRegions = construct(testCase)
+                    for (testSet in testSets) {
+                        updateCurrentExecutable(testSet.method)
+                        val currentMethodUnderTestRegions = construct(testSet)
                         val executableUnderTestCluster = CgExecutableUnderTestCluster(
                             "Test suites for executable $currentExecutable",
                             currentMethodUnderTestRegions

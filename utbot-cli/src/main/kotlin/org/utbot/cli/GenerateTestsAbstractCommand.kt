@@ -153,7 +153,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun loadClassBySpecifiedFqn(classFqn: String): KClass<*> =
         classLoader.loadClass(classFqn).kotlin
 
-    protected fun generateTestCases(
+    protected fun generateTestSets(
         targetMethods: List<UtMethod<*>>,
         sourceCodeFile: Path? = null,
         searchDirectory: Path,

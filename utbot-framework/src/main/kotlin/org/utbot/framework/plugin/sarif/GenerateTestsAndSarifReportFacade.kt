@@ -32,11 +32,11 @@ class GenerateTestsAndSarifReportFacade(
     ) {
         initializeEngine(runtimeClasspath, workingDirectory)
 
-        val testCases = generateTestCases(targetClass, workingDirectory)
-        val testClassBody = generateTestCode(targetClass, testCases)
+        val testSets = generateTestSets(targetClass, workingDirectory)
+        val testClassBody = generateTestCode(targetClass, testSets)
         targetClass.testsCodeFile.writeText(testClassBody)
 
-        generateReport(targetClass, testCases, testClassBody, sourceFindingStrategy)
+        generateReport(targetClass, testSets, testClassBody, sourceFindingStrategy)
     }
 
     companion object {
@@ -69,7 +69,7 @@ class GenerateTestsAndSarifReportFacade(
         TestCaseGenerator.init(workingDirectory, classPath, dependencyPaths)
     }
 
-    private fun generateTestCases(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtMethodTestSet> =
+    private fun generateTestSets(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtMethodTestSet> =
         TestCaseGenerator.generate(
             targetClass.targetMethods,
             sarifProperties.mockStrategy,

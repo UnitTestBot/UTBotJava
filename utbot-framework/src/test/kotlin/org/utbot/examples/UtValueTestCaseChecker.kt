@@ -2292,7 +2292,7 @@ abstract class UtValueTestCaseChecker(
                     val methodWithStrategy =
                         MethodWithMockStrategy(utMethod, mockStrategy, resetNonFinalFieldsAfterClinit)
 
-                    val (testCase, coverage) = analyzedMethods.getOrPut(methodWithStrategy) {
+                    val (testSet, coverage) = analyzedMethods.getOrPut(methodWithStrategy) {
                         walk(utMethod, mockStrategy)
                     }
 
@@ -2300,13 +2300,13 @@ abstract class UtValueTestCaseChecker(
                         // TODO JIRA:1407
                     }
 
-                    val testClass = testCase.method.clazz
+                    val testClass = testSet.method.clazz
                     val stageStatusCheck = StageStatusCheck(
                         firstStage = CodeGeneration,
                         lastStage = TestExecution,
                         status = ExecutionStatus.SUCCESS
                     )
-                    val classStages = listOf(ClassStages(testClass, stageStatusCheck, listOf(testCase)))
+                    val classStages = listOf(ClassStages(testClass, stageStatusCheck, listOf(testSet)))
 
                     TestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
                 }
@@ -2336,17 +2336,17 @@ abstract class UtValueTestCaseChecker(
             computeAdditionalDependenciesClasspathAndBuildDir(utMethod, additionalDependencies)
 
         withUtContext(UtContext(utMethod.clazz.java.classLoader)) {
-            val (testCase, coverage) = if (coverageMatcher is DoNotCalculate) {
+            val (testSet, coverage) = if (coverageMatcher is DoNotCalculate) {
                 MethodResult(executions(utMethod, mockStrategy, additionalDependenciesClassPath), Coverage())
             } else {
                 walk(utMethod, mockStrategy, additionalDependenciesClassPath)
             }
-            testCase.summarize(searchDirectory)
-            val valueTestCase = testCase.toValueTestCase()
+            testSet.summarize(searchDirectory)
+            val valueTestCase = testSet.toValueTestCase()
 
-            assertTrue(testCase.errors.isEmpty()) {
+            assertTrue(testSet.errors.isEmpty()) {
                 "We have errors: ${
-                    testCase.errors.entries.map { "${it.value}: ${it.key}" }.prettify()
+                    testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()
                 }"
             }
 
@@ -2374,7 +2374,7 @@ abstract class UtValueTestCaseChecker(
                 "Coverage matcher '$coverageMatcher' fails for $coverage (at least: ${coverage.toAtLeast()})"
             }
 
-            processTestCase(testCase)
+            processTestCase(testSet)
         }
     }
 
@@ -2476,13 +2476,13 @@ abstract class UtValueTestCaseChecker(
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String = ""
     ): MethodResult {
-        val testCase = executions(method, mockStrategy, additionalDependenciesClassPath)
+        val testSet = executions(method, mockStrategy, additionalDependenciesClassPath)
         val methodCoverage = methodCoverage(
             method,
-            testCase.toValueTestCase().executions,
+            testSet.toValueTestCase().executions,
             buildDir.toString() + File.pathSeparator + additionalDependenciesClassPath
         )
-        return MethodResult(testCase, methodCoverage)
+        return MethodResult(testSet, methodCoverage)
     }
 
     fun executions(

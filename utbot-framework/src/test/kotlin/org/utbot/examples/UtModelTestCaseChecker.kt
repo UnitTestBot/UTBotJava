@@ -93,19 +93,19 @@ internal abstract class UtModelTestCaseChecker(
         val utMethod = UtMethod.from(method)
 
         withUtContext(UtContext(utMethod.clazz.java.classLoader)) {
-            val testCase = executions(utMethod, mockStrategy)
+            val testSet = executions(utMethod, mockStrategy)
 
-            assertTrue(testCase.errors.isEmpty()) {
-                "We have errors: ${testCase.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
+            assertTrue(testSet.errors.isEmpty()) {
+                "We have errors: ${testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
             }
 
-            val executions = testCase.executions
+            val executions = testSet.executions
             assertTrue(branches(executions.size)) {
                 "Branch count matcher '$branches' fails for #executions=${executions.size}: ${executions.prettify()}"
             }
             executions.checkMatchers(matchers, arguments)
 
-            processTestCase(testCase)
+            processTestCase(testSet)
         }
     }
 

@@ -457,10 +457,10 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
     }
 }
 
-fun writeTestClass(cut: ClassUnderTest, testCasesAsString: String) {
-    logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(testCasesAsString.length.toLong())}" }
+fun writeTestClass(cut: ClassUnderTest, testSetsAsString: String) {
+    logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(testSetsAsString.length.toLong())}" }
     cut.generatedTestFile.parentFile.mkdirs()
-    cut.generatedTestFile.writeText(testCasesAsString, charset)
+    cut.generatedTestFile.writeText(testSetsAsString, charset)
 }
 
 private inline fun <R> KCallable<*>.withAccessibility(block: () -> R): R {

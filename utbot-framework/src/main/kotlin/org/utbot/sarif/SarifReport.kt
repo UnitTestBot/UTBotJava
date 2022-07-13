@@ -70,11 +70,11 @@ class SarifReport(
         val sarifResults = mutableListOf<SarifResult>()
         val sarifRules = mutableSetOf<SarifRule>()
 
-        for (testCase in testSets) {
-            for (execution in testCase.executions) {
+        for (testSet in testSets) {
+            for (execution in testSet.executions) {
                 if (shouldProcessExecutionResult(execution.result)) {
                     val (sarifResult, sarifRule) = processUncheckedException(
-                        method = testCase.method,
+                        method = testSet.method,
                         utExecution = execution,
                         uncheckedException = execution.result as UtExecutionFailure
                     )

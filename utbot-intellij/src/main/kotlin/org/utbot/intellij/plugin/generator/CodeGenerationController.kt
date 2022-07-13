@@ -95,7 +95,7 @@ object CodeGenerationController {
         val latch = CountDownLatch(testSetsByClass.size)
 
         for (srcClass in testSetsByClass.keys) {
-            val testCases = testSetsByClass[srcClass] ?: continue
+            val testSets = testSetsByClass[srcClass] ?: continue
             try {
                 val classPackageName = if (model.testPackageName.isNullOrEmpty())
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
@@ -104,7 +104,7 @@ object CodeGenerationController {
                 val file = testClass.containingFile
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndSaveReports(testClass, file, testCases, model, latch)
+                        generateCodeAndSaveReports(testClass, file, testSets, model, latch)
                     } catch (e: IncorrectOperationException) {
                         showCreatingClassError(model.project, createTestClassName(srcClass))
                     }

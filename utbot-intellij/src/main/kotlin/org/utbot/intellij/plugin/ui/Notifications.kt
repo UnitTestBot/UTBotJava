@@ -31,8 +31,10 @@ abstract class Notifier {
                 .notify(project)
     }
 
+    protected open val notificationDisplayType = NotificationDisplayType.BALLOON
+
     protected val notificationGroup: NotificationGroup
-        get() = NotificationGroup(displayId, NotificationDisplayType.BALLOON)
+        get() = NotificationGroup(displayId, notificationDisplayType)
 }
 
 abstract class WarningNotifier : Notifier() {
@@ -95,7 +97,15 @@ abstract class InformationUrlNotifier : UrlNotifier() {
     override val notificationType: NotificationType = NotificationType.INFORMATION
 }
 
-object SarifReportNotifier : InformationUrlNotifier() {
+abstract class WarningUrlNotifier : UrlNotifier() {
+    override val notificationType: NotificationType = NotificationType.WARNING
+}
+
+abstract class EventLogNotifier : InformationUrlNotifier() {
+    override val notificationDisplayType = NotificationDisplayType.NONE
+}
+
+object SarifReportNotifier : EventLogNotifier() {
 
     override val displayId: String = "SARIF report"
 
@@ -109,9 +119,30 @@ object SarifReportNotifier : InformationUrlNotifier() {
 object TestsReportNotifier : InformationUrlNotifier() {
     override val displayId: String = "Generated unit tests report"
 
-    override val titleText: String = "Report of the unit tests generation via UtBot"
+    override val titleText: String = "UTBot: unit tests generated successfully"
 
-    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener()
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
+
+    override fun content(project: Project?, module: Module?, info: String): String = info
+}
+
+// TODO replace inheritance with decorators
+object WarningTestsReportNotifier : WarningUrlNotifier() {
+    override val displayId: String = "Generated unit tests report"
+
+    override val titleText: String = "UTBot: unit tests generated with warnings"
+
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
+
+    override fun content(project: Project?, module: Module?, info: String): String = info
+}
+
+object DetailsTestsReportNotifier : EventLogNotifier() {
+    override val displayId: String = "Test report details"
+
+    override val titleText: String = "Test report details of the unit tests generation via UtBot"
+
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
 
     override fun content(project: Project?, module: Module?, info: String): String = info
 }
@@ -119,16 +150,16 @@ object TestsReportNotifier : InformationUrlNotifier() {
 /**
  * Listener that handles URLs starting with [prefix], like "#utbot/configure-mockito".
  */
-class TestReportUrlOpeningListener: NotificationListener.Adapter() {
-    companion object {
-        const val prefix = "#utbot/"
-        const val mockitoSuffix = "configure-mockito"
-        const val mockitoInlineSuffix = "mockito-inline"
-    }
+object TestReportUrlOpeningListener: NotificationListener.Adapter() {
+    const val prefix = "#utbot/"
+    const val mockitoSuffix = "configure-mockito"
+    const val mockitoInlineSuffix = "mockito-inline"
+    const val eventLogSuffix = "event-log"
 
     val callbacks: Map<String, MutableList<() -> Unit>> = hashMapOf(
         Pair(mockitoSuffix, mutableListOf()),
         Pair(mockitoInlineSuffix, mutableListOf()),
+        Pair(eventLogSuffix, mutableListOf()),
     )
 
     private val defaultListener = NotificationListener.UrlOpeningListener(false)

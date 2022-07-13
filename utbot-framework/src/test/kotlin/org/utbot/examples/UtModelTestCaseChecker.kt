@@ -137,9 +137,20 @@ internal abstract class UtModelTestCaseChecker(
             buildDir = findPathToClassFiles(classLocation)
             previousClassLocation = classLocation
         }
-        TestSpecificTestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
-        return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
+
+        val testCaseGenerator = testCaseGeneratorCache
+            .getOrPut(buildDir) {
+                TestSpecificTestCaseGenerator(
+                    buildDir,
+                    classpath = null,
+                    dependencyPaths = System.getProperty("java.class.path"),
+                )
+            }
+
+        return testCaseGenerator.generate(method, mockStrategy)
     }
+
+    private val testCaseGeneratorCache = mutableMapOf<Path, TestSpecificTestCaseGenerator>()
 
     protected inline fun <reified T> UtExecutionResult.isException(): Boolean = exceptionOrNull() is T
 

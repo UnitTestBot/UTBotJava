@@ -96,7 +96,7 @@ class GenerateTestsCommand :
             val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
             val targetMethods = classUnderTest.targetMethods()
                 .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
-            initializeEngine(workingDirectory)
+            val testCaseGenerator = initializeGenerator(workingDirectory)
 
             if (targetMethods.isEmpty()) {
                 throw Exception("Nothing to process. No methods were provided")
@@ -107,6 +107,7 @@ class GenerateTestsCommand :
                 val testClassName = output?.toPath()?.toFile()?.nameWithoutExtension
                     ?: "${classUnderTest.simpleName}Test"
                 val testSets = generateTestSets(
+                    testCaseGenerator,
                     targetMethods,
                     Paths.get(sourceCodeFile),
                     searchDirectory = workingDirectory,

@@ -119,10 +119,6 @@ fun main(args: Array<String>) {
 
 
     withUtContext(context) {
-
-        //soot initialization
-        TestCaseGenerator.init(classfileDir, classpathString, dependencyPath)
-
         logger.info().bracket("warmup: kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class, "")
             prepareClass(Warmup::class, "")
@@ -193,13 +189,12 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class, "")
             prepareClass(Warmup::class, "")
         }
-
     }
 
     //remaining budget
@@ -214,15 +209,13 @@ fun runGeneration(
 
     val statsForClass = StatsForClass()
 
-    val codeGenerator = CodeGenerator().apply {
-        init(
+    val codeGenerator = CodeGenerator(
             cut.classId.jClass,
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
             generateWarningsForStaticMocking = false
         )
-    }
 
     // Doesn't work
 /*    val concreteExecutorForCoverage =
@@ -248,10 +241,10 @@ fun runGeneration(
         // nothing to process further
         if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
-        val testCaseGenerator = TestCaseGenerator
-        logger.info().bracket("2nd optional soot initialization") {
-            testCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
-        }
+        val testCaseGenerator =
+            logger.info().bracket("2nd optional soot initialization") {
+                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            }
 
 
         val engineJob = CoroutineScope(SupervisorJob() + newSingleThreadContext("SymbolicExecution") + currentContext ).launch {

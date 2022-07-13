@@ -154,12 +154,13 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         classLoader.loadClass(classFqn).kotlin
 
     protected fun generateTestSets(
+        testCaseGenerator: TestCaseGenerator,
         targetMethods: List<UtMethod<*>>,
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
     ): List<UtMethodTestSet> =
-        TestCaseGenerator.generate(
+        testCaseGenerator.generate(
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,
@@ -190,30 +191,26 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
             classUnderTest
         ).generateAsString(testSets, testClassname)
 
-    protected fun initializeEngine(workingDirectory: Path) {
+    protected fun initializeGenerator(workingDirectory: Path): TestCaseGenerator {
         val classPathNormalized =
             classLoader.urLs.joinToString(separator = File.pathSeparator) { it.toPath().absolutePath }
-
-        // TODO: SAT-1566
-        // Set UtSettings parameters.
+        // TODO: SAT-1566 Set UtSettings parameters.
         UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
 
-        TestCaseGenerator.init(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
+        return TestCaseGenerator(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
     }
 
     private fun initializeCodeGenerator(testFramework: String, classUnderTest: KClass<*>): CodeGenerator {
         val generateWarningsForStaticMocking =
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
-        return CodeGenerator().apply {
-            init(
-                testFramework = testFrameworkByName(testFramework),
-                classUnderTest = classUnderTest.java,
-                codegenLanguage = codegenLanguage,
-                staticsMocking = staticsMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-            )
-        }
+        return CodeGenerator(
+            testFramework = testFrameworkByName(testFramework),
+            classUnderTest = classUnderTest.java,
+            codegenLanguage = codegenLanguage,
+            staticsMocking = staticsMocking,
+            forceStaticMocking = forceStaticMocking,
+            generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+        )
     }
 
     protected fun KClass<*>.targetMethods() =

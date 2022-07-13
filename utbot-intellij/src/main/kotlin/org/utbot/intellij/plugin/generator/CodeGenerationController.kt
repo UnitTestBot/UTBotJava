@@ -250,8 +250,7 @@ object CodeGenerationController {
 
         val params = findMethodParams(classUnderTest, selectedMethods)
 
-        val codeGenerator = CodeGenerator().apply {
-            init(
+        val codeGenerator = CodeGenerator(
                 classUnderTest = classUnderTest.java,
                 params = params.toMutableMap(),
                 testFramework = testFramework,
@@ -266,7 +265,6 @@ object CodeGenerationController {
                 enableTestsTimeout = true,
                 testClassPackageName = testClass.packageName
             )
-        }
 
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, file, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)

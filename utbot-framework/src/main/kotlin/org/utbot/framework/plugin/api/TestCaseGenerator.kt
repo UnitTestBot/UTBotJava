@@ -1,12 +1,25 @@
 package org.utbot.framework.plugin.api
 
-import org.utbot.common.FileUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flattenConcat
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
+import mu.KLogger
+import mu.KotlinLogging
 import org.utbot.common.bracket
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
+import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -34,85 +47,52 @@ import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.reflect.KCallable
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flattenConcat
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.yield
-import mu.KotlinLogging
-import org.utbot.engine.UtBotSymbolicEngine
 
-object TestCaseGenerator {
+open class TestCaseGenerator(
+    private val buildDir: Path,
+    private val classpath: String?,
+    private val dependencyPaths: String,
+    val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
+    val isCanceled: () -> Boolean = { false },
+) {
+    private lateinit var logger: KLogger
+    private lateinit var timeoutLogger: KLogger
 
-    private val logger = KotlinLogging.logger {}
-    private val timeoutLogger = KotlinLogging.logger(logger.name + ".timeout")
+    init {
+        if (!isCanceled()) {
+            checkFrameworkDependencies(dependencyPaths)
 
-    lateinit var engineActions: MutableList<(UtBotSymbolicEngine) -> Unit>
-    lateinit var isCanceled: () -> Boolean
+            logger = KotlinLogging.logger {}
+            timeoutLogger = KotlinLogging.logger(logger.name + ".timeout")
 
-    //properties to save time on soot initialization
-    private var previousBuildDir: Path? = null
-    private var previousClasspath: String? = null
-    private var previousTimestamp: Long? = null
-    private var dependencyPaths: String = ""
+            logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
 
-    fun init(
-        buildDir: Path,
-        classpath: String?,
-        dependencyPaths: String,
-        engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
-        isCanceled: () -> Boolean = { false },
-    ) {
-        this.isCanceled = isCanceled
-        this.engineActions = engineActions
-        if (isCanceled()) return
 
-        checkFrameworkDependencies(dependencyPaths)
+            if (disableCoroutinesDebug) {
+                System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
+            }
 
-        logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
+            timeoutLogger.trace().bracket("Soot initialization") {
+                runSoot(buildDir, classpath)
+            }
 
-        //optimization: maxLastModifiedRecursivelyMillis can take time
-        val timestamp = if (UtSettings.classfilesCanChange) maxLastModifiedRecursivelyMillis(buildDir, classpath) else 0
-        if (buildDir == previousBuildDir && classpath == previousClasspath && timestamp == previousTimestamp) {
-            logger.info { "Ignoring soot initialization because parameters are the same as on previous initialization" }
-            return
-        }
-
-        if (disableCoroutinesDebug) {
-            System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
-        }
-
-        timeoutLogger.trace().bracket("Soot initialization") {
-            runSoot(buildDir, classpath)
-        }
-
-        previousBuildDir = buildDir
-        previousClasspath = classpath
-        previousTimestamp = timestamp
-        this.dependencyPaths = dependencyPaths
-
-        //warmup
-        if (warmupConcreteExecution) {
-            ConcreteExecutor(
-                UtExecutionInstrumentation,
-                classpathForEngine,
-                dependencyPaths
-            ).apply {
-                classLoader = utContext.classLoader
-                withUtContext(UtContext(Warmup::class.java.classLoader)) {
-                    runBlocking {
-                        constructExecutionsForWarmup().forEach { (method, data) ->
-                            executeAsync(method, emptyArray(), data)
+            //warmup
+            if (warmupConcreteExecution) {
+                ConcreteExecutor(
+                    UtExecutionInstrumentation,
+                    classpathForEngine(),
+                    dependencyPaths
+                ).apply {
+                    classLoader = utContext.classLoader
+                    withUtContext(UtContext(Warmup::class.java.classLoader)) {
+                        runBlocking {
+                            constructExecutionsForWarmup().forEach { (method, data) ->
+                                executeAsync(method, emptyArray(), data)
+                            }
                         }
                     }
+                    warmup()
                 }
-                warmup()
             }
         }
     }
@@ -254,17 +234,7 @@ object TestCaseGenerator {
             )
         }
 
-    private val classpathForEngine: String
-        get() = previousBuildDir!!.toString() + (previousClasspath?.let { File.pathSeparator + it } ?: "")
-
-    private fun maxLastModifiedRecursivelyMillis(buildDir: Path, classpath: String?): Long {
-        val paths = mutableListOf<File>()
-        paths += buildDir.toFile()
-        if (classpath != null) {
-            paths += classpath.split(File.pathSeparatorChar).map { File(it) }
-        }
-        return FileUtil.maxLastModifiedRecursivelyMillis(paths)
-    }
+    private fun classpathForEngine() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
 
     private fun createSymbolicEngine(
         controller: EngineController,
@@ -278,7 +248,7 @@ object TestCaseGenerator {
         return UtBotSymbolicEngine(
             controller,
             method,
-            classpathForEngine,
+            classpathForEngine(),
             dependencyPaths = dependencyPaths,
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,

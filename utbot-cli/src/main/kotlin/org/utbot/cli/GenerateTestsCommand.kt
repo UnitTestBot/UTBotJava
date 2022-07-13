@@ -145,7 +145,7 @@ class GenerateTestsCommand :
                     SourceFindingStrategyDefault(classFqn, sourceCodeFile, testsFilePath, projectRootPath)
                 val report = SarifReport(testCases, testClassBody, sourceFinding).createReport()
                 saveToFile(report, sarifReport)
-                println("The report was saved to \"$sarifReport\". You can open it using the VS Code extension \"Sarif Viewer\".")
+                println("The report was saved to \"$sarifReport\".")
             }
         }
     } catch (t: Throwable) {

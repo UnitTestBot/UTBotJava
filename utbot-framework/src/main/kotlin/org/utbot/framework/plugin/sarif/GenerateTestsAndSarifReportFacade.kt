@@ -53,7 +53,6 @@ class GenerateTestsAndSarifReportFacade(
             mergedSarifReportFile.writeText(mergedReport)
             if (verbose) {
                 println("SARIF report was saved to \"${mergedSarifReportFile.path}\"")
-                println("You can open it using the VS Code extension \"Sarif Viewer\"")
             }
         }
     }

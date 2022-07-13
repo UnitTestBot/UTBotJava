@@ -71,7 +71,7 @@ class GenerateTestsAndSarifReportFacade(
 
     private fun generateTestCases(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtTestCase> =
         TestCaseGenerator.generate(
-            targetClass.targetMethods(),
+            targetClass.targetMethods,
             sarifProperties.mockStrategy,
             sarifProperties.classesToMockAlways,
             sarifProperties.generationTimeout

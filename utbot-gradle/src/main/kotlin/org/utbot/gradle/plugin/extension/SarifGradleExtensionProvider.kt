@@ -52,6 +52,11 @@ class SarifGradleExtensionProvider(
         get() = extension.markGeneratedTestsDirectoryAsTestSourcesRoot.orNull
             ?: true
 
+    override val testPrivateMethods: Boolean
+        get() = taskParameters["testPrivateMethods"]?.let { it == "true"}
+            ?: extension.testPrivateMethods.orNull
+            ?: false
+
     override val testFramework: TestFramework
         get() = (taskParameters["testFramework"] ?: extension.testFramework.orNull)
             ?.let(::testFrameworkParse)

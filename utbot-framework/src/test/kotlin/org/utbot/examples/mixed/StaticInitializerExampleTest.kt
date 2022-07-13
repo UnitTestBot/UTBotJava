@@ -2,12 +2,12 @@ package org.utbot.examples.mixed
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.StaticInitializerExample
 import org.utbot.examples.eq
 
 @Disabled("Unknown build failure")
-internal class StaticInitializerExampleTest : AbstractTestCaseGeneratorTest(testClass = StaticInitializerExample::class) {
+internal class StaticInitializerExampleTest : UtValueTestCaseChecker(testClass = StaticInitializerExample::class) {
     @Test
     fun testPositive() {
         check(

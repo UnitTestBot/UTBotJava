@@ -1,8 +1,9 @@
-package org.utbot.framework.plugin.api
+package org.utbot.framework.util
 
 import org.utbot.api.mock.UtMock
 import org.utbot.common.FileUtil
 import org.utbot.engine.UtNativeStringWrapper
+import org.utbot.engine.jimpleBody
 import org.utbot.engine.overrides.Boolean
 import org.utbot.engine.overrides.Byte
 import org.utbot.engine.overrides.Character
@@ -36,6 +37,9 @@ import org.utbot.engine.overrides.collections.AbstractCollection
 import org.utbot.engine.overrides.stream.Arrays
 import org.utbot.engine.overrides.stream.Stream
 import org.utbot.engine.overrides.stream.UtStream
+import org.utbot.engine.pureJavaSignature
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.util.signature
 import java.io.File
 import java.nio.file.Path
 import kotlin.reflect.KClass
@@ -43,7 +47,9 @@ import soot.G
 import soot.PackManager
 import soot.Scene
 import soot.SootClass
+import soot.jimple.JimpleBody
 import soot.options.Options
+import soot.toolkits.graph.ExceptionalUnitGraph
 
 /**
 Convert code to Jimple
@@ -84,6 +90,16 @@ fun runSoot(buildDir: Path, classpath: String?) {
         if (it.resolvingLevel() < SootClass.HIERARCHY)
             it.setResolvingLevel(SootClass.HIERARCHY)
     }
+}
+
+fun JimpleBody.graph() = ExceptionalUnitGraph(this)
+
+fun jimpleBody(method: UtMethod<*>): JimpleBody {
+    val clazz = Scene.v().classes.single { it.name == method.clazz.java.name }
+    val signature = method.callable.signature
+    val sootMethod = clazz.methods.single { it.pureJavaSignature == signature }
+
+    return sootMethod.jimpleBody()
 }
 
 private fun addBasicClasses(vararg classes: KClass<*>) {

@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
 import org.utbot.examples.eq
@@ -12,7 +12,7 @@ import org.utbot.examples.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 
-internal class FieldMockTest : AbstractTestCaseGeneratorTest(testClass = ServiceWithField::class) {
+internal class FieldMockTest : UtValueTestCaseChecker(testClass = ServiceWithField::class) {
     @Test
     fun testMockForField_callMultipleMethods() {
         checkMocksAndInstrumentation(

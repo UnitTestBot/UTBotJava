@@ -4,7 +4,7 @@ import org.utbot.common.FileUtil
 import org.utbot.common.packageName
 import org.utbot.common.withAccessibility
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.BaseTestCodeGeneratorPipeline.Companion.defaultCodegenPipeline
+import org.utbot.framework.codegen.TestCodeGeneratorPipeline.Companion.defaultCodegenPipeline
 import org.utbot.framework.codegen.ClassStages
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.codegen.ExecutionStatus
@@ -32,8 +32,8 @@ import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
-@ExtendWith(CodeTestCaseGeneratorTest.Companion.ReadRunningTestsNumberBeforeAllTestsCallback::class)
-abstract class CodeTestCaseGeneratorTest(
+@ExtendWith(CodeGenerationIntegrationTest.Companion.ReadRunningTestsNumberBeforeAllTestsCallback::class)
+abstract class CodeGenerationIntegrationTest(
     private val testClass: KClass<*>,
     private var testCodeGeneration: Boolean = true,
     private val languagesLastStages: List<CodeGenerationLanguageLastStage> = listOf(

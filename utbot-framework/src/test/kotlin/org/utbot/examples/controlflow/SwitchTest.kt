@@ -1,6 +1,6 @@
 package org.utbot.examples.controlflow
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.keyContain
@@ -17,7 +17,7 @@ import java.math.RoundingMode.HALF_EVEN
 import java.math.RoundingMode.HALF_UP
 import org.junit.jupiter.api.Test
 
-internal class SwitchTest : AbstractTestCaseGeneratorTest(testClass = Switch::class) {
+internal class SwitchTest : UtValueTestCaseChecker(testClass = Switch::class) {
     @Test
     fun testSimpleSwitch() {
         val switchCaseSummary = listOf<DocStatement>(

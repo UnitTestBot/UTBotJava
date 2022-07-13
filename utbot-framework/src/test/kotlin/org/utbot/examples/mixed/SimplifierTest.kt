@@ -1,11 +1,11 @@
 package org.utbot.examples.mixed
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class SimplifierTest: AbstractTestCaseGeneratorTest(testClass = Simplifier::class) {
+internal class SimplifierTest: UtValueTestCaseChecker(testClass = Simplifier::class) {
     @Test
     fun testSimplifyAdditionWithZero() {
         check(

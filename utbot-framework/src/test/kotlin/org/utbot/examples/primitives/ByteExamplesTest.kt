@@ -1,10 +1,10 @@
 package org.utbot.examples.primitives
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class ByteExamplesTest : AbstractTestCaseGeneratorTest(testClass = ByteExamples::class) {
+internal class ByteExamplesTest : UtValueTestCaseChecker(testClass = ByteExamples::class) {
     @Test
     fun testNegByte() {
         check(

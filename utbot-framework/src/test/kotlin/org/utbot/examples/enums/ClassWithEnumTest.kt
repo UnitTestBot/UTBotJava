@@ -1,7 +1,7 @@
 package org.utbot.examples.enums
 
 import org.utbot.common.findField
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.READY
@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-class ClassWithEnumTest : AbstractTestCaseGeneratorTest(testClass = ClassWithEnum::class) {
+class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
     @Test
     fun testOrdinal() {
         withoutConcrete {

@@ -99,7 +99,17 @@ data class SarifResult(
     val locations: List<SarifPhysicalLocationWrapper> = listOf(),
     val relatedLocations: List<SarifRelatedPhysicalLocationWrapper> = listOf(),
     val codeFlows: List<SarifCodeFlow> = listOf()
-)
+) {
+    /**
+     * Returns the total number of locations in all [codeFlows].
+     */
+    fun totalCodeFlowLocations() =
+        codeFlows.sumBy { codeFlow ->
+            codeFlow.threadFlows.sumBy { threadFlow ->
+                threadFlow.locations.size
+            }
+        }
+}
 
 /**
  * The severity of the result. "Error" for detected unchecked exceptions.
@@ -156,8 +166,8 @@ data class SarifRegion(
          */
         fun withStartLine(text: String, startLine: Int): SarifRegion {
             val neededLine = text.split('\n').getOrNull(startLine - 1) // to zero-based
-            val startColumn = neededLine?.let {
-                neededLine.takeWhile { it.toString().isBlank() }.length + 1 // to one-based
+            val startColumn = neededLine?.run {
+                takeWhile { it.toString().isBlank() }.length + 1 // to one-based
             }
             return SarifRegion(startLine = startLine, startColumn = startColumn)
         }

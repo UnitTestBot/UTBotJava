@@ -1,6 +1,6 @@
 package org.utbot.examples.arrays
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
 import org.utbot.examples.isException
@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-internal class PrimitiveArraysTest : AbstractTestCaseGeneratorTest(
+internal class PrimitiveArraysTest : UtValueTestCaseChecker(
     testClass = PrimitiveArrays::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

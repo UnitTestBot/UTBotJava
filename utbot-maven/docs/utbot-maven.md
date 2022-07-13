@@ -40,6 +40,7 @@ For example, the following configuration may be used:
     <generatedTestsRelativeRoot>target/generated/test</generatedTestsRelativeRoot>
     <sarifReportsRelativeRoot>target/generated/sarif</sarifReportsRelativeRoot>
     <markGeneratedTestsDirectoryAsTestSourcesRoot>true</markGeneratedTestsDirectoryAsTestSourcesRoot>
+    <testPrivateMethods>false</testPrivateMethods>
     <testFramework>junit5</testFramework>
     <mockFramework>mockito</mockFramework>
     <generationTimeout>60000L</generationTimeout>
@@ -78,6 +79,10 @@ For example, the following configuration may be used:
     - _TODO: It has not been supported yet._
     - Mark the directory with generated tests as `test sources root` or not.
     - By default, `true` is used.
+
+- `testPrivateMethods`&ndash;
+    - Generate tests for private methods or not.
+    - By default, `false` is used.
 
 - `testFramework` &ndash;
     - The name of the test framework to be used.

@@ -2,15 +2,14 @@
 
 package org.utbot.examples.invokes
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import java.lang.Boolean
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class VirtualInvokeExampleTest : AbstractTestCaseGeneratorTest(testClass = VirtualInvokeExample::class) {
+internal class VirtualInvokeExampleTest : UtValueTestCaseChecker(testClass = VirtualInvokeExample::class) {
     @Test
     fun testSimpleVirtualInvoke() {
         checkWithException(

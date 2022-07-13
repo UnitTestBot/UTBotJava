@@ -2,7 +2,7 @@
 
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
@@ -13,7 +13,7 @@ import kotlin.Suppress
 import kotlin.arrayOf
 import org.junit.jupiter.api.Test
 
-internal class ClassRefTest : AbstractTestCaseGeneratorTest(
+internal class ClassRefTest : UtValueTestCaseChecker(
     testClass = ClassRef::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

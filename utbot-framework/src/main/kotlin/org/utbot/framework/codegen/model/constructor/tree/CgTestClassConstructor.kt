@@ -25,7 +25,7 @@ import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.description
 import kotlin.reflect.KClass
 
@@ -41,18 +41,18 @@ internal class CgTestClassConstructor(val context: CgContext) :
     private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
-     * Given a list of test cases constructs CgTestClass
+     * Given a list of test sets constructs CgTestClass
      */
-    fun construct(testCases: Collection<UtTestCase>): CgTestClassFile {
+    fun construct(testSets: Collection<UtMethodTestSet>): CgTestClassFile {
         return buildTestClassFile {
             testClass = buildTestClass {
                 // TODO: obtain test class from plugin
                 id = currentTestClass
                 body = buildTestClassBody {
                     cgDataProviderMethods.clear()
-                    for (testCase in testCases) {
-                        updateCurrentExecutable(testCase.method)
-                        val currentMethodUnderTestRegions = construct(testCase)
+                    for (testSet in testSets) {
+                        updateCurrentExecutable(testSet.method)
+                        val currentMethodUnderTestRegions = construct(testSet)
                         val executableUnderTestCluster = CgExecutableUnderTestCluster(
                             "Test suites for executable $currentExecutable",
                             currentMethodUnderTestRegions
@@ -76,8 +76,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun construct(testCase: UtTestCase): List<CgRegion<CgMethod>> {
-        val (methodUnderTest, executions, _, _, clustersInfo) = testCase
+    private fun construct(testSet: UtMethodTestSet): List<CgRegion<CgMethod>> {
+        val (methodUnderTest, executions, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
@@ -89,7 +89,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     for (i in executionIndices) {
                         runCatching {
                             currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, executions[i])
-                        }.onFailure { e -> processFailure(testCase, e) }
+                        }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content
@@ -97,43 +97,43 @@ internal class CgTestClassConstructor(val context: CgContext) :
                         ?.let { CgTripleSlashMultilineComment(it) }
                     regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
 
-                    testsGenerationReport.addTestsByType(testCase, currentTestCaseTestMethods)
+                    testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
                 runCatching {
-                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testCase.method)
+                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.method)
 
                     val parameterizedTestMethod =
-                        methodConstructor.createParameterizedTestMethod(testCase, dataProviderMethodName)
+                        methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
 
                     if (parameterizedTestMethod != null) {
                         requiredFields += parameterizedTestMethod.requiredFields
 
                         cgDataProviderMethods +=
-                            methodConstructor.createParameterizedTestDataProvider(testCase, dataProviderMethodName)
+                            methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
 
                         regions += CgSimpleRegion(
                             "Parameterized test for method ${methodUnderTest.displayName}",
                             listOf(parameterizedTestMethod),
                         )
                     }
-                }.onFailure { error -> processFailure(testCase, error) }
+                }.onFailure { error -> processFailure(testSet, error) }
             }
         }
 
-        val errors = testCase.allErrors
+        val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
-            regions += methodConstructor.errorMethod(testCase.method, errors)
-            testsGenerationReport.addMethodErrors(testCase, errors)
+            regions += methodConstructor.errorMethod(testSet.method, errors)
+            testsGenerationReport.addMethodErrors(testSet, errors)
         }
 
         return regions
     }
 
-    private fun processFailure(testCase: UtTestCase, failure: Throwable) {
+    private fun processFailure(testSet: UtMethodTestSet, failure: Throwable) {
         codeGenerationErrors
-            .getOrPut(testCase) { mutableMapOf() }
+            .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
     }
 
@@ -168,9 +168,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
     }
 
     /**
-     * Engine errors + codegen errors for a given UtTestCase
+     * Engine errors + codegen errors for a given [UtMethodTestSet]
      */
-    private val UtTestCase.allErrors: Map<String, Int>
+    private val UtMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 }
 
@@ -193,12 +193,12 @@ data class TestsGenerationReport(
     var summaryMessage: () -> String = { "Unit tests for $classUnderTest were generated successfully." }
     val initialWarnings: MutableList<() -> String> = mutableListOf()
 
-    fun addMethodErrors(testCase: UtTestCase, errors: Map<String, Int>) {
-        this.errors[testCase.method] = errors
+    fun addMethodErrors(testSet: UtMethodTestSet, errors: Map<String, Int>) {
+        this.errors[testSet.method] = errors
     }
 
-    fun addTestsByType(testCase: UtTestCase, testMethods: List<CgTestMethod>) {
-        with(testCase.method) {
+    fun addTestsByType(testSet: UtMethodTestSet, testMethods: List<CgTestMethod>) {
+        with(testSet.method) {
             executables += this
 
             testMethods.forEach {

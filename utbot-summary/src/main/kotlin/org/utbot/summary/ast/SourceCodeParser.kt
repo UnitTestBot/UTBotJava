@@ -7,9 +7,8 @@ import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.body.TypeDeclaration
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import java.io.File
-import java.nio.file.Path
 import kotlin.math.abs
 import soot.SootMethod
 
@@ -22,13 +21,13 @@ class SourceCodeParser {
     private val cu: ParseResult<CompilationUnit>
     var methodAST: MethodDeclaration? = null
 
-    constructor(sourceFile: File, testCase: UtTestCase) {
+    constructor(sourceFile: File, testSet: UtMethodTestSet) {
         val parser = JavaParser()
         cu = parser.parse(sourceFile)
-        val className = testCase.method.clazz.simpleName
-        val methodName = testCase.method.callable.name
+        val className = testSet.method.clazz.simpleName
+        val methodName = testSet.method.callable.name
 
-        val lineNumbers = testCase.jimpleBody?.units?.map { it.javaSourceStartLineNumber }
+        val lineNumbers = testSet.jimpleBody?.units?.map { it.javaSourceStartLineNumber }
         val maxLineNumber = lineNumbers?.maxOrNull()
         if (className != null && maxLineNumber != null) findMethod(className, methodName, maxLineNumber)
     }

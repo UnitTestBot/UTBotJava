@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -24,7 +24,7 @@ import org.utbot.framework.plugin.api.UtTestCase
  * [Sample report](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#example-with-minimum-required-properties)
  */
 class SarifReport(
-    private val testCases: List<UtTestCase>,
+    private val testSets: List<UtMethodTestSet>,
     private val generatedTestsCode: String,
     private val sourceFinding: SourceFindingStrategy
 ) {
@@ -70,11 +70,11 @@ class SarifReport(
         val sarifResults = mutableListOf<SarifResult>()
         val sarifRules = mutableSetOf<SarifRule>()
 
-        for (testCase in testCases) {
-            for (execution in testCase.executions) {
+        for (testSet in testSets) {
+            for (execution in testSet.executions) {
                 if (shouldProcessExecutionResult(execution.result)) {
                     val (sarifResult, sarifRule) = processUncheckedException(
-                        method = testCase.method,
+                        method = testSet.method,
                         utExecution = execution,
                         uncheckedException = execution.result as UtExecutionFailure
                     )

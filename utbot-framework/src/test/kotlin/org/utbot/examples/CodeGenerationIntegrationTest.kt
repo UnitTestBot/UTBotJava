@@ -12,7 +12,7 @@ import org.utbot.framework.codegen.Stage
 import org.utbot.framework.codegen.StageStatusCheck
 import org.utbot.framework.codegen.TestExecution
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.instrumentation.ConcreteExecutor
 import kotlin.reflect.KClass
 import mu.KotlinLogging
@@ -41,12 +41,12 @@ abstract class CodeGenerationIntegrationTest(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
     )
 ) {
-    private val testCases: MutableList<UtTestCase> = arrayListOf()
+    private val testSets: MutableList<UtMethodTestSet> = arrayListOf()
 
     data class CodeGenerationLanguageLastStage(val language: CodegenLanguage, val lastStage: Stage = TestExecution)
 
-    fun processTestCase(testCase: UtTestCase) {
-        if (testCodeGeneration) testCases += testCase
+    fun processTestCase(testSet: UtMethodTestSet) {
+        if (testCodeGeneration) testSets += testSet
     }
 
     protected fun withEnabledTestingCodeGeneration(testCodeGeneration: Boolean, block: () -> Unit) {
@@ -65,7 +65,7 @@ abstract class CodeGenerationIntegrationTest(
         if (testCodeGeneration) {
             packageResult.getOrPut(pkg) { mutableListOf() } += CodeGenerationTestCases(
                 testClass,
-                testCases,
+                testSets,
                 languagesLastStages
             )
         }
@@ -114,7 +114,7 @@ abstract class CodeGenerationIntegrationTest(
                                 lastStage = codeGenerationTestCases.languagePipelines.single { it.language == language }.lastStage,
                                 status = ExecutionStatus.SUCCESS
                             ),
-                            codeGenerationTestCases.testCases
+                            codeGenerationTestCases.testSets
                         )
                     }
 
@@ -146,7 +146,7 @@ abstract class CodeGenerationIntegrationTest(
 
         data class CodeGenerationTestCases(
             val testClass: KClass<*>,
-            val testCases: List<UtTestCase>,
+            val testSets: List<UtMethodTestSet>,
             val languagePipelines: List<CodeGenerationLanguageLastStage>
         )
 

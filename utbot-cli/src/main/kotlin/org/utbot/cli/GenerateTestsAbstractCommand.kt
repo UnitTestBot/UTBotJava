@@ -28,7 +28,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.summary.summarize
 import java.io.File
 import java.lang.reflect.Method
@@ -153,12 +153,12 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun loadClassBySpecifiedFqn(classFqn: String): KClass<*> =
         classLoader.loadClass(classFqn).kotlin
 
-    protected fun generateTestCases(
+    protected fun generateTestSets(
         targetMethods: List<UtMethod<*>>,
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
-    ): List<UtTestCase> =
+    ): List<UtMethodTestSet> =
         TestCaseGenerator.generate(
             targetMethods,
             mockStrategy,
@@ -184,11 +184,11 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         }
     }
 
-    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testCases: List<UtTestCase>): String =
+    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testSets: List<UtMethodTestSet>): String =
         initializeCodeGenerator(
             testFramework,
             classUnderTest
-        ).generateAsString(testCases, testClassname)
+        ).generateAsString(testSets, testClassname)
 
     protected fun initializeEngine(workingDirectory: Path) {
         val classPathNormalized =

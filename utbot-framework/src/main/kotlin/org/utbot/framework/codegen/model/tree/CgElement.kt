@@ -756,6 +756,8 @@ class CgGetJavaClass(classId: ClassId) : CgGetClass(classId)
 
 class CgGetKotlinClass(classId: ClassId) : CgGetClass(classId)
 
+class CgGetPythonClass(classId: ClassId) : CgGetClass(classId)
+
 // Executable calls
 
 class CgStatementExecutableCall(val call: CgExecutableCall) : CgStatement

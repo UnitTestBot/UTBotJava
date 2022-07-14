@@ -24,6 +24,7 @@ fun CodegenLanguage.testRootType(): JpsModuleSourceRootType<JavaSourceRootProper
     when (this) {
         CodegenLanguage.JAVA -> JavaSourceRootType.TEST_SOURCE
         CodegenLanguage.KOTLIN -> TestSourceKotlinRootType
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
     }
 
 /**
@@ -33,6 +34,7 @@ fun CodegenLanguage.testResourcesRootType(): JpsModuleSourceRootType<JavaResourc
     when (this) {
         CodegenLanguage.JAVA -> JavaResourceRootType.TEST_RESOURCE
         CodegenLanguage.KOTLIN -> TestResourceKotlinRootType
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
     }
 
 /**

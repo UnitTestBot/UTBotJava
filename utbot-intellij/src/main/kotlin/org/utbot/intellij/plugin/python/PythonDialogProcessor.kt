@@ -9,6 +9,8 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
+import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.intellij.plugin.generator.TestGenerator.generateTests
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
@@ -91,6 +93,8 @@ object PythonDialogProcessor {
                 }
 
                 val x = tests.toList()
+
+//                generateTests(model, tests)
             }
         })
     }

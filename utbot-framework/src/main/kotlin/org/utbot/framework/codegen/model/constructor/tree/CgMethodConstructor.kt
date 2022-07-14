@@ -457,6 +457,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             else -> "actual"
                         }
                         CodegenLanguage.KOTLIN -> "actual"
+                        CodegenLanguage.PYTHON -> "actual"
                     }
 
                     assertEquality(expected, CgVariable(actualVariableName, method.returnType))
@@ -1286,6 +1287,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             val pseudoExceptionVarName = when (codegenLanguage) {
                                 CodegenLanguage.JAVA -> "${expectedErrorVarName}.isInstance(${e.name.decapitalize()})"
                                 CodegenLanguage.KOTLIN -> "${expectedErrorVarName}!!.isInstance(${e.name.decapitalize()})"
+                                CodegenLanguage.PYTHON -> TODO("Not yet implemented")
                             }
 
                             testFrameworkManager.assertBoolean(CgVariable(pseudoExceptionVarName, booleanClassId))
@@ -1493,6 +1495,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             simpleName = when (codegenLanguage) {
                 CodegenLanguage.JAVA -> "Object[][]"
                 CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
+                else -> error("Incorrect language")
             },
             canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
             packageName = Array<Array<Any?>?>::class.java.packageName,

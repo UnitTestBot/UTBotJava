@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.mockito.internal.matchers.Not
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
@@ -53,6 +54,7 @@ internal fun ClassId.utilMethodById(id: MethodId, context: CgContext): String =
 
 fun getEnumConstantByName(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static Object getEnumConstantByName(Class<?> enumClass, String name) throws IllegalAccessException {
@@ -91,6 +93,7 @@ fun getEnumConstantByName(language: CodegenLanguage): String =
 
 fun getStaticFieldValue(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws IllegalAccessException, NoSuchFieldException {
@@ -141,6 +144,7 @@ fun getStaticFieldValue(language: CodegenLanguage): String =
 
 fun getFieldValue(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static Object getFieldValue(Object obj, String fieldName) throws IllegalAccessException, NoSuchFieldException {
@@ -191,6 +195,7 @@ fun getFieldValue(language: CodegenLanguage): String =
 
 fun setStaticField(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
@@ -242,6 +247,7 @@ fun setStaticField(language: CodegenLanguage): String =
 
 fun setField(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static void setField(Object object, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
@@ -293,6 +299,7 @@ fun setField(language: CodegenLanguage): String =
 
 fun createArray(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static Object[] createArray(String className, int length, Object... values) throws ClassNotFoundException {
@@ -327,6 +334,7 @@ fun createArray(language: CodegenLanguage): String =
 
 fun createInstance(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static Object createInstance(String className) throws Exception {
@@ -349,6 +357,7 @@ fun createInstance(language: CodegenLanguage): String =
 
 fun getUnsafeInstance(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private static Object getUnsafeInstance() throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
@@ -383,6 +392,7 @@ private fun isMockCondition(mockFrameworkUsed: Boolean, mockFramework: MockFrame
 
 fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramework: MockFramework): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             static class FieldsPair {
@@ -585,6 +595,7 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
 
 fun arraysDeepEquals(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
@@ -627,6 +638,7 @@ fun arraysDeepEquals(language: CodegenLanguage): String =
 
 fun iterablesDeepEquals(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
@@ -667,6 +679,7 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
 
 fun streamsDeepEquals(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private boolean streamsDeepEquals(
@@ -711,6 +724,7 @@ fun streamsDeepEquals(language: CodegenLanguage): String =
 
 fun mapsDeepEquals(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private boolean mapsDeepEquals(
@@ -767,6 +781,7 @@ fun mapsDeepEquals(language: CodegenLanguage): String =
 
 fun hasCustomEquals(language: CodegenLanguage): String =
     when (language) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA -> {
             """
             private boolean hasCustomEquals(Class<?> clazz) {
@@ -805,6 +820,7 @@ fun hasCustomEquals(language: CodegenLanguage): String =
 
 fun getArrayLength(codegenLanguage: CodegenLanguage) =
     when (codegenLanguage) {
+        CodegenLanguage.PYTHON -> error("Not yet implemented")
         CodegenLanguage.JAVA ->
             """
             private static int getArrayLength(Object arr) {
@@ -838,6 +854,7 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
         getStaticFieldValueMethodId -> listOf(fieldClassId, Modifier::class.id)
         getEnumConstantByNameMethodId -> listOf(fieldClassId)
         deepEqualsMethodId -> when (codegenLanguage) {
+            CodegenLanguage.PYTHON -> error("Not yet implemented")
             CodegenLanguage.JAVA -> listOf(
                 Objects::class.id,
                 Iterable::class.id,
@@ -852,18 +869,22 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
             CodegenLanguage.KOTLIN -> listOf(fieldClassId, Arrays::class.id)
         }
         arraysDeepEqualsMethodId -> when (codegenLanguage) {
+            CodegenLanguage.PYTHON -> error("Not yet implemented")
             CodegenLanguage.JAVA -> listOf(java.lang.reflect.Array::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> listOf(java.lang.reflect.Array::class.id)
         }
         iterablesDeepEqualsMethodId -> when (codegenLanguage) {
+            CodegenLanguage.PYTHON -> error("Not yet implemented")
             CodegenLanguage.JAVA -> listOf(Iterable::class.id, Iterator::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
         }
         streamsDeepEqualsMethodId -> when (codegenLanguage) {
+            CodegenLanguage.PYTHON -> error("Not yet implemented")
             CodegenLanguage.JAVA -> listOf(java.util.stream.Stream::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
         }
         mapsDeepEqualsMethodId -> when (codegenLanguage) {
+            CodegenLanguage.PYTHON -> error("Not yet implemented")
             CodegenLanguage.JAVA -> listOf(Map::class.id, Iterator::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
         }

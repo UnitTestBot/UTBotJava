@@ -892,6 +892,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
             when (context.codegenLanguage) {
                 CodegenLanguage.JAVA -> CgJavaRenderer(context, printer)
                 CodegenLanguage.KOTLIN -> CgKotlinRenderer(context, printer)
+                CodegenLanguage.PYTHON -> CgPythonRenderer(context, printer)
             }
 
         /**

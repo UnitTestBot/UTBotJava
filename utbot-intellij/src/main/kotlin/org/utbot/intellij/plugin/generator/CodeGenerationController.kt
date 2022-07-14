@@ -209,6 +209,7 @@ object CodeGenerationController {
                                 when (model.codegenLanguage) {
                                     CodegenLanguage.JAVA -> it !is KtUltraLightClass
                                     CodegenLanguage.KOTLIN -> it is KtUltraLightClass
+                                    CodegenLanguage.PYTHON -> error("Not yet implemented")
                                 }
                             }
                     })
@@ -224,6 +225,7 @@ object CodeGenerationController {
             when (model.codegenLanguage) {
                 CodegenLanguage.JAVA -> JavaTemplateUtil.INTERNAL_CLASS_TEMPLATE_NAME
                 CodegenLanguage.KOTLIN -> "Kotlin Class"
+                CodegenLanguage.PYTHON -> "Python Class"
             }
         )
         runWriteAction { testDirectory.findFile(testClassName + model.codegenLanguage.extension)?.delete() }

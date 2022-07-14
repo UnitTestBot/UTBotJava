@@ -1,5 +1,7 @@
 package org.utbot.framework.codegen.model.util
 
+import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgDecrement
@@ -84,17 +86,13 @@ operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess =
 /**
  * Returns length field access for array type variable and [getArrayLengthMethodId] call otherwise.
  */
-fun CgVariable.length(
-    cgCallableAccessManager: CgCallableAccessManager,
-    thisInstance: CgThisInstance,
-    getArrayLengthMethodId: MethodId
-): CgExpression {
+fun CgVariable.length(cgCallableAccessManager: CgCallableAccessManager): CgExpression {
     val thisVariable = this
 
     return if (type.isArray) {
         CgGetLength(thisVariable)
     } else {
-        with(cgCallableAccessManager) { thisInstance[getArrayLengthMethodId](thisVariable) }
+        with(cgCallableAccessManager) { utUtilsClassId[getArrayLengthMethodId](thisVariable) }
     }
 }
 

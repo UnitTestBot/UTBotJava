@@ -1,26 +1,22 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.model.constructor.util.utilMethodId
-import org.utbot.framework.codegen.model.tree.CgClassId
+import org.utbot.framework.codegen.utils.UtUtils
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
-import sun.misc.Unsafe
+import kotlin.reflect.jvm.javaMethod
 
 /**
  * Set of ids of all possible util methods for a given class
  * The class may actually not have some of these methods if they
  * are not required in the process of code generation
  */
-internal val ClassId.possibleUtilMethodIds: Set<MethodId>
+internal val utilMethodIds: Set<MethodId>
     get() = setOf(
         getUnsafeInstanceMethodId,
         createInstanceMethodId,
@@ -39,112 +35,43 @@ internal val ClassId.possibleUtilMethodIds: Set<MethodId>
         getArrayLengthMethodId
     )
 
-internal val ClassId.getUnsafeInstanceMethodId: MethodId
-    get() = utilMethodId(
-            name = "getUnsafeInstance",
-            returnType = Unsafe::class.id,
-    )
+/**
+ * ClassId of [org.utbot.framework.codegen.model.util.UtUtils] class.
+ */
+internal val utUtilsClassId: ClassId = UtUtils::class.id
+
+internal val getUnsafeInstanceMethodId: MethodId = UtUtils::getUnsafeInstance.javaMethod!!.executableId
 
 /**
  * Method that creates instance using Unsafe
  */
-internal val ClassId.createInstanceMethodId: MethodId
-    get() = utilMethodId(
-            name = "createInstance",
-            returnType = CgClassId(objectClassId, isNullable = true),
-            arguments = arrayOf(stringClassId)
-    )
+internal val createInstanceMethodId: MethodId = UtUtils::createInstance.javaMethod!!.executableId
 
-internal val ClassId.createArrayMethodId: MethodId
-    get() = utilMethodId(
-            name = "createArray",
-            returnType = Array<Any>::class.id,
-            arguments = arrayOf(stringClassId, intClassId, Array<Any>::class.id)
-    )
+internal val createArrayMethodId: MethodId = UtUtils::createArray.javaMethod!!.executableId
 
-internal val ClassId.setFieldMethodId: MethodId
-    get() = utilMethodId(
-            name = "setField",
-            returnType = voidClassId,
-            arguments = arrayOf(objectClassId, stringClassId, objectClassId)
-    )
+internal val setFieldMethodId: MethodId = UtUtils::setField.javaMethod!!.executableId
 
-internal val ClassId.setStaticFieldMethodId: MethodId
-    get() = utilMethodId(
-            name = "setStaticField",
-            returnType = voidClassId,
-            arguments = arrayOf(Class::class.id, stringClassId, objectClassId)
-    )
+internal val setStaticFieldMethodId: MethodId = UtUtils::setStaticField.javaMethod!!.executableId
 
-internal val ClassId.getFieldValueMethodId: MethodId
-    get() = utilMethodId(
-            name = "getFieldValue",
-            returnType = objectClassId,
-            arguments = arrayOf(objectClassId, stringClassId)
-    )
+internal val getFieldValueMethodId: MethodId = UtUtils::getFieldValue.javaMethod!!.executableId
 
-internal val ClassId.getStaticFieldValueMethodId: MethodId
-    get() = utilMethodId(
-            name = "getStaticFieldValue",
-            returnType = objectClassId,
-            arguments = arrayOf(Class::class.id, stringClassId)
-    )
+internal val getStaticFieldValueMethodId: MethodId = UtUtils::getStaticFieldValue.javaMethod!!.executableId
 
-internal val ClassId.getEnumConstantByNameMethodId: MethodId
-    get() = utilMethodId(
-            name = "getEnumConstantByName",
-            returnType = objectClassId,
-            arguments = arrayOf(Class::class.id, stringClassId)
-    )
+internal val getEnumConstantByNameMethodId: MethodId = UtUtils::getEnumConstantByName.javaMethod!!.executableId
 
-internal val ClassId.deepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "deepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(objectClassId, objectClassId)
-    )
+internal val deepEqualsMethodId: MethodId = UtUtils::deepEquals.javaMethod!!.executableId
 
-internal val ClassId.arraysDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "arraysDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(objectClassId, objectClassId)
-    )
+internal val arraysDeepEqualsMethodId: MethodId = UtUtils::arraysDeepEquals.javaMethod!!.executableId
 
-internal val ClassId.iterablesDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "iterablesDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
-    )
+internal val iterablesDeepEqualsMethodId: MethodId = UtUtils::iterablesDeepEquals.javaMethod!!.executableId
 
-internal val ClassId.streamsDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "streamsDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
-    )
+internal val streamsDeepEqualsMethodId: MethodId = UtUtils::streamsDeepEquals.javaMethod!!.executableId
 
-internal val ClassId.mapsDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "mapsDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(java.util.Map::class.id, java.util.Map::class.id)
-    )
+internal val mapsDeepEqualsMethodId: MethodId = UtUtils::mapsDeepEquals.javaMethod!!.executableId
 
-internal val ClassId.hasCustomEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "hasCustomEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(Class::class.id)
-    )
+internal val hasCustomEqualsMethodId: MethodId = UtUtils::hasCustomEquals.javaMethod!!.executableId
 
-internal val ClassId.getArrayLengthMethodId: MethodId
-    get() = utilMethodId(
-        name = "getArrayLength",
-        returnType = intClassId,
-        arguments = arrayOf(objectClassId)
-    )
+internal val getArrayLengthMethodId: MethodId = UtUtils::getArrayLength.javaMethod!!.executableId
 
 /**
  * [MethodId] for [AutoCloseable.close].

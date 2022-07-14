@@ -37,7 +37,6 @@ interface CgElement {
             is CgSimpleRegion<*> -> visit(element)
             is CgTestMethodCluster -> visit(element)
             is CgExecutableUnderTestCluster -> visit(element)
-            is CgUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
             is CgParameterizedTestDataProviderMethod -> visit(element)
@@ -170,16 +169,6 @@ data class CgExecutableUnderTestCluster(
     override val header: String?,
     override val content: List<CgRegion<CgMethod>>
 ) : CgRegion<CgRegion<CgMethod>>()
-
-/**
- * This class does not inherit from [CgMethod], because it only needs an [id],
- * and it does not need to have info about all the other properties of [CgMethod].
- * This is because util methods are hardcoded. On the rendering stage their text
- * is retrieved by their [MethodId].
- *
- * [id] identifier of the util method.
- */
-data class CgUtilMethod(val id: MethodId) : CgElement
 
 // Methods
 

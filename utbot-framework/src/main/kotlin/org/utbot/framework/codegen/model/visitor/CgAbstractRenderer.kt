@@ -73,7 +73,6 @@ import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgThrowStatement
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.model.tree.CgTryCatch
-import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.tree.CgWhileLoop
 import org.utbot.framework.codegen.model.util.CgPrinter
@@ -195,13 +194,6 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         if (printLineAfterContentEnd) println()
 
         println(regionEnd)
-    }
-
-    override fun visit(element: CgUtilMethod) {
-        context.currentTestClass
-                .utilMethodById(element.id, context)
-                .split("\n")
-                .forEach { line -> println(line) }
     }
 
     // Methods

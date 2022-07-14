@@ -18,12 +18,9 @@ import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
-import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildTestClass
 import org.utbot.framework.codegen.model.tree.buildTestClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
-import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.description
@@ -62,7 +59,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
                     dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
                         "Data providers and utils methods",
-                        cgDataProviderMethods + createUtilMethods()
+                        cgDataProviderMethods
                     )
                 }
                 // It is important that annotations, superclass and interfaces assignment is run after
@@ -135,36 +132,6 @@ internal class CgTestClassConstructor(val context: CgContext) :
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
-    }
-
-    // TODO: collect imports of util methods
-    private fun createUtilMethods(): List<CgUtilMethod> {
-        val utilMethods = mutableListOf<CgUtilMethod>()
-        // some util methods depend on the others
-        // using this loop we make sure that all the
-        // util methods dependencies are taken into account
-        while (requiredUtilMethods.isNotEmpty()) {
-            val method = requiredUtilMethods.first()
-            requiredUtilMethods.remove(method)
-            if (method.name !in existingMethodNames) {
-                utilMethods += CgUtilMethod(method)
-                importUtilMethodDependencies(method)
-                existingMethodNames += method.name
-                requiredUtilMethods += method.dependencies()
-            }
-        }
-        return utilMethods
-    }
-
-    /**
-     * If @receiver is an util method, then returns a list of util method ids that @receiver depends on
-     * Otherwise, an empty list is returned
-     */
-    private fun MethodId.dependencies(): List<MethodId> = when (this) {
-        createInstance -> listOf(getUnsafeInstance)
-        deepEquals -> listOf(arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals, hasCustomEquals)
-        arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals -> listOf(deepEquals)
-        else -> emptyList()
     }
 
     /**

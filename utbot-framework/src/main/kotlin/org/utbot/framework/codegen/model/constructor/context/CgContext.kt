@@ -19,7 +19,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMe
 import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.possibleUtilMethodIds
 import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
 import org.utbot.framework.codegen.model.constructor.tree.Block
@@ -322,66 +321,60 @@ internal interface CgContextOwner {
     }
 
     /**
-     * Check whether a method is an util method of the current class
-     */
-    val MethodId.isUtil: Boolean
-        get() = this in currentTestClass.possibleUtilMethodIds
-
-    /**
      * Checks is it our util reflection field getter method.
      * When this method is used with type cast in Kotlin, this type cast have to be safety
      */
     val MethodId.isGetFieldUtilMethod: Boolean
-        get() = isUtil && (name == getFieldValue.name || name == getStaticFieldValue.name)
+        get() = this == getFieldValueMethodId || this == getStaticFieldValueMethodId
 
     val testClassThisInstance: CgThisInstance
 
     // util methods of current test class
 
     val getUnsafeInstance: MethodId
-        get() = currentTestClass.getUnsafeInstanceMethodId
+        get() = getUnsafeInstanceMethodId
 
     val createInstance: MethodId
-        get() = currentTestClass.createInstanceMethodId
+        get() = createInstanceMethodId
 
     val createArray: MethodId
-        get() = currentTestClass.createArrayMethodId
+        get() = createArrayMethodId
 
     val setField: MethodId
-        get() = currentTestClass.setFieldMethodId
+        get() = setFieldMethodId
 
     val setStaticField: MethodId
-        get() = currentTestClass.setStaticFieldMethodId
+        get() = setStaticFieldMethodId
 
     val getFieldValue: MethodId
-        get() = currentTestClass.getFieldValueMethodId
+        get() = getFieldValueMethodId
 
     val getStaticFieldValue: MethodId
-        get() = currentTestClass.getStaticFieldValueMethodId
+        get() = getStaticFieldValueMethodId
 
     val getEnumConstantByName: MethodId
-        get() = currentTestClass.getEnumConstantByNameMethodId
+        get() = getEnumConstantByNameMethodId
 
     val deepEquals: MethodId
-        get() = currentTestClass.deepEqualsMethodId
+        get() = deepEqualsMethodId
 
     val arraysDeepEquals: MethodId
-        get() = currentTestClass.arraysDeepEqualsMethodId
+        get() = arraysDeepEqualsMethodId
 
     val iterablesDeepEquals: MethodId
-        get() = currentTestClass.iterablesDeepEqualsMethodId
+        get() = iterablesDeepEqualsMethodId
 
     val streamsDeepEquals: MethodId
-        get() = currentTestClass.streamsDeepEqualsMethodId
+        get() = streamsDeepEqualsMethodId
 
     val mapsDeepEquals: MethodId
-        get() = currentTestClass.mapsDeepEqualsMethodId
+        get() = mapsDeepEqualsMethodId
 
     val hasCustomEquals: MethodId
-        get() = currentTestClass.hasCustomEqualsMethodId
+        get() = hasCustomEqualsMethodId
 
     val getArrayLength: MethodId
-        get() = currentTestClass.getArrayLengthMethodId
+        get() = getArrayLengthMethodId
 }
 
 /**

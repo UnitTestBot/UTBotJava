@@ -59,6 +59,7 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import fj.data.Either
+import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -411,7 +412,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 Class::class.id[forName](enumClass.name)
             }
 
-            ExpressionWithType(objectClassId, testClassThisInstance[getEnumConstantByName](enumClassVariable, constant))
+            ExpressionWithType(objectClassId, utUtilsClassId[getEnumConstantByName](enumClassVariable, constant))
         }
     }
 
@@ -422,7 +423,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         } else {
             ExpressionWithType(
                 objectArrayClassId,
-                testClassThisInstance[createArray](allocation.elementType.name, allocation.size)
+                utUtilsClassId[createArray](allocation.elementType.name, allocation.size)
             )
         }
     }

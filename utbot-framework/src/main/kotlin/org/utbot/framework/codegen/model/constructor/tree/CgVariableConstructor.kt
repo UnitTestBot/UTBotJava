@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
+import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -126,7 +127,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         val obj = if (model.isMock) {
             mockFrameworkManager.createMockFor(model, baseName)
         } else {
-            newVar(model.classId, baseName) { testClassThisInstance[createInstance](model.classId.name) }
+            newVar(model.classId, baseName) { utUtilsClassId[createInstance](model.classId.name) }
         }
 
         valueByModelId[model.id] = obj
@@ -154,7 +155,7 @@ internal class CgVariableConstructor(val context: CgContext) :
                 fieldAccess `=` variableForField
             } else {
                 // composite models must not have info about static fields, hence only non-static fields are set here
-                +testClassThisInstance[setField](obj, fieldId.name, variableForField)
+                +utUtilsClassId[setField](obj, fieldId.name, variableForField)
             }
         }
         return obj

@@ -42,6 +42,7 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.underlyingType
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import org.utbot.framework.codegen.model.constructor.builtin.utilMethodIds
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -118,6 +119,12 @@ internal class FieldStateCache {
 internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
+
+/**
+ * Check whether a method is an util method of the current class
+ */
+val MethodId.isUtil: Boolean
+    get() = this in utilMethodIds
 
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
 

@@ -1,9 +1,9 @@
 package org.utbot.examples.objects;
 
 public class AnonymousClassesExample {
-    private static final AbstractAnonymousClass staticAnonymousClass = AbstractAnonymousClass.getInstance(1);
+    static final AbstractAnonymousClass staticAnonymousClass = AbstractAnonymousClass.getInstance(1);
     @SuppressWarnings("FieldMayBeFinal")
-    private static AbstractAnonymousClass nonFinalAnonymousStatic = AbstractAnonymousClass.getInstance(1);
+    static AbstractAnonymousClass nonFinalAnonymousStatic = AbstractAnonymousClass.getInstance(1);
 
     public int anonymousClassAsParam(AbstractAnonymousClass abstractAnonymousClass) {
         return abstractAnonymousClass.constValue();

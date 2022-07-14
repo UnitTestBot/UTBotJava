@@ -1,7 +1,7 @@
 package org.utbot.examples.objects
 
+import org.utbot.examples.Full
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.isException
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
@@ -11,19 +11,23 @@ class AnonymousClassesExampleTest : UtValueTestCaseChecker(testClass = Anonymous
     fun testAnonymousClassAsParam() {
         checkWithException(
             AnonymousClassesExample::anonymousClassAsParam,
-            eq(2),
+            eq(3),
             { abstractAnonymousClass, r -> abstractAnonymousClass == null && r.isException<NullPointerException>() },
             { abstractAnonymousClass, r -> abstractAnonymousClass != null && r.getOrNull() == 0 },
-            coverage = DoNotCalculate
+            { abstractAnonymousClass, r -> abstractAnonymousClass != null && abstractAnonymousClass::class.java.isAnonymousClass && r.getOrNull() == 42 },
+            coverage = Full
         )
     }
 
     @Test
     fun testNonFinalAnonymousStatic() {
-        check(
+        checkStaticsAndException(
             AnonymousClassesExample::nonFinalAnonymousStatic,
-            eq(0), // we remove all anonymous classes in statics
-            coverage = DoNotCalculate
+            eq(3),
+            { statics, r -> statics.values.single().value == null && r.isException<NullPointerException>() },
+            { _, r -> r.getOrNull() == 0 },
+            { _, r -> r.getOrNull() == 42 },
+            coverage = Full
         )
     }
 
@@ -31,8 +35,9 @@ class AnonymousClassesExampleTest : UtValueTestCaseChecker(testClass = Anonymous
     fun testAnonymousClassAsStatic() {
         check(
             AnonymousClassesExample::anonymousClassAsStatic,
-            eq(0), // we remove all anonymous classes in statics
-            coverage = DoNotCalculate
+            eq(1),
+            { r -> r == 42 },
+            coverage = Full
         )
     }
 
@@ -40,8 +45,9 @@ class AnonymousClassesExampleTest : UtValueTestCaseChecker(testClass = Anonymous
     fun testAnonymousClassAsResult() {
         check(
             AnonymousClassesExample::anonymousClassAsResult,
-            eq(0), // we remove anonymous classes from the params and the result
-            coverage = DoNotCalculate
+            eq(1),
+            { abstractAnonymousClass -> abstractAnonymousClass != null && abstractAnonymousClass::class.java.isAnonymousClass },
+            coverage = Full
         )
     }
 }

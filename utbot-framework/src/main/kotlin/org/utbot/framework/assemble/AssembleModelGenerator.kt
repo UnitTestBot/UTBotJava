@@ -171,6 +171,11 @@ class AssembleModelGenerator(private val methodPackageName: String) {
     private fun assembleModel(utModel: UtModel): UtModel {
         val collectedCallChain = callChain.toMutableList()
 
+        // we cannot create an assemble model for an anonymous class instance
+        if (utModel.classId.isAnonymous) {
+            return utModel
+        }
+
         val assembledModel = withCleanState {
             try {
                 when (utModel) {

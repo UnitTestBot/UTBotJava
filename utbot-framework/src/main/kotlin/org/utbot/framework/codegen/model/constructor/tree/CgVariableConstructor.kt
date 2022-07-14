@@ -55,6 +55,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
 import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -119,7 +120,9 @@ internal class CgVariableConstructor(val context: CgContext) :
         val obj = if (model.isMock) {
             mockFrameworkManager.createMockFor(model, baseName)
         } else {
-            newVar(model.classId, baseName) { utilsClassId[createInstance](model.classId.name) }
+            val modelType = model.classId
+            val variableType = if (modelType.isAnonymous) modelType.supertypeOfAnonymousClass else modelType
+            newVar(variableType, baseName) { utilsClassId[createInstance](model.classId.name) }
         }
 
         valueByModelId[model.id] = obj

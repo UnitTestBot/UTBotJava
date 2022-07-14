@@ -48,6 +48,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
@@ -128,6 +129,20 @@ internal class FieldStateCache {
 internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
+
+/**
+ * Check if a method is an util method of the current class
+ */
+internal fun CgContextOwner.isUtil(method: MethodId): Boolean {
+    return method in currentUtilMethodProvider.utilMethodIds
+}
+
+/**
+ * Check if a method is an util method that is declared in the test class (not taken from the codegen utils library)
+ */
+internal fun CgContextOwner.isTestClassUtil(method: MethodId): Boolean {
+    return currentUtilMethodProvider is TestClassUtilMethodProvider && isUtil(method)
+}
 
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
 
@@ -391,8 +406,14 @@ internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !this.i
 internal operator fun UtArrayModel.get(index: Int): UtModel = stores[index] ?: constModel
 
 
-internal fun ClassId.utilMethodId(name: String, returnType: ClassId, vararg arguments: ClassId): MethodId =
-    BuiltinMethodId(this, name, returnType, arguments.toList())
+internal fun ClassId.utilMethodId(
+    name: String,
+    returnType: ClassId,
+    vararg arguments: ClassId,
+    // usually util methods are static, so this argument is true by default
+    isStatic: Boolean = true
+): MethodId =
+    BuiltinMethodId(this, name, returnType, arguments.toList(), isStatic = isStatic)
 
 fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosings)
 

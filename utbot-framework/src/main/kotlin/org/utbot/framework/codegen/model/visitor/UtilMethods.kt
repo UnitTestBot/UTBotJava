@@ -1,22 +1,7 @@
 package org.utbot.framework.codegen.model.visitor
 
 import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.plugin.api.ClassId
@@ -29,8 +14,13 @@ import java.lang.reflect.Modifier
 import java.util.Arrays
 import java.util.Objects
 
-internal fun ClassId.utilMethodById(id: MethodId, context: CgContext): String =
-    with(context) {
+internal fun TestClassUtilMethodProvider.utilMethodTextById(
+    id: MethodId,
+    mockFrameworkUsed: Boolean,
+    mockFramework: MockFramework,
+    codegenLanguage: CodegenLanguage
+): Result<String> = runCatching {
+    with(this) {
         when (id) {
             getUnsafeInstanceMethodId -> getUnsafeInstance(codegenLanguage)
             createInstanceMethodId -> createInstance(codegenLanguage)
@@ -50,6 +40,7 @@ internal fun ClassId.utilMethodById(id: MethodId, context: CgContext): String =
             else -> error("Unknown util method for class $this: $id")
         }
     }
+}
 
 fun getEnumConstantByName(language: CodegenLanguage): String =
     when (language) {
@@ -408,11 +399,11 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                 }
             }
         
-            private boolean deepEquals(Object o1, Object o2) {
+            private static boolean deepEquals(Object o1, Object o2) {
                 return deepEquals(o1, o2, new java.util.HashSet<>());
             }
         
-            private boolean deepEquals(Object o1, Object o2, java.util.Set<FieldsPair> visited) {
+            private static boolean deepEquals(Object o1, Object o2, java.util.Set<FieldsPair> visited) {
                 visited.add(new FieldsPair(o1, o2));
 
                 if (o1 == o2) {
@@ -587,7 +578,7 @@ fun arraysDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
+            private static boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
                 final int length = java.lang.reflect.Array.getLength(arr1);
                 if (length != java.lang.reflect.Array.getLength(arr2)) {
                     return false;
@@ -629,7 +620,7 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
+            private static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
                 final java.util.Iterator<?> firstIterator = i1.iterator();
                 final java.util.Iterator<?> secondIterator = i2.iterator();
                 while (firstIterator.hasNext() && secondIterator.hasNext()) {
@@ -669,7 +660,7 @@ fun streamsDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean streamsDeepEquals(
+            private static boolean streamsDeepEquals(
                 java.util.stream.Stream<?> s1, 
                 java.util.stream.Stream<?> s2, 
                 java.util.Set<FieldsPair> visited
@@ -713,7 +704,7 @@ fun mapsDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean mapsDeepEquals(
+            private static boolean mapsDeepEquals(
                 java.util.Map<?, ?> m1, 
                 java.util.Map<?, ?> m2, 
                 java.util.Set<FieldsPair> visited
@@ -769,7 +760,7 @@ fun hasCustomEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private boolean hasCustomEquals(Class<?> clazz) {
+            private static boolean hasCustomEquals(Class<?> clazz) {
                 while (!Object.class.equals(clazz)) {
                     try {
                         clazz.getDeclaredMethod("equals", Object.class);
@@ -818,15 +809,18 @@ fun getArrayLength(codegenLanguage: CodegenLanguage) =
     }
 
 internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
-    for (classId in outerMostTestClass.regularImportsByUtilMethod(id, codegenLanguage)) {
+    // if util methods come from codegen utils library and not from the test class,
+    // then we don't need to import any other methods, hence we return from method
+    val utilMethodProvider = currentUtilMethodProvider as? TestClassUtilMethodProvider ?: return
+    for (classId in utilMethodProvider.regularImportsByUtilMethod(id, codegenLanguage)) {
         importIfNeeded(classId)
     }
-    for (methodId in outerMostTestClass.staticImportsByUtilMethod(id)) {
+    for (methodId in utilMethodProvider.staticImportsByUtilMethod(id)) {
         collectedImports += StaticImport(methodId.classId.canonicalName, methodId.name)
     }
 }
 
-private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: CodegenLanguage): List<ClassId> {
+private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(id: MethodId, codegenLanguage: CodegenLanguage): List<ClassId> {
     val fieldClassId = Field::class.id
     return when (id) {
         getUnsafeInstanceMethodId -> listOf(fieldClassId)
@@ -876,4 +870,4 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
 // Note: for now always returns an empty list, because no util method
 // requires static imports, but this may change in the future
 @Suppress("unused", "unused_parameter")
-private fun ClassId.staticImportsByUtilMethod(id: MethodId): List<MethodId> = emptyList()
+private fun TestClassUtilMethodProvider.staticImportsByUtilMethod(id: MethodId): List<MethodId> = emptyList()

@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import java.io.File
 import java.util.jar.JarFile
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.util.Patterns
 
 private val logger = KotlinLogging.logger {}
 

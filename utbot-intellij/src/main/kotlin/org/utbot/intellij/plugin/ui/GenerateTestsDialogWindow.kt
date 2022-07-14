@@ -124,6 +124,7 @@ import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
+import org.utbot.intellij.plugin.ui.utils.findCodegenUtilsLibrary
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
@@ -203,6 +204,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         StaticsMocking.allItems.forEach {
             it.isConfigured = staticsMockingConfigured()
         }
+
+        model.codegenUtilsLibraryInstalled = findCodegenUtilsLibrary(model.project, model.testModule) != null
 
         // Configure notification urls callbacks
         TestsReportNotifier.urlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoSuffix]?.plusAssign {

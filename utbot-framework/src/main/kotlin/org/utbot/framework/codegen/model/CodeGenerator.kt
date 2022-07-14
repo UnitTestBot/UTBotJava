@@ -22,6 +22,7 @@ import org.utbot.framework.codegen.model.constructor.TestClassModel
 class CodeGenerator(
     private val classUnderTest: ClassId,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
+    codegenUtilsLibraryUsed: Boolean = false,
     testFramework: TestFramework = TestFramework.defaultItem,
     mockFramework: MockFramework? = MockFramework.defaultItem,
     staticsMocking: StaticsMocking = StaticsMocking.defaultItem,

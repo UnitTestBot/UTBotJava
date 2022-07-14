@@ -6,6 +6,7 @@ import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
@@ -197,10 +198,23 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgUtilMethod) {
-        context.outerMostTestClass
-                .utilMethodById(element.id, context)
+        // If we are rendering a CgUtilMethod, then we know that context.currentUtilMethodProvider
+        // must be the test class being generated, i.e. it must be TestClassUtilMethodProvider.
+        // So, the following type cast must always succeed.
+        // However, in order to avoid unexpected rendering failures (which will cause whole test class generation to fail),
+        // we make sure that we always have a correct provider by creating it ourselves in case of a failed type cast.
+        val utilMethodProvider = context.currentUtilMethodProvider as? TestClassUtilMethodProvider
+            ?: TestClassUtilMethodProvider(context.outerMostTestClass)
+        utilMethodProvider.utilMethodTextById(
+            element.id,
+            context.mockFrameworkUsed,
+            context.mockFramework,
+            context.codegenLanguage
+        ).onSuccess { utilMethodText ->
+            utilMethodText
                 .split("\n")
                 .forEach { line -> println(line) }
+        }
     }
 
     // Methods

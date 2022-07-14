@@ -1,12 +1,13 @@
 package org.utbot.intellij.plugin.ui.utils
 
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.util.Patterns
 import org.utbot.framework.codegen.model.util.patterns
 import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
+import org.utbot.framework.plugin.api.util.Patterns
+import org.utbot.framework.plugin.api.util.codegenUtilsLibraryPatterns
 
 fun findFrameworkLibrary(
     project: Project,
@@ -23,6 +24,14 @@ fun findFrameworkLibrary(
     mockFramework: MockFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module,
 ): LibraryOrderEntry? = findMatchingLibrary(project, testModule, mockFramework.patterns(), scope)
+
+fun findCodegenUtilsLibrary(
+    project: Project,
+    testModule: Module,
+    scope: LibrarySearchScope = LibrarySearchScope.Module,
+): LibraryOrderEntry? {
+    return findMatchingLibrary(project, testModule, codegenUtilsLibraryPatterns, scope)
+}
 
 private fun findMatchingLibrary(
     project: Project,

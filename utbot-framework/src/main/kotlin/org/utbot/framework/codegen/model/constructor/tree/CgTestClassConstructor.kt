@@ -91,16 +91,14 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     testMethodRegions += executableUnderTestCluster
                 }
 
-                val utilMethods = if (currentTestClass == outerMostTestClass)
-                    createUtilMethods()
-                else
-                    emptyList()
-
-                val additionalMethods = currentTestClassContext.cgDataProviderMethods + utilMethods
+//                val utilMethods = if (currentTestClass == outerMostTestClass)
+//                    createUtilMethods()
+//                else
+//                    emptyList()
 
                 dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
                     "Data providers and utils methods",
-                    additionalMethods
+                    currentTestClassContext.cgDataProviderMethods
                 )
             }
             // It is important that annotations, superclass and interfaces assignment is run after

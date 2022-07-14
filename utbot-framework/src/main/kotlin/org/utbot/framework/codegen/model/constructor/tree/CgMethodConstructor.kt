@@ -231,7 +231,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     val declaringClassVar = newVar(classCgClassId) {
                         Class::class.id[forName](declaringClass.name)
                     }
-                    testClassThisInstance[getStaticFieldValue](declaringClassVar, field.name)
+                    utilsClassId[getStaticFieldValue](declaringClassVar, field.name)
                 }
             }
             // remember the previous value of a static field to recover it at the end of the test
@@ -257,7 +257,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val declaringClassVar = newVar(classCgClassId) {
                     Class::class.id[forName](declaringClass.name)
                 }
-                +testClassThisInstance[setStaticField](declaringClassVar, field.name, fieldValue)
+                +utilsClassId[setStaticField](declaringClassVar, field.name, fieldValue)
             }
         }
     }
@@ -268,7 +268,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
-                +testClassThisInstance[setStaticField](declaringClass, field.name, prevValue)
+                +utilsClassId[setStaticField](declaringClass, field.name, prevValue)
             }
         }
     }
@@ -721,12 +721,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
             variableConstructor.constructVarName("${expected.name}Size"),
-            expected.length(this, testClassThisInstance, getArrayLength)
+            expected.length(this@CgMethodConstructor)
         )
         currentBlock += cgGetLengthDeclaration
         currentBlock += assertions[assertEquals](
             cgGetLengthDeclaration.variable,
-            actual.length(this, testClassThisInstance, getArrayLength)
+            actual.length(this@CgMethodConstructor)
         ).toStatement()
 
         return cgGetLengthDeclaration
@@ -1048,7 +1048,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
-            testClassThisInstance[getFieldValue](variable, stringLiteral(name))
+            utilsClassId[getFieldValue](variable, stringLiteral(name))
         }
 
     /**

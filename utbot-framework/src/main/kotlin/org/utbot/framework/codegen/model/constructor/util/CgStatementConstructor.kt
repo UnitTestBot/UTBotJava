@@ -429,7 +429,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 Class::class.id[forName](enumClass.name)
             }
 
-            ExpressionWithType(objectClassId, testClassThisInstance[getEnumConstantByName](enumClassVariable, constant))
+            ExpressionWithType(objectClassId, utilsClassId[getEnumConstantByName](enumClassVariable, constant))
         }
     }
 
@@ -448,7 +448,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         } else {
             ExpressionWithType(
                 objectArrayClassId,
-                testClassThisInstance[createArray](arrayType.elementClassId!!.name, arraySize)
+                utilsClassId[createArray](arrayType.elementClassId!!.name, arraySize)
             )
         }
     }
@@ -500,7 +500,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
             }
             expression.type isNotSubtypeOf baseType && !typeAccessible -> {
                 type = if (expression.type.isArray) objectArrayClassId else objectClassId
-                expr = if (expression is CgMethodCall && expression.executableId.isUtil) {
+                expr = if (expression is CgMethodCall && isUtil(expression.executableId)) {
                     CgErrorWrapper("${expression.executableId.name} failed", expression)
                 } else {
                     expression

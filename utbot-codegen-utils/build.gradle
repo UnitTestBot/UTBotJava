@@ -1,0 +1,16 @@
+plugins {
+    id "com.github.johnrengelman.shadow" version "6.1.0"
+}
+
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+shadowJar {
+    configurations = [project.configurations.compileClasspath]
+    archiveVersion.set(codegen_utils_version)
+    archiveClassifier.set('')
+    minimize()
+}
+
+dependencies {
+    compileOnly group: 'org.mockito', name: 'mockito-core', version: mockito_version
+}

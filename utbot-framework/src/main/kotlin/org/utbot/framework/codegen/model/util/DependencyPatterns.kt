@@ -5,11 +5,7 @@ import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.plugin.api.MockFramework
-
-data class Patterns(
-    val moduleLibraryPatterns: List<Regex>,
-    val libraryPatterns: List<Regex>,
-)
+import org.utbot.framework.plugin.api.util.Patterns
 
 fun TestFramework.patterns(): Patterns {
     val moduleLibraryPatterns = when (this) {

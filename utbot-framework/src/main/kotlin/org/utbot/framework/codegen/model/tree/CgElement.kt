@@ -131,9 +131,18 @@ data class CgTestClass(
     val simpleName = id.simpleName
 }
 
+/**
+ * Body of the test class.
+ * @property testMethodRegions regions containing the test methods
+ * @property staticDeclarationRegions regions containing static declarations.
+ * This is usually util methods and data providers.
+ * In Kotlin all static declarations must be grouped together in a companion object.
+ * In Java there is no such restriction, but for uniformity we are grouping
+ * Java static declarations together as well. It can also improve code readability.
+ */
 data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
-    val utilsRegion: List<CgRegion<CgElement>>,
+    val staticDeclarationRegions: List<CgStaticsRegion>,
     val nestedClassRegions: List<CgRegion<CgTestClass>>
 ) : CgElement {
     val regions: List<CgRegion<*>>
@@ -157,7 +166,10 @@ open class CgSimpleRegion<T : CgElement>(
 ) : CgRegion<T>()
 
 /**
- * Stores data providers for parametrized tests and util methods
+ * A region that stores some static declarations, e.g. data providers or util methods.
+ * There may be more than one static region in a class and they all are stored
+ * in a [CgTestClassBody.staticDeclarationRegions].
+ * In case of Kotlin, they all will be rendered inside of a companion object.
  */
 class CgStaticsRegion(
     override val header: String?,
@@ -184,7 +196,7 @@ data class CgExecutableUnderTestCluster(
  * This is because util methods are hardcoded. On the rendering stage their text
  * is retrieved by their [MethodId].
  *
- * [id] identifier of the util method.
+ * @property id identifier of the util method.
  */
 data class CgUtilMethod(val id: MethodId) : CgElement
 

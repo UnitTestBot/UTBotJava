@@ -3,36 +3,23 @@ package org.utbot.framework.codegen.model.constructor.tree
 import kotlinx.collections.immutable.PersistentList
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.any
 import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.framework.codegen.model.constructor.util.isTestClassUtil
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAssignment
@@ -50,7 +37,6 @@ import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -121,13 +107,15 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun newMethodCall(methodId: MethodId) {
-        if (methodId.isUtil) requiredUtilMethods += methodId
+        if (isTestClassUtil(methodId)) requiredUtilMethods += methodId
         importIfNeeded(methodId)
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
-        if (methodId is BuiltinMethodId) {
-            methodId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
+        if (isTestClassUtil(methodId)) {
+            (currentUtilMethodProvider as TestClassUtilMethodProvider)
+                .findExceptionTypesOf(methodId)
+                .forEach { addExceptionIfNeeded(it) }
             return
         }
 
@@ -152,33 +140,6 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         importIfNeeded(constructorId.classId)
         for (exception in constructorId.exceptions) {
             addExceptionIfNeeded(exception)
-        }
-    }
-
-    //WARN: if you make changes in the following sets of exceptions,
-    //don't forget to change them in hardcoded [UtilMethods] as well
-    private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
-        if (!this.isUtil) return emptySet()
-
-        with(outerMostTestClass) {
-            return when (this@findExceptionTypes) {
-                getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
-                getStaticFieldValueMethodId,
-                getFieldValueMethodId,
-                setStaticFieldMethodId,
-                setFieldMethodId -> setOf(IllegalAccessException::class.id, NoSuchFieldException::class.id)
-                createInstanceMethodId -> setOf(Exception::class.id)
-                getUnsafeInstanceMethodId -> setOf(ClassNotFoundException::class.id, NoSuchFieldException::class.id, IllegalAccessException::class.id)
-                createArrayMethodId -> setOf(ClassNotFoundException::class.id)
-                deepEqualsMethodId,
-                arraysDeepEqualsMethodId,
-                iterablesDeepEqualsMethodId,
-                streamsDeepEqualsMethodId,
-                mapsDeepEqualsMethodId,
-                hasCustomEqualsMethodId,
-                getArrayLengthMethodId -> emptySet()
-                else -> error("Unknown util method $this")
-            }
         }
     }
 
@@ -265,7 +226,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
      * @return true if a method can be called with the given arguments without reflection
      */
     private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean =
-        (isUtil || isAccessibleFrom(testClassPackageName))
+        (isTestClassUtil(this) || isAccessibleFrom(testClassPackageName))
                 && caller canBeReceiverOf this
                 && args canBeArgsOf this
 

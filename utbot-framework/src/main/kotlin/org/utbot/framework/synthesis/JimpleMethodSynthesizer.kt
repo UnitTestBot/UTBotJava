@@ -26,7 +26,7 @@ import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import soot.jimple.internal.JimpleLocal
 
-data class Parameter(
+data class SynthesisParameter(
     val type: Type,
     val number: Int
 )
@@ -48,14 +48,14 @@ class JimpleMethodSynthesizer {
         private fun nextParameterCount() = parameterCount++
 
         private val identities = mutableListOf<IdentityStmt>()
-        private val parameters_ = mutableListOf<Parameter>()
+        private val parameters_ = mutableListOf<SynthesisParameter>()
         private val stmts = mutableListOf<Stmt>()
 
-        val parameters: List<Parameter> by ::parameters_
+        val parameters: List<SynthesisParameter> by ::parameters_
         val returnType: Type
         val body: JimpleBody
 
-        val unitToParameter = IdentityHashMap<SynthesisUnit, Parameter>()
+        val unitToParameter = IdentityHashMap<SynthesisUnit, SynthesisParameter>()
 
         init {
             val local = synthesizeUnit(rootUnit)
@@ -93,7 +93,7 @@ class JimpleMethodSynthesizer {
             val identity = identityStmt(local, parameterRef)
 
             identities += identity
-            val parameter = Parameter(sootType, parameterNumber)
+            val parameter = SynthesisParameter(sootType, parameterNumber)
             parameters_ += parameter
             unitToParameter[unit] = parameter
 

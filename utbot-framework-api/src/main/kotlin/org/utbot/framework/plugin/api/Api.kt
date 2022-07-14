@@ -448,28 +448,28 @@ data class UtArrayModel(
  * Models for values with constraints
  */
 sealed class UtConstraintModel(
-    open val variable: Var,
+    open val variable: UtConstraintVariable,
     open val utConstraints: Set<UtConstraint>
 ) : UtModel(variable.classId) {
 }
 
 data class UtPrimitiveConstraintModel(
-    override val variable: Var,
+    override val variable: UtConstraintVariable,
     override val utConstraints: Set<UtConstraint>
 ) : UtConstraintModel(variable, utConstraints) {
 }
 
 data class UtReferenceConstraintModel(
-    override val variable: Var,
+    override val variable: UtConstraintVariable,
     override val utConstraints: Set<UtConstraint>
 ) : UtConstraintModel(variable, utConstraints) {
     fun isNull() = utConstraints.any {
-        it is UtRefEqConstraint && it.lhv == variable && it.rhv is NullVar
+        it is UtRefEqConstraint && it.lhv == variable && it.rhv is NullUtConstraintVariable
     }
 }
 
 data class UtReferenceToConstraintModel(
-    override val variable: Var,
+    override val variable: UtConstraintVariable,
     val reference: UtModel
 ) : UtConstraintModel(variable, emptySet())
 

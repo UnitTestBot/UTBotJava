@@ -2,6 +2,7 @@ package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
 import org.utbot.engine.ResolvedModels
+import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -17,7 +18,6 @@ class ConstrainedSynthesizer(
         storage.update(parameters.parameters.map { it.classId }.toSet())
     }
 
-    private val postConditionChecker = ConstraintBasedPostConditionConstructor(parameters)
     private val queue = MultipleSynthesisUnitQueue(
         parameters,
         LeafExpanderProducer(statementStorage),
@@ -30,7 +30,7 @@ class ConstrainedSynthesizer(
             val units = queue.poll()
             logger.debug { "Visiting state: $units" }
 
-            val assembleModel = unitChecker.tryGenerate(units, postConditionChecker)
+            val assembleModel = unitChecker.tryGenerate(units, parameters)
             if (assembleModel != null) {
                 logger.debug { "Found $assembleModel" }
                 return assembleModel

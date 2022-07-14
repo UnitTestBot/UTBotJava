@@ -29,51 +29,51 @@ class UtConstraintBuilder(
 
     override fun visit(expr: UtArraySelectExpression): UtConstraint? {
         if (shouldSkip(expr)) return null
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtConstArrayExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtMkArrayExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayMultiStoreExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtBvLiteral): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtBvConst): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtAddrExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtFpLiteral): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtFpConst): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtOpExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtTrue): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtFalse): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtEqExpression): UtConstraint = applyConstraint(expr) {
@@ -86,27 +86,27 @@ class UtConstraintBuilder(
     }!!
 
     override fun visit(expr: UtBoolConst): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: NotBoolExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtOrBoolExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtAndBoolExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtNegExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtCastExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtBoolOpExpression): UtConstraint? = applyConstraint(expr) {
@@ -147,135 +147,135 @@ class UtConstraintBuilder(
     }
 
     override fun visit(expr: UtGenericExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtIsGenericTypeExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtEqGenericTypeParametersExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtInstanceOfExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtIteExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtMkTermArrayExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringConst): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtConcatExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtConvertToString): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringToInt): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringLength): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringPositiveLength): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringCharAt): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringEq): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtSubstringExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtReplaceExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStartsWithExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtEndsWithExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtIndexOfExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtContainsExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtToStringExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtSeqLiteral): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayToString): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayInsert): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayInsertRange): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayRemove): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayRemoveRange): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArraySetRange): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayShiftIndexes): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtArrayApplyForAll): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtStringToArray): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtAddNoOverflowExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
     override fun visit(expr: UtSubNoOverflowExpression): UtConstraint {
-        return UtEqConstraint(BoolConstant(true), BoolConstant(true))
+        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
 }

@@ -377,7 +377,10 @@ class UtBotSymbolicEngine(
         val initState = ExecutionState(
             initStmt,
             SymbolicState(UtSolver(typeRegistry, trackableResources, solverTimeoutInMillis)),
-            executionStack = persistentListOf(ExecutionStackElement(null, method = graph.body.method))
+            executionStack = persistentListOf(ExecutionStackElement(
+                null,
+                method = graph.body.method
+            ))
         )
 
         pathSelector.offer(initState)
@@ -386,11 +389,6 @@ class UtBotSymbolicEngine(
             method = globalGraph.method(initStmt),
             state = initState
         )
-
-        environment = with(environment) {
-            val softConstraintsUpdate = postConditionConstructor.constructSoftPostCondition(this@UtBotSymbolicEngine)
-            copy(state = state.copy(symbolicState = state.symbolicState + softConstraintsUpdate))
-        }
 
         pathSelector.use {
 
@@ -3610,6 +3608,8 @@ class UtBotSymbolicEngine(
         if (!isInNestedMethod()) {
             val postConditionUpdates =
                 postConditionConstructor.constructPostCondition(this@UtBotSymbolicEngine, symbolicResult)
+            logger.error { "HARD POST CONDITION" }
+            logger.error { postConditionUpdates.hardConstraints.constraints.joinToString("\n") }
             queuedSymbolicStateUpdates += postConditionUpdates
         }
 

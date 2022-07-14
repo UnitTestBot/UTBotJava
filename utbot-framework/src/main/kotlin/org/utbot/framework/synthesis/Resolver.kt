@@ -12,7 +12,7 @@ import java.util.IdentityHashMap
 
 class Resolver(
     parameterModels: List<UtModel>,
-    unitToParameter: IdentityHashMap<SynthesisUnit, Parameter>
+    unitToParameter: IdentityHashMap<SynthesisUnit, SynthesisParameter>
 ) {
     private val unitToModel = IdentityHashMap<SynthesisUnit, UtModel>().apply {
         unitToParameter.toList().forEach { (it, parameter) -> this[it] = parameterModels[parameter.number] }

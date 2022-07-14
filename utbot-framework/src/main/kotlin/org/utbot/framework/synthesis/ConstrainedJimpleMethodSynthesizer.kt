@@ -32,16 +32,16 @@ class ConstrainedJimpleMethodSynthesizer {
         private fun nextParameterCount() = parameterCount++
 
         private val identities = mutableListOf<IdentityStmt>()
-        private val parameters_ = mutableListOf<Parameter>()
+        private val parameters_ = mutableListOf<SynthesisParameter>()
         private val stmts = mutableListOf<Stmt>()
         private val unitToLocal_ = mutableMapOf<SynthesisUnit, JimpleLocal>()
 
-        val parameters: List<Parameter> by ::parameters_
+        val parameters: List<SynthesisParameter> by ::parameters_
         val returnType: Type = VoidType.v()
         val body: JimpleBody
         val unitToLocal: Map<SynthesisUnit, JimpleLocal> get() = unitToLocal_
 
-        val unitToParameter = IdentityHashMap<SynthesisUnit, Parameter>()
+        val unitToParameter = IdentityHashMap<SynthesisUnit, SynthesisParameter>()
 
         init {
             for (unit in rootUnits) {
@@ -76,7 +76,7 @@ class ConstrainedJimpleMethodSynthesizer {
             val identity = identityStmt(local, parameterRef)
 
             identities += identity
-            val parameter = Parameter(sootType, parameterNumber)
+            val parameter = SynthesisParameter(sootType, parameterNumber)
             parameters_ += parameter
             unitToParameter[unit] = parameter
 

@@ -1,12 +1,15 @@
 package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
+import org.utbot.engine.ResolvedModels
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
+import org.utbot.engine.variable
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionConstructor
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import soot.SootClass
 
@@ -18,7 +21,7 @@ class ConstrainedSynthesisUnitChecker(
 
     var id = 0
 
-    fun tryGenerate(units: List<SynthesisUnit>, postCondition: PostConditionConstructor): UtModel? {
+    fun tryGenerate(units: List<SynthesisUnit>, parameters: ResolvedModels): UtModel? {
         if (units.any { !it.isFullyDefined() }) return null
 
         val context = synthesizer.synthesize(units)
@@ -27,21 +30,24 @@ class ConstrainedSynthesisUnitChecker(
         logger.error { "Generated constraint method" }
         logger.error { method.activeBody }
 
-//        System.err.println("Running engine...")
-//        val scoringStrategy = ScoringStrategyBuilder(
-//            emptyMap()
-//        )
-//        val execution = withPathSelector(PathSelectorType.INHERITORS_SELECTOR) {
-//            UtBotTestCaseGenerator.generateWithPostCondition(
-//                method,
-//                MockStrategyApi.NO_MOCKS,
-//                postCondition,
-//                scoringStrategy
-//            ).firstOrNull()
-//        } ?: return null
-//
-//
-//        logger.error { execution }
+        System.err.println("Running engine...")
+        val scoringStrategy = ScoringStrategyBuilder(
+            emptyMap()
+        )
+        val execution = withPathSelector(PathSelectorType.INHERITORS_SELECTOR) {
+            UtBotTestCaseGenerator.generateWithPostCondition(
+                method,
+                MockStrategyApi.NO_MOCKS,
+                ConstraintBasedPostConditionConstructor(
+                    parameters,
+                    units.map { context.unitToParameter[it] },
+                    units.map { context.unitToLocal[it]?.variable }),
+                scoringStrategy
+            ).firstOrNull()
+        } ?: return null
+
+
+        logger.error { execution }
         return null
 //        return context.resolve(listOfNotNull(execution.stateBefore.thisInstance) + execution.stateBefore.parameters)
 //            .also {

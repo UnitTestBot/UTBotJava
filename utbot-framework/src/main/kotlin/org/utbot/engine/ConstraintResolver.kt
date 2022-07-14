@@ -3,24 +3,9 @@ package org.utbot.engine
 import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
-import org.utbot.engine.z3.value
 import org.utbot.engine.pc.*
 import org.utbot.framework.plugin.api.*
 import soot.VoidType
-
-data class ResolvedObject(
-    val classId: ClassId,
-    val value: SymbolicValue,
-    val concreteValue: Any,
-    val constraints: Set<UtBoolExpression>
-)
-
-data class ResolvedConstraints(val parameters: List<ResolvedObject>, val statics: Map<FieldId, ResolvedObject>)
-
-data class ResolvedExecutionConstraints(
-    val modelsBefore: ResolvedConstraints,
-    val modelsAfter: ResolvedConstraints
-)
 
 /**
  * Constructs path conditions using calculated model. Can construct them for initial and current memory states that reflect
@@ -142,7 +127,7 @@ class ConstraintResolver(
 
     private fun resolvePrimitiveValue(value: PrimitiveValue, addrs: Map<UtAddrExpression, Address>): UtModel =
         if (value.type == VoidType.v()) {
-            UtPrimitiveConstraintModel(Parameter("void", value.type.classId), emptySet())
+            UtPrimitiveConstraintModel(UtConstraintParameter("void", value.type.classId), emptySet())
         } else {
             UtPrimitiveConstraintModel(value.expr.accept(varBuilder), collectAtoms(value, addrs))
         }

@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api.util
 
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -52,6 +53,24 @@ val ClassId.denotableType: ClassId
         }
     }
 
+private val isLambdaRegex = ".*(\\$)lambda_.*".toRegex()
+
+val ClassId.isLambda: Boolean
+    get() = name matches isLambdaRegex
+
+val ClassId.isFunctionalInterface: Boolean
+    get() {
+        // we cannot access jClass of a builtin type, so we have to return false
+        if (this is BuiltinClassId) return false
+        // we cannot access jClass for lambdas, but we know that it is not a functional interface anyway
+        if (this.isLambda) return false
+
+        val clazz = this.jClass
+        if (!clazz.isInterface) return false
+
+        val abstractMethods = clazz.methods.filter { java.lang.reflect.Modifier.isAbstract(it.modifiers) }
+        return abstractMethods.size == 1
+    }
 
 @Suppress("unused")
 val ClassId.enclosingClass: ClassId?
@@ -524,6 +543,10 @@ fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorId {
 
 fun builtinMethodId(classId: BuiltinClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {
     return BuiltinMethodId(classId, name, returnType, arguments.toList())
+}
+
+fun builtinConstructorId(classId: BuiltinClassId, vararg arguments: ClassId): BuiltinConstructorId {
+    return BuiltinConstructorId(classId, arguments.toList())
 }
 
 fun builtinStaticMethodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {

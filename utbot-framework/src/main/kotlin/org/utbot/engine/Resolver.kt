@@ -47,6 +47,7 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -509,6 +510,13 @@ class Resolver(
         }
 
         val sootClass = actualType.sootClass
+
+        if (sootClass.isLambda) {
+            return constructLambda(concreteAddr, sootClass).also { lambda ->
+                lambda.capturedValues += collectFieldModels(addr, actualType).values
+            }
+        }
+
         val clazz = classLoader.loadClass(sootClass.name)
 
         if (clazz.isEnum) {
@@ -628,6 +636,41 @@ class Resolver(
 
         val constructedType = if (numDimensions == 0) type else type.makeArrayType(numDimensions)
         return constructedType.classId.jClass
+    }
+
+    private fun constructLambda(addr: Address, sootClass: SootClass): UtLambdaModel {
+        val samType = sootClass.interfaces.singleOrNull()?.id
+            ?: error("Lambda must implement single interface, but ${sootClass.interfaces.size} found for ${sootClass.name}")
+
+        val declaringClass = classLoader.loadClass(sootClass.name.substringBeforeLast("\$lambda"))
+
+        // Java compiles lambdas into synthetic methods with specific names.
+        // However, Soot represents lambdas as classes.
+        // Names of these classes are the modified names of these synthetic methods.
+        // Specifically, Soot replaces some `$` signs by `_`, adds two underscores and some number
+        // to the end of the synthetic method name to form the name of a SootClass for lambda.
+        // For example, given a synthetic method `lambda$foo$1` (lambda declared in method `foo` of class `org.utbot.MyClass`),
+        // Soot will treat this lambda as a class named `org.utbot.MyClass$lambda_foo_1__5` (the last number is probably arbitrary, it's not important).
+        // Here we obtain the synthetic method name of lambda from the name of its SootClass.
+        val lambdaName = sootClass.name
+            .let { name ->
+                val start = name.lastIndexOf("\$lambda") + 1
+                val end = name.lastIndexOf("__")
+                name.substring(start, end)
+            }
+            .let {
+                val builder = StringBuilder(it)
+                builder[it.indexOfFirst { c -> c == '_' }] = '$'
+                builder[it.indexOfLast { c -> c == '_' }] = '$'
+                builder.toString()
+            }
+
+        return UtLambdaModel(
+            id = addr,
+            samType = samType,
+            declaringClass = declaringClass.id,
+            lambdaName = lambdaName
+        )
     }
 
     private fun constructEnum(addr: Address, type: RefType, clazz: Class<*>): UtEnumConstantModel {

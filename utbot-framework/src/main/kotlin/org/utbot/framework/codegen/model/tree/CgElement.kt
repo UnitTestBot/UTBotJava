@@ -8,6 +8,7 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.codegen.model.visitor.CgVisitor
+import org.utbot.framework.codegen.model.visitor.auxiliaryClassTextById
 import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
@@ -45,6 +46,7 @@ interface CgElement {
             is CgSimpleRegion<*> -> visit(element)
             is CgTestMethodCluster -> visit(element)
             is CgExecutableUnderTestCluster -> visit(element)
+            is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
@@ -243,6 +245,23 @@ data class CgExecutableUnderTestCluster(
     override val content: List<CgRegion<CgMethod>>
 ) : CgRegion<CgRegion<CgMethod>>()
 
+sealed class CgUtilEntity : CgElement {
+    internal abstract fun getText(rendererContext: CgRendererContext): String
+}
+
+data class CgAuxiliaryClass(val id: ClassId) : CgUtilEntity() {
+    override fun getText(rendererContext: CgRendererContext): String {
+        // we should not throw an exception on failure here,
+        // because this function is used during rendering and
+        // exceptions can crash rendering, so we use an empty string if the text is not found
+        return with(rendererContext) {
+            rendererContext.utilMethodProvider
+                .auxiliaryClassTextById(id, codegenLanguage)
+                .getOrDefault("")
+        }
+    }
+}
+
 /**
  * This class does not inherit from [CgMethod], because it only needs an [id],
  * and it does not need to have info about all the other properties of [CgMethod].
@@ -251,8 +270,8 @@ data class CgExecutableUnderTestCluster(
  *
  * @property id identifier of the util method.
  */
-data class CgUtilMethod(val id: MethodId) : CgElement {
-    internal fun getText(rendererContext: CgRendererContext): String {
+data class CgUtilMethod(val id: MethodId) : CgUtilEntity() {
+    override fun getText(rendererContext: CgRendererContext): String {
         // we should not throw an exception on failure here,
         // because this function is used during rendering and
         // exceptions can crash rendering, so we use an empty string if the text is not found
@@ -649,10 +668,32 @@ class CgThisInstance(override val type: ClassId) : CgValue
 
 // Variables
 
+/**
+ * @property name name of the variable
+ * @property compileTimeType type a variable was declared with in the code.
+ * For example, `List<Integer>` in `List<Integer> l = new ArrayList<>();`.
+ * @property runtimeType actual type of an object stored in the variable.
+ * For example, `ArrayList<Integer>` in `List<Integer> l = new ArrayList<>();`.
+ */
 open class CgVariable(
     val name: String,
-    override val type: ClassId,
+    val compileTimeType: ClassId,
+    val runtimeType: ClassId
 ) : CgValue {
+
+    /**
+     * If [compileTimeType] and [runtimeType] are the same, a variable may be declared with this constructor.
+     */
+    constructor(name: String, type: ClassId) : this(name, type, type)
+
+    /**
+     * Property [type] inherited from [CgExpression] is delegated to [compileTimeType].
+     * That's because when we access a variable in the code we can only work with it
+     * through its compileTimeType interface, not knowing about its concrete implementation (runtime type).
+     */
+    override val type: ClassId
+        get() = compileTimeType
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -677,11 +718,10 @@ open class CgVariable(
 }
 
 /**
- * A variable with explicit not null annotation if this is required in language.
+ * If expression is a variable, then this is a variable
+ * with explicit not null annotation if this is required in language.
  *
- * Note:
- * - in Java it is an equivalent of [CgVariable]
- * - in Kotlin the difference is in addition of "!!" to the name
+ * In Kotlin the difference is in addition of "!!" to the expression
  */
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId

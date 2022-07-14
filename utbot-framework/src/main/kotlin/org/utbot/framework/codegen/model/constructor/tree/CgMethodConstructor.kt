@@ -98,6 +98,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -273,17 +274,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun <E> Map<FieldId, E>.accessibleFields(): Map<FieldId, E> = filterKeys { !it.isInaccessibleViaReflection }
-
-    /**
-     * @return expression for [java.lang.Class] of the given [classId]
-     */
-    // TODO: move this method somewhere, because now it duplicates the identical method from MockFrameworkManager
-    private fun getClassOf(classId: ClassId): CgExpression =
-        if (classId isAccessibleFrom testClassPackageName) {
-            CgGetJavaClass(classId)
-        } else {
-            newVar(classCgClassId) { Class::class.id[forName](classId.name) }
-        }
 
     /**
      * Generates result assertions for unit tests.
@@ -705,6 +695,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         )
                     }
                 }
+                is UtLambdaModel -> Unit
                 is UtVoidModel -> {
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
@@ -969,6 +960,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                 }
 
+                is UtLambdaModel -> Unit // TODO: lambda model
+
                 is UtNullModel,
                 is UtPrimitiveModel,
                 is UtArrayModel,
@@ -1007,6 +1000,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                 }
             }
+
+            is UtLambdaModel -> Unit // TODO: lambda model
 
             is UtNullModel,
             is UtPrimitiveModel,

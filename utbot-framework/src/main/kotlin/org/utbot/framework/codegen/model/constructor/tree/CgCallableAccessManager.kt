@@ -35,6 +35,7 @@ import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -140,7 +141,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
         if (methodId is BuiltinMethodId) {
-            findExceptionTypesOf(methodId)
+            methodId.findExceptionTypes()
                 .forEach { addExceptionIfNeeded(it) }
             return
         }
@@ -164,6 +165,15 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private fun newConstructorCall(constructorId: ConstructorId) {
         importIfNeeded(constructorId.classId)
+
+        // Builtin constructors do not have jClass, so [constructorId.exceptions] will crash on it,
+        // so we need to collect required exceptions manually from source codes (see BuiltinConstructorId.findExceptionTypes()).
+
+        if (constructorId is BuiltinConstructorId) {
+            constructorId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
+            return
+        }
+
         for (exception in constructorId.exceptions) {
             addExceptionIfNeeded(exception)
         }
@@ -556,33 +566,51 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return argumentsArrayVariable
     }
 
+    private fun BuiltinConstructorId.findExceptionTypes(): Set<ClassId> {
+        // At the moment we do not have builtin ids for constructors that throw exceptions,
+        // so we have this trivial when-expression. But if we ever add ids for such constructors,
+        // then we **must** specify their exceptions here, so that we take them into account when generating code.
+        @Suppress("UNUSED_EXPRESSION")
+        return when (this) {
+            else -> emptySet()
+        }
+    }
+
     //WARN: if you make changes in the following sets of exceptions,
     //don't forget to change them in hardcoded [UtilMethods] as well
-    private fun findExceptionTypesOf(methodId: MethodId): Set<ClassId> {
+    private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
         // TODO: at the moment we treat BuiltinMethodIds that are not util method ids
         // as if they have no exceptions. This should be fixed by storing exception types in BuiltinMethodId
         // or allowing us to access actual java.lang.Class for classes from mockito and other libraries
         // (this could be possibly solved by using user project's class loaders in UtContext)
-        if (methodId !in utilMethodProvider.utilMethodIds) return emptySet()
+        if (!isUtil(this)) return emptySet()
 
         with(utilMethodProvider) {
-            return when (methodId) {
-                getEnumConstantByNameMethodId -> setOf(java.lang.IllegalAccessException::class.id)
+            return when (this@findExceptionTypes) {
+                getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
                 getStaticFieldValueMethodId,
                 setStaticFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
                 getFieldValueMethodId,
                 setFieldMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
                 createInstanceMethodId -> setOf(Exception::class.id)
-                getUnsafeInstanceMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.NoSuchFieldException::class.id, java.lang.IllegalAccessException::class.id)
-                createArrayMethodId -> setOf(java.lang.ClassNotFoundException::class.id)
+                getUnsafeInstanceMethodId -> setOf(ClassNotFoundException::class.id, NoSuchFieldException::class.id, IllegalAccessException::class.id)
+                createArrayMethodId -> setOf(ClassNotFoundException::class.id)
                 deepEqualsMethodId,
                 arraysDeepEqualsMethodId,
                 iterablesDeepEqualsMethodId,
                 streamsDeepEqualsMethodId,
                 mapsDeepEqualsMethodId,
                 hasCustomEqualsMethodId,
-                getArrayLengthMethodId -> emptySet()
-                else -> error("Unknown util method $this")
+                getArrayLengthMethodId,
+                getLambdaCapturedArgumentTypesMethodId,
+                getLambdaCapturedArgumentValuesMethodId,
+                getInstantiatedMethodTypeMethodId,
+                getLambdaMethodMethodId,
+                getSingleAbstractMethodMethodId -> emptySet()
+                buildStaticLambdaMethodId,
+                buildLambdaMethodId -> setOf(Throwable::class.id)
+                getLookupInMethodId ->setOf(IllegalAccessException::class.id, NoSuchFieldException::class.id)
+                else -> error("Unknown util method ${this@findExceptionTypes}")
             }
         }
     }

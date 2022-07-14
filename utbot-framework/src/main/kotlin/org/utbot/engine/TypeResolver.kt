@@ -112,7 +112,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }
 
-        return TypeStorage(type, concretePossibleTypes).filterInappropriateClassesForCodeGeneration()
+        return TypeStorage(type, concretePossibleTypes)//.filterInappropriateClassesForCodeGeneration()
     }
 
     private fun isInappropriateOrArrayOfMocksOrLocals(numDimensions: Int, baseType: Type?): Boolean {
@@ -182,7 +182,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             else -> error("Unexpected type $type")
         }
 
-        return TypeStorage(type, possibleTypes).filterInappropriateClassesForCodeGeneration()
+        return TypeStorage(type, possibleTypes)//.filterInappropriateClassesForCodeGeneration()
     }
 
     /**
@@ -197,17 +197,26 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         val leastCommonSootClass = (leastCommonType as? RefType)?.sootClass
         val keepArtificialEntities = leastCommonSootClass?.isArtificialEntity == true
 
-        possibleConcreteTypes.forEach {
-            val sootClass = (it.baseType as? RefType)?.sootClass ?: run {
-                // All not RefType should be included in the concreteTypes, e.g., arrays
-                concreteTypes += it
-                return@forEach
-            }
-            when {
-                sootClass.isUtMock -> unwantedTypes += it
-                sootClass.isArtificialEntity -> if (keepArtificialEntities) concreteTypes += it else Unit
-                workaround(WorkaroundReason.HACK) { leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden } -> Unit
-                else -> concreteTypes += it
+        heuristic(WorkaroundReason.REMOVE_ANONYMOUS_CLASSES) {
+            possibleConcreteTypes.forEach {
+                val sootClass = (it.baseType as? RefType)?.sootClass ?: run {
+                    // All not RefType should be included in the concreteTypes, e.g., arrays
+                    concreteTypes += it
+                    return@forEach
+                }
+                when {
+                    sootClass.isUtMock -> unwantedTypes += it
+                    sootClass.isArtificialEntity -> {
+//                        if (sootClass.isLambda) {
+//                            unwantedTypes += it
+//                        } else
+                        if (keepArtificialEntities) {
+                            concreteTypes += it
+                        }
+                    }
+                    workaround(WorkaroundReason.HACK) { leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden } -> Unit
+                    else -> concreteTypes += it
+                }
             }
         }
 

@@ -44,6 +44,10 @@ import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
+import org.utbot.engine.util.lambda.CapturedArgument
+import org.utbot.engine.util.lambda.constructLambda
+import org.utbot.engine.util.lambda.constructStaticLambda
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.instrumentation.process.runSandbox
 
 /**
@@ -126,6 +130,7 @@ class MockValueConstructor(
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
+            is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
         }
     }
@@ -361,6 +366,32 @@ class MockValueConstructor(
         }
 
         return resultsCache[assembleModel] ?: error("Can't assemble model: $assembleModel")
+    }
+
+    private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
+        // A class representing a functional interface.
+        val samType: Class<*> = lambdaModel.samType.jClass
+        // A class where the lambda is declared.
+        val declaringClass: Class<*> = lambdaModel.declaringClass.jClass
+        // A name of the synthetic method that represents a lambda.
+        val lambdaName = lambdaModel.lambdaName
+
+        return if (lambdaModel.lambdaMethodId.isStatic) {
+            val capturedArguments = lambdaModel.capturedValues
+                .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
+                .toTypedArray()
+            constructStaticLambda(samType, declaringClass, lambdaName, *capturedArguments)
+        } else {
+            val capturedReceiverModel = lambdaModel.capturedValues.firstOrNull()
+                ?: error("Non-static lambda must capture `this` instance, so there must be at least one captured value")
+
+            // Values that the given lambda has captured.
+            val capturedReceiver = value(capturedReceiverModel) ?: error("Captured receiver of lambda must not be null")
+            val capturedArguments = lambdaModel.capturedValues.subList(1, lambdaModel.capturedValues.size)
+                .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
+                .toTypedArray()
+            constructLambda(samType, declaringClass, lambdaName, capturedReceiver, *capturedArguments)
+        }
     }
 
     /**

@@ -1,6 +1,7 @@
 package org.utbot.engine
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.isFunctionalInterface
 
 /**
  * Mock strategies.
@@ -17,15 +18,24 @@ enum class MockStrategy {
     },
 
     OTHER_PACKAGES {
-        override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean =
-            classToMock != classUnderTest && classToMock.packageName.let {
-                it != classUnderTest.packageName && !isSystemPackage(it)
-            }
+        override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean {
+            if (classToMock == classUnderTest) return false
+            if (classToMock.packageName == classUnderTest.packageName) return false
+
+            // we always mock functional interfaces
+            if (classToMock.isFunctionalInterface) return true
+
+            return !isSystemPackage(classToMock.packageName)
+        }
     },
 
     OTHER_CLASSES {
-        override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean =
-                classToMock != classUnderTest && !isSystemPackage(classToMock.packageName)
+        override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean {
+            if (classToMock == classUnderTest) return false
+            // we always mock functional interfaces
+            if (classToMock.isFunctionalInterface) return true
+            return !isSystemPackage(classToMock.packageName)
+        }
     };
 
     /**

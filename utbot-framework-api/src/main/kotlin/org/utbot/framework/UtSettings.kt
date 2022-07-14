@@ -73,7 +73,7 @@ object UtSettings : AbstractSettings(
      * Timeout for symbolic execution
      *
      */
-    var utBotGenerationTimeoutInMillis by getLongProperty(60000L)
+    var utBotGenerationTimeoutInMillis by getLongProperty(600000L)
 
     /**
      * Random seed in path selector.
@@ -113,7 +113,7 @@ object UtSettings : AbstractSettings(
      *
      * False by default, set it to true if debug visualization is needed.
      */
-    var useDebugVisualization by getBooleanProperty(false)
+    var useDebugVisualization by getBooleanProperty(true)
 
     /**
      * Set the value to true if you want to automatically copy the path of the
@@ -136,7 +136,7 @@ object UtSettings : AbstractSettings(
      * @see <a href="CONFLUENCE:UtBot+Expression+Optimizations">
      *     UtBot Expression Optimizations</a>
      */
-    var useExpressionSimplification by getBooleanProperty(true)
+    var useExpressionSimplification by getBooleanProperty(false)
 
     /*
     * Activate or deactivate tests on comments && names/displayNames
@@ -188,7 +188,7 @@ object UtSettings : AbstractSettings(
      *
      * True by default.
      */
-    var useConcreteExecution by getBooleanProperty(true)
+    var useConcreteExecution by getBooleanProperty(false)
 
     /**
      * Enable check of full coverage for methods with code generations tests.
@@ -300,7 +300,7 @@ object UtSettings : AbstractSettings(
      *
      * False by default.
      */
-    var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
+    var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(true)
 
     /**
      * Enable it to process states with unknown solver status

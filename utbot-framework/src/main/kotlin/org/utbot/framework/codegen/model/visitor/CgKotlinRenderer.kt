@@ -541,7 +541,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
                 else -> {
                     // we cannot access kClass for BuiltinClassId
                     // we cannot use simple name here because this class can be not imported
-                    if (id is BuiltinClassId) id.name else id.kClass.id.asString()
+                    if (id is BuiltinClassId) id.canonicalName else id.kClass.id.asString()
                 }
             }
         }

@@ -35,6 +35,7 @@ import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.isLambda
 import soot.ArrayType
 import soot.PrimType
 import soot.RefLikeType
@@ -191,6 +192,9 @@ private val isAnonymousRegex = ".*\\$\\d+$".toRegex()
 
 val SootClass.isAnonymous
     get() = name matches isAnonymousRegex
+
+val SootClass.isLambda: Boolean
+    get() = this.id.isLambda
 
 val Type.numDimensions get() = if (this is ArrayType) numDimensions else 0
 

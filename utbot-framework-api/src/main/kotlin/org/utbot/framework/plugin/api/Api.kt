@@ -513,6 +513,35 @@ data class UtAssembleModel(
 }
 
 /**
+ * Model for lambdas.
+ *
+ * Lambdas in Java represent the implementation of a single abstract method (SAM) of a functional interface.
+ * They can be used to create an instance of said functional interface, but **they are not classes**.
+ * In Java lambdas are compiled into synthetic methods of a class they are declared in.
+ * Depending on the captured variables, this method will be either static or non-static.
+ *
+ * Since lambdas are not classes we cannot use a class loader to get info about them as we can do for other models.
+ * Hence, the necessity for this specific lambda model that will be processed differently: instead of working
+ * with a class we will be working with the synthetic method that represents our lambda.
+ */
+// TODO: what about support for Kotlin lambdas (they are not exactly the same as Java's due to functional types)
+class UtLambdaModel(
+    override val id: Int?,
+    val samType: ClassId,
+    val declaringClass: ClassId,
+    val lambdaName: String,
+    val capturedValues: MutableList<UtModel> = mutableListOf(),
+) : UtReferenceModel(id, samType) {
+
+    val lambdaMethodId: MethodId
+        get() = declaringClass.jClass
+            .declaredMethods
+            .singleOrNull { it.name == lambdaName }
+            ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
+            ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+}
+
+/**
  * Model for a step to obtain [UtAssembleModel].
  */
 sealed class UtStatementModel(
@@ -1010,12 +1039,12 @@ open class MethodId(
         get() = method.modifiers
 }
 
-class ConstructorId(
+open class ConstructorId(
     override val classId: ClassId,
     override val parameters: List<ClassId>
 ) : ExecutableId() {
-    override val name: String = "<init>"
-    override val returnType: ClassId = voidClassId
+    final override val name: String = "<init>"
+    final override val returnType: ClassId = voidClassId
 
     override val modifiers: Int
         get() = constructor.modifiers
@@ -1039,6 +1068,15 @@ class BuiltinMethodId(
             (if (isProtected) Modifier.PROTECTED else 0) or
             (if (isPrivate) Modifier.PRIVATE else 0)
 }
+
+class BuiltinConstructorId(
+    classId: ClassId,
+    parameters: List<ClassId>,
+    // by default, we assume that the builtin constructor is public
+    override val isPublic: Boolean = true,
+    override val isProtected: Boolean = false,
+    override val isPrivate: Boolean = false
+) : ConstructorId(classId, parameters)
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 

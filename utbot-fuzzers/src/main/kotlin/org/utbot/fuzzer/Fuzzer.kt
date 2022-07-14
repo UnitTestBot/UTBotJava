@@ -20,7 +20,7 @@ private val logger = KotlinLogging.logger {}
 fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
     val values = List<MutableList<FuzzedValue>>(description.parameters.size) { mutableListOf() }
     modelProviders.forEach { fuzzingProvider ->
-        fuzzingProvider.generate(description) { index, model ->
+        fuzzingProvider.generate(description).forEach { (index, model) ->
             values[index].add(model)
         }
     }

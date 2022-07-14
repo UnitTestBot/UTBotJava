@@ -31,6 +31,7 @@ import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
 import org.utbot.framework.plugin.api.util.safeJField
 import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
 import soot.ArrayType
@@ -697,8 +698,14 @@ open class ClassId @JvmOverloads constructor(
      */
     val prettifiedName: String
         get() {
-            val className = jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
-            return className
+            val baseName = when {
+                // anonymous classes have empty simpleName and their canonicalName is null,
+                // so we create a specific name for them
+                isAnonymous -> "Anonymous${supertypeOfAnonymousClass.prettifiedName}"
+                // in other cases where canonical name is still null, we use ClassId.name instead
+                else -> jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
+            }
+            return baseName
                 .substringAfterLast(".")
                 .replace(Regex("[^a-zA-Z0-9]"), "")
                 .let { if (this.isArray) it + "Array" else it }

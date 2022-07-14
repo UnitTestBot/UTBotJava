@@ -1,7 +1,6 @@
 package org.utbot.engine
 
 import org.utbot.common.WorkaroundReason
-import org.utbot.common.heuristic
 import org.utbot.common.workaround
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtBoolExpression
@@ -200,19 +199,17 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         val leastCommonSootClass = (leastCommonType as? RefType)?.sootClass
         val keepArtificialEntities = leastCommonSootClass?.isArtificialEntity == true
 
-        heuristic(WorkaroundReason.REMOVE_ANONYMOUS_CLASSES) {
-            possibleConcreteTypes.forEach {
-                val sootClass = (it.baseType as? RefType)?.sootClass ?: run {
-                    // All not RefType should be included in the concreteTypes, e.g., arrays
-                    concreteTypes += it
-                    return@forEach
-                }
-                when {
-                    sootClass.isAnonymous || sootClass.isUtMock -> unwantedTypes += it
-                    sootClass.isArtificialEntity -> if (keepArtificialEntities) concreteTypes += it else Unit
-                    workaround(WorkaroundReason.HACK) { leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden } -> Unit
-                    else -> concreteTypes += it
-                }
+        possibleConcreteTypes.forEach {
+            val sootClass = (it.baseType as? RefType)?.sootClass ?: run {
+                // All not RefType should be included in the concreteTypes, e.g., arrays
+                concreteTypes += it
+                return@forEach
+            }
+            when {
+                sootClass.isAnonymous || sootClass.isUtMock -> unwantedTypes += it
+                sootClass.isArtificialEntity -> if (keepArtificialEntities) concreteTypes += it else Unit
+                workaround(WorkaroundReason.HACK) { leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden } -> Unit
+                else -> concreteTypes += it
             }
         }
 

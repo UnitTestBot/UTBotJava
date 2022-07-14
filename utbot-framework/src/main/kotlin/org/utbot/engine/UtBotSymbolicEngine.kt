@@ -17,10 +17,8 @@ import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
-import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.bracket
 import org.utbot.common.debug
-import org.utbot.common.workaround
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.UtArraySelectExpression
 import org.utbot.engine.pc.UtBoolExpression
@@ -74,7 +72,6 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
@@ -473,15 +470,6 @@ class UtBotSymbolicEngine(
             // in case an exception occurred from the concrete execution
             concreteExecutionResult ?: return@forEach
 
-            workaround(REMOVE_ANONYMOUS_CLASSES) {
-                concreteExecutionResult.result.onSuccess {
-                    if (it.classId.isAnonymous) {
-                        logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                        return@flow
-                    }
-                }
-            }
-
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             if (coveredInstructions.isNotEmpty()) {
                 val coverageKey = coveredInstructionTracker.add(coveredInstructions)
@@ -590,16 +578,6 @@ class UtBotSymbolicEngine(
                     stateBefore,
                     instrumentation
                 )
-
-                workaround(REMOVE_ANONYMOUS_CLASSES) {
-                    concreteExecutionResult.result.onSuccess {
-                        if (it.classId.isAnonymous) {
-                            logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                            emit(symbolicUtExecution)
-                            return
-                        }
-                    }
-                }
 
                 val concolicUtExecution = symbolicUtExecution.copy(
                     stateAfter = concreteExecutionResult.stateAfter,

@@ -107,7 +107,9 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         }
 
         return IdentityHashMap<UtModel, UtModel>().apply {
-            models.forEach { getOrPut(it) { assembleModel(it) } }
+            models
+                .filterNot { it.classId.isAnonymous } // we cannot create an assemble model for an anonymous class instance
+                .forEach { getOrPut(it) { assembleModel(it) } }
         }
     }
 

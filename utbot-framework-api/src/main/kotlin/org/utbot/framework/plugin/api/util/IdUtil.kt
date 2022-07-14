@@ -110,6 +110,34 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)
 
+/**
+ * - Anonymous class that extends a class will have this class as its superclass and no interfaces.
+ * - Anonymous class that implements an interface, will have the only interface
+ *   and [java.lang.Object] as its superclass.
+ *
+ * @return [ClassId] of a type that the given anonymous class inherits
+ */
+val ClassId.supertypeOfAnonymousClass: ClassId
+    get() {
+        if (this is BuiltinClassId) error("Cannot obtain info about supertypes of BuiltinClassId $canonicalName")
+        if (!isAnonymous) error("An anonymous class expected, but got $canonicalName")
+
+        val clazz = jClass
+        val superclass = clazz.superclass.id
+        val interfaces = clazz.interfaces.map { it.id }
+
+        return when {
+            // anonymous class actually inherits from Object, e.g. Object obj = new Object() { ... };
+            superclass == objectClassId && interfaces.isEmpty() -> objectClassId
+            // anonymous class implements some interface
+            superclass == objectClassId -> {
+                interfaces.singleOrNull() ?: error("Anonymous class can have no more than one interface")
+            }
+            // anonymous class inherits from some class other than java.lang.Object
+            else -> superclass
+        }
+    }
+
 val ClassId.kClass: KClass<*>
     get() = jClass.kotlin
 

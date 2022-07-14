@@ -495,8 +495,8 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 val isGetFieldUtilMethod = (expression is CgMethodCall && expression.executableId.isGetFieldUtilMethod)
                 val shouldCastBeSafety = expression == nullLiteral() || isGetFieldUtilMethod
 
-                type = baseType
                 expr = typeCast(baseType, expression, shouldCastBeSafety)
+                type = expr.type
             }
             expression.type isNotSubtypeOf baseType && !typeAccessible -> {
                 type = if (expression.type.isArray) objectArrayClassId else objectClassId

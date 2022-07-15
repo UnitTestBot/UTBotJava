@@ -19,7 +19,7 @@ public class EnumCollections {
         if (source.isEmpty())
             return new LinkedList<>();
         for (Color color : source) {
-            UtMock.assume(color != null);
+            assert color != null;
         }
        return source;
     }
@@ -27,7 +27,7 @@ public class EnumCollections {
     public List<Color> copyColors(@NotNull List<Color> source) {
         LinkedList<Color> result = new LinkedList<>();
         for (Color color : source) {
-            UtMock.assume(color != null);
+            assert color != null;
             result.add(color);
         }
         return result;

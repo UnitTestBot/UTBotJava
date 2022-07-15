@@ -3,10 +3,13 @@ package org.utbot.examples.enums
 import org.junit.jupiter.api.Test
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
+import org.utbot.examples.FullWithAssumptions
+import org.utbot.examples.between
 import org.utbot.examples.enums.EnumCollections.Color.BLUE
 import org.utbot.examples.enums.EnumCollections.Color.GREEN
 import org.utbot.examples.enums.EnumCollections.Color.RED
 import org.utbot.examples.ge
+import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 
@@ -23,10 +26,9 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     fun testReturnColors() {
         check(
             EnumCollections::returnColors,
-            ge(2),
+            ignoreExecutionsNumber,
             { source, result -> source.isEmpty() && result != null && result.isEmpty() },
-            { source, result -> source.isNotEmpty() && result != null && result.isNotEmpty() },
-            coverage = DoNotCalculate
+            { source, result -> source.isNotEmpty() && result != null && result.isNotEmpty() }
         )
     }
 
@@ -34,10 +36,10 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     fun testCopyColors() {
         check(
             EnumCollections::copyColors,
-            ge(2),
+            ignoreExecutionsNumber,
             { source, result -> source.isEmpty() && result != null && result.isEmpty() },
             { source, result -> source.isNotEmpty() && result != null && result.isNotEmpty() },
-            coverage = DoNotCalculate
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
 
@@ -45,11 +47,10 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     fun testEnumToEnumMapCountValues() {
         check(
             EnumCollections::enumToEnumMapCountValues,
-            ge(3),
+            ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
             { m, r -> m.isNotEmpty() && !m.values.contains(RED) && r == 0 },
-            { m, r -> m.isNotEmpty() && m.values.contains(RED) && m.values.count { it == RED } == r },
-            coverage = DoNotCalculate
+            { m, r -> m.isNotEmpty() && m.values.contains(RED) && m.values.count { it == RED } == r }
         )
     }
 
@@ -57,11 +58,10 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     fun testEnumToEnumMapCountKeys() {
         check(
             EnumCollections::enumToEnumMapCountKeys,
-            ge(3),
+            ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
             { m, r -> m.isNotEmpty() && !m.keys.contains(GREEN) && !m.keys.contains(BLUE) && r == 0 },
-            { m, r -> m.isNotEmpty() && m.keys.intersect(setOf(BLUE, GREEN)).isNotEmpty() && m.keys.count { it == BLUE || it == GREEN } == r },
-            coverage = DoNotCalculate
+            { m, r -> m.isNotEmpty() && m.keys.intersect(setOf(BLUE, GREEN)).isNotEmpty() && m.keys.count { it == BLUE || it == GREEN } == r }
         )
     }
 
@@ -69,10 +69,9 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     fun testEnumToEnumMapCountMatches() {
         check(
             EnumCollections::enumToEnumMapCountMatches,
-            ge(2),
+            ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
-            { m, r -> m.entries.count { it.key == it.value } == r },
-            coverage = DoNotCalculate
+            { m, r -> m.entries.count { it.key == it.value } == r }
         )
     }
 }

@@ -72,6 +72,12 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     internal var markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean = true
 
     /**
+     * Generate tests for private methods or not.
+     */
+    @Parameter(defaultValue = "false")
+    internal var testPrivateMethods: Boolean = false
+
+    /**
      * Can be one of: 'junit4', 'junit5', 'testng'.
      */
     @Parameter(defaultValue = "junit5")

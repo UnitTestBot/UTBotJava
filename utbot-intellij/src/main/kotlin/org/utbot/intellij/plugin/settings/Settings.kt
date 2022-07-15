@@ -2,6 +2,13 @@
 
 package org.utbot.intellij.plugin.settings
 
+import com.intellij.openapi.components.PersistentStateComponent
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.project.Project
+import com.intellij.util.xmlb.Converter
+import com.intellij.util.xmlb.annotations.OptionTag
+import org.utbot.common.FileUtil
 import org.utbot.engine.Mocker
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -13,26 +20,15 @@ import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestCodeGenerator
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.ModelBasedCodeGeneratorService
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.SymbolicEngineTestGeneratorService
-import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.intellij.plugin.ui.GenerateTestsModel
-import com.intellij.openapi.components.PersistentStateComponent
-import com.intellij.openapi.components.State
-import com.intellij.openapi.components.Storage
-import com.intellij.openapi.project.Project
-import com.intellij.util.xmlb.Converter
-import com.intellij.util.xmlb.annotations.OptionTag
-import org.utbot.common.FileUtil
+import org.utbot.intellij.plugin.models.GenerateTestsModel
 import java.util.concurrent.CompletableFuture
 import kotlin.reflect.KClass
 
@@ -42,8 +38,6 @@ import kotlin.reflect.KClass
 )
 class Settings(val project: Project) : PersistentStateComponent<Settings.State> {
     data class State(
-        var generatorName: String = defaultGeneratorName(),
-        var codeGeneratorName: String = defaultCodeGeneratorName(),
         var codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
         @OptionTag(converter = TestFrameworkConverter::class)
         var testFramework: TestFramework = TestFramework.defaultItem,
@@ -78,8 +72,6 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
 
             other as State
 
-            if (generatorName != other.generatorName) return false
-            if (codeGeneratorName != other.codeGeneratorName) return false
             if (codegenLanguage != other.codegenLanguage) return false
             if (testFramework != other.testFramework) return false
             if (mockStrategy != other.mockStrategy) return false
@@ -95,9 +87,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             return true
         }
         override fun hashCode(): Int {
-            var result = generatorName.hashCode()
-            result = 31 * result + codeGeneratorName.hashCode()
-            result = 31 * result + codegenLanguage.hashCode()
+            var result = codegenLanguage.hashCode()
             result = 31 * result + testFramework.hashCode()
             result = 31 * result + mockStrategy.hashCode()
             result = 31 * result + mockFramework.hashCode()
@@ -114,16 +104,6 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     }
 
     private var state = State()
-
-    // TODO: we removed loading from saved settings, but may return to it later
-    val testCasesGenerator: TestCaseGenerator
-        get() = defaultTestCaseGenerator()
-
-    // TODO: we removed loading from saved settings, but may return to it later
-    val codeGenerator: TestCodeGenerator
-        get() = defaultCodeGenerator()
-
-    val generatorName: String get() = state.generatorName
 
     val codegenLanguage: CodegenLanguage get() = state.codegenLanguage
 
@@ -204,18 +184,6 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             // TODO: add error processing
             else -> error("Unknown service loader: $loader")
         }
-
-    companion object {
-        private fun defaultTestCaseGenerator(): TestCaseGenerator = SymbolicEngineTestGeneratorService().serviceProvider
-
-        private fun defaultCodeGenerator(): TestCodeGenerator = ModelBasedCodeGeneratorService().serviceProvider
-
-        private fun defaultGeneratorName(): String =
-            TestGeneratorServiceLoader.defaultServiceProviderName
-
-        private fun defaultCodeGeneratorName(): String =
-            CodeGeneratorServiceLoader.defaultServiceProviderName
-    }
 }
 
 // use it to serialize testFramework in State

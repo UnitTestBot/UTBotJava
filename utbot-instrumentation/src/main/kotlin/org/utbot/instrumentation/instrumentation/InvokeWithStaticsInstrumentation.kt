@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.instrumentation
 
-import org.utbot.common.withRemovedFinalModifier
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.util.field
 import org.utbot.instrumentation.util.StaticEnvironment
 import java.lang.reflect.Field
@@ -47,7 +47,7 @@ class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
         staticEnvironment?.run {
             listOfFields.forEach { (fieldId, value) ->
                 fieldId.field.run {
-                    withRemovedFinalModifier {
+                    withAccessibility {
                         set(null, value)
                     }
                 }
@@ -75,14 +75,14 @@ class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
         init {
             val staticFields = clazz.declaredFields
                 .filter { checkField(it) } // TODO: think on this
-                .associate { it.name to it.withRemovedFinalModifier { it.get(null) } }
+                .associate { it.name to it.withAccessibility { it.get(null) } }
             savedFields = staticFields
         }
 
         fun restore() {
             clazz.declaredFields
                 .filter { checkField(it) }
-                .forEach { it.withRemovedFinalModifier { it.set(null, savedFields[it.name]) } }
+                .forEach { it.withAccessibility { it.set(null, savedFields[it.name]) } }
         }
     }
 }

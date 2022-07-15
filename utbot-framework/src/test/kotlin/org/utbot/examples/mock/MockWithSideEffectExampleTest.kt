@@ -1,14 +1,13 @@
 package org.utbot.examples.mock
 
-import org.junit.Ignore
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.Test
 
-internal class MockWithSideEffectExampleTest : AbstractTestCaseGeneratorTest(testClass = MockWithSideEffectExample::class) {
+internal class MockWithSideEffectExampleTest : UtValueTestCaseChecker(testClass = MockWithSideEffectExample::class) {
     @Test
     fun testSideEffect() {
         checkWithException(

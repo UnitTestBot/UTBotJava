@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.utbot.analytics.EngineAnalyticsContext
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.withFeaturePath
 import java.io.File
 import java.io.FileInputStream
 
-class FeatureProcessorWithRepetitionTest : AbstractTestCaseGeneratorTest(OnePath::class, false) {
+class FeatureProcessorWithRepetitionTest : UtValueTestCaseChecker(OnePath::class, false) {
     companion object {
         const val featureDir = "src/test/resources/features"
         fun reward(coverage: Double, time: Double) = RewardEstimator.reward(coverage, time)

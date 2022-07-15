@@ -11,7 +11,6 @@ data class UtExecutionSuccess(val model: UtModel) : UtExecutionResult() {
 
 sealed class UtExecutionFailure : UtExecutionResult() {
     abstract val exception: Throwable
-    val isCheckedException get() = !(exception is RuntimeException || exception is Error)
 }
 
 data class UtOverflowFailure(

@@ -1,11 +1,11 @@
 package org.utbot.examples.primitives
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 @Suppress("SimplifyNegatedBinaryExpression")
-internal class DoubleExamplesTest : AbstractTestCaseGeneratorTest(testClass = DoubleExamples::class) {
+internal class DoubleExamplesTest : UtValueTestCaseChecker(testClass = DoubleExamples::class) {
     @Test
     fun testCompareSum() {
         check(

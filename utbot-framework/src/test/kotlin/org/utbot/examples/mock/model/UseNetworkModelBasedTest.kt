@@ -1,6 +1,6 @@
 package org.utbot.examples.mock.model
 
-import org.utbot.examples.AbstractModelBasedTest
+import org.utbot.examples.UtModelTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.mock.UseNetwork
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.junit.jupiter.api.Test
 
-internal class UseNetworkModelBasedTest : AbstractModelBasedTest(testClass = UseNetwork::class) {
+internal class UseNetworkModelBasedTest : UtModelTestCaseChecker(testClass = UseNetwork::class) {
     @Test
     fun testMockVoidMethod() {
         check(

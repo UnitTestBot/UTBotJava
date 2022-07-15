@@ -2,9 +2,9 @@ package org.utbot.framework.plugin.sarif
 
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.codegen.model.CodeGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategy
 import org.utbot.summary.summarize
@@ -32,11 +32,11 @@ class GenerateTestsAndSarifReportFacade(
     ) {
         initializeEngine(runtimeClasspath, workingDirectory)
 
-        val testCases = generateTestCases(targetClass, workingDirectory)
-        val testClassBody = generateTestCode(targetClass, testCases)
+        val testSets = generateTestSets(targetClass, workingDirectory)
+        val testClassBody = generateTestCode(targetClass, testSets)
         targetClass.testsCodeFile.writeText(testClassBody)
 
-        generateReport(targetClass, testCases, testClassBody, sourceFindingStrategy)
+        generateReport(targetClass, testSets, testClassBody, sourceFindingStrategy)
     }
 
     companion object {
@@ -66,12 +66,12 @@ class GenerateTestsAndSarifReportFacade(
     }
 
     private fun initializeEngine(classPath: String, workingDirectory: Path) {
-        UtBotTestCaseGenerator.init(workingDirectory, classPath, dependencyPaths) { false }
+        TestCaseGenerator.init(workingDirectory, classPath, dependencyPaths)
     }
 
-    private fun generateTestCases(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtTestCase> =
-        UtBotTestCaseGenerator.generateForSeveralMethods(
-            targetClass.targetMethods(),
+    private fun generateTestSets(targetClass: TargetClassWrapper, workingDirectory: Path): List<UtMethodTestSet> =
+        TestCaseGenerator.generate(
+            targetClass.targetMethods,
             sarifProperties.mockStrategy,
             sarifProperties.classesToMockAlways,
             sarifProperties.generationTimeout
@@ -79,14 +79,15 @@ class GenerateTestsAndSarifReportFacade(
             it.summarize(targetClass.sourceCodeFile, workingDirectory)
         }
 
-    private fun generateTestCode(targetClass: TargetClassWrapper, testCases: List<UtTestCase>): String =
+    private fun generateTestCode(targetClass: TargetClassWrapper, testSets: List<UtMethodTestSet>): String =
         initializeCodeGenerator(targetClass)
-            .generateAsString(testCases, targetClass.testsCodeFile.nameWithoutExtension)
+            .generateAsString(testSets, targetClass.testsCodeFile.nameWithoutExtension)
 
     private fun initializeCodeGenerator(targetClass: TargetClassWrapper) =
-        ModelBasedTestCodeGenerator().apply {
+        CodeGenerator().apply {
             val isNoStaticMocking = sarifProperties.staticsMocking is NoStaticMocking
             val isForceStaticMocking = sarifProperties.forceStaticMocking == ForceStaticMocking.FORCE
+
             init(
                 classUnderTest = targetClass.classUnderTest.java,
                 testFramework = sarifProperties.testFramework,
@@ -104,11 +105,11 @@ class GenerateTestsAndSarifReportFacade(
      */
     private fun generateReport(
         targetClass: TargetClassWrapper,
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         testClassBody: String,
         sourceFinding: SourceFindingStrategy
     ) {
-        val sarifReport = SarifReport(testCases, testClassBody, sourceFinding).createReport()
+        val sarifReport = SarifReport(testSets, testClassBody, sourceFinding).createReport()
         targetClass.sarifReportFile.writeText(sarifReport)
     }
 }

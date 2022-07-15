@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
 import org.utbot.examples.eq
@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 
-internal class SimpleClassExampleTest : AbstractTestCaseGeneratorTest(testClass = SimpleClassExample::class) {
+internal class SimpleClassExampleTest : UtValueTestCaseChecker(testClass = SimpleClassExample::class) {
     @Test
     fun simpleConditionTest() {
         check(

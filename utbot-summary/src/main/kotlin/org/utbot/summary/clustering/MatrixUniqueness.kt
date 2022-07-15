@@ -2,21 +2,17 @@ package org.utbot.summary.clustering
 
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtTestCase
 import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.clustering.dbscan.DBSCANTrainer
 import org.utbot.summary.clustering.dbscan.neighbor.LinearRangeQuery
 
-class MatrixUniqueness {
+class MatrixUniqueness(executions: List<UtExecution>) {
 
-    private var methodExecutions: List<UtExecution>
+    private var methodExecutions: List<UtExecution> = executions
     private val allSteps = mutableListOf<Step>()
     private val matrix: List<IntArray>
 
-    constructor(testCase: UtTestCase) : this(testCase.executions)
-
-    constructor (executions: List<UtExecution>) {
-        this.methodExecutions = executions
+    init {
         executions.forEach {
             it.path.forEach { step ->
                 if (step !in allSteps) allSteps.add(step)

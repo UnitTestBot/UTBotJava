@@ -1,12 +1,12 @@
 package org.utbot.examples.thirdparty.numbers
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 
 // example from Apache common-numbers
-internal class ArithmeticUtilsTest : AbstractTestCaseGeneratorTest(testClass = ArithmeticUtils::class) {
+internal class ArithmeticUtilsTest : UtValueTestCaseChecker(testClass = ArithmeticUtils::class) {
     @Test
     @Tag("slow")
     fun testPow() {

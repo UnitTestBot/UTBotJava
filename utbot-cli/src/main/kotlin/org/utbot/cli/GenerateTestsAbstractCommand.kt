@@ -8,6 +8,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.unique
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.replaceSeparator
 import org.utbot.common.PathUtil.toPath
@@ -19,16 +20,15 @@ import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.model.ModelBasedTestCodeGenerator
+import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.testFrameworkByName
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.summary.summarize
 import java.io.File
 import java.lang.reflect.Method
@@ -41,7 +41,6 @@ import java.time.temporal.ChronoUnit
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.kotlinFunction
-import mu.KotlinLogging
 
 private const val LONG_GENERATION_TIMEOUT = 1_200_000L
 
@@ -154,13 +153,13 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun loadClassBySpecifiedFqn(classFqn: String): KClass<*> =
         classLoader.loadClass(classFqn).kotlin
 
-    protected fun generateTestCases(
+    protected fun generateTestSets(
         targetMethods: List<UtMethod<*>>,
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
-    ): List<UtTestCase> =
-        UtBotTestCaseGenerator.generateForSeveralMethods(
+    ): List<UtMethodTestSet> =
+        TestCaseGenerator.generate(
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,
@@ -185,11 +184,11 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         }
     }
 
-    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testCases: List<UtTestCase>): String =
+    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testSets: List<UtMethodTestSet>): String =
         initializeCodeGenerator(
             testFramework,
             classUnderTest
-        ).generateAsString(testCases, testClassname)
+        ).generateAsString(testSets, testClassname)
 
     protected fun initializeEngine(workingDirectory: Path) {
         val classPathNormalized =
@@ -199,21 +198,20 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         // Set UtSettings parameters.
         UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
 
-        UtBotTestCaseGenerator.init(workingDirectory, classPathNormalized, System.getProperty("java.class.path")) { false }
+        TestCaseGenerator.init(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
     }
 
-    private fun initializeCodeGenerator(testFramework: String, classUnderTest: KClass<*>): ModelBasedTestCodeGenerator {
+    private fun initializeCodeGenerator(testFramework: String, classUnderTest: KClass<*>): CodeGenerator {
         val generateWarningsForStaticMocking =
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
-        return ModelBasedTestCodeGenerator().apply {
+        return CodeGenerator().apply {
             init(
                 testFramework = testFrameworkByName(testFramework),
                 classUnderTest = classUnderTest.java,
-                mockFramework = MockFramework.MOCKITO, // TODO: rewrite default mock framework system
                 codegenLanguage = codegenLanguage,
                 staticsMocking = staticsMocking,
                 forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking
+                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
             )
         }
     }

@@ -1,12 +1,12 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class HiddenFieldExampleTest : AbstractTestCaseGeneratorTest(testClass = HiddenFieldExample::class) {
+internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = HiddenFieldExample::class) {
     @Test
     // Engine creates HiddenFieldSuccClass instead of HiddenFieldSuperClass, feels wrong field and matchers fail
     fun testCheckHiddenField() {

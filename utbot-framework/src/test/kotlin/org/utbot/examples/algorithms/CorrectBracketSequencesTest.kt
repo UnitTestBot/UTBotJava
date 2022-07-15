@@ -1,6 +1,6 @@
 package org.utbot.examples.algorithms
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.algorithms.CorrectBracketSequences.isBracket
 import org.utbot.examples.algorithms.CorrectBracketSequences.isOpen
 import org.utbot.examples.eq
@@ -14,7 +14,7 @@ import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.junit.jupiter.api.Test
 
-internal class CorrectBracketSequencesTest : AbstractTestCaseGeneratorTest(
+internal class CorrectBracketSequencesTest : UtValueTestCaseChecker(
     testClass = CorrectBracketSequences::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

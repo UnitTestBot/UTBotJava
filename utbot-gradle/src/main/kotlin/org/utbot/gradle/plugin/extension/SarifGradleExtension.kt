@@ -44,6 +44,12 @@ abstract class SarifGradleExtension {
     abstract val markGeneratedTestsDirectoryAsTestSourcesRoot: Property<Boolean>
 
     /**
+     * Generate tests for private methods or not.
+     */
+    @get:Input
+    abstract val testPrivateMethods: Property<Boolean>
+
+    /**
      * Can be one of: 'junit4', 'junit5', 'testng'.
      */
     @get:Input

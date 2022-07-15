@@ -1,6 +1,6 @@
 package org.utbot.examples.make.symbolic
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.withoutConcrete
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test
 // This class is substituted with ComplicatedMethodsSubstitutionsStorage
 // but we cannot do in code generation.
 // For this reason code generation executions are disabled
-internal class ClassWithComplicatedMethodsTest : AbstractTestCaseGeneratorTest(
+internal class ClassWithComplicatedMethodsTest : UtValueTestCaseChecker(
     testClass = ClassWithComplicatedMethods::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

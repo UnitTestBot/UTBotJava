@@ -15,70 +15,111 @@ import java.io.File
 /**
  * Provides all [SarifGradleExtension] fields in a convenient form:
  * Defines default values and a transform function for these fields.
+ * Takes the fields from the [taskParameters] if they are available there,
+ * otherwise takes them from the [extension].
  */
 class SarifGradleExtensionProvider(
     private val project: Project,
-    private val extension: SarifGradleExtension
+    private val extension: SarifGradleExtension,
+    var taskParameters: Map<String, String> = mapOf()
 ) : SarifExtensionProvider {
 
     override val targetClasses: List<String>
-        get() = extension.targetClasses
-            .getOrElse(listOf())
+        get() = taskParameters["targetClasses"]?.transformKeywordAll()?.parseToList()
+            ?: extension.targetClasses.orNull
+            ?: listOf()
 
     override val projectRoot: File
-        get() = extension.projectRoot.orNull
+        get() = (taskParameters["projectRoot"] ?: extension.projectRoot.orNull)
             ?.toPath()?.toFile()
             ?: project.projectDir
 
     override val generatedTestsRelativeRoot: String
-        get() = extension.generatedTestsRelativeRoot.orNull
+        get() = taskParameters["generatedTestsRelativeRoot"]
+            ?: extension.generatedTestsRelativeRoot.orNull
             ?: "build/generated/test"
 
     override val sarifReportsRelativeRoot: String
-        get() = extension.sarifReportsRelativeRoot.orNull
+        get() = taskParameters["sarifReportsRelativeRoot"]
+            ?: extension.sarifReportsRelativeRoot.orNull
             ?: "build/generated/sarif"
 
+    // We don't get this field from `taskParameters` because marking the directory
+    // as a test source root is possible while the gradle project is reloading,
+    // but `taskParameters` become available only when the user runs the gradle task
+    // `generateTestsAndSarifReport` (that is, after a reloading).
     override val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
         get() = extension.markGeneratedTestsDirectoryAsTestSourcesRoot.orNull
             ?: true
 
+    override val testPrivateMethods: Boolean
+        get() = taskParameters["testPrivateMethods"]?.let { it == "true"}
+            ?: extension.testPrivateMethods.orNull
+            ?: false
+
     override val testFramework: TestFramework
-        get() = extension.testFramework
-            .map(::testFrameworkParse)
-            .getOrElse(TestFramework.defaultItem)
+        get() = (taskParameters["testFramework"] ?: extension.testFramework.orNull)
+            ?.let(::testFrameworkParse)
+            ?: TestFramework.defaultItem
 
     override val mockFramework: MockFramework
-        get() = extension.mockFramework
-            .map(::mockFrameworkParse)
-            .getOrElse(MockFramework.defaultItem)
+        get() = (taskParameters["mockFramework"] ?: extension.mockFramework.orNull)
+            ?.let(::mockFrameworkParse)
+            ?: MockFramework.defaultItem
 
     override val generationTimeout: Long
-        get() = extension.generationTimeout
-            .map(::generationTimeoutParse)
-            .getOrElse(60 * 1000L) // 60 seconds
+        get() = (taskParameters["generationTimeout"]?.toLongOrNull() ?: extension.generationTimeout.orNull)
+            ?.let(::generationTimeoutParse)
+            ?: (60 * 1000L) // 60 seconds
 
     override val codegenLanguage: CodegenLanguage
-        get() = extension.codegenLanguage
-            .map(::codegenLanguageParse)
-            .getOrElse(CodegenLanguage.defaultItem)
+        get() = (taskParameters["codegenLanguage"] ?: extension.codegenLanguage.orNull)
+            ?.let(::codegenLanguageParse)
+            ?: CodegenLanguage.defaultItem
 
     override val mockStrategy: MockStrategyApi
-        get() = extension.mockStrategy
-            .map(::mockStrategyParse)
-            .getOrElse(MockStrategyApi.defaultItem)
+        get() = (taskParameters["mockStrategy"] ?: extension.mockStrategy.orNull)
+            ?.let(::mockStrategyParse)
+            ?: MockStrategyApi.defaultItem
 
     override val staticsMocking: StaticsMocking
-        get() = extension.staticsMocking
-            .map(::staticsMockingParse)
-            .getOrElse(StaticsMocking.defaultItem)
+        get() = (taskParameters["staticsMocking"] ?: extension.staticsMocking.orNull)
+            ?.let(::staticsMockingParse)
+            ?: StaticsMocking.defaultItem
 
     override val forceStaticMocking: ForceStaticMocking
-        get() = extension.forceStaticMocking
-            .map(::forceStaticMockingParse)
-            .getOrElse(ForceStaticMocking.defaultItem)
+        get() = (taskParameters["forceStaticMocking"] ?: extension.forceStaticMocking.orNull)
+            ?.let(::forceStaticMockingParse)
+            ?: ForceStaticMocking.defaultItem
 
     override val classesToMockAlways: Set<ClassId>
         get() = classesToMockAlwaysParse(
-            extension.classesToMockAlways.getOrElse(listOf())
+            specifiedClasses = taskParameters["classesToMockAlways"]?.parseToList()
+                ?: extension.classesToMockAlways.orNull
+                ?: listOf()
         )
+
+    /**
+     * SARIF report file containing static analysis information about all [targetClasses].
+     */
+    val mergedSarifReportFileName: String?
+        get() = taskParameters["mergedSarifReportFileName"]
+
+    // internal
+
+    /**
+     * Keyword "all" is the same as "[]" for [targetClasses], but more user-friendly.
+     */
+    private fun String.transformKeywordAll(): String =
+        if (this == "all") "[]" else this
+
+    /**
+     * Example: "[A, B, C]" -> ["A", "B", "C"].
+     */
+    private fun String.parseToList() =
+        this.removePrefix("[")
+            .removeSuffix("]")
+            .split(",")
+            .map { it.trim() }
+            .filter { it != "" }
 }

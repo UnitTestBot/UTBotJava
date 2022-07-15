@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.junit.jupiter.api.Test
 
-internal class UseNetworkTest : AbstractTestCaseGeneratorTest(testClass = UseNetwork::class) {
+internal class UseNetworkTest : UtValueTestCaseChecker(testClass = UseNetwork::class) {
     @Test
     fun testReadBytes() {
         val method = UseNetwork::readBytes

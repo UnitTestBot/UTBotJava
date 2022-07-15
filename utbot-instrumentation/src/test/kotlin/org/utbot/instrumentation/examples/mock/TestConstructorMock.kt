@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.examples.mock
 
-import org.utbot.common.withRemovedFinalModifier
+import org.utbot.common.withAccessibility
 import org.utbot.instrumentation.samples.mock.ClassForMockConstructor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -11,11 +11,11 @@ import org.junit.jupiter.api.Test
 class TestConstructorMock {
     private fun checkFields(instance: Any, x: Int, s: String?) {
         val xField = instance::class.java.getDeclaredField("x")
-        xField.withRemovedFinalModifier {
+        xField.withAccessibility {
             assertEquals(x, xField.getInt(instance))
         }
         val sField = instance::class.java.getDeclaredField("s")
-        sField.withRemovedFinalModifier {
+        sField.withAccessibility {
             assertEquals(s, sField.get(instance))
         }
     }

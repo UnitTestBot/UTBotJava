@@ -18,6 +18,8 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrin
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonIntModel
+import org.utbot.framework.plugin.api.PythonStrModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.intClassId
@@ -117,9 +119,8 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     companion object {
         fun typeAsStringToClassId(typeAsString: String): ClassId? =
             when (typeAsString) {
-                "int" -> intClassId // change to long arithmetics?
-                "float" -> doubleClassId
-                "str" -> stringClassId
+                "int" -> PythonIntModel.classId
+                "str" -> PythonStrModel.classId
                 else -> null
             }
 

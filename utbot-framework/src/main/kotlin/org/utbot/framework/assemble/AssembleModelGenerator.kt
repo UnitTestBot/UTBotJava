@@ -10,30 +10,7 @@ import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
 import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.DirectFieldAccessId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.StatementId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.hasDefaultValue
-import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
@@ -183,6 +160,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)
+                    is PythonModel -> TODO("NotImplementedYet")
                 }
             } catch (e: AssembleException) {
                 utModel

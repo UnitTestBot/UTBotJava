@@ -4,38 +4,7 @@ import org.utbot.common.findField
 import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.FieldMockTarget
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockId
-import org.utbot.framework.plugin.api.MockInfo
-import org.utbot.framework.plugin.api.MockTarget
-import org.utbot.framework.plugin.api.ObjectMockTarget
-import org.utbot.framework.plugin.api.ParameterMockTarget
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtMockValue
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtValueExecution
-import org.utbot.framework.plugin.api.UtValueExecutionState
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
@@ -175,6 +144,7 @@ class ValueConstructor {
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
+            is PythonModel -> TODO("NotImplementedYet")
         }
     }
 

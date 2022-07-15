@@ -9,14 +9,13 @@ import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
-import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.intellij.plugin.generator.TestGenerator.generateTests
 import org.utbot.intellij.plugin.ui.utils.testModule
+import org.utbot.python.PyhtonTestCodeGenerator.generateTestCode
+import org.utbot.python.PyhtonTestCodeGenerator.saveToFile
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
-import java.nio.charset.StandardCharsets
 
 
 object PythonDialogProcessor {
@@ -94,7 +93,10 @@ object PythonDialogProcessor {
 
                 val x = tests.toList()
 
-//                generateTests(model, tests)
+                tests.forEach {
+                    val testCode = generateTestCode(it)
+                    saveToFile("$testSourseRoot/test_${it.method.name}.py", testCode)
+                }
             }
         })
     }

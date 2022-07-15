@@ -9,8 +9,8 @@ sealed class PythonModel {
     abstract fun render(): String
 }
 
-class PythonIntModel() : PythonModel() {
+class PythonIntModel(override val model: UtModel) : PythonModel() {
     override fun render(): String {
-        return ""
+        return model.toString()
     }
 }

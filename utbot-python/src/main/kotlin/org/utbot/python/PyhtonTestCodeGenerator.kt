@@ -11,7 +11,7 @@ object PyhtonTestCodeGenerator {
     }
 
     fun generateTestCode(method: PythonMethod, execution: UtExecution, number: Int): String {
-        val testFunctionName = "execution.testMethodName_$number"
+        val testFunctionName = "${execution.testMethodName}_$number"
         val testFunctionTitle = "def $testFunctionName():"
         val arguments = execution.stateBefore.parameters.zip(method.arguments).map { (model, argument) ->
             "${argument.name} = $model"

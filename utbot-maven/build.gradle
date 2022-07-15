@@ -98,3 +98,13 @@ jar.dependsOn generatePluginDescriptor
 inspectClassesForKotlinIC.enabled = false
 publishJarPublicationToMavenLocal.enabled = false
 publishPluginMavenPublicationToMavenLocal.enabled = true
+
+publishToMavenLocal.dependsOn([
+    project(':utbot-api').tasks.publishToMavenLocal,
+    project(':utbot-core').tasks.publishToMavenLocal,
+    project(':utbot-framework').tasks.publishToMavenLocal,
+    project(':utbot-framework-api').tasks.publishToMavenLocal,
+    project(':utbot-fuzzers').tasks.publishToMavenLocal,
+    project(':utbot-instrumentation').tasks.publishToMavenLocal,
+    project(':utbot-summary').tasks.publishToMavenLocal
+])

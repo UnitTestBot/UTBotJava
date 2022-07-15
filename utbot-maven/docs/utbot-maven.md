@@ -130,8 +130,7 @@ For example, the following configuration may be used:
 
 If you want to change the source code of the plugin or even the whole utbot-project,
 you need to do the following:
-- Publish UTBot to the local maven repository using `utbot/publishToMavenLocal` gradle task.
-- Publish `utbot-maven` to the local maven repository using `utbot-maven/other/install` gradle task.
+- Publish `utbot-maven` to the local maven repository using `utbot-maven/publishToMavenLocal` gradle task.
 - Add the plugin to your project (see the section __How to use__).
 
 ### How to configure the log level

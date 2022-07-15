@@ -95,7 +95,7 @@ object PythonDialogProcessor {
 
                 tests.forEach {
                     val testCode = generateTestCode(it)
-                    saveToFile("$testSourseRoot/test_${it.method.name}.py", testCode)
+                    saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
                 }
             }
         })

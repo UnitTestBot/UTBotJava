@@ -11,7 +11,7 @@ object PyhtonTestCodeGenerator {
     }
 
     fun generateTestCode(method: PythonMethod, execution: UtExecution, number: Int): String {
-        val testFunctionName = "test_${method.name}_$number"
+        val testFunctionName = "execution.testMethodName_$number"
         val testFunctionTitle = "def $testFunctionName():"
         val arguments = execution.stateBefore.parameters.zip(method.arguments).map { (model, argument) ->
             "${argument.name} = $model"
@@ -26,11 +26,11 @@ object PyhtonTestCodeGenerator {
                 }) +
                 listOf(")")
 
-        val rightResultName = "right_result"
-        val rightResult = "$rightResultName = ${execution.result}"
-        val assertLine = "assert $actualName == $rightResultName"
+        val correctResultName = "correct_result"
+        val correctResult = "$correctResultName = ${execution.result}"
+        val assertLine = "assert $actualName == $correctResultName"
 
-        val codeRows = arguments + functionCall + listOf(rightResult, assertLine)
+        val codeRows = arguments + functionCall + listOf(correctResult, assertLine)
         val functionRows = listOf(testFunctionTitle) + addIndent(codeRows)
         return functionRows.joinToString("\n")
     }

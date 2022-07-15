@@ -22,7 +22,10 @@ class MatrixUniqueness(executions: List<UtExecution>) {
     }
 
     /**
-     * Creates uniquness matrix. Rows are executions, columns are unique steps from all executions
+     * Creates uniqueness matrix.
+     *
+     * Rows are executions, columns are unique steps from all executions
+     *
      * Every matrix i,j is 1 or 0, as if step in execution or not.
      */
     private fun createMatrix(): List<IntArray> {
@@ -50,10 +53,10 @@ class MatrixUniqueness(executions: List<UtExecution>) {
     private fun colSums(matrix: List<IntArray>) = matrix.first().indices.map { col -> this.colSum(matrix, col) }
 
     /**
-     * Splits all steps into common, partly common and unique
+     * Splits all steps into common, partly common and unique.
      *
-     * Unique steps are steps that only occur in one execution
-     * Common steps are steps that occur in all executions
+     * Unique steps are steps that only occur in one execution.
+     * Common steps are steps that occur in all executions.
      * Partly common steps are steps that occur more than one time, but not in all executions
      */
     fun splitSteps(): SplitSteps {
@@ -75,18 +78,21 @@ class MatrixUniqueness(executions: List<UtExecution>) {
     }
 
     companion object {
-        /**
-         * Returns map: cluster identifier, List<executions>
-         *     DBSCAN - Density-Based Spatial Clustering of Applications with Noise
-         *     Finds core samples of high density and expands clusters from them
-         */
+        /** Returns map: cluster identifier, List<executions>. */
         fun dbscanClusterExecutions(
             methodExecutions: List<UtExecution>,
             minPts: Int = UtSummarySettings.MIN_EXEC_DBSCAN,
-            radius: Double = UtSummarySettings.RADIUS_DBSCAN
+            radius: Float = UtSummarySettings.RADIUS_DBSCAN
         ): Map<Int, List<UtExecution>> {
+
             val executionPaths = methodExecutions.map { it.path.asIterable() }.toTypedArray()
-            val dbscan = DBSCANTrainer(eps = 5.0f, minSamples = 1, metric = ExecutionMetric(), rangeQuery = LinearRangeQuery())
+
+            val dbscan = DBSCANTrainer(
+                eps = radius,
+                minSamples = minPts,
+                metric = ExecutionMetric(),
+                rangeQuery = LinearRangeQuery()
+            )
             val dbscanModel = dbscan.fit(executionPaths)
             val clusterLabels = dbscanModel.clusterLabels
             return methodExecutions.withIndex().groupBy({ clusterLabels[it.index] }, { it.value })

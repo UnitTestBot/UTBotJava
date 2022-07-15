@@ -3,6 +3,7 @@ package org.utbot.summary.clustering
 import org.utbot.framework.plugin.api.Step
 import org.utbot.summary.clustering.dbscan.Metric
 
+/** The existing implementation of [Metric] for the space of [Step]. */
 class ExecutionMetric : Metric<Iterable<Step>> {
     /**
      * Minimum Edit Distance
@@ -15,7 +16,7 @@ class ExecutionMetric : Metric<Iterable<Step>> {
                 val stmt1 = path1.elementAt(i)
                 val stmt2 = path2.elementAt(j)
 
-                val d1 = distances[i - 1][j] + 1 //path 1 insert ->  diff stmt from path2
+                val d1 = distances[i - 1][j] + 1 // path 1 insert ->  diff stmt from path2
                 val d2 = distances[i][j - 1] + 1 // path 2 insert -> diff stmt from path1
                 val d3 = distances[i - 1][j - 1] + distance(stmt1, stmt2) // aligned or diff
                 distances[i][j] = minOf(d1, d2, d3)

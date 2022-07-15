@@ -48,7 +48,7 @@ object UtSummarySettings {
      * DBSCAN hyperparameter
      * Sets radius of search for algorithm
      */
-    var RADIUS_DBSCAN: Double = 5.0
+    var RADIUS_DBSCAN: Float = 5.0f
 }
 
 object SummarySentenceConstants {

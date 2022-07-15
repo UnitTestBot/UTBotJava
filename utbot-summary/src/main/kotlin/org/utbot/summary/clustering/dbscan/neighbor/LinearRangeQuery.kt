@@ -2,7 +2,13 @@ package org.utbot.summary.clustering.dbscan.neighbor
 
 import org.utbot.summary.clustering.dbscan.Metric
 
-class LinearRangeQuery <K> (): RangeQuery<K> {
+/**
+ * This approach implements brute-force search with complexity O(n).
+ *
+ * @property [data] The whole dataset to search in it.
+ * @property [metric] Metric.
+ */
+class LinearRangeQuery<K> : RangeQuery<K> {
     lateinit var data: Array<K>
     lateinit var metric: Metric<K>
 

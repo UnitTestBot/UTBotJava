@@ -50,6 +50,7 @@ import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
 import java.lang.reflect.Modifier
+import java.math.BigInteger
 import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
@@ -246,6 +247,22 @@ data class UtError(
 sealed class UtModel(
     open val classId: ClassId
 )
+
+sealed class PythonModel(classId: ClassId): UtModel(classId)
+
+class PythonIntModel(val value: BigInteger): PythonModel(classId) {
+    override fun toString() = "$value"
+    companion object {
+        val classId = ClassId("py.int")
+    }
+}
+
+class PythonStrModel(val value: String): PythonModel(classId) {
+    override fun toString() = "\"\"\"" + value + "\"\"\""
+    companion object {
+        val classId = ClassId("py.str")
+    }
+}
 
 /**
  * Class representing models for values that might have an address.

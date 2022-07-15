@@ -33,18 +33,10 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        val modelProvider = ModelProvider.of(
-            ConstantsModelProvider,
-            StringConstantModelProvider,
-            CharToStringModelProvider,
-            PrimitivesModelProvider,
-            PrimitiveWrapperModelProvider
-        )
-
         // model provider with fallback?
         // attempts?
 
-        fuzz(methodUnderTestDescription, modelProvider /* with fallback? */ ).forEach { values ->
+        fuzz(methodUnderTestDescription, PythonModelProvider).forEach { values ->
             val modelList = values.map { it.model }
 
             // execute method to get function return

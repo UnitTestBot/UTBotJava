@@ -84,10 +84,10 @@ object PythonDialogProcessor {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
                 val pythonMethods = findSelectedPythonMethods(model)
-                val testSourseRoot = model.testSourceRoot!!.path
+                val testSourceRoot = model.testSourceRoot!!.path
 
                 val tests = pythonMethods.map { method ->
-                    PythonTestCaseGenerator.generate(method, testSourseRoot)
+                    PythonTestCaseGenerator.generate(method, testSourceRoot)
                 }
 
                 val x = tests.toList()

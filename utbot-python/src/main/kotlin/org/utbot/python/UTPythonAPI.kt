@@ -14,12 +14,7 @@ interface PythonMethod {
     fun getConcreteValues(): List<FuzzedConcreteValue>
 }
 
-data class PythonExecution(
-    val utExecution: UtExecution,
-    val parameters: List<PythonModel>
-)
-
 data class PythonTestCase(
     val method: PythonMethod,
-    val executions: List<PythonExecution>
+    val executions: List<UtExecution>
 )

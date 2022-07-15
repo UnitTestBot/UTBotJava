@@ -13,9 +13,7 @@ object PythonEvaluation {
 //        val context = Context.newBuilder().allowIO(true).build()
         createDirectory(testSourceRoot)
 
-        val arguments = methodArguments.joinToString(transform = { model ->
-            if (model.classId == stringClassId) "\"\"\"" + model.toString() + "\"\"\"" else model.toString()
-        })
+        val arguments = methodArguments.joinToString(transform = { it.toString() })
 
         val outputFilename = "$testSourceRoot/output_utbot_run_${method.name}.txt"
         val codeFilename = "$testSourceRoot/test_utbot_run_${method.name}.py"

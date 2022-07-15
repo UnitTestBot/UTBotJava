@@ -8,4 +8,6 @@ dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+
+    testImplementation("org.junit.jupiter:junit-jupiter:$junit5_version")
 }

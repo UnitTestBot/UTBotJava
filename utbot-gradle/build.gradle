@@ -1,3 +1,5 @@
+//file:noinspection GroovyAssignabilityCheck
+
 plugins {
     id 'java-gradle-plugin'
     id 'com.gradle.plugin-publish' version '0.18.0'
@@ -30,10 +32,6 @@ configurations.all {
     exclude group: "org.apache.logging.log4j", module: "log4j-slf4j-impl"
 }
 
-configurations {
-    customCompile.extendsFrom api // then customCompile.setCanBeResolved == true
-}
-
 /**
  * Shadow plugin unpacks the nested `utbot-instrumentation-<version>.jar`.
  * But we need it to be packed. Workaround: double-nest the jar.
@@ -48,9 +46,8 @@ task shadowBugWorkaround(type: Jar) {
 // Documentation: https://imperceptiblethoughts.com/shadow/
 shadowJar {
     manifest {
-        // 'Fat JAR' is needed in org.utbot.framework.codegen.model.util.DependencyUtilsKt.checkDependencyIsFatJar
+        // 'Fat JAR' is needed in DependencyUtilsKt.checkDependencyIsFatJar
         attributes 'JAR-Type': 'Fat JAR'
-        attributes 'Class-Path': project.configurations.customCompile.collect { it.getName() }.join(' ')
     }
     archiveClassifier.set('')
     minimize()

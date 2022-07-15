@@ -56,8 +56,17 @@ fun runTests(
 ) {
     val classpath = System.getProperty("java.class.path") + File.pathSeparator + buildDirectory
     val executionInvoke = generatedLanguage.executorInvokeCommand
+    val additionalArguments = listOf(
+        "-ea", // Enable assertions
+    )
 
-    val command = testFramework.getRunTestsCommand(executionInvoke, classpath, testsNames, buildDirectory)
+    val command = testFramework.getRunTestsCommand(
+        executionInvoke,
+        classpath,
+        testsNames,
+        buildDirectory,
+        additionalArguments
+    )
 
     logger.trace { "Command to run test: [${command.joinToString(" ")}]" }
 

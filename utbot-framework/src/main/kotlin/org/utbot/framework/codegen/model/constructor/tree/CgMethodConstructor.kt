@@ -231,8 +231,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             val fieldAccessible = field.isAccessibleFrom(testClassPackageName)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
-            val prevValue = newVar(CgClassId(field.type, isNullable = !fieldAccessible),
-                "prev${field.name.capitalize()}") {
+            val prevValue = newVar(
+                CgClassId(field.type, isNullable = !fieldAccessible),
+                "prev${field.name.capitalize()}"
+            ) {
                 if (fieldAccessible) {
                     declaringClass[field]
                 } else {
@@ -1198,7 +1200,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             it.variableName,
                             // guard initializer to reuse typecast creation logic
                             initializer = guardExpression(varType, nullLiteral()).expression,
-                            isMutable = true)
+                            isMutable = true,
+                        )
                     }
                     +tryWithMocksFinallyClosing
                 }
@@ -1253,10 +1256,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 val method = currentExecutable as MethodId
                 val containsFailureExecution = containsFailureExecution(testSet)
-                if (method.returnType != voidClassId) {
+
+                val expectedResultClassId = wrapTypeIfRequired(method.returnType)
+
+                if (expectedResultClassId != voidClassId) {
                     testArguments += CgParameterDeclaration(
-                        expectedResultVarName, resultClassId(method.returnType),
-                        isReferenceType = containsFailureExecution || !method.returnType.isPrimitive
+                        expectedResultVarName, resultClassId(expectedResultClassId),
+                        isReferenceType = containsFailureExecution || !expectedResultClassId.isPrimitive
                     )
                 }
                 if (containsFailureExecution) {

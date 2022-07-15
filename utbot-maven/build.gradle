@@ -1,17 +1,12 @@
-//noinspection GroovyAssignabilityCheck
-plugins {
-    id 'maven-publish'
-}
-
+//file:noinspection GroovyAssignabilityCheck
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-//noinspection GroovyAssignabilityCheck
 configurations {
     mavenEmbedder // it is used to run maven tasks from gradle
 }
 
 dependencies {
-    // `compile` because `api` dependencies are not included in pom.xml by `install` task
+    // TODO `compile` because `api` dependencies are not included in pom.xml by `install` task
     implementation project(':utbot-framework')
 
     implementation "org.apache.maven:maven-core:$maven_plugin_api_version"
@@ -33,61 +28,25 @@ dependencies {
     mavenEmbedder "org.apache.maven.wagon:wagon-provider-api:$maven_wagon_version"
 }
 
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
 /**
+ * TODO
  * We should run the maven task `install` to build & publish this plugin.
  * But `utbot-maven` is the Gradle module (not Maven), so we have to
  * manually generate the pom.xml file and the plugin descriptor file.
  */
 
-def buildDirectory = buildDir.canonicalPath
-def outputDirectory = compileKotlin.destinationDir.canonicalPath
-def pomFile = new File("$buildDir/pom.xml")
-def pluginDescriptorFile = new File(outputDirectory, 'META-INF/maven/plugin.xml')
-
-/**
- * Generates the pom.xml file and saves it to the [pomFile].
- */
-task generatePomFile(dependsOn: compileKotlin) {
-    outputs.file pomFile
-
-    doLast {
-        install.repositories.mavenInstaller.pom.with {
-            groupId = project.group
-            artifactId = project.name
-            version = project.version
-            packaging = 'maven-plugin'
-
-            withXml {
-                asNode().with {
-                    appendNode('build').with {
-                        appendNode('directory', buildDirectory)
-                        appendNode('outputDirectory', outputDirectory)
-                    }
-                    def repositoriesNode = appendNode('repositories')
-                    // `this.project` is the project from Gradle, but `project` is the project from Maven
-                    this.project.repositories.indexed().forEach { index, repository ->
-                        repositoriesNode.with {
-                            appendNode('repository').with {
-                                // `index` is needed for the uniqueness of the IDs
-                                appendNode('id', "${repository.name}_${index}")
-                                appendNode('url', repository.url)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        install.repositories.mavenInstaller.pom.writeTo(pomFile)
-
-        assert pomFile.file, "${pomFile.canonicalPath}: was not generated"
-        logger.info("POM is generated in ${pomFile.canonicalPath}")
-    }
-}
+def pomFile = file("./src/main/resources/pom.xml")
+def outputDirectory = project.buildDir.toPath().resolve("classes/kotlin/main")
+def pluginDescriptorFile = new File("$outputDirectory/META-INF/maven/plugin.xml")
 
 /**
  * Generates the plugin descriptor file and saves it to the [pluginDescriptorFile].
  */
-task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
+task generatePluginDescriptor(type: JavaExec, dependsOn: compileKotlin) {
     inputs.files project.compileKotlin.outputs.files
     outputs.file pluginDescriptorFile
 
@@ -110,6 +69,30 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     }
 }
 
-project.publishToMavenLocal.dependsOn(generatePluginDescriptor)
+publishing {
+    publications {
+        pluginMaven(MavenPublication) {
+            from components.java
+        }
+    }
+}
 
-// Please, use `utbot-maven/other/install` task for publishing
+/**
+ * TODO
+ */
+generatePomFileForPluginMavenPublication.doLast {
+    def neededPomXml = new XmlParser().parse(pomFile)
+    def generatedPomFile = new File("./build/publications/pluginMaven/pom-default.xml")
+    def xmlNodePrinter = new XmlNodePrinter(new PrintWriter(new FileWriter(generatedPomFile)))
+    xmlNodePrinter.with {
+        preserveWhitespace = true
+        expandEmptyElements = true
+    }
+    xmlNodePrinter.print(neededPomXml)
+}
+
+jar.dependsOn generatePluginDescriptor
+
+inspectClassesForKotlinIC.enabled = false
+publishJarPublicationToMavenLocal.enabled = false
+publishPluginMavenPublicationToMavenLocal.enabled = true

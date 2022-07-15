@@ -32,10 +32,10 @@ object PythonModelProvider: ModelProvider {
         notPythonModelProvider.generate(substitutedDescription) { index, fuzzedValue ->
             when (description.parameters[index]) {
                 PythonIntModel.classId ->
-                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Long)?.let { long ->
+                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Int)?.let { int_val ->
                         consumer.accept(
                             index,
-                            PythonIntModel(BigInteger.valueOf(long)).fuzzed()
+                            PythonIntModel(BigInteger.valueOf(int_val.toLong())).fuzzed()
                         )
                     }
                 PythonStrModel.classId ->

@@ -47,7 +47,7 @@ To run the function we need to generate code that imports and calls it and saves
 
 ## Get return value
 
-We write serialized return value in file. To serialize values of the most used built-in types we can use `json` python module. For other types we will have to do it manually.
+We write serialized return value in file. To serialize values of the most used built-in types we can use json module. For other types we will have to do it manually.
 
 ## Test generation
 

@@ -15,7 +15,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.JavaDirectoryService
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassOwner
@@ -47,7 +46,6 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.HTML_LINE_SEPARATOR
-import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.Import
@@ -56,7 +54,6 @@ import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.TestsCodeWithTestReport
-import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -70,16 +67,17 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
+import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
 import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.ui.TestsReportNotifier
+import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
@@ -167,7 +165,6 @@ object CodeGenerationController {
         SarifReportNotifier.notify(
             info = """
                 SARIF report was saved to ${toHtmlLinkTag(mergedReportFile.path)}$HTML_LINE_SEPARATOR
-                You can open it using the VS Code extension "Sarif Viewer"
             """.trimIndent()
         )
     }
@@ -394,32 +391,10 @@ object CodeGenerationController {
             "Test resources directory $testResourcesDirPath does not exist"
         }
 
-        val testReportSubDir = "utbot-tests-report"
-        val classFqn = with(testsCodeWithTestReport.testsGenerationReport.classUnderTest) {
-            qualifiedName ?: error("Could not save tests report for anonymous or local class $this")
-        }
-        val fileReportPath = classFqnToPath(classFqn)
-
-        val resultedReportedPath =
-            Paths.get(
-                testResourcesDirPath.toString(),
-                testReportSubDir,
-                fileReportPath + "TestReport" + TestsGenerationReport.EXTENSION
-            )
-
-        val parent = resultedReportedPath.parent
-        requireNotNull(parent) {
-            "Expected from parent of $resultedReportedPath to be not null but it is null"
-        }
-
-        VfsUtil.createDirectories(parent.toString())
-        resultedReportedPath.toFile().writeText(testsCodeWithTestReport.testsGenerationReport.getFileContent())
-
         processInitialWarnings(testsCodeWithTestReport, model)
 
         val notifyMessage = buildString {
-            appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString())
-            appendHtmlLine()
+            appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString(isShort = true))
             val classUnderTestPackageName =
                 testsCodeWithTestReport.testsGenerationReport.classUnderTest.classId.packageFqName.toString()
             if (classUnderTestPackageName != model.testPackageName) {
@@ -430,12 +405,19 @@ object CodeGenerationController {
                 appendHtmlLine(warningMessage)
                 appendHtmlLine()
             }
-            val savedFileMessage = """
-                Tests report was saved to ${toHtmlLinkTag(resultedReportedPath.toString())} in TSV format
+            val eventLogMessage = """
+                <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.eventLogSuffix}">See details in Event Log</a>.
             """.trimIndent()
-            appendHtmlLine(savedFileMessage)
+            appendHtmlLine(eventLogMessage)
         }
-        TestsReportNotifier.notify(notifyMessage)
+
+        if (testsCodeWithTestReport.testsGenerationReport.hasWarnings) {
+            WarningTestsReportNotifier.notify(notifyMessage)
+        } else {
+            TestsReportNotifier.notify(notifyMessage)
+        }
+
+        DetailsTestsReportNotifier.notify(testsCodeWithTestReport.testsGenerationReport.detailedStatistics)
     }
 
     private fun processInitialWarnings(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
@@ -445,8 +427,6 @@ object CodeGenerationController {
         }
 
         testsCodeWithTestReport.testsGenerationReport.apply {
-            summaryMessage = { "Unit tests for $classUnderTest were generated with warnings.<br>" }
-
             if (model.forceMockHappened) {
                 initialWarnings.add {
                     """

@@ -1,14 +1,9 @@
 package examples.inner
 
 import examples.SummaryTestCaseGeneratorTest
-import guava.examples.math.Stats
-import org.junit.Ignore
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Tag
-import org.utbot.examples.inner.InnerCalls
 import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
-import org.utbot.examples.controlflow.Cycles
+import org.utbot.examples.inner.InnerCalls
 import org.utbot.framework.plugin.api.MockStrategyApi
 
 class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
@@ -16,7 +11,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 ) {
     @Test
     fun testCallLoopInsideLoop() {
-        val summary1 = "Test calls Cycles::loopInsideLoop,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "    there it iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (i < 0): False\n" +
@@ -25,17 +20,17 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "        (j == 7): True\n" +
                 "    returns from: return 1;\n" +
                 "Test afterwards returns from: return cycles.loopInsideLoop(x);\n"
-        val summary2 = "Test calls Cycles::loopInsideLoop,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "    there it iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (i < 0): True\n" +
                 "    returns from: return 2;\n" +
                 "Test then returns from: return cycles.loopInsideLoop(x);\n"
-        val summary3 = "Test calls Cycles::loopInsideLoop,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "    there it does not iterate for(int i = x - 5; i < x; i++), for(int j = i; j < x + i; j++), returns from: return -1;\n" +
                 "    \n" +
                 "Test later returns from: return cycles.loopInsideLoop(x);\n"
-        val summary4 = "Test calls Cycles::loopInsideLoop,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "    there it iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (i < 0): False\n" +
@@ -45,7 +40,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "        (j == 7): True\n" +
                 "    returns from: return 1;\n" +
                 "Test later returns from: return cycles.loopInsideLoop(x);\n"
-        val summary5 = "Test calls Cycles::loopInsideLoop,\n" +
+        val summary5 = "Test calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "    there it iterates the loop for(int i = x - 5; i < x; i++) 5 times. \n" +
                 "    Test further does not iterate for(int j = i; j < x + i; j++), returns from: return -1;\n" +
                 "    \n" +
@@ -99,13 +94,13 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     @Test
     fun testCallLeftBinSearch() {
         //NOTE: 5 and 6 cases has different paths but throws the equal exception.
-        val summary1 = "Test calls BinarySearch::leftBinSearch,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.algorithms.BinarySearch#leftBinSearch(long[],long)},\n" +
                 "    there it does not iterate while(left < right - 1), executes conditions:\n" +
                 "        (found): False\n" +
                 "    returns from: return -1;\n" +
                 "    \n" +
                 "Test then returns from: return binarySearch.leftBinSearch(array, key);\n"
-        val summary2 = "Test calls BinarySearch::leftBinSearch,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.algorithms.BinarySearch#leftBinSearch(long[],long)},\n" +
                 "    there it iterates the loop while(left < right - 1) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (array[middle] == key): False,\n" +
@@ -115,7 +110,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return -1;\n" +
                 "    \n" +
                 "Test next returns from: return binarySearch.leftBinSearch(array, key);\n"
-        val summary3 = "Test calls BinarySearch::leftBinSearch,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.algorithms.BinarySearch#leftBinSearch(long[],long)},\n" +
                 "    there it iterates the loop while(left < right - 1) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (array[middle] == key): False,\n" +
@@ -125,7 +120,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return -1;\n" +
                 "    \n" +
                 "Test next returns from: return binarySearch.leftBinSearch(array, key);\n"
-        val summary4 = "Test calls BinarySearch::leftBinSearch,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.algorithms.BinarySearch#leftBinSearch(long[],long)},\n" +
                 "    there it iterates the loop while(left < right - 1) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (array[middle] == key): True,\n" +
@@ -139,9 +134,9 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "throws IllegalArgumentException in: return binarySearch.leftBinSearch(array, key);\n"
         val summary6 = "Test \n" +
                 "throws IllegalArgumentException in: return binarySearch.leftBinSearch(array, key);\n"
-        val summary7 = "Test calls BinarySearch::leftBinSearch,\n" +
+        val summary7 = "Test calls {@link org.utbot.examples.algorithms.BinarySearch#leftBinSearch(long[],long)},\n" +
                 "    there it invokes:\n" +
-                "        BinarySearch::isUnsorted once\n" +
+                "        {@link org.utbot.examples.algorithms.BinarySearch#isUnsorted(long[])} once\n" +
                 "    triggers recursion of leftBinSearch once, \n" +
                 "Test throws NullPointerException in: return binarySearch.leftBinSearch(array, key);\n"
 
@@ -158,7 +153,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val displayName2 = "array[middle] < key : True -> return -1"
         val displayName3 = "while(left < right - 1) -> return -1"
         val displayName4 = "array[middle] == key : True -> return right + 1"
-        val displayName5 = "return binarySearch.leftBinSearch(array, key) : True -> ThrowIllegalArgumentException" // TODO: probably return statement could be removed
+        val displayName5 =
+            "return binarySearch.leftBinSearch(array, key) : True -> ThrowIllegalArgumentException" // TODO: probably return statement could be removed
         val displayName6 = "return binarySearch.leftBinSearch(array, key) : True -> ThrowIllegalArgumentException"
         val displayName7 = "return binarySearch.leftBinSearch(array, key) : True -> ThrowNullPointerException"
 
@@ -203,19 +199,21 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     // TODO: SAT-1211
     @Test
     fun testCallCreateNewThreeDimensionalArray() {
-        val summary1 = "Test calls ArrayOfArrays::createNewThreeDimensionalArray,\n" +
-                "    there it executes conditions:\n" +
-                "        (length != 2): True\n" +
-                "    returns from: return new int[0][][];\n" +
-                "    "
-        val summary2 = "Test calls ArrayOfArrays::createNewThreeDimensionalArray,\n" +
-                "    there it executes conditions:\n" +
-                "        (length != 2): False\n" +
-                "    iterates the loop for(int i = 0; i < length; i++) once,\n" +
-                "        inside this loop, the test iterates the loop for(int j = 0; j < length; j++) once,\n" +
-                "            inside this loop, the test iterates the loop for(int k = 0; k < length; k++)\n" +
-                "    Test then returns from: return matrix;\n" +
-                "    "
+        val summary1 =
+            "Test calls {@link org.utbot.examples.arrays.ArrayOfArrays#createNewThreeDimensionalArray(int,int)},\n" +
+                    "    there it executes conditions:\n" +
+                    "        (length != 2): True\n" +
+                    "    returns from: return new int[0][][];\n" +
+                    "    "
+        val summary2 =
+            "Test calls {@link org.utbot.examples.arrays.ArrayOfArrays#createNewThreeDimensionalArray(int,int)},\n" +
+                    "    there it executes conditions:\n" +
+                    "        (length != 2): False\n" +
+                    "    iterates the loop for(int i = 0; i < length; i++) once,\n" +
+                    "        inside this loop, the test iterates the loop for(int j = 0; j < length; j++) once,\n" +
+                    "            inside this loop, the test iterates the loop for(int k = 0; k < length; k++)\n" +
+                    "    Test then returns from: return matrix;\n" +
+                    "    "
 
         val methodName1 = "testCallCreateNewThreeDimensionalArray_LengthNotEquals2"
         val methodName2 = "testCallCreateNewThreeDimensionalArray_LengthEquals2"
@@ -248,25 +246,25 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
     @Test
     fun testCallInitExamples() {
         // NOTE: paths are different for test cases 1 and 2
-        val summary1 = "Test calls ExceptionExamples::initAnArray,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.exceptions.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it catches exception:\n" +
                 "        IndexOutOfBoundsException e\n" +
                 "    returns from: return -3;\n" +
                 "    \n" +
                 "Test later returns from: return exceptionExamples.initAnArray(n);\n"
-        val summary2 = "Test calls ExceptionExamples::initAnArray,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.exceptions.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it catches exception:\n" +
                 "        IndexOutOfBoundsException e\n" +
                 "    returns from: return -3;\n" +
                 "    \n" +
                 "Test then returns from: return exceptionExamples.initAnArray(n);\n"
-        val summary3 = "Test calls ExceptionExamples::initAnArray,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.exceptions.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it catches exception:\n" +
                 "        NegativeArraySizeException e\n" +
                 "    returns from: return -2;\n" +
                 "    \n" +
                 "Test next returns from: return exceptionExamples.initAnArray(n);\n"
-        val summary4 = "Test calls ExceptionExamples::initAnArray,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.exceptions.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it returns from: return a[n - 1] + a[n - 2];\n" +
                 "    \n" +
                 "Test afterwards returns from: return exceptionExamples.initAnArray(n);\n"
@@ -311,19 +309,19 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testCallFactorial() {
-        val summary1 = "Test calls Recursion::factorial,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.recursion.Recursion#factorial(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n == 0): True\n" +
                 "    returns from: return 1;\n" +
                 "    \n" +
                 "Test next returns from: return r.factorial(n);\n"
-        val summary2 = "Test calls Recursion::factorial,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.recursion.Recursion#factorial(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n == 0): False\n" +
                 "    triggers recursion of factorial once, returns from: return n * factorial(n - 1);\n" +
                 "    \n" +
                 "Test further returns from: return r.factorial(n);\n"
-        val summary3 = "Test calls Recursion::factorial,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.recursion.Recursion#factorial(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 0): True\n" +
                 "    triggers recursion of factorial once, \n" +
@@ -364,24 +362,24 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testCallSimpleInvoke() {
-        val summary1 = "Test calls InvokeExample::simpleFormula,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.invokes.InvokeExample#simpleFormula(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (fst < 100): False,\n" +
                 "        (snd < 100): True\n" +
                 "    \n" +
                 "Test throws IllegalArgumentException in: return invokeExample.simpleFormula(f, s);\n"
-        val summary2 = "Test calls InvokeExample::simpleFormula,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.invokes.InvokeExample#simpleFormula(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (fst < 100): True\n" +
                 "    \n" +
                 "Test throws IllegalArgumentException in: return invokeExample.simpleFormula(f, s);\n"
-        val summary3 = "Test calls InvokeExample::simpleFormula,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.invokes.InvokeExample#simpleFormula(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (fst < 100): False,\n" +
                 "        (snd < 100): False\n" +
                 "    invokes:\n" +
-                "        InvokeExample::half once,\n" +
-                "        InvokeExample::mult once\n" +
+                "        {@link org.utbot.examples.invokes.InvokeExample#half(int)} once,\n" +
+                "        {@link org.utbot.examples.invokes.InvokeExample#mult(int,int)} once\n" +
                 "    returns from: return mult(x, y);\n" +
                 "    \n" +
                 "Test then returns from: return invokeExample.simpleFormula(f, s);\n"
@@ -421,36 +419,41 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testCallComplicatedMethod() {
-        val summary1 = "Test calls StringExamples::indexOf,\n" +
-                "    there it invokes:\n" +
-                "        String::indexOf once\n" +
-                "    triggers recursion of indexOf once, \n" +
-                "Test throws NullPointerException in: return stringExamples.indexOf(s, key);\n"
-        val summary2 = "Test calls StringExamples::indexOf,\n" +
-                "    there it invokes:\n" +
-                "        String::indexOf once\n" +
-                "    \n" +
-                "Test throws NullPointerException \n"
-        val summary3 = "Test calls StringExamples::indexOf,\n" +
-                "    there it executes conditions:\n" +
-                "        (i > 0): False,\n" +
-                "        (i == 0): True\n" +
-                "    returns from: return i;\n" +
-                "    \n" +
-                "Test further returns from: return stringExamples.indexOf(s, key);\n"
-        val summary4 = "Test calls StringExamples::indexOf,\n" +
-                "    there it executes conditions:\n" +
-                "        (i > 0): False,\n" +
-                "        (i == 0): False\n" +
-                "    returns from: return i;\n" +
-                "    \n" +
-                "Test later returns from: return stringExamples.indexOf(s, key);\n"
-        val summary5 = "Test calls StringExamples::indexOf,\n" +
-                "    there it executes conditions:\n" +
-                "        (i > 0): True\n" +
-                "    returns from: return i;\n" +
-                "    \n" +
-                "Test afterwards returns from: return stringExamples.indexOf(s, key);\n"
+        val summary1 =
+            "Test calls {@link org.utbot.examples.strings.StringExamples#indexOf(java.lang.String,java.lang.String)},\n" +
+                    "    there it invokes:\n" +
+                    "        {@link java.lang.String#indexOf(java.lang.String)} once\n" +
+                    "    triggers recursion of indexOf once, \n" +
+                    "Test throws NullPointerException in: return stringExamples.indexOf(s, key);\n"
+        val summary2 =
+            "Test calls {@link org.utbot.examples.strings.StringExamples#indexOf(java.lang.String,java.lang.String)},\n" +
+                    "    there it invokes:\n" +
+                    "        {@link java.lang.String#indexOf(java.lang.String)} once\n" +
+                    "    \n" +
+                    "Test throws NullPointerException \n"
+        val summary3 =
+            "Test calls {@link org.utbot.examples.strings.StringExamples#indexOf(java.lang.String,java.lang.String)},\n" +
+                    "    there it executes conditions:\n" +
+                    "        (i > 0): False,\n" +
+                    "        (i == 0): True\n" +
+                    "    returns from: return i;\n" +
+                    "    \n" +
+                    "Test further returns from: return stringExamples.indexOf(s, key);\n"
+        val summary4 =
+            "Test calls {@link org.utbot.examples.strings.StringExamples#indexOf(java.lang.String,java.lang.String)},\n" +
+                    "    there it executes conditions:\n" +
+                    "        (i > 0): False,\n" +
+                    "        (i == 0): False\n" +
+                    "    returns from: return i;\n" +
+                    "    \n" +
+                    "Test later returns from: return stringExamples.indexOf(s, key);\n"
+        val summary5 =
+            "Test calls {@link org.utbot.examples.strings.StringExamples#indexOf(java.lang.String,java.lang.String)},\n" +
+                    "    there it executes conditions:\n" +
+                    "        (i > 0): True\n" +
+                    "    returns from: return i;\n" +
+                    "    \n" +
+                    "Test afterwards returns from: return stringExamples.indexOf(s, key);\n"
 
         val methodName1 = "testCallStringExample_StringIndexOf"
         val methodName2 = "testCallStringExample_StringIndexOf_1"
@@ -497,16 +500,16 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testCallSimpleSwitch() {
-        val summary1 = "Test calls Switch::simpleSwitch,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
                 "    there it activates switch case: 12, returns from: return 12;\n" +
                 "    "
-        val summary2 = "Test calls Switch::simpleSwitch,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
                 "    there it activates switch case: 13, returns from: return 13;\n" +
                 "    "
-        val summary3 = "Test calls Switch::simpleSwitch,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
                 "    there it activates switch case: 10, returns from: return 10;\n" +
                 "    "
-        val summary4 = "Test calls Switch::simpleSwitch,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.controlflow.Switch#simpleSwitch(int)},\n" +
                 "    there it activates switch case: default, returns from: return -1;\n" +
                 "    "
 
@@ -550,16 +553,16 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testCallLookup() {
-        val summary1 = "Test calls Switch::lookupSwitch,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
                 "    there it activates switch case: 20, returns from: return 20;\n" +
                 "    "
-        val summary2 = "Test calls Switch::lookupSwitch,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
                 "    there it activates switch case: 30, returns from: return 30;\n" +
                 "    "
-        val summary3 = "Test calls Switch::lookupSwitch,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
                 "    there it activates switch case: 0, returns from: return 0;\n" +
                 "    "
-        val summary4 = "Test calls Switch::lookupSwitch,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.controlflow.Switch#lookupSwitch(int)},\n" +
                 "    there it activates switch case: default, returns from: return -1;\n" +
                 "    "
 
@@ -603,27 +606,27 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testDoubleCall() {
-        val summary1 = "Test calls InnerCalls::callSimpleInvoke,\n" +
-                "    there it calls InvokeExample::simpleFormula,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callSimpleInvoke(int,int)},\n" +
+                "    there it calls {@link org.utbot.examples.invokes.InvokeExample#simpleFormula(int,int)},\n" +
                 "        there it executes conditions:\n" +
                 "            (fst < 100): True\n" +
                 "        \n" +
                 "Test throws IllegalArgumentException in: callSimpleInvoke(f, s);\n"
-        val summary2 = "Test calls InnerCalls::callSimpleInvoke,\n" +
-                "    there it calls InvokeExample::simpleFormula,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callSimpleInvoke(int,int)},\n" +
+                "    there it calls {@link org.utbot.examples.invokes.InvokeExample#simpleFormula(int,int)},\n" +
                 "        there it executes conditions:\n" +
                 "            (fst < 100): False,\n" +
                 "            (snd < 100): True\n" +
                 "        \n" +
                 "Test throws IllegalArgumentException in: callSimpleInvoke(f, s);\n"
-        val summary3 = "Test calls InnerCalls::callSimpleInvoke,\n" +
-                "    there it calls InvokeExample::simpleFormula,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callSimpleInvoke(int,int)},\n" +
+                "    there it calls {@link org.utbot.examples.invokes.InvokeExample#simpleFormula(int,int)},\n" +
                 "        there it executes conditions:\n" +
                 "            (fst < 100): False,\n" +
                 "            (snd < 100): False\n" +
                 "        invokes:\n" +
-                "            InvokeExample::half once,\n" +
-                "            InvokeExample::mult once\n" +
+                "            {@link org.utbot.examples.invokes.InvokeExample#half(int)} once,\n" +
+                "            {@link org.utbot.examples.invokes.InvokeExample#mult(int,int)} once\n" +
                 "        returns from: return mult(x, y);\n" +
                 "        \n" +
                 "    Test later returns from: return invokeExample.simpleFormula(f, s);\n" +
@@ -664,8 +667,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testDoubleCallLoopInsideLoop() {
-        val summary1 = "Test calls InnerCalls::callLoopInsideLoop,\n" +
-                "    there it calls Cycles::loopInsideLoop,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callLoopInsideLoop(int)},\n" +
+                "    there it calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "        there it iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "            inside this loop, the test executes conditions:\n" +
                 "            (i < 0): True\n" +
@@ -673,15 +676,15 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    Test afterwards returns from: return cycles.loopInsideLoop(x);\n" +
                 "    \n" +
                 "Test further returns from: return result;\n"
-        val summary2 = "Test calls InnerCalls::callLoopInsideLoop,\n" +
-                "    there it calls Cycles::loopInsideLoop,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callLoopInsideLoop(int)},\n" +
+                "    there it calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "        there it does not iterate for(int i = x - 5; i < x; i++), for(int j = i; j < x + i; j++), returns from: return -1;\n" +
                 "        \n" +
                 "    Test next returns from: return cycles.loopInsideLoop(x);\n" +
                 "    \n" +
                 "Test later returns from: return result;\n"
-        val summary3 = "Test calls InnerCalls::callLoopInsideLoop,\n" +
-                "    there it calls Cycles::loopInsideLoop,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callLoopInsideLoop(int)},\n" +
+                "    there it calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "        there it iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "            inside this loop, the test executes conditions:\n" +
                 "            (i < 0): False\n" +
@@ -692,8 +695,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    Test next returns from: return cycles.loopInsideLoop(x);\n" +
                 "    \n" +
                 "Test further returns from: return result;\n"
-        val summary4 = "Test calls InnerCalls::callLoopInsideLoop,\n" +
-                "    there it calls Cycles::loopInsideLoop,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callLoopInsideLoop(int)},\n" +
+                "    there it calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "        there it iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "            inside this loop, the test executes conditions:\n" +
                 "            (i < 0): False\n" +
@@ -705,8 +708,8 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
                 "    Test further returns from: return cycles.loopInsideLoop(x);\n" +
                 "    \n" +
                 "Test then returns from: return result;\n"
-        val summary5 = "Test calls InnerCalls::callLoopInsideLoop,\n" +
-                "    there it calls Cycles::loopInsideLoop,\n" +
+        val summary5 = "Test calls {@link org.utbot.examples.inner.InnerCalls#callLoopInsideLoop(int)},\n" +
+                "    there it calls {@link org.utbot.examples.controlflow.Cycles#loopInsideLoop(int)},\n" +
                 "        there it iterates the loop for(int i = x - 5; i < x; i++) 5 times. \n" +
                 "        Test later does not iterate for(int j = i; j < x + i; j++), returns from: return -1;\n" +
                 "        \n" +
@@ -759,27 +762,27 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testInnerCallFib() {
-        val summary1 = "Test calls Recursion::fib,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.recursion.Recursion#fib(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n == 0): False,\n" +
                 "        (n == 1): True\n" +
                 "    returns from: return 1;\n" +
                 "    \n" +
                 "Test next returns from: return r.fib(n);\n"
-        val summary2 = "Test calls Recursion::fib,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.recursion.Recursion#fib(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n == 0): True\n" +
                 "    returns from: return 0;\n" +
                 "    \n" +
                 "Test next returns from: return r.fib(n);\n"
-        val summary3 = "Test calls Recursion::fib,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.recursion.Recursion#fib(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n == 0): False,\n" +
                 "        (n == 1): False\n" +
                 "    triggers recursion of fib twice, returns from: return fib(n - 1) + fib(n - 2);\n" +
                 "    \n" +
                 "Test next returns from: return r.fib(n);\n"
-        val summary4 = "Test calls Recursion::fib,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.recursion.Recursion#fib(int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 0): True\n" +
                 "    triggers recursion of fib once, \n" +

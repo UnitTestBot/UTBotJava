@@ -12,29 +12,29 @@ import org.utbot.framework.plugin.api.MockStrategyApi
  *
  * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/198">Related issue</a>
  */
-class SummaryOfMath : SummaryTestCaseGeneratorTest(
+class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
     Stats::class,
 ) {
     @Test
     fun testOfInts() {
-        val summary1 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary1 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(int[])},\n" +
                 "    there it triggers recursion of addAll once, \n" +
                 "Test throws NullPointerException in: acummulator.addAll(values);\n"
-        val summary2 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary2 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(int[])},\n" +
                 "    there it does not iterate for(int value: values), \n" +
-                "Test later calls StatsAccumulator::snapshot,\n" +
+                "Test later calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test then returns from: return acummulator.snapshot();"
-        val summary3 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary3 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(int[])},\n" +
                 "    there it iterates the loop for(int value: values) once. \n" +
-                "Test later calls StatsAccumulator::snapshot,\n" +
+                "Test later calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test then returns from: return acummulator.snapshot();"
-        val summary4 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary4 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(int[])},\n" +
                 "    there it iterates the loop for(int value: values) twice. \n" +
-                "Test later calls StatsAccumulator::snapshot,\n" +
+                "Test later calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test later returns from: return acummulator.snapshot();\n"
@@ -79,22 +79,22 @@ class SummaryOfMath : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testOfDoubles() {
-        val summary1 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary1 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it triggers recursion of addAll once, \n" +
                 "Test throws NullPointerException in: acummulator.addAll(values);\n"
-        val summary2 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary2 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it does not iterate for(double value: values), \n" +
-                "Test next calls StatsAccumulator::snapshot,\n" +
+                "Test next calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test later returns from: return acummulator.snapshot();\n"
-        val summary3 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary3 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
-                "        inside this loop, the test calls StatsAccumulator::add,\n" +
+                "        inside this loop, the test calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (count == 0): True\n" +
                 "            (!isFinite(value)): True\n" +
-                "        calls StatsAccumulator::add,\n" +
+                "        calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (count == 0): False\n" +
                 "            (isFinite(value) && isFinite(mean)): True\n" +
@@ -106,26 +106,26 @@ class SummaryOfMath : SummaryTestCaseGeneratorTest(
                 "    mean = calculateNewMeanNonFinite(mean, value);\n" +
                 "    sumOfSquaresOfDeltas = NaN;\n" +
                 "}): False\n" +
-                "Test afterwards calls StatsAccumulator::snapshot,\n" +
+                "Test afterwards calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test afterwards returns from: return acummulator.snapshot();\n"
-        val summary4 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary4 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
-                "        inside this loop, the test calls StatsAccumulator::add,\n" +
+                "        inside this loop, the test calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (!isFinite(value)): False\n" +
-                "Test next calls StatsAccumulator::snapshot,\n" +
+                "Test next calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test then returns from: return acummulator.snapshot();\n"
-        val summary5 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary5 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
-                "        inside this loop, the test calls StatsAccumulator::add,\n" +
+                "        inside this loop, the test calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (count == 0): True\n" +
                 "            (!isFinite(value)): False\n" +
-                "        calls StatsAccumulator::add,\n" +
+                "        calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (count == 0): False\n" +
                 "            (isFinite(value) && isFinite(mean)): True\n" +
@@ -137,25 +137,25 @@ class SummaryOfMath : SummaryTestCaseGeneratorTest(
                 "    mean = calculateNewMeanNonFinite(mean, value);\n" +
                 "    sumOfSquaresOfDeltas = NaN;\n" +
                 "}): True\n" +
-                "Test later calls StatsAccumulator::snapshot,\n" +
+                "Test later calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test then returns from: return acummulator.snapshot();\n"
-        val summary6 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary6 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
                 "        inside this loop, the test calls StatsAccumulator::add,\n" +
                 "        there it executes conditions:\n" +
                 "            (!isFinite(value)): True\n" +
-                "Test afterwards calls StatsAccumulator::snapshot,\n" +
+                "Test afterwards calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test then returns from: return acummulator.snapshot();\n"
-        val summary7 = "Test calls StatsAccumulator::addAll,\n" +
+        val summary7 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
-                "        inside this loop, the test calls StatsAccumulator::add,\n" +
+                "        inside this loop, the test calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (!isFinite(value)): True\n" +
-                "Test later calls StatsAccumulator::snapshot,\n" +
+                "Test later calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
                 "Test further returns from: return acummulator.snapshot();\n"

@@ -1,13 +1,9 @@
 package examples.inner
 
 import examples.SummaryTestCaseGeneratorTest
-import org.junit.Ignore
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Tag
-import org.utbot.examples.inner.NestedCalls
 import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
-import org.utbot.examples.inner.InnerCalls
+import org.utbot.examples.inner.NestedCalls
 import org.utbot.framework.plugin.api.MockStrategyApi
 
 class SummaryNestedCallsTest : SummaryTestCaseGeneratorTest(
@@ -15,19 +11,19 @@ class SummaryNestedCallsTest : SummaryTestCaseGeneratorTest(
 ) {
     @Test
     fun testInvokeExample() {
-        val summary1 = "Test calls NestedCalls\$ExceptionExamples::initAnArray,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.inner.NestedCalls.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it catches exception:\n" +
                 "        IndexOutOfBoundsException e\n" +
                 "    returns from: return -3;\n" +
                 "    \n" +
                 "Test next returns from: return exceptionExamples.initAnArray(n);\n"
-        val summary2 = "Test calls NestedCalls\$ExceptionExamples::initAnArray,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.inner.NestedCalls.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it catches exception:\n" +
                 "        NegativeArraySizeException e\n" +
                 "    returns from: return -2;\n" +
                 "    \n" +
                 "Test afterwards returns from: return exceptionExamples.initAnArray(n);"
-        val summary3 = "Test calls NestedCalls\$ExceptionExamples::initAnArray,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.inner.NestedCalls.ExceptionExamples#initAnArray(int)},\n" +
                 "    there it returns from: return a[n - 1] + a[n - 2];\n" +
                 "    \n" +
                 "Test next returns from: return exceptionExamples.initAnArray(n);\n"

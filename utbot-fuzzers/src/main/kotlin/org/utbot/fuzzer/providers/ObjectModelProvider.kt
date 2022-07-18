@@ -153,7 +153,7 @@ class ObjectModelProvider : ModelProvider {
 
         private fun isAccessible(member: Member, packageName: String?): Boolean {
             return isPublic(member.modifiers) ||
-                    (isPackagePrivate(member.modifiers) && member.declaringClass.`package`.name == packageName)
+                    (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
         }
 
         private fun isPackagePrivate(modifiers: Int): Boolean {

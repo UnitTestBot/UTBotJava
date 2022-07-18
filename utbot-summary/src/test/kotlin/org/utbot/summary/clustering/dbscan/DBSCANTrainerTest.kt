@@ -4,9 +4,31 @@ import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
 import org.utbot.summary.clustering.dbscan.neighbor.LinearRangeQuery
+import java.lang.IllegalArgumentException
 import kotlin.math.sqrt
 
 internal class DBSCANTrainerTest {
+    @Test
+    fun emptyData() {
+        val testData = arrayOf<Point>()
+
+        val dbscan = DBSCANTrainer(
+            eps = 0.3f,
+            minSamples = 10,
+            metric = TestEuclideanMetric(),
+            rangeQuery = LinearRangeQuery()
+        )
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            dbscan.fit(testData)
+        }
+
+        assertEquals(
+            "Nothing to learn, data is empty.",
+            exception.message
+        )
+    }
+
 
     @Test
     fun fit() {
@@ -180,7 +202,7 @@ internal class DBSCANTrainerTest {
 
 
         val dbscan = DBSCANTrainer(
-            eps = 0.5f,
+            eps = 0.3f,
             minSamples = 10,
             metric = TestEuclideanMetric(),
             rangeQuery = LinearRangeQuery()
@@ -190,10 +212,10 @@ internal class DBSCANTrainerTest {
         val clusterLabels = dbscanModel.clusterLabels
 
         assertEquals(150, clusterLabels.size)
-        assertEquals(50, clusterLabels.count { it == 1 })
-        assertEquals(50, clusterLabels.count { it == 2 })
-        assertEquals(50, clusterLabels.count { it == 3 })
-
+        assertEquals(27, clusterLabels.count { it == 0 })
+        assertEquals(35, clusterLabels.count { it == 1 })
+        assertEquals(18, clusterLabels.count { it == 2 })
+        assertEquals(70, clusterLabels.count { it == Int.MIN_VALUE })
     }
 
 

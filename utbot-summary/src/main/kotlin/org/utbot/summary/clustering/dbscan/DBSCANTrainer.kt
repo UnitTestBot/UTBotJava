@@ -4,7 +4,7 @@ import org.utbot.summary.clustering.dbscan.neighbor.LinearRangeQuery
 import org.utbot.summary.clustering.dbscan.neighbor.Neighbor
 import org.utbot.summary.clustering.dbscan.neighbor.RangeQuery
 
-private const val NOISE = -3
+private const val NOISE = Int.MIN_VALUE
 private const val CLUSTER_PART = -2
 private const val UNDEFINED = -1
 
@@ -29,46 +29,49 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
 
     /** Builds a clustering model based on the given data. */
     fun fit(data: Array<T>): DBSCANModel {
+        require(data.isNotEmpty()) { "Nothing to learn, data is empty."}
+
         if (rangeQuery is LinearRangeQuery) {
             rangeQuery.data = data
             rangeQuery.metric = metric
         } // TODO: could be refactored if we add some new variants of RangeQuery
 
-        val numberOfClusters = 0
         val labels = IntArray(data.size) { _ -> UNDEFINED }
-
         var k = 0
+
         for (i in data.indices) {
             if (labels[i] == UNDEFINED) {
-                val neigbors = rangeQuery.findNeighbors(data[i], eps).toMutableList()
-                if (neigbors.size < minSamples) {
+                val neighbors = rangeQuery.findNeighbors(data[i], eps).toMutableList()
+                if (neighbors.size < minSamples) {
                     labels[i] = NOISE
                 } else {
-                    k++
                     labels[i] = k
-                    expandCluster(neigbors, labels, k)
+                    expandCluster(neighbors, labels, k)
+                    k++
                 }
             }
         }
 
-        return DBSCANModel(k = numberOfClusters, clusterLabels = labels)
+        return DBSCANModel(k = k, clusterLabels = labels)
     }
 
     private fun expandCluster(
-        neigbors: MutableList<Neighbor<T>>,
+        neighbors: MutableList<Neighbor<T>>,
         labels: IntArray,
         k: Int
     ) {
-        neigbors.forEach {  // Neighbors to expand.
+        neighbors.forEach {  // Neighbors to expand.
             if (labels[it.index] == UNDEFINED) {
                 labels[it.index] = CLUSTER_PART // All neighbors of a cluster point became cluster points.
             }
         }
 
-        for (j in neigbors.indices) { // Process every seed point Q.
-            val q = neigbors[j]
+        // NOTE: the size of neighbors could grow from iteration to iteration and the classical for-loop in Kotlin could not be used
+        var j = 0
+        while (j < neighbors.count()) // Process every seed point Q.
+        {
+            val q = neighbors[j]
             val idx = q.index
-
 
             if (labels[idx] == NOISE) { // Change Noise to border point.
                 labels[idx] = k
@@ -77,20 +80,20 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
             if (labels[idx] == UNDEFINED || labels[idx] == CLUSTER_PART) {
                 labels[idx] = k
 
-
                 val qNeighbors = rangeQuery.findNeighbors(q.key, eps)
 
                 if (qNeighbors.size >= minSamples) { // Density check (if Q is a core point).
-                    mergeTwoGroupsInCluster(qNeighbors, labels, neigbors)
+                    mergeTwoGroupsInCluster(qNeighbors, labels, neighbors)
                 }
             }
+            j++
         }
     }
 
     private fun mergeTwoGroupsInCluster(
         qNeighbors: List<Neighbor<T>>,
         labels: IntArray,
-        neigbors: MutableList<Neighbor<T>>
+        neighbors: MutableList<Neighbor<T>>
     ) {
         for (qNeighbor in qNeighbors) {
             val label = labels[qNeighbor.index]
@@ -99,7 +102,7 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
             }
 
             if (label == UNDEFINED || label == NOISE) {
-                neigbors.add(qNeighbor)
+                neighbors.add(qNeighbor)
             }
         }
     }

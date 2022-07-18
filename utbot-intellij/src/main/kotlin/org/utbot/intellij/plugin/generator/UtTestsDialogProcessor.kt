@@ -223,6 +223,7 @@ object UtTestsDialogProcessor {
                                         "No methods for test generation were found among selected items",
                                         "No methods found")
                                 }
+                                return
                             }
 
                             indicator.fraction = indicator.fraction.coerceAtLeast(0.9)

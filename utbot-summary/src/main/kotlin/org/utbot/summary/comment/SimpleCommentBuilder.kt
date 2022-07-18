@@ -22,6 +22,7 @@ import org.utbot.summary.tag.StatementTag
 import org.utbot.summary.tag.TraceTagWithoutExecution
 import org.utbot.summary.tag.UniquenessTag
 import soot.SootMethod
+import soot.Type
 import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
 import soot.jimple.internal.JInvokeStmt
@@ -182,13 +183,15 @@ open class SimpleCommentBuilder(
         val invokeSootMethod = statementTag.invokeSootMethod()
         var invokeRegistered = false
         if (invoke != null && invokeSootMethod != null) {
-            val className = invokeSootMethod.declaringClass.javaStyleName
+            val className = invokeSootMethod.declaringClass.name
             val methodName = invokeSootMethod.name
+            val methodParameterTypes = invokeSootMethod.parameterTypes
             val sentenceInvoke = SimpleSentenceBlock(stringTemplates = sentenceBlock.stringTemplates)
             buildSentenceBlock(invoke, sentenceInvoke, invokeSootMethod)
             sentenceInvoke.squashStmtText()
             if (!sentenceInvoke.isEmpty()) {
-                sentenceBlock.invokeSentenceBlock = Pair(invokeDescription(className, methodName), sentenceInvoke)
+                sentenceBlock.invokeSentenceBlock =
+                    Pair(invokeDescription(className, methodName, methodParameterTypes), sentenceInvoke)
                 createNextBlock = true
                 invokeRegistered = true
             }
@@ -293,9 +296,10 @@ open class SimpleCommentBuilder(
      */
     protected fun addTextInvoke(sentenceBlock: SimpleSentenceBlock, stmt: Stmt, frequency: Int) {
         if (stmt is JAssignStmt || stmt is JInvokeStmt) {
-            val className = stmt.invokeExpr.methodRef.declaringClass.javaStyleName
+            val className = stmt.invokeExpr.methodRef.declaringClass.name
             val methodName = stmt.invokeExpr.method.name
-            addTextInvoke(sentenceBlock, className, methodName, frequency)
+            val methodParameterTypes = stmt.invokeExpr.method.parameterTypes
+            addTextInvoke(sentenceBlock, className, methodName, methodParameterTypes, frequency)
         }
     }
 
@@ -306,13 +310,14 @@ open class SimpleCommentBuilder(
         sentenceBlock: SimpleSentenceBlock,
         className: String,
         methodName: String,
+        methodParameterTypes: List<Type>,
         frequency: Int
     ) {
         if (!shouldSkipInvoke(methodName))
             sentenceBlock.stmtTexts.add(
                 StmtDescription(
                     StmtType.Invoke,
-                    invokeDescription(className, methodName),
+                    invokeDescription(className, methodName, methodParameterTypes),
                     frequency
                 )
             )
@@ -337,9 +342,23 @@ open class SimpleCommentBuilder(
     }
 
     /**
-     * Returns method call as styled String
+     * Returns a reference to the invoked method.
+     *
+     * It looks like {@link packageName.className#methodName(type1, type2)}.
+     *
+     * In case when an enclosing class in nested, we need to replace '$' with '.'
+     * to render the reference.
      */
-    protected fun invokeDescription(className: String, methodName: String) = "$className::$methodName" //TODO SAT-1311
+    protected fun invokeDescription(className: String, methodName: String, methodParameterTypes: List<Type>): String {
+        val prettyClassName: String = className.replace("$", ".")
+
+        return if (methodParameterTypes.isEmpty()) {
+            "{@link $prettyClassName#$methodName()}"
+        } else {
+            val methodParametersAsString = methodParameterTypes.joinToString(",")
+            "{@link $prettyClassName#$methodName($methodParametersAsString)}"
+        }
+    }
 
     protected fun buildIterationsBlock(
         iterations: List<StatementTag>,

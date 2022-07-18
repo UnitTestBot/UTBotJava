@@ -69,7 +69,7 @@ class SummaryListWrapperReturnsVoidTest : SummaryTestCaseGeneratorTest(
                 "        sum[0] += i;\n" +
                 "    }\n" +
                 "});"
-        val summary2 = "Test invokes: List::forEach once\n" +
+        val summary2 = "Test invokes: {@link java.util.List#forEach(java.util.function.Consumer)} once\n" +
                 "throws NullPointerException in: list.forEach(i -> {\n" +
                 "    if (i > 0) {\n" +
                 "        sum[0] += i;\n" +

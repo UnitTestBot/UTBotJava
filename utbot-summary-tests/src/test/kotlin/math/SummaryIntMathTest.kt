@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 
-class SummaryIntMath : SummaryTestCaseGeneratorTest(
+class SummaryIntMathTest : SummaryTestCaseGeneratorTest(
     IntMath::class,
 ) {
     @Test

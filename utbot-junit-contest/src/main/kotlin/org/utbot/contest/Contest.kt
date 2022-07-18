@@ -61,6 +61,8 @@ import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
+import org.utbot.common.filterWhen
+import org.utbot.framework.util.isKnownSyntheticMethod
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -442,12 +444,12 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
         //join
         .union(kotlin2javaCtors)
 
-    val classFilteredMethods = methodsToGenerate
+    val classFilteredMethods = methodsToGenerate.asSequence()
         .map { UtMethod(it.first, kotlinClass) }
         .filter { methodNameFilter?.equals(it.callable.name) ?: true }
-        .filterNot {
-            it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum)
-        }
+        .filterNot { it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum) }
+        .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+        .toList()
 
     return if (kotlinClass.nestedClasses.isEmpty()) {
         classFilteredMethods

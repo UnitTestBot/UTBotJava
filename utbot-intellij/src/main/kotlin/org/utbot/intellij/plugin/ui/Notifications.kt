@@ -12,7 +12,6 @@ import com.intellij.openapi.keymap.KeymapUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.StartupActivity
-import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.popup.Balloon
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.ui.GotItMessage
@@ -32,8 +31,10 @@ abstract class Notifier {
                 .notify(project)
     }
 
+    protected open val notificationDisplayType = NotificationDisplayType.BALLOON
+
     protected val notificationGroup: NotificationGroup
-        get() = NotificationGroup(displayId, NotificationDisplayType.BALLOON)
+        get() = NotificationGroup(displayId, notificationDisplayType)
 }
 
 abstract class WarningNotifier : Notifier() {
@@ -96,7 +97,15 @@ abstract class InformationUrlNotifier : UrlNotifier() {
     override val notificationType: NotificationType = NotificationType.INFORMATION
 }
 
-object SarifReportNotifier : InformationUrlNotifier() {
+abstract class WarningUrlNotifier : UrlNotifier() {
+    override val notificationType: NotificationType = NotificationType.WARNING
+}
+
+abstract class EventLogNotifier : InformationUrlNotifier() {
+    override val notificationDisplayType = NotificationDisplayType.NONE
+}
+
+object SarifReportNotifier : EventLogNotifier() {
 
     override val displayId: String = "SARIF report"
 
@@ -110,33 +119,50 @@ object SarifReportNotifier : InformationUrlNotifier() {
 object TestsReportNotifier : InformationUrlNotifier() {
     override val displayId: String = "Generated unit tests report"
 
-    override val titleText: String = "Report of the unit tests generation via UtBot"
+    override val titleText: String = "UTBot: unit tests generated successfully"
 
-    override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener()
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
 
-    override fun content(project: Project?, module: Module?, info: String): String {
-        // Remember last project and module to use them for configurations.
-        urlOpeningListener.project = project
-        urlOpeningListener.module = module
-        return info
-    }
+    override fun content(project: Project?, module: Module?, info: String): String = info
+}
+
+// TODO replace inheritance with decorators
+object WarningTestsReportNotifier : WarningUrlNotifier() {
+    override val displayId: String = "Generated unit tests report"
+
+    override val titleText: String = "UTBot: unit tests generated with warnings"
+
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
+
+    override fun content(project: Project?, module: Module?, info: String): String = info
+}
+
+object DetailsTestsReportNotifier : EventLogNotifier() {
+    override val displayId: String = "Test report details"
+
+    override val titleText: String = "Test report details of the unit tests generation via UtBot"
+
+    public override val urlOpeningListener: TestReportUrlOpeningListener = TestReportUrlOpeningListener
+
+    override fun content(project: Project?, module: Module?, info: String): String = info
 }
 
 /**
  * Listener that handles URLs starting with [prefix], like "#utbot/configure-mockito".
- *
- * Current implementation
  */
-class TestReportUrlOpeningListener: NotificationListener.Adapter() {
-    companion object {
-        const val prefix = "#utbot/"
-        const val mockitoSuffix = "configure-mockito"
-    }
-    private val defaultListener = NotificationListener.UrlOpeningListener(false)
+object TestReportUrlOpeningListener: NotificationListener.Adapter() {
+    const val prefix = "#utbot/"
+    const val mockitoSuffix = "configure-mockito"
+    const val mockitoInlineSuffix = "mockito-inline"
+    const val eventLogSuffix = "event-log"
 
-    // Last project and module to be able to use them when activated for configuration tasks.
-    var project: Project? = null
-    var module: Module? = null
+    val callbacks: Map<String, MutableList<() -> Unit>> = hashMapOf(
+        Pair(mockitoSuffix, mutableListOf()),
+        Pair(mockitoInlineSuffix, mutableListOf()),
+        Pair(eventLogSuffix, mutableListOf()),
+    )
+
+    private val defaultListener = NotificationListener.UrlOpeningListener(false)
 
     override fun hyperlinkActivated(notification: Notification, e: HyperlinkEvent) {
         val description = e.description
@@ -147,19 +173,8 @@ class TestReportUrlOpeningListener: NotificationListener.Adapter() {
         }
     }
 
-    private fun handleDescription(descriptionSuffix: String) {
-        when {
-            descriptionSuffix.startsWith(mockitoSuffix) -> {
-                project?.let { project -> module?.let { module ->
-                        if (createMockFrameworkNotificationDialog("Configure mock framework") == Messages.YES) {
-                            configureMockFramework(project, module)
-                        }
-                    } ?: error("Could not configure mock framework: module is null for project $project")
-                } ?: error("Could not configure mock framework: project is null")
-            }
-            else -> error("No such command with #utbot prefix: $descriptionSuffix")
-        }
-    }
+    private fun handleDescription(descriptionSuffix: String) =
+        callbacks[descriptionSuffix]?.map { it() } ?: error("No such command with #utbot prefix: $descriptionSuffix")
 }
 
 object GotItTooltipActivity : StartupActivity {

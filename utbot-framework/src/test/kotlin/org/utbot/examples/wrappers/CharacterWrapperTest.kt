@@ -1,6 +1,6 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation
-internal class CharacterWrapperTest : AbstractTestCaseGeneratorTest(
+internal class CharacterWrapperTest : UtValueTestCaseChecker(
     testClass = CharacterWrapper::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

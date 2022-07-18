@@ -17,11 +17,31 @@ import org.utbot.framework.plugin.api.Step
 import soot.SootMethod
 import soot.jimple.Stmt
 import java.util.Objects
+import org.utbot.engine.symbolic.Assumption
+import org.utbot.framework.plugin.api.UtExecution
 
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2
 
 data class Edge(val src: Stmt, val dst: Stmt, val decisionNum: Int)
+
+/**
+ * Possible state types. Engine matches on them and processes differently.
+ *
+ * [INTERMEDIATE] is a label for an intermediate state which is suitable for further symbolic analysis.
+ *
+ * [TERMINAL] is a label for a terminal state from which we might (or might not) execute concretely and construct
+ * [UtExecution]. This state represents the final state of the program execution, that is a throw or return from the outer
+ * method.
+ *
+ * [CONCRETE] is a label for a state which is not suitable for further symbolic analysis, and it is also not a terminal
+ * state. Such states are only suitable for a concrete execution and may result from [Assumption]s.
+ */
+enum class StateLabel {
+    INTERMEDIATE,
+    TERMINAL,
+    CONCRETE
+}
 
 /**
  * The stack element of the [ExecutionState].
@@ -112,6 +132,7 @@ data class ExecutionState(
     val lastMethod: SootMethod? = null,
     val methodResult: MethodResult? = null,
     val exception: SymbolicFailure? = null,
+    val label: StateLabel = StateLabel.INTERMEDIATE,
     private var stateAnalyticsProperties: StateAnalyticsProperties = StateAnalyticsProperties()
 ) : AutoCloseable {
     val solver: UtSolver by symbolicState::solver
@@ -141,6 +162,9 @@ data class ExecutionState(
     val isThrowException: Boolean
         get() = (lastEdge?.decisionNum ?: 0) < CALL_DECISION_NUM
 
+    val isInsideStaticInitializer
+        get() = executionStack.any { it.method.isStaticInitializer }
+
     fun createExceptionState(
         exception: SymbolicFailure,
         update: SymbolicStateUpdate
@@ -161,6 +185,7 @@ data class ExecutionState(
             lastEdge = edge,
             lastMethod = executionStack.last().method,
             exception = exception,
+            label = label,
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
@@ -187,7 +212,8 @@ data class ExecutionState(
             pathLength = pathLength + 1,
             lastEdge = edge,
             lastMethod = executionStack.last().method,
-            methodResult,
+            methodResult = methodResult,
+            label = label,
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
@@ -226,11 +252,12 @@ data class ExecutionState(
             pathLength = pathLength + 1,
             lastEdge = edge,
             lastMethod = stackElement.method,
+            label = label,
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
 
-    fun updateMemory(
+    fun update(
         stateUpdate: SymbolicStateUpdate
     ): ExecutionState {
         val last = executionStack.last()
@@ -271,6 +298,7 @@ data class ExecutionState(
             pathLength = pathLength + 1,
             lastEdge = edge,
             lastMethod = stackElement.method,
+            label = label,
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
@@ -283,6 +311,8 @@ data class ExecutionState(
     fun expectUndefined() {
         solver.expectUndefined = true
     }
+
+    fun withLabel(newLabel: StateLabel) = copy(label = newLabel)
 
     override fun close() {
         solver.close()

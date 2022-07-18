@@ -115,7 +115,7 @@ sealed class StaticsMocking(
 
 object NoStaticMocking : StaticsMocking(
     displayName = "No static mocking",
-    description = "Don't use additional settings to mock static fields"
+    description = "Do not use additional settings to mock static fields"
 )
 
 object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocking") {
@@ -223,7 +223,8 @@ sealed class TestFramework(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
+        buildDirectory: String,
+        additionalArguments: List<String>
     ): List<String>
 
     override fun toString() = displayName
@@ -298,16 +299,23 @@ object TestNg : TestFramework(displayName = "TestNG") {
         simpleName = "DataProvider"
     )
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
+        buildDirectory: String,
+        additionalArguments: List<String>
     ): List<String> {
         // TestNg requires a specific xml to run with
         writeXmlFileForTestSuite(buildDirectory, classesNames)
 
-        return listOf(executionInvoke, "$mainPackage.TestNG", "$buildDirectory${File.separator}$testXmlName")
+        return buildList {
+            add(executionInvoke)
+            addAll(additionalArguments)
+            add("$mainPackage.TestNG")
+            add("$buildDirectory${File.separator}$testXmlName")
+        }
     }
 
     private fun writeXmlFileForTestSuite(buildDirectory: String, testsNames: List<String>) {
@@ -375,12 +383,19 @@ object Junit4 : TestFramework("JUnit4") {
         )
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
-    ): List<String> = listOf(executionInvoke, "$mainPackage.runner.JUnitCore") + classesNames
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add("$mainPackage.runner.JUnitCore")
+        addAll(classesNames)
+    }
 }
 
 object Junit5 : TestFramework("JUnit5") {
@@ -464,16 +479,20 @@ object Junit5 : TestFramework("JUnit5") {
     private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
     private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
-    ): List<String> =
-        listOf(
-            executionInvoke,
-            "-jar", classPath.split(File.pathSeparator).single { platformJarName in it },
-        ) + isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" }))
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add("-jar")
+        add(classPath.split(File.pathSeparator).single { platformJarName in it })
+        add(isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" })))
+    }
 }
 
 enum class RuntimeExceptionTestsBehaviour(
@@ -551,7 +570,7 @@ enum class ParametrizedTestSource(
 ) : CodeGenerationSettingItem {
     DO_NOT_PARAMETRIZE(
         displayName = "Not parametrized",
-        description = "Don't generate parametrized tests"
+        description = "Do not generate parametrized tests"
     ),
     PARAMETRIZE(
         displayName = "Parametrized",

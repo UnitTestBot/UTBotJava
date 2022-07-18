@@ -243,7 +243,7 @@ data class UtArraySelectExpression(val arrayExpression: UtExpression, val index:
 }
 
 /**
- * Uses in [org.utbot.engine.UtBotSymbolicEngine.classCastExceptionCheck].
+ * Uses in [org.utbot.engine.Traverser.classCastExceptionCheck].
  * Returns the most nested index in the [UtArraySelectExpression].
  *
  * I.e. for (select a i) it returns i, for (select (select (select a i) j) k) it still returns i

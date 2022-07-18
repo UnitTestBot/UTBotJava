@@ -12,19 +12,20 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
-import java.util.function.BiConsumer
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 
 /**
  * Provides default values for primitive types.
  */
 object PrimitiveDefaultsModelProvider : ModelProvider {
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap.forEach { (classId, parameterIndices) ->
             valueOf(classId)?.let { model ->
                 parameterIndices.forEach { index ->
-                    consumer.accept(index, model)
+                    yieldValue(index, model)
                 }
             }
         }

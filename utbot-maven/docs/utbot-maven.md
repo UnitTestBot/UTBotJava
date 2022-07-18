@@ -40,11 +40,12 @@ For example, the following configuration may be used:
     <generatedTestsRelativeRoot>target/generated/test</generatedTestsRelativeRoot>
     <sarifReportsRelativeRoot>target/generated/sarif</sarifReportsRelativeRoot>
     <markGeneratedTestsDirectoryAsTestSourcesRoot>true</markGeneratedTestsDirectoryAsTestSourcesRoot>
+    <testPrivateMethods>false</testPrivateMethods>
     <testFramework>junit5</testFramework>
     <mockFramework>mockito</mockFramework>
     <generationTimeout>60000L</generationTimeout>
     <codegenLanguage>java</codegenLanguage>
-    <mockStrategy>package-based</mockStrategy>
+    <mockStrategy>other-packages</mockStrategy>
     <staticsMocking>mock-statics</staticsMocking>
     <forceStaticMocking>force</forceStaticMocking>
     <classesToMockAlways>
@@ -79,6 +80,10 @@ For example, the following configuration may be used:
     - Mark the directory with generated tests as `test sources root` or not.
     - By default, `true` is used.
 
+- `testPrivateMethods`&ndash;
+    - Generate tests for private methods or not.
+    - By default, `false` is used.
+
 - `testFramework` &ndash;
     - The name of the test framework to be used.
     - Can be one of:
@@ -104,9 +109,9 @@ For example, the following configuration may be used:
 - `mockStrategy` &ndash;
     - The mock strategy to be used.
     - Can be one of:
-        - `'do-not-mock'` &ndash; do not use mock frameworks at all
-        - `'package-based'` &ndash; mock all classes outside the current package except system ones _(by default)_
-        - `'all-except-cut'` &ndash; mock all classes outside the class under test except system ones
+        - `'no-mocks'` &ndash; do not use mock frameworks at all
+        - `'other-packages'` &ndash; mock all classes outside the current package except system ones _(by default)_
+        - `'other-classes'` &ndash; mock all classes outside the class under test except system ones
 
 - `staticsMocking` &ndash;
     - Use static methods mocking or not.

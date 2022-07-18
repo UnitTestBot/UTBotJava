@@ -25,7 +25,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.graph
+import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.constructorId
@@ -49,7 +49,7 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
      *
      * @see invoke
      */
-    protected abstract fun UtBotSymbolicEngine.overrideInvoke(
+    protected abstract fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -64,11 +64,11 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
      *
      * Multiple GraphResults are returned because, we shouldn't substitute invocation of specified
      * that was called inside substituted method of object with the same address as specified [wrapper].
-     * (For example UtArrayList.<init> invokes AbstractList.<init> that also leads to UtBotSymbolicEngine.invoke,
+     * (For example UtArrayList.<init> invokes AbstractList.<init> that also leads to [Traverser.invoke],
      * and shouldn't be substituted with UtArrayList.<init> again). Only one GraphResult is valid, that is
      * guaranteed by contradictory to each other sets of constraints, added to them.
      */
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -82,12 +82,24 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
             return listOf(GraphResult(method.jimpleBody().graph()))
         }
 
-        val overriddenMethod = overriddenClass.findMethodOrNull(method.subSignature)
+        // We need to find either an override from the class (for example, implementation
+        // of the method from the wrapper) or a method from its ancestors.
+        // Note that the method from the ancestor might have substitutions as well.
+        // I.e., it is `toString` method for `UtArrayList` that is defined in
+        // `AbstractCollection` and has its own overridden implementation.
+        val overriddenMethod = overriddenClass
+            .findMethodOrNull(method.subSignature)
+            ?.let { typeRegistry.findSubstitutionOrNull(it) ?: it }
 
-        val jimpleBody = overriddenMethod?.jimpleBody() ?: method.jimpleBody()
-        val graphResult = GraphResult(jimpleBody.graph())
-
-        return listOf(graphResult)
+        return if (overriddenMethod == null) {
+            // No overridden method has been found, switch to concrete execution
+            pathLogger.warn("Method ${overriddenClass.name}::${method.subSignature} not found, executing concretely")
+            emptyList()
+        } else {
+            val jimpleBody = overriddenMethod.jimpleBody()
+            val graphResult = GraphResult(jimpleBody.graph())
+            listOf(graphResult)
+        }
     }
 }
 
@@ -149,7 +161,7 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
 }
 
 abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: String) : BaseContainerWrapper(containerClassName) {
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -270,7 +282,7 @@ class SetWrapper : BaseGenericStorageBasedContainerWrapper(UtHashSet::class.qual
  * entries, then real behavior of generated test can differ from expected and undefined.
  */
 class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -405,14 +417,14 @@ val HASH_MAP_TYPE: RefType
 val STREAM_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.stream.Stream::class.java.canonicalName).type
 
-internal fun UtBotSymbolicEngine.getArrayField(
+internal fun Traverser.getArrayField(
     addr: UtAddrExpression,
     wrapperClass: SootClass,
     field: SootField
 ): ArrayValue =
     createFieldOrMock(wrapperClass.type, addr, field, mockInfoGenerator = null) as ArrayValue
 
-internal fun UtBotSymbolicEngine.getIntFieldValue(wrapper: ObjectValue, field: SootField): UtExpression {
+internal fun Traverser.getIntFieldValue(wrapper: ObjectValue, field: SootField): UtExpression {
     val chunkId = hierarchy.chunkIdForField(field.declaringClass.type, field)
     val descriptor = MemoryChunkDescriptor(chunkId, field.declaringClass.type, IntType.v())
     val array = memory.findArray(descriptor, MemoryState.CURRENT)

@@ -151,6 +151,8 @@ interface CgStatementConstructor {
     fun declareVariable(type: ClassId, name: String): CgVariable
 
     fun guardExpression(baseType: ClassId, expression: CgExpression): ExpressionWithType
+
+    fun wrapTypeIfRequired(baseType: ClassId): ClassId
 }
 
 internal class CgStatementConstructorImpl(context: CgContext) :
@@ -385,6 +387,9 @@ internal class CgStatementConstructorImpl(context: CgContext) :
             updateVariableScope(it)
         }
 
+    override fun wrapTypeIfRequired(baseType: ClassId): ClassId =
+        if (baseType.isAccessibleFrom(testClassPackageName)) baseType else objectClassId
+
     // utils
 
     private fun classRefOrNull(type: ClassId, expr: CgExpression): ClassId? {
@@ -444,11 +449,8 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         if (call.executableId != mockMethodId) return guardExpression(baseType, call)
 
         // call represents a call to mock() method
-        return if (baseType.isAccessibleFrom(testClassPackageName)) {
-            ExpressionWithType(baseType, call)
-        } else {
-            ExpressionWithType(objectClassId, call)
-        }
+        val wrappedType = wrapTypeIfRequired(baseType)
+        return ExpressionWithType(wrappedType, call)
     }
 
     override fun guardExpression(baseType: ClassId, expression: CgExpression): ExpressionWithType {

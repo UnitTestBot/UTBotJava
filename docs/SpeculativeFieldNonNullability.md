@@ -17,14 +17,15 @@ most of generated branches would be `NPE` branches, while useful paths could be 
 
 Beyond that, in many cases the `null` value of a field can't be generated using the public API
 of the class. This is particularly true for final fields, especially in system classes.
-Automatically generated tests assign `null` values to fields in questions using reflection,
+it is also often true for non-public fields from standard library and third-party libraries (even setters often do not
+allow `null` values). Automatically generated tests assign `null` values to fields using reflection,
 but these tests may be uninformative as the corresponding `NPE` branches would never occur
 in the real code that limits itself to the public API.
 
 ## The solution
 
 To discard irrelevant `NPE` branches, we can speculatively mark fields we as non-nullable even they
-do not have an explicit `@NotNull` annotation. In particular, we can use this approach to final
+do not have an explicit `@NotNull` annotation. In particular, we can use this approach to final and non-public
 fields of system classes, as they are usually correctly initialized and are not equal `null`.
 
 At the same time, we can't always add the "not null" hard constraint for the field: it would break
@@ -38,18 +39,18 @@ no way to check whether the address corresponds to a final field, as the corresp
 of the global graph would refer to a local variable. The only place where we have the complete
 information about the field is this method.
 
-We use the following approach. If the field is final and belongs to a system class,
-we mark it as a speculatively non-nullable in the memory
+We use the following approach. If the field belongs to a library class (according to `soot.SootClass.isLibraryClass`) 
+and is final or non-public, we mark it as a speculatively non-nullable in the memory
 (see `org.utbot.engine.Memory.speculativelyNotNullAddresses`). During the NPE check
 we will add the `!isSpeculativelyNotNull(addr(field))` constraint
 to the `NPE` branch together with the usual `addr(field) == null` constraint.
 
-For final fields, these two conditions can't be satisfied at the same time, as we speculatively
-mark final fields as non-nullable. As a result, the NPE branch would be discarded. If a field
-is not final, the condition is satisfiable, so the NPE branch would stay alive.
+For final/non-public fields, these two conditions can't be satisfied at the same time, as we speculatively
+mark such fields as non-nullable. As a result, the NPE branch would be discarded. If a field
+is public or not final, the condition is satisfiable, so the NPE branch would stay alive.
 
-We limit this approach to the system classes only, because it is hard to speculatively assume
-something about non-nullability of final fields in the user code.
+We limit this approach to the library classes only, because it is hard to speculatively assume
+something about non-nullability of final/non-public fields in the user code.
 
 The same approach can be extended for other cases where we want to speculatively consider some
 fields as non-nullable to prevent `NPE` branch generation.

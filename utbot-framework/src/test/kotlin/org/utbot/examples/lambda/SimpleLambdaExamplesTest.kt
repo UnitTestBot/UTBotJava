@@ -2,11 +2,11 @@ package org.utbot.examples.lambda
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 
-class SimpleLambdaExamplesTest : AbstractTestCaseGeneratorTest(testClass = SimpleLambdaExamples::class) {
+class SimpleLambdaExamplesTest : UtValueTestCaseChecker(testClass = SimpleLambdaExamples::class) {
     @Test
     fun testBiFunctionLambdaExample() {
         checkWithException(

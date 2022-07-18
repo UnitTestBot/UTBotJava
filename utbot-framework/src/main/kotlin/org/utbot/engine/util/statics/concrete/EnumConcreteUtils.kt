@@ -20,7 +20,7 @@ import soot.jimple.StaticFieldRef
 import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
 
-fun UtBotSymbolicEngine.makeSymbolicValuesFromEnumConcreteValues(
+fun Traverser.makeSymbolicValuesFromEnumConcreteValues(
     type: Type,
     enumConstantRuntimeValues: List<Enum<*>>
 ): Pair<List<ObjectValue>, Map<String, MethodResult>> {
@@ -62,7 +62,7 @@ fun associateEnumSootFieldsWithConcreteValues(
 /**
  * Construct symbolic updates for enum static fields and a symbolic value for a local in the left part of the assignment.
  */
-fun UtBotSymbolicEngine.makeEnumStaticFieldsUpdates(
+fun Traverser.makeEnumStaticFieldsUpdates(
     staticFields: List<Pair<SootField, List<Any>>>,
     declaringClass: SootClass,
     enumConstantSymbolicResultsByName: Map<String, MethodResult>,
@@ -109,7 +109,7 @@ fun UtBotSymbolicEngine.makeEnumStaticFieldsUpdates(
     return staticFieldsUpdates to symbolicValueForLocal
 }
 
-fun UtBotSymbolicEngine.makeEnumNonStaticFieldsUpdates(
+fun Traverser.makeEnumNonStaticFieldsUpdates(
     enumConstantSymbolicValues: List<ObjectValue>,
     nonStaticFields: List<Pair<SootField, List<Any>>>
 ): SymbolicStateUpdate {

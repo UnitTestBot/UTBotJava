@@ -3,15 +3,16 @@ package org.utbot.fuzzer.providers
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
-import java.util.function.BiConsumer
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 
 /**
  * Produces bound values for primitive types.
  */
 object PrimitivesModelProvider : ModelProvider {
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap.forEach { (classId, parameterIndices) ->
             val primitives: List<FuzzedValue> = when (classId) {
                 booleanClassId -> listOf(
@@ -81,7 +82,7 @@ object PrimitivesModelProvider : ModelProvider {
 
             primitives.forEach { model ->
                 parameterIndices.forEach { index ->
-                    consumer.accept(index, model)
+                    yieldValue(index, model)
                 }
             }
         }

@@ -1,11 +1,11 @@
 package org.utbot.examples.annotations
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class NotNullAnnotationTest : AbstractTestCaseGeneratorTest(testClass = NotNullAnnotation::class) {
+internal class NotNullAnnotationTest : UtValueTestCaseChecker(testClass = NotNullAnnotation::class) {
     @Test
     fun testDoesNotThrowNPE() {
         check(

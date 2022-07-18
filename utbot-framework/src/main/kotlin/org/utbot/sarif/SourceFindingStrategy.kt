@@ -4,6 +4,7 @@ import org.utbot.common.PathUtil
 import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
+import java.io.File
 
 /**
  * Defines the search strategy for the source files. Used when creating a SARIF report.
@@ -20,6 +21,11 @@ abstract class SourceFindingStrategy {
      * Returns a path to the source file by given [classFqn].
      */
     abstract fun getSourceRelativePath(classFqn: String, extension: String? = null): String
+
+    /**
+     * Returns the source file by given [classFqn].
+     */
+    abstract fun getSourceFile(classFqn: String, extension: String? = null): File?
 }
 
 /**
@@ -41,19 +47,29 @@ class SourceFindingStrategyDefault(
 ) : SourceFindingStrategy() {
 
     /**
-     * Tries to construct the relative path to tests (against `projectRootPath`) using the `testsFilePath`
+     * Tries to construct the relative path to tests (against `projectRootPath`) using the `testsFilePath`.
      */
     override val testsRelativePath =
         PathUtil.safeRelativize(projectRootPath, testsFilePath) ?: testsFilePath.toPath().fileName.toString()
 
     /**
-     * Tries to guess the relative path (against `projectRootPath`) to the source file containing the class [classFqn]
+     * Tries to guess the relative path (against `projectRootPath`) to the source file containing the class [classFqn].
      */
     override fun getSourceRelativePath(classFqn: String, extension: String?): String {
         val fileExtension = extension ?: sourceExtension
         val absolutePath = resolveClassFqn(sourceFilesDirectory, classFqn, fileExtension)
         val relativePath = PathUtil.safeRelativize(projectRootPath, absolutePath)
         return relativePath ?: (classFqnToPath(classFqn) + fileExtension)
+    }
+
+    /**
+     * Tries to find the source file containing the class [classFqn].
+     * Returns null if the file does not exist.
+     */
+    override fun getSourceFile(classFqn: String, extension: String?): File? {
+        val fileExtension = extension ?: sourceExtension
+        val absolutePath = resolveClassFqn(sourceFilesDirectory, classFqn, fileExtension)
+        return absolutePath?.let(::File)
     }
 
     // internal
@@ -64,8 +80,9 @@ class SourceFindingStrategyDefault(
         PathUtil.removeClassFqnFromPath(sourceFilePath, sourceClassFqn)
 
     /**
-     * Resolves [classFqn] against [absolutePath] and checks if a resolved path exists
-     * Example: resolveClassFqn("C:/project/src/", "com.Main") = "C:/project/src/com/Main.java"
+     * Resolves [classFqn] against [absolutePath] and checks if a resolved path exists.
+     *
+     * Example: resolveClassFqn("C:/project/src/", "com.Main") = "C:/project/src/com/Main.java".
      */
     private fun resolveClassFqn(absolutePath: String?, classFqn: String, extension: String = ".java"): String? {
         if (absolutePath == null)

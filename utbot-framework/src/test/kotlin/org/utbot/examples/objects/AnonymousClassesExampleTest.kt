@@ -1,12 +1,12 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import org.junit.jupiter.api.Test
 
-class AnonymousClassesExampleTest : AbstractTestCaseGeneratorTest(testClass = AnonymousClassesExample::class) {
+class AnonymousClassesExampleTest : UtValueTestCaseChecker(testClass = AnonymousClassesExample::class) {
     @Test
     fun testAnonymousClassAsParam() {
         checkWithException(

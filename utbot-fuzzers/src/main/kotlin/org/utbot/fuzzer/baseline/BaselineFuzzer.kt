@@ -4,14 +4,14 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtValueExecution
-import org.utbot.framework.plugin.api.UtValueTestCase
+import org.utbot.framework.plugin.api.UtMethodValueTestSet
 import org.utbot.fuzzer.ObsoleteTestCaseGenerator
 import org.utbot.fuzzer.baseline.generator.Generator
 import kotlin.Result.Companion.failure
 import kotlin.Result.Companion.success
 
 object BaselineFuzzer : ObsoleteTestCaseGenerator {
-    override fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtValueTestCase<*> =
+    override fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtMethodValueTestSet<*> =
             Generator.generateTests(method)
 }
 

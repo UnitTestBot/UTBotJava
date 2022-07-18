@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.examples.mock
 
-import org.utbot.common.withRemovedFinalModifier
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
@@ -58,7 +58,7 @@ class MockHelper(
         val isMockField = instrumentedClazz.getDeclaredField(MockConfig.IS_MOCK_FIELD + methodId)
         MockGetter.updateMocks(instance, method, mockedValues)
 
-        return isMockField.withRemovedFinalModifier {
+        return isMockField.withAccessibility {
             isMockField.set(instance, true)
             val res = block(instance)
             isMockField.set(instance, false)

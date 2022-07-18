@@ -37,7 +37,7 @@ import soot.SootMethod
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
 class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -203,10 +203,10 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         }
     }
 
-    private fun UtBotSymbolicEngine.getStorageArrayField(addr: UtAddrExpression) =
+    private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, rangeModifiableArrayClass, storageField)
 
-    private fun UtBotSymbolicEngine.getStorageArrayExpression(
+    private fun Traverser.getStorageArrayExpression(
         wrapper: ObjectValue
     ): UtExpression = selectArrayExpressionFromMemory(getStorageArrayField(wrapper.addr))
 
@@ -285,7 +285,7 @@ class AssociativeArrayWrapper : WrapperInterface {
     private val storageField = associativeArrayClass.getField("java.lang.Object[] storage")
 
 
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -414,16 +414,16 @@ class AssociativeArrayWrapper : WrapperInterface {
         return model
     }
 
-    private fun UtBotSymbolicEngine.getStorageArrayField(addr: UtAddrExpression) =
+    private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, storageField)
 
-    private fun UtBotSymbolicEngine.getTouchedArrayField(addr: UtAddrExpression) =
+    private fun Traverser.getTouchedArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, touchedField)
 
-    private fun UtBotSymbolicEngine.getTouchedArrayExpression(wrapper: ObjectValue): UtExpression =
+    private fun Traverser.getTouchedArrayExpression(wrapper: ObjectValue): UtExpression =
         selectArrayExpressionFromMemory(getTouchedArrayField(wrapper.addr))
 
-    private fun UtBotSymbolicEngine.getStorageArrayExpression(
+    private fun Traverser.getStorageArrayExpression(
         wrapper: ObjectValue
     ): UtExpression = selectArrayExpressionFromMemory(getStorageArrayField(wrapper.addr))
 }

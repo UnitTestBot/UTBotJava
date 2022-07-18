@@ -1,10 +1,9 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.AtLeast
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
-import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.isException
@@ -14,7 +13,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-class MapValuesTest : AbstractTestCaseGeneratorTest(
+class MapValuesTest : UtValueTestCaseChecker(
     testClass = MapValues::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

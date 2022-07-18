@@ -1,13 +1,13 @@
 package org.utbot.examples.codegen
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.mock.MockRandomExamples
 import org.utbot.examples.withoutConcrete
 import kotlin.reflect.full.functions
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class CodegenExampleTest : AbstractTestCaseGeneratorTest(testClass = CodegenExample::class) {
+internal class CodegenExampleTest : UtValueTestCaseChecker(testClass = CodegenExample::class) {
     @Test
     fun firstExampleTest() {
         withoutConcrete {

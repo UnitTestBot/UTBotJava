@@ -204,7 +204,7 @@ interface WrapperInterface {
     /**
      * Returns list of invocation results
      */
-    operator fun UtBotSymbolicEngine.invoke(
+    operator fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -215,7 +215,7 @@ interface WrapperInterface {
 
 // TODO: perhaps we have to have wrapper around concrete value here
 data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
-    override fun UtBotSymbolicEngine.invoke(wrapper: ObjectValue, method: SootMethod, parameters: List<SymbolicValue>) =
+    override fun Traverser.invoke(wrapper: ObjectValue, method: SootMethod, parameters: List<SymbolicValue>) =
         workaround(MAKE_SYMBOLIC) {
             listOf(
                 MethodResult(

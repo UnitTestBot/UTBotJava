@@ -99,19 +99,19 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
 
             initializeEngine(workingDirectory)
 
-            // utContext is used in `generateTestCases`, `generateTest`, `generateReport`
+            // utContext is used in `generate`, `generateTest`, `generateReport`
             withUtContext(UtContext(classLoader)) {
 
                 val testClassName = "${classUnderTest.simpleName}Test"
 
-                val testCases = generateTestCases(
+                val testSets = generateTestSets(
                     targetMethods,
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
                         .mapTo(mutableSetOf()) { ClassId(it) }
                 )
 
-                val testClassBody = generateTest(classUnderTest, testClassName, testCases)
+                val testClassBody = generateTest(classUnderTest, testClassName, testSets)
 
                 val outputArgAsFile = File(output ?: "")
                 if (!outputArgAsFile.exists()) {

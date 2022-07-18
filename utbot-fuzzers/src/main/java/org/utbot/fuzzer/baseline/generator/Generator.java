@@ -2,7 +2,7 @@ package org.utbot.fuzzer.baseline.generator;
 
 import org.utbot.framework.plugin.api.UtMethod;
 import org.utbot.framework.plugin.api.UtValueExecution;
-import org.utbot.framework.plugin.api.UtValueTestCase;
+import org.utbot.framework.plugin.api.UtMethodValueTestSet;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -38,11 +38,11 @@ public class Generator {
         return utJavaMethod.equals(method);
     }
 
-    public static UtValueTestCase<?> generateTests(UtMethod<?> method) throws IllegalAccessException, InstantiationException {
+    public static UtMethodValueTestSet<?> generateTests(UtMethod<?> method) throws IllegalAccessException, InstantiationException {
         KClass<?> kClass = method.getClazz();
         Class<?> clazz = JvmClassMappingKt.getJavaClass(kClass);
         // TODO: newInstance() is deprecated, need to create an instance in another way
         Object object = clazz.newInstance();
-        return new UtValueTestCase<>(method, executions(method, clazz, object), null, emptyMap());
+        return new UtMethodValueTestSet<>(method, executions(method, clazz, object), emptyMap());
     }
 }

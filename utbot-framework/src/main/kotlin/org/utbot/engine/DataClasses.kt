@@ -184,7 +184,7 @@ data class OverrideResult(
  * there is only one usage of it: to support instanceof for arrays we have to update them in the memory.
  *
  * @see UtInstanceOfExpression
- * @see UtBotSymbolicEngine.resolveIfCondition
+ * @see Traverser.resolveIfCondition
  */
 data class ResolvedCondition(
     val condition: UtBoolExpression,

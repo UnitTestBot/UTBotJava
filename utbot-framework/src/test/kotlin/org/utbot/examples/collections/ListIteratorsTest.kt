@@ -1,6 +1,6 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.ignoreExecutionsNumber
@@ -10,7 +10,7 @@ import kotlin.math.min
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation (generics) SAT-1332
-internal class ListIteratorsTest : AbstractTestCaseGeneratorTest(
+internal class ListIteratorsTest : UtValueTestCaseChecker(
     testClass = ListIterators::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

@@ -90,7 +90,8 @@ class SourceSetWrapper(
             classUnderTest,
             sourceCodeFile,
             createTestsCodeFile(classFqn),
-            createSarifReportFile(classFqn)
+            createSarifReportFile(classFqn),
+            parentProject.sarifProperties.testPrivateMethods
         )
     }
 

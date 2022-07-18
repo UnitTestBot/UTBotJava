@@ -15,15 +15,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.makeSymbolic;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.doesntThrow;
-import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 
 /**
- * Class represents hybrid implementation (java + engine instructions) of Map interface for UtBotSymbolicEngine.
+ * Class represents hybrid implementation (java + engine instructions) of Map interface for {@link org.utbot.engine.Traverser}.
  * <p>
  * Implementation is based on using org.utbot.engine.overrides.collections.RangeModifiableArray as keySet
  * and org.utbot.engine.overrides.collections.UtArray as associative array from keys to values.
@@ -556,8 +556,7 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
     // TODO rewrite it JIRA:1604
     @Override
     public String toString() {
-        executeConcretely();
-        return super.toString();
+        return makeSymbolic();
     }
 
     public final class Entry implements Map.Entry<K, V> {

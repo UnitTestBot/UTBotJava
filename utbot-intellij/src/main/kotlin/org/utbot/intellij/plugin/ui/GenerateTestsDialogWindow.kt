@@ -2,6 +2,79 @@
 
 package org.utbot.intellij.plugin.ui
 
+import com.intellij.codeInsight.hint.HintUtil
+import com.intellij.icons.AllIcons
+import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
+import com.intellij.openapi.application.runWriteAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
+import com.intellij.openapi.editor.colors.EditorColorsManager
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.options.ShowSettingsUtil
+import com.intellij.openapi.projectRoots.JavaSdkVersion
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.DependencyScope
+import com.intellij.openapi.roots.ExternalLibraryDescriptor
+import com.intellij.openapi.roots.JavaProjectModelModificationService
+import com.intellij.openapi.roots.LibraryOrderEntry
+import com.intellij.openapi.roots.ModifiableRootModel
+import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.ModuleRootModificationUtil
+import com.intellij.openapi.roots.ModuleSourceOrderEntry
+import com.intellij.openapi.roots.ui.configuration.ClasspathEditor
+import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.DialogPanel
+import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
+import com.intellij.openapi.ui.popup.IconButton
+import com.intellij.openapi.util.Computable
+import com.intellij.openapi.vfs.StandardFileSystems
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
+import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiManager
+import com.intellij.psi.PsiMethod
+import com.intellij.refactoring.PackageWrapper
+import com.intellij.refactoring.ui.MemberSelectionTable
+import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
+import com.intellij.refactoring.util.RefactoringUtil
+import com.intellij.refactoring.util.classMembers.MemberInfo
+import com.intellij.testIntegration.TestIntegrationUtils
+import com.intellij.ui.ColoredListCellRenderer
+import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.HyperlinkLabel
+import com.intellij.ui.IdeBorderFactory.createBorder
+import com.intellij.ui.InplaceButton
+import com.intellij.ui.JBColor
+import com.intellij.ui.JBIntSpinner
+import com.intellij.ui.SideBorder
+import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.components.CheckBox
+import com.intellij.ui.components.JBLabel
+import com.intellij.ui.components.Panel
+import com.intellij.ui.components.panels.HorizontalLayout
+import com.intellij.ui.components.panels.NonOpaquePanel
+import com.intellij.ui.layout.Cell
+import com.intellij.ui.layout.CellBuilder
+import com.intellij.ui.layout.Row
+import com.intellij.ui.layout.panel
+import com.intellij.util.IncorrectOperationException
+import com.intellij.util.io.exists
+import com.intellij.util.lang.JavaVersion
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.JBUI.Borders.empty
+import com.intellij.util.ui.JBUI.Borders.merge
+import com.intellij.util.ui.JBUI.scale
+import com.intellij.util.ui.JBUI.size
+import com.intellij.util.ui.UIUtil
+import com.intellij.util.ui.components.BorderLayoutPanel
+import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.thenRun
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -21,66 +94,30 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
+import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
+import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
+import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
+import org.utbot.intellij.plugin.ui.utils.allLibraries
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
-import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.testRootType
-import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
-import com.intellij.openapi.application.runWriteAction
-import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.components.service
-import com.intellij.openapi.options.ShowSettingsUtil
-import com.intellij.openapi.roots.ContentEntry
-import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.ui.configuration.ProjectStructureConfigurable
-import com.intellij.openapi.ui.ComboBox
-import com.intellij.openapi.ui.DialogPanel
-import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.ui.Messages
-import com.intellij.openapi.ui.ValidationInfo
-import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.StandardFileSystems
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiMethod
-import com.intellij.refactoring.PackageWrapper
-import com.intellij.refactoring.ui.MemberSelectionTable
-import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
-import com.intellij.refactoring.util.RefactoringUtil
-import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
-import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.ContextHelpLabel
-import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.components.CheckBox
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.Panel
-import com.intellij.ui.layout.Cell
-import com.intellij.ui.layout.CellBuilder
-import com.intellij.ui.layout.Row
-import com.intellij.ui.layout.panel
-import com.intellij.util.IncorrectOperationException
-import com.intellij.util.io.exists
-import com.intellij.util.lang.JavaVersion
-import com.intellij.util.ui.JBUI
-import com.intellij.util.ui.JBUI.size
-import com.intellij.util.ui.UIUtil
+import org.utbot.intellij.plugin.util.AndroidApiHelper
 import java.awt.BorderLayout
+import java.awt.Color
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.Objects
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
@@ -98,6 +135,10 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
+    companion object {
+        const val minSupportedSdkVersion = 8
+        const val maxSupportedSdkVersion = 11
+    }
 
     private val membersTable = MemberSelectionTable(emptyList(), null)
 
@@ -129,16 +170,37 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     @Suppress("UNCHECKED_CAST")
     private val itemsToHelpTooltip = hashMapOf(
-        (codegenLanguages as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (testFrameworks as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (mockStrategies as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (staticsMocking as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-        (parametrizedTestSources as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create("")
+        (codegenLanguages as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (testFrameworks as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (mockStrategies as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (staticsMocking as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
+        (parametrizedTestSources as ComboBox<CodeGenerationSettingItem>) to createHelpLabel()
     )
+
+    private fun createHelpLabel() = JBLabel(AllIcons.General.ContextHelp)
 
     init {
         title = "Generate tests with UtBot"
         setResizable(false)
+
+        // Configure notification urls callbacks
+        TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoSuffix]?.plusAssign {
+            if (createMockFrameworkNotificationDialog() == Messages.YES) {
+                configureMockFramework()
+            }
+        }
+
+        TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoInlineSuffix]?.plusAssign {
+            if (createStaticsMockingNotificationDialog() == Messages.YES) {
+                configureStaticMocking()
+            }
+        }
+
+        TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.eventLogSuffix]?.plusAssign {
+            val twm = ToolWindowManager.getInstance(model.project)
+            twm.getToolWindow("Event Log")?.activate(null)
+        }
+
         init()
     }
 
@@ -188,10 +250,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
             row {
                 component(cbSpecifyTestPackage)
-            }
+            }.apply { visible = false }
             row("Destination package:") {
                 component(testPackageField)
-            }
+            }.apply { visible = false }
+
             row("Generate test methods for:") {}
             row {
                 scrollPane(membersTable)
@@ -212,23 +275,81 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private fun Row.makePanelWithHelpTooltip(
         mainComponent: JComponent,
-        contextHelpLabel: ContextHelpLabel?
+        label: JBLabel?
     ): CellBuilder<JPanel> =
         component(Panel().apply {
             add(mainComponent, BorderLayout.LINE_START)
-            contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
+            label?.let { add(it, BorderLayout.LINE_END) }
         })
 
-    private fun findSdkVersion(): Int {
-        val projectSdk = ModuleRootManager.getInstance(model.testModule).sdk
-        val sdkVersion = JavaVersion.tryParse(projectSdk?.versionString)
-            ?: error("No sdk found in ${model.testModule}")
-        return sdkVersion.feature
+    private fun findSdkVersion(): JavaVersion? {
+        val projectSdk = ModuleRootManager.getInstance(model.srcModule).sdk
+        return JavaVersion.tryParse(projectSdk?.versionString)
+    }
+
+    override fun createTitlePane(): JComponent? {
+        val sdkVersion = findSdkVersion()
+        //TODO:SAT-1571 investigate Android Studio specific sdk issues
+        if (sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion || AndroidApiHelper.isAndroidStudio()) return null
+        isOKActionEnabled = false
+        return SdkNotificationPanel(model, sdkVersion)
     }
 
     private fun findTestPackageComboValue(): String {
         val packageNames = model.srcClasses.map { it.packageName }.distinct()
         return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
+    }
+
+    /**
+     * A panel to inform user about incorrect jdk in project.
+     *
+     * Note: this implementation was encouraged by NonModalCommitPromoter.
+     */
+    private inner class SdkNotificationPanel(
+        private val model: GenerateTestsModel,
+        private val sdkVersion: JavaVersion?,
+    ) : BorderLayoutPanel() {
+        init {
+            border = merge(empty(10), createBorder(JBColor.border(), SideBorder.BOTTOM), true)
+
+            addToLeft(JBLabel().apply {
+                icon = AllIcons.Ide.FatalError
+                text = if (sdkVersion != null) {
+                    "SDK version $sdkVersion is not supported, use ${JavaSdkVersion.JDK_1_8} or ${JavaSdkVersion.JDK_11}."
+                } else {
+                    "SDK is not defined"
+                }
+            })
+
+            addToRight(NonOpaquePanel(HorizontalLayout(scale(12))).apply {
+                add(createConfigureAction())
+                add(createCloseAction())
+            })
+        }
+
+        override fun getBackground(): Color? =
+            EditorColorsManager.getInstance().globalScheme.getColor(HintUtil.ERROR_COLOR_KEY) ?: super.getBackground()
+
+        private fun createConfigureAction(): JComponent =
+            HyperlinkLabel("Setup SDK").apply {
+                addHyperlinkListener {
+                    val projectStructure = ProjectStructureConfigurable.getInstance(model.project)
+                    val isEdited = ShowSettingsUtil.getInstance().editConfigurable(model.project, projectStructure)
+                    { projectStructure.select(model.srcModule.name, ClasspathEditor.getName(), true) }
+
+                    val sdkVersion = findSdkVersion()
+                    val sdkFixed = isEdited && sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion
+                    if (sdkFixed) {
+                        this@SdkNotificationPanel.isVisible = false
+                        isOKActionEnabled = true
+                    }
+                }
+            }
+
+        private fun createCloseAction(): JComponent =
+            InplaceButton(IconButton(null, AllIcons.Actions.Close, AllIcons.Actions.CloseHovered)) {
+                this@SdkNotificationPanel.isVisible = false
+            }
     }
 
     private fun updateMembersTable() {
@@ -357,11 +478,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         }
 
-        if (cbSpecifyTestPackage.isSelected && testPackageField.text.isEmpty()) {
-            showTestPackageAbsenceErrorMessage()
-            return
-        }
-
         configureJvmTargetIfRequired()
         configureTestFrameworkIfRequired()
         configureMockFrameworkIfRequired()
@@ -420,12 +536,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun showTestRootAbsenceErrorMessage() =
         Messages.showErrorDialog(
             "Test source root is not configured or is located out of content entry!",
-            "Generation error"
-        )
-
-    private fun showTestPackageAbsenceErrorMessage() =
-        Messages.showErrorDialog(
-            "Specify a package to store tests in.",
             "Generation error"
         )
 
@@ -515,8 +625,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val frameworkNotInstalled =
             mockStrategies.item != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled
 
-        if (frameworkNotInstalled && createMockFrameworkNotificationDialog(title) == Messages.YES) {
-            configureMockFramework(model.project, model.testModule)
+        if (frameworkNotInstalled && createMockFrameworkNotificationDialog() == Messages.YES) {
+            configureMockFramework()
         }
     }
 
@@ -543,8 +653,29 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         selectedTestFramework.isInstalled = true
-        addDependency(model.project, model.testModule, libraryDescriptor)
+        addDependency(model.testModule, libraryDescriptor)
             .onError { selectedTestFramework.isInstalled = false }
+    }
+
+    private fun createTestFrameworkNotificationDialog() = Messages.showYesNoDialog(
+        """Selected test framework ${testFrameworks.item.displayName} is not installed into current module. 
+            |Would you like to install it now?""".trimMargin(),
+        title,
+        "Yes",
+        "No",
+        Messages.getQuestionIcon(),
+    )
+
+    private fun configureMockFramework() {
+        val selectedMockFramework = MOCKITO
+
+        val libraryInProject =
+            findFrameworkLibrary(model.project, model.testModule, selectedMockFramework, LibrarySearchScope.Project)
+        val versionInProject = libraryInProject?.libraryName?.parseVersion()
+
+        selectedMockFramework.isInstalled = true
+        addDependency(model.testModule, mockitoCoreLibraryDescriptor(versionInProject))
+            .onError { selectedMockFramework.isInstalled = false }
     }
 
     private fun configureStaticMocking() {
@@ -575,8 +706,44 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    private fun createTestFrameworkNotificationDialog() = Messages.showYesNoDialog(
-        """Selected test framework ${testFrameworks.item.displayName} is not installed into current module. 
+    /**
+     * Adds the dependency for selected framework via [JavaProjectModelModificationService].
+     *
+     * Note that version restrictions will be applied only if they are present on target machine
+     * Otherwise latest release version will be installed.
+     */
+    private fun addDependency(module: Module, libraryDescriptor: ExternalLibraryDescriptor): Promise<Void> {
+        val promise = JavaProjectModelModificationService
+            .getInstance(model.project)
+            //this method returns JetBrains internal Promise that is difficult to deal with, but it is our way
+            .addDependency(model.testModule, libraryDescriptor, DependencyScope.TEST)
+        promise.thenRun {
+            module.allLibraries()
+                .lastOrNull { library -> library.libraryName == libraryDescriptor.presentableName }?.let {
+                    ModuleRootModificationUtil.updateModel(module) { model -> placeEntryToCorrectPlace(model, it) }
+                }
+        }
+        return promise
+    }
+
+    /**
+     * Reorders library list to unsure that just added library with proper version is listed prior to old-versioned one
+     */
+    private fun placeEntryToCorrectPlace(model: ModifiableRootModel, addedEntry: LibraryOrderEntry) {
+        val order = model.orderEntries
+        val lastEntry = order.last()
+        if (lastEntry is LibraryOrderEntry && lastEntry.library == addedEntry.library) {
+            val insertionPoint = order.indexOfFirst { it is ModuleSourceOrderEntry } + 1
+            if (insertionPoint > 0) {
+                System.arraycopy(order, insertionPoint, order, insertionPoint + 1, order.size - 1 - insertionPoint)
+                order[insertionPoint] = lastEntry
+                model.rearrangeOrderEntries(order)
+            }
+        }
+    }
+
+    private fun createMockFrameworkNotificationDialog() = Messages.showYesNoDialog(
+        """Mock framework ${MOCKITO.displayName} is not installed into current module. 
             |Would you like to install it now?""".trimMargin(),
         title,
         "Yes",
@@ -701,14 +868,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         cbSpecifyTestPackage.addActionListener {
             val testPackageName = findTestPackageComboValue()
+            val packageNameIsNeeded = testPackageField.isEnabled || testPackageName != SAME_PACKAGE_LABEL
 
-            if (testPackageField.isEnabled) {
-                testPackageField.isEnabled = false
-                testPackageField.text = testPackageName
-            } else {
-                testPackageField.isEnabled = true
-                testPackageField.text = if (testPackageName != SAME_PACKAGE_LABEL) testPackageName else ""
-            }
+            testPackageField.text = if (packageNameIsNeeded) testPackageName else ""
+            testPackageField.isEnabled = !testPackageField.isEnabled
         }
     }
 
@@ -724,7 +887,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         //Will be removed after gradle-intelij-plugin version update upper than 2020.2
         //TestNg will be reverted after https://github.com/UnitTestBot/UTBotJava/issues/309
-        if (findSdkVersion() < 11) {
+        if (findSdkVersion()?.let { it.feature < 11 } == true) {
             enabledTestFrameworks = enabledTestFrameworks.filterNot { it == TestNg }
         }
 
@@ -738,7 +901,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         testFrameworks.model = DefaultComboBoxModel(enabledTestFrameworks.toTypedArray())
-        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks && currentFrameworkItem.isInstalled) currentFrameworkItem else defaultItem
+        testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
         testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
             override fun customizeCellRenderer(
                 list: JList<out TestFramework>, value: TestFramework?,
@@ -824,7 +987,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 }
 
-private fun ComboBox<CodeGenerationSettingItem>.setHelpTooltipTextChanger(helpLabel: ContextHelpLabel) {
+private fun ComboBox<CodeGenerationSettingItem>.setHelpTooltipTextChanger(helpLabel: JBLabel) {
     addActionListener { event ->
         val comboBox = event.source as ComboBox<*>
         val item = comboBox.item as CodeGenerationSettingItem

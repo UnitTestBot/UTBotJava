@@ -19,7 +19,7 @@ class GlobalStats {
             "\n\t#classes canceled by timeout = ${statsForClasses.count { it.canceledByTimeout }}" +
             "\n----------------------------------------" +
             "\n\t#total methods for generation = ${statsForClasses.sumBy { it.methodsCount }}" +
-            "\n\t#methods with at least one testcase generated =  ${statsForClasses.sumBy { it.statsForMethods.count { it.testcasesGeneratedCount > 0 } }} " +
+            "\n\t#methods with at least one testcase generated =  ${statsForClasses.sumBy { it.statsForMethods.count { it.testsGeneratedCount > 0 } }} " +
             "\n\t#methods with exceptions = ${statsForClasses.sumBy { clazz -> clazz.statsForMethods.count { it.failReasons.isNotEmpty() } }}" +
             "\n\t#suspicious methods WITH NO testcases AND NO exceptions =  ${statsForClasses.sumBy { it.statsForMethods.count { it.isSuspicious } }} " +
             "\n----------------------------------------" +
@@ -49,7 +49,7 @@ class StatsForClass {
     var testClassFile: File? = null
 
     val methodsWithAtLeastOneException: Int get() = statsForMethods.count { it.failReasons.isNotEmpty() }
-    val testcasesGenerated: Int get() = statsForMethods.sumBy { it.testcasesGeneratedCount }
+    val testcasesGenerated: Int get() = statsForMethods.sumBy { it.testsGeneratedCount }
 
     var coverage: CoverageInfo? = null
 
@@ -57,7 +57,7 @@ class StatsForClass {
             "\n\tcanceled by timeout = $canceledByTimeout" +
             "\n\t#methods = $methodsCount, " +
             "\n\t#methods started symbolic exploration = ${statsForMethods.size}" +
-            "\n\t#methods with at least one TC = ${statsForMethods.count { it.testcasesGeneratedCount > 0 }}" +
+            "\n\t#methods with at least one TC = ${statsForMethods.count { it.testsGeneratedCount > 0 }}" +
             "\n\t#methods with exceptions = $methodsWithAtLeastOneException" +
             "\n\t#generated TC = $testcasesGenerated" +
             "\n\t#coverage = $coverage"
@@ -65,16 +65,16 @@ class StatsForClass {
 
 
 class StatsForMethod(val methodName: String) {
-    var testcasesGeneratedCount = 0
+    var testsGeneratedCount = 0
 
     val failReasons: MutableMultiset<FailReason> = mutableMultisetOf()
 
     //generated no TC, nor exception
-    val isSuspicious: Boolean get() = failReasons.isEmpty() && testcasesGeneratedCount == 0
+    val isSuspicious: Boolean get() = failReasons.isEmpty() && testsGeneratedCount == 0
 
 
     override fun toString(): String = "\n<StatsForMethod> :" + (if (isSuspicious) " SUSPICIOUS" else "") +
-            "\n\t#generatedTC=$testcasesGeneratedCount\n\t" +
+            "\n\t#generatedTC=$testsGeneratedCount\n\t" +
             (if (failReasons.isEmpty()) "WITH NO EXCEPTIONS"
             else "FAILED ${failReasons.sumOfMultiplicities} time(s) with ${failReasons.size} different exception(s)\"")
 

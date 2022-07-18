@@ -27,7 +27,7 @@ import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
 import org.utbot.framework.codegen.model.tree.CgGetLength
 import org.utbot.framework.codegen.model.tree.CgInnerBlock
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
+import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgSpread
@@ -231,8 +231,9 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         print("::class")
     }
 
-    override fun visit(element: CgNotNullVariable) {
-        print("${element.name.escapeNamePossibleKeyword()}!!")
+    override fun visit(element: CgNotNullAssertion) {
+        element.expression.accept(this)
+        print("!!")
     }
 
     override fun visit(element: CgAllocateArray) {

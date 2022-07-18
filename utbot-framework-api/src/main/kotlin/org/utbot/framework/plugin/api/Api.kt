@@ -612,8 +612,16 @@ val Type.classId: ClassId
  */
 open class ClassId(
     val name: String,
-    val elementClassId: ClassId? = null
+    val elementClassId: ClassId? = null,
+    // Treat simple class ids as non-nullable
+    open val isNullable: Boolean = false
 ) {
+    /**
+     * This constructor is for calls from Java (e.g. `UtBotJavaApiTest`),
+     * because we cannot skip default parameters in Java.
+     */
+    constructor(name: String, elementClassId: ClassId?) : this(name, elementClassId, false)
+
     open val canonicalName: String
         get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
 
@@ -677,9 +685,9 @@ open class ClassId(
     open val isSynthetic: Boolean
         get() = jClass.isSynthetic
 
-    open val isNullable: Boolean
-        // Treat simple class ids as non-nullable
-        get() = false
+//    open val isNullable: Boolean
+//        // Treat simple class ids as non-nullable
+//        get() = false
 
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence

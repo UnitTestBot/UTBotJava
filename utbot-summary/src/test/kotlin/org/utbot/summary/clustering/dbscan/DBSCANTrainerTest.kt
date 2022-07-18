@@ -8,6 +8,16 @@ import java.lang.IllegalArgumentException
 import kotlin.math.sqrt
 
 internal class DBSCANTrainerTest {
+    /** Helper test class for keeping ```(x, y)``` data. */
+    data class Point(val x: Float, val y: Float)
+
+    /** Helper [Metric] interface implementation, emulates the Euclidean distance. */
+    class TestEuclideanMetric : Metric<Point> {
+        override fun compute(object1: Point, object2: Point): Double {
+            return sqrt((object2.y - object1.y) * (object2.y - object1.y) + (object2.x - object1.x) * (object2.x - object1.x)).toDouble();
+        }
+    }
+
     @Test
     fun emptyData() {
         val testData = arrayOf<Point>()
@@ -198,7 +208,6 @@ internal class DBSCANTrainerTest {
             Point(0.52016266f, -0.77638553f)
         )
 
-
         val dbscan = DBSCANTrainer(
             eps = 0.3f,
             minSamples = 10,
@@ -214,14 +223,5 @@ internal class DBSCANTrainerTest {
         assertEquals(35, clusterLabels.count { it == 1 })
         assertEquals(18, clusterLabels.count { it == 2 })
         assertEquals(70, clusterLabels.count { it == Int.MIN_VALUE })
-    }
-
-
-    data class Point(val x: Float, val y: Float)
-
-    class TestEuclideanMetric : Metric<Point> {
-        override fun compute(object1: Point, object2: Point): Double {
-            return sqrt((object2.y - object1.y) * (object2.y - object1.y) + (object2.x - object1.x) * (object2.x - object1.x)).toDouble();
-        }
     }
 }

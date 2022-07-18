@@ -1,9 +1,6 @@
 package org.utbot.python
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.PythonIntModel
-import org.utbot.framework.plugin.api.PythonStrModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
@@ -32,17 +29,19 @@ object PythonModelProvider: ModelProvider {
         notPythonModelProvider.generate(substitutedDescription) { index, fuzzedValue ->
             when (description.parameters[index]) {
                 PythonIntModel.classId ->
-                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Int)?.let { int_val ->
+                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Int)?.let { intValue ->
                         consumer.accept(
                             index,
-                            PythonIntModel(BigInteger.valueOf(int_val.toLong())).fuzzed()
+                            PythonIntModel(BigInteger.valueOf(intValue.toLong())).fuzzed()
                         )
                     }
                 PythonStrModel.classId ->
-                    consumer.accept(
-                        index,
-                        PythonStrModel((fuzzedValue.model as UtPrimitiveModel).value as String).fuzzed()
-                    )
+                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? String)?.let { strValue ->
+                        consumer.accept(
+                            index,
+                            PythonStrModel(strValue).fuzzed()
+                        )
+                    }
             }
         }
     }

@@ -13,6 +13,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderEnumerator
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
@@ -213,6 +214,16 @@ object UtTestsDialogProcessor {
                                     timerHandler.cancel(true)
                                 }
                                 processedClasses++
+                            }
+
+                            if (processedClasses == 0) {
+                                invokeLater {
+                                    Messages.showInfoMessage(
+                                        model.project,
+                                        "No methods for test generation were found among selected items",
+                                        "No methods found")
+                                }
+                                return
                             }
 
                             indicator.fraction = indicator.fraction.coerceAtLeast(0.9)

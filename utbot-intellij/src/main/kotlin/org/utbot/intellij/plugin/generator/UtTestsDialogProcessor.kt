@@ -174,20 +174,16 @@ object UtTestsDialogProcessor {
                                 withSubstitutionCondition(shouldSubstituteStatics) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
-                                    val forceMockListener = if (!mockFrameworkInstalled) {
-                                         ForceMockListener().apply {
+                                    if (!mockFrameworkInstalled) {
+                                         ForceMockListener(model.conflictTriggers).apply {
                                              testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
                                          }
-                                    } else {
-                                        null
                                     }
 
-                                    val forceStaticMockListener = if (!model.staticsMocking.isConfigured) {
-                                        ForceStaticMockListener().apply {
+                                    if (!model.staticsMocking.isConfigured) {
+                                        ForceStaticMockListener(model.conflictTriggers).apply {
                                             testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
                                         }
-                                    } else {
-                                        null
                                     }
 
                                     val notEmptyCases = withUtContext(context) {
@@ -205,14 +201,6 @@ object UtTestsDialogProcessor {
                                         )
                                     } else {
                                         testSetsByClass[srcClass] = notEmptyCases
-                                    }
-
-                                    forceMockListener?.run {
-                                        model.forceMockHappened = forceMockHappened
-                                    }
-
-                                    forceStaticMockListener?.run {
-                                        model.forceStaticMockHappened = forceStaticMockHappened
                                     }
 
                                     timerHandler.cancel(true)

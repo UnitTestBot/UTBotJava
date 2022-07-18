@@ -96,6 +96,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
@@ -298,8 +299,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun findTestPackageComboValue(): String {
-        val packageNames = model.srcClasses.map { it.packageName }.distinct()
-        return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
+        return if (model.isMultiPackage) {
+            model.srcClasses.first().packageName
+        } else {
+            SAME_PACKAGE_LABEL
+        }
     }
 
     /**
@@ -621,7 +625,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             configureTestFramework()
         }
 
-        model.hasTestFrameworkConflict = TestFramework.allItems.count { it.isInstalled  } > 1
+        model.conflictTriggers[Conflict.TestFrameworkConflict] = TestFramework.allItems.count { it.isInstalled  } > 1
     }
 
     private fun configureMockFrameworkIfRequired() {

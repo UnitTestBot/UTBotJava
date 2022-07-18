@@ -29,7 +29,7 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
 
     /** Builds a clustering model based on the given data. */
     fun fit(data: Array<T>): DBSCANModel {
-        require(data.isNotEmpty()) { "Nothing to learn, data is empty."}
+        require(data.isNotEmpty()) { "Nothing to learn, data is empty." }
 
         if (rangeQuery is LinearRangeQuery) {
             rangeQuery.data = data

@@ -9,7 +9,7 @@ package org.utbot.summary.clustering.dbscan.neighbor
  *
  * NOTE: Neighbors should be ordered and this is implemented via [Comparable] interface.
  */
-class Neighbor<K>(val key: K, val index: Int, private val distance: Double): Comparable<Neighbor<K>> {
+class Neighbor<K>(val key: K, val index: Int, private val distance: Double) : Comparable<Neighbor<K>> {
     override fun compareTo(other: Neighbor<K>): Int {
         val distance = distance.compareTo(other.distance)
         return if (distance == 0) index.compareTo(other.index) else distance

@@ -1,83 +1,54 @@
 # UtBot-Python
-__Общая задача__: написать utbot для языка Python, использующий fuzzing при генерации тестов.
+__Task__: implement utbot for Python using fuzzing to generate tests.
 
-Основные подзадачи:
-* Получить функции, которые нужно протестировать
-* Сгенерировать значения для аргументов
-* Вычислить значения функции на этих аргументах
-* Отрендерить тесты для функций
+Subtasks:
+* Get list of functions to be tested
+* Generate input parameters for this functions
+* Compute return values for this parameters
+* Render tests
 
-## Получение функций
+## Getting list of functions
 
-Список функций формируется через UI (Intellij IDEA / консоль).
+We get list of functions to be tested from Intellij IDEA plugin. Other information we get from source code.
 
-Данные о функциях, которые должны передаваться:
-  * название
-  * список аргументов
-  * код функции
-  * аннотации типов аргументов (опционально)
-  * аннотация типа возвращаемого значения (опционально)
+Information about functions:
+* Name
+* List of parameters
+* Source code
+* Declaration file
+* Type annotations for parameters and return type (optional)
 
-## Генерация тестовых данных
+## Input parameters generation
 
-Хотим генерировать значения для всех аргументов функции. 
+### Problem
 
-Если есть аннотация, то достаточно научиться генерировать экземпляры нужного типа.
+If we do not have type annotation, we have to find suitable types for this parameter.
 
-__Проблема__: как сузить значения при генерации для аргумента без аннотации? 
+### Solution
+Gather information about Python built-in types (by 'built-in types' we mean types that are implemented in C):
 
-__Решение__: можем составить базу из всех примитивных типов в Python, научиться создавать их представителей (дефолтные, крайние, критические значения, _может быть с возможностью подставить константы из кода_), далее для аргумента нужно найти все типы, имеющие нужные методы, и подставлять их.
+* Name
+* Methods: name + parameters (+ annotations)
+* How to generate instances of this type (default, random, using constants from code)
 
-Для сложных / пользовательских классов без представителей нужно рекурсивно для каждого поля создать представителя. Это может быть достаточно сложно, так как не все поля могут иницализироваться в `__init__` и для получения данных о них нужно проанализировать все методы исходного класса. Первым шагом здесь будет случай, когда все поля можно получить из функции инициализации и они имеют примитивные типы.
+We can use CPython code and tests for it to gather this.
 
-Проверять можно только те типы, которые доступны (импортированы) в содержащем файле.
+For user class we need to initialize its fields recursively. Possible problems: getting types of fields, dynamic addition of new fields.
 
-Чтобы получить требования к методам аргумента, нужно построить дерево исполнения функции, конечные методы в каждой ветке будут соответствовать одному из подходящих вариантов. Для этого есть несколько библиотек на Python:
-* pycallgraph (очень старая, есть более новая версия pycallgraph2: июль 2019) _динамический анализ_
-* pyan (последний релиз: февраль 2021) _статический, но неполный_
-* Jonga (релиз: ноябрь 2018) _динамический анализ_
+To find suitable types for parameter we can look for them only in given and imported files.
 
-Либо можно делать это самостоятельно.
+To narrow down the search of suitable types we can gather constraints for function parameters. For that we can analyze AST to see which attributes of parameter are used.
 
-### Информация о типах
+## Run function with generated parameters
 
-Для описанного выше алгоритма необходимо составить большую базу о встроенных типах. Их много поэтому, возможно, придется автоматизировать этот процесс.
+After generating parameters for fuzzing we pass them on into the function under test and run it in a separate process. This approach is called concrete execution.
 
-Составлять можно либо по коду CPython (можно по тестам), либо по коду GraalPython, либо руками. 
+To run the function we need to generate code that imports and calls it and saves result.
 
-#### Данные о типе
+## Get return value
 
-О каждом типе нужно хранить следующие данные:
-* имя
-* __методы__: имя + аргументы (+аннотации)
-* базовые поля?
-* _доступ к конструктору_
+We write serialized return value in file. To serialize values of the most used built-in types we can use json module. For other types we will have to do it manually.
 
-Два последних поля скорее всего не нужны, и сложно определяются для `built-in` типов. Мы будем создавать тестовые экземляры руками. 
+## Test generation
 
-Примеры можно брать из `cpyhton/Lib/test`.
-
-Поддерживаемые операции:
-* Генерировать объект с дефолтными значениями
-* Генерировать с константами из кода
-
-#### Данные о функции
-* имя
-* аргументы с аннотациями
-* где лежит
-
-## Запуск функции с полученными аргументами
-
-Для каждого типа мы должны уметь создавать представителей, можно хранить код для этого в текстовом виде.
-
-Пока что проводим запуск функции непосредственно через запуск python в отдельном процессе. Для этого нужно сгенерировать код, который будет содержать код функции / умеет ее импортировать и сохранять в восстанавливаемом формате (можно попробовать json, для некоторых типов есть сериализатор по умолчанию, для остальных придется писать самим, но это должно быть проще, чем писать польностью свой код).
-
-Некоторые типы очень сложно (невозможно) сохранить и создать такой же, будем считать, что такие типы не можем обрабатывать как результат функции. 
-Пример: `socket`.
-
-## Генерация тестов
-
-Сначала нужно построить AST того кода, который мы хотим выполнять, далее сгенерировать соответствующий код. 
-Нужно либо пользоваться ANTLR, либо написать самостоятельно.
-
-Потом нужно записать этот код в правильный файл.
+First we build AST of test code and then render it.

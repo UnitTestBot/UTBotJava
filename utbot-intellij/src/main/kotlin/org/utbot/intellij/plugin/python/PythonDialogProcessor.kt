@@ -10,10 +10,10 @@ import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.intellij.plugin.ui.utils.testModule
-import org.utbot.python.PyhtonTestCodeGenerator.generateTestCode
-import org.utbot.python.PyhtonTestCodeGenerator.saveToFile
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
+import org.utbot.python.PythonCodeGenerator.generateTestCode
+import org.utbot.python.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
 

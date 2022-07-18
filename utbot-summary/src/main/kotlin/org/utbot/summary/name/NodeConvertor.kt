@@ -358,7 +358,7 @@ class NodeConvertor {
          */
         private fun postProcessName(name: String) =
             name.split(".", "(", ")", ",")
-                .joinToString("") { it.capitalize().replace("[^a-zA-Z0-9_$]".toRegex(), "") }
+                .joinToString("") { it -> it.capitalize().filter { isLegitSymbolForFunctionName(it) } }
 
         /**
          * Converts Javaparser BinaryOperator and all of its children into a String

@@ -29,24 +29,22 @@ internal class DBSCANTrainerTest {
         )
     }
 
-
+    /**
+     * Basic training on the synthetic data produced by the following Python script
+     *
+     * ```
+     * import numpy as np
+     *
+     * from sklearn.cluster import DBSCAN
+     * from sklearn.datasets import make_blobs
+     * from sklearn.preprocessing import StandardScaler
+     * centers = [[1, 1], [-1, -1], [1, -1]]
+     * X, labels_true = make_blobs( n_samples=150, centers=centers, cluster_std=0.4, random_state=0)
+     * X = StandardScaler().fit_transform(X)
+     * ```
+     */
     @Test
     fun fit() {
-        /**
-         * Generated via the following Python code:
-         *
-         * ```
-         * import numpy as np
-         *
-         * from sklearn.cluster import DBSCAN
-         * from sklearn.datasets import make_blobs
-         * from sklearn.preprocessing import StandardScaler
-         * centers = [[1, 1], [-1, -1], [1, -1]]
-         * X, labels_true = make_blobs( n_samples=150, centers=centers, cluster_std=0.4, random_state=0)
-         * X = StandardScaler().fit_transform(X)
-         * ```
-         */
-
         val testData = arrayOf(
             Point( 0.51306161f,  1.1471073f),
             Point( 0.65512213f, -0.97066103f),

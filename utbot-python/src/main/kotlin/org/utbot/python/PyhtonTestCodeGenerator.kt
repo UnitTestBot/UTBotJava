@@ -11,7 +11,7 @@ object PyhtonTestCodeGenerator {
     }
 
     fun generateTestCode(method: PythonMethod, execution: UtExecution, number: Int): String {
-        val testFunctionName = "${execution.testMethodName}_$number"
+        val testFunctionName = "${execution.testMethodName?.camelToSnakeCase() ?: "test"}_$number"
         val testFunctionTitle = "def $testFunctionName():"
         val arguments = execution.stateBefore.parameters.zip(method.arguments).map { (model, argument) ->
             "${argument.name} = $model"
@@ -50,4 +50,11 @@ object PyhtonTestCodeGenerator {
         file.writeText(code.joinToString("\n\n\n"))
         file.createNewFile()
     }
+}
+
+fun String.camelToSnakeCase(): String {
+    val camelRegex = "(?<=[a-zA-Z])[A-Z]".toRegex()
+    return camelRegex.replace(this) {
+        "_${it.value}"
+    }.toLowerCase()
 }

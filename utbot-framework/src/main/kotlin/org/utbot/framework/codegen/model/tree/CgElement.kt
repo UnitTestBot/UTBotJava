@@ -77,8 +77,6 @@ interface CgElement {
             is CgAssignment -> visit(element)
             is CgTypeCast -> visit(element)
             is CgThisInstance -> visit(element)
-            //Not that order of variables is important
-//            is CgNotNullVariable -> visit(element)
             is CgNotNullAssertion -> visit(element)
             is CgVariable -> visit(element)
             is CgParameterDeclaration -> visit(element)
@@ -523,7 +521,7 @@ interface CgExpression : CgStatement {
 }
 
 // marker interface representing expressions returning reference
-// TODO: talk to Yury (?), because it seems that not all CgValues are reference expressions
+// TODO: it seems that not all [CgValue] implementations are reference expressions
 interface CgReferenceExpression : CgExpression
 
 /**
@@ -584,7 +582,6 @@ open class CgVariable(
  * - in Java it is an equivalent of [CgVariable]
  * - in Kotlin the difference is in addition of "!!" to the name
  */
-//class CgNotNullVariable(name: String, type: ClassId) : CgVariable(name, type)
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId
         get() {
@@ -628,7 +625,7 @@ data class CgParameterDeclaration(
  */
 sealed class CgParameterType {
     object ThisInstance : CgParameterType()
-    class Argument(val index: Int) : CgParameterType()
+    data class Argument(val index: Int) : CgParameterType()
     object ExpectedResult : CgParameterType()
     object ExpectedException : CgParameterType()
 }

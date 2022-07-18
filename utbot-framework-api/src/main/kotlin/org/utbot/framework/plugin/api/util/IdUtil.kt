@@ -237,6 +237,21 @@ val idToPrimitive: Map<ClassId, Class<*>> = mapOf(
 fun isPrimitiveWrapperOrString(type: ClassId): Boolean = (type in primitiveWrappers) || (type == stringClassId)
 
 /**
+ * Returns a wrapper of a given type if it is primitive or a type itself otherwise.
+ */
+fun wrapIfPrimitive(type: ClassId): ClassId = when (type) {
+    booleanClassId -> booleanWrapperClassId
+    byteClassId -> byteWrapperClassId
+    charClassId -> charWrapperClassId
+    shortClassId -> shortWrapperClassId
+    intClassId -> intWrapperClassId
+    longClassId -> longWrapperClassId
+    floatClassId -> floatWrapperClassId
+    doubleClassId -> doubleWrapperClassId
+    else -> type
+}
+
+/**
  * Note: currently uses class$innerClass form to load classes with classloader.
  */
 @Suppress("MapGetWithNotNullAssertionOperator")

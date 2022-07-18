@@ -685,10 +685,6 @@ open class ClassId(
     open val isSynthetic: Boolean
         get() = jClass.isSynthetic
 
-//    open val isNullable: Boolean
-//        // Treat simple class ids as non-nullable
-//        get() = false
-
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
      */

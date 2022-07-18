@@ -1,13 +1,12 @@
 package org.utbot.examples.enums;
 
 import org.jetbrains.annotations.NotNull;
-import org.utbot.api.mock.UtMock;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class EnumCollections {
+public class ComplexEnumExamples {
 
     public enum Color {
         RED,
@@ -61,5 +60,9 @@ public class EnumCollections {
             }
         }
         return count;
+    }
+
+    public State findState(int code) {
+        return State.findStateByCode(code);
     }
 }

@@ -1,20 +1,18 @@
 package org.utbot.examples.enums
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.UtValueTestCaseChecker
-import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.FullWithAssumptions
-import org.utbot.examples.between
-import org.utbot.examples.enums.EnumCollections.Color.BLUE
-import org.utbot.examples.enums.EnumCollections.Color.GREEN
-import org.utbot.examples.enums.EnumCollections.Color.RED
-import org.utbot.examples.ge
+import org.utbot.examples.enums.ComplexEnumExamples.Color.BLUE
+import org.utbot.examples.enums.ComplexEnumExamples.Color.GREEN
+import org.utbot.examples.enums.ComplexEnumExamples.Color.RED
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 
-class EnumCollectionsTest : UtValueTestCaseChecker(
-    testClass = EnumCollections::class,
+class ComplexEnumExamplesTest : UtValueTestCaseChecker(
+    testClass = ComplexEnumExamples::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
@@ -23,9 +21,10 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
 ) {
 
     @Test
+    @Disabled
     fun testReturnColors() {
         check(
-            EnumCollections::returnColors,
+            ComplexEnumExamples::returnColors,
             ignoreExecutionsNumber,
             { source, result -> source.isEmpty() && result != null && result.isEmpty() },
             { source, result -> source.isNotEmpty() && result != null && result.isNotEmpty() }
@@ -33,9 +32,10 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled
     fun testCopyColors() {
         check(
-            EnumCollections::copyColors,
+            ComplexEnumExamples::copyColors,
             ignoreExecutionsNumber,
             { source, result -> source.isEmpty() && result != null && result.isEmpty() },
             { source, result -> source.isNotEmpty() && result != null && result.isNotEmpty() },
@@ -46,7 +46,7 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     @Test
     fun testEnumToEnumMapCountValues() {
         check(
-            EnumCollections::enumToEnumMapCountValues,
+            ComplexEnumExamples::enumToEnumMapCountValues,
             ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
             { m, r -> m.isNotEmpty() && !m.values.contains(RED) && r == 0 },
@@ -57,7 +57,7 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     @Test
     fun testEnumToEnumMapCountKeys() {
         check(
-            EnumCollections::enumToEnumMapCountKeys,
+            ComplexEnumExamples::enumToEnumMapCountKeys,
             ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
             { m, r -> m.isNotEmpty() && !m.keys.contains(GREEN) && !m.keys.contains(BLUE) && r == 0 },
@@ -68,10 +68,19 @@ class EnumCollectionsTest : UtValueTestCaseChecker(
     @Test
     fun testEnumToEnumMapCountMatches() {
         check(
-            EnumCollections::enumToEnumMapCountMatches,
+            ComplexEnumExamples::enumToEnumMapCountMatches,
             ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
             { m, r -> m.entries.count { it.key == it.value } == r }
+        )
+    }
+
+    @Test
+    fun testFindState() {
+        check(
+            ComplexEnumExamples::findState,
+            ignoreExecutionsNumber,
+            { c, r -> c in setOf(0, 127, 255) && r != null && r.code == c }
         )
     }
 }

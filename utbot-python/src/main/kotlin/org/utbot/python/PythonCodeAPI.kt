@@ -141,9 +141,10 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    fun generateTestCode(testCase: PythonTestCase): String {
+    fun generateTestCode(testCase: PythonTestCase, testSourceRoot: String): String {
         val importFunction = generateImportFunctionCode(
-            testCase.method.sourceCodePath?.joinToString(".")!!
+            testCase.method.sourceCodePath?.joinToString(".")!!,
+            testSourceRoot
         )
         val testCaseCodes = testCase.executions.mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
@@ -236,7 +237,7 @@ object PythonCodeGenerator {
         return Arguments(args, keywords, starredArgs, doubleStarredArgs)
     }
 
-    private fun generateImportFunctionCode(functionPath: String): List<Statement> {
+    private fun generateImportFunctionCode(functionPath: String, projectRoot: String): List<Statement> {
         val systemImport = Import(
             listOf(
                 Alias("os"),
@@ -249,23 +250,7 @@ object PythonCodeGenerator {
                 createArguments(
                     listOf(
                         Name("0"),
-                        Atom(
-                            Name("os.path.dirname"),
-                            listOf(
-                                createArguments(
-                                    listOf(
-                                        Atom(
-                                            Name("os.path.dirname"),
-                                            listOf(
-                                                createArguments(
-                                                    listOf(Name("__file__"))
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
+                        Str(projectRoot)
                     )
                 )
             )
@@ -280,9 +265,11 @@ object PythonCodeGenerator {
         outputFilename: String,
         errorFilename: String,
         codeFilename: String,
+        projectRoot: String,
     ): File {
         val importStatements = generateImportFunctionCode(
-            method.sourceCodePath?.joinToString(".")!!
+            method.sourceCodePath?.joinToString(".")!!,
+            projectRoot
         )
 
         val testFunctionName = "__run_${method.name}"
@@ -366,6 +353,7 @@ object PythonEvaluation {
         method: PythonMethod,
         methodArguments: List<UtModel>,
         testSourceRoot: String,
+        projectRoot: String,
         pythonPath: String = "python3"
     ): Pair<String, Boolean> {
         createDirectory(testSourceRoot)
@@ -379,7 +367,8 @@ object PythonEvaluation {
             methodArguments,
             outputFilename,
             errorFilename,
-            codeFilename
+            codeFilename,
+            projectRoot
         )
 
         val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")

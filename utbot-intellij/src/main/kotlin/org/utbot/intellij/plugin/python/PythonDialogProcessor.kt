@@ -20,9 +20,6 @@ import org.utbot.python.PythonCodeGenerator.generateTestCode
 import org.utbot.python.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
-import org.utbot.python.types.PythonType
-import org.utbot.python.types.PythonTypesStorage
-import org.utbot.python.types.PythonTypesStorage.builtinTypes
 
 
 object PythonDialogProcessor {
@@ -93,13 +90,15 @@ object PythonDialogProcessor {
             override fun run(indicator: ProgressIndicator) {
                 val pythonMethods = findSelectedPythonMethods(model)
                 val testSourceRoot = model.testSourceRoot!!.path
+//                val projectRoot = ProjectFileIndex.SERVICE.getInstance(project).getContentRootForFile(project.basePath())
+                val projectRoot = project.basePath!!
 
                 val tests = pythonMethods.map { method ->
-                    PythonTestCaseGenerator.generate(method, testSourceRoot)
+                    PythonTestCaseGenerator.generate(method, testSourceRoot, projectRoot)
                 }
 
                 tests.forEach {
-                    val testCode = generateTestCode(it)
+                    val testCode = generateTestCode(it, projectRoot)
                     saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
                 }
             }

@@ -13,6 +13,7 @@ import java.math.BigInteger
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
     private val testSourceRoot: String,
+    private val projectRoot: String
 ) {
     // TODO: change sequence to flow
     fun fuzzing(until: Long = Long.MAX_VALUE /*, modelProvider: (ModelProvider) -> ModelProvider = { it }*/): Sequence<UtResult> = sequence {
@@ -43,7 +44,7 @@ class PythonEngine(
 
             // execute method to get function return
             // what if exception happens?
-            val (resultAsString, isSuccess) = evaluate(methodUnderTest, modelList, testSourceRoot)
+            val (resultAsString, isSuccess) = evaluate(methodUnderTest, modelList, testSourceRoot, projectRoot)
             val resultAsInt = BigInteger(resultAsString)// for now only int results
             val resultAsModel = UtPrimitiveModel(resultAsInt)
             val result = UtExecutionSuccess(resultAsModel)

@@ -41,7 +41,7 @@ class PythonEngine(
 
             // execute method to get function return
             // what if exception happens?
-            val resultAsString = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
+            val (resultAsString, status) = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
             val resultAsInt = parseLong(resultAsString, 10) // for now only int results
             val resultAsModel = UtPrimitiveModel(resultAsInt)
             val result = UtExecutionSuccess(resultAsModel)

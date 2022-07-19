@@ -12,9 +12,18 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.A
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
 import io.github.danielnaczo.python3parser.model.mods.Module
+import io.github.danielnaczo.python3parser.model.stmts.Body
+import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.ExceptHandler
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.Try
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.With
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.WithItem
+import io.github.danielnaczo.python3parser.model.stmts.importStmts.Alias
+import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
+import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Assert
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
@@ -23,26 +32,21 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrett
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.PythonIntModel
-import org.utbot.framework.plugin.api.PythonStrModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import java.io.File
+import java.nio.file.Path
 import java.util.*
-import java.util.function.Consumer
 import javax.xml.bind.DatatypeConverter.parseLong
 
 
-class PythonCode(private val body: Module) {
+class PythonCode(private val body: Module, private val sourceCodePath: Path) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.statements.mapNotNull { statement ->
             (statement as? FunctionDef)?.let { functionDef: FunctionDef ->
-                PythonMethodBody(functionDef)
+                PythonMethodBody(functionDef, sourceCodePath)
             }
         }
 
@@ -54,14 +58,14 @@ class PythonCode(private val body: Module) {
         }
 
     companion object {
-        fun getFromString(code: String): PythonCode {
+        fun getFromString(code: String, sourceCodePath: Path): PythonCode {
             val lexer = Python3Lexer(fromString(code))
             val tokens = CommonTokenStream(lexer)
             val parser = Python3Parser(tokens)
             val moduleVisitor = ModuleVisitor()
             val ast = moduleVisitor.visit(parser.file_input()) as Module
 
-            return PythonCode(ast)
+            return PythonCode(ast, sourceCodePath)
         }
     }
 }
@@ -74,7 +78,7 @@ class PythonClass(private val ast: ClassDef) {
         get() = ast.functionDefs.map { PythonMethodBody(it) }
 }
 
-class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
+class PythonMethodBody(private val ast: FunctionDef, override val sourceCodePath: Path? = null): PythonMethod {
     override val name: String
         get() = ast.name.name
 
@@ -137,10 +141,19 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
 }
 
 object PythonCodeGenerator {
-    fun generateTestCode(testCase: PythonTestCase): List<String> {
-        return testCase.executions.mapIndexed { index, utExecution ->
+    private fun toString(module: Module): String {
+        val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
+        return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
+    }
+
+    fun generateTestCode(testCase: PythonTestCase): String {
+        val importFunction = generateImportFunctionCode(
+            testCase.method.sourceCodePath?.joinToString(".")!!
+        )
+        val testCaseCodes = testCase.executions.mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
         }
+        return toString(Module(importFunction)) + testCaseCodes.joinToString("")
     }
 
     fun generateTestCode(method: PythonMethod, execution: UtExecution, number: Int): String {
@@ -149,7 +162,7 @@ object PythonCodeGenerator {
 
         val parameters = execution.stateBefore.parameters.zip(method.arguments).map { (model, argument) ->
             Assign(
-                listOf(Name("${argument.name}_")),
+                listOf(Name(argument.name)),
                 Name(model.toString())
             )
         }
@@ -159,15 +172,13 @@ object PythonCodeGenerator {
 
         val actualName = "actual"
         val keywords = method.arguments.map {
-            Keyword(Name(it.name), Name("${it.name}_"))
+            Keyword(Name(it.name), Name(it.name))
         }
         val functionCall = Assign(
             listOf(Name(actualName)),
             Atom(
                 Name(method.name),
-                listOf(
-                    Arguments(emptyList(), keywords, emptyList(), emptyList())
-                )
+                listOf(createArguments(emptyList(), keywords))
             )
         )
         testFunction.addStatement(functionCall)
@@ -190,10 +201,161 @@ object PythonCodeGenerator {
         return PythonMethodBody(testFunction).asString()
     }
 
-    fun saveToFile(filePath: String, code: List<String>) {
+    private fun createOutputBlock(outputName: String, outputFilename: String, outputFileAlias: String): With {
+        return With(
+            listOf(WithItem(
+                Atom(
+                    Name("open"),
+                    listOf(
+                        createArguments(
+                            listOf(
+                                Str(outputFilename),
+                                Str("w")
+                            )
+                        )
+                    )
+                ),
+                Name(outputFileAlias)
+            )),
+            Atom(
+                Name("print"),
+                listOf(
+                    createArguments(
+                        listOf(Name(outputName)),
+                        listOf(
+                            Keyword(Name("file"), Name(outputFileAlias)),
+                            Keyword(Name("end"), Str(""))
+                        ),
+                    )
+                )
+            )
+        )
+    }
+
+    private fun createArguments(
+        args: List<Expression> = emptyList(),
+        keywords: List<Keyword> = emptyList(),
+        starredArgs: List<Expression> = emptyList(),
+        doubleStarredArgs: List<Keyword> = emptyList()
+    ): Arguments {
+        return Arguments(args, keywords, starredArgs, doubleStarredArgs)
+    }
+
+    private fun generateImportFunctionCode(functionPath: String): List<Statement> {
+        val systemImport = Import(
+            listOf(
+                Alias("os"),
+                Alias("sys")
+            )
+        )
+        val systemCall = Atom(
+            Name("sys.path.insert"),
+            listOf(
+                createArguments(
+                    listOf(
+                        Name("0"),
+                        Atom(
+                            Name("os.path.dirname"),
+                            listOf(
+                                createArguments(
+                                    listOf(
+                                        Atom(
+                                            Name("os.path.dirname"),
+                                            listOf(
+                                                createArguments(
+                                                    listOf(Name("__file__"))
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+        val import = ImportFrom(functionPath, listOf(Alias("*")))
+        return listOf(systemImport, systemCall, import)
+    }
+
+    fun generateRunFunctionCode(
+        method: PythonMethod,
+        methodArguments: List<UtModel>,
+        outputFilename: String,
+        errorFilename: String,
+        codeFilename: String,
+    ): File {
+        val importStatements = generateImportFunctionCode(
+            method.sourceCodePath?.joinToString(".")!!
+        )
+
+        val testFunctionName = "__run_${method.name}"
+        val testFunction = FunctionDef(testFunctionName)
+
+        val parameters = methodArguments.zip(method.arguments).map { (model, argument) ->
+            Assign(
+                listOf(Name(argument.name)),
+                Name(model.toString())
+            )
+        }
+        val resultName = "result"
+        val keywords = method.arguments.map {
+            Keyword(Name(it.name), Name(it.name))
+        }
+        val functionCall = Assign(
+            listOf(Name(resultName)),
+            Atom(
+                Name(method.name),
+                listOf(
+                    createArguments(emptyList(), keywords)
+                )
+            )
+        )
+
+        val outputFileAlias = "fout"
+        val withOpenResultFile = createOutputBlock(
+            resultName,
+            outputFilename,
+            outputFileAlias
+        )
+
+        val errorFileAlias = "ferr"
+        val exceptionName = "e"
+
+        val withOpenErrorFile = createOutputBlock(
+            exceptionName,
+            errorFilename,
+            errorFileAlias
+        )
+
+        val tryBody = Body(parameters + listOf(functionCall, withOpenResultFile))
+        val tryHandler = ExceptHandler("Exception", exceptionName)
+        val tryBlock = Try(tryBody, listOf(tryHandler), listOf(withOpenErrorFile))
+
+        testFunction.addStatement(
+            tryBlock
+        )
+
+        val runFunction = Atom(
+            Name(testFunctionName),
+            listOf(createArguments())
+        )
+
+        val functionCode = toString(
+            Module(
+                importStatements + listOf(testFunction, runFunction)
+            )
+        )
+
+        return saveToFile(codeFilename, functionCode)
+    }
+
+    fun saveToFile(filePath: String, code: String): File {
         val file = File(filePath)
-        file.writeText(code.joinToString("\n\n\n"))
+        file.writeText(code)
         file.createNewFile()
+        return file
     }
 }
 
@@ -202,4 +364,50 @@ fun String.camelToSnakeCase(): String {
     return camelRegex.replace(this) {
         "_${it.value}"
     }.toLowerCase()
+}
+
+object PythonEvaluation {
+    fun evaluate(
+        method: PythonMethod,
+        methodArguments: List<UtModel>,
+        testSourceRoot: String,
+        pythonPath: String = "python3"
+    ): Pair<String, Boolean> {
+        createDirectory(testSourceRoot)
+
+        val outputFilename = "$testSourceRoot/__output_utbot_run_${method.name}.txt"
+        val errorFilename = "$testSourceRoot/__error_utbot_run_${method.name}.txt"
+        val codeFilename = "$testSourceRoot/__test_utbot_run_${method.name}.py"
+
+        val file = PythonCodeGenerator.generateRunFunctionCode(
+            method,
+            methodArguments,
+            outputFilename,
+            errorFilename,
+            codeFilename
+        )
+
+        val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")
+        process.waitFor()
+
+        val resultFile = File(outputFilename)
+        var output = ""
+        if (resultFile.exists()) {
+            output = resultFile.readText()
+            resultFile.delete()
+        } else {
+            val errorFile = File(errorFilename)
+            if (errorFile.exists()) {
+                output = errorFile.readText()
+                errorFile.delete()
+            }
+        }
+
+        file.delete()
+        return Pair(output, true)
+    }
+
+    private fun createDirectory(path: String) {
+        File(path).mkdir()
+    }
 }

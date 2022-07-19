@@ -6,6 +6,7 @@ import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.engine.variable
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtModel
@@ -21,7 +22,7 @@ class ConstrainedSynthesisUnitChecker(
 
     var id = 0
 
-    fun tryGenerate(units: List<SynthesisUnit>, parameters: ResolvedModels): UtModel? {
+    fun tryGenerate(units: List<SynthesisUnit>, parameters: ResolvedModels): List<UtModel>? {
         if (units.any { !it.isFullyDefined() }) return null
 
         val context = synthesizer.synthesize(units)
@@ -35,6 +36,7 @@ class ConstrainedSynthesisUnitChecker(
             emptyMap()
         )
         val execution = withPathSelector(PathSelectorType.INHERITORS_SELECTOR) {
+            enableSynthesis = false
             UtBotTestCaseGenerator.generateWithPostCondition(
                 method,
                 MockStrategyApi.NO_MOCKS,
@@ -43,16 +45,14 @@ class ConstrainedSynthesisUnitChecker(
                     units.map { context.unitToParameter[it] },
                     units.map { context.unitToLocal[it]?.variable }),
                 scoringStrategy
-            ).firstOrNull()
+            ).firstOrNull().also {
+                enableSynthesis = true
+            }
         } ?: return null
 
 
         logger.error { execution }
-        return null
-//        return context.resolve(listOfNotNull(execution.stateBefore.thisInstance) + execution.stateBefore.parameters)
-//            .also {
-//                println("Method body:\n ${method.activeBody}")
-//            }
+        return context.resolve(listOfNotNull(execution.stateBefore.thisInstance) + execution.stateBefore.parameters)
     }
 
     private fun <T> withPathSelector(pathSelectorType: PathSelectorType, body: () -> T): T {

@@ -1,18 +1,14 @@
 package org.utbot.framework.synthesis
 
 import org.utbot.engine.nextDefaultModelId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.nextModelName
 import java.util.IdentityHashMap
 
 class Resolver(
     parameterModels: List<UtModel>,
-    unitToParameter: IdentityHashMap<SynthesisUnit, SynthesisParameter>
+    val rootUnits: List<SynthesisUnit>,
+    unitToParameter: IdentityHashMap<SynthesisUnit, SynthesisParameter>,
 ) {
     private val unitToModel = IdentityHashMap<SynthesisUnit, UtModel>().apply {
         unitToParameter.toList().forEach { (it, parameter) -> this[it] = parameterModels[parameter.number] }
@@ -21,9 +17,10 @@ class Resolver(
 
     fun resolve(unit: SynthesisUnit): UtModel =
         when (unit) {
-            is MethodUnit -> resolveMethodUnit(unit)
+            is MethodUnit -> unitToModel.getOrPut(unit) { resolveMethodUnit(unit) }
             is ObjectUnit -> unitToModel[unit] ?: error("Can't map $unit")
-            else -> TODO()
+            is NullUnit -> UtNullModel(unit.classId)
+            is RefUnit -> resolve(rootUnits[unit.referenceParam])
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =

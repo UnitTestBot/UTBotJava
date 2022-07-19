@@ -43,7 +43,7 @@ class CompositeUnitExpander(
             return emptyList()
         }
         if (objectUnit.classId !in statementsStorage.items.keys.map { it.classId }.toSet()) {
-            statementsStorage.update(setOf(objectUnit.classId))
+            statementsStorage.update(setOf(objectUnit.classId).expandable())
         }
         val mutators = findMutators(objectUnit.classId)
 

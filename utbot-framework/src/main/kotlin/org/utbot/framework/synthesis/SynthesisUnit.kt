@@ -2,6 +2,7 @@ package org.utbot.framework.synthesis
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.primitives
 
 sealed class SynthesisUnit {

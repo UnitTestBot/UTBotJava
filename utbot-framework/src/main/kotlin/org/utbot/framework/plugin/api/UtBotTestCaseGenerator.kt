@@ -44,6 +44,7 @@ import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.engine.*
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
+import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.synthesis.ConstrainedSynthesizer
 import org.utbot.framework.synthesis.Synthesizer
@@ -404,36 +405,39 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
     ): UtTestCase {
-        val executions = generateWithPostCondition(
-            method.toSootMethod(), mockStrategy, EmptyPostCondition, ScoringStrategyBuilder()
-        )
+        if (enableSynthesis) {
+            val executions = generateWithPostCondition(
+                method.toSootMethod(), mockStrategy, EmptyPostCondition, ScoringStrategyBuilder()
+            )
 
-        return UtTestCase(
-            method,
-            executions.toAssemble(),
-            jimpleBody(method),
-        )
-//        logger.trace { "UtSettings:${System.lineSeparator()}" + UtSettings.toString() }
-//
-//        if (isCanceled()) return UtTestCase(method)
-//
-//        val executions = mutableListOf<UtExecution>()
-//        val errors = mutableMapOf<String, Int>()
-//
-//
-//        runIgnoringCancellationException {
-//            runBlockingWithCancellationPredicate(isCanceled) {
-//                generateAsync(EngineController(), method.toSootMethod(), mockStrategy).collect {
-//                    when (it) {
-//                        is UtExecution -> executions += it
-//                        is UtError -> errors.merge(it.description, 1, Int::plus)
-//                    }
-//                }
-//            }
-//        }
-//
-//        val minimizedExecutions = minimizeExecutions(executions)
-//        return UtTestCase(method, minimizedExecutions, jimpleBody(method), errors)
+            return UtTestCase(
+                method,
+                executions.toAssemble(),
+                jimpleBody(method),
+            )
+        } else {
+            logger.trace { "UtSettings:${System.lineSeparator()}" + UtSettings.toString() }
+
+            if (isCanceled()) return UtTestCase(method)
+
+            val executions = mutableListOf<UtExecution>()
+            val errors = mutableMapOf<String, Int>()
+
+
+            runIgnoringCancellationException {
+                runBlockingWithCancellationPredicate(isCanceled) {
+                    generateAsync(EngineController(), method.toSootMethod(), mockStrategy).collect {
+                        when (it) {
+                            is UtExecution -> executions += it
+                            is UtError -> errors.merge(it.description, 1, Int::plus)
+                        }
+                    }
+                }
+            }
+
+            val minimizedExecutions = minimizeExecutions(executions)
+            return UtTestCase(method, minimizedExecutions, jimpleBody(method), errors)
+        }
     }
 
     private fun toAssembleModel(model: UtModel) = (model as? UtCompositeModel)?.let {
@@ -487,10 +491,10 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             System.err.println((execution.hole as ResolvedExecution).modelsAfter)
             System.err.println("-------------------------------")
             val aa = ConstrainedSynthesizer((execution.hole as ResolvedExecution).modelsAfter)
-            aa.synthesize()
+            val synthesizedModels = aa.synthesize() ?: return this
 
-            val newThisModel = oldStateBefore.thisInstance?.let { toAssembleModel(it) }
-            val newParameters = oldStateBefore.parameters.map { toAssembleModel(it) }
+            val newThisModel = oldStateBefore.thisInstance?.let { synthesizedModels.first() }
+            val newParameters = oldStateBefore.thisInstance?.let { synthesizedModels.drop(1) } ?: synthesizedModels
 
             execution.copy(
                 stateBefore = EnvironmentModels(

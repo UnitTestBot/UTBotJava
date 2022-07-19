@@ -102,6 +102,7 @@ import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.enableFeatureProcess
+import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.UtSettings.pathSelectorStepsLimit
 import org.utbot.framework.UtSettings.pathSelectorType
 import org.utbot.framework.UtSettings.preferredCexOption
@@ -3684,12 +3685,14 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(state.executionStack.first().method)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
-        val resolvedConstraints = ConstraintResolver(
-            updatedMemory,
-            holder,
-            typeRegistry,
-            typeResolver
-        ).run { resolveModels(resolvedParameters) }
+        val resolvedConstraints = if (enableSynthesis) {
+            ConstraintResolver(
+                updatedMemory,
+                holder,
+                typeRegistry,
+                typeResolver
+            ).run { resolveModels(resolvedParameters) }
+        } else null
 
         val symbolicUtExecution = UtExecution(
             stateBefore,

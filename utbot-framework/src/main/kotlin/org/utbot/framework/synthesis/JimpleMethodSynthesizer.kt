@@ -75,7 +75,7 @@ class JimpleMethodSynthesizer {
         }
 
         fun resolve(parameterModels: List<UtModel>): UtModel {
-            val resolver = Resolver(parameterModels, unitToParameter)
+            val resolver = Resolver(parameterModels, listOf(), unitToParameter)
             return resolver.resolve(rootUnit)
         }
 

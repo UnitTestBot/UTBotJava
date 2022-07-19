@@ -1,8 +1,10 @@
 package org.utbot.framework.synthesis
 
 import org.utbot.engine.*
+import org.utbot.engine.ConstraintResolver
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 import org.utbot.framework.synthesis.postcondition.constructors.toSootType
 import soot.RefType
@@ -59,6 +61,11 @@ class ConstrainedJimpleMethodSynthesizer {
             return createSootMethod(name, parameterTypes, returnType, declaringClass, body, isStatic = true).also {
                 System.err.println("Done!")
             }
+        }
+
+        fun resolve(parameterModels: List<UtModel>): List<UtModel> {
+            val resolver = Resolver(parameterModels, rootUnits, unitToParameter)
+            return rootUnits.map { resolver.resolve(it) }
         }
 
         private fun synthesizeUnit(unit: SynthesisUnit): JimpleLocal = when (unit) {

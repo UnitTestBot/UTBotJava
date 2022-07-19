@@ -5,9 +5,13 @@ import org.utbot.engine.ResolvedModels
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionConstructor
 import org.utbot.framework.synthesis.postcondition.constructors.toSoot
+
+internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
 class ConstrainedSynthesizer(
     val parameters: ResolvedModels,
@@ -15,7 +19,7 @@ class ConstrainedSynthesizer(
 ) {
     private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
     private val statementStorage = StatementsStorage().also { storage ->
-        storage.update(parameters.parameters.map { it.classId }.toSet())
+        storage.update(parameters.parameters.map { it.classId }.expandable())
     }
 
     private val queue = MultipleSynthesisUnitQueue(
@@ -25,7 +29,7 @@ class ConstrainedSynthesizer(
     )
     private val unitChecker = ConstrainedSynthesisUnitChecker(objectClassId.toSoot())
 
-    fun synthesize(): UtModel? {
+    fun synthesize(): List<UtModel>? {
         while (!queue.isEmpty()) {
             val units = queue.poll()
             logger.debug { "Visiting state: $units" }

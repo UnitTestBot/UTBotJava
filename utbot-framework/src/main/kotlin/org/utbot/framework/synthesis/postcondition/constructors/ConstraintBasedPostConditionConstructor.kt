@@ -1,5 +1,6 @@
 package org.utbot.framework.synthesis.postcondition.constructors
 
+import com.microsoft.z3.ArrayExpr
 import org.utbot.engine.*
 import org.utbot.engine.pc.*
 import org.utbot.engine.symbolic.SymbolicStateUpdate
@@ -23,9 +24,11 @@ class ConstraintBasedPostConditionConstructor(
     ): SymbolicStateUpdate = UtConstraintBuilder(
         engine, soft = false
     ).run {
+        val entryFrame = engine.environment.state.executionStack.first()
+        val frameParameters = entryFrame.parameters.map { it.value }
         for ((index, model) in models.parameters.withIndex()) {
             val sv = when {
-                model.classId.isPrimitive -> engine.environment.state.inputArguments[parameters[index]!!.number]
+                model.classId.isPrimitive -> frameParameters[parameters[index]!!.number]
                 else -> engine.environment.state.localVariableMemory.local(locals[index]!!) ?: continue
             }
             when (model) {
@@ -111,7 +114,7 @@ private class UtConstraintBuilder(
             is UtRefTypeConstraint -> {
                 val lhvVal = buildExpression(operand)
                 val type = type.toSootType()
-                mkNot(engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint())
+                engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint()
             }
             is UtAndConstraint -> mkAnd(
                 buildConstraintInternal(lhv), buildConstraintInternal(rhv)
@@ -191,7 +194,8 @@ private class UtConstraintBuilder(
                 TODO()
             }
             is UtConstraintArrayLengthAccess -> {
-                TODO()
+                val array = buildExpression(instance)
+                engine.memory.findArrayLength(array.addr)
             }
             is UtConstraintFieldAccess -> {
                 val type = instance.classId.toSoot().type

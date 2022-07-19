@@ -4,12 +4,11 @@ import org.utbot.engine.*
 import org.utbot.engine.z3.intValue
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.UtConstraintParameter
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.*
 import soot.ArrayType
 import soot.PrimType
 import soot.RefType
 import soot.Type
-
 
 
 class UtVarBuilder(
@@ -19,33 +18,36 @@ class UtVarBuilder(
 ) : UtExpressionVisitor<UtConstraintVariable> {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
 
-    override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
-        when (val array = expr.arrayExpression) {
-            is UtMkArrayExpression -> {
-                when (array.name) {
-                    "arraysLength" -> {
-                        val instance = expr.index.accept(this)
-                        return UtConstraintArrayLengthAccess(instance)
-                    }
-                    "RefValues_Arrays" -> {
-                        val instance = expr.index.accept(this)
-                        return instance
-                    }
-                    else -> {
-                        val (type, field) = array.name.split("_")
-                        val instance = expr.index.accept(this)
-                        return UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
-                    }
+    override fun visit(expr: UtArraySelectExpression): UtConstraintVariable = when (val array = expr.arrayExpression) {
+        is UtMkArrayExpression -> {
+            when (array.name) {
+                "arraysLength" -> {
+                    val instance = expr.index.accept(this)
+                    UtConstraintArrayLengthAccess(instance)
+                }
+                "RefValues_Arrays" -> {
+                    val instance = expr.index.accept(this)
+                    instance
+                }
+                else -> {
+                    val (type, field) = array.name.split("_")
+                    val instance = expr.index.accept(this)
+                    UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
                 }
             }
-            is UtArraySelectExpression -> when (val array2 = array.arrayExpression) {
-                is UtMkArrayExpression -> when (array2.name) {
-                    "RefValues_Arrays" -> return expr.index.accept(this)
-                    else -> error("Unexpected")
-                }
+        }
+        is UtArraySelectExpression -> when (val array2 = array.arrayExpression) {
+            is UtMkArrayExpression -> when (array2.name) {
+                "RefValues_Arrays" -> expr.index.accept(this)
+                "int_Arrays" -> expr.index.accept(this)
                 else -> error("Unexpected")
             }
             else -> error("Unexpected")
+        }
+        else -> {
+            val array2 = expr.arrayExpression.accept(this)
+            val index = expr.index.accept(this)
+            UtConstraintArrayAccess(array2, index, array2.classId.elementClassId!!)
         }
     }
 
@@ -80,11 +82,17 @@ class UtVarBuilder(
 
     override fun visit(expr: UtAddrExpression): UtConstraintVariable {
         return when (val internal = expr.internal) {
-            is UtBvConst -> UtConstraintParameter((expr.internal as UtBvConst).name, holder.findBaseTypeOrNull(expr)?.classId ?: objectClassId)
+            is UtBvConst -> UtConstraintParameter(
+                (expr.internal as UtBvConst).name,
+                holder.findBaseTypeOrNull(expr)?.classId ?: objectClassId
+            )
             is UtBvLiteral -> when (internal.value) {
                 0 -> NullUtConstraintVariable(objectClassId)
                 else -> internalAddrs.getOrPut(internal.value.toInt()) {
-                    UtConstraintParameter("object${internal.value}", holder.findBaseTypeOrNull(expr)?.classId ?: objectClassId)
+                    UtConstraintParameter(
+                        "object${internal.value}",
+                        holder.findBaseTypeOrNull(expr)?.classId ?: objectClassId
+                    )
                 }
             }
             else -> expr.internal.accept(this)

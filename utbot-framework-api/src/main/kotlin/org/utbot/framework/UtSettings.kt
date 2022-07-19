@@ -335,6 +335,12 @@ object UtSettings {
      */
     var singleSelector by getBooleanProperty(true)
 
+
+    /**
+     * Flag for enabling model synthesis
+     */
+    var enableSynthesis = true
+
     override fun toString(): String =
         properties
             .entries

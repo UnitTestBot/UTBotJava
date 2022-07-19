@@ -48,6 +48,12 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.reflect.KCallable
 
+/**
+ * Generates test cases: one by one or a whole set for the method under test.
+ *
+ * Note: the instantiating of [TestCaseGenerator] may take some time,
+ * because it requires initializing Soot for the current [buildDir] and [classpath].
+ */
 open class TestCaseGenerator(
     private val buildDir: Path,
     private val classpath: String?,
@@ -55,15 +61,15 @@ open class TestCaseGenerator(
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
 ) {
-    private lateinit var logger: KLogger
-    private lateinit var timeoutLogger: KLogger
+    private val logger: KLogger = KotlinLogging.logger {}
+    private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
+
+    private val classpathForEngine: String
+        get() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
 
     init {
         if (!isCanceled()) {
             checkFrameworkDependencies(dependencyPaths)
-
-            logger = KotlinLogging.logger {}
-            timeoutLogger = KotlinLogging.logger(logger.name + ".timeout")
 
             logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
 
@@ -80,7 +86,7 @@ open class TestCaseGenerator(
             if (warmupConcreteExecution) {
                 ConcreteExecutor(
                     UtExecutionInstrumentation,
-                    classpathForEngine(),
+                    classpathForEngine,
                     dependencyPaths
                 ).apply {
                     classLoader = utContext.classLoader
@@ -234,8 +240,6 @@ open class TestCaseGenerator(
             )
         }
 
-    private fun classpathForEngine() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
-
     private fun createSymbolicEngine(
         controller: EngineController,
         method: UtMethod<*>,
@@ -248,7 +252,7 @@ open class TestCaseGenerator(
         return UtBotSymbolicEngine(
             controller,
             method,
-            classpathForEngine(),
+            classpathForEngine,
             dependencyPaths = dependencyPaths,
             mockStrategy = mockStrategyApi.toModel(),
             chosenClassesToMockAlways = chosenClassesToMockAlways,

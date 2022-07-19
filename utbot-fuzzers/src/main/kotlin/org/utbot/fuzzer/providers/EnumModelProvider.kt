@@ -13,7 +13,7 @@ object EnumModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap
             .asSequence()
-            .filter { (classId, _) -> classId.isSubtypeOf(Enum::class.java.id) }
+            .filter { (classId, _) -> classId.jClass.isEnum }
             .forEach { (classId, indices) ->
                 yieldAllValues(indices, classId.jClass.enumConstants.filterIsInstance<Enum<*>>().map {
                     UtEnumConstantModel(classId, it).fuzzed { summary = "%var% = ${it.name}" }

@@ -2,6 +2,8 @@ package org.utbot.engine.util.mockListeners
 import org.utbot.engine.EngineController
 import org.utbot.engine.MockStrategy
 import org.utbot.engine.UtMockInfo
+import org.utbot.framework.util.Conflict
+import org.utbot.framework.util.ConflictTriggers
 
 /**
  * Listener for mocker events in [org.utbot.engine.UtBotSymbolicEngine].
@@ -9,13 +11,11 @@ import org.utbot.engine.UtMockInfo
  *
  * Supposed to be created only if Mockito is not installed.
  */
-class ForceMockListener: MockListener {
-    var forceMockHappened = false
-        private set
-
+class ForceMockListener(triggers: ConflictTriggers): MockListener(triggers) {
     override fun onShouldMock(controller: EngineController, strategy: MockStrategy, mockInfo: UtMockInfo) {
         // If force mocking happened -- сancel engine job
         controller.job?.cancel(ForceMockCancellationException())
-        forceMockHappened = true
+
+        triggers[Conflict.ForceMockHappened] = true
     }
 }

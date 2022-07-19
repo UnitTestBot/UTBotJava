@@ -76,6 +76,7 @@ import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
+import org.utbot.common.filterWhen
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -95,6 +96,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
@@ -126,7 +128,6 @@ import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
 import kotlin.streams.toList
-import org.utbot.common.filterWhen
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -298,8 +299,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun findTestPackageComboValue(): String {
-        val packageNames = model.srcClasses.map { it.packageName }.distinct()
-        return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
+        return if (model.isMultiPackage) {
+            model.srcClasses.first().packageName
+        } else {
+            SAME_PACKAGE_LABEL
+        }
     }
 
     /**
@@ -621,7 +625,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             configureTestFramework()
         }
 
-        model.hasTestFrameworkConflict = TestFramework.allItems.count { it.isInstalled  } > 1
+        model.conflictTriggers[Conflict.TestFrameworkConflict] = TestFramework.allItems.count { it.isInstalled  } > 1
     }
 
     private fun configureMockFrameworkIfRequired() {

@@ -21,6 +21,9 @@ import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
 import kotlin.reflect.KClass
 import mu.KotlinLogging
+import org.utbot.common.filterWhen
+import org.utbot.framework.UtSettings
+import org.utbot.framework.util.isKnownSyntheticMethod
 
 
 private val logger = KotlinLogging.logger {}
@@ -92,6 +95,7 @@ class GenerateTestsCommand :
 
             val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
             val targetMethods = classUnderTest.targetMethods()
+                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
             initializeEngine(workingDirectory)
 
             if (targetMethods.isEmpty()) {

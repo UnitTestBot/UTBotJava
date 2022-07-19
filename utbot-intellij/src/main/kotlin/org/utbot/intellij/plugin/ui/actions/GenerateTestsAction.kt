@@ -54,7 +54,7 @@ class GenerateTestsAction : AnAction() {
                 val matchingRoot = ModuleRootManager.getInstance(module).contentEntries
                     .flatMap { entry -> entry.sourceFolders.toList() }
                     .singleOrNull { folder -> folder.file == srcSourceRoot }
-                if (matchingRoot == null || matchingRoot.rootType.isForTests) {
+                if (srcMethods.isEmpty() || matchingRoot == null || matchingRoot.rootType.isForTests) {
                     return null
                 }
 

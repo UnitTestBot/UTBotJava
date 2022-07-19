@@ -16,6 +16,7 @@ import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiModifier
 import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
@@ -140,6 +141,7 @@ object UtTestsDialogProcessor {
                                             .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
                                                 it.member !is SyntheticElement
                                             }
+                                            .filterNot { it.member.modifierList?.hasModifierProperty(PsiModifier.ABSTRACT)?: false }
                                     findMethodsInClassMatchingSelected(clazz, srcMethods)
                                 }.executeSynchronously()
 

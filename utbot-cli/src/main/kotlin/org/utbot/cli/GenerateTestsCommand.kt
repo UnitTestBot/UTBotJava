@@ -96,6 +96,7 @@ class GenerateTestsCommand :
             val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
             val targetMethods = classUnderTest.targetMethods()
                 .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+                .filterNot { it.callable.isAbstract }
             initializeEngine(workingDirectory)
 
             if (targetMethods.isEmpty()) {

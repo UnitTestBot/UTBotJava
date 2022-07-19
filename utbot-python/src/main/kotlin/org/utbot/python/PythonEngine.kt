@@ -2,12 +2,12 @@ package org.utbot.python
 
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.fuzzer.providers.*
+import org.utbot.python.providers.PythonModelProvider
 import java.lang.Long.parseLong
+import java.math.BigInteger
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -36,13 +36,14 @@ class PythonEngine(
         // model provider with fallback?
         // attempts?
 
+        var testsGenerated = 0
         fuzz(methodUnderTestDescription, PythonModelProvider).forEach { values ->
             val modelList = values.map { it.model }
 
             // execute method to get function return
             // what if exception happens?
             val resultAsString = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
-            val resultAsInt = parseLong(resultAsString, 10) // for now only int results
+            val resultAsInt = BigInteger(resultAsString)// for now only int results
             val resultAsModel = UtPrimitiveModel(resultAsInt)
             val result = UtExecutionSuccess(resultAsModel)
 
@@ -63,6 +64,11 @@ class PythonEngine(
                 testMethodName = testMethodName?.testName,
                 displayName = testMethodName?.displayName
             ))
+
+            testsGenerated += 1
+            if (testsGenerated == 100)
+                return@sequence
+
 
             // emit(UtExecution(/* .... */))
         }

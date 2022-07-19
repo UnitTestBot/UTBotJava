@@ -117,12 +117,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     }
 
     companion object {
-        fun typeAsStringToClassId(typeAsString: String): ClassId? =
-            when (typeAsString) {
-                "int" -> PythonIntModel.classId
-                "str" -> PythonStrModel.classId
-                else -> null
-            }
+        fun typeAsStringToClassId(typeAsString: String): ClassId = ClassId(typeAsString)
 
         fun annotationToString(annotation: Optional<Expression>): String? =
             if (annotation.isPresent) (annotation.get() as? Name)?.id?.name else null

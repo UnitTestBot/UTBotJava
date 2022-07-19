@@ -18,6 +18,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     api project(':utbot-fuzzers')
     implementation group: "io.github.danielnaczo", name: "python3parser", version: "1.0.4"
+    implementation 'com.beust:klaxon:5.5'
 }
 
 test {

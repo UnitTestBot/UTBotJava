@@ -16,6 +16,9 @@ import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
+import org.utbot.python.types.PythonType
+import org.utbot.python.types.PythonTypesStorage
+import org.utbot.python.types.PythonTypesStorage.builtinTypes
 
 
 object PythonDialogProcessor {
@@ -90,8 +93,6 @@ object PythonDialogProcessor {
                 val tests = pythonMethods.map { method ->
                     PythonTestCaseGenerator.generate(method, testSourceRoot)
                 }
-
-                val x = tests.toList()
 
                 tests.forEach {
                     val testCode = generateTestCode(it)

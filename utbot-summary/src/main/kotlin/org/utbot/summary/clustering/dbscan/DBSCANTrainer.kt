@@ -36,8 +36,10 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
             rangeQuery.metric = metric
         } // TODO: could be refactored if we add some new variants of RangeQuery
 
-        val labels = IntArray(data.size) { _ -> UNDEFINED }
-        var k = 0
+        val labels = IntArray(data.size) { UNDEFINED }
+
+        // It changes in the range [0; k), where k is a final number of clusters found by DBSCAN
+        var clusterLabel = 0
 
         for (i in data.indices) {
             if (labels[i] == UNDEFINED) {
@@ -45,14 +47,16 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
                 if (neighbors.size < minSamples) {
                     labels[i] = NOISE
                 } else {
-                    labels[i] = k
-                    expandCluster(neighbors, labels, k)
-                    k++
+                    labels[i] = clusterLabel
+                    expandCluster(neighbors, labels, clusterLabel)
+
+                    // If the existing cluster can not be expanded, the cluster label is incremented.
+                    clusterLabel++
                 }
             }
         }
 
-        return DBSCANModel(k = k, clusterLabels = labels)
+        return DBSCANModel(numberOfClusters = clusterLabel, clusterLabels = labels)
     }
 
     private fun expandCluster(
@@ -60,20 +64,25 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
         labels: IntArray,
         k: Int
     ) {
-        neighbors.forEach {  // Neighbors to expand.
+        // Neighbors to expand.
+        neighbors.forEach {
             if (labels[it.index] == UNDEFINED) {
-                labels[it.index] = CLUSTER_PART // All neighbors of a cluster point became cluster points.
+                // All neighbors of a cluster point became cluster points.
+                labels[it.index] = CLUSTER_PART
             }
         }
 
         // NOTE: the size of neighbors could grow from iteration to iteration and the classical for-loop in Kotlin could not be used
         var j = 0
-        while (j < neighbors.count()) // Process every seed point Q.
+
+        // Process every seed point Q.
+        while (j < neighbors.count())
         {
             val q = neighbors[j]
             val idx = q.index
 
-            if (labels[idx] == NOISE) { // Change Noise to border point.
+            // Change Noise to border point.
+            if (labels[idx] == NOISE) {
                 labels[idx] = k
             }
 
@@ -82,7 +91,7 @@ class DBSCANTrainer<T>(val eps: Float, val minSamples: Int, val metric: Metric<T
 
                 val qNeighbors = rangeQuery.findNeighbors(q.key, eps)
 
-                if (qNeighbors.size >= minSamples) { // Density check (if Q is a core point).
+                if (qNeighbors.size >= minSamples) {
                     mergeTwoGroupsInCluster(qNeighbors, labels, neighbors)
                 }
             }

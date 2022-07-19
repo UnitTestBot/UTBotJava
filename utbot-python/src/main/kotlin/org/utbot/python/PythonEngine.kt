@@ -16,10 +16,10 @@ class PythonEngine(
     // TODO: change sequence to flow
     fun fuzzing(until: Long = Long.MAX_VALUE /*, modelProvider: (ModelProvider) -> ModelProvider = { it }*/): Sequence<UtResult> = sequence {
 
-        val returnType = methodUnderTest.returnType
+        val returnType = methodUnderTest.returnType ?: ClassId("")
         val argumentTypes = methodUnderTest.arguments.map { it.type }
 
-        if (returnType == null || argumentTypes.any { it == null }) {
+        if (argumentTypes.any { it == null }) {
             return@sequence
         }
 
@@ -43,8 +43,8 @@ class PythonEngine(
             // execute method to get function return
             // what if exception happens?
             val resultAsString = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
-            val resultAsInt = BigInteger(resultAsString)// for now only int results
-            val resultAsModel = UtPrimitiveModel(resultAsInt)
+            // TODO: check that type has fine representation
+            val resultAsModel = PythonDefaultModel(resultAsString, "")
             val result = UtExecutionSuccess(resultAsModel)
 
             val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())

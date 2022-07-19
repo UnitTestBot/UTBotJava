@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.PythonDefaultModel
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
-import org.utbot.python.types.PythonTypesStorage
+import org.utbot.python.PythonTypesStorage
 import java.util.function.BiConsumer
 
 object DefaultValuesModelProvider: ModelProvider {

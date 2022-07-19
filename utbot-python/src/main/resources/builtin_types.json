@@ -1,12 +1,14 @@
 [
   {
     "name": "BaseException",
+    "useAsReturn": true,
     "instances": [
       "BaseException()"
     ]
   },
   {
     "name": "bool",
+    "useAsReturn": true,
     "instances": [
     	"True",
     	"False"
@@ -14,6 +16,7 @@
   },
   {
     "name": "bytearray",
+    "useAsReturn": true,
     "instances": [
       "bytearray(b'a')",
       "bytearray(100)",
@@ -137,6 +140,7 @@
   },
   {
     "name": "bytes",
+    "useAsReturn": true,
     "instances": [
       "bytes(b'ab')",
       "bytes(b'def')",
@@ -151,6 +155,7 @@
   },
   {
     "name": "complex",
+    "useAsReturn": true,
     "instances": [
       "complex(1.0, float('inf'))",
       "complex('1j')",
@@ -239,12 +244,14 @@
   },
   {
     "name": "dict",
+    "useAsReturn": true,
     "instances": [
       "dict()"
     ]
   },
   {
     "name": "enumerate",
+    "useAsReturn": false,
     "instances": [
       "enumerate([])",
       "enumerate(range(10))",
@@ -276,6 +283,7 @@
   },
   {
     "name": "filter",
+    "useAsReturn": false,
     "instances": [
       "filter(lambda x: x > 0, [1, -3, 9, 0, 2])",
       "filter(42, (1, 2))",
@@ -287,6 +295,7 @@
   },
   {
     "name": "float",
+    "useAsReturn": true,
     "instances": [
       "float(-1)",
       "float(0.0)",
@@ -337,6 +346,7 @@
   },
   {
     "name": "frozenset",
+    "useAsReturn": true,
     "instances": [
       "frozenset(range(7))",
       "frozenset({'module1', 'module2'})",
@@ -367,6 +377,7 @@
   },
   {
     "name": "int",
+    "useAsReturn": true,
     "instances": [
       "int('3723ai4h', 20)",
       "int('4000001', 32)",
@@ -491,12 +502,14 @@
   },
   {
     "name": "list",
+    "useAsReturn": true,
     "instances": [
       "list()"
     ]
   },
   {
     "name": "map",
+    "useAsReturn": false,
     "instances": [
       "map(ord, 'Hello')",
       "map(int, '123')",
@@ -529,6 +542,7 @@
   },
   {
     "name": "memoryview",
+    "useAsReturn": false,
     "instances": [
       "memoryview(b'a')",
       "memoryview(b'1234')",
@@ -575,12 +589,14 @@
   },
   {
     "name": "object",
+    "useAsReturn": false,
     "instances": [
       "object()"
     ]
   },
   {
     "name": "range",
+    "useAsReturn": true,
     "instances": [
       "range(127, 256)",
       "range(24)",
@@ -616,6 +632,7 @@
   },
   {
     "name": "reversed",
+    "useAsReturn": false,
     "instances": [
       "reversed({None: []}.items())",
       "reversed(range(100))",
@@ -638,12 +655,14 @@
   },
   {
     "name": "set",
+    "useAsReturn": true,
     "instances": [
       "set()"
     ]
   },
   {
     "name": "slice",
+    "useAsReturn": true,
     "instances": [
       "slice(0, 2, 1)",
       "slice(2)",
@@ -735,6 +754,7 @@
   },
   {
     "name": "str",
+    "useAsReturn": true,
     "instances": [
       "str(float('-infinity'))",
       "str(Exception('a'))",
@@ -773,7 +793,6 @@
       "str(b'strings are decoded to unicode', 'utf-8', 'strict')",
       "str(memoryview(b'character buffers are decoded to unicode'), 'utf-8', 'strict')",
       "str('abcdefghijklmnopqrst')",
-      "str(object=b'abc', errors='strict')",
       "str(b'\\xe2\\x82\\xac', 'utf-8')",
       "str(b'x')",
       "str('a = 1')",
@@ -796,6 +815,7 @@
   },
   {
     "name": "tuple",
+    "useAsReturn": true,
     "instances": [
       "tuple(range(5))",
       "tuple([0, 1, 2, 3])",
@@ -823,6 +843,7 @@
   },
   {
     "name": "type",
+    "useAsReturn": true,
     "instances": [
       "type(len)",
       "type('123')",
@@ -855,6 +876,7 @@
   },
   {
     "name": "zip",
+    "useAsReturn": false,
     "instances": [
       "zip(range(4), range(1, 5))",
       "zip(range(6), range(6))",

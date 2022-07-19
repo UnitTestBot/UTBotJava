@@ -21,7 +21,7 @@ object PythonEvaluation {
         val methodWithArgs =
             method.asString() +
             "\n" +
-            "with open('$outputFilename', 'w') as fout: print(${method.name}($arguments), file=fout, end='')"
+            "with open('$outputFilename', 'w') as fout: print(${method.name}($arguments).__repr__(), file=fout, end='')"
 
         val file = File(codeFilename)
         file.writeText(methodWithArgs)

@@ -1,11 +1,11 @@
-package org.utbot.python.types
+package org.utbot.python
 
 import com.beust.klaxon.Klaxon
-import org.utbot.framework.plugin.api.ClassId
 
 data class PythonType(
     val name: String,
-    val instances: List<String>
+    val instances: List<String>,
+    val useAsReturn: Boolean
 )
 
 object PythonTypesStorage {

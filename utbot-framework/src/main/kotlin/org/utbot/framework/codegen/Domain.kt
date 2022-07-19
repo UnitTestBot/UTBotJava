@@ -27,6 +27,8 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortArrayClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
 
@@ -425,6 +427,19 @@ object Junit5 : TestFramework("JUnit5") {
         simpleName = "TimeUnit"
     )
 
+    val durationClassId = BuiltinClassId(
+        name = "Duration",
+        canonicalName = "java.time.Duration",
+        simpleName = "Duration"
+    )
+
+    val ofMillis = builtinStaticMethodId(
+        classId = durationClassId,
+        name = "ofMillis",
+        returnType = durationClassId,
+        arguments = arrayOf(longClassId)
+    )
+
     override val testAnnotationId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.Test",
         canonicalName = "$JUNIT5_PACKAGE.Test",
@@ -458,6 +473,16 @@ object Junit5 : TestFramework("JUnit5") {
         returnType = java.lang.Throwable::class.id,
         arguments = arrayOf(
             Class::class.id,
+            executableClassId
+        )
+    )
+
+    val assertTimeoutPreemptively = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertTimeoutPreemptively",
+        returnType = voidWrapperClassId,
+        arguments = arrayOf(
+            durationClassId,
             executableClassId
         )
     )

@@ -363,11 +363,17 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             return
         }
 
-        when (exception) {
-            is TimeoutException -> {
-                methodType = TIMEOUT
-                writeWarningAboutTimeoutExceeding()
+        if (shouldTestPassWithTimeoutException(execution, exception)) {
+            writeWarningAboutTimeoutExceeding()
+            testFrameworkManager.expectTimeout(hangingTestsTimeout.timeoutMs) {
+                methodInvocationBlock()
             }
+            methodType = TIMEOUT
+
+            return
+        }
+
+        when (exception) {
             is ConcreteExecutionFailureException -> {
                 methodType = CRASH
                 writeWarningAboutCrash()
@@ -388,6 +394,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val exceptionRequiresAssert = exception !is RuntimeException || runtimeExceptionTestsBehaviour == PASS
         val exceptionIsExplicit = execution.result is UtExplicitlyThrownException
         return exceptionRequiresAssert || exceptionIsExplicit
+    }
+
+    private fun shouldTestPassWithTimeoutException(execution: UtExecution, exception: Throwable): Boolean {
+        return execution.result is UtTimeoutException || exception is TimeoutException
     }
 
     private fun writeWarningAboutTimeoutExceeding() {

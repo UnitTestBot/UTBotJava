@@ -1,5 +1,7 @@
 package org.utbot.framework.codegen
 
+import mu.KotlinLogging
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.info
@@ -10,15 +12,12 @@ import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.plugin.api.util.withUtContext
 import kotlin.reflect.KClass
-import mu.KotlinLogging
-import org.junit.jupiter.api.Assertions.assertTrue
 
 private val logger = KotlinLogging.logger {}
 
@@ -206,21 +205,18 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         val params = mutableMapOf<UtMethod<*>, List<String>>()
 
         val codeGenerator = with(testFrameworkConfiguration) {
-            CodeGenerator()
-                .apply {
-                    init(
-                        classUnderTest.java,
-                        params = params,
-                        testFramework = testFramework,
-                        staticsMocking = staticsMocking,
-                        forceStaticMocking = forceStaticMocking,
-                        generateWarningsForStaticMocking = false,
-                        codegenLanguage = codegenLanguage,
-                        parameterizedTestSource = parametrizedTestSource,
-                        runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
-                        enableTestsTimeout = enableTestsTimeout
-                    )
-                }
+            CodeGenerator(
+                classUnderTest.java,
+                params = params,
+                testFramework = testFramework,
+                staticsMocking = staticsMocking,
+                forceStaticMocking = forceStaticMocking,
+                generateWarningsForStaticMocking = false,
+                codegenLanguage = codegenLanguage,
+                parameterizedTestSource = parametrizedTestSource,
+                runtimeExceptionTestsBehaviour = runtimeExceptionTestsBehaviour,
+                enableTestsTimeout = enableTestsTimeout
+            )
         }
         val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
@@ -231,17 +227,6 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         val results = runPipelinesStages(classesPipelines)
         val classesChecks = classesPipelines.map { it.stageContext.classUnderTest to listOf(it.check) }
         processResults(results, classesChecks)
-    }
-
-    @Suppress("unused")
-    internal fun checkResults(
-        targetClasses: List<KClass<*>>,
-        testSets: List<UtMethodTestSet> = listOf(),
-        lastStage: Stage = TestExecution,
-        vararg checks: StageStatusCheck
-    ) {
-        val results = executeTestGenerationPipeline(targetClasses, testSets, lastStage)
-        processResults(results, results.map { it.classUnderTest to checks.toList() })
     }
 
     private fun processResults(
@@ -270,29 +255,6 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
             "There are failed checks: $failedResultsConcatenated"
         }
     }
-
-    private fun executeTestGenerationPipeline(
-        targetClasses: List<KClass<*>>,
-        testSets: List<UtMethodTestSet>,
-        lastStage: Stage = TestExecution
-    ): List<CodeGenerationResult> = targetClasses.map {
-        val buildDir = FileUtil.isolateClassFiles(it).toPath()
-        val classPath = System.getProperty("java.class.path")
-        val dependencyPath = System.getProperty("java.class.path")
-        TestCaseGenerator.init(buildDir, classPath, dependencyPath)
-
-        val pipelineStages = runPipelinesStages(
-            listOf(
-                ClassPipeline(
-                    StageContext(it, testSets, testSets.size),
-                    StageStatusCheck(lastStage = lastStage, status = SUCCESS)
-                )
-            )
-        )
-
-        pipelineStages.singleOrNull() ?: error("A single result's expected, but got ${pipelineStages.size} instead")
-    }
-
 
     companion object {
         val CodegenLanguage.defaultCodegenPipeline: TestCodeGeneratorPipeline

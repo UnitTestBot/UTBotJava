@@ -97,7 +97,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
             val targetMethods = classUnderTest.targetMethods()
             if (targetMethods.isEmpty()) return
 
-            initializeEngine(workingDirectory)
+            val testCaseGenerator = initializeGenerator(workingDirectory)
 
             // utContext is used in `generate`, `generateTest`, `generateReport`
             withUtContext(UtContext(classLoader)) {
@@ -105,6 +105,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
                 val testClassName = "${classUnderTest.simpleName}Test"
 
                 val testSets = generateTestSets(
+                    testCaseGenerator,
                     targetMethods,
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)

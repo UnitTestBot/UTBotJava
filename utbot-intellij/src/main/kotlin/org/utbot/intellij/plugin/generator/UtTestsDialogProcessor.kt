@@ -132,6 +132,13 @@ object UtTestsDialogProcessor {
                             var processedClasses = 0
                             val totalClasses = model.srcClasses.size
 
+                            val testCaseGenerator = TestCaseGenerator(
+                                    Paths.get(buildDir),
+                                    classpath,
+                                    pluginJarsPath.joinToString(separator = File.pathSeparator),
+                                    isCanceled = { indicator.isCanceled }
+                                )
+
                             for (srcClass in model.srcClasses) {
                                 val methods = ReadAction.nonBlocking<List<UtMethod<*>>> {
                                     val clazz = classLoader.loadClass(srcClass.qualifiedName).kotlin
@@ -166,14 +173,6 @@ object UtTestsDialogProcessor {
 
                                 withSubstitutionCondition(shouldSubstituteStatics) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
-
-                                    val testCaseGenerator = TestCaseGenerator.apply {
-                                        init(
-                                            Paths.get(buildDir),
-                                            classpath,
-                                            pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                        ) { indicator.isCanceled }
-                                    }
 
                                     val forceMockListener = if (!mockFrameworkInstalled) {
                                          ForceMockListener().apply {

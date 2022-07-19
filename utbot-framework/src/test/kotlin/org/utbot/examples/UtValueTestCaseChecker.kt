@@ -2490,8 +2490,17 @@ abstract class UtValueTestCaseChecker(
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String
     ): UtMethodTestSet {
-        TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
-        return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
+        val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
+
+        val testCaseGenerator = testCaseGeneratorCache
+            .getOrPut(buildInfo) {
+                TestSpecificTestCaseGenerator(
+                    buildDir,
+                    additionalDependenciesClassPath,
+                    System.getProperty("java.class.path")
+                )
+            }
+        return testCaseGenerator.generate(method, mockStrategy)
     }
 
     fun executionsModel(
@@ -2501,9 +2510,17 @@ abstract class UtValueTestCaseChecker(
     ): UtMethodTestSet {
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method, additionalDependencies)
-        TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
         withUtContext(UtContext(method.clazz.java.classLoader)) {
-            return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
+            val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
+            val testCaseGenerator = testCaseGeneratorCache
+                .getOrPut(buildInfo) {
+                    TestSpecificTestCaseGenerator(
+                        buildDir,
+                        additionalDependenciesClassPath,
+                        System.getProperty("java.class.path")
+                    )
+                }
+            return testCaseGenerator.generate(method, mockStrategy)
         }
     }
 
@@ -2533,7 +2550,7 @@ abstract class UtValueTestCaseChecker(
         val substituteStatics: Boolean
     )
 
-    data class MethodResult(val testSet: UtMethodTestSet, val coverage: Coverage)
+    data class MethodResult(val testCase: UtMethodTestSet, val coverage: Coverage)
 }
 
 @Suppress("UNCHECKED_CAST")

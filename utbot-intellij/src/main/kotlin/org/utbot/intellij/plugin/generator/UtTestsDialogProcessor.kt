@@ -193,11 +193,16 @@ object UtTestsDialogProcessor {
                                         null
                                     }
 
-                                    val notEmptyCases = withUtContext(context) {
-                                        testCaseGenerator
-                                            .generate(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
-                                            .map { it.summarize(searchDirectory) }
-                                            .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
+                                    val notEmptyCases = try {
+                                        withUtContext(context) {
+                                            testCaseGenerator
+                                                .generate(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
+                                                .map { it.summarize(searchDirectory) }
+                                                .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
+                                        }
+                                    } catch (e: java.lang.IllegalStateException) {
+                                        logger.error { "Test generation failed: ${e.message}" }
+                                        listOf()
                                     }
 
                                     if (notEmptyCases.isEmpty()) {

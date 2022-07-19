@@ -5,6 +5,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.python.PythonEvaluation.evaluate
 import org.utbot.python.providers.PythonModelProvider
 import java.lang.Long.parseLong
 import java.math.BigInteger
@@ -42,7 +43,7 @@ class PythonEngine(
 
             // execute method to get function return
             // what if exception happens?
-            val (resultAsString, status) = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
+            val (resultAsString, isSuccess) = evaluate(methodUnderTest, modelList, testSourceRoot)
             val resultAsInt = BigInteger(resultAsString)// for now only int results
             val resultAsModel = UtPrimitiveModel(resultAsInt)
             val result = UtExecutionSuccess(resultAsModel)

@@ -385,11 +385,14 @@ object PythonEvaluation {
         val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")
         process.waitFor()
 
-        val resultFile = File(outputFilename)
         var output = ""
+        var isSuccess = false
+
+        val resultFile = File(outputFilename)
         if (resultFile.exists()) {
             output = resultFile.readText()
             resultFile.delete()
+            isSuccess = true
         } else {
             val errorFile = File(errorFilename)
             if (errorFile.exists()) {
@@ -399,7 +402,7 @@ object PythonEvaluation {
         }
 
         file.delete()
-        return Pair(output, true)
+        return Pair(output, isSuccess)
     }
 
     private fun createDirectory(path: String) {

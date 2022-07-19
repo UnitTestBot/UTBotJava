@@ -250,17 +250,21 @@ sealed class UtModel(
 
 sealed class PythonModel(classId: ClassId): UtModel(classId)
 
+class PythonDefaultModel(val repr: String, val type: String): PythonModel(ClassId(type)) {
+    override fun toString() = repr
+}
+
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {
-        val classId = ClassId("py.int")
+        val classId = ClassId("int")
     }
 }
 
 class PythonStrModel(val value: String): PythonModel(classId) {
     override fun toString() = "\"\"\"" + value + "\"\"\""
     companion object {
-        val classId = ClassId("py.str")
+        val classId = ClassId("str")
     }
 }
 

@@ -20,6 +20,9 @@ import org.utbot.python.PythonCodeGenerator.generateTestCode
 import org.utbot.python.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
+import org.utbot.python.types.PythonType
+import org.utbot.python.types.PythonTypesStorage
+import org.utbot.python.types.PythonTypesStorage.builtinTypes
 
 
 object PythonDialogProcessor {

@@ -40,6 +40,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.SyntheticElement
+import com.intellij.psi.PsiModifier
 import com.intellij.refactoring.PackageWrapper
 import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
@@ -129,6 +130,7 @@ import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
 import kotlin.streams.toList
+import org.utbot.intellij.plugin.util.isAbstract
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -372,6 +374,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (srcClasses.size == 1) {
             items = TestIntegrationUtils.extractClassMethods(srcClasses.single(), false)
                 .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { it.member !is SyntheticElement }
+                .filterNot { it.isAbstract }
             updateMethodsTable(items)
         } else {
             items = srcClasses.map { MemberInfo(it) }

@@ -5,11 +5,13 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.python.PythonEvaluation.evaluate
 import org.utbot.python.providers.PythonModelProvider
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
     private val testSourceRoot: String,
+    private val projectRoot: String
 ) {
     // TODO: change sequence to flow
     fun fuzzing(until: Long = Long.MAX_VALUE /*, modelProvider: (ModelProvider) -> ModelProvider = { it }*/): Sequence<UtResult> = sequence {
@@ -40,7 +42,7 @@ class PythonEngine(
 
             // execute method to get function return
             // what if exception happens?
-            val (resultAsString, status) = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
+            val (resultAsString, isSuccess) = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
             // TODO: check that type has fine representation
             val resultAsModel = PythonDefaultModel(resultAsString, "")
             val result = UtExecutionSuccess(resultAsModel)

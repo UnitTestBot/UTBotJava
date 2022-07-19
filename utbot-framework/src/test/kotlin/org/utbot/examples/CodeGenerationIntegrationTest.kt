@@ -29,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
+import java.nio.file.Path
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
@@ -172,6 +173,10 @@ abstract class CodeGenerationIntegrationTest(
         private var runningTestsNumber: Int = 0
 
         private val logger = KotlinLogging.logger { }
+
+        @JvmStatic
+        protected val testCaseGeneratorCache = mutableMapOf<BuildInfo, TestSpecificTestCaseGenerator>()
+        data class BuildInfo(val buildDir: Path, val dependencyPath: String?)
 
         private fun getTestPackageSize(packageName: String): Int =
             // filter all not disabled tests classes

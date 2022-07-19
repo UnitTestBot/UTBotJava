@@ -2490,7 +2490,7 @@ abstract class UtValueTestCaseChecker(
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String
     ): UtMethodTestSet {
-        val buildInfo = BuildInfo(buildDir, additionalDependenciesClassPath)
+        val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
 
         val testCaseGenerator = testCaseGeneratorCache
             .getOrPut(buildInfo) {
@@ -2511,7 +2511,7 @@ abstract class UtValueTestCaseChecker(
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method, additionalDependencies)
         withUtContext(UtContext(method.clazz.java.classLoader)) {
-            val buildInfo = BuildInfo(buildDir, additionalDependenciesClassPath)
+            val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
             val testCaseGenerator = testCaseGeneratorCache
                 .getOrPut(buildInfo) {
                     TestSpecificTestCaseGenerator(
@@ -2551,9 +2551,6 @@ abstract class UtValueTestCaseChecker(
     )
 
     data class MethodResult(val testCase: UtMethodTestSet, val coverage: Coverage)
-
-    data class BuildInfo(val buildDir: Path, val dependencyPath: String)
-    private val testCaseGeneratorCache = mutableMapOf<BuildInfo, TestSpecificTestCaseGenerator>()
 }
 
 @Suppress("UNCHECKED_CAST")

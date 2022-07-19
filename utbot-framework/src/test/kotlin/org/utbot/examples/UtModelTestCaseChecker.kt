@@ -138,8 +138,9 @@ internal abstract class UtModelTestCaseChecker(
             previousClassLocation = classLocation
         }
 
+        val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, dependencyPath = null)
         val testCaseGenerator = testCaseGeneratorCache
-            .getOrPut(buildDir) {
+            .getOrPut(buildInfo) {
                 TestSpecificTestCaseGenerator(
                     buildDir,
                     classpath = null,
@@ -149,8 +150,6 @@ internal abstract class UtModelTestCaseChecker(
 
         return testCaseGenerator.generate(method, mockStrategy)
     }
-
-    private val testCaseGeneratorCache = mutableMapOf<Path, TestSpecificTestCaseGenerator>()
 
     protected inline fun <reified T> UtExecutionResult.isException(): Boolean = exceptionOrNull() is T
 

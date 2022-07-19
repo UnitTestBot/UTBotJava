@@ -456,6 +456,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             model.hangingTestsTimeout = hangingTestsTimeout
             model.forceStaticMocking = forceStaticMocking
             model.chosenClassesToMockAlways = chosenClassesToMockAlways()
+            model.fuzzingValue = fuzzingValue
             UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
         }
 

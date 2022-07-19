@@ -5,8 +5,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flattenConcat
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -119,7 +117,7 @@ open class TestCaseGenerator(
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
-        return createDefaultFlow(engine)
+        return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
     }
 
     fun generate(
@@ -127,7 +125,7 @@ open class TestCaseGenerator(
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
-        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = ::createDefaultFlow
+        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
     ): List<UtMethodTestSet> {
         if (isCanceled()) return methods.map { UtMethodTestSet(it) }
 
@@ -258,17 +256,6 @@ open class TestCaseGenerator(
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
-    }
-
-    private fun createDefaultFlow(engine: UtBotSymbolicEngine): Flow<UtResult> {
-        var flow = engine.traverse()
-        if (UtSettings.useFuzzing) {
-            flow = flowOf(
-                engine.fuzzing(System.currentTimeMillis() + UtSettings.fuzzingTimeoutInMillis),
-                flow,
-            ).flattenConcat()
-        }
-        return flow
     }
 
     // CONFLUENCE:The+UtBot+Java+timeouts

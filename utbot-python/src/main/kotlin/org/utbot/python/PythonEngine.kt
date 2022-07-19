@@ -6,8 +6,6 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.providers.PythonModelProvider
-import java.lang.Long.parseLong
-import java.math.BigInteger
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -42,7 +40,7 @@ class PythonEngine(
 
             // execute method to get function return
             // what if exception happens?
-            val resultAsString = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
+            val (resultAsString, status) = PythonEvaluation.evaluate(methodUnderTest, modelList, testSourceRoot)
             // TODO: check that type has fine representation
             val resultAsModel = PythonDefaultModel(resultAsString, "")
             val result = UtExecutionSuccess(resultAsModel)

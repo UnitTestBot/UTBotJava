@@ -5,13 +5,14 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
-import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.idea.util.module
-import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.common.PathUtil.toPath
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
@@ -114,5 +115,12 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getPyCodeFromPyFile(file: PyFile): PythonCode {
     val content = file.viewProvider.contents.toString()
-    return getFromString(content)
+
+    val importPath = file.virtualFile?.let { absoluteFilePath ->
+        ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
+            VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
+        }
+    } ?: ""
+
+    return getFromString(content, "${importPath}.${file.name}".dropLast(3).toPath())
 }

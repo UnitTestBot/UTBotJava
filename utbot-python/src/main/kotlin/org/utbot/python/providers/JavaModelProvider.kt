@@ -28,17 +28,19 @@ object JavaModelProvider: ModelProvider {
         javaModelProvider.generate(substitutedDescription) { index, fuzzedValue ->
             when (description.parameters[index]) {
                 PythonIntModel.classId ->
-                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Int)?.let { int_val ->
+                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Int)?.let { intValue ->
                         consumer.accept(
                             index,
-                            PythonIntModel(BigInteger.valueOf(int_val.toLong())).fuzzed()
+                            PythonIntModel(BigInteger.valueOf(intValue.toLong())).fuzzed()
                         )
                     }
                 PythonStrModel.classId ->
-                    consumer.accept(
-                        index,
-                        PythonStrModel((fuzzedValue.model as UtPrimitiveModel).value as String).fuzzed()
-                    )
+                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? String)?.let { strValue ->
+                        consumer.accept(
+                            index,
+                            PythonStrModel(strValue).fuzzed()
+                        )
+                    }
             }
         }
     }

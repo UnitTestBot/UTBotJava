@@ -11,7 +11,8 @@ class PythonEngine(
     private val methodUnderTest: PythonMethod,
     private val testSourceRoot: String,
     private val directoriesForSysPath: List<String>,
-    private val moduleToImport: String
+    private val moduleToImport: String,
+    private val pythonPath: String
 ) {
     fun fuzzing(): Sequence<UtResult> = sequence {
         val returnType = methodUnderTest.returnType ?: ClassId("")
@@ -45,7 +46,8 @@ class PythonEngine(
                 modelList,
                 testSourceRoot,
                 directoriesForSysPath,
-                moduleToImport
+                moduleToImport,
+                pythonPath
             )
             if (evalResult is EvaluationError)
                 return@sequence

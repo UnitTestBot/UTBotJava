@@ -357,7 +357,7 @@ object PythonEvaluation {
         testSourceRoot: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String,
-        pythonPath: String = "python3"
+        pythonPath: String
     ): EvaluationResult {
         createDirectory(testSourceRoot)
 

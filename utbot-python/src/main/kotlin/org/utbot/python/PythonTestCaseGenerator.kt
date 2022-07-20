@@ -6,15 +6,18 @@ object PythonTestCaseGenerator {
     lateinit var testSourceRoot: String
     lateinit var directoriesForSysPath: List<String>
     lateinit var moduleToImport: String
+    lateinit var pythonPath: String
 
     fun init(
         testSourceRoot: String,
         directoriesForSysPath: List<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        pythonPath: String
     ) {
         this.testSourceRoot = testSourceRoot
         this.directoriesForSysPath = directoriesForSysPath
         this.moduleToImport = moduleToImport
+        this.pythonPath = pythonPath
     }
 
     fun generate(method: PythonMethod): PythonTestCase {
@@ -22,7 +25,8 @@ object PythonTestCaseGenerator {
             method,
             testSourceRoot,
             directoriesForSysPath,
-            moduleToImport
+            moduleToImport,
+            pythonPath
         )
         val executions = mutableListOf<UtExecution>()
 

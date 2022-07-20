@@ -14,11 +14,10 @@ class PythonTestsModel(
     project: Project,
     srcModule: Module,
     testModule: Module,
-    // val fileMethods: Set<PyMemberInfo<PyElement>>?,
     val functionsToDisplay: Set<PyFunction>,
     val containingClass: PyClass?,
     val focusedMethod: Set<PyFunction>?,
-    val files: Set<PyFile>,
+    val file: PyFile,
     var moduleToImport: String
 ): BaseTestsModel(
     project,

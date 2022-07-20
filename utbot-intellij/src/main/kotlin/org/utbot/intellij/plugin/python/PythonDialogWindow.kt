@@ -37,8 +37,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
-    private val pathChooser = PathChooser(model.project)
-    private val moduleToImportField = JBTextField(model.moduleToImport)
+    private val pathChooser = PathChooser(model)
+    private val moduleToImportField = ModuleToImportField(model)
 
     private lateinit var panel: DialogPanel
 
@@ -75,7 +75,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                 scrollPane(pathChooser.createPanel())
             }
             row("Module to import:") {
-                component(moduleToImportField)
+                component(moduleToImportField.component)
             }
         }
 
@@ -84,10 +84,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     }
 
     private fun findTestPackageComboValue(): String {
-        if (model.files.size != 1) {
-            return SAME_PACKAGE_LABEL
-        }
-        val file = model.files.first()
+        val file = model.file
         val path = file.virtualFile?.let { absoluteFilePath ->
             ProjectFileIndex.SERVICE.getInstance(model.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
                 VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
@@ -160,12 +157,15 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         super.doOKAction()
     }
 
-    private class PathChooser(private val project: Project) {
+    private class PathChooser(testsModel: PythonTestsModel) {
         private val list = JBList(model)
         private val decorator = ToolbarDecorator.createDecorator(list)
         init {
-            if (model.isEmpty)
-                model.add(0, project.basePath)
+            val currentFile = testsModel.file.virtualFile.path
+            val baseDir = testsModel.project.basePath
+            if (model.isEmpty || (lastFile != currentFile && !model.contains(baseDir)))
+                model.add(0, baseDir)
+            lastFile = currentFile
 
             decorator.disableUpDownActions()
             decorator.setAddAction {
@@ -177,7 +177,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                         false,
                         false,
                         true
-                    ), project, null).map { it.path }
+                    ), testsModel.project, null).map { it.path }
                 files.forEach { model.add(0, it) }
             }
             decorator.setRemoveAction {
@@ -188,6 +188,33 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
         companion object {
             val model = DefaultListModel<String>()
+            var lastFile: String? = null
+        }
+    }
+
+    private class ModuleToImportField(model: PythonTestsModel) {
+        private val moduleToImportField = JBTextField()
+
+        init {
+            if (defaultField == null || model.file.virtualFile.path != lastFile) {
+                defaultField = model.moduleToImport
+                lastFile = model.file.virtualFile.path
+            }
+            moduleToImportField.text = defaultField
+        }
+
+        val text: String
+            get() {
+                defaultField = moduleToImportField.text
+                return moduleToImportField.text
+            }
+
+        val component: JComponent
+            get() = moduleToImportField
+
+        companion object {
+            var defaultField: String? = null
+            var lastFile: String? = null
         }
     }
 }

@@ -11,7 +11,9 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
+import com.jetbrains.python.statistics.sdks
 import org.jetbrains.kotlin.idea.util.module
+import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
@@ -57,18 +59,14 @@ object PythonDialogProcessor {
                 functionsToShow,
                 containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
-                setOf(file),
+                file,
                 getDefaultModuleToImport(file)
             )
         )
     }
 
     private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod> {
-        if (model.files.size != 1) {
-            error("Can't process several files yet")
-        }
-
-        val code = getPyCodeFromPyFile(model.files.first())
+        val code = getPyCodeFromPyFile(model.file)
 
         val shownFunctions: Set<PythonMethod> =
             if (model.containingClass == null) {
@@ -92,13 +90,13 @@ object PythonDialogProcessor {
             override fun run(indicator: ProgressIndicator) {
                 val pythonMethods = findSelectedPythonMethods(model)
                 val testSourceRoot = model.testSourceRoot!!.path
-                val projectRoot = project.basePath!!
 
                 val testCaseGenerator = PythonTestCaseGenerator.apply {
                     init(
                         testSourceRoot,
                         model.directoriesForSysPath,
-                        model.moduleToImport
+                        model.moduleToImport,
+                        model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                     )
                 }
 

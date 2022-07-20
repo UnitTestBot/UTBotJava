@@ -1,8 +1,6 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.engine.overrides.strings.UtNativeString;
-import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
 import static org.utbot.api.mock.UtMock.assume;
@@ -59,6 +57,6 @@ public class Byte {
         UtStringBuilder sb = new UtStringBuilder(prefix);
         // value = condition ? -i : i
         int value = ite(condition, (byte) -b, b);
-        return sb.append(new UtString(new UtNativeString(value)).toStringImpl()).toString();
+        return sb.append(value).toString();
     }
 }

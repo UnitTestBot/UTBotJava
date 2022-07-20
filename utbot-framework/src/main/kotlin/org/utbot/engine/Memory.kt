@@ -6,7 +6,6 @@ import org.utbot.common.workaround
 import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
-import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.pc.RewritingVisitor
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtAddrSort
@@ -1067,8 +1066,6 @@ fun localMemoryUpdate(vararg updates: Pair<LocalVariable, SymbolicValue?>) =
 
 private val STRING_INTERNAL = ChunkId(java.lang.String::class.qualifiedName!!, "internal")
 
-private val NATIVE_STRING_VALUE = ChunkId(UtNativeString::class.qualifiedName!!, "value")
-
 internal val STRING_LENGTH
     get() = utStringClass.getField("length", IntType.v())
 internal val STRING_VALUE
@@ -1080,15 +1077,6 @@ internal val STRING_VALUE
 internal val STRING_INTERNAL_DESCRIPTOR: MemoryChunkDescriptor
     get() = MemoryChunkDescriptor(STRING_INTERNAL, STRING_TYPE, SeqType)
 
-
-internal val NATIVE_STRING_VALUE_DESCRIPTOR: MemoryChunkDescriptor
-    get() = MemoryChunkDescriptor(NATIVE_STRING_VALUE, utNativeStringClass.type, SeqType)
-
-/**
- * Returns internal string representation by String object address, addr -> String
- */
-fun Memory.nativeStringValue(addr: UtAddrExpression) =
-    PrimitiveValue(SeqType, findArray(NATIVE_STRING_VALUE_DESCRIPTOR).select(addr)).expr
 
 private const val STRING_INTERN_MAP_LABEL = "java.lang.String_intern_map"
 

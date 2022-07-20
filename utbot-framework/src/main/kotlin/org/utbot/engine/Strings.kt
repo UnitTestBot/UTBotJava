@@ -2,7 +2,6 @@ package org.utbot.engine
 
 import com.github.curiousoddman.rgxgen.RgxGen
 import org.utbot.common.unreachableBranch
-import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
@@ -191,101 +190,6 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
                 )
             }
     }
-}
-
-internal val utNativeStringClass = Scene.v().getSootClass(UtNativeString::class.qualifiedName)
-
-private var stringNameIndex = 0
-private fun nextStringName() = "\$string${stringNameIndex++}"
-
-class UtNativeStringWrapper : WrapperInterface {
-    private val valueDescriptor = NATIVE_STRING_VALUE_DESCRIPTOR
-    override fun Traverser.invoke(
-        wrapper: ObjectValue,
-        method: SootMethod,
-        parameters: List<SymbolicValue>
-    ): List<InvokeResult> =
-        when (method.subSignature) {
-            "void <init>()" -> {
-                val newString = mkString(nextStringName())
-
-                val memoryUpdate = MemoryUpdate(
-                    stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
-                    touchedChunkDescriptors = persistentSetOf(valueDescriptor)
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = memoryUpdate
-                    )
-                )
-            }
-            "void <init>(int)" -> {
-                val newString = UtConvertToString((parameters[0] as PrimitiveValue).expr)
-                val memoryUpdate = MemoryUpdate(
-                    stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
-                    touchedChunkDescriptors = persistentSetOf(valueDescriptor)
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = memoryUpdate
-                    )
-                )
-            }
-            "void <init>(long)" -> {
-                val newString = UtConvertToString((parameters[0] as PrimitiveValue).expr)
-                val memoryUpdate = MemoryUpdate(
-                    stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
-                    touchedChunkDescriptors = persistentSetOf(valueDescriptor)
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = memoryUpdate
-                    )
-                )
-            }
-            "int length()" -> {
-                val result = UtStringLength(memory.nativeStringValue(wrapper.addr))
-                listOf(MethodResult(SymbolicSuccess(result.toByteValue().cast(IntType.v()))))
-            }
-            "char charAt(int)" -> {
-                val index = (parameters[0] as PrimitiveValue).expr
-                val result = UtStringCharAt(memory.nativeStringValue(wrapper.addr), index)
-                listOf(MethodResult(SymbolicSuccess(result.toCharValue())))
-            }
-            "int codePointAt(int)" -> {
-                val index = (parameters[0] as PrimitiveValue).expr
-                val result = UtStringCharAt(memory.nativeStringValue(wrapper.addr), index)
-                listOf(MethodResult(SymbolicSuccess(result.toCharValue().cast(IntType.v()))))
-            }
-            "int toInteger()" -> {
-                val result = UtStringToInt(memory.nativeStringValue(wrapper.addr), UtIntSort)
-                listOf(MethodResult(SymbolicSuccess(result.toIntValue())))
-            }
-            "long toLong()" -> {
-                val result = UtStringToInt(memory.nativeStringValue(wrapper.addr), UtLongSort)
-                listOf(MethodResult(SymbolicSuccess(result.toLongValue())))
-            }
-            "char[] toCharArray(int)" -> {
-                val stringExpression = memory.nativeStringValue(wrapper.addr)
-                val result = UtStringToArray(stringExpression, parameters[0] as PrimitiveValue)
-                val length = UtStringLength(stringExpression)
-                val type = CharType.v()
-                val arrayType = type.arrayType
-                val arrayValue = createNewArray(length.toIntValue(), arrayType, type)
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(arrayValue),
-                        memoryUpdates = arrayUpdateWithValue(arrayValue.addr, arrayType, result)
-                    )
-                )
-            }
-            else -> unreachableBranch("Unknown signature at the NativeStringWrapper.invoke: ${method.signature}")
-        }
-
-    override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel = UtNullModel(STRING_TYPE.classId)
 }
 
 sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenWrapper(className) {

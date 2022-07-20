@@ -20,24 +20,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     private static final long serialVersionUID = -6849794470754667710L;
 
-    public UtString(UtNativeString str) {
-        visit(this);
-        length = str.length();
-        value = str.toCharArray(0);
-    }
-
-    public static UtNativeString toUtNativeString(String s, int offset) {
-        char[] value = s.toCharArray();
-        int length = value.length;
-        UtNativeString nativeString = new UtNativeString();
-        assume(nativeString.length() == length - offset);
-        assume(nativeString.length() <= 2);
-        for (int i = offset; i < length; i++) {
-            assume(nativeString.charAt(i - offset) == value[i]);
-        }
-        return nativeString;
-    }
-
     public UtString() {
         visit(this);
         value = new char[0];

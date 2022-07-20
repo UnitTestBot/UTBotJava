@@ -13,7 +13,6 @@ import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
-import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
@@ -52,7 +51,6 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(UtStringBuilder::class, utStringBuilderClass)
         putSootClass(java.lang.StringBuffer::class, utStringBufferClass)
         putSootClass(UtStringBuffer::class, utStringBufferClass)
-        putSootClass(UtNativeString::class, utNativeStringClass)
         putSootClass(java.lang.CharSequence::class, utStringClass)
         putSootClass(java.lang.String::class, utStringClass)
         putSootClass(UtString::class, utStringClass)
@@ -125,7 +123,6 @@ private val wrappers = mapOf(
     wrap(UtStringBuilder::class) { type, addr -> objectValue(type, addr, UtStringBuilderWrapper()) },
     wrap(java.lang.StringBuffer::class) { type, addr -> objectValue(type, addr, UtStringBufferWrapper()) },
     wrap(UtStringBuffer::class) { type, addr -> objectValue(type, addr, UtStringBufferWrapper()) },
-    wrap(UtNativeString::class) { type, addr -> objectValue(type, addr, UtNativeStringWrapper()) },
     wrap(java.lang.CharSequence::class) { type, addr -> objectValue(type, addr, StringWrapper()) },
     wrap(java.lang.String::class) { type, addr -> objectValue(type, addr, StringWrapper()) },
     wrap(UtString::class) { type, addr -> objectValue(type, addr, StringWrapper()) },

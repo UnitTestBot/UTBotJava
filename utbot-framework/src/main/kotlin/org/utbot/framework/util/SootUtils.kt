@@ -2,7 +2,6 @@ package org.utbot.framework.util
 
 import org.utbot.api.mock.UtMock
 import org.utbot.common.FileUtil
-import org.utbot.engine.UtNativeStringWrapper
 import org.utbot.engine.jimpleBody
 import org.utbot.engine.overrides.Boolean
 import org.utbot.engine.overrides.Byte
@@ -147,7 +146,6 @@ private val classesToLoad = arrayOf(
     UtGenericStorage::class,
     UtGenericAssociative::class,
     PrintStream::class,
-    UtNativeStringWrapper::class,
     UtString::class,
     UtStringBuilder::class,
     UtStringBuffer::class,

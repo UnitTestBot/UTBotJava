@@ -187,16 +187,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         setResizable(false)
 
         // Configure notification urls callbacks
-        TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoSuffix]?.plusAssign {
-            if (createMockFrameworkNotificationDialog() == Messages.YES) {
-                configureMockFramework()
-            }
+        TestsReportNotifier.urlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoSuffix]?.plusAssign {
+            configureMockFramework()
         }
 
-        TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoInlineSuffix]?.plusAssign {
-            if (createStaticsMockingNotificationDialog() == Messages.YES) {
-                configureStaticMocking()
-            }
+        TestsReportNotifier.urlOpeningListener.callbacks[TestReportUrlOpeningListener.mockitoInlineSuffix]?.plusAssign {
+            configureStaticMocking()
         }
 
         TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.eventLogSuffix]?.plusAssign {
@@ -619,9 +615,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     //region configure frameworks
 
     private fun configureTestFrameworkIfRequired() {
-        val frameworkNotInstalled = !testFrameworks.item.isInstalled
-
-        if (frameworkNotInstalled && createTestFrameworkNotificationDialog() == Messages.YES) {
+        if (!testFrameworks.item.isInstalled) {
             configureTestFramework()
         }
 
@@ -629,19 +623,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun configureMockFrameworkIfRequired() {
-        val frameworkNotInstalled =
-            mockStrategies.item != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled
-
-        if (frameworkNotInstalled && createMockFrameworkNotificationDialog() == Messages.YES) {
+        if (mockStrategies.item != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled) {
             configureMockFramework()
         }
     }
 
     private fun configureStaticMockingIfRequired() {
-        val frameworkNotConfigured =
-            staticsMocking.item != NoStaticMocking && !staticsMocking.item.isConfigured
-
-        if (frameworkNotConfigured && createStaticsMockingNotificationDialog() == Messages.YES) {
+        if (staticsMocking.item != NoStaticMocking && !staticsMocking.item.isConfigured) {
             configureStaticMocking()
         }
     }
@@ -663,15 +651,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         addDependency(model.testModule, libraryDescriptor)
             .onError { selectedTestFramework.isInstalled = false }
     }
-
-    private fun createTestFrameworkNotificationDialog() = Messages.showYesNoDialog(
-        """Selected test framework ${testFrameworks.item.displayName} is not installed into current module. 
-            |Would you like to install it now?""".trimMargin(),
-        title,
-        "Yes",
-        "No",
-        Messages.getQuestionIcon(),
-    )
 
     private fun configureMockFramework() {
         val selectedMockFramework = MOCKITO
@@ -748,24 +727,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
         }
     }
-
-    private fun createMockFrameworkNotificationDialog() = Messages.showYesNoDialog(
-        """Mock framework ${MOCKITO.displayName} is not installed into current module. 
-            |Would you like to install it now?""".trimMargin(),
-        title,
-        "Yes",
-        "No",
-        Messages.getQuestionIcon(),
-    )
-
-    private fun createStaticsMockingNotificationDialog() = Messages.showYesNoDialog(
-        """A framework ${MOCKITO.displayName} is not configured to mock static methods.
-            |Would you like to configure it now?""".trimMargin(),
-        title,
-        "Yes",
-        "No",
-        Messages.getQuestionIcon(),
-    )
 
     //endregion
 

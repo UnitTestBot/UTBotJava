@@ -26,7 +26,6 @@ internal class StringExamplesTest : UtValueTestCaseChecker(
     )
 ) {
     @Test
-    @Disabled("Flaky test: https://github.com/UnitTestBot/UTBotJava/issues/131 (will be enabled in new strings PR)")
     fun testByteToString() {
         // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
         withSolverTimeoutInMillis(5000) {

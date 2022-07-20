@@ -168,12 +168,6 @@ class Z3EvaluatorVisitor(private val model: Model, private val translator: Z3Tra
         eval(arrayExpression.select(mkInt(lastIndex - offset)))
     }
 
-    override fun visit(expr: UtStringToArray): Expr = expr.run {
-        val lastIndex = selectIndexStack.last().intValue()
-        val offset = eval(offset.expr).intValue()
-        eval(UtStringCharAt(stringExpression, mkInt(lastIndex + offset)))
-    }
-
     override fun visit(expr: UtAddrExpression): Expr = eval(expr.internal)
 
     override fun visit(expr: UtOpExpression): Expr = expr.run {
@@ -242,99 +236,6 @@ class Z3EvaluatorVisitor(private val model: Model, private val translator: Z3Tra
 
     override fun visit(expr: UtIteExpression): Expr = expr.run {
         if (eval(condition).value() as Boolean) eval(thenExpr) else eval(elseExpr)
-    }
-
-    override fun visit(expr: UtConcatExpression): Expr = expr.run {
-        translator.withContext { mkConcat(*parts.map { eval(it) as SeqExpr }.toTypedArray()) }
-    }
-
-    override fun visit(expr: UtStringLength): Expr = expr.run {
-        translator.withContext {
-            if (string is UtArrayToString) {
-                eval(string.length.expr)
-            } else {
-                mkInt2BV(MAX_STRING_LENGTH_SIZE_BITS, mkLength(eval(string) as SeqExpr))
-            }
-        }
-    }
-
-    override fun visit(expr: UtStringPositiveLength): Expr = expr.run {
-        translator.withContext {
-            mkGe(mkLength(eval(string) as SeqExpr), mkInt(0))
-        }
-    }
-
-    override fun visit(expr: UtStringCharAt): Expr = expr.run {
-        translator.withContext {
-            val charAtExpr = mkSeqNth(eval(string) as SeqExpr, mkBV2Int(eval(index) as BitVecExpr, true))
-            val z3var = charAtExpr.z3Variable(ByteType.v())
-            convertVar(z3var, CharType.v()).expr
-        }
-    }
-
-    override fun visit(expr: UtStringEq): Expr = expr.run {
-        translator.withContext {
-            mkEq(eval(left), eval(right))
-        }
-    }
-
-    override fun visit(expr: UtSubstringExpression): Expr = expr.run {
-        translator.withContext {
-            mkExtract(
-                eval(string) as SeqExpr,
-                mkBV2Int(eval(beginIndex) as BitVecExpr, true),
-                mkBV2Int(eval(length) as BitVecExpr, true)
-            )
-        }
-    }
-
-    override fun visit(expr: UtReplaceExpression): Expr = expr.run {
-        workaround(WorkaroundReason.HACK) { // mkReplace replaces first occasion only
-            translator.withContext {
-                mkReplace(
-                    eval(string) as SeqExpr,
-                    eval(regex) as SeqExpr,
-                    eval(replacement) as SeqExpr
-                )
-            }
-        }
-    }
-
-    // Attention, prefix is a first argument!
-    override fun visit(expr: UtStartsWithExpression): Expr = expr.run {
-        translator.withContext {
-            mkPrefixOf(eval(prefix) as SeqExpr, eval(string) as SeqExpr)
-        }
-    }
-
-    // Attention, suffix is a first argument!
-    override fun visit(expr: UtEndsWithExpression): Expr = expr.run {
-        translator.withContext {
-            mkSuffixOf(eval(suffix) as SeqExpr, eval(string) as SeqExpr)
-        }
-    }
-
-    override fun visit(expr: UtIndexOfExpression): Expr = expr.run {
-        val string = eval(string) as SeqExpr
-        val substring = eval(substring) as SeqExpr
-        translator.withContext {
-            mkInt2BV(
-                MAX_STRING_LENGTH_SIZE_BITS,
-                mkIndexOf(string, substring, mkInt(0))
-            )
-        }
-    }
-
-    override fun visit(expr: UtContainsExpression): Expr = expr.run {
-        val substring = eval(substring) as SeqExpr
-        val string = eval(string) as SeqExpr
-        translator.withContext {
-            mkGe(mkIndexOf(string, substring, mkInt(0)), mkInt(0))
-        }
-    }
-
-    override fun visit(expr: UtToStringExpression): Expr = expr.run {
-        if (eval(isNull).value() as Boolean) translator.withContext { mkString("null") } else eval(notNullExpr)
     }
 
     override fun visit(expr: UtArrayApplyForAll): Expr = expr.run {

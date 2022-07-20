@@ -27,7 +27,6 @@ val UtExpression.isConcrete: Boolean
     get() = when (this) {
         is UtBvLiteral -> true
         is UtFpLiteral -> true
-        is UtSeqLiteral -> true
         is UtBoolLiteral -> true
         is UtAddrExpression -> internal.isConcrete
         else -> false
@@ -36,7 +35,6 @@ val UtExpression.isConcrete: Boolean
 fun UtExpression.toConcrete(): Any = when (this) {
     is UtBvLiteral -> this.value
     is UtFpLiteral -> this.value
-    is UtSeqLiteral -> this.value
     UtTrue -> true
     UtFalse -> false
     is UtAddrExpression -> internal.toConcrete()

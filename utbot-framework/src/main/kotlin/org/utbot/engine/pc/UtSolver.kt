@@ -97,8 +97,6 @@ fun UtExpression.select(outerIndex: UtExpression, nestedIndex: UtExpression) =
 fun UtExpression.store(index: UtExpression, elem: UtExpression) =
     UtArrayMultiStoreExpression(this, index, elem)
 
-fun mkString(value: String): UtStringConst = UtStringConst(value)
-
 fun PrimitiveValue.align(): PrimitiveValue = when (type) {
     is ByteType, is ShortType, is CharType -> UtCastExpression(this, IntType.v()).toIntValue()
     else -> this

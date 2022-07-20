@@ -12,7 +12,6 @@ data class UtArrayInsert(
 ) : UtExtendedArrayExpression(arrayExpression.sort as UtArraySort) {
     override fun <TResult> accept(visitor: UtExpressionVisitor<TResult>): TResult = visitor.visit(this)
 
-
     override val hashCode = Objects.hash(arrayExpression, index, element)
 
     override fun hashCode(): Int = hashCode
@@ -157,29 +156,6 @@ data class UtArrayRemoveRange(
         if (arrayExpression != other.arrayExpression) return false
         if (index != other.index) return false
         if (length != other.length) return false
-
-        return true
-    }
-}
-
-data class UtStringToArray(
-    val stringExpression: UtExpression,
-    val offset: PrimitiveValue
-) : UtExtendedArrayExpression(UtArraySort(UtIntSort, UtCharSort)) {
-    override fun <TResult> accept(visitor: UtExpressionVisitor<TResult>): TResult = visitor.visit(this)
-
-    override val hashCode = Objects.hash(stringExpression, offset)
-
-    override fun hashCode(): Int = hashCode
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as UtStringToArray
-
-        if (stringExpression != other.stringExpression) return false
-        if (offset != other.offset) return false
 
         return true
     }

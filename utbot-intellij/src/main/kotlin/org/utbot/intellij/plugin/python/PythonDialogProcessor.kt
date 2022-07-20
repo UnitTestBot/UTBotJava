@@ -11,7 +11,6 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.jetbrains.python.psi.PyFile
 import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
-import com.jetbrains.python.statistics.sdks
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
@@ -103,8 +102,10 @@ object PythonDialogProcessor {
                 val tests = pythonMethods.map { method ->
                     testCaseGenerator.generate(method)
                 }
-                val notEmptyTests = tests.filter { it.executions.isNotEmpty() }
-                val functionsWithoutTests = tests.mapNotNull { if (it.executions.isEmpty()) it.method.name else null }
+                val notEmptyTests = tests.filter { it.executions.isNotEmpty() || it.errors.isNotEmpty() }
+                val functionsWithoutTests = tests.mapNotNull {
+                    if (it.executions.isEmpty() && it.errors.isEmpty()) it.method.name else null
+                }
 
                 if (functionsWithoutTests.isNotEmpty()) {
                     showErrorDialogLater(

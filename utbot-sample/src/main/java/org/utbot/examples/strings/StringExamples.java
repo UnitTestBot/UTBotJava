@@ -1,5 +1,7 @@
 package org.utbot.examples.strings;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.Arrays;
 
 import static java.lang.Boolean.valueOf;
@@ -173,6 +175,16 @@ public class StringExamples {
             buffer.append("Negative");
         }
         return buffer.toString();
+    }
+
+    @SuppressWarnings("RedundantIfStatement")
+    public boolean isStringBuilderEmpty(@NotNull StringBuilder stringBuilder) {
+        String content = stringBuilder.toString();
+        if (content.length() == 0) {
+            return true;
+        }
+
+        return false;
     }
 
     public boolean isValidUuid(String uuid) {

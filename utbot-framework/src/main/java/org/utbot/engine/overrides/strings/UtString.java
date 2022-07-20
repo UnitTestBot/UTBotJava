@@ -20,24 +20,6 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
 
     private static final long serialVersionUID = -6849794470754667710L;
 
-    public UtString(UtNativeString str) {
-        visit(this);
-        length = str.length();
-        value = str.toCharArray(0);
-    }
-
-    public static UtNativeString toUtNativeString(String s, int offset) {
-        char[] value = s.toCharArray();
-        int length = value.length;
-        UtNativeString nativeString = new UtNativeString();
-        assume(nativeString.length() == length - offset);
-        assume(nativeString.length() <= 2);
-        for (int i = offset; i < length; i++) {
-            assume(nativeString.charAt(i - offset) == value[i]);
-        }
-        return nativeString;
-    }
-
     public UtString() {
         visit(this);
         value = new char[0];
@@ -866,6 +848,16 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         return toString().replace(target, replacement);
     }
 
+    public String[] splitWithLimitImpl(String regex, int limit) {
+        return toString().split(regex, limit);
+    }
+
+    public String[] split(String regex, int limit) {
+        preconditionCheck();
+        return splitWithLimitImpl(regex, limit);
+    }
+
+    /*
     public String[] split(String regex, int limit) {
         preconditionCheck();
         if (regex == null) {
@@ -889,7 +881,18 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         executeConcretely();
         return toStringImpl().split(regex, limit);
     }
+     */
 
+    public String[] splitImpl(String regex) {
+        return toString().split(regex);
+    }
+
+    public String[] split(String regex) {
+        preconditionCheck();
+        return splitImpl(regex);
+    }
+
+    /*
     public String[] split(String regex) {
         preconditionCheck();
         if (regex == null) {
@@ -908,6 +911,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         executeConcretely();
         return toStringImpl().split(regex);
     }
+     */
 
     public String toLowerCase(Locale locale) {
         preconditionCheck();

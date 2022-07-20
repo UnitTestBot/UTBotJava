@@ -1,8 +1,6 @@
 package org.utbot.engine.overrides;
 
 import org.utbot.api.annotation.UtClassMock;
-import org.utbot.engine.overrides.strings.UtNativeString;
-import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -75,17 +73,30 @@ public class Long {
         if (l == 0x8000000000000000L) { // java.lang.Long.MIN_VALUE
             return "-9223372036854775808";
         }
-        // assumes are placed here to limit search space of solver
-        // and reduce time of solving queries with bv2int expressions
-        assumeOrExecuteConcretely(l <= 10000);
-        assumeOrExecuteConcretely(l >= -10000);
         // condition = l < 0
         boolean condition = less(l, 0);
         // prefix = condition ? "-" : ""
         String prefix = ite(condition, "-", "");
-        UtStringBuilder sb = new UtStringBuilder(prefix);
         // value = condition ? -l : l
         long value = ite(condition, -l, l);
-        return sb.append(new UtString(new UtNativeString(value)).toStringImpl()).toString();
+        char[] reversed = new char[19];
+        int offset = 0;
+        while (value > 0) {
+            reversed[offset] = (char) ('0' + value % 10);
+            value = value / 10;
+            offset++;
+        }
+
+        if (offset > 0) {
+            char[] buffer = new char[offset];
+            int i = 0;
+            while (offset > 0) {
+                offset--;
+                buffer[i++] = reversed[offset];
+            }
+            return prefix + new String(buffer);
+        } else {
+            return "0";
+        }
     }
 }

@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.executableId
@@ -25,6 +26,7 @@ fun assemble(model: UtPrimitiveModel): UtAssembleModel {
         intClassId -> java.lang.Integer::class.java.getConstructor(Int::class.java)
         longClassId -> java.lang.Long::class.java.getConstructor(Long::class.java)
         charClassId -> java.lang.Character::class.java.getConstructor(Char::class.java)
+        byteClassId -> java.lang.Byte::class.java.getConstructor(Byte::class.java)
         booleanClassId -> java.lang.Boolean::class.java.getConstructor(Boolean::class.java)
         floatClassId -> java.lang.Float::class.java.getConstructor(Float::class.java)
         doubleClassId -> java.lang.Double::class.java.getConstructor(Double::class.java)

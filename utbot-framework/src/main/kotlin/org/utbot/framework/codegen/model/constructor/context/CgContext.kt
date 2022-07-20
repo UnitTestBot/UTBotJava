@@ -54,7 +54,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.tree.CgParameterType
+import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
@@ -189,7 +189,7 @@ internal interface CgContextOwner {
     var valueByModelId: MutableMap<Int?, CgValue>
 
     // parameters of the method currently being generated
-    val currentMethodParameters: MutableMap<CgParameterType, CgVariable>
+    val currentMethodParameters: MutableMap<CgParameterKind, CgVariable>
 
     val testClassCustomName: String?
 
@@ -451,7 +451,7 @@ internal data class CgContext(
 
     override var valueByModelId: MutableMap<Int?, CgValue> = mutableMapOf()
 
-    override val currentMethodParameters: MutableMap<CgParameterType, CgVariable> = mutableMapOf()
+    override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 
     override val testClassThisInstance: CgThisInstance = CgThisInstance(currentTestClass)
 }

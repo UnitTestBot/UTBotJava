@@ -610,17 +610,12 @@ val Type.classId: ClassId
  * [elementClassId] if this class id represents an array class, then this property
  * represents the class id of the array's elements. Otherwise, this property is null.
  */
-open class ClassId(
+open class ClassId @JvmOverloads constructor(
     val name: String,
     val elementClassId: ClassId? = null,
     // Treat simple class ids as non-nullable
     open val isNullable: Boolean = false
 ) {
-    /**
-     * This constructor is for calls from Java (e.g. `UtBotJavaApiTest`),
-     * because we cannot skip default parameters in Java.
-     */
-    constructor(name: String, elementClassId: ClassId?) : this(name, elementClassId, false)
 
     open val canonicalName: String
         get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
@@ -759,6 +754,7 @@ class BuiltinClassId(
     override val simpleName: String,
     // by default we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
+    override val isNullable: Boolean = false,
     override val isPublic: Boolean = true,
     override val isProtected: Boolean = false,
     override val isPrivate: Boolean = false,
@@ -778,7 +774,7 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name) {
+) : ClassId(name = name, isNullable = isNullable) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }

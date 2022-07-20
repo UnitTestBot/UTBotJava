@@ -52,7 +52,7 @@ import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.codegen.model.tree.CgMultilineComment
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterType
+import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
@@ -448,7 +448,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     //actual result is primitive to support cases with exceptions.
                     resultModel = if (result is UtPrimitiveModel) assemble(result) else result
 
-                    val expectedVariable = currentMethodParameters[CgParameterType.ExpectedResult]!!
+                    val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
                     val expectedExpression = CgNotNullAssertion(expectedVariable)
 
                     assertEquality(expectedExpression, actual)
@@ -1234,11 +1234,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val testParameterDeclarations = createParameterDeclarations(testSet, genericExecution)
                 val mainBody = {
                     // build this instance
-                    thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterType.ThisInstance] }
+                    thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
 
                     // build arguments for method under test and parameterized test
                     for (index in genericExecution.stateBefore.parameters.indices) {
-                        methodArguments += currentMethodParameters[CgParameterType.Argument(index)]!!
+                        methodArguments += currentMethodParameters[CgParameterKind.Argument(index)]!!
                     }
 
                     //record result and generate result assertions
@@ -1292,7 +1292,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     isReferenceType = true
                 )
                 this += thisInstance
-                currentMethodParameters[CgParameterType.ThisInstance] = thisInstance.parameter
+                currentMethodParameters[CgParameterKind.ThisInstance] = thisInstance.parameter
             }
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
@@ -1314,7 +1314,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     isReferenceType = argumentType.isRefType
                 )
                 this += argument
-                currentMethodParameters[CgParameterType.Argument(index)] = argument.parameter
+                currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
             val method = currentExecutable as MethodId
@@ -1334,7 +1334,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     isReferenceType = wrappedType.isRefType
                 )
                 this += expectedResult
-                currentMethodParameters[CgParameterType.ExpectedResult] = expectedResult.parameter
+                currentMethodParameters[CgParameterKind.ExpectedResult] = expectedResult.parameter
             }
 
             if (containsFailureExecution) {
@@ -1347,7 +1347,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     isReferenceType = true
                 )
                 this += expectedException
-                currentMethodParameters[CgParameterType.ExpectedException] = expectedException.parameter
+                currentMethodParameters[CgParameterKind.ExpectedException] = expectedException.parameter
             }
         }
     }

@@ -4,9 +4,9 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
+import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DocClassLinkStmt
@@ -26,7 +26,6 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
-import kotlin.math.exp
 
 interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
@@ -584,12 +583,17 @@ open class CgVariable(
  */
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId
-        get() {
-            val expressionType = expression.type
-            return ClassId(
+        get() = when (val expressionType = expression.type) {
+            is BuiltinClassId -> BuiltinClassId(
+                name = expressionType.name,
+                canonicalName = expressionType.canonicalName,
+                simpleName = expressionType.simpleName,
+                isNullable = false,
+            )
+            else -> ClassId(
                 expressionType.name,
                 expressionType.elementClassId,
-                isNullable = false
+                isNullable = false,
             )
         }
 }
@@ -617,17 +621,17 @@ data class CgParameterDeclaration(
 }
 
 /**
- * Test methd parameter can be one of the following types:
+ * Test method parameter can be one of the following types:
  * - this instance for method under test (MUT)
  * - argument of MUT with a certain index
  * - result expected from MUT with the given arguments
  * - exception expected from MUT with the given arguments
  */
-sealed class CgParameterType {
-    object ThisInstance : CgParameterType()
-    data class Argument(val index: Int) : CgParameterType()
-    object ExpectedResult : CgParameterType()
-    object ExpectedException : CgParameterType()
+sealed class CgParameterKind {
+    object ThisInstance : CgParameterKind()
+    data class Argument(val index: Int) : CgParameterKind()
+    object ExpectedResult : CgParameterKind()
+    object ExpectedException : CgParameterKind()
 }
 
 

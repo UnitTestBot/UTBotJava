@@ -18,7 +18,7 @@ import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
+import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -112,14 +112,6 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
             }
         }
-    }
-
-    /**
-     * Creates general variable of type (to replace with concrete value in each test case).
-     */
-    fun parameterizedVariable(classId: ClassId, baseName: String? = null, isNotNull: Boolean = false): CgVariable {
-        val name = nameGenerator.variableName(type = classId, base = baseName, isMock = false)
-        return if (isNotNull) CgNotNullVariable(name, classId) else CgVariable(name, classId)
     }
 
     private fun constructComposite(model: UtCompositeModel, baseName: String): CgVariable {

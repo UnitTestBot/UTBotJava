@@ -50,7 +50,6 @@ import org.utbot.framework.codegen.model.tree.CgMultilineComment
 import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
 import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgRegion
@@ -539,8 +538,6 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     override fun visit(element: CgVariable) {
         print(element.name.escapeNamePossibleKeyword())
     }
-
-    abstract override fun visit(element: CgNotNullVariable)
 
     // Method parameters
 

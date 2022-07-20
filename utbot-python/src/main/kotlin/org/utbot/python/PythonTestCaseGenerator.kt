@@ -2,9 +2,20 @@ package org.utbot.python
 
 import org.utbot.framework.plugin.api.UtExecution
 
-object PythonTestCaseGenerator { // : TestCaseGenerator() ?
-    fun generate(method: PythonMethod, testSourceRoot: String, projectRoot: String): PythonTestCase {
-        val engine = PythonEngine(method, testSourceRoot, projectRoot)
+object PythonTestCaseGenerator {
+    lateinit var testSourceRoot: String
+    lateinit var directoriesForSysPath: List<String>
+
+    fun init(
+        testSourceRoot: String,
+        directoriesForSysPath: List<String>
+    ) {
+        this.testSourceRoot = testSourceRoot
+        this.directoriesForSysPath = directoriesForSysPath
+    }
+
+    fun generate(method: PythonMethod): PythonTestCase {
+        val engine = PythonEngine(method, testSourceRoot, directoriesForSysPath)
         val executions = mutableListOf<UtExecution>()
 
         engine.fuzzing().forEach {

@@ -13,6 +13,7 @@ import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.common.PathUtil.toPath
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.PythonCode
 import org.utbot.python.PythonCode.Companion.getFromString
@@ -20,6 +21,8 @@ import org.utbot.python.PythonCodeGenerator.generateTestCode
 import org.utbot.python.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
+import java.io.File
+import java.nio.file.Paths
 
 
 object PythonDialogProcessor {
@@ -90,14 +93,30 @@ object PythonDialogProcessor {
             override fun run(indicator: ProgressIndicator) {
                 val pythonMethods = findSelectedPythonMethods(model)
                 val testSourceRoot = model.testSourceRoot!!.path
-//                val projectRoot = ProjectFileIndex.SERVICE.getInstance(project).getContentRootForFile(project.basePath())
                 val projectRoot = project.basePath!!
 
-                val tests = pythonMethods.map { method ->
-                    PythonTestCaseGenerator.generate(method, testSourceRoot, projectRoot)
+                val testCaseGenerator = PythonTestCaseGenerator.apply {
+                    init(
+                        testSourceRoot,
+                        model.directoriesForSysPath
+                    )
                 }
 
-                tests.forEach {
+                val tests = pythonMethods.map { method ->
+                    testCaseGenerator.generate(method)
+                }
+                val notEmptyTests = tests.filter { it.executions.isNotEmpty() }
+                val functionsWithoutTests = tests.mapNotNull { if (it.executions.isEmpty()) it.method.name else null }
+
+                if (functionsWithoutTests.isNotEmpty()) {
+                    showErrorDialogLater(
+                        project,
+                        message = "Cannot create tests for following functions: " + functionsWithoutTests.joinToString { it },
+                        title = "Python test generation error"
+                    )
+                }
+
+                notEmptyTests.forEach {
                     val testCode = generateTestCode(it, projectRoot)
                     saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
                 }

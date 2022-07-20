@@ -144,7 +144,7 @@ object PythonCodeGenerator {
     fun generateTestCode(testCase: PythonTestCase, testSourceRoot: String): String {
         val importFunction = generateImportFunctionCode(
             testCase.method.sourceCodePath?.joinToString(".")!!,
-            testSourceRoot
+            listOf(testSourceRoot) // TODO: check
         )
         val testCaseCodes = testCase.executions.mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
@@ -237,26 +237,20 @@ object PythonCodeGenerator {
         return Arguments(args, keywords, starredArgs, doubleStarredArgs)
     }
 
-    private fun generateImportFunctionCode(functionPath: String, projectRoot: String): List<Statement> {
-        val systemImport = Import(
-            listOf(
-                Alias("os"),
-                Alias("sys")
-            )
-        )
-        val systemCall = Atom(
-            Name("sys.path.insert"),
-            listOf(
-                createArguments(
-                    listOf(
-                        Name("0"),
-                        Str(projectRoot)
+    private fun generateImportFunctionCode(functionPath: String, directoriesForSysPath: List<String>): List<Statement> {
+        val systemImport = Import(listOf(Alias("sys")))
+        val systemCalls = directoriesForSysPath.map { path ->
+            Atom(
+                Name("sys.path.append"),
+                listOf(
+                    createArguments(
+                        listOf(Str(path))
                     )
                 )
             )
-        )
+        }
         val import = ImportFrom(functionPath, listOf(Alias("*")))
-        return listOf(systemImport, systemCall, import)
+        return listOf(systemImport) + systemCalls + listOf(import)
     }
 
     fun generateRunFunctionCode(
@@ -265,11 +259,12 @@ object PythonCodeGenerator {
         outputFilename: String,
         errorFilename: String,
         codeFilename: String,
-        projectRoot: String,
+        directoriesForSysPath: List<String>,
     ): File {
+
         val importStatements = generateImportFunctionCode(
             method.sourceCodePath?.joinToString(".")!!,
-            projectRoot
+            directoriesForSysPath
         )
 
         val testFunctionName = "__run_${method.name}"
@@ -353,7 +348,7 @@ object PythonEvaluation {
         method: PythonMethod,
         methodArguments: List<UtModel>,
         testSourceRoot: String,
-        projectRoot: String,
+        directoriesForSysPath: List<String>,
         pythonPath: String = "python3"
     ): Pair<String, Boolean> {
         createDirectory(testSourceRoot)
@@ -368,7 +363,7 @@ object PythonEvaluation {
             outputFilename,
             errorFilename,
             codeFilename,
-            projectRoot
+            directoriesForSysPath
         )
 
         val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")

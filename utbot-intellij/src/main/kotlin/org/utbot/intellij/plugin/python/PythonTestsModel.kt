@@ -26,4 +26,5 @@ class PythonTestsModel(
 ) {
      lateinit var testFramework: TestFramework
      lateinit var selectedFunctions: Set<PyFunction>
+     lateinit var directoriesForSysPath: List<String>
 }

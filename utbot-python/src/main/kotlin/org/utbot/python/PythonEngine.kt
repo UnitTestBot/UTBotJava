@@ -10,7 +10,8 @@ import org.utbot.python.providers.PythonModelProvider
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
     private val testSourceRoot: String,
-    private val directoriesForSysPath: List<String>
+    private val directoriesForSysPath: List<String>,
+    private val moduleToImport: String
 ) {
     fun fuzzing(): Sequence<UtResult> = sequence {
         val returnType = methodUnderTest.returnType ?: ClassId("")
@@ -39,12 +40,17 @@ class PythonEngine(
 
             // execute method to get function return
             // what if exception happens?
-            val (resultAsString, isSuccess) = PythonEvaluation.evaluate(
+            val evalResult = PythonEvaluation.evaluate(
                 methodUnderTest,
                 modelList,
                 testSourceRoot,
-                directoriesForSysPath
+                directoriesForSysPath,
+                moduleToImport
             )
+            if (evalResult is EvaluationError)
+                return@sequence
+
+            val (resultAsString, isException) = evalResult as EvaluationSuccess
             // TODO: check that type has fine representation
             val resultAsModel = PythonDefaultModel(resultAsString, "")
             val result = UtExecutionSuccess(resultAsModel)

@@ -1,22 +1,18 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooser.chooseFiles
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.roots.ui.configuration.SdkListModel
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
-import com.intellij.ui.AnActionButton
-import com.intellij.ui.AnActionButtonRunnable
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.ToolbarDecorator
-import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
@@ -39,12 +35,10 @@ private const val SAME_PACKAGE_LABEL = "same as for sources"
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
-
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
-
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
-
     private val pathChooser = PathChooser(model.project)
+    private val moduleToImportField = JBTextField(model.moduleToImport)
 
     private lateinit var panel: DialogPanel
 
@@ -79,6 +73,9 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             row("Add to sys.path:") {}
             row {
                 scrollPane(pathChooser.createPanel())
+            }
+            row("Module to import:") {
+                component(moduleToImportField)
             }
         }
 
@@ -158,6 +155,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         val selectedMembers = functionsTable.selectedMemberInfos
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.directoriesForSysPath = PathChooser.model.elements().toList()
+        model.moduleToImport = moduleToImportField.text
 
         super.doOKAction()
     }

@@ -3,11 +3,13 @@ package org.utbot.python
 import io.github.danielnaczo.python3parser.Python3Lexer
 import io.github.danielnaczo.python3parser.Python3Parser
 import io.github.danielnaczo.python3parser.model.AST
+import io.github.danielnaczo.python3parser.model.Identifier
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
@@ -42,11 +44,11 @@ import java.util.*
 import javax.xml.bind.DatatypeConverter.parseLong
 
 
-class PythonCode(private val body: Module, private val sourceCodePath: Path) {
+class PythonCode(private val body: Module) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.statements.mapNotNull { statement ->
             (statement as? FunctionDef)?.let { functionDef: FunctionDef ->
-                PythonMethodBody(functionDef, sourceCodePath)
+                PythonMethodBody(functionDef)
             }
         }
 
@@ -58,14 +60,14 @@ class PythonCode(private val body: Module, private val sourceCodePath: Path) {
         }
 
     companion object {
-        fun getFromString(code: String, sourceCodePath: Path): PythonCode {
+        fun getFromString(code: String): PythonCode {
             val lexer = Python3Lexer(fromString(code))
             val tokens = CommonTokenStream(lexer)
             val parser = Python3Parser(tokens)
             val moduleVisitor = ModuleVisitor()
             val ast = moduleVisitor.visit(parser.file_input()) as Module
 
-            return PythonCode(ast, sourceCodePath)
+            return PythonCode(ast)
         }
     }
 }
@@ -78,7 +80,7 @@ class PythonClass(private val ast: ClassDef) {
         get() = ast.functionDefs.map { PythonMethodBody(it) }
 }
 
-class PythonMethodBody(private val ast: FunctionDef, override val sourceCodePath: Path? = null): PythonMethod {
+class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     override val name: String
         get() = ast.name.name
 
@@ -141,10 +143,10 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    fun generateTestCode(testCase: PythonTestCase, testSourceRoot: String): String {
+    fun generateTestCode(testCase: PythonTestCase, directoriesForSysPath: List<String>, moduleToImport: String): String {
         val importFunction = generateImportFunctionCode(
-            testCase.method.sourceCodePath?.joinToString(".")!!,
-            listOf(testSourceRoot) // TODO: check
+            moduleToImport,
+            directoriesForSysPath
         )
         val testCaseCodes = testCase.executions.mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
@@ -217,7 +219,7 @@ object PythonCodeGenerator {
                 Name("print"),
                 listOf(
                     createArguments(
-                        listOf(Name(outputName)),
+                        listOf(Atom(Name(outputName), listOf(Attribute(Identifier("__repr__")), createArguments()))),
                         listOf(
                             Keyword(Name("file"), Name(outputFileAlias)),
                             Keyword(Name("end"), Str(""))
@@ -260,10 +262,11 @@ object PythonCodeGenerator {
         errorFilename: String,
         codeFilename: String,
         directoriesForSysPath: List<String>,
+        moduleToImport: String
     ): File {
 
         val importStatements = generateImportFunctionCode(
-            method.sourceCodePath?.joinToString(".")!!,
+            moduleToImport,
             directoriesForSysPath
         )
 
@@ -343,14 +346,19 @@ fun String.camelToSnakeCase(): String {
     }.toLowerCase()
 }
 
+sealed class EvaluationResult()
+data class EvaluationSuccess(val output: String, val isException: Boolean): EvaluationResult()
+class EvaluationError: EvaluationResult()
+
 object PythonEvaluation {
     fun evaluate(
         method: PythonMethod,
         methodArguments: List<UtModel>,
         testSourceRoot: String,
         directoriesForSysPath: List<String>,
+        moduleToImport: String,
         pythonPath: String = "python3"
-    ): Pair<String, Boolean> {
+    ): EvaluationResult {
         createDirectory(testSourceRoot)
 
         val outputFilename = "$testSourceRoot/__output_utbot_run_${method.name}.txt"
@@ -363,11 +371,15 @@ object PythonEvaluation {
             outputFilename,
             errorFilename,
             codeFilename,
-            directoriesForSysPath
+            directoriesForSysPath,
+            moduleToImport
         )
 
         val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")
         process.waitFor()
+        val exitCode = process.exitValue()
+        if (exitCode != 0)
+            return EvaluationError()
 
         var output = ""
         var isSuccess = false
@@ -386,7 +398,7 @@ object PythonEvaluation {
         }
 
         file.delete()
-        return Pair(output, isSuccess)
+        return EvaluationSuccess(output, !isSuccess)
     }
 
     private fun createDirectory(path: String) {

@@ -21,8 +21,6 @@ import org.utbot.python.PythonCodeGenerator.generateTestCode
 import org.utbot.python.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
-import java.io.File
-import java.nio.file.Paths
 
 
 object PythonDialogProcessor {
@@ -59,7 +57,8 @@ object PythonDialogProcessor {
                 functionsToShow,
                 containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
-                setOf(file)
+                setOf(file),
+                getDefaultModuleToImport(file)
             )
         )
     }
@@ -98,7 +97,8 @@ object PythonDialogProcessor {
                 val testCaseGenerator = PythonTestCaseGenerator.apply {
                     init(
                         testSourceRoot,
-                        model.directoriesForSysPath
+                        model.directoriesForSysPath,
+                        model.moduleToImport
                     )
                 }
 
@@ -111,13 +111,13 @@ object PythonDialogProcessor {
                 if (functionsWithoutTests.isNotEmpty()) {
                     showErrorDialogLater(
                         project,
-                        message = "Cannot create tests for following functions: " + functionsWithoutTests.joinToString { it },
+                        message = "Cannot create tests for the following functions: " + functionsWithoutTests.joinToString { it },
                         title = "Python test generation error"
                     )
                 }
 
                 notEmptyTests.forEach {
-                    val testCode = generateTestCode(it, projectRoot)
+                    val testCode = generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
                     saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
                 }
             }
@@ -134,14 +134,17 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
     }
 }
 
-fun getPyCodeFromPyFile(file: PyFile): PythonCode {
-    val content = file.viewProvider.contents.toString()
-
+fun getDefaultModuleToImport(file: PyFile): String {
     val importPath = file.virtualFile?.let { absoluteFilePath ->
         ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
             VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
         }
     } ?: ""
 
-    return getFromString(content, "${importPath}.${file.name}".dropLast(3).toPath())
+    return "${importPath}.${file.name}".dropLast(3).toPath().joinToString(".")
+}
+
+fun getPyCodeFromPyFile(file: PyFile): PythonCode {
+    val content = file.viewProvider.contents.toString()
+    return getFromString(content)
 }

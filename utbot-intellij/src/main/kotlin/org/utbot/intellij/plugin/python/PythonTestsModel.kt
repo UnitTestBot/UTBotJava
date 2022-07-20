@@ -18,7 +18,8 @@ class PythonTestsModel(
     val functionsToDisplay: Set<PyFunction>,
     val containingClass: PyClass?,
     val focusedMethod: Set<PyFunction>?,
-    val files: Set<PyFile>
+    val files: Set<PyFile>,
+    var moduleToImport: String
 ): BaseTestsModel(
     project,
     srcModule,

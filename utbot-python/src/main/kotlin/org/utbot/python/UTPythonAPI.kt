@@ -11,7 +11,6 @@ interface PythonMethod {
     val name: String
     val returnType: ClassId?
     val arguments: List<PythonArgument>
-    val sourceCodePath: Path?
     fun asString(): String
     fun getConcreteValues(): List<FuzzedConcreteValue>
 }

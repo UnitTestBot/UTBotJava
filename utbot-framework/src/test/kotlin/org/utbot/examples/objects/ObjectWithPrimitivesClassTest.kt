@@ -1,13 +1,13 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction3
 import org.junit.jupiter.api.Test
 
-internal class ObjectWithPrimitivesClassTest : AbstractTestCaseGeneratorTest(testClass = ObjectWithPrimitivesClass::class) {
+internal class ObjectWithPrimitivesClassTest : UtValueTestCaseChecker(testClass = ObjectWithPrimitivesClass::class) {
     @Test
     fun testDefaultConstructor() {
         val method: KFunction0<ObjectWithPrimitivesClass> = ::ObjectWithPrimitivesClass

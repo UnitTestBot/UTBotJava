@@ -352,9 +352,13 @@ class NodeConvertor {
         }
 
         /**
-         * Filters out all of the symbols that cannot be used in a function name and capitalizes String
+         * Capitalizes method name.
+         *
+         * It splits the text by delimiters, capitalizes each part, removes special characters and concatenates result.
          */
-        private fun postProcessName(name: String) = name.filter { isLegitSymbolForFunctionName(it) }.capitalize()
+        private fun postProcessName(name: String) =
+            name.split(".", "(", ")", ",")
+                .joinToString("") { it -> it.capitalize().filter { isLegitSymbolForFunctionName(it) } }
 
         /**
          * Converts Javaparser BinaryOperator and all of its children into a String

@@ -4,35 +4,6 @@ package org.utbot.intellij.plugin.ui
 
 import com.intellij.codeInsight.hint.HintUtil
 import com.intellij.icons.AllIcons
-import org.utbot.common.PathUtil.toPath
-import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FILE_CONTENT
-import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_STORAGE
-import org.utbot.framework.codegen.model.util.MOCKITO_MOCKMAKER_FILE_NAME
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.MockFramework.MOCKITO
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
-import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
-import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
-import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
-import org.utbot.intellij.plugin.ui.utils.parseVersion
-import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
-import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
-import org.utbot.intellij.plugin.ui.utils.testRootType
 import com.intellij.ide.impl.ProjectNewWindowDoNotAskOption
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction
@@ -64,9 +35,11 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.PackageWrapper
 import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
@@ -102,13 +75,52 @@ import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
 import org.jetbrains.concurrency.Promise
+import org.jetbrains.concurrency.thenRun
+import org.utbot.common.filterWhen
+import org.utbot.common.PathUtil.toPath
+import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.ForceStaticMocking
+import org.utbot.framework.codegen.Junit4
+import org.utbot.framework.codegen.Junit5
+import org.utbot.framework.codegen.NoStaticMocking
+import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.StaticsMocking
+import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FILE_CONTENT
+import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_STORAGE
+import org.utbot.framework.codegen.model.util.MOCKITO_MOCKMAKER_FILE_NAME
+import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.MockFramework.MOCKITO
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.framework.util.Conflict
+import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
+import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
+import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
+import org.utbot.intellij.plugin.models.packageName
+import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
+import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
+import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
+import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
+import org.utbot.intellij.plugin.ui.utils.allLibraries
+import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
+import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
+import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
+import org.utbot.intellij.plugin.ui.utils.parseVersion
+import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
+import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.AndroidApiHelper
 import java.awt.BorderLayout
 import java.awt.Color
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.Objects
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JComboBox
@@ -116,8 +128,6 @@ import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
 import kotlin.streams.toList
-import org.jetbrains.concurrency.thenRun
-import org.utbot.intellij.plugin.ui.utils.allLibraries
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -185,6 +195,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             configureStaticMocking()
         }
 
+        TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.eventLogSuffix]?.plusAssign {
+            val twm = ToolWindowManager.getInstance(model.project)
+            twm.getToolWindow("Event Log")?.activate(null)
+        }
+
         init()
     }
 
@@ -234,10 +249,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             }
             row {
                 component(cbSpecifyTestPackage)
-            }
+            }.apply { visible = false }
             row("Destination package:") {
                 component(testPackageField)
-            }
+            }.apply { visible = false }
+
             row("Generate test methods for:") {}
             row {
                 scrollPane(membersTable)
@@ -279,8 +295,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun findTestPackageComboValue(): String {
-        val packageNames = model.srcClasses.map { it.packageName }.distinct()
-        return if (packageNames.size == 1) packageNames.first() else SAME_PACKAGE_LABEL
+        return if (model.isMultiPackage) {
+            model.srcClasses.first().packageName
+        } else {
+            SAME_PACKAGE_LABEL
+        }
     }
 
     /**
@@ -341,6 +360,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val items: List<MemberInfo>
         if (srcClasses.size == 1) {
             items = TestIntegrationUtils.extractClassMethods(srcClasses.single(), false)
+                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { it.member !is SyntheticElement }
             updateMethodsTable(items)
         } else {
             items = srcClasses.map { MemberInfo(it) }
@@ -461,11 +481,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         }
 
-        if (cbSpecifyTestPackage.isSelected && testPackageField.text.isEmpty()) {
-            showTestPackageAbsenceErrorMessage()
-            return
-        }
-
         configureJvmTargetIfRequired()
         configureTestFrameworkIfRequired()
         configureMockFrameworkIfRequired()
@@ -524,12 +539,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun showTestRootAbsenceErrorMessage() =
         Messages.showErrorDialog(
             "Test source root is not configured or is located out of content entry!",
-            "Generation error"
-        )
-
-    private fun showTestPackageAbsenceErrorMessage() =
-        Messages.showErrorDialog(
-            "Specify a package to store tests in.",
             "Generation error"
         )
 
@@ -610,7 +619,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             configureTestFramework()
         }
 
-        model.hasTestFrameworkConflict = TestFramework.allItems.count { it.isInstalled } > 1
+        model.conflictTriggers[Conflict.TestFrameworkConflict] = TestFramework.allItems.count { it.isInstalled  } > 1
     }
 
     private fun configureMockFrameworkIfRequired() {
@@ -827,14 +836,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         cbSpecifyTestPackage.addActionListener {
             val testPackageName = findTestPackageComboValue()
+            val packageNameIsNeeded = testPackageField.isEnabled || testPackageName != SAME_PACKAGE_LABEL
 
-            if (testPackageField.isEnabled) {
-                testPackageField.isEnabled = false
-                testPackageField.text = testPackageName
-            } else {
-                testPackageField.isEnabled = true
-                testPackageField.text = if (testPackageName != SAME_PACKAGE_LABEL) testPackageName else ""
-            }
+            testPackageField.text = if (packageNameIsNeeded) testPackageName else ""
+            testPackageField.isEnabled = !testPackageField.isEnabled
         }
     }
 

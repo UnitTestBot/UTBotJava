@@ -85,13 +85,15 @@ class SimpleClusterCommentBuilder(
         val invokeSootMethod = statementTag.invokeSootMethod()
         var invokeRegistered = false
         if (invoke != null && invokeSootMethod != null) {
-            val className = invokeSootMethod.declaringClass.javaStyleName
+            val className = invokeSootMethod.declaringClass.name
             val methodName = invokeSootMethod.name
+            val methodParameterTypes = invokeSootMethod.parameterTypes
             val sentenceInvoke = SimpleSentenceBlock(stringTemplates = StringsTemplatesPlural())
             buildSentenceBlock(invoke, sentenceInvoke, invokeSootMethod)
             sentenceInvoke.squashStmtText()
             if (!sentenceInvoke.isEmpty()) {
-                sentenceBlock.invokeSentenceBlock = Pair(invokeDescription(className, methodName), sentenceInvoke)
+                sentenceBlock.invokeSentenceBlock =
+                    Pair(invokeDescription(className, methodName, methodParameterTypes), sentenceInvoke)
                 createNextBlock = true
                 invokeRegistered = true
             }

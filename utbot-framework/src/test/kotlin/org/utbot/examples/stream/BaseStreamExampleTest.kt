@@ -3,7 +3,7 @@ package org.utbot.examples.stream
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.Full
 import org.utbot.examples.FullWithAssumptions
@@ -20,7 +20,7 @@ import kotlin.streams.toList
 
 // TODO 1 instruction is always uncovered https://github.com/UnitTestBot/UTBotJava/issues/193
 // TODO failed Kotlin compilation (generics) JIRA:1332
-class BaseStreamExampleTest : AbstractTestCaseGeneratorTest(
+class BaseStreamExampleTest : UtValueTestCaseChecker(
     testClass = BaseStreamExample::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

@@ -10,10 +10,9 @@ import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.ModelProvider.Companion.consumeAll
-import java.util.function.BiConsumer
+import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import java.util.function.IntSupplier
 
 /**
@@ -36,12 +35,12 @@ class CollectionModelProvider(
         java.util.Iterator::class.java to ::createIteratorModels,
     )
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap
             .asSequence()
             .forEach { (classId, indices) ->
                  generators[classId.jClass]?.let { createModels ->
-                     consumer.consumeAll(indices, createModels().map { it.fuzzed() })
+                     yieldAllValues(indices, createModels().map { it.fuzzed() })
                  }
             }
     }

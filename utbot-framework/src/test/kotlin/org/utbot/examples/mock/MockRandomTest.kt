@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isParameter
@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import java.util.Random
 import org.junit.jupiter.api.Test
 
-internal class MockRandomTest : AbstractTestCaseGeneratorTest(testClass = MockRandomExamples::class) {
+internal class MockRandomTest : UtValueTestCaseChecker(testClass = MockRandomExamples::class) {
     @Test
     fun testRandomAsParameter() {
         val method: Random.() -> Int = Random::nextInt

@@ -1,12 +1,11 @@
 package org.utbot.examples.objects
 
-import org.junit.Ignore
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.Test
 
-internal class SimpleClassMultiInstanceExampleTest : AbstractTestCaseGeneratorTest(testClass = SimpleClassMultiInstanceExample::class) {
+internal class SimpleClassMultiInstanceExampleTest : UtValueTestCaseChecker(testClass = SimpleClassMultiInstanceExample::class) {
     @Test
     fun singleObjectChangeTest() {
         check(

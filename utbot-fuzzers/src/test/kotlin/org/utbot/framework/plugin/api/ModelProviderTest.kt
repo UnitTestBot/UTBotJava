@@ -23,9 +23,12 @@ import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.samples.FieldSetterClass
+import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.EnumModelProvider.fuzzed
@@ -252,8 +255,10 @@ class ModelProviderTest {
 
     @Test
     fun `test fallback model can create custom values for any parameter`() {
-        val firstParameterIsUserGenerated = ModelProvider { _, consumer ->
-            consumer.accept(0, UtPrimitiveModel(-123).fuzzed())
+        val firstParameterIsUserGenerated = ModelProvider {
+            sequence {
+                yieldValue(0, UtPrimitiveModel(-123).fuzzed())
+            }
         }.withFallback(PrimitivesModelProvider)
 
         val result = collect(
@@ -431,15 +436,87 @@ class ModelProviderTest {
         }
     }
 
+    @Test
+    fun `test complex object is created with setters`() {
+        val j = FieldSetterClass::class.java
+        assertEquals(6, j.declaredFields.size)
+        assertTrue(
+            setOf(
+                "pubStaticField",
+                "pubFinalField",
+                "pubField",
+                "pubFieldWithSetter",
+                "prvField",
+                "prvFieldWithSetter",
+            ).containsAll(j.declaredFields.map { it.name })
+        )
+        assertEquals(4, j.declaredMethods.size)
+        assertTrue(
+            setOf(
+                "getPubFieldWithSetter",
+                "setPubFieldWithSetter",
+                "getPrvFieldWithSetter",
+                "setPrvFieldWithSetter",
+            ).containsAll(j.declaredMethods.map { it.name })
+        )
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider { 0 }.apply {
+                modelProvider = PrimitiveDefaultsModelProvider
+            }, parameters = listOf(FieldSetterClass::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(2, result[0]!!.size)
+            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            val expectedModificationSize = 3
+            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val actualModificationSize = modificationsChain.size
+            assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
+
+            assertEquals("pubField", (modificationsChain[0] as UtDirectSetFieldModel).fieldId.name)
+            assertEquals("pubFieldWithSetter", (modificationsChain[1] as UtDirectSetFieldModel).fieldId.name)
+            assertEquals("setPrvFieldWithSetter", (modificationsChain[2] as UtExecutableCallModel).executable.name)
+        }
+    }
+
+    @Test
+    fun `test complex object is created with setters and package private field and constructor`() {
+        val j = PackagePrivateFieldAndClass::class.java
+        assertEquals(1, j.declaredFields.size)
+        assertTrue(
+            setOf(
+                "pkgField",
+            ).containsAll(j.declaredFields.map { it.name })
+        )
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider { 0 }.apply {
+                modelProvider = PrimitiveDefaultsModelProvider
+            }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
+                packageName = PackagePrivateFieldAndClass::class.java.`package`.name
+            }
+            assertEquals(1, result.size)
+            assertEquals(3, result[0]!!.size)
+            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            assertEquals(0, (result[0]!![2] as UtAssembleModel).modificationsChain.size) { "Modification by constructor doesn't change fields" }
+            val expectedModificationSize = 1
+            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val actualModificationSize = modificationsChain.size
+            assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
+
+            assertEquals("pkgField", (modificationsChain[0] as UtDirectSetFieldModel).fieldId.name)
+        }
+    }
+
     private fun collect(
         modelProvider: ModelProvider,
         name: String = "testMethod",
         returnType: ClassId = voidClassId,
         parameters: List<ClassId>,
-        constants: List<FuzzedConcreteValue> = emptyList()
+        constants: List<FuzzedConcreteValue> = emptyList(),
+        block: FuzzedMethodDescription.() -> Unit = {}
     ): Map<Int, List<UtModel>> {
         return mutableMapOf<Int, MutableList<UtModel>>().apply {
-            modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants)) { i, m ->
+            modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants).apply(block)).forEach { (i, m) ->
                 computeIfAbsent(i) { mutableListOf() }.add(m.model)
             }
         }

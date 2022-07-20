@@ -1,6 +1,6 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.AtLeast
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-internal class SetsTest : AbstractTestCaseGeneratorTest(
+internal class SetsTest : UtValueTestCaseChecker(
     testClass = Sets::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

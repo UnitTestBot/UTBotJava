@@ -126,9 +126,9 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    2nd return statement: return a;\n"
 
         val methodName1 = "testCompareChars_NLessThan1"
-        val methodName2 = "testCompareChars_0OfCharactertoCharsiEqualsA" // TODO: a weird unclear naming
-        val methodName3 = "testCompareChars_0OfCharactertoCharsiEqualsB"
-        val methodName4 = "testCompareChars_0OfCharactertoCharsiNotEqualsB" // TODO: si -> is
+        val methodName2 = "testCompareChars_0OfCharacterToCharsIEqualsA" // TODO: a weird unclear naming
+        val methodName3 = "testCompareChars_0OfCharacterToCharsIEqualsB"
+        val methodName4 = "testCompareChars_0OfCharacterToCharsINotEqualsB"
 
         val displayName1 = "n < 1 : True -> return ' '"
         val displayName2 = "Character.toChars(i)[0] == a : True -> return b"
@@ -165,19 +165,19 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testInnerVoidCompareChars() {
-        val summary1 = "Test calls ReturnExample::compareChars,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): True\n" +
                 "    returns from: return ' ';\n" +
                 "    " // TODO: generates empty String or \n a the end
-        val summary2 = "Test calls ReturnExample::compareChars,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): False\n" +
                 "    iterates the loop for(int i = 0; i < n; i++) once,\n" +
                 "        inside this loop, the test executes conditions:\n" +
                 "        (Character.toChars(i)[0] == a): True\n" +
                 "    returns from: return b;"
-        val summary3 = "Test calls ReturnExample::compareChars,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): False\n" +
                 "    iterates the loop for(int i = 0; i < n; i++) once,\n" +
@@ -186,7 +186,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "        (Character.toChars(i)[0] == b): False\n" +
                 "    Test then returns from: return a;\n" +
                 "    " // TODO: generates empty String or \n a the end
-        val summary4 = "Test calls ReturnExample::compareChars,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): False\n" +
                 "    iterates the loop for(int i = 0; i < n; i++) once,\n" +
@@ -196,9 +196,9 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return a;"
 
         val methodName1 = "testInnerVoidCompareChars_NLessThan1"
-        val methodName2 = "testInnerVoidCompareChars_0OfCharactertoCharsiEqualsA" // TODO: a weird unclear naming
-        val methodName3 = "testInnerVoidCompareChars_0OfCharactertoCharsiNotEqualsB"
-        val methodName4 = "testInnerVoidCompareChars_0OfCharactertoCharsiEqualsB" // TODO: si -> is
+        val methodName2 = "testInnerVoidCompareChars_0OfCharacterToCharsIEqualsA" // TODO: a weird unclear naming
+        val methodName3 = "testInnerVoidCompareChars_0OfCharacterToCharsINotEqualsB"
+        val methodName4 = "testInnerVoidCompareChars_0OfCharacterToCharsIEqualsB"
 
         val displayName1 = "n < 1 : True -> return ' '"
         val displayName2 = "Character.toChars(i)[0] == a : True -> return b"
@@ -235,13 +235,13 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testInnerReturnCompareChars() {
-        val summary1 = "Test calls ReturnExample::compareChars,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): True\n" +
                 "    returns from: return ' ';\n" +
                 "    \n" +
                 "Test later returns from: return compareChars(a, b, n);\n"
-        val summary2 = "Test calls ReturnExample::compareChars,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): False\n" +
                 "    iterates the loop for(int i = 0; i < n; i++) once,\n" +
@@ -249,7 +249,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "        (Character.toChars(i)[0] == a): True\n" +
                 "    returns from: return b;\n" +
                 "Test later returns from: return compareChars(a, b, n);\n"
-        val summary3 = "Test calls ReturnExample::compareChars,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): False\n" +
                 "    iterates the loop for(int i = 0; i < n; i++) once,\n" +
@@ -259,7 +259,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    Test then returns from: return a;\n" +
                 "    \n" + //
                 "Test afterwards returns from: return compareChars(a, b, n);\n"
-        val summary4 = "Test calls ReturnExample::compareChars,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compareChars(char,char,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (n < 1): False\n" +
                 "    iterates the loop for(int i = 0; i < n; i++) once,\n" +
@@ -270,9 +270,9 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "Test afterwards returns from: return compareChars(a, b, n);\n"
 
         val methodName1 = "testInnerReturnCompareChars_NLessThan1"
-        val methodName2 = "testInnerReturnCompareChars_0OfCharactertoCharsiEqualsA" // TODO: a weird unclear naming
-        val methodName3 = "testInnerReturnCompareChars_0OfCharactertoCharsiNotEqualsB"
-        val methodName4 = "testInnerReturnCompareChars_0OfCharactertoCharsiEqualsB" // TODO: si -> is
+        val methodName2 = "testInnerReturnCompareChars_0OfCharacterToCharsIEqualsA" // TODO: a weird unclear naming
+        val methodName3 = "testInnerReturnCompareChars_0OfCharacterToCharsINotEqualsB"
+        val methodName4 = "testInnerReturnCompareChars_0OfCharacterToCharsIEqualsB"
 
         val displayName1 = "n < 1 : True -> return ' '"
         val displayName2 = "Character.toChars(i)[0] == a : True -> return b"
@@ -309,13 +309,13 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testInnerVoidCompare() {
-        val summary1 = "Test calls ReturnExample::compare,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): True\n" +
                 "    returns from: return a;\n" +
                 "    " // TODO: remove blank line
-        val summary2 = "Test calls ReturnExample::compare,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
@@ -323,19 +323,19 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "        (a > b): True\n" +
                 "    returns from: return b;\n" +
                 "    " // TODO: remove blank line
-        val summary3 = "Test calls ReturnExample::compare,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
                 "        (b == 10): True\n" +
                 "    returns from: return c;\n" +
                 "    " // TODO: remove blank line
-        val summary4 = "Test calls ReturnExample::compare,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): True\n" +
                 "    returns from: return a;\n" +
                 "    " // TODO: remove blank line
-        val summary5 = "Test calls ReturnExample::compare,\n" +
+        val summary5 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
@@ -344,7 +344,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "        (a < b): True\n" +
                 "    returns from: return a;\n" +
                 "    " // TODO: remove blank line
-        val summary6 = "Test calls ReturnExample::compare,\n" +
+        val summary6 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
@@ -404,14 +404,14 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
 
     @Test
     fun testInnerReturnCompare() {
-        val summary1 = "Test calls ReturnExample::compare,\n" +
+        val summary1 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): True\n" +
                 "    returns from: return a;\n" +
                 "    \n" +
                 "Test then returns from: return compare(a, b);\n"
-        val summary2 = "Test calls ReturnExample::compare,\n" +
+        val summary2 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
@@ -420,7 +420,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return b;\n" +
                 "    \n" +
                 "Test afterwards returns from: return compare(a, b);\n"
-        val summary3 = "Test calls ReturnExample::compare,\n" +
+        val summary3 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
@@ -428,13 +428,13 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return c;\n" +
                 "    \n" +
                 "Test then returns from: return compare(a, b);\n"
-        val summary4 = "Test calls ReturnExample::compare,\n" +
+        val summary4 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): True\n" +
                 "    returns from: return a;\n" +
                 "    \n" +
                 "Test next returns from: return compare(a, b);\n"
-        val summary5 = "Test calls ReturnExample::compare,\n" +
+        val summary5 = "Test calls{@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +
@@ -444,7 +444,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
                 "    returns from: return a;\n" +
                 "    \n" +
                 "Test afterwards returns from: return compare(a, b);\n"
-        val summary6 = "Test calls ReturnExample::compare,\n" +
+        val summary6 = "Test calls {@link org.utbot.examples.algorithms.ReturnExample#compare(int,int)},\n" +
                 "    there it executes conditions:\n" +
                 "        (a < 0): False,\n" +
                 "        (b < 0): False,\n" +

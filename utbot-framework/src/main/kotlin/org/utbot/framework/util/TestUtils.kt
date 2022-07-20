@@ -11,6 +11,7 @@ import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 fun List<UtInstrumentation>.singleStaticMethod(methodName: String) =
@@ -139,4 +140,17 @@ fun compileClassFile(className: String, snippet: Snippet): File {
     require(javacFinished) { "Javac can't complete in $timeout sec" }
 
     return File(workdir.toFile(), "${sourceCodeFile.nameWithoutExtension}.class")
+}
+
+enum class Conflict {
+    ForceMockHappened,
+    ForceStaticMockHappened,
+    TestFrameworkConflict,
+}
+
+class ConflictTriggers(
+    private val triggers: MutableMap<Conflict, Boolean> = EnumMap<Conflict, Boolean>(Conflict::class.java).withDefault { false }
+): MutableMap<Conflict, Boolean> by triggers  {
+    val triggered: Boolean
+        get() = triggers.values.any { it }
 }

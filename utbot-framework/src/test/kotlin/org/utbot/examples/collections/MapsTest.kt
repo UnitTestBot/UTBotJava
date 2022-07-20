@@ -1,6 +1,6 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.AtLeast
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
@@ -16,7 +16,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation ($ in names, generics) SAT-1220 SAT-1332
-internal class MapsTest : AbstractTestCaseGeneratorTest(
+internal class MapsTest : UtValueTestCaseChecker(
     testClass = Maps::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

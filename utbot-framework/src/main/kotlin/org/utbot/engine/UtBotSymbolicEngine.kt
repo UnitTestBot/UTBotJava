@@ -64,6 +64,7 @@ import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.Step
+import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
@@ -72,13 +73,14 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.plugin.api.graph
-import org.utbot.framework.plugin.api.jimpleBody
+import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.util.jimpleBody
+import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -89,10 +91,12 @@ import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
+import kotlin.random.Random
 import kotlin.system.measureTimeMillis
 
 val logger = KotlinLogging.logger {}
@@ -384,6 +388,7 @@ class UtBotSymbolicEngine(
         }
 
         val fallbackModelProvider = FallbackModelProvider { nextDefaultModelId++ }
+        val constantValues = collectConstantsForFuzzer(graph)
 
         val thisInstance = when {
             methodUnderTest.isStatic -> null
@@ -396,7 +401,9 @@ class UtBotSymbolicEngine(
                 null
             }
             else -> {
-                fallbackModelProvider.toModel(methodUnderTest.clazz).apply {
+                ObjectModelProvider { nextDefaultModelId++ }.withFallback(fallbackModelProvider).generate(
+                    FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues)
+                ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
                     }
@@ -406,20 +413,39 @@ class UtBotSymbolicEngine(
 
         val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
             compilableName = if (methodUnderTest.isMethod) executableId.name else null
+            className = executableId.classId.simpleName
+            packageName = executableId.classId.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
-        val modelProviderWithFallback = modelProvider(defaultModelProviders { nextDefaultModelId++ }).withFallback(fallbackModelProvider::toModel)
         val coveredInstructionTracker = Trie(Instruction::id)
         val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = UtSettings.fuzzingMaxAttempts
-        fuzz(methodUnderTestDescription, modelProviderWithFallback).forEach { values ->
+        val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
+        val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
+            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders { nextDefaultModelId++ }))
+        } else {
+            // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
+            val thisMethodDescription = FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues).apply {
+                className = executableId.classId.simpleName
+                packageName = executableId.classId.packageName
+            }
+            fuzz(thisMethodDescription, ObjectModelProvider { nextDefaultModelId++ }.apply {
+                limitValuesCreatedByFieldAccessors = 500
+            })
+        }
+        fuzzedValues.forEach { values ->
             if (System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 return@flow
             }
 
-            val initialEnvironmentModels = EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
+            val initialEnvironmentModels = if (hasMethodUnderTestParametersToFuzz) {
+                EnvironmentModels(thisInstance, values.map { it.model }, mapOf())
+            } else {
+                check(values.size == 1 && values.first().model is UtAssembleModel)
+                EnvironmentModels(values.first().model, emptyList(), mapOf())
+            }
 
             try {
                 val concreteExecutionResult =
@@ -460,7 +486,7 @@ class UtBotSymbolicEngine(
                         fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
                         testMethodName = testMethodName?.testName,
-                        displayName = testMethodName?.displayName
+                        displayName = testMethodName?.takeIf { hasMethodUnderTestParametersToFuzz }?.displayName
                     )
                 )
             } catch (e: CancellationException) {

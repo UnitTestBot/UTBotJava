@@ -39,6 +39,11 @@ interface SarifExtensionProvider {
      */
     val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
 
+    /**
+     * Generate tests for private methods or not.
+     */
+    val testPrivateMethods: Boolean
+
     val testFramework: TestFramework
 
     val mockFramework: MockFramework

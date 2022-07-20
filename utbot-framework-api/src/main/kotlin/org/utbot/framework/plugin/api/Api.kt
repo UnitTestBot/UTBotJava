@@ -33,16 +33,6 @@ import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
-import java.io.File
-import java.lang.reflect.Modifier
-import java.nio.file.Path
-import kotlin.jvm.internal.CallableReference
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -58,6 +48,15 @@ import soot.Type
 import soot.VoidType
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
+import java.io.File
+import java.lang.reflect.Modifier
+import kotlin.jvm.internal.CallableReference
+import kotlin.reflect.KCallable
+import kotlin.reflect.KClass
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaConstructor
+import kotlin.reflect.jvm.javaType
 
 data class UtMethod<R>(
     val callable: KCallable<R>,
@@ -91,34 +90,13 @@ data class UtMethod<R>(
     }
 }
 
-/**
- * Test case.
- *
- * Note: it should not be transformed into data class since it is used as a key in maps.
- * The clusters in it are mutable objects, therefore, we might have problems with hash because of it.
- */
-@Suppress("unused")
-class UtTestCase(
+data class UtMethodTestSet(
     val method: UtMethod<*>,
     val executions: List<UtExecution> = emptyList(),
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
-    private val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
-) {
-    operator fun component1() = method
-    operator fun component2() = executions
-    operator fun component3() = jimpleBody
-    operator fun component4() = errors
-    operator fun component5() = clustersInfo
-
-    fun copy(
-        method: UtMethod<*> = this.method,
-        executions: List<UtExecution> = this.executions,
-        jimpleBody: JimpleBody? = this.jimpleBody,
-        errors: Map<String, Int> = this.errors,
-        clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = this.clustersInfo
-    ) = UtTestCase(method, executions, jimpleBody, errors, clustersInfo)
-}
+    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
+)
 
 data class Step(
     val stmt: Stmt,
@@ -706,7 +684,6 @@ open class ClassId(
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
      */
-    // TODO for now it duplicates overridden methods JIRA:1458
     open val allMethods: Sequence<MethodId>
         get() = generateSequence(jClass) { it.superclass }
             .mapNotNull { it.declaredMethods }
@@ -1024,17 +1001,6 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
 class WildcardTypeParameter: TypeParameters(emptyList())
 
-interface TestCaseGenerator {
-    fun init(
-        buildDir: Path,
-        classpath: String? = null,
-        dependencyPaths: String,
-        isCanceled: () -> Boolean = { false }
-    )
-
-    fun generate(method: UtMethod<*>, mockStrategy: MockStrategyApi): UtTestCase
-}
-
 interface CodeGenerationSettingItem {
     val displayName: String
     val description: String
@@ -1192,13 +1158,6 @@ fun isolateCommandLineArgumentsToArgumentFile(arguments: List<String>): String {
     )
     return argumentFile.absolutePath.let { "@$it" }
 }
-
-interface UtService<T> {
-    val displayName: String
-    val serviceProvider: T
-}
-
-interface TestGeneratorService : UtService<TestCaseGenerator>
 
 private fun StringBuilder.appendOptional(name: String, value: Collection<*>) {
     if (value.isNotEmpty()) {

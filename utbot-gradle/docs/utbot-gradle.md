@@ -40,6 +40,7 @@ __Groovy:__
       generatedTestsRelativeRoot = 'build/generated/test'
       sarifReportsRelativeRoot = 'build/generated/sarif'
       markGeneratedTestsDirectoryAsTestSourcesRoot = true
+      testPrivateMethods = false
       testFramework = 'junit5'
       mockFramework = 'mockito'
       generationTimeout = 60000L
@@ -58,6 +59,7 @@ __Kotlin DSL:__
       generatedTestsRelativeRoot.set("build/generated/test")
       sarifReportsRelativeRoot.set("build/generated/sarif")
       markGeneratedTestsDirectoryAsTestSourcesRoot.set(true)
+      testPrivateMethods.set(false)
       testFramework.set("junit5")
       mockFramework.set("mockito")
       generationTimeout.set(60000L)
@@ -78,6 +80,7 @@ generateTestsAndSarifReport
     -PprojectRoot='C:/.../SomeDirectory'
     -PgeneratedTestsRelativeRoot='build/generated/test'
     -PsarifReportsRelativeRoot='build/generated/sarif'
+    -PtestPrivateMethods='false'
     -PtestFramework=junit5
     -PmockFramework=mockito
     -PgenerationTimeout=60000
@@ -111,6 +114,10 @@ generateTestsAndSarifReport
 - `markGeneratedTestsDirectoryAsTestSourcesRoot` &ndash;
   - Mark the directory with generated tests as `test sources root` or not.
   - By default, `true` is used.
+
+- `testPrivateMethods`&ndash;
+  - Generate tests for private methods or not.
+  - By default, `false` is used.
 
 - `testFramework` &ndash;
   - The name of the test framework to be used.

@@ -3,7 +3,7 @@ package examples
 import org.junit.jupiter.api.*
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.CoverageMatcher
 import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
@@ -33,7 +33,7 @@ open class SummaryTestCaseGeneratorTest(
         CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, TestExecution)
     )
-) : AbstractTestCaseGeneratorTest(testClass, testCodeGeneration, languagePipelines) {
+) : UtValueTestCaseChecker(testClass, testCodeGeneration, languagePipelines) {
     private lateinit var cookie: AutoCloseable
 
     @BeforeEach
@@ -97,12 +97,12 @@ open class SummaryTestCaseGeneratorTest(
             checkNpeInNestedNotPrivateMethods = true
         }
         val utMethod = UtMethod.from(method)
-        val testCase = executionsModel(utMethod, mockStrategy)
-        testCase.summarize(searchDirectory)
+        val testSet = executionsModel(utMethod, mockStrategy)
+        testSet.summarize(searchDirectory)
 
-        testCase.executions.checkMatchersWithTextSummary(summaryKeys)
-        testCase.executions.checkMatchersWithMethodNames(methodNames)
-        testCase.executions.checkMatchersWithDisplayNames(displayNames)
+        testSet.executions.checkMatchersWithTextSummary(summaryKeys)
+        testSet.executions.checkMatchersWithMethodNames(methodNames)
+        testSet.executions.checkMatchersWithDisplayNames(displayNames)
     }
 
     /**
@@ -159,7 +159,7 @@ open class SummaryTestCaseGeneratorTest(
     }
 
     private fun summaries(executions: List<UtExecution>): String {
-        var result = "";
+        var result = ""
         executions.forEach {
             result += it.summary?.joinToString(separator = "", postfix = "\n")
         }

@@ -53,16 +53,19 @@ class SarifMavenConfigurationProviderTest : AbstractMojoTestCase() {
     }
 
     @Test
+    fun `testPrivateMethods should be provided from the configuration`() {
+        Assertions.assertEquals(true, configurationProvider.testPrivateMethods)
+    }
+
+    @Test
     fun `testFramework should be provided from the configuration`() {
         Assertions.assertEquals(Junit5, configurationProvider.testFramework)
     }
-
 
     @Test
     fun `mockFramework should be provided from the configuration`() {
         Assertions.assertEquals(MockFramework.MOCKITO, configurationProvider.mockFramework)
     }
-
 
     @Test
     fun `generationTimeout should be provided from the configuration`() {

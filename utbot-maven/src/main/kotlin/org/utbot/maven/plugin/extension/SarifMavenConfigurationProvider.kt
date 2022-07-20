@@ -33,6 +33,9 @@ class SarifMavenConfigurationProvider(
     override val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
         get() = generateTestsAndSarifReportMojo.markGeneratedTestsDirectoryAsTestSourcesRoot
 
+    override val testPrivateMethods: Boolean
+        get() = generateTestsAndSarifReportMojo.testPrivateMethods
+
     override val testFramework: TestFramework
         get() = testFrameworkParse(generateTestsAndSarifReportMojo.testFramework)
 

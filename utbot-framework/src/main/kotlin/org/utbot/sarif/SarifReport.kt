@@ -13,7 +13,7 @@ import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -24,7 +24,7 @@ import org.utbot.framework.plugin.api.UtTestCase
  * [Sample report](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#example-with-minimum-required-properties)
  */
 class SarifReport(
-    private val testCases: List<UtTestCase>,
+    private val testSets: List<UtMethodTestSet>,
     private val generatedTestsCode: String,
     private val sourceFinding: SourceFindingStrategy
 ) {
@@ -66,18 +66,15 @@ class SarifReport(
      */
     private val relatedLocationId = 1 // for attaching link to generated test in related locations
 
-    private fun shouldProcessUncheckedException(result: UtExecutionResult) = (result is UtImplicitlyThrownException)
-            || ((result is UtOverflowFailure) && UtSettings.treatOverflowAsError)
-
     private fun constructSarif(): Sarif {
         val sarifResults = mutableListOf<SarifResult>()
         val sarifRules = mutableSetOf<SarifRule>()
 
-        for (testCase in testCases) {
-            for (execution in testCase.executions) {
-                if (shouldProcessUncheckedException(execution.result)) {
+        for (testSet in testSets) {
+            for (execution in testSet.executions) {
+                if (shouldProcessExecutionResult(execution.result)) {
                     val (sarifResult, sarifRule) = processUncheckedException(
-                        method = testCase.method,
+                        method = testSet.method,
                         utExecution = execution,
                         uncheckedException = execution.result as UtExecutionFailure
                     )
@@ -90,9 +87,43 @@ class SarifReport(
         return Sarif.fromRun(
             SarifRun(
                 SarifTool.fromRules(sarifRules.toList()),
-                sarifResults
+                minimizeResults(sarifResults)
             )
         )
+    }
+
+    /**
+     * Minimizes detected errors and removes duplicates.
+     *
+     * Between two [SarifResult]s with the same `ruleId` and `locations`
+     * it chooses the one with the shorter length of the execution trace.
+     *
+     * __Example:__
+     *
+     * The SARIF report for the code below contains only one unchecked exception in `methodB`.
+     * But without minimization, the report will contain two results: for `methodA` and for `methodB`.
+     *
+     * ```
+     * class Example {
+     *     int methodA(int a) {
+     *         return methodB(a);
+     *     }
+     *     int methodB(int b) {
+     *         return 1 / b;
+     *     }
+     * }
+     * ```
+     */
+    private fun minimizeResults(sarifResults: List<SarifResult>): List<SarifResult> {
+        val groupedResults = sarifResults.groupBy { sarifResult ->
+            Pair(sarifResult.ruleId, sarifResult.locations)
+        }
+        val minimizedResults = groupedResults.map { (_, sarifResultsGroup) ->
+            sarifResultsGroup.minByOrNull { sarifResult ->
+                sarifResult.totalCodeFlowLocations()
+            }!!
+        }
+        return minimizedResults
     }
 
     private fun processUncheckedException(
@@ -144,7 +175,7 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val startLine = extractLineNumber(utExecution) ?: defaultLineNumber
+        val startLine = getLastLineNumber(utExecution) ?: defaultLineNumber
         val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
         val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
@@ -301,10 +332,24 @@ class SarifReport(
         return "..."
     }
 
-    private fun extractLineNumber(utExecution: UtExecution): Int? =
-        try {
+    /**
+     * Returns the number of the last line in the execution path.
+     */
+    private fun getLastLineNumber(utExecution: UtExecution): Int? {
+        val lastPathLine = try {
             utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
         } catch (t: Throwable) {
             null
         }
+        // if for some reason we can't extract the last line from the path
+        val lastCoveredInstruction =
+            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
+        return lastPathLine ?: lastCoveredInstruction
+    }
+
+    private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
+        val implicitlyThrown = result is UtImplicitlyThrownException
+        val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
+        return implicitlyThrown || overflowFailure
+    }
 }

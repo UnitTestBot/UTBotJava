@@ -4,16 +4,17 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
-import java.util.function.BiConsumer
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 
 /**
  * Traverses through method constants and creates appropriate models for them.
  */
 object ConstantsModelProvider : ModelProvider {
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
             .filter { (classId, _) -> classId.isPrimitive }
@@ -25,7 +26,7 @@ object ConstantsModelProvider : ModelProvider {
                     .filterNotNull()
                     .forEach { m ->
                         description.parametersMap.getOrElse(m.model.classId) { emptyList() }.forEach { index ->
-                            consumer.accept(index, m)
+                            yieldValue(index, m)
                         }
                     }
         }

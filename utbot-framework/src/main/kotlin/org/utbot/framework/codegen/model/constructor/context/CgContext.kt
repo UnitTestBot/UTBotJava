@@ -45,7 +45,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -178,7 +178,7 @@ internal interface CgContextOwner {
     // map from a set of tests for a method to another map
     // which connects code generation error message
     // with the number of times it occurred
-    val codeGenerationErrors: MutableMap<UtTestCase, MutableMap<String, Int>>
+    val codeGenerationErrors: MutableMap<UtMethodTestSet, MutableMap<String, Int>>
 
     // package for generated test class
     val testClassPackageName: String
@@ -418,7 +418,7 @@ internal data class CgContext(
     override var declaredExecutableRefs: PersistentMap<ExecutableId, CgVariable> = persistentMapOf(),
     override var thisInstance: CgValue? = null,
     override val methodArguments: MutableList<CgValue> = mutableListOf(),
-    override val codeGenerationErrors: MutableMap<UtTestCase, MutableMap<String, Int>> = mutableMapOf(),
+    override val codeGenerationErrors: MutableMap<UtMethodTestSet, MutableMap<String, Int>> = mutableMapOf(),
     override val testClassPackageName: String = classUnderTest.packageName,
     override var shouldOptimizeImports: Boolean = false,
     override var testClassCustomName: String? = null,

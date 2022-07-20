@@ -72,18 +72,6 @@ class SettingsWindow(val project: Project) {
     }
 
     init {
-        // TODO: service loaders for test generator and code generator are removed from settings temporarily
-        val serviceLoaderToProviderNames = listOf<Pair<UtServiceLoader<*>, Set<CodeGenerationSettingItem>>>()
-//            listOf(TestGeneratorServiceLoader, CodeGeneratorServiceLoader).map {
-//                it to it.serviceProviderNames
-//            }
-        serviceLoaderToProviderNames.forEach { (loader, names) ->
-            val model = DefaultComboBoxModel(names.toTypedArray()).apply {
-                selectedItem = settings.providerNameByServiceLoader(loader::class)
-            }
-            comboBoxes += ComboBoxInfo(loader::class, ComboBox(model))
-        }
-
         comboBoxes += ComboBoxInfo(
             MockStrategyApi::class,
             mockStrategyComboBox as ComboBox<CodeGenerationSettingItem>
@@ -149,8 +137,6 @@ class SettingsWindow(val project: Project) {
 
     private fun labelByServiceLoader(loader: KClass<*>): String =
         when (loader) {
-            TestGeneratorServiceLoader::class -> "Test case generator:"
-            CodeGeneratorServiceLoader::class -> "Code generator:"
             MockStrategyApi::class -> "Mock strategy: "
             CodegenLanguage::class -> "Language generation: "
             RuntimeExceptionTestsBehaviour::class -> "Behavior of the tests producing Runtime exceptions: "

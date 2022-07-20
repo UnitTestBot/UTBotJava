@@ -20,7 +20,6 @@ RUN curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
         -L "$(python3 get_java_cli_download_url.py)" \
         -o "${JAVA_CLI_ZIP_NAME}" \
     && unzip "${JAVA_CLI_ZIP_NAME}" \
-    && rm "${JAVA_CLI_ZIP_NAME}"
-
-ENV JAVA_CLI_PATH="$(find /usr/src -type f -name utbot-cli*)"
-RUN ln -s "${JAVA_CLI_PATH}" $pwd/utbot-cli.jar
+    && rm "${JAVA_CLI_ZIP_NAME}" \
+    && JAVA_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
+    && ln -s "${JAVA_CLI_PATH}" /usr/src/utbot-cli.jar

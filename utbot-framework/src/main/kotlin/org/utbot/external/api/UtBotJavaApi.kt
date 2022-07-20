@@ -8,7 +8,7 @@ import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.ModelBasedCodeGeneratorService
+import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
@@ -16,11 +16,11 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isPrimitive
@@ -32,6 +32,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.execute
 import java.lang.reflect.Method
@@ -50,7 +51,7 @@ object UtBotJavaApi {
     @JvmOverloads
     fun generate(
         methodsForGeneration: List<TestMethodInfo>,
-        generatedTestCases: List<UtTestCase> = mutableListOf(),
+        generatedTestCases: List<UtMethodTestSet> = mutableListOf(),
         destinationClassName: String,
         classpath: String,
         dependencyClassPath: String,
@@ -66,7 +67,7 @@ object UtBotJavaApi {
 
         val utContext = UtContext(classUnderTest.classLoader)
 
-        val testCases: MutableList<UtTestCase> = generatedTestCases.toMutableList()
+        val testSets: MutableList<UtMethodTestSet> = generatedTestCases.toMutableList()
 
         val concreteExecutor = ConcreteExecutor(
             UtExecutionInstrumentation,
@@ -74,17 +75,15 @@ object UtBotJavaApi {
             dependencyClassPath
         )
 
-        testCases.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))
+        testSets.addAll(generateUnitTests(concreteExecutor, methodsForGeneration, classUnderTest))
 
         if (stopConcreteExecutorOnExit) {
             concreteExecutor.close()
         }
 
         return withUtContext(utContext) {
-            val testGenerator = ModelBasedCodeGeneratorService().serviceProvider.apply {
-                init(
+            val codeGenerator = CodeGenerator(
                     classUnderTest = classUnderTest,
-                    params = mutableMapOf(),
                     testFramework = testFramework,
                     mockFramework = mockFramework,
                     codegenLanguage = codegenLanguage,
@@ -93,42 +92,34 @@ object UtBotJavaApi {
                     generateWarningsForStaticMocking = generateWarningsForStaticMocking,
                     testClassPackageName = testClassPackageName
                 )
-            }
 
-            testGenerator.generateAsString(
-                testCases,
-                destinationClassName
-            )
+            codeGenerator.generateAsString(testSets, destinationClassName)
         }
     }
 
     /**
-     * Generates test cases using default workflow.
+     * Generates test sets using default workflow.
      *
-     * @see [fuzzingTestCases]
+     * @see [fuzzingTestSets]
      */
     @JvmStatic
     @JvmOverloads
-    fun generateTestCases(
+    fun generateTestSets(
         methodsForAutomaticGeneration: List<TestMethodInfo>,
         classUnderTest: Class<*>,
         classpath: String,
         dependencyClassPath: String,
         mockStrategyApi: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES,
         generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis
-    ): MutableList<UtTestCase> {
+    ): MutableList<UtMethodTestSet> {
 
         val utContext = UtContext(classUnderTest.classLoader)
-        val testCases: MutableList<UtTestCase> = mutableListOf()
+        val testSets: MutableList<UtMethodTestSet> = mutableListOf()
 
-        testCases.addAll(withUtContext(utContext) {
-            UtBotTestCaseGenerator
-                .apply {
-                    init(
-                        FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
-                    )
-                }
-                .generateForSeveralMethods(
+        testSets.addAll(withUtContext(utContext) {
+            val buildPath = FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath()
+            TestCaseGenerator(buildPath, classpath, dependencyClassPath)
+                .generate(
                     methodsForAutomaticGeneration.map {
                         toUtMethod(
                             it.methodToBeTestedFromUserInput,
@@ -141,17 +132,17 @@ object UtBotJavaApi {
                 )
         })
 
-        return testCases
+        return testSets
     }
 
     /**
      * Generates test cases using only fuzzing workflow.
      *
-     * @see [generateTestCases]
+     * @see [generateTestSets]
      */
     @JvmStatic
     @JvmOverloads
-    fun fuzzingTestCases(
+    fun fuzzingTestSets(
         methodsForAutomaticGeneration: List<TestMethodInfo>,
         classUnderTest: Class<*>,
         classpath: String,
@@ -159,7 +150,7 @@ object UtBotJavaApi {
         mockStrategyApi: MockStrategyApi = MockStrategyApi.OTHER_PACKAGES,
         generationTimeoutInMillis: Long = UtSettings.utBotGenerationTimeoutInMillis,
         primitiveValuesSupplier: CustomFuzzerValueSupplier = CustomFuzzerValueSupplier { null }
-    ): MutableList<UtTestCase> {
+    ): MutableList<UtMethodTestSet> {
         fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
             supplier
                 .takeIf { classId.isPrimitive || classId.isPrimitiveWrapper || classId == stringClassId }
@@ -176,23 +167,22 @@ object UtBotJavaApi {
                 }
                 ?.map { UtPrimitiveModel(it) } ?: emptySequence()
 
-        val customModelProvider = ModelProvider { description, consumer ->
-            description.parametersMap.forEach { (classId, indices) ->
-                createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
-                    indices.forEach { index ->
-                        consumer.accept(index, FuzzedValue(model))
+        val customModelProvider = ModelProvider { description ->
+            sequence {
+                description.parametersMap.forEach { (classId, indices) ->
+                    createPrimitiveModels(primitiveValuesSupplier, classId).forEach { model ->
+                        indices.forEach { index ->
+                            yieldValue(index, FuzzedValue(model))
+                        }
                     }
                 }
             }
         }
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
-            UtBotTestCaseGenerator
-                .apply {
-                    init(
-                        FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath(), classpath, dependencyClassPath
-                    )
-                }.generateForSeveralMethods(
+            val buildPath = FileUtil.isolateClassFiles(classUnderTest.kotlin).toPath()
+            TestCaseGenerator(buildPath, classpath, dependencyClassPath)
+                .generate(
                     methodsForAutomaticGeneration.map {
                         toUtMethod(
                             it.methodToBeTestedFromUserInput,
@@ -260,7 +250,7 @@ object UtBotJavaApi {
 
         val utMethod = UtMethod(methodCallable, containingClass.kotlin)
 
-        UtTestCase(
+        UtMethodTestSet(
             utMethod,
             listOf(utExecution)
         )

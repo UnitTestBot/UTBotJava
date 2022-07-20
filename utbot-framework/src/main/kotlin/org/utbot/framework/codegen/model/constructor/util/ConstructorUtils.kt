@@ -239,7 +239,7 @@ internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequen
     }
 
     return allExecutables.filter {
-        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size
+        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size && it.classId == executableId.classId
     }
 }
 

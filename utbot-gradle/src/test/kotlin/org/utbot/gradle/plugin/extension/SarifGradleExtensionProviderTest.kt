@@ -212,6 +212,43 @@ class SarifGradleExtensionProviderTest {
     }
 
     @Nested
+    @DisplayName("testPrivateMethods")
+    inner class TestPrivateMethodsTest {
+        @Test
+        fun `should be false by default`() {
+            setTestPrivateMethodsInExtension(null)
+            assertEquals(false, extensionProvider.testPrivateMethods)
+        }
+
+        @Test
+        fun `should be provided from the extension`() {
+            setTestPrivateMethodsInExtension(true)
+            assertEquals(true, extensionProvider.testPrivateMethods)
+        }
+
+        @Test
+        fun `should be provided from the task parameters`() {
+            setTestPrivateMethodsInTaskParameters(true)
+            assertEquals(true, extensionProvider.testPrivateMethods)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setTestPrivateMethodsInTaskParameters(false)
+            setTestPrivateMethodsInExtension(true)
+            assertEquals(false, extensionProvider.testPrivateMethods)
+        }
+
+        private fun setTestPrivateMethodsInExtension(value: Boolean?) {
+            Mockito.`when`(extensionMock.testPrivateMethods).thenReturn(createBooleanProperty(value))
+        }
+
+        private fun setTestPrivateMethodsInTaskParameters(value: Boolean) {
+            extensionProvider.taskParameters = mapOf("testPrivateMethods" to "$value")
+        }
+    }
+
+    @Nested
     @DisplayName("testFramework")
     inner class TestFrameworkTest {
         @Test

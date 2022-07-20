@@ -19,6 +19,7 @@ import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.ExceptHandler
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.Try
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.With
@@ -105,6 +106,10 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     override fun asString(): String {
         val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
         return modulePrettyPrintVisitor.visitModule(Module(listOf(ast)), IndentationPrettyPrint(0))
+    }
+
+    override fun ast(): FunctionDef {
+        return ast
     }
 
     override fun getConcreteValues(): List<FuzzedConcreteValue> {
@@ -337,6 +342,25 @@ object PythonCodeGenerator {
         file.createNewFile()
         return file
     }
+
+    fun generateStubFile(
+        method: PythonMethod,
+        annotations: List<String>,
+    ): String {
+        val parameters = method.arguments.zip(annotations).map { (argument, annotation) ->
+            Parameter(argument.name, Name(annotation))
+        }
+        val sourceCodeFile = File(method.sourceCodePath.toString().split(".").first() + ".py")
+        val sourceCode = sourceCodeFile.readText()
+
+        val functionName = "__mypy_test_${method.name}"
+        val functionDef = FunctionDef(
+            functionName,
+            Parameters(parameters),
+            method.ast().body
+        )
+        return sourceCode + "\n" + PythonMethodBody(functionDef).asString()
+    }
 }
 
 fun String.camelToSnakeCase(): String {
@@ -399,6 +423,19 @@ object PythonEvaluation {
 
         file.delete()
         return EvaluationSuccess(output, !isSuccess)
+    }
+
+    fun runMypy(
+        method: PythonMethod,
+        annotations: List<String>,
+        mypyPath: String = "mypy",
+    ) {
+        val functionCode = PythonCodeGenerator.generateStubFile(
+            method,
+            annotations,
+        )
+        val process = Runtime.getRuntime().exec("$mypyPath -c $functionCode")
+        process.waitFor()
     }
 
     private fun createDirectory(path: String) {

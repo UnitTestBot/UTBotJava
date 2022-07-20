@@ -295,7 +295,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun findTestPackageComboValue(): String {
-        return if (model.isMultiPackage) {
+        return if (!model.isMultiPackage) {
             model.srcClasses.first().packageName
         } else {
             SAME_PACKAGE_LABEL

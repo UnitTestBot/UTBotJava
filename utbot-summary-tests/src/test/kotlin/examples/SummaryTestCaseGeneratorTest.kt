@@ -25,6 +25,10 @@ import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 
 
+private const val NEW_LINE = "\n"
+private const val POINT_IN_THE_LIST = "  * "
+private const val COMMENT_SEPARATOR = "-------------------------------------------------------------"
+
 @Disabled
 open class SummaryTestCaseGeneratorTest(
     testClass: KClass<*>,
@@ -120,18 +124,51 @@ open class SummaryTestCaseGeneratorTest(
         return result
     }
 
-
     fun List<UtExecution>.checkMatchersWithTextSummary(
-        summaryTextKeys: List<String>,
+        comments: List<String>,
     ) {
-        if (summaryTextKeys.isEmpty()) {
+        if (comments.isEmpty()) {
             return
         }
         val notMatchedExecutions = this.filter { execution ->
-            summaryTextKeys.none { summaryKey -> val normalize = execution.summary?.toString()?.normalize()
-                normalize?.contains(summaryKey.normalize()) == true }
+            comments.none { comment ->
+                val normalize = execution.summary?.toString()?.normalize()
+                normalize?.contains(comment.normalize()) == true
+            }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched comments ${summaries(notMatchedExecutions)}" }
+
+        val notMatchedComments = comments.filter { comment ->
+            this.none { execution ->
+                val normalize = execution.summary?.toString()?.normalize()
+                normalize?.contains(comment.normalize()) == true
+            }
+        }
+
+        Assertions.assertTrue(notMatchedExecutions.isEmpty() && notMatchedComments.isEmpty()) {
+            buildString {
+                if (notMatchedExecutions.isNotEmpty()) {
+                    append(
+                        "\nThe following comments were produced by the UTBot, " +
+                                "but were not found in the list of comments passed in the check() method:\n\n${
+                                    commentsFromExecutions(
+                                        notMatchedExecutions
+                                    )
+                                }"
+                    )
+                }
+
+                if (notMatchedComments.isNotEmpty()) {
+                    append(
+                        "\nThe following comments were passed in the check() method, " +
+                                "but were not found in the list of comments produced by the UTBot:\n\n${
+                                    comments(
+                                        notMatchedComments
+                                    )
+                                }"
+                    )
+                }
+            }
+        }
     }
 
     fun List<UtExecution>.checkMatchersWithMethodNames(
@@ -143,7 +180,36 @@ open class SummaryTestCaseGeneratorTest(
         val notMatchedExecutions = this.filter { execution ->
             methodNames.none { methodName -> execution.testMethodName?.equals(methodName) == true }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched test names ${summaries(notMatchedExecutions)}" }
+
+        val notMatchedMethodNames = methodNames.filter { methodName ->
+            this.none { execution -> execution.testMethodName?.equals(methodName) == true }
+        }
+
+        Assertions.assertTrue(notMatchedExecutions.isEmpty() && notMatchedMethodNames.isEmpty()) {
+            buildString {
+                if (notMatchedExecutions.isNotEmpty()) {
+                    append(
+                        "\nThe following method names were produced by the UTBot, " +
+                                "but were not found in the list of method names passed in the check() method:\n\n${
+                                    methodNamesFromExecutions(
+                                        notMatchedExecutions
+                                    )
+                                }"
+                    )
+                }
+
+                if (notMatchedMethodNames.isNotEmpty()) {
+                    append(
+                        "\nThe following method names were passed in the check() method, " +
+                                "but were not found in the list of method names produced by the UTBot:\n\n${
+                                    methodNames(
+                                        notMatchedMethodNames
+                                    )
+                                }"
+                    )
+                }
+            }
+        }
     }
 
     fun List<UtExecution>.checkMatchersWithDisplayNames(
@@ -155,14 +221,108 @@ open class SummaryTestCaseGeneratorTest(
         val notMatchedExecutions = this.filter { execution ->
             displayNames.none { displayName -> execution.displayName?.equals(displayName) == true }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched display names ${summaries(notMatchedExecutions)}" }
+
+        val notMatchedDisplayNames = displayNames.filter { displayName ->
+            this.none { execution -> execution.displayName?.equals(displayName) == true }
+        }
+
+        Assertions.assertTrue(notMatchedExecutions.isEmpty() && notMatchedDisplayNames.isEmpty()) {
+            buildString {
+                if (notMatchedExecutions.isNotEmpty()) {
+                    append(
+                        "\nThe following display names were produced by the UTBot, " +
+                                "but were not found in the list of display names passed in the check() method:\n\n${
+                                    displayNamesFromExecutions(
+                                        notMatchedExecutions
+                                    )
+                                }"
+                    )
+                }
+
+                if (notMatchedDisplayNames.isNotEmpty()) {
+                    append(
+                        "\nThe following display names were passed in the check() method, " +
+                                "but were not found in the list of display names produced by the UTBot:\n\n${
+                                    displayNames(
+                                        notMatchedDisplayNames
+                                    )
+                                }"
+                    )
+                }
+            }
+        }
     }
 
-    private fun summaries(executions: List<UtExecution>): String {
-        var result = ""
-        executions.forEach {
-            result += it.summary?.joinToString(separator = "", postfix = "\n")
+    private fun commentsFromExecutions(executions: List<UtExecution>): String {
+        return buildString {
+            append(COMMENT_SEPARATOR)
+            executions.forEach {
+                append(NEW_LINE)
+                append(NEW_LINE)
+                append(it.summary?.joinToString(separator = "", postfix = NEW_LINE))
+                append(COMMENT_SEPARATOR)
+                append(NEW_LINE)
+            }
+            append(NEW_LINE)
         }
-        return result
+    }
+
+    private fun comments(comments: List<String>): String {
+        return buildString {
+            append(COMMENT_SEPARATOR)
+            comments.forEach {
+                append(NEW_LINE)
+                append(NEW_LINE)
+                append(it)
+                append(NEW_LINE)
+                append(COMMENT_SEPARATOR)
+                append(NEW_LINE)
+            }
+            append(NEW_LINE)
+        }
+    }
+
+    private fun displayNamesFromExecutions(executions: List<UtExecution>): String {
+        return buildString {
+            executions.forEach {
+                append(POINT_IN_THE_LIST)
+                append(it.displayName)
+                append(NEW_LINE)
+            }
+            append(NEW_LINE)
+        }
+    }
+
+    private fun displayNames(displayNames: List<String>): String {
+        return buildString {
+            displayNames.forEach {
+                append(POINT_IN_THE_LIST)
+                append(it)
+                append(NEW_LINE)
+            }
+            append(NEW_LINE)
+        }
+    }
+
+    private fun methodNamesFromExecutions(executions: List<UtExecution>): String {
+        return buildString {
+            executions.forEach {
+                append(POINT_IN_THE_LIST)
+                append(it.testMethodName)
+                append(NEW_LINE)
+            }
+            append(NEW_LINE)
+        }
+    }
+
+    private fun methodNames(methodNames: List<String>): String {
+        return buildString {
+            methodNames.forEach {
+                append(POINT_IN_THE_LIST)
+                append(it)
+                append(NEW_LINE)
+            }
+            append(NEW_LINE)
+        }
     }
 }

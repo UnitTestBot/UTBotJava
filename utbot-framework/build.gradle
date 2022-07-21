@@ -37,15 +37,11 @@ dependencies {
     testImplementation project(':utbot-analytics')
 
     // used for testing code generation
-    testImplementation group: 'commons-io', name: 'commons-io', version: commons_io_version
     testImplementation group: 'junit', name: 'junit', version: junit4_version
     testImplementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4_platform_version
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     testImplementation group: 'org.testng', name: 'testng', version: testng_version
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
-
-    testCompile group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
-    testCompile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
 
     z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3_version, ext: 'zip'
     z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3_version, ext: 'zip'

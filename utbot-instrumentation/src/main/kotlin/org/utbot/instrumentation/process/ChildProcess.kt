@@ -1,9 +1,16 @@
 package org.utbot.instrumentation.process
 
+import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.plusAssign
+import org.utbot.common.currentProcessPid
 import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.rd.UtRdUtil
+import org.utbot.instrumentation.rd.UtSingleThreadScheduler
+import org.utbot.instrumentation.rd.obtainClientIO
+import org.utbot.instrumentation.rd.processSyncDirectory
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
@@ -13,14 +20,13 @@ import java.io.PrintStream
 import java.net.URLClassLoader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
 
 /**
  * We use this ClassLoader to separate user's classes and our dependency classes.
  * Our classes won't be instrumented.
  */
-internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
+private object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     fun addUrls(urls: Iterable<String>) {
         urls.forEach { super.addURL(File(it).toURI().toURL()) }
     }
@@ -39,70 +45,126 @@ internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     }
 }
 
-// Logging
-private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
-private fun log(any: Any?) {
-    System.err.println(LocalDateTime.now().format(dateFormatter) + " | $any")
+private enum class CUSTOM_LOG_LEVEL(val value: Int) {
+    ERROR(0),
+    INFO(1),
+    TRACE(2)
 }
 
-private val kryoHelper: KryoHelper = KryoHelper(System.`in`, System.`out`)
+private val logLevel = CUSTOM_LOG_LEVEL.TRACE
+
+// Logging
+private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
+private fun log(any: () -> Any?, level: CUSTOM_LOG_LEVEL) {
+    if (level.value > logLevel.value)
+        return
+
+    System.err.println(LocalDateTime.now().format(dateFormatter) + " | ${any()}")
+}
+
+private fun logError(any: () -> Any?) {
+    log(any, CUSTOM_LOG_LEVEL.ERROR)
+}
+
+private fun logInfo(any: () -> Any?) {
+    log(any, CUSTOM_LOG_LEVEL.INFO)
+}
+
+private fun logTrace(any: () -> Any?) {
+    log(any, CUSTOM_LOG_LEVEL.TRACE)
+}
 
 /**
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
+ * CHILD PROCESS INVARIANT:
+ * Parent process should live longer than child
+ * if parent dies before child does - child will be orphan
  */
-fun main() {
+fun main(args: Array<String>): Unit = Lifetime.using { lifetime ->
+    // 0 - auto port for server, should not be used here
+    val port = args.find { it.startsWith(serverPortProcessArgumentTag) }
+        ?.run { split("=").last().toInt().coerceIn(1..65535) }
+        ?: throw IllegalArgumentException("No port provided")
+
+    val pid = currentProcessPid
+
+
+
+    lifetime += { logInfo { "terminating lifetime" } }
+    initiate(lifetime, port, pid)
+}
+
+fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({
     // We don't want user code to litter the standard output, so we redirect it.
+    // it is import to set output before creating protocol because rd has its own logging to stdout
     val tmpStream = PrintStream(object : OutputStream() {
         override fun write(b: Int) {}
     })
     System.setOut(tmpStream)
 
-    val classPaths = readClasspath()
+    val clientProtocol = UtRdUtil.createUtClientProtocol(lifetime, port, UtSingleThreadScheduler { logInfo(it) })
+    val (mainToProcess, processToMain) = obtainClientIO(lifetime, clientProtocol, pid)
+    val kryoHelper =
+        KryoHelper(lifetime, clientProtocol.scheduler, mainToProcess, processToMain)
+        { logTrace(it) } // - uncomment to log rd/kryo messages. This generates a lot of logs!
+
+
+    logInfo { "starting instrumenting" }
+    startInstrumenting(kryoHelper)
+}) {
+    val syncFile = File(processSyncDirectory, "${currentProcessPid}.created")
+
+    if (syncFile.exists()) {
+        syncFile.delete()
+    }
+}
+
+fun startInstrumenting(kryoHelper: KryoHelper) {
+    val classPaths = readClasspath(kryoHelper)
+    logTrace { "classpaths read $classPaths" }
     val pathsToUserClasses = classPaths.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
     val pathsToDependencyClasses = classPaths.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
     HandlerClassesLoader.addUrls(pathsToUserClasses)
     HandlerClassesLoader.addUrls(pathsToDependencyClasses)
     kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
 
-    log("User classes:" + pathsToUserClasses.joinToString())
+    logTrace { "User classes:" + pathsToUserClasses.joinToString() }
 
-    kryoHelper.use {
-        UtContext.setUtContext(UtContext(HandlerClassesLoader)).use {
-            getInstrumentation()?.let { instrumentation ->
-                Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
-                Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
-                instrumentation.init(pathsToUserClasses)
+    UtContext.setUtContext(UtContext(HandlerClassesLoader)).use {
+        getInstrumentation(kryoHelper)?.let { instrumentation ->
+            Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
+            Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
+            instrumentation.init(pathsToUserClasses)
 
-                try {
-                    loop(instrumentation)
-                } catch (e: Throwable) {
-                    log("Terminating process because exception occured: ${e.stackTraceToString()}")
-                    exitProcess(1)
-                }
+            try {
+                loop(kryoHelper, instrumentation)
+            } catch (e: Throwable) {
+                logError { "Terminating process because exception occured: ${e.stackTraceToString()}" }
+                throw e
             }
         }
     }
 }
 
-private fun send(cmdId: Long, cmd: Protocol.Command) {
+private fun send(kryoHelper: KryoHelper, cmdId: Long, cmd: Protocol.Command) {
     try {
         kryoHelper.writeCommand(cmdId, cmd)
-        log("Send << $cmdId")
+        logInfo { "Send << $cmdId" }
     } catch (e: Exception) {
-        log("Failed to serialize << $cmdId with exception: ${e.stackTraceToString()}")
-        log("Writing it to kryo...")
+        logError { "Failed to serialize << $cmdId with exception: ${e.stackTraceToString()}" }
+        logInfo { "Writing it to kryo..." }
         kryoHelper.writeCommand(cmdId, Protocol.ExceptionInChildProcess(e))
-        log("Successfuly wrote.")
+        logInfo { "Successfuly wrote." }
     }
 }
 
-private fun read(cmdId: Long): Protocol.Command {
+private fun read(kryoHelper: KryoHelper): KryoHelper.ReceivedCommand {
     try {
         val cmd = kryoHelper.readCommand()
-        log("Received :> $cmdId")
+        logInfo { "Received :> $cmd" }
         return cmd
     } catch (e: Exception) {
-        log("Failed to read :> $cmdId with exception: ${e.stackTraceToString()}")
+        logError { "Failed to read :> ${e.stackTraceToString()}" }
         throw e
     }
 }
@@ -110,22 +172,24 @@ private fun read(cmdId: Long): Protocol.Command {
 /**
  * Main loop. Processes incoming commands.
  */
-private fun loop(instrumentation: Instrumentation<*>) {
+private fun loop(kryoHelper: KryoHelper, instrumentation: Instrumentation<*>) {
     while (true) {
-        val cmdId = kryoHelper.readLong()
-        val cmd = try {
-            read(cmdId)
+        val (id, cmd) = try {
+            read(kryoHelper)
         } catch (e: Exception) {
-            send(cmdId, Protocol.ExceptionInChildProcess(e))
+            logInfo { "error while trying read, sendging -1: $e"}
+            send(kryoHelper, -1, Protocol.ExceptionInChildProcess(e))
             continue
         }
+
+        logInfo { "read cmd: $cmd" }
 
         when (cmd) {
             is Protocol.WarmupCommand -> {
                 val time = measureTimeMillis {
                     HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
                 }
-                System.err.println("warmup finished in $time ms")
+                logInfo { "warmup finished in $time ms" }
             }
             is Protocol.InvokeMethodCommand -> {
                 val resultCmd = try {
@@ -138,24 +202,30 @@ private fun loop(instrumentation: Instrumentation<*>) {
                     )
                     Protocol.InvocationResultCommand(res)
                 } catch (e: Throwable) {
-                    System.err.println(e.stackTraceToString())
+                    logInfo { "error in invokeMethod: ${e.stackTraceToString()}" }
                     Protocol.ExceptionInChildProcess(e)
                 }
-                send(cmdId, resultCmd)
+
+                send(kryoHelper, id, resultCmd)
+                logInfo { "sent cmd: $resultCmd" }
             }
             is Protocol.StopProcessCommand -> {
+                send(kryoHelper, id, Protocol.OperationCompleted())
                 break
             }
             is Protocol.InstrumentationCommand -> {
                 val result = instrumentation.handle(cmd)
                 result?.let {
-                    send(cmdId, it)
+                    send(kryoHelper, id, it)
                 }
             }
             else -> {
-                send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+                logInfo { "unexpected command: $cmd" }
+                send(kryoHelper, id, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
             }
         }
+
+        logInfo { "cmd executed" }
     }
 }
 
@@ -163,28 +233,28 @@ private fun loop(instrumentation: Instrumentation<*>) {
  * Retrieves the actual instrumentation. It is passed from the main process during
  * [org.utbot.instrumentation.ConcreteExecutor] instantiation.
  */
-private fun getInstrumentation(): Instrumentation<*>? {
-    val cmdId = kryoHelper.readLong()
-    return when (val cmd = kryoHelper.readCommand()) {
+private fun getInstrumentation(kryoHelper: KryoHelper): Instrumentation<*>? {
+    val (id, cmd) = kryoHelper.readCommand()
+    return when (cmd) {
         is Protocol.SetInstrumentationCommand<*> -> {
+            send(kryoHelper, id, Protocol.OperationCompleted())
             cmd.instrumentation
         }
         is Protocol.StopProcessCommand -> null
         else -> {
-            send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+            send(kryoHelper, id, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
             null
         }
     }
 }
 
-private fun readClasspath(): Protocol.AddPathsCommand {
-    val cmdId = kryoHelper.readLong()
-    return kryoHelper.readCommand().let { cmd ->
-        if (cmd is Protocol.AddPathsCommand) {
-            cmd
-        } else {
-            send(cmdId, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
-            error("No classpath!")
-        }
+private fun readClasspath(kryoHelper: KryoHelper): Protocol.AddPathsCommand {
+    val (id, cmd) = kryoHelper.readCommand()
+    return if (cmd is Protocol.AddPathsCommand) {
+        send(kryoHelper, id, Protocol.OperationCompleted())
+        cmd
+    } else {
+        send(kryoHelper, id, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+        error("No classpath!")
     }
 }

@@ -1,25 +1,24 @@
 package org.utbot.instrumentation.process
 
+import com.jetbrains.rd.framework.getPlatformIndependentHash
 import mu.KotlinLogging
-import org.utbot.common.bracket
-import org.utbot.common.debug
-import org.utbot.common.firstOrNullResourceIS
-import org.utbot.common.getCurrentProcessId
-import org.utbot.common.packageName
+import org.utbot.common.*
 import org.utbot.common.pid
-import org.utbot.common.scanForResourcesContaining
-import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.JdkPathService
 import org.utbot.framework.UtSettings
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import java.io.File
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
-private var processSeqN = 0
+private var processSeqN = AtomicInteger(0)
+const val serverPortProcessArgumentTag = "serverPort"
 
 class ChildProcessRunner {
+    private val id = Random.nextLong()
     private val cmds: List<String> by lazy {
         val debugCmd = if (Settings.runChildProcessWithDebug) {
             listOf(DEBUG_RUN_CMD)
@@ -33,16 +32,18 @@ class ChildProcessRunner {
 
     var errorLogFile: File = NULL_FILE
 
-    fun start(): Process {
-        logger.debug { "Starting child process: ${cmds.joinToString(" ")}" }
-        processSeqN++
+    fun start(port: Int): Process {
+        val portArgument = "$serverPortProcessArgumentTag=$port"
+
+        logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
+        processSeqN.incrementAndGet()
 
         if (UtSettings.logConcreteExecutionErrors) {
             UT_BOT_TEMP_DIR.mkdirs()
-            errorLogFile = File(UT_BOT_TEMP_DIR, "${hashCode()}-${processSeqN}.log")
+            errorLogFile = File(UT_BOT_TEMP_DIR, "${id}-${processSeqN}.log")
         }
 
-        val processBuilder = ProcessBuilder(cmds).redirectError(errorLogFile)
+        val processBuilder = ProcessBuilder(cmds + " " + portArgument).redirectError(errorLogFile)
         return processBuilder.start().also {
             logger.debug { "Process started with PID=${it.pid}" }
 

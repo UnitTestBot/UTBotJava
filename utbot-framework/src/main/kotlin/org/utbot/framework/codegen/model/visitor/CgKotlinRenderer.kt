@@ -36,6 +36,7 @@ import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
 import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
 import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.framework.codegen.model.tree.CgTestClassBody
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -100,6 +101,38 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         println("}")
     }
 
+    override fun visit(element: CgTestClassBody) {
+        // render regions for test methods
+        for ((i, region) in (element.testMethodRegions).withIndex()) {
+            if (i != 0) println()
+
+            region.accept(this)
+        }
+
+        if (element.staticDeclarationRegions.isEmpty()) {
+            return
+        }
+        // render static declaration regions inside a companion object
+        println()
+        renderCompanionObject {
+            for ((i, staticsRegion) in element.staticDeclarationRegions.withIndex()) {
+                if (i != 0) println()
+
+                staticsRegion.accept(this)
+            }
+        }
+    }
+
+    /**
+     * Build a companion object.
+     * @param body a lambda that contains the logic of construction of a companion object's body
+     */
+    private fun renderCompanionObject(body: () -> Unit) {
+        println("companion object {")
+        withIndent(body)
+        println("}")
+    }
+
     override fun visit(element: CgStaticsRegion) {
         if (element.content.isEmpty()) return
 
@@ -107,15 +140,11 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         element.header?.let { print(" $it") }
         println()
 
-        println("companion object {")
-        withIndent {
-            for (item in element.content) {
-                println()
-                println("@JvmStatic")
-                item.accept(this)
-            }
+        for (item in element.content) {
+            println()
+            println("@JvmStatic")
+            item.accept(this)
         }
-        println("}")
 
         println(regionEnd)
     }

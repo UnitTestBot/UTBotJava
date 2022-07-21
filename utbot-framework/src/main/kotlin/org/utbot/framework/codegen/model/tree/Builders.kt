@@ -38,12 +38,10 @@ fun buildTestClass(init: CgTestClassBuilder.() -> Unit) = CgTestClassBuilder().a
 
 class CgTestClassBodyBuilder : CgBuilder<CgTestClassBody> {
     val testMethodRegions: MutableList<CgExecutableUnderTestCluster> = mutableListOf()
-
-    val dataProvidersAndUtilMethodsRegion: MutableList<CgRegion<CgElement>> = mutableListOf()
-
+    val staticDeclarationRegions: MutableList<CgStaticsRegion> = mutableListOf()
     val nestedClassRegions: MutableList<CgRegion<CgTestClass>> = mutableListOf()
 
-    override fun build() = CgTestClassBody(testMethodRegions, dataProvidersAndUtilMethodsRegion, nestedClassRegions)
+    override fun build() = CgTestClassBody(testMethodRegions, staticDeclarationRegions, nestedClassRegions)
 }
 
 fun buildTestClassBody(init: CgTestClassBodyBuilder.() -> Unit) = CgTestClassBodyBuilder().apply(init).build()

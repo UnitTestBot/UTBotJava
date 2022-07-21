@@ -32,6 +32,7 @@ import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
 import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
 import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.framework.codegen.model.tree.CgTestClassBody
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -78,6 +79,16 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         println(" {")
         withIndent { element.body.accept(this) }
         println("}")
+    }
+
+    override fun visit(element: CgTestClassBody) {
+        // render regions for test methods and utils
+        val allRegions = element.testMethodRegions + element.staticDeclarationRegions
+        for ((i, region) in allRegions.withIndex()) {
+            if (i != 0) println()
+
+            region.accept(this)
+        }
     }
 
     override fun visit(element: CgArrayAnnotationArgument) {

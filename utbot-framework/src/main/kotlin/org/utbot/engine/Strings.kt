@@ -52,6 +52,7 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import kotlin.reflect.KFunction4
 
 val utStringClass: SootClass
     get() = Scene.v().getSootClass(UtString::class.qualifiedName)
@@ -199,91 +200,190 @@ private var stringNameIndex = 0
 private fun nextStringName() = "\$string${stringNameIndex++}"
 
 class UtNativeStringWrapper : WrapperInterface {
-    private val valueDescriptor = NATIVE_STRING_VALUE_DESCRIPTOR
-    override fun Traverser.invoke(
+    override fun isWrappedMethod(method: SootMethod): Boolean = method.subSignature in wrappedMethods
+
+    override operator fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
-    ): List<InvokeResult> =
-        when (method.subSignature) {
-            "void <init>()" -> {
-                val newString = mkString(nextStringName())
+    ): List<InvokeResult> {
+        val wrappedMethodResult = wrappedMethods[method.subSignature]
+            ?: error("unknown wrapped method ${method.subSignature} for ${this::class}")
 
-                val memoryUpdate = MemoryUpdate(
-                    stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
-                    touchedChunkDescriptors = persistentSetOf(valueDescriptor)
+        return wrappedMethodResult(this, wrapper, method, parameters)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun defaultInitMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val newString = mkString(nextStringName())
+
+            val memoryUpdate = MemoryUpdate(
+                stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
+                touchedChunkDescriptors = persistentSetOf(valueDescriptor)
+            )
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = memoryUpdate
                 )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = memoryUpdate
-                    )
-                )
-            }
-            "void <init>(int)" -> {
-                val newString = UtConvertToString((parameters[0] as PrimitiveValue).expr)
-                val memoryUpdate = MemoryUpdate(
-                    stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
-                    touchedChunkDescriptors = persistentSetOf(valueDescriptor)
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = memoryUpdate
-                    )
-                )
-            }
-            "void <init>(long)" -> {
-                val newString = UtConvertToString((parameters[0] as PrimitiveValue).expr)
-                val memoryUpdate = MemoryUpdate(
-                    stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
-                    touchedChunkDescriptors = persistentSetOf(valueDescriptor)
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = memoryUpdate
-                    )
-                )
-            }
-            "int length()" -> {
-                val result = UtStringLength(memory.nativeStringValue(wrapper.addr))
-                listOf(MethodResult(SymbolicSuccess(result.toByteValue().cast(IntType.v()))))
-            }
-            "char charAt(int)" -> {
-                val index = (parameters[0] as PrimitiveValue).expr
-                val result = UtStringCharAt(memory.nativeStringValue(wrapper.addr), index)
-                listOf(MethodResult(SymbolicSuccess(result.toCharValue())))
-            }
-            "int codePointAt(int)" -> {
-                val index = (parameters[0] as PrimitiveValue).expr
-                val result = UtStringCharAt(memory.nativeStringValue(wrapper.addr), index)
-                listOf(MethodResult(SymbolicSuccess(result.toCharValue().cast(IntType.v()))))
-            }
-            "int toInteger()" -> {
-                val result = UtStringToInt(memory.nativeStringValue(wrapper.addr), UtIntSort)
-                listOf(MethodResult(SymbolicSuccess(result.toIntValue())))
-            }
-            "long toLong()" -> {
-                val result = UtStringToInt(memory.nativeStringValue(wrapper.addr), UtLongSort)
-                listOf(MethodResult(SymbolicSuccess(result.toLongValue())))
-            }
-            "char[] toCharArray(int)" -> {
-                val stringExpression = memory.nativeStringValue(wrapper.addr)
-                val result = UtStringToArray(stringExpression, parameters[0] as PrimitiveValue)
-                val length = UtStringLength(stringExpression)
-                val type = CharType.v()
-                val arrayType = type.arrayType
-                val arrayValue = createNewArray(length.toIntValue(), arrayType, type)
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(arrayValue),
-                        memoryUpdates = arrayUpdateWithValue(arrayValue.addr, arrayType, result)
-                    )
-                )
-            }
-            else -> unreachableBranch("Unknown signature at the NativeStringWrapper.invoke: ${method.signature}")
+            )
         }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun initFromIntMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val newString = UtConvertToString((parameters[0] as PrimitiveValue).expr)
+            val memoryUpdate = MemoryUpdate(
+                stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
+                touchedChunkDescriptors = persistentSetOf(valueDescriptor)
+            )
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = memoryUpdate
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun initFromLongMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val newString = UtConvertToString((parameters[0] as PrimitiveValue).expr)
+            val memoryUpdate = MemoryUpdate(
+                stores = persistentListOf(simplifiedNamedStore(valueDescriptor, wrapper.addr, newString)),
+                touchedChunkDescriptors = persistentSetOf(valueDescriptor)
+            )
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = memoryUpdate
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun lengthMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val result = UtStringLength(memory.nativeStringValue(wrapper.addr))
+
+            listOf(MethodResult(SymbolicSuccess(result.toByteValue().cast(IntType.v()))))
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun charAtMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val index = (parameters[0] as PrimitiveValue).expr
+            val result = UtStringCharAt(memory.nativeStringValue(wrapper.addr), index)
+
+            listOf(MethodResult(SymbolicSuccess(result.toCharValue())))
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun codePointAtMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val index = (parameters[0] as PrimitiveValue).expr
+            val result = UtStringCharAt(memory.nativeStringValue(wrapper.addr), index)
+
+            listOf(MethodResult(SymbolicSuccess(result.toCharValue().cast(IntType.v()))))
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun toIntegerMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val result = UtStringToInt(memory.nativeStringValue(wrapper.addr), UtIntSort)
+
+            listOf(MethodResult(SymbolicSuccess(result.toIntValue())))
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun toLongMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val result = UtStringToInt(memory.nativeStringValue(wrapper.addr), UtLongSort)
+
+            listOf(MethodResult(SymbolicSuccess(result.toLongValue())))
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun toCharArrayMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val stringExpression = memory.nativeStringValue(wrapper.addr)
+            val result = UtStringToArray(stringExpression, parameters[0] as PrimitiveValue)
+            val length = UtStringLength(stringExpression)
+            val type = CharType.v()
+            val arrayType = type.arrayType
+            val arrayValue = createNewArray(length.toIntValue(), arrayType, type)
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(arrayValue),
+                    memoryUpdates = arrayUpdateWithValue(arrayValue.addr, arrayType, result)
+                )
+            )
+        }
+
+    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+        mapOf(
+            "void <init>()" to ::defaultInitMethodWrapper,
+            "void <init>(int)" to ::initFromIntMethodWrapper,
+            "void <init>(long)" to ::initFromLongMethodWrapper,
+            "int length()" to ::lengthMethodWrapper,
+            "char charAt(int)" to ::charAtMethodWrapper,
+            "int codePointAt(int)" to ::codePointAtMethodWrapper,
+            "int toInteger()" to ::toIntegerMethodWrapper,
+            "long toLong()" to ::toLongMethodWrapper,
+            "char[] toCharArray(int)" to ::toCharArrayMethodWrapper,
+        )
+
+    private val valueDescriptor = NATIVE_STRING_VALUE_DESCRIPTOR
 
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel = UtNullModel(STRING_TYPE.classId)
 }

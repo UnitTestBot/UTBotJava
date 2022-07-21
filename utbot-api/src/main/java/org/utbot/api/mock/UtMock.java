@@ -23,4 +23,7 @@ public class UtMock {
         // In oppose to assume, we don't have predicate check here
         // to avoid RuntimeException during concrete execution
     }
+
+    @SuppressWarnings("unused")
+    public static void disableClassCastExceptionCheck(Object object) {}
 }

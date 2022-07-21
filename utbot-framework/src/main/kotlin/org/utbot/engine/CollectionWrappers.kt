@@ -40,6 +40,7 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import kotlin.reflect.KFunction4
 
 abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) : WrapperInterface {
     val overriddenClass: SootClass = Scene.v().getSootClass(overriddenClassName)
@@ -102,6 +103,11 @@ abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) 
             listOf(graphResult)
         }
     }
+
+    override fun isWrappedMethod(method: SootMethod): Boolean = true
+
+    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+        emptyMap()
 }
 
 /**

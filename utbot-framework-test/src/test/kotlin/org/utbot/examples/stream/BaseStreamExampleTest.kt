@@ -145,7 +145,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
         check(
             BaseStreamExample::flatMapToDoubleExample,
             ignoreExecutionsNumber,
-            { c, r -> r.contentEquals(c.flatMap { listOf(it.toDouble(), it.toDouble()) }.toDoubleArray()) },
+            { c, r -> r.contentEquals(c.flatMap { listOf(it?.toDouble() ?: 0.0, it?.toDouble() ?: 0.0) }.toDoubleArray()) },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }

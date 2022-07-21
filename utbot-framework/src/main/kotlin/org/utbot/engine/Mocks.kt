@@ -25,6 +25,7 @@ import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
+import kotlin.reflect.KFunction4
 
 /**
  * Generates mock with address provided.
@@ -183,6 +184,7 @@ class Mocker(
     ): Boolean {
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
         if (isUtMockAssumeOrExecuteConcretely(mockInfo)) return false // never mock UtMock.assumeOrExecuteConcretely invocation
+        if (isUtMockDisableClassCastExceptionCheck(mockInfo)) return false // never mock UtMock.disableClassCastExceptionCheck invocation
         if (isOverriddenClass(type)) return false  // never mock overriden classes
         if (type.isInaccessibleViaReflection) return false // never mock classes that we can't process with reflection
         if (isMakeSymbolic(mockInfo)) return true // support for makeSymbolic
@@ -213,16 +215,19 @@ class Mocker(
     /**
      * Checks whether [mockInfo] containing information about UtMock.makeSymbolic call or not.
      */
-    private fun isMakeSymbolic(mockInfo: UtMockInfo) =
+    private fun isMakeSymbolic(mockInfo: UtMockInfo): Boolean =
         mockInfo is UtStaticMethodMockInfo &&
                 (mockInfo.methodId.signature == makeSymbolicBytecodeSignature ||
                         mockInfo.methodId.signature == nonNullableMakeSymbolicBytecodeSignature)
 
-    private fun isUtMockAssume(mockInfo: UtMockInfo) =
+    private fun isUtMockAssume(mockInfo: UtMockInfo): Boolean =
         mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == assumeBytecodeSignature
 
-    private fun isUtMockAssumeOrExecuteConcretely(mockInfo: UtMockInfo) =
+    private fun isUtMockAssumeOrExecuteConcretely(mockInfo: UtMockInfo): Boolean =
         mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == assumeOrExecuteConcretelyBytecodeSignature
+
+    private fun isUtMockDisableClassCastExceptionCheck(mockInfo: UtMockInfo): Boolean =
+        mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == disableClassCastExceptionCheckBytecodeSignature
 
     private fun isEngineClass(type: RefType) = type.className in engineClasses
 
@@ -272,6 +277,10 @@ class UtMockWrapper(
     val type: RefType,
     private val mockInfo: UtMockInfo
 ) : WrapperInterface {
+    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+        emptyMap()
+
+    override fun isWrappedMethod(method: SootMethod): Boolean = true
 
     override fun Traverser.invoke(
         wrapper: ObjectValue,
@@ -334,6 +343,9 @@ internal val assumeMethod: SootMethod
 internal val assumeOrExecuteConcretelyMethod: SootMethod
     get() = utMockClass.getMethod(ASSUME_OR_EXECUTE_CONCRETELY_NAME, listOf(BooleanType.v()))
 
+internal val disableClassCastExceptionCheckMethod: SootMethod
+    get() = utMockClass.getMethod(DISABLE_CLASS_CAST_EXCEPTION_CHECK_NAME, listOf(OBJECT_TYPE))
+
 val makeSymbolicBytecodeSignature: String
     get() = makeSymbolicMethod.executableId.signature
 
@@ -345,6 +357,9 @@ val assumeBytecodeSignature: String
 
 val assumeOrExecuteConcretelyBytecodeSignature: String
     get() = assumeOrExecuteConcretelyMethod.executableId.signature
+
+val disableClassCastExceptionCheckBytecodeSignature: String
+    get() = disableClassCastExceptionCheckMethod.executableId.signature
 
 internal val UTBOT_OVERRIDE_PACKAGE_NAME = UtOverrideMock::class.java.packageName
 
@@ -365,3 +380,4 @@ internal val utLogicMockIteMethodName = UtLogicMock::ite.name
 private const val MAKE_SYMBOLIC_NAME = "makeSymbolic"
 private const val ASSUME_NAME = "assume"
 private const val ASSUME_OR_EXECUTE_CONCRETELY_NAME = "assumeOrExecuteConcretely"
+private const val DISABLE_CLASS_CAST_EXCEPTION_CHECK_NAME = "disableClassCastExceptionCheck"

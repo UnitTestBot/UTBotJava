@@ -1,5 +1,7 @@
 package org.utbot.engine.overrides.collections;
 
+import org.utbot.api.mock.UtMock;
+
 /**
  * Interface shows API for UtExpressions of infinite modifiable array.
  * <p>
@@ -113,6 +115,14 @@ public class RangeModifiableUnlimitedArray<E> {
     @SuppressWarnings("unused")
     public Object[] toArray(int offset, int length) {
         return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T[] toCastedArray(int offset, int length) {
+        final Object[] toArray = toArray(offset, length);
+        UtMock.disableClassCastExceptionCheck(toArray);
+
+        return (T[]) toArray;
     }
 
     /**

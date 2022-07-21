@@ -148,22 +148,31 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    fun generateTestCode(testCase: PythonTestCase, directoriesForSysPath: List<String>, moduleToImport: String): String {
+    fun generateTestCode(testCase: PythonTestSet, directoriesForSysPath: List<String>, moduleToImport: String): String {
         val importFunction = generateImportFunctionCode(
             moduleToImport,
             directoriesForSysPath
         )
-        val testCaseCodes = testCase.executions.mapIndexed { index, utExecution ->
+        val testCaseCodes = (testCase.executions + testCase.errors).mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
         }
         return toString(Module(importFunction)) + testCaseCodes.joinToString("")
     }
 
-    fun generateTestCode(method: PythonMethod, execution: UtExecution, number: Int): String {
-        val testFunctionName = "${execution.testMethodName?.camelToSnakeCase() ?: "test"}_$number"
-        val testFunction = FunctionDef(testFunctionName)
+    fun generateTestCode(method: PythonMethod, result: PythonResult, number: Int) =
+        when (result) {
+            is PythonExecution -> generateExecutionCode(method, result, number)
+            is PythonError -> generateErrorCode(method, result, number)
+        }
 
-        val parameters = execution.stateBefore.parameters.zip(method.arguments).map { (model, argument) ->
+    private fun functionWithParameters(
+        testFunctionName: String,
+        method: PythonMethod,
+        parameterValues: List<UtModel>,
+        returnValueName: String
+    ): FunctionDef {
+        val testFunction = FunctionDef(testFunctionName)
+        val parameters = parameterValues.zip(method.arguments).map { (model, argument) ->
             Assign(
                 listOf(Name(argument.name)),
                 Name(model.toString())
@@ -173,18 +182,33 @@ object PythonCodeGenerator {
             testFunction.addStatement(it)
         }
 
-        val actualName = "actual"
         val keywords = method.arguments.map {
             Keyword(Name(it.name), Name(it.name))
         }
         val functionCall = Assign(
-            listOf(Name(actualName)),
+            listOf(Name(returnValueName)),
             Atom(
                 Name(method.name),
                 listOf(createArguments(emptyList(), keywords))
             )
         )
         testFunction.addStatement(functionCall)
+
+        return testFunction
+    }
+
+    private fun generateErrorCode(method: PythonMethod, error: PythonError, number: Int): String {
+        val testFunctionName = "test_$number"
+        val testFunction = functionWithParameters(testFunctionName, method, error.parameters, "returnValue")
+        testFunction.addStatement(Name("# throws ${error.utError.description}"))
+        return PythonMethodBody(testFunction).asString()
+    }
+
+    private fun generateExecutionCode(method: PythonMethod, pyExecution: PythonExecution, number: Int): String {
+        val execution = pyExecution.utExecution
+        val testFunctionName = "${execution.testMethodName?.camelToSnakeCase() ?: "test"}_$number"
+        val actualName = "actual"
+        val testFunction = functionWithParameters(testFunctionName, method, pyExecution.parameters, actualName)
 
         val correctResultName = "correct_result"
         val correctResult = Assign(
@@ -220,18 +244,38 @@ object PythonCodeGenerator {
                 ),
                 Name(outputFileAlias)
             )),
-            Atom(
-                Name("print"),
-                listOf(
-                    createArguments(
-                        listOf(Atom(Name(outputName), listOf(Attribute(Identifier("__repr__")), createArguments()))),
-                        listOf(
-                            Keyword(Name("file"), Name(outputFileAlias)),
-                            Keyword(Name("end"), Str(""))
+            Body(listOf(
+                Assign(
+                    listOf(Name("out")),
+                    Name("dict()")
+                ),
+                Assign(
+                    listOf(Name("out['output']")),
+                    Atom(Name("repr"), listOf(createArguments(listOf(Name(outputName)))))
+                ),
+                Assign(
+                    listOf(Name("out['type']")),
+                    Atom(
+                        Atom(
+                            Name("type"),
+                            listOf(createArguments(listOf(Name(outputName))))
                         ),
+                        listOf(Attribute(Identifier("__name__")))
+                    )
+                ),
+                Atom(
+                    Name("print"),
+                    listOf(
+                        createArguments(
+                            listOf(Name("json.dumps(out)")),
+                            listOf(
+                                Keyword(Name("file"), Name(outputFileAlias)),
+                                Keyword(Name("end"), Str(""))
+                            ),
+                        )
                     )
                 )
-            )
+            ))
         )
     }
 
@@ -245,7 +289,7 @@ object PythonCodeGenerator {
     }
 
     private fun generateImportFunctionCode(functionPath: String, directoriesForSysPath: List<String>): List<Statement> {
-        val systemImport = Import(listOf(Alias("sys")))
+        val systemImport = Import(listOf(Alias("sys"), Alias("json")))
         val systemCalls = directoriesForSysPath.map { path ->
             Atom(
                 Name("sys.path.append"),
@@ -343,24 +387,24 @@ object PythonCodeGenerator {
         return file
     }
 
-    fun generateStubFile(
-        method: PythonMethod,
-        annotations: List<String>,
-    ): String {
-        val parameters = method.arguments.zip(annotations).map { (argument, annotation) ->
-            Parameter(argument.name, Name(annotation))
-        }
-        val sourceCodeFile = File(method.sourceCodePath.toString().split(".").first() + ".py")
-        val sourceCode = sourceCodeFile.readText()
-
-        val functionName = "__mypy_test_${method.name}"
-        val functionDef = FunctionDef(
-            functionName,
-            Parameters(parameters),
-            method.ast().body
-        )
-        return sourceCode + "\n" + PythonMethodBody(functionDef).asString()
-    }
+//    fun generateStubFile(
+//        method: PythonMethod,
+//        annotations: List<String>,
+//    ): String {
+//        val parameters = method.arguments.zip(annotations).map { (argument, annotation) ->
+//            Parameter(argument.name, Name(annotation))
+//        }
+//        val sourceCodeFile = File(method.sourceCodePath.toString().split(".").first() + ".py")
+//        val sourceCode = sourceCodeFile.readText()
+//
+//        val functionName = "__mypy_test_${method.name}"
+//        val functionDef = FunctionDef(
+//            functionName,
+//            Parameters(parameters),
+//            method.ast().body
+//        )
+//        return sourceCode + "\n" + PythonMethodBody(functionDef).asString()
+//    }
 }
 
 fun String.camelToSnakeCase(): String {
@@ -368,77 +412,4 @@ fun String.camelToSnakeCase(): String {
     return camelRegex.replace(this) {
         "_${it.value}"
     }.toLowerCase()
-}
-
-sealed class EvaluationResult()
-data class EvaluationSuccess(val output: String, val isException: Boolean): EvaluationResult()
-class EvaluationError: EvaluationResult()
-
-object PythonEvaluation {
-    fun evaluate(
-        method: PythonMethod,
-        methodArguments: List<UtModel>,
-        testSourceRoot: String,
-        directoriesForSysPath: List<String>,
-        moduleToImport: String,
-        pythonPath: String
-    ): EvaluationResult {
-        createDirectory(testSourceRoot)
-
-        val outputFilename = "$testSourceRoot/__output_utbot_run_${method.name}.txt"
-        val errorFilename = "$testSourceRoot/__error_utbot_run_${method.name}.txt"
-        val codeFilename = "$testSourceRoot/__test_utbot_run_${method.name}.py"
-
-        val file = PythonCodeGenerator.generateRunFunctionCode(
-            method,
-            methodArguments,
-            outputFilename,
-            errorFilename,
-            codeFilename,
-            directoriesForSysPath,
-            moduleToImport
-        )
-
-        val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")
-        process.waitFor()
-        val exitCode = process.exitValue()
-        if (exitCode != 0)
-            return EvaluationError()
-
-        var output = ""
-        var isSuccess = false
-
-        val resultFile = File(outputFilename)
-        if (resultFile.exists()) {
-            output = resultFile.readText()
-            resultFile.delete()
-            isSuccess = true
-        } else {
-            val errorFile = File(errorFilename)
-            if (errorFile.exists()) {
-                output = errorFile.readText()
-                errorFile.delete()
-            }
-        }
-
-        file.delete()
-        return EvaluationSuccess(output, !isSuccess)
-    }
-
-    fun runMypy(
-        method: PythonMethod,
-        annotations: List<String>,
-        mypyPath: String = "mypy",
-    ) {
-        val functionCode = PythonCodeGenerator.generateStubFile(
-            method,
-            annotations,
-        )
-        val process = Runtime.getRuntime().exec("$mypyPath -c $functionCode")
-        process.waitFor()
-    }
-
-    private fun createDirectory(path: String) {
-        File(path).mkdir()
-    }
 }

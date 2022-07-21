@@ -20,7 +20,7 @@ object PythonTestCaseGenerator {
         this.pythonPath = pythonPath
     }
 
-    fun generate(method: PythonMethod): PythonTestCase {
+    fun generate(method: PythonMethod): PythonTestSet {
         val engine = PythonEngine(
             method,
             testSourceRoot,
@@ -28,15 +28,16 @@ object PythonTestCaseGenerator {
             moduleToImport,
             pythonPath
         )
-        val executions = mutableListOf<UtExecution>()
+        val executions = mutableListOf<PythonExecution>()
+        val errors = mutableListOf<PythonError>()
 
         engine.fuzzing().forEach {
             when (it) {
-                is UtExecution -> executions += it
-                else -> Unit
+                is PythonExecution -> executions += it
+                is PythonError -> errors += it
             }
         }
 
-        return PythonTestCase(method, executions)
+        return PythonTestSet(method, executions, errors)
     }
 }

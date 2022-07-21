@@ -14,7 +14,7 @@ class PythonEngine(
     private val moduleToImport: String,
     private val pythonPath: String
 ) {
-    fun fuzzing(): Sequence<UtResult> = sequence {
+    fun fuzzing(): Sequence<PythonResult> = sequence {
         val returnType = methodUnderTest.returnType ?: ClassId("")
         val argumentTypes = methodUnderTest.arguments.map { it.type }
 
@@ -52,35 +52,45 @@ class PythonEngine(
             if (evalResult is EvaluationError)
                 return@sequence
 
-            val (resultAsString, isException) = evalResult as EvaluationSuccess
-            // TODO: check that type has fine representation
-            val resultAsModel = PythonDefaultModel(resultAsString, "")
-            val result = UtExecutionSuccess(resultAsModel)
+            val (resultJSON, isException) = evalResult as EvaluationSuccess
 
-            val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-            val testMethodName = try {
-                nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
-            } catch (t: Throwable) {
-                null
+            if (isException) {
+                yield(PythonError(UtError(resultJSON.output, Throwable()), modelList))
+            } else {
+
+                if (PythonTypesStorage.typeNameMap[resultJSON.type]?.useAsReturn != true)
+                    return@sequence
+
+                val resultAsModel = PythonDefaultModel(resultJSON.output, "")
+                val result = UtExecutionSuccess(resultAsModel)
+
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
+                } catch (t: Throwable) {
+                    null
+                }
+
+                yield(
+                    PythonExecution(
+                        UtExecution(
+                            stateBefore = EnvironmentModels(null, modelList, emptyMap()),
+                            stateAfter = EnvironmentModels(null, modelList, emptyMap()),
+                            result = result,
+                            instrumentation = emptyList(),
+                            path = mutableListOf(), // ??
+                            fullPath = emptyList(), // ??
+                            testMethodName = testMethodName?.testName,
+                            displayName = testMethodName?.displayName
+                        ),
+                        modelList
+                    )
+                )
             }
-
-            yield(UtExecution(
-                stateBefore = EnvironmentModels(null, modelList, emptyMap()),
-                stateAfter = EnvironmentModels(null, modelList, emptyMap()),
-                result = result,
-                instrumentation = emptyList(),
-                path = mutableListOf(), // ??
-                fullPath = emptyList(), // ??
-                testMethodName = testMethodName?.testName,
-                displayName = testMethodName?.displayName
-            ))
 
             testsGenerated += 1
             if (testsGenerated == 100)
                 return@sequence
-
-
-            // emit(UtExecution(/* .... */))
         }
     }
 }

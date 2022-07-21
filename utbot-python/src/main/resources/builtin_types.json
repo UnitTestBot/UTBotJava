@@ -843,7 +843,7 @@
   },
   {
     "name": "type",
-    "useAsReturn": true,
+    "useAsReturn": false,
     "instances": [
       "type(len)",
       "type('123')",

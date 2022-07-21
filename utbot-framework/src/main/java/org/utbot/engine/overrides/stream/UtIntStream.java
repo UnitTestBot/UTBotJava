@@ -1,32 +1,29 @@
 package org.utbot.engine.overrides.stream;
 
-import org.utbot.engine.overrides.UtArrayMock;
+import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
 
-import java.util.Comparator;
-import java.util.Iterator;
+import java.util.IntSummaryStatistics;
 import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.PrimitiveIterator;
 import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.IntBinaryOperator;
+import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
-import java.util.function.Predicate;
+import java.util.function.IntPredicate;
+import java.util.function.IntToDoubleFunction;
+import java.util.function.IntToLongFunction;
+import java.util.function.IntUnaryOperator;
+import java.util.function.ObjIntConsumer;
 import java.util.function.Supplier;
-import java.util.function.ToDoubleFunction;
-import java.util.function.ToIntFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collector;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -36,8 +33,8 @@ import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
-public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
-    private final RangeModifiableUnlimitedArray<E> elementData;
+public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
+    private final RangeModifiableUnlimitedArray<Integer> elementData;
 
     private final RangeModifiableUnlimitedArray<Runnable> closeHandlers = new RangeModifiableUnlimitedArray<>();
 
@@ -49,26 +46,16 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
      */
     private boolean isClosed = false;
 
-    public UtStream() {
+    public UtIntStream() {
         visit(this);
         elementData = new RangeModifiableUnlimitedArray<>();
     }
 
-    public UtStream(E[] data, int length) {
+    public UtIntStream(Integer[] data, int length) {
         visit(this);
         elementData = new RangeModifiableUnlimitedArray<>();
         elementData.setRange(0, data, 0, length);
         elementData.end = length;
-    }
-
-    public UtStream(E[] data, int startInclusive, int endExclusive) {
-        visit(this);
-
-        int size = endExclusive - startInclusive;
-
-        elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, startInclusive, size);
-        elementData.end = size;
     }
 
     /**
@@ -113,136 +100,99 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         isClosed = true;
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public Stream<E> filter(Predicate<? super E> predicate) {
+    public IntStream filter(IntPredicate predicate) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Object[] filtered = new Object[size];
+        Integer[] filtered = new Integer[size];
         int j = 0;
         for (int i = 0; i < size; i++) {
-            E element = elementData.get(i);
+            int element = elementData.get(i);
             if (predicate.test(element)) {
                 filtered[j++] = element;
             }
         }
 
-        return new UtStream<>((E[]) filtered, j);
+        return new UtIntStream(filtered, j);
+    }
+
+    @Override
+    public IntStream map(IntUnaryOperator mapper) {
+        preconditionCheckWithClosingStream();
+
+        int size = elementData.end;
+        Integer[] mapped = new Integer[size];
+        for (int i = 0; i < size; i++) {
+            mapped[i] = mapper.applyAsInt(elementData.get(i));
+        }
+
+        return new UtIntStream(mapped, size);
     }
 
     @SuppressWarnings("unchecked")
     @Override
-    public <R> Stream<R> map(Function<? super E, ? extends R> mapper) {
+    public <U> Stream<U> mapToObj(IntFunction<? extends U> mapper) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Object[] mapped = new Object[size];
+        U[] mapped = (U[]) new Object[size];
         for (int i = 0; i < size; i++) {
             mapped[i] = mapper.apply(elementData.get(i));
         }
 
-        return new UtStream<>((R[]) mapped, size);
+        return new UtStream<>(mapped, size);
     }
 
     @Override
-    public IntStream mapToInt(ToIntFunction<? super E> mapper) {
+    public LongStream mapToLong(IntToLongFunction mapper) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Integer[] data = new Integer[size];
+        Long[] mapped = new Long[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsInt(elementData.get(i));
+            mapped[i] = mapper.applyAsLong(elementData.get(i));
         }
 
-        return new UtIntStream(data, size);
+        return new UtLongStream(mapped, size);
     }
 
     @Override
-    public LongStream mapToLong(ToLongFunction<? super E> mapper) {
+    public DoubleStream mapToDouble(IntToDoubleFunction mapper) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Long[] data = new Long[size];
+        Double[] mapped = new Double[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsLong(elementData.get(i));
+            mapped[i] = mapper.applyAsDouble(elementData.get(i));
         }
 
-        return new UtLongStream(data, size);
+        return new UtDoubleStream(mapped, size);
     }
 
     @Override
-    public DoubleStream mapToDouble(ToDoubleFunction<? super E> mapper) {
+    public IntStream flatMap(IntFunction<? extends IntStream> mapper) {
+        preconditionCheckWithClosingStream();
+        // as mapper can produce infinite streams, we cannot process it symbolically
+        executeConcretely();
+        return null;
+    }
+
+    @Override
+    public IntStream distinct() {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Double[] data = new Double[size];
-        for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsDouble(elementData.get(i));
-        }
-
-        return new UtDoubleStream(data, size);
-    }
-
-    @Override
-    public <R> Stream<R> flatMap(Function<? super E, ? extends Stream<? extends R>> mapper) {
-        preconditionCheckWithClosingStream();
-        // as mapper can produce infinite streams, we cannot process it symbolically
-        executeConcretely();
-        return null;
-    }
-
-    @Override
-    public IntStream flatMapToInt(Function<? super E, ? extends IntStream> mapper) {
-        preconditionCheckWithClosingStream();
-        // as mapper can produce infinite streams, we cannot process it symbolically
-        executeConcretely();
-        return null;
-    }
-
-    @Override
-    public LongStream flatMapToLong(Function<? super E, ? extends LongStream> mapper) {
-        preconditionCheckWithClosingStream();
-        // as mapper can produce infinite streams, we cannot process it symbolically
-        executeConcretely();
-        return null;
-    }
-
-    @Override
-    public DoubleStream flatMapToDouble(Function<? super E, ? extends DoubleStream> mapper) {
-        preconditionCheckWithClosingStream();
-        // as mapper can produce infinite streams, we cannot process it symbolically
-        executeConcretely();
-        return null;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public Stream<E> distinct() {
-        preconditionCheckWithClosingStream();
-
-        int size = elementData.end;
-        Object[] distinctElements = new Object[size];
+        Integer[] distinctElements = new Integer[size];
         int distinctSize = 0;
         for (int i = 0; i < size; i++) {
-            E element = elementData.get(i);
+            int element = elementData.get(i);
             boolean isDuplicate = false;
 
-            if (element == null) {
-                for (int j = 0; j < distinctSize; j++) {
-                    Object alreadyProcessedElement = distinctElements[j];
-                    if (alreadyProcessedElement == null) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-            } else {
-                for (int j = 0; j < distinctSize; j++) {
-                    Object alreadyProcessedElement = distinctElements[j];
-                    if (element.equals(alreadyProcessedElement)) {
-                        isDuplicate = true;
-                        break;
-                    }
+            for (int j = 0; j < distinctSize; j++) {
+                int alreadyProcessedElement = distinctElements[j];
+                if (element == alreadyProcessedElement) {
+                    isDuplicate = true;
+                    break;
                 }
             }
 
@@ -251,67 +201,41 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             }
         }
 
-        return new UtStream<>((E[]) distinctElements, distinctSize);
+        return new UtIntStream(distinctElements, distinctSize);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
-    @SuppressWarnings("unchecked")
     @Override
-    public Stream<E> sorted() {
+    public IntStream sorted() {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
 
         if (size == 0) {
-            return new UtStream<>();
+            return new UtIntStream();
         }
 
-        Object[] sortedElements = UtArrayMock.copyOf(elementData.toArray(0, size), size);
+        Integer[] sortedElements = new Integer[size];
+        for (int i = 0; i < size; i++) {
+            sortedElements[i] = elementData.get(i);
+        }
 
         // bubble sort
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - i - 1; j++) {
-                if (((Comparable<E>) sortedElements[j]).compareTo((E) sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
+                if (sortedElements[j] > sortedElements[j + 1]) {
+                    Integer tmp = sortedElements[j];
                     sortedElements[j] = sortedElements[j + 1];
                     sortedElements[j + 1] = tmp;
                 }
             }
         }
 
-        return new UtStream<>((E[]) sortedElements, size);
-    }
-
-    // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
-    @SuppressWarnings("unchecked")
-    @Override
-    public Stream<E> sorted(Comparator<? super E> comparator) {
-        preconditionCheckWithClosingStream();
-
-        int size = elementData.end;
-
-        if (size == 0) {
-            return new UtStream<>();
-        }
-
-        Object[] sortedElements = UtArrayMock.copyOf(elementData.toArray(0, size), size);
-
-        // bubble sort
-        for (int i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (comparator.compare((E) sortedElements[j], (E) sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }
-
-        return new UtStream<>((E[]) sortedElements, size);
+        return new UtIntStream(sortedElements, size);
     }
 
     @Override
-    public Stream<E> peek(Consumer<? super E> action) {
+    public IntStream peek(IntConsumer action) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
@@ -325,9 +249,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return this;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Stream<E> limit(long maxSize) {
+    public IntStream limit(long maxSize) {
         preconditionCheckWithClosingStream();
 
         if (maxSize < 0) {
@@ -335,7 +258,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         }
 
         if (maxSize == 0) {
-            return new UtStream<>();
+            return new UtIntStream();
         }
 
         assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
@@ -347,12 +270,16 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             newSize = curSize;
         }
 
-        return new UtStream<>((E[]) elementData.toArray(0, newSize), newSize);
+        Integer[] newData = new Integer[newSize];
+        for (int i = 0; i < newSize; i++) {
+            newData[i] = elementData.get(i);
+        }
+
+        return new UtIntStream(newData, newSize);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Stream<E> skip(long n) {
+    public IntStream skip(long n) {
         preconditionCheckWithClosingStream();
 
         if (n < 0) {
@@ -361,100 +288,87 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         int curSize = elementData.end;
         if (n > curSize) {
-            return new UtStream<>();
+            return new UtIntStream();
         }
 
         // n is 1...Integer.MAX_VALUE here
         int newSize = (int) (curSize - n);
 
-        return new UtStream<>((E[]) elementData.toArray((int) n, newSize), newSize);
+        if (newSize == 0) {
+            return new UtIntStream();
+        }
+
+        Integer[] newData = new Integer[newSize];
+        for (int i = (int) n; i < newSize; i++) {
+            newData[i] = elementData.get(i);
+        }
+
+        return new UtIntStream(newData, newSize);
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
-    public void forEach(Consumer<? super E> action) {
+    public void forEach(IntConsumer action) {
+        peek(action);
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @Override
+    public void forEachOrdered(IntConsumer action) {
         peek(action);
     }
 
     @Override
-    public void forEachOrdered(Consumer<? super E> action) {
-        peek(action);
-    }
-
-    @NotNull
-    @Override
-    public Object[] toArray() {
-        preconditionCheckWithClosingStream();
-
-        return elementData.toArray(0, elementData.end);
-    }
-
-    @NotNull
-    @Override
-    public <A> A[] toArray(IntFunction<A[]> generator) {
-        preconditionCheckWithClosingStream();
-
-        // TODO untracked ArrayStoreException - JIRA:1089
-        int size = elementData.end;
-        A[] array = generator.apply(size);
-
-        UtArrayMock.arraycopy(elementData.toArray(0, size), 0, array, 0, size);
-
-        return array;
-    }
-
-    @Override
-    public E reduce(E identity, BinaryOperator<E> accumulator) {
+    public int[] toArray() {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        E result = identity;
+        int[] result = new int[size];
+
         for (int i = 0; i < size; i++) {
-            result = accumulator.apply(result, elementData.get(i));
+            result[i] = elementData.get(i);
         }
 
         return result;
     }
 
-    @SuppressWarnings("ConstantConditions")
-    @NotNull
     @Override
-    public Optional<E> reduce(BinaryOperator<E> accumulator) {
+    public int reduce(int identity, IntBinaryOperator op) {
+        preconditionCheckWithClosingStream();
+
+        int size = elementData.end;
+        int result = identity;
+        for (int i = 0; i < size; i++) {
+            result = op.applyAsInt(result, elementData.get(i));
+        }
+
+        return result;
+    }
+
+    @Override
+    public OptionalInt reduce(IntBinaryOperator op) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
         if (size == 0) {
-            return Optional.empty();
+            return OptionalInt.empty();
         }
 
-        E result = null;
+        Integer result = null;
         for (int i = 0; i < size; i++) {
-            E element = elementData.get(i);
+            int element = elementData.get(i);
             if (result == null) {
                 result = element;
             } else {
-                result = accumulator.apply(result, element);
+                result = op.applyAsInt(result, element);
             }
         }
 
-        return Optional.of(result);
+        return result == null ? OptionalInt.empty() : OptionalInt.of(result);
     }
 
     @Override
-    public <U> U reduce(U identity, BiFunction<U, ? super E, U> accumulator, BinaryOperator<U> combiner) {
-        preconditionCheckWithClosingStream();
-
-        // since this implementation is always sequential, we do not need to use the combiner
-        int size = elementData.end;
-        U result = identity;
-        for (int i = 0; i < size; i++) {
-            result = accumulator.apply(result, elementData.get(i));
-        }
-
-        return result;
-    }
-
-    @Override
-    public <R> R collect(Supplier<R> supplier, BiConsumer<R, ? super E> accumulator, BiConsumer<R, R> combiner) {
+    public <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner) {
         preconditionCheckWithClosingStream();
 
         // since this implementation is always sequential, we do not need to use the combiner
@@ -468,59 +382,61 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     }
 
     @Override
-    public <R, A> R collect(Collector<? super E, A, R> collector) {
+    public int sum() {
         preconditionCheckWithClosingStream();
 
-        // since this implementation is always sequential, we do not need to use the combiner
-        int size = elementData.end;
-        A result = collector.supplier().get();
+        final int size = elementData.end;
+
+        if (size == 0) {
+            return 0;
+        }
+
+        int sum = 0;
+
         for (int i = 0; i < size; i++) {
-            collector.accumulator().accept(result, elementData.get(i));
+            int element = elementData.get(i);
+            sum += element;
         }
 
-        return collector.finisher().apply(result);
+        return sum;
     }
 
-    @NotNull
+    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
-    public Optional<E> min(Comparator<? super E> comparator) {
+    public OptionalInt min() {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
         if (size == 0) {
-            return Optional.empty();
+            return OptionalInt.empty();
         }
 
-        E min = elementData.get(0);
+        int min = elementData.get(0);
         for (int i = 1; i < size; i++) {
-            E element = elementData.get(i);
-            if (comparator.compare(min, element) > 0) {
-                min = element;
-            }
+            final int element = elementData.get(i);
+            min = (element < min) ? element : min;
         }
 
-        return Optional.of(min);
+        return OptionalInt.of(min);
     }
 
-    @NotNull
+    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
-    public Optional<E> max(Comparator<? super E> comparator) {
+    public OptionalInt max() {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
         if (size == 0) {
-            return Optional.empty();
+            return OptionalInt.empty();
         }
 
-        E max = elementData.get(0);
+        int max = elementData.get(0);
         for (int i = 1; i < size; i++) {
-            E element = elementData.get(i);
-            if (comparator.compare(max, element) < 0) {
-                max = element;
-            }
+            final int element = elementData.get(i);
+            max = (element > max) ? element : max;
         }
 
-        return Optional.of(max);
+        return OptionalInt.of(max);
     }
 
     @Override
@@ -531,7 +447,36 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     }
 
     @Override
-    public boolean anyMatch(Predicate<? super E> predicate) {
+    public OptionalDouble average() {
+        preconditionCheckWithClosingStream();
+
+        int size = elementData.end;
+        if (size == 0) {
+            return OptionalDouble.empty();
+        }
+
+        double average = (double) sum() / count();
+
+        return OptionalDouble.of(average);
+    }
+
+    @Override
+    public IntSummaryStatistics summaryStatistics() {
+        preconditionCheckWithClosingStream();
+
+        IntSummaryStatistics statistics = new IntSummaryStatistics();
+
+        int size = elementData.end;
+        for (int i = 0; i < size; i++) {
+            int element = elementData.get(i);
+            statistics.accept(element);
+        }
+
+        return statistics;
+    }
+
+    @Override
+    public boolean anyMatch(IntPredicate predicate) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
@@ -545,7 +490,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     }
 
     @Override
-    public boolean allMatch(Predicate<? super E> predicate) {
+    public boolean allMatch(IntPredicate predicate) {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
@@ -559,49 +504,128 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     }
 
     @Override
-    public boolean noneMatch(Predicate<? super E> predicate) {
+    public boolean noneMatch(IntPredicate predicate) {
         preconditionCheckWithClosingStream();
 
         return !anyMatch(predicate);
     }
 
-    @NotNull
     @Override
-    public Optional<E> findFirst() {
+    public OptionalInt findFirst() {
         preconditionCheckWithClosingStream();
 
         if (elementData.end == 0) {
-            return Optional.empty();
+            return OptionalInt.empty();
         }
 
-        E first = elementData.get(0);
+        int first = elementData.get(0);
 
-        return Optional.of(first);
+        return OptionalInt.of(first);
     }
 
-    @NotNull
     @Override
-    public Optional<E> findAny() {
+    public OptionalInt findAny() {
         preconditionCheckWithClosingStream();
 
         // since this implementation is always sequential, we can just return the first element
         return findFirst();
     }
 
-    @NotNull
     @Override
-    public Iterator<E> iterator() {
+    public LongStream asLongStream() {
         preconditionCheckWithClosingStream();
 
-        return new UtStreamIterator(0);
+        final int size = elementData.end;
+
+        if (size == 0) {
+            return new UtLongStream();
+        }
+
+        // "open" stream to use toArray method
+        final int[] elements = copyData();
+
+        Long[] longs = new Long[size];
+
+        for (int i = 0; i < size; i++) {
+            longs[i] = (long) elements[i];
+        }
+
+        return new UtLongStream(longs, size);
     }
 
-    @NotNull
     @Override
-    public Spliterator<E> spliterator() {
+    public DoubleStream asDoubleStream() {
         preconditionCheckWithClosingStream();
-        // implementation from AbstractList
-        return Spliterators.spliterator(elementData.toArray(0, elementData.end), Spliterator.ORDERED);
+
+        final int size = elementData.end;
+
+        if (size == 0) {
+            return new UtDoubleStream();
+        }
+
+        final int[] elements = copyData();
+
+        Double[] doubles = new Double[size];
+
+        for (int i = 0; i < size; i++) {
+            doubles[i] = (double) elements[i];
+        }
+
+        return new UtDoubleStream(doubles, size);
+    }
+
+    @Override
+    public Stream<Integer> boxed() {
+        preconditionCheckWithClosingStream();
+
+        final int size = elementData.end;
+        if (size == 0) {
+            return new UtStream<>();
+        }
+
+        Integer[] elements = new Integer[size];
+        for (int i = 0; i < size; i++) {
+            elements[i] = elementData.get(i);
+        }
+
+        return new UtStream<>(elements, size);
+    }
+
+    @Override
+    public IntStream sequential() {
+        // this method does not "close" this stream
+        preconditionCheck();
+
+        isParallel = false;
+
+        return this;
+    }
+
+    @Override
+    public IntStream parallel() {
+        // this method does not "close" this stream
+        preconditionCheck();
+
+        isParallel = true;
+
+        return this;
+    }
+
+    @Override
+    public PrimitiveIterator.OfInt iterator() {
+        preconditionCheckWithClosingStream();
+
+        return new UtIntStreamIterator(0);
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Override
+    public Spliterator.OfInt spliterator() {
+        preconditionCheckWithClosingStream();
+
+        // each implementation is extremely difficult and almost impossible to analyze
+        executeConcretely();
+        return null;
     }
 
     @Override
@@ -614,29 +638,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
     @NotNull
     @Override
-    public Stream<E> sequential() {
-        // this method does not "close" this stream
-        preconditionCheck();
-
-        isParallel = false;
-
-        return this;
-    }
-
-    @NotNull
-    @Override
-    public Stream<E> parallel() {
-        // this method does not "close" this stream
-        preconditionCheck();
-
-        isParallel = true;
-
-        return this;
-    }
-
-    @NotNull
-    @Override
-    public Stream<E> unordered() {
+    public IntStream unordered() {
         // this method does not "close" this stream
         preconditionCheck();
 
@@ -645,7 +647,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
     @NotNull
     @Override
-    public Stream<E> onClose(Runnable closeHandler) {
+    public IntStream onClose(Runnable closeHandler) {
         // this method does not "close" this stream
         preconditionCheck();
 
@@ -671,10 +673,18 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         closeHandlers.end = 0;
     }
 
-    public class UtStreamIterator implements Iterator<E> {
+    // Copies data to int array. Might be used on already "closed" stream. Marks this stream as closed.
+    private int[] copyData() {
+        // "open" stream to use toArray method
+        isClosed = false;
+
+        return toArray();
+    }
+
+    public class UtIntStreamIterator implements PrimitiveIterator.OfInt {
         int index;
 
-        UtStreamIterator(int index) {
+        UtIntStreamIterator(int index) {
             if (index < 0 || index > elementData.end) {
                 throw new IndexOutOfBoundsException();
             }
@@ -690,7 +700,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         }
 
         @Override
-        public E next() {
+        public int nextInt() {
+            return next();
+        }
+
+        @Override
+        public Integer next() {
             preconditionCheck();
 
             if (index == elementData.end) {

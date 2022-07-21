@@ -417,6 +417,15 @@ val HASH_MAP_TYPE: RefType
 val STREAM_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.stream.Stream::class.java.canonicalName).type
 
+val INT_STREAM_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.stream.IntStream::class.java.canonicalName).type
+
+val LONG_STREAM_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.stream.LongStream::class.java.canonicalName).type
+
+val DOUBLE_STREAM_TYPE: RefType
+    get() = Scene.v().getSootClass(java.util.stream.DoubleStream::class.java.canonicalName).type
+
 internal fun Traverser.getArrayField(
     addr: UtAddrExpression,
     wrapperClass: SootClass,

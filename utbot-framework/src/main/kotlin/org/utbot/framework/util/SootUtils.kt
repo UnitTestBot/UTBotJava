@@ -33,9 +33,15 @@ import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
+import org.utbot.engine.overrides.stream.IntStream
 import org.utbot.engine.overrides.collections.AbstractCollection
 import org.utbot.engine.overrides.stream.Arrays
+import org.utbot.engine.overrides.stream.DoubleStream
+import org.utbot.engine.overrides.stream.LongStream
 import org.utbot.engine.overrides.stream.Stream
+import org.utbot.engine.overrides.stream.UtDoubleStream
+import org.utbot.engine.overrides.stream.UtIntStream
+import org.utbot.engine.overrides.stream.UtLongStream
 import org.utbot.engine.overrides.stream.UtStream
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.plugin.api.UtMethod
@@ -156,5 +162,14 @@ private val classesToLoad = arrayOf(
     Collection::class,
     List::class,
     UtStream::class,
-    UtStream.UtStreamIterator::class
+    UtIntStream::class,
+    UtLongStream::class,
+    UtDoubleStream::class,
+    UtStream.UtStreamIterator::class,
+    UtIntStream.UtIntStreamIterator::class,
+    UtLongStream.UtLongStreamIterator::class,
+    UtDoubleStream.UtDoubleStreamIterator::class,
+    IntStream::class,
+    LongStream::class,
+    DoubleStream::class,
 )

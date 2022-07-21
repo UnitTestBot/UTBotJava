@@ -1081,7 +1081,7 @@ enum class CodegenLanguage(
     @Suppress("unused") override val description: String = "Generate unit tests in $displayName"
 ) : CodeGenerationSettingItem {
     JAVA(displayName = "Java"),
-    KOTLIN(displayName = "Kotlin");
+    KOTLIN(displayName = "Kotlin (experimental)");
 
     enum class OperatingSystem {
         WINDOWS,

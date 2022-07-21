@@ -452,26 +452,19 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         return new ReverseIteratorWrapper(elementData.end);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Stream<E> stream() {
         preconditionCheck();
 
         int size = elementData.end;
-        Object[] data = elementData.toArray(0, size);
+        E[] data = elementData.toCastedArray(0, size);
 
-        return new UtStream<>((E[]) data, size);
+        return new UtStream<>(data, size);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Stream<E> parallelStream() {
-        preconditionCheck();
-
-        int size = elementData.end;
-        Object[] data = elementData.toArray(0, size);
-
-        return new UtStream<>((E[]) data, size);
+        return stream();
     }
 
     public class ReverseIteratorWrapper implements ListIterator<E> {

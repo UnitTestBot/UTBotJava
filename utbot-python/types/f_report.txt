@@ -1,0 +1,11 @@
+File: test5.py
+Source code:
+ def f(a, b):
+    print(len(a))
+    print(sum(a))
+    print(a + b)
+
+Function name:
+ f
+Possible annotations:
+ [{'a': 'bytearray', 'b': 'bytearray'}, {'a': 'bytearray', 'b': 'bytes'}, {'a': 'bytearray', 'b': 'memoryview'}, {'a': 'bytes', 'b': 'bytearray'}, {'a': 'bytes', 'b': 'bytes'}, {'a': 'bytes', 'b': 'memoryview'}, {'a': 'list', 'b': 'list'}, {'a': 'tuple', 'b': 'tuple'}]

@@ -22,7 +22,7 @@ import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
 import org.utbot.framework.codegen.model.tree.CgGetLength
 import org.utbot.framework.codegen.model.tree.CgInnerBlock
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
+import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
@@ -127,6 +127,12 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         element.expression.accept(this)
     }
 
+    // Not-null assertion
+
+    override fun visit(element: CgNotNullAssertion) {
+        element.expression.accept(this)
+    }
+
     override fun visit(element: CgParameterDeclaration) {
         if (element.isVararg) {
             print(element.type.elementClassId!!.asString())
@@ -148,10 +154,6 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         // For now we assume that we never need KClass in the generated Java test classes.
         // If it changes, this error may be removed.
         error("KClass attempted to be used in the Java test class")
-    }
-
-    override fun visit(element: CgNotNullVariable) {
-        print(element.name.escapeNamePossibleKeyword())
     }
 
     override fun visit(element: CgAllocateArray) {

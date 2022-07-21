@@ -5,10 +5,9 @@ dependencies {
     api project(':utbot-framework-api')
     compile(project(':utbot-instrumentation'))
 
-    implementation group: 'com.github.haifengl', name: 'smile-kotlin', version: '2.6.0'
-    implementation group: 'com.github.haifengl', name: 'smile-core', version: '2.6.0'
-
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+
+    testImplementation("org.junit.jupiter:junit-jupiter:$junit5_version")
 }

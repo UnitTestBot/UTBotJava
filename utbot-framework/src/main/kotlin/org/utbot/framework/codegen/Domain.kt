@@ -27,6 +27,8 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortArrayClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
 
@@ -223,7 +225,8 @@ sealed class TestFramework(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
+        buildDirectory: String,
+        additionalArguments: List<String>
     ): List<String>
 
     override fun toString() = displayName
@@ -298,16 +301,23 @@ object TestNg : TestFramework(displayName = "TestNG") {
         simpleName = "DataProvider"
     )
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
+        buildDirectory: String,
+        additionalArguments: List<String>
     ): List<String> {
         // TestNg requires a specific xml to run with
         writeXmlFileForTestSuite(buildDirectory, classesNames)
 
-        return listOf(executionInvoke, "$mainPackage.TestNG", "$buildDirectory${File.separator}$testXmlName")
+        return buildList {
+            add(executionInvoke)
+            addAll(additionalArguments)
+            add("$mainPackage.TestNG")
+            add("$buildDirectory${File.separator}$testXmlName")
+        }
     }
 
     private fun writeXmlFileForTestSuite(buildDirectory: String, testsNames: List<String>) {
@@ -375,12 +385,19 @@ object Junit4 : TestFramework("JUnit4") {
         )
     }
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
-    ): List<String> = listOf(executionInvoke, "$mainPackage.runner.JUnitCore") + classesNames
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add("$mainPackage.runner.JUnitCore")
+        addAll(classesNames)
+    }
 }
 
 object Junit5 : TestFramework("JUnit5") {
@@ -408,6 +425,19 @@ object Junit5 : TestFramework("JUnit5") {
         name = "TimeUnit",
         canonicalName = "java.util.concurrent.TimeUnit",
         simpleName = "TimeUnit"
+    )
+
+    val durationClassId = BuiltinClassId(
+        name = "Duration",
+        canonicalName = "java.time.Duration",
+        simpleName = "Duration"
+    )
+
+    val ofMillis = builtinStaticMethodId(
+        classId = durationClassId,
+        name = "ofMillis",
+        returnType = durationClassId,
+        arguments = arrayOf(longClassId)
     )
 
     override val testAnnotationId = BuiltinClassId(
@@ -447,6 +477,16 @@ object Junit5 : TestFramework("JUnit5") {
         )
     )
 
+    val assertTimeoutPreemptively = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertTimeoutPreemptively",
+        returnType = voidWrapperClassId,
+        arguments = arrayOf(
+            durationClassId,
+            executableClassId
+        )
+    )
+
     val displayNameClassId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.DisplayName",
         canonicalName = "$JUNIT5_PACKAGE.DisplayName",
@@ -464,16 +504,20 @@ object Junit5 : TestFramework("JUnit5") {
     private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
     private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
-    ): List<String> =
-        listOf(
-            executionInvoke,
-            "-jar", classPath.split(File.pathSeparator).single { platformJarName in it },
-        ) + isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" }))
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add("-jar")
+        add(classPath.split(File.pathSeparator).single { platformJarName in it })
+        add(isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" })))
+    }
 }
 
 enum class RuntimeExceptionTestsBehaviour(

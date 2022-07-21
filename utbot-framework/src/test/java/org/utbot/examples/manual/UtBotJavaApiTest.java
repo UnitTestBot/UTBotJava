@@ -34,7 +34,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel;
 import org.utbot.framework.plugin.api.UtModel;
 import org.utbot.framework.plugin.api.UtNullModel;
 import org.utbot.framework.plugin.api.UtPrimitiveModel;
-import org.utbot.framework.plugin.api.UtTestCase;
+import org.utbot.framework.plugin.api.UtMethodTestSet;
 import org.utbot.framework.plugin.api.util.UtContext;
 import org.utbot.framework.util.Snippet;
 import java.io.File;
@@ -148,7 +148,7 @@ public class UtBotJavaApiTest {
                 thirdMethodUnderTest,
                 thirdMethodState);
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Arrays.asList(firstTestMethodInfo, secondTestMethodInfo, thirdTestMethodInfo),
                 MultiMethodExample.class,
                 classpath,
@@ -159,7 +159,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -220,7 +220,7 @@ public class UtBotJavaApiTest {
                 Class.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -235,7 +235,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -319,7 +319,7 @@ public class UtBotJavaApiTest {
                 AssignedArray.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -334,7 +334,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -405,7 +405,7 @@ public class UtBotJavaApiTest {
                 Class.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -420,7 +420,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -510,7 +510,7 @@ public class UtBotJavaApiTest {
                 DirectAccess.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -525,7 +525,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -613,7 +613,7 @@ public class UtBotJavaApiTest {
                 DirectAccess.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -628,7 +628,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -702,7 +702,7 @@ public class UtBotJavaApiTest {
                 ArrayOfPrimitiveArrays.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -717,7 +717,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -797,7 +797,7 @@ public class UtBotJavaApiTest {
                 B.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -813,7 +813,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -869,7 +869,7 @@ public class UtBotJavaApiTest {
                 int.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -885,7 +885,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -981,7 +981,7 @@ public class UtBotJavaApiTest {
                 int.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -997,7 +997,7 @@ public class UtBotJavaApiTest {
 
         String generationResultWithConcreteExecutionOnly = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -1054,7 +1054,7 @@ public class UtBotJavaApiTest {
                 String.class
         );
 
-        List<UtTestCase> utTestCases1 = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets1 = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest2,
@@ -1070,7 +1070,7 @@ public class UtBotJavaApiTest {
 
         String generationResultWithConcreteExecutionOnly2 = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases1,
+                testSets1,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -1119,7 +1119,7 @@ public class UtBotJavaApiTest {
                 int.class, int.class, String.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -1135,7 +1135,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -1195,7 +1195,7 @@ public class UtBotJavaApiTest {
                 ArrayOfComplexArrays.class
         );
 
-        List<UtTestCase> utTestCases = UtBotJavaApi.generateTestCases(
+        List<UtMethodTestSet> testSets = UtBotJavaApi.generateTestSets(
                 Collections.singletonList(
                         new TestMethodInfo(
                                 methodUnderTest,
@@ -1211,7 +1211,7 @@ public class UtBotJavaApiTest {
 
         String generationResult = UtBotJavaApi.generate(
                 Collections.emptyList(),
-                utTestCases,
+                testSets,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,
@@ -1273,7 +1273,7 @@ public class UtBotJavaApiTest {
         TestMethodInfo methodInfo = new TestMethodInfo(
                 methodUnderTest,
                 methodState);
-        List<UtTestCase> utTestCases1 = UtBotJavaApi.fuzzingTestCases(
+        List<UtMethodTestSet> testSets1 = UtBotJavaApi.fuzzingTestSets(
                 Collections.singletonList(
                         methodInfo
                 ),
@@ -1292,7 +1292,7 @@ public class UtBotJavaApiTest {
 
         String generate = UtBotJavaApi.generate(
                 Collections.singletonList(methodInfo),
-                utTestCases1,
+                testSets1,
                 destinationClassName,
                 classpath,
                 dependencyClassPath,

@@ -15,7 +15,6 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.JavaDirectoryService
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassOwner
@@ -31,7 +30,6 @@ import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
 import com.intellij.util.concurrency.AppExecutorUtil
-import com.intellij.util.io.exists
 import com.siyeh.ig.psiutils.ImportUtils
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.core.ShortenReferences
@@ -47,7 +45,6 @@ import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.HTML_LINE_SEPARATOR
-import org.utbot.common.PathUtil.classFqnToPath
 import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.Import
@@ -59,27 +56,25 @@ import org.utbot.framework.codegen.model.TestsCodeWithTestReport
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.EDT_LATER
-import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.READ_ACTION
-import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.THREAD_POOL
-import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.WRITE_ACTION
+import org.utbot.framework.util.Conflict
+import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.*
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
 import org.utbot.intellij.plugin.sarif.SourceFindingStrategyIdea
+import org.utbot.intellij.plugin.ui.DetailsTestsReportNotifier
 import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.ui.TestsReportNotifier
+import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
-import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
@@ -88,14 +83,15 @@ import kotlin.reflect.full.functions
 object CodeGenerationController {
     private enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
-    fun generateTests(model: GenerateTestsModel, testCasesByClass: Map<PsiClass, List<UtTestCase>>) {
+    fun generateTests(model: GenerateTestsModel, testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
-        val latch = CountDownLatch(testCasesByClass.size)
+        val latch = CountDownLatch(testSetsByClass.size)
 
-        for (srcClass in testCasesByClass.keys) {
-            val testCases = testCasesByClass[srcClass] ?: continue
+        val reports = mutableListOf<TestsGenerationReport>()
+        for (srcClass in testSetsByClass.keys) {
+            val testSets = testSetsByClass[srcClass] ?: continue
             try {
                 val classPackageName = if (model.testPackageName.isNullOrEmpty())
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
@@ -104,7 +100,7 @@ object CodeGenerationController {
                 val file = testClass.containingFile
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndSaveReports(testClass, file, testCases, model, latch)
+                        generateCodeAndReport(testClass, file, testSets, model, latch, reports)
                     } catch (e: IncorrectOperationException) {
                         showCreatingClassError(model.project, createTestClassName(srcClass))
                     }
@@ -113,10 +109,27 @@ object CodeGenerationController {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
             }
         }
+
         run(READ_ACTION) {
             val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
             run(THREAD_POOL) {
-                waitForCountDown(latch, model, sarifReportsPath)
+                waitForCountDown(latch) {
+                    try {
+                        // Parametrized tests are not supported in tests report yet
+                        // TODO JIRA:1507
+                        if (model.parametrizedTestSource != ParametrizedTestSource.PARAMETRIZE) {
+                            showTestsReport(reports, model)
+                        }
+                    } catch (e: Exception) {
+                        showErrorDialogLater(
+                            model.project,
+                            message = "Cannot save tests generation report: error occurred '${e.message}'",
+                            title = "Failed to save tests report"
+                        )
+                    }
+
+                    mergeSarifReports(model, sarifReportsPath)
+                }
             }
         }
     }
@@ -136,12 +149,12 @@ object CodeGenerationController {
         } ?: error("No context in thread ${Thread.currentThread()}")
     }
 
-    private fun waitForCountDown(latch: CountDownLatch, model: GenerateTestsModel, sarifReportsPath: Path) {
+    private fun waitForCountDown(latch: CountDownLatch, action: Runnable) {
         try {
             if (!latch.await(5, TimeUnit.SECONDS)) {
-                run(THREAD_POOL) { waitForCountDown(latch, model, sarifReportsPath) }
+                run(THREAD_POOL) { waitForCountDown(latch, action) }
             } else {
-                mergeSarifReports(model, sarifReportsPath)
+                action.run()
             }
         } catch (ignored: InterruptedException) {
         }
@@ -167,7 +180,6 @@ object CodeGenerationController {
         SarifReportNotifier.notify(
             info = """
                 SARIF report was saved to ${toHtmlLinkTag(mergedReportFile.path)}$HTML_LINE_SEPARATOR
-                You can open it using the VS Code extension "Sarif Viewer"
             """.trimIndent()
         )
     }
@@ -239,24 +251,24 @@ object CodeGenerationController {
         return (createFromTemplate.containingFile as PsiClassOwner).classes.first()
     }
 
-    private fun generateCodeAndSaveReports(
+    private fun generateCodeAndReport(
         testClass: PsiClass,
         file: PsiFile,
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
+        reports: MutableList<TestsGenerationReport>,
     ) {
         val selectedMethods = TestIntegrationUtils.extractClassMethods(testClass, false)
         val testFramework = model.testFramework
         val mockito = model.mockFramework
         val staticsMocking = model.staticsMocking
 
-        val classUnderTest = testCases.first().method.clazz
+        val classUnderTest = testSets.first().method.clazz
 
         val params = findMethodParams(classUnderTest, selectedMethods)
 
-        val codeGenerator = CodeGenerator().apply {
-            init(
+        val codeGenerator = CodeGenerator(
                 classUnderTest = classUnderTest.java,
                 params = params.toMutableMap(),
                 testFramework = testFramework,
@@ -271,13 +283,12 @@ object CodeGenerationController {
                 enableTestsTimeout = true,
                 testClassPackageName = testClass.packageName
             )
-        }
 
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, file, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
-            val testsCodeWithTestReport = codeGenerator.generateAsStringWithTestReport(testCases)
+            val testsCodeWithTestReport = codeGenerator.generateAsStringWithTestReport(testSets)
             val generatedTestsCode = testsCodeWithTestReport.generatedCode
             run(EDT_LATER) {
                 run(WRITE_ACTION) {
@@ -304,13 +315,16 @@ object CodeGenerationController {
                         testsCodeWithTestReport.copy(generatedCode = file.text)
 
                     // creating and saving reports
-                    saveSarifAndTestReports(
+                    reports += testsCodeWithTestReportFormatted.testsGenerationReport
+
+                    saveSarifReport(
                         testClassUpdated,
-                        testCases,
+                        testSets,
                         model,
                         testsCodeWithTestReportFormatted,
-                        reportsCountDown
                     )
+
+                    reportsCountDown.countDown()
 
                     unblockDocument(testClassUpdated.project, editor.document)
                 }
@@ -346,12 +360,11 @@ object CodeGenerationController {
     private fun MemberInfo.paramNames(): List<String> =
         (this.member as PsiMethod).parameterList.parameters.map { it.name }
 
-    private fun saveSarifAndTestReports(
+    private fun saveSarifReport(
         testClass: PsiClass,
-        testCases: List<UtTestCase>,
+        testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
         testsCodeWithTestReport: TestsCodeWithTestReport,
-        reportsCountDown: CountDownLatch
     ) {
         val project = model.project
         val generatedTestsCode = testsCodeWithTestReport.generatedCode
@@ -360,7 +373,7 @@ object CodeGenerationController {
             // saving sarif report
             val sourceFinding = SourceFindingStrategyIdea(testClass)
             executeCommand(testClass.project, "Saving Sarif report") {
-                SarifReportIdea.createAndSave(model, testCases, generatedTestsCode, sourceFinding)
+                SarifReportIdea.createAndSave(model, testSets, generatedTestsCode, sourceFinding)
             }
         } catch (e: Exception) {
             showErrorDialogLater(
@@ -368,88 +381,103 @@ object CodeGenerationController {
                 message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",
                 title = "Failed to save Sarif report"
             )
-        } finally {
-            reportsCountDown.countDown()
         }
+    }
 
-        try {
-            // Parametrized tests are not supported in tests report yet
-            // TODO JIRA:1507
-            if (model.parametrizedTestSource != ParametrizedTestSource.PARAMETRIZE) {
-                executeCommand(testClass.project, "Saving tests report") {
-                    saveTestsReport(testsCodeWithTestReport, model)
+    private fun eventLogMessage(): String =
+        """
+            <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.eventLogSuffix}">See details in Event Log</a>.
+        """.trimIndent()
+
+    private fun destinationWarningMessage(testPackageName: String?, classUnderTestPackageName: String): String? {
+        return if (classUnderTestPackageName != testPackageName) {
+            """
+            Warning: Destination package $testPackageName does not match package of the class $classUnderTestPackageName.
+            This may cause unnecessary usage of reflection for protected or package-private fields and methods access.
+        """.trimIndent()
+        } else {
+            null
+        }
+    }
+
+    private fun showTestsReport(reports: List<TestsGenerationReport>, model: GenerateTestsModel) {
+        var hasWarnings = false
+        require(reports.isNotEmpty())
+
+        val (notifyMessage, statistics) = if (reports.size == 1) {
+            val report = reports.first()
+            processInitialWarnings(report, model)
+
+            val message = buildString {
+                appendHtmlLine(report.toString(isShort = true))
+
+                val classUnderTestPackageName =
+                    report.classUnderTest.classId.packageFqName.toString()
+
+                    destinationWarningMessage(model.testPackageName, classUnderTestPackageName)
+                        ?.let {
+                            appendHtmlLine(it)
+                            appendHtmlLine()
+                        }
+
+                appendHtmlLine(eventLogMessage())
+            }
+            hasWarnings = report.hasWarnings
+            Pair(message, report.detailedStatistics)
+        } else {
+            val accumulatedReport = reports.first()
+            processInitialWarnings(accumulatedReport, model)
+
+            val message = buildString {
+                appendHtmlLine("${reports.sumBy { it.executables.size }} tests generated for ${reports.size} classes.")
+
+                if (accumulatedReport.initialWarnings.isNotEmpty()) {
+                    accumulatedReport.initialWarnings.forEach { appendHtmlLine(it()) }
+                    appendHtmlLine()
                 }
+
+                // TODO maybe add statistics info here
+
+                for (report in reports) {
+                    val classUnderTestPackageName =
+                        report.classUnderTest.classId.packageFqName.toString()
+
+                    hasWarnings = hasWarnings || report.hasWarnings
+                    if (!model.isMultiPackage) {
+                        val destinationWarning =
+                            destinationWarningMessage(model.testPackageName, classUnderTestPackageName)
+                        if (destinationWarning != null) {
+                            hasWarnings = true
+                            appendHtmlLine(destinationWarning)
+                            appendHtmlLine()
+                        }
+                    }
+                }
+
+                appendHtmlLine(eventLogMessage())
             }
-        } catch (e: Exception) {
-            showErrorDialogLater(
-                project,
-                message = "Cannot save tests generation report: error occurred '${e.message}'",
-                title = "Failed to save tests report"
-            )
+
+            Pair(message, null)
         }
+
+        if (hasWarnings) {
+            WarningTestsReportNotifier.notify(notifyMessage)
+        } else {
+            TestsReportNotifier.notify(notifyMessage)
+        }
+
+        statistics?.let { DetailsTestsReportNotifier.notify(it) }
     }
 
-    private fun saveTestsReport(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
-        val testResourcesDirPath = model.testModule.getOrCreateTestResourcesPath(model.testSourceRoot)
+    private fun processInitialWarnings(report: TestsGenerationReport, model: GenerateTestsModel) {
+        val hasInitialWarnings = model.conflictTriggers.triggered
 
-        require(testResourcesDirPath.exists()) {
-            "Test resources directory $testResourcesDirPath does not exist"
-        }
-
-        val testReportSubDir = "utbot-tests-report"
-        val classFqn = with(testsCodeWithTestReport.testsGenerationReport.classUnderTest) {
-            qualifiedName ?: error("Could not save tests report for anonymous or local class $this")
-        }
-        val fileReportPath = classFqnToPath(classFqn)
-
-        val resultedReportedPath =
-            Paths.get(
-                testResourcesDirPath.toString(),
-                testReportSubDir,
-                fileReportPath + "TestReport" + TestsGenerationReport.EXTENSION
-            )
-
-        val parent = resultedReportedPath.parent
-        requireNotNull(parent) {
-            "Expected from parent of $resultedReportedPath to be not null but it is null"
-        }
-
-        VfsUtil.createDirectories(parent.toString())
-        resultedReportedPath.toFile().writeText(testsCodeWithTestReport.testsGenerationReport.getFileContent())
-
-        processInitialWarnings(testsCodeWithTestReport, model)
-
-        val notifyMessage = buildString {
-            appendHtmlLine(testsCodeWithTestReport.testsGenerationReport.toString())
-            appendHtmlLine()
-            val classUnderTestPackageName =
-                testsCodeWithTestReport.testsGenerationReport.classUnderTest.classId.packageFqName.toString()
-            if (classUnderTestPackageName != model.testPackageName) {
-                val warningMessage = """
-                    Warning: Destination package ${model.testPackageName} does not match package of the class $classUnderTestPackageName.
-                    This may cause unnecessary usage of reflection for protected or package-private fields and methods access.
-                """.trimIndent()
-                appendHtmlLine(warningMessage)
-                appendHtmlLine()
-            }
-            val savedFileMessage = """
-                Tests report was saved to ${toHtmlLinkTag(resultedReportedPath.toString())} in TSV format
-            """.trimIndent()
-            appendHtmlLine(savedFileMessage)
-        }
-        TestsReportNotifier.notify(notifyMessage)
-    }
-
-    private fun processInitialWarnings(testsCodeWithTestReport: TestsCodeWithTestReport, model: GenerateTestsModel) {
-        val hasInitialWarnings = model.forceMockHappened || model.forceStaticMockHappened || model.hasTestFrameworkConflict
         if (!hasInitialWarnings) {
             return
         }
 
-        testsCodeWithTestReport.testsGenerationReport.apply {
-            summaryMessage = { "Unit tests for $classUnderTest were generated with warnings.<br>" }
-
-            if (model.forceMockHappened) {
+        report.apply {
+            if (model.conflictTriggers[Conflict.ForceMockHappened] == true) {
                 initialWarnings.add {
                     """
                     <b>Warning</b>: Some test cases were ignored, because no mocking framework is installed in the project.<br>
@@ -457,7 +485,7 @@ object CodeGenerationController {
                 """.trimIndent()
                 }
             }
-            if (model.forceStaticMockHappened) {
+            if (model.conflictTriggers[Conflict.ForceStaticMockHappened] == true) {
                 initialWarnings.add {
                     """
                     <b>Warning</b>: Some test cases were ignored, because mockito-inline is not installed in the project.<br>
@@ -465,7 +493,7 @@ object CodeGenerationController {
                 """.trimIndent()
                 }
             }
-            if (model.hasTestFrameworkConflict) {
+            if (model.conflictTriggers[Conflict.TestFrameworkConflict] == true) {
                 initialWarnings.add {
                     """
                     <b>Warning</b>: There are several test frameworks in the project. 

@@ -1,13 +1,9 @@
 package examples.controlflow
 
 import examples.SummaryTestCaseGeneratorTest
-import org.junit.Ignore
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Tag
-import org.utbot.examples.controlflow.Cycles
 import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
-import org.utbot.examples.algorithms.ReturnExample
+import org.utbot.examples.controlflow.Cycles
 import org.utbot.framework.plugin.api.MockStrategyApi
 
 class SummaryCycleTest : SummaryTestCaseGeneratorTest(
@@ -19,7 +15,8 @@ class SummaryCycleTest : SummaryTestCaseGeneratorTest(
                 "    inside this loop, the test executes conditions:\n" +
                 "    (i < 0): True\n" +
                 "returns from: return 2;"
-        val summary2 = "Test does not iterate for(int i = x - 5; i < x; i++), for(int j = i; j < x + i; j++), returns from: return -1;\n" // TODO: should it be formatted from the new string?
+        val summary2 =
+            "Test does not iterate for(int i = x - 5; i < x; i++), for(int j = i; j < x + i; j++), returns from: return -1;\n" // TODO: should it be formatted from the new string?
         val summary3 = "Test iterates the loop for(int i = x - 5; i < x; i++) once,\n" +
                 "    inside this loop, the test executes conditions:\n" +
                 "    (i < 0): False\n" +
@@ -123,7 +120,7 @@ class SummaryCycleTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        val method =  Cycles::structureLoop
+        val method = Cycles::structureLoop
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 

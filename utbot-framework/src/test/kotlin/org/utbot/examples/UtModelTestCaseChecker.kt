@@ -21,7 +21,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.getOrThrow
 import org.utbot.framework.plugin.api.util.UtContext
@@ -93,19 +93,19 @@ internal abstract class UtModelTestCaseChecker(
         val utMethod = UtMethod.from(method)
 
         withUtContext(UtContext(utMethod.clazz.java.classLoader)) {
-            val testCase = executions(utMethod, mockStrategy)
+            val testSet = executions(utMethod, mockStrategy)
 
-            assertTrue(testCase.errors.isEmpty()) {
-                "We have errors: ${testCase.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
+            assertTrue(testSet.errors.isEmpty()) {
+                "We have errors: ${testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
             }
 
-            val executions = testCase.executions
+            val executions = testSet.executions
             assertTrue(branches(executions.size)) {
                 "Branch count matcher '$branches' fails for #executions=${executions.size}: ${executions.prettify()}"
             }
             executions.checkMatchers(matchers, arguments)
 
-            processTestCase(testCase)
+            processTestCase(testSet)
         }
     }
 
@@ -131,14 +131,24 @@ internal abstract class UtModelTestCaseChecker(
     private fun executions(
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi
-    ): UtTestCase {
+    ): UtMethodTestSet {
         val classLocation = locateClass(method.clazz)
         if (classLocation != previousClassLocation) {
             buildDir = findPathToClassFiles(classLocation)
             previousClassLocation = classLocation
         }
-        TestSpecificTestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
-        return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
+
+        val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, dependencyPath = null)
+        val testCaseGenerator = testCaseGeneratorCache
+            .getOrPut(buildInfo) {
+                TestSpecificTestCaseGenerator(
+                    buildDir,
+                    classpath = null,
+                    dependencyPaths = System.getProperty("java.class.path"),
+                )
+            }
+
+        return testCaseGenerator.generate(method, mockStrategy)
     }
 
     protected inline fun <reified T> UtExecutionResult.isException(): Boolean = exceptionOrNull() is T

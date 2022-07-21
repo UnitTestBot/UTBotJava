@@ -15,8 +15,8 @@ internal class FuzzerTestCaseGeneratorTest {
     @ParameterizedTest
     @MethodSource("manyMethods")
     fun testManyMethods(method: KFunction<*>, returnType: KClass<*>, vararg paramTypes: KClass<*>) {
-        val testCase = generate(method)
-        testCase.executions.forEach { execution ->
+        val valueTestSet = generate(method)
+        valueTestSet.executions.forEach { execution ->
             assertEquals(paramTypes.toList(), execution.stateBefore.params.map { it.type }) { "$method" }
             assertTrue(execution.returnValue.isSuccess) { "$method" }
             val value = execution.returnValue.getOrNull()

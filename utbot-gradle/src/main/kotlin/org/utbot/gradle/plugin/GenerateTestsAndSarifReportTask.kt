@@ -5,6 +5,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import org.utbot.common.bracket
 import org.utbot.common.debug
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.sarif.GenerateTestsAndSarifReportFacade
@@ -13,6 +14,8 @@ import org.utbot.gradle.plugin.wrappers.GradleProjectWrapper
 import org.utbot.gradle.plugin.wrappers.SourceFindingStrategyGradle
 import org.utbot.gradle.plugin.wrappers.SourceSetWrapper
 import org.utbot.framework.plugin.sarif.TargetClassWrapper
+import java.io.File
+import java.net.URLClassLoader
 import javax.inject.Inject
 
 /**
@@ -43,6 +46,7 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
             return
         }
         try {
+
             generateForProjectRecursively(rootGradleProject)
             GenerateTestsAndSarifReportFacade.mergeReports(
                 sarifReports = rootGradleProject.collectReportsRecursively(),
@@ -58,6 +62,11 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
 
     // overwriting the getLogger() function from the DefaultTask
     private val logger: KLogger = org.utbot.gradle.plugin.logger
+
+    private val dependencyPaths by lazy {
+        val thisClassLoader = this::class.java.classLoader as URLClassLoader
+        thisClassLoader.urLs.joinToString(File.pathSeparator) { it.path }
+    }
 
     /**
      * Generates tests and a SARIF report for classes in the [gradleProject] and in all its child projects.
@@ -77,8 +86,10 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
     private fun generateForSourceSet(sourceSet: SourceSetWrapper) {
         logger.debug().bracket("Generating tests for the '${sourceSet.sourceSet.name}' source set") {
             withUtContext(UtContext(sourceSet.classLoader)) {
+                val testCaseGenerator =
+                    TestCaseGenerator(sourceSet.workingDirectory, sourceSet.runtimeClasspath, dependencyPaths)
                 sourceSet.targetClasses.forEach { targetClass ->
-                    generateForClass(sourceSet, targetClass)
+                    generateForClass(sourceSet, targetClass, testCaseGenerator)
                 }
             }
         }
@@ -87,15 +98,15 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
     /**
      * Generates tests and a SARIF report for the class [targetClass].
      */
-    private fun generateForClass(sourceSet: SourceSetWrapper, targetClass: TargetClassWrapper) {
+    private fun generateForClass(
+        sourceSet: SourceSetWrapper,
+        targetClass: TargetClassWrapper,
+        testCaseGenerator: TestCaseGenerator,
+    ) {
         logger.debug().bracket("Generating tests for the $targetClass") {
-            val sourceFindingStrategy =
-                SourceFindingStrategyGradle(sourceSet, targetClass.testsCodeFile.path)
-            val generateTestsAndSarifReportFacade =
-                GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy)
-            generateTestsAndSarifReportFacade.generateForClass(
-                targetClass, sourceSet.workingDirectory, sourceSet.runtimeClasspath
-            )
+            val sourceFindingStrategy = SourceFindingStrategyGradle(sourceSet, targetClass.testsCodeFile.path)
+            GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy, testCaseGenerator)
+                .generateForClass(targetClass, sourceSet.workingDirectory)
         }
     }
 

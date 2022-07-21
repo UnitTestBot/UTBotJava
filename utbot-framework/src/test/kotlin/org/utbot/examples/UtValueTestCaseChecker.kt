@@ -49,12 +49,11 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMockValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.toValueTestCase
 import org.utbot.summary.summarize
 import java.io.File
@@ -2293,7 +2292,7 @@ abstract class UtValueTestCaseChecker(
                     val methodWithStrategy =
                         MethodWithMockStrategy(utMethod, mockStrategy, resetNonFinalFieldsAfterClinit)
 
-                    val (testCase, coverage) = analyzedMethods.getOrPut(methodWithStrategy) {
+                    val (testSet, coverage) = analyzedMethods.getOrPut(methodWithStrategy) {
                         walk(utMethod, mockStrategy)
                     }
 
@@ -2301,13 +2300,13 @@ abstract class UtValueTestCaseChecker(
                         // TODO JIRA:1407
                     }
 
-                    val testClass = testCase.method.clazz
+                    val testClass = testSet.method.clazz
                     val stageStatusCheck = StageStatusCheck(
                         firstStage = CodeGeneration,
                         lastStage = TestExecution,
                         status = ExecutionStatus.SUCCESS
                     )
-                    val classStages = listOf(ClassStages(testClass, stageStatusCheck, listOf(testCase)))
+                    val classStages = listOf(ClassStages(testClass, stageStatusCheck, listOf(testSet)))
 
                     TestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
                 }
@@ -2337,17 +2336,17 @@ abstract class UtValueTestCaseChecker(
             computeAdditionalDependenciesClasspathAndBuildDir(utMethod, additionalDependencies)
 
         withUtContext(UtContext(utMethod.clazz.java.classLoader)) {
-            val (testCase, coverage) = if (coverageMatcher is DoNotCalculate) {
+            val (testSet, coverage) = if (coverageMatcher is DoNotCalculate) {
                 MethodResult(executions(utMethod, mockStrategy, additionalDependenciesClassPath), Coverage())
             } else {
                 walk(utMethod, mockStrategy, additionalDependenciesClassPath)
             }
-            testCase.summarize(searchDirectory)
-            val valueTestCase = testCase.toValueTestCase(jimpleBody(utMethod))
+            testSet.summarize(searchDirectory)
+            val valueTestCase = testSet.toValueTestCase()
 
-            assertTrue(testCase.errors.isEmpty()) {
+            assertTrue(testSet.errors.isEmpty()) {
                 "We have errors: ${
-                    testCase.errors.entries.map { "${it.value}: ${it.key}" }.prettify()
+                    testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()
                 }"
             }
 
@@ -2375,7 +2374,7 @@ abstract class UtValueTestCaseChecker(
                 "Coverage matcher '$coverageMatcher' fails for $coverage (at least: ${coverage.toAtLeast()})"
             }
 
-            processTestCase(testCase)
+            processTestCase(testSet)
         }
     }
 
@@ -2477,35 +2476,51 @@ abstract class UtValueTestCaseChecker(
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String = ""
     ): MethodResult {
-        val testCase = executions(method, mockStrategy, additionalDependenciesClassPath)
-        val jimpleBody = jimpleBody(method)
+        val testSet = executions(method, mockStrategy, additionalDependenciesClassPath)
         val methodCoverage = methodCoverage(
             method,
-            testCase.toValueTestCase(jimpleBody).executions,
+            testSet.toValueTestCase().executions,
             buildDir.toString() + File.pathSeparator + additionalDependenciesClassPath
         )
-        return MethodResult(testCase, methodCoverage)
+        return MethodResult(testSet, methodCoverage)
     }
 
     fun executions(
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
         additionalDependenciesClassPath: String
-    ): UtTestCase {
-        TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
-        return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
+    ): UtMethodTestSet {
+        val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
+
+        val testCaseGenerator = testCaseGeneratorCache
+            .getOrPut(buildInfo) {
+                TestSpecificTestCaseGenerator(
+                    buildDir,
+                    additionalDependenciesClassPath,
+                    System.getProperty("java.class.path")
+                )
+            }
+        return testCaseGenerator.generate(method, mockStrategy)
     }
 
     fun executionsModel(
         method: UtMethod<*>,
         mockStrategy: MockStrategyApi,
         additionalDependencies: Array<KClass<*>> = emptyArray()
-    ): UtTestCase {
+    ): UtMethodTestSet {
         val additionalDependenciesClassPath =
             computeAdditionalDependenciesClasspathAndBuildDir(method, additionalDependencies)
-        TestSpecificTestCaseGenerator.init(buildDir, additionalDependenciesClassPath, System.getProperty("java.class.path"))
         withUtContext(UtContext(method.clazz.java.classLoader)) {
-            return TestSpecificTestCaseGenerator.generate(method, mockStrategy)
+            val buildInfo = CodeGenerationIntegrationTest.Companion.BuildInfo(buildDir, additionalDependenciesClassPath)
+            val testCaseGenerator = testCaseGeneratorCache
+                .getOrPut(buildInfo) {
+                    TestSpecificTestCaseGenerator(
+                        buildDir,
+                        additionalDependenciesClassPath,
+                        System.getProperty("java.class.path")
+                    )
+                }
+            return testCaseGenerator.generate(method, mockStrategy)
         }
     }
 
@@ -2535,7 +2550,7 @@ abstract class UtValueTestCaseChecker(
         val substituteStatics: Boolean
     )
 
-    data class MethodResult(val testCase: UtTestCase, val coverage: Coverage)
+    data class MethodResult(val testSet: UtMethodTestSet, val coverage: Coverage)
 }
 
 @Suppress("UNCHECKED_CAST")

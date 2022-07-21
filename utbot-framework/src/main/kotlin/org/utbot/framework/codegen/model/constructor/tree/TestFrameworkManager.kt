@@ -155,6 +155,8 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     // TestNg allows both approaches, we use similar to JUnit5
     abstract fun expectException(exception: ClassId, block: () -> Unit)
 
+    open fun expectTimeout(timeoutMs: Long, block: () -> Unit) {}
+
     open fun setTestExecutionTimeout(timeoutMs: Long) {
         val timeout = CgNamedAnnotationArgument(
             name = timeoutArgumentName,
@@ -325,6 +327,14 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
+    }
+
+    override fun expectTimeout(timeoutMs : Long, block: () -> Unit) {
+        require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
+        val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
+        importIfNeeded(testFramework.durationClassId)
+        val duration = CgMethodCall(null, testFramework.ofMillis, listOf(timeoutMs.resolve()))
+        +assertions[testFramework.assertTimeoutPreemptively](duration, lambda)
     }
 
     override fun addDisplayName(name: String) {

@@ -1,12 +1,23 @@
 package org.utbot.framework.plugin.api
 
-import org.utbot.common.FileUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
+import mu.KLogger
+import mu.KotlinLogging
 import org.utbot.common.bracket
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
+import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -34,85 +45,58 @@ import java.util.*
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.min
 import kotlin.reflect.KCallable
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flattenConcat
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.yield
-import mu.KotlinLogging
-import org.utbot.engine.UtBotSymbolicEngine
 
-object TestCaseGenerator {
+/**
+ * Generates test cases: one by one or a whole set for the method under test.
+ *
+ * Note: the instantiating of [TestCaseGenerator] may take some time,
+ * because it requires initializing Soot for the current [buildDir] and [classpath].
+ */
+open class TestCaseGenerator(
+    private val buildDir: Path,
+    private val classpath: String?,
+    private val dependencyPaths: String,
+    val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
+    val isCanceled: () -> Boolean = { false },
+) {
+    private val logger: KLogger = KotlinLogging.logger {}
+    private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
 
-    private val logger = KotlinLogging.logger {}
-    private val timeoutLogger = KotlinLogging.logger(logger.name + ".timeout")
+    private val classpathForEngine: String
+        get() = buildDir.toString() + (classpath?.let { File.pathSeparator + it } ?: "")
 
-    lateinit var engineActions: MutableList<(UtBotSymbolicEngine) -> Unit>
-    lateinit var isCanceled: () -> Boolean
+    init {
+        if (!isCanceled()) {
+            checkFrameworkDependencies(dependencyPaths)
 
-    //properties to save time on soot initialization
-    private var previousBuildDir: Path? = null
-    private var previousClasspath: String? = null
-    private var previousTimestamp: Long? = null
-    private var dependencyPaths: String = ""
+            logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
 
-    fun init(
-        buildDir: Path,
-        classpath: String?,
-        dependencyPaths: String,
-        engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
-        isCanceled: () -> Boolean = { false },
-    ) {
-        this.isCanceled = isCanceled
-        this.engineActions = engineActions
-        if (isCanceled()) return
 
-        checkFrameworkDependencies(dependencyPaths)
+            if (disableCoroutinesDebug) {
+                System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
+            }
 
-        logger.trace("Initializing ${this.javaClass.name} with buildDir = $buildDir, classpath = $classpath")
+            timeoutLogger.trace().bracket("Soot initialization") {
+                runSoot(buildDir, classpath)
+            }
 
-        //optimization: maxLastModifiedRecursivelyMillis can take time
-        val timestamp = if (UtSettings.classfilesCanChange) maxLastModifiedRecursivelyMillis(buildDir, classpath) else 0
-        if (buildDir == previousBuildDir && classpath == previousClasspath && timestamp == previousTimestamp) {
-            logger.info { "Ignoring soot initialization because parameters are the same as on previous initialization" }
-            return
-        }
-
-        if (disableCoroutinesDebug) {
-            System.setProperty(kotlinx.coroutines.DEBUG_PROPERTY_NAME, kotlinx.coroutines.DEBUG_PROPERTY_VALUE_OFF)
-        }
-
-        timeoutLogger.trace().bracket("Soot initialization") {
-            runSoot(buildDir, classpath)
-        }
-
-        previousBuildDir = buildDir
-        previousClasspath = classpath
-        previousTimestamp = timestamp
-        this.dependencyPaths = dependencyPaths
-
-        //warmup
-        if (warmupConcreteExecution) {
-            ConcreteExecutor(
-                UtExecutionInstrumentation,
-                classpathForEngine,
-                dependencyPaths
-            ).apply {
-                classLoader = utContext.classLoader
-                withUtContext(UtContext(Warmup::class.java.classLoader)) {
-                    runBlocking {
-                        constructExecutionsForWarmup().forEach { (method, data) ->
-                            executeAsync(method, emptyArray(), data)
+            //warmup
+            if (warmupConcreteExecution) {
+                ConcreteExecutor(
+                    UtExecutionInstrumentation,
+                    classpathForEngine,
+                    dependencyPaths
+                ).apply {
+                    classLoader = utContext.classLoader
+                    withUtContext(UtContext(Warmup::class.java.classLoader)) {
+                        runBlocking {
+                            constructExecutionsForWarmup().forEach { (method, data) ->
+                                executeAsync(method, emptyArray(), data)
+                            }
                         }
                     }
+                    warmup()
                 }
-                warmup()
             }
         }
     }
@@ -133,7 +117,7 @@ object TestCaseGenerator {
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
-        return createDefaultFlow(engine)
+        return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
     }
 
     fun generate(
@@ -141,9 +125,9 @@ object TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
-        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = ::createDefaultFlow
-    ): List<UtTestCase> {
-        if (isCanceled()) return methods.map { UtTestCase(it) }
+        generate: (engine: UtBotSymbolicEngine) -> Flow<UtResult> = defaultTestFlow(methodsGenerationTimeout)
+    ): List<UtMethodTestSet> {
+        if (isCanceled()) return methods.map { UtMethodTestSet(it) }
 
         val executionStartInMillis = System.currentTimeMillis()
         val executionTimeEstimator = ExecutionTimeEstimator(methodsGenerationTimeout, methods.size)
@@ -218,7 +202,7 @@ object TestCaseGenerator {
 
 
         return methods.map { method ->
-            UtTestCase(
+            UtMethodTestSet(
                 method,
                 minimizeExecutions(method2executions.getValue(method)),
                 jimpleBody(method),
@@ -254,18 +238,6 @@ object TestCaseGenerator {
             )
         }
 
-    private val classpathForEngine: String
-        get() = previousBuildDir!!.toString() + (previousClasspath?.let { File.pathSeparator + it } ?: "")
-
-    private fun maxLastModifiedRecursivelyMillis(buildDir: Path, classpath: String?): Long {
-        val paths = mutableListOf<File>()
-        paths += buildDir.toFile()
-        if (classpath != null) {
-            paths += classpath.split(File.pathSeparatorChar).map { File(it) }
-        }
-        return FileUtil.maxLastModifiedRecursivelyMillis(paths)
-    }
-
     private fun createSymbolicEngine(
         controller: EngineController,
         method: UtMethod<*>,
@@ -284,17 +256,6 @@ object TestCaseGenerator {
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis
         )
-    }
-
-    private fun createDefaultFlow(engine: UtBotSymbolicEngine): Flow<UtResult> {
-        var flow = engine.traverse()
-        if (UtSettings.useFuzzing) {
-            flow = flowOf(
-                engine.fuzzing(System.currentTimeMillis() + UtSettings.fuzzingTimeoutInMillis),
-                flow,
-            ).flattenConcat()
-        }
-        return flow
     }
 
     // CONFLUENCE:The+UtBot+Java+timeouts

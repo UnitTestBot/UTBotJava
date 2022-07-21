@@ -33,8 +33,7 @@ import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.framework.plugin.api.UtValueTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -43,9 +42,6 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
-import org.utbot.instrumentation.execute
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
-import org.utbot.instrumentation.util.StaticEnvironment
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.lang.reflect.Method
@@ -65,6 +61,8 @@ import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
+import org.utbot.common.filterWhen
+import org.utbot.framework.util.isKnownSyntheticMethod
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -121,10 +119,6 @@ fun main(args: Array<String>) {
 
 
     withUtContext(context) {
-
-        //soot initialization
-        TestCaseGenerator.init(classfileDir, classpathString, dependencyPath)
-
         logger.info().bracket("warmup: kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class, "")
             prepareClass(Warmup::class, "")
@@ -179,7 +173,7 @@ fun runGeneration(
 
 
 
-    val testCases: MutableList<UtTestCase> = mutableListOf()
+    val testSets: MutableList<UtMethodTestSet> = mutableListOf()
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
@@ -195,13 +189,12 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class, "")
             prepareClass(Warmup::class, "")
         }
-
     }
 
     //remaining budget
@@ -216,15 +209,13 @@ fun runGeneration(
 
     val statsForClass = StatsForClass()
 
-    val codeGenerator = CodeGenerator().apply {
-        init(
+    val codeGenerator = CodeGenerator(
             cut.classId.jClass,
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
             generateWarningsForStaticMocking = false
         )
-    }
 
     // Doesn't work
 /*    val concreteExecutorForCoverage =
@@ -250,10 +241,10 @@ fun runGeneration(
         // nothing to process further
         if (filteredMethods.isEmpty()) return@runBlocking statsForClass
 
-        val testCaseGenerator = TestCaseGenerator
-        logger.info().bracket("2nd optional soot initialization") {
-            testCaseGenerator.init(cut.classfileDir.toPath(), classpathString, dependencyPath)
-        }
+        val testCaseGenerator =
+            logger.info().bracket("2nd optional soot initialization") {
+                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            }
 
 
         val engineJob = CoroutineScope(SupervisorJob() + newSingleThreadContext("SymbolicExecution") + currentContext ).launch {
@@ -341,7 +332,7 @@ fun runGeneration(
                                             statsForMethod.testsGeneratedCount++
 
                                             //TODO: it is a strange hack to create fake test case for one [UtResult]
-                                            testCases.add(UtTestCase(method, listOf(result)))
+                                            testSets.add(UtMethodTestSet(method, listOf(result)))
                                         } catch (e: Throwable) {
                                             //Here we need isolation
                                             logger.error(e) { "Code generation failed" }
@@ -394,7 +385,7 @@ fun runGeneration(
         cancellator.cancel()
 
         logger.info().bracket("Flushing tests for [${cut.simpleName}] on disk") {
-            writeTestClass(cut, codeGenerator.generateAsString(testCases))
+            writeTestClass(cut, codeGenerator.generateAsString(testSets))
         }
         //write classes
     }
@@ -423,21 +414,6 @@ fun runGeneration(
     statsForClass
 }
 
-private fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.executeTestCase(testCase: UtValueTestCase<*>) {
-    testCase.executions.forEach {
-        val method = testCase.method.callable
-        for (execution in testCase.executions) {
-            val args = (listOfNotNull(execution.stateBefore.caller) + execution.stateBefore.params)
-                .map { it.value }.toMutableList()
-            val staticEnvironment = StaticEnvironment(
-                execution.stateBefore.statics.map { it.key to it.value.value }
-            )
-            this.execute(method, args.toTypedArray(), parameters = staticEnvironment)
-        }
-    }
-
-}
-
 private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): List<UtMethod<*>> {
     //1. all methods and properties from cut
     val kotlin2java = kotlinClass.declaredMembers
@@ -461,12 +437,12 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
         //join
         .union(kotlin2javaCtors)
 
-    val classFilteredMethods = methodsToGenerate
+    val classFilteredMethods = methodsToGenerate.asSequence()
         .map { UtMethod(it.first, kotlinClass) }
         .filter { methodNameFilter?.equals(it.callable.name) ?: true }
-        .filterNot {
-            it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum)
-        }
+        .filterNot { it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum) }
+        .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+        .toList()
 
     return if (kotlinClass.nestedClasses.isEmpty()) {
         classFilteredMethods
@@ -476,10 +452,10 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
     }
 }
 
-fun writeTestClass(cut: ClassUnderTest, testCasesAsString: String) {
-    logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(testCasesAsString.length.toLong())}" }
+fun writeTestClass(cut: ClassUnderTest, testSetsAsString: String) {
+    logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(testSetsAsString.length.toLong())}" }
     cut.generatedTestFile.parentFile.mkdirs()
-    cut.generatedTestFile.writeText(testCasesAsString, charset)
+    cut.generatedTestFile.writeText(testSetsAsString, charset)
 }
 
 private inline fun <R> KCallable<*>.withAccessibility(block: () -> R): R {

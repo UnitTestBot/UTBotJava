@@ -8,13 +8,16 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.compiler.CompileContext
 import com.intellij.openapi.compiler.CompilerManager
 import com.intellij.openapi.compiler.CompilerPaths
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderEnumerator
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
+import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.concurrency.AppExecutorUtil
@@ -26,7 +29,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withSubstitutionCondition
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -45,7 +48,10 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
+import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
+import org.utbot.framework.plugin.api.testFlow
+import org.utbot.intellij.plugin.settings.Settings
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -125,15 +131,25 @@ object UtTestsDialogProcessor {
                             val classLoader = urlClassLoader(listOf(buildDir) + classpathList)
                             val context = UtContext(classLoader)
 
-                            val testCasesByClass = mutableMapOf<PsiClass, List<UtTestCase>>()
+                            val testSetsByClass = mutableMapOf<PsiClass, List<UtMethodTestSet>>()
                             var processedClasses = 0
                             val totalClasses = model.srcClasses.size
+
+                            val testCaseGenerator = TestCaseGenerator(
+                                    Paths.get(buildDir),
+                                    classpath,
+                                    pluginJarsPath.joinToString(separator = File.pathSeparator),
+                                    isCanceled = { indicator.isCanceled }
+                                )
 
                             for (srcClass in model.srcClasses) {
                                 val methods = ReadAction.nonBlocking<List<UtMethod<*>>> {
                                     val clazz = classLoader.loadClass(srcClass.qualifiedName).kotlin
                                     val srcMethods = model.selectedMethods?.toList() ?:
                                         TestIntegrationUtils.extractClassMethods(srcClass, false)
+                                            .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
+                                                it.member !is SyntheticElement
+                                            }
                                     findMethodsInClassMatchingSelected(clazz, srcMethods)
                                 }.executeSynchronously()
 
@@ -161,33 +177,32 @@ object UtTestsDialogProcessor {
                                 withSubstitutionCondition(shouldSubstituteStatics) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
-                                    val testCaseGenerator = TestCaseGenerator.apply {
-                                        init(
-                                            Paths.get(buildDir),
-                                            classpath,
-                                            pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                        ) { indicator.isCanceled }
-                                    }
-
-                                    val forceMockListener = if (!mockFrameworkInstalled) {
-                                         ForceMockListener().apply {
+                                    if (!mockFrameworkInstalled) {
+                                         ForceMockListener(model.conflictTriggers).apply {
                                              testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
                                          }
-                                    } else {
-                                        null
                                     }
 
-                                    val forceStaticMockListener = if (!model.staticsMocking.isConfigured) {
-                                        ForceStaticMockListener().apply {
+                                    if (!model.staticsMocking.isConfigured) {
+                                        ForceStaticMockListener(model.conflictTriggers).apply {
                                             testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
                                         }
-                                    } else {
-                                        null
                                     }
 
                                     val notEmptyCases = withUtContext(context) {
                                         testCaseGenerator
-                                            .generate(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
+                                            .generate(
+                                                methods,
+                                                model.mockStrategy,
+                                                model.chosenClassesToMockAlways,
+                                                model.timeout,
+                                                generate = testFlow {
+                                                    generationTimeout = model.timeout
+                                                    isSymbolicEngineEnabled = true
+                                                    isFuzzingEnabled = UtSettings.useFuzzing
+                                                    fuzzingValue = project.service<Settings>().fuzzingValue
+                                                }
+                                            )
                                             .map { it.summarize(searchDirectory) }
                                             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
                                     }
@@ -199,20 +214,22 @@ object UtTestsDialogProcessor {
                                             title = "Failed to generate unit tests for class $className"
                                         )
                                     } else {
-                                        testCasesByClass[srcClass] = notEmptyCases
-                                    }
-
-                                    forceMockListener?.run {
-                                        model.forceMockHappened = forceMockHappened
-                                    }
-
-                                    forceStaticMockListener?.run {
-                                        model.forceStaticMockHappened = forceStaticMockHappened
+                                        testSetsByClass[srcClass] = notEmptyCases
                                     }
 
                                     timerHandler.cancel(true)
                                 }
                                 processedClasses++
+                            }
+
+                            if (processedClasses == 0) {
+                                invokeLater {
+                                    Messages.showInfoMessage(
+                                        model.project,
+                                        "No methods for test generation were found among selected items",
+                                        "No methods found")
+                                }
+                                return
                             }
 
                             indicator.fraction = indicator.fraction.coerceAtLeast(0.9)
@@ -222,7 +239,7 @@ object UtTestsDialogProcessor {
 
                             invokeLater {
                                 withUtContext(context) {
-                                    generateTests(model, testCasesByClass)
+                                    generateTests(model, testSetsByClass)
                                 }
                             }
                         }

@@ -91,34 +91,13 @@ data class UtMethod<R>(
     }
 }
 
-/**
- * Test case.
- *
- * Note: it should not be transformed into data class since it is used as a key in maps.
- * The clusters in it are mutable objects, therefore, we might have problems with hash because of it.
- */
-@Suppress("unused")
-class UtTestCase(
+data class UtMethodTestSet(
     val method: UtMethod<*>,
     val executions: List<UtExecution> = emptyList(),
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
-    private val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
-) {
-    operator fun component1() = method
-    operator fun component2() = executions
-    operator fun component3() = jimpleBody
-    operator fun component4() = errors
-    operator fun component5() = clustersInfo
-
-    fun copy(
-        method: UtMethod<*> = this.method,
-        executions: List<UtExecution> = this.executions,
-        jimpleBody: JimpleBody? = this.jimpleBody,
-        errors: Map<String, Int> = this.errors,
-        clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = this.clustersInfo
-    ) = UtTestCase(method, executions, jimpleBody, errors, clustersInfo)
-}
+    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
+)
 
 data class Step(
     val stmt: Stmt,
@@ -652,10 +631,13 @@ val Type.classId: ClassId
  * [elementClassId] if this class id represents an array class, then this property
  * represents the class id of the array's elements. Otherwise, this property is null.
  */
-open class ClassId(
+open class ClassId @JvmOverloads constructor(
     val name: String,
-    val elementClassId: ClassId? = null
+    val elementClassId: ClassId? = null,
+    // Treat simple class ids as non-nullable
+    open val isNullable: Boolean = false
 ) {
+
     open val canonicalName: String
         get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
 
@@ -718,10 +700,6 @@ open class ClassId(
 
     open val isSynthetic: Boolean
         get() = jClass.isSynthetic
-
-    open val isNullable: Boolean
-        // Treat simple class ids as non-nullable
-        get() = false
 
     /**
      * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
@@ -797,6 +775,7 @@ class BuiltinClassId(
     override val simpleName: String,
     // by default we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
+    override val isNullable: Boolean = false,
     override val isPublic: Boolean = true,
     override val isProtected: Boolean = false,
     override val isPrivate: Boolean = false,
@@ -816,7 +795,7 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name) {
+) : ClassId(name = name, isNullable = isNullable) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }

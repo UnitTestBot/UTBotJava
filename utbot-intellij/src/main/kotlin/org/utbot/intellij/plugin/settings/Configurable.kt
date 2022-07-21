@@ -11,7 +11,7 @@ class Configurable(val project: Project) : SearchableConfigurable {
 
     override fun createComponent(): JComponent = settingsWindow.panel
 
-    override fun isModified(): Boolean = settingsWindow.isModified
+    override fun isModified(): Boolean = settingsWindow.isModified()
 
     override fun apply() = settingsWindow.apply()
 

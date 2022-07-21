@@ -45,7 +45,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -54,6 +54,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
+import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
@@ -70,8 +71,8 @@ import org.utbot.framework.plugin.api.util.jClass
  * For example, [currentTestClass] and [currentExecutable] can be reassigned
  * when we start generating another method or test class
  *
- * [variables] and [existingVariableNames] are 'var' properties
- * that can be reverted to their previous values on exit from a name scope
+ * [existingVariableNames] is a 'var' property
+ * that can be reverted to its previous value on exit from a name scope
  *
  * @see [CgContextOwner.withNameScope]
  */
@@ -155,9 +156,6 @@ internal interface CgContextOwner {
     // variable names being used in the current name scope
     var existingVariableNames: PersistentSet<String>
 
-    // all declared variables in the current name scope
-    var variables: PersistentSet<CgVariable>
-
     // variables of java.lang.Class type declared in the current name scope
     var declaredClassRefs: PersistentMap<ClassId, CgVariable>
 
@@ -178,7 +176,7 @@ internal interface CgContextOwner {
     // map from a set of tests for a method to another map
     // which connects code generation error message
     // with the number of times it occurred
-    val codeGenerationErrors: MutableMap<UtTestCase, MutableMap<String, Int>>
+    val codeGenerationErrors: MutableMap<UtMethodTestSet, MutableMap<String, Int>>
 
     // package for generated test class
     val testClassPackageName: String
@@ -189,6 +187,9 @@ internal interface CgContextOwner {
 
     // use it to compare stateBefore and result variables - in case of equality do not create new variable
     var valueByModelId: MutableMap<Int?, CgValue>
+
+    // parameters of the method currently being generated
+    val currentMethodParameters: MutableMap<CgParameterKind, CgVariable>
 
     val testClassCustomName: String?
 
@@ -282,7 +283,6 @@ internal interface CgContextOwner {
     }
 
     fun updateVariableScope(variable: CgVariable, model: UtModel? = null) {
-        variables = variables.add(variable)
         model?.let {
             valueByModel[it] = variable
             (model as UtReferenceModel).let { refModel ->
@@ -293,7 +293,6 @@ internal interface CgContextOwner {
 
     fun <R> withNameScope(block: () -> R): R {
         val prevVariableNames = existingVariableNames
-        val prevVariables = variables
         val prevDeclaredClassRefs = declaredClassRefs
         val prevDeclaredExecutableRefs = declaredExecutableRefs
         val prevValueByModel = IdentityHashMap(valueByModel)
@@ -302,7 +301,6 @@ internal interface CgContextOwner {
             block()
         } finally {
             existingVariableNames = prevVariableNames
-            variables = prevVariables
             declaredClassRefs = prevDeclaredClassRefs
             declaredExecutableRefs = prevDeclaredExecutableRefs
             valueByModel = prevValueByModel
@@ -413,12 +411,11 @@ internal data class CgContext(
     override var mockFrameworkUsed: Boolean = false,
     override var currentBlock: PersistentList<CgStatement> = persistentListOf(),
     override var existingVariableNames: PersistentSet<String> = persistentSetOf(),
-    override var variables: PersistentSet<CgVariable> = persistentSetOf(),
     override var declaredClassRefs: PersistentMap<ClassId, CgVariable> = persistentMapOf(),
     override var declaredExecutableRefs: PersistentMap<ExecutableId, CgVariable> = persistentMapOf(),
     override var thisInstance: CgValue? = null,
     override val methodArguments: MutableList<CgValue> = mutableListOf(),
-    override val codeGenerationErrors: MutableMap<UtTestCase, MutableMap<String, Int>> = mutableMapOf(),
+    override val codeGenerationErrors: MutableMap<UtMethodTestSet, MutableMap<String, Int>> = mutableMapOf(),
     override val testClassPackageName: String = classUnderTest.packageName,
     override var shouldOptimizeImports: Boolean = false,
     override var testClassCustomName: String? = null,
@@ -453,6 +450,8 @@ internal data class CgContext(
     override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
 
     override var valueByModelId: MutableMap<Int?, CgValue> = mutableMapOf()
+
+    override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 
     override val testClassThisInstance: CgThisInstance = CgThisInstance(currentTestClass)
 }

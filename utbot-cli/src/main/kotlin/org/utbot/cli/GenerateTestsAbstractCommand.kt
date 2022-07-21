@@ -28,7 +28,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.summary.summarize
 import java.io.File
 import java.lang.reflect.Method
@@ -153,13 +153,14 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     protected fun loadClassBySpecifiedFqn(classFqn: String): KClass<*> =
         classLoader.loadClass(classFqn).kotlin
 
-    protected fun generateTestCases(
+    protected fun generateTestSets(
+        testCaseGenerator: TestCaseGenerator,
         targetMethods: List<UtMethod<*>>,
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
-    ): List<UtTestCase> =
-        TestCaseGenerator.generate(
+    ): List<UtMethodTestSet> =
+        testCaseGenerator.generate(
             targetMethods,
             mockStrategy,
             chosenClassesToMockAlways,
@@ -184,36 +185,32 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         }
     }
 
-    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testCases: List<UtTestCase>): String =
+    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testSets: List<UtMethodTestSet>): String =
         initializeCodeGenerator(
             testFramework,
             classUnderTest
-        ).generateAsString(testCases, testClassname)
+        ).generateAsString(testSets, testClassname)
 
-    protected fun initializeEngine(workingDirectory: Path) {
+    protected fun initializeGenerator(workingDirectory: Path): TestCaseGenerator {
         val classPathNormalized =
             classLoader.urLs.joinToString(separator = File.pathSeparator) { it.toPath().absolutePath }
-
-        // TODO: SAT-1566
-        // Set UtSettings parameters.
+        // TODO: SAT-1566 Set UtSettings parameters.
         UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
 
-        TestCaseGenerator.init(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
+        return TestCaseGenerator(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
     }
 
     private fun initializeCodeGenerator(testFramework: String, classUnderTest: KClass<*>): CodeGenerator {
         val generateWarningsForStaticMocking =
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
-        return CodeGenerator().apply {
-            init(
-                testFramework = testFrameworkByName(testFramework),
-                classUnderTest = classUnderTest.java,
-                codegenLanguage = codegenLanguage,
-                staticsMocking = staticsMocking,
-                forceStaticMocking = forceStaticMocking,
-                generateWarningsForStaticMocking = generateWarningsForStaticMocking,
-            )
-        }
+        return CodeGenerator(
+            testFramework = testFrameworkByName(testFramework),
+            classUnderTest = classUnderTest.java,
+            codegenLanguage = codegenLanguage,
+            staticsMocking = staticsMocking,
+            forceStaticMocking = forceStaticMocking,
+            generateWarningsForStaticMocking = generateWarningsForStaticMocking,
+        )
     }
 
     protected fun KClass<*>.targetMethods() =

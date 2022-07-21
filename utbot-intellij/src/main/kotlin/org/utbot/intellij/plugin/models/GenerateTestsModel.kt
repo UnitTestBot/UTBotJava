@@ -17,6 +17,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
+import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
 
 class GenerateTestsModel(
@@ -28,14 +29,13 @@ class GenerateTestsModel(
     var selectedMethods: Set<MemberInfo>?,
     var timeout:Long,
     var generateWarningsForStaticMocking: Boolean = false,
-    var forceMockHappened: Boolean = false,
-    var forceStaticMockHappened: Boolean = false,
-    var hasTestFrameworkConflict: Boolean = false,
+    var fuzzingValue: Double = 0.05
 ): BaseTestsModel(
     project,
     srcModule,
     testModule
 ) {
+    override var testSourceRoot: VirtualFile? = null
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
@@ -47,6 +47,12 @@ class GenerateTestsModel(
     lateinit var hangingTestsTimeout: HangingTestsTimeout
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
+
+    val conflictTriggers: ConflictTriggers = ConflictTriggers()
+
+    val isMultiPackage: Boolean by lazy {
+        srcClasses.map { it.packageName }.distinct().size != 1
+    }
 }
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""

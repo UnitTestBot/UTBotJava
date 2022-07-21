@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.junit.Test
 import org.mockito.Mockito
 
@@ -15,7 +15,7 @@ class SarifReportTest {
     @Test
     fun testNonEmptyReport() {
         val actualReport = SarifReport(
-            testCases = listOf(),
+            testSets = listOf(),
             generatedTestsCode = "",
             sourceFindingEmpty
         ).createReport()
@@ -26,7 +26,7 @@ class SarifReportTest {
     @Test
     fun testNoUncheckedExceptions() {
         val sarif = SarifReport(
-            testCases = listOf(testCase),
+            testSets = listOf(testSet),
             generatedTestsCode = "",
             sourceFindingEmpty
         ).createReport().toSarif()
@@ -50,13 +50,13 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecutionAIOBE.stateBefore.parameters).thenReturn(listOf())
 
-        val testCases = listOf(
-            UtTestCase(mockUtMethod, listOf(mockUtExecutionNPE)),
-            UtTestCase(mockUtMethod, listOf(mockUtExecutionAIOBE))
+        val testSets = listOf(
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecutionNPE)),
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecutionAIOBE))
         )
 
         val report = SarifReport(
-            testCases = testCases,
+            testSets = testSets,
             generatedTestsCode = "",
             sourceFindingEmpty
         ).createReport().toSarif()
@@ -193,13 +193,13 @@ class SarifReportTest {
         val mockUtExecution = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
         Mockito.`when`(mockUtExecution.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
-        val testCases = listOf(
-            UtTestCase(mockUtMethod, listOf(mockUtExecution)),
-            UtTestCase(mockUtMethod, listOf(mockUtExecution)) // duplicate
+        val testSets = listOf(
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution)),
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution)) // duplicate
         )
 
         val report = SarifReport(
-            testCases = testCases,
+            testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
         ).createReport().toSarif()
@@ -218,13 +218,13 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(ArithmeticException(), false))
 
-        val testCases = listOf(
-            UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
-            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
+        val testSets = listOf(
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution1)),
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
         )
 
         val report = SarifReport(
-            testCases = testCases,
+            testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
         ).createReport().toSarif()
@@ -247,13 +247,13 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution1.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(11)
         Mockito.`when`(mockUtExecution2.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(22)
 
-        val testCases = listOf(
-            UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
-            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
+        val testSets = listOf(
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution1)),
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
         )
 
         val report = SarifReport(
-            testCases = testCases,
+            testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
         ).createReport().toSarif()
@@ -281,13 +281,13 @@ class SarifReportTest {
         Mockito.`when`(mockNPE1.stackTrace).thenReturn(arrayOf(stackTraceElement1))
         Mockito.`when`(mockNPE2.stackTrace).thenReturn(arrayOf(stackTraceElement1, stackTraceElement2))
 
-        val testCases = listOf(
-            UtTestCase(mockUtMethod, listOf(mockUtExecution1)),
-            UtTestCase(mockUtMethod, listOf(mockUtExecution2)) // duplicate with a longer stack trace
+        val testSets = listOf(
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution1)),
+            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution2)) // duplicate with a longer stack trace
         )
 
         val report = SarifReport(
-            testCases = testCases,
+            testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
         ).createReport().toSarif()
@@ -302,7 +302,7 @@ class SarifReportTest {
 
     private val mockUtExecution = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
 
-    private val testCase = UtTestCase(mockUtMethod, listOf(mockUtExecution))
+    private val testSet = UtMethodTestSet(mockUtMethod, listOf(mockUtExecution))
 
     private fun mockUtMethodNames() {
         Mockito.`when`(mockUtMethod.callable.name).thenReturn("main")
@@ -343,8 +343,8 @@ class SarifReportTest {
     """.trimIndent()
 
     private val sarifReportMain =
-        SarifReport(listOf(testCase), generatedTestsCodeMain, sourceFindingMain)
+        SarifReport(listOf(testSet), generatedTestsCodeMain, sourceFindingMain)
 
     private val sarifReportPrivateMain =
-        SarifReport(listOf(testCase), generatedTestsCodePrivateMain, sourceFindingMain)
+        SarifReport(listOf(testSet), generatedTestsCodePrivateMain, sourceFindingMain)
 }

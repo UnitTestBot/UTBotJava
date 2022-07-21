@@ -270,7 +270,7 @@ object UtSettings {
     /**
      * Fuzzer tries to generate and run tests during this time.
      */
-    var fuzzingTimeoutInMillis: Int by getIntProperty(3_000)
+    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
@@ -374,6 +374,11 @@ object UtSettings {
      * Flag for Subpath and NN selectors whether they are combined (Subpath use several indexes, NN use several models)
      */
     var singleSelector by getBooleanProperty(true)
+
+    /**
+     * Flag that indicates whether tests for synthetic methods (values, valueOf in enums) should be generated, or not
+     */
+    var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
 
     override fun toString(): String =
         properties

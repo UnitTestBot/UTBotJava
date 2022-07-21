@@ -9,6 +9,7 @@ import org.apache.maven.plugins.annotations.Parameter
 import org.apache.maven.project.MavenProject
 import org.utbot.common.bracket
 import org.utbot.common.debug
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.sarif.GenerateTestsAndSarifReportFacade
@@ -17,6 +18,7 @@ import org.utbot.maven.plugin.extension.SarifMavenConfigurationProvider
 import org.utbot.maven.plugin.wrappers.MavenProjectWrapper
 import org.utbot.maven.plugin.wrappers.SourceFindingStrategyMaven
 import java.io.File
+import java.net.URLClassLoader
 
 internal val logger = KotlinLogging.logger {}
 
@@ -136,6 +138,11 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
      */
     lateinit var rootMavenProjectWrapper: MavenProjectWrapper
 
+    private val dependencyPaths by lazy {
+        val thisClassLoader = this::class.java.classLoader as URLClassLoader
+        thisClassLoader.urLs.joinToString(File.pathSeparator) { it.path }
+    }
+
     /**
      * Entry point: called when the user starts this maven task.
      */
@@ -166,8 +173,10 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     private fun generateForProjectRecursively(mavenProjectWrapper: MavenProjectWrapper) {
         logger.debug().bracket("Generating tests for the '${mavenProjectWrapper.mavenProject.name}' source set") {
             withUtContext(UtContext(mavenProjectWrapper.classLoader)) {
+                val testCaseGenerator =
+                    TestCaseGenerator(mavenProjectWrapper.workingDirectory, mavenProjectWrapper.runtimeClasspath, dependencyPaths)
                 mavenProjectWrapper.targetClasses.forEach { targetClass ->
-                    generateForClass(mavenProjectWrapper, targetClass)
+                    generateForClass(mavenProjectWrapper, targetClass, testCaseGenerator)
                 }
             }
         }
@@ -179,15 +188,18 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     /**
      * Generates tests and a SARIF report for the class [targetClass].
      */
-    private fun generateForClass(mavenProjectWrapper: MavenProjectWrapper, targetClass: TargetClassWrapper) {
+    private fun generateForClass(
+        mavenProjectWrapper: MavenProjectWrapper,
+        targetClass: TargetClassWrapper,
+        testCaseGenerator: TestCaseGenerator,
+    ) {
         logger.debug().bracket("Generating tests for the $targetClass") {
             val sourceFindingStrategy =
                 SourceFindingStrategyMaven(mavenProjectWrapper, targetClass.testsCodeFile.path)
             val generateTestsAndSarifReportFacade =
-                GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy)
-            generateTestsAndSarifReportFacade.generateForClass(
-                targetClass, mavenProjectWrapper.workingDirectory, mavenProjectWrapper.runtimeClasspath
-            )
+                GenerateTestsAndSarifReportFacade(sarifProperties, sourceFindingStrategy, testCaseGenerator)
+            generateTestsAndSarifReportFacade
+                .generateForClass(targetClass, mavenProjectWrapper.workingDirectory)
         }
     }
 

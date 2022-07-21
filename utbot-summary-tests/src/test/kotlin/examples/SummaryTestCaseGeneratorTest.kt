@@ -97,12 +97,12 @@ open class SummaryTestCaseGeneratorTest(
             checkNpeInNestedNotPrivateMethods = true
         }
         val utMethod = UtMethod.from(method)
-        val testCase = executionsModel(utMethod, mockStrategy)
-        testCase.summarize(searchDirectory)
+        val testSet = executionsModel(utMethod, mockStrategy)
+        testSet.summarize(searchDirectory)
 
-        testCase.executions.checkMatchersWithTextSummary(summaryKeys)
-        testCase.executions.checkMatchersWithMethodNames(methodNames)
-        testCase.executions.checkMatchersWithDisplayNames(displayNames)
+        testSet.executions.checkMatchersWithTextSummary(summaryKeys)
+        testSet.executions.checkMatchersWithMethodNames(methodNames)
+        testSet.executions.checkMatchersWithDisplayNames(displayNames)
     }
 
     /**
@@ -159,7 +159,7 @@ open class SummaryTestCaseGeneratorTest(
     }
 
     private fun summaries(executions: List<UtExecution>): String {
-        var result = "";
+        var result = ""
         executions.forEach {
             result += it.summary?.joinToString(separator = "", postfix = "\n")
         }

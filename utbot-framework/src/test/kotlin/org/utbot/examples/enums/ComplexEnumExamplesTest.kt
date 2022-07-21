@@ -21,7 +21,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
 ) {
 
     @Test
-    @Disabled
     fun testReturnColors() {
         check(
             ComplexEnumExamples::returnColors,
@@ -32,7 +31,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
     fun testCopyColors() {
         check(
             ComplexEnumExamples::copyColors,
@@ -76,6 +74,7 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled
     fun testFindState() {
         check(
             ComplexEnumExamples::findState,

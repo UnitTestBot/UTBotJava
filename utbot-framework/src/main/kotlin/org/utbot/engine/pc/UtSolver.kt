@@ -16,7 +16,6 @@ import org.utbot.engine.prettify
 import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.prettify
 import org.utbot.engine.toIntValue
 import org.utbot.engine.z3.Z3Initializer
 import org.utbot.framework.UtSettings
@@ -247,6 +246,24 @@ data class UtSolver constructor(
 
     override fun close() {
         z3Solver.reset()
+    }
+
+    /**
+     * Call check of SMT Solver with [initialConstraints]. Used to initialize SMT Solver by fuzzing.
+     */
+    fun checkWithInitialConstraints(initialConstraints: List<UtBoolExpression>): UtSolverStatus {
+        check(respectSoft = false).let { statusHolder ->
+            if (statusHolder is UtSolverStatusUNSAT) {
+                return statusHolder
+            }
+        }
+        val translatedConstraints = initialConstraints.translate()
+        val statusHolder = when (val status = check(translatedConstraints, mutableMapOf())) {
+            SAT -> UtSolverStatusSAT(translator, z3Solver)
+            else -> UtSolverStatusUNSAT(status)
+        }
+        constraints.withStatus(statusHolder)
+        return statusHolder
     }
 
     private fun check(

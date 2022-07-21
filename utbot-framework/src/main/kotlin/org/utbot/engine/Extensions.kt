@@ -46,7 +46,11 @@ import kotlin.reflect.jvm.javaMethod
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import org.utbot.engine.pc.UtSolverStatusUNDEFINED
+import org.utbot.engine.pc.select
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.isArray
 import soot.ArrayType
+import soot.IntType
 import soot.PrimType
 import soot.RefLikeType
 import soot.RefType
@@ -303,6 +307,9 @@ fun classBytecodeSignatureToClassNameOrNull(signature: String?) =
         ?.replace("$", ".")
         ?.let { it.substring(1, it.lastIndex) }
 
+val <R> UtMethod<R>.hasThisInParameters: Boolean
+    get() = !isConstructor && !isStatic
+
 val <R> UtMethod<R>.javaConstructor: Constructor<*>?
     get() = (callable as? KFunction<*>)?.javaConstructor
 
@@ -484,3 +491,29 @@ val SootMethod.isUtMockAssumeOrExecuteConcretely
  */
 val SootMethod.isPreconditionCheckMethod
     get() = declaringClass.isOverridden && name == "preconditionCheck"
+
+/**
+ * Search symbolic ordinal of enum in memory by address [addr].
+ */
+fun Memory.findOrdinal(type: RefType, addr: UtAddrExpression) : PrimitiveValue {
+    val array = findArray(MemoryChunkDescriptor(ENUM_ORDINAL, type, IntType.v()))
+    return array.select(addr).toIntValue()
+}
+
+fun ClassId.toSoot(): SootClass = Scene.v().getSootClass(this.name)
+
+// Our and Soot's representations are not same
+fun ClassId.toType(): Type {
+    var arrayDim = 0
+    var result = this
+    while (result.isArray) {
+        ++arrayDim
+        result = result.elementClassId!!
+    }
+    val typeResult = Scene.v().getType(result.name)
+    return if (arrayDim != 0) {
+        ArrayType.v(typeResult, arrayDim)
+    } else {
+        typeResult
+    }
+}

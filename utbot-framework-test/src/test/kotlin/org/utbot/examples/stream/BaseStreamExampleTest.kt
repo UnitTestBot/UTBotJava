@@ -3,6 +3,7 @@ package org.utbot.examples.stream
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.utbot.examples.AtLeast
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.Full
@@ -69,10 +70,43 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     fun testMapExample() {
         checkWithException(
             BaseStreamExample::mapExample,
-            eq(2),
+            ignoreExecutionsNumber,
             { c, r -> null in c && r.isException<NullPointerException>() },
             { c, r -> r.getOrThrow().contentEquals(c.map { it * 2 }.toTypedArray()) },
-            coverage = DoNotCalculate
+            coverage = AtLeast(90)
+        )
+    }
+
+    @Test
+    fun testMapToIntExample() {
+        checkWithException(
+            BaseStreamExample::mapToIntExample,
+            ignoreExecutionsNumber,
+            { c, r -> null in c && r.isException<NullPointerException>() },
+            { c, r -> r.getOrThrow().contentEquals(c.map { it.toInt() }.toIntArray()) },
+            coverage = AtLeast(90)
+        )
+    }
+
+    @Test
+    fun testMapToLongExample() {
+        checkWithException(
+            BaseStreamExample::mapToLongExample,
+            ignoreExecutionsNumber,
+            { c, r -> null in c && r.isException<NullPointerException>() },
+            { c, r -> r.getOrThrow().contentEquals(c.map { it.toLong() }.toLongArray()) },
+            coverage = AtLeast(90)
+        )
+    }
+
+    @Test
+    fun testMapToDoubleExample() {
+        checkWithException(
+            BaseStreamExample::mapToDoubleExample,
+            ignoreExecutionsNumber,
+            { c, r -> null in c && r.isException<NullPointerException>() },
+            { c, r -> r.getOrThrow().contentEquals(c.map { it.toDouble() }.toDoubleArray()) },
+            coverage = AtLeast(90)
         )
     }
 
@@ -88,6 +122,36 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     @Tag("slow")
+    fun testFlatMapToIntExample() {
+        check(
+            BaseStreamExample::flatMapToIntExample,
+            ignoreExecutionsNumber,
+            { c, r -> r.contentEquals(c.flatMap { listOf(it?.toInt() ?: 0, it?.toInt() ?: 0) }.toIntArray()) },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
+    }
+
+    @Test
+    fun testFlatMapToLongExample() {
+        check(
+            BaseStreamExample::flatMapToLongExample,
+            ignoreExecutionsNumber,
+            { c, r -> r.contentEquals(c.flatMap { listOf(it?.toLong() ?: 0L, it?.toLong() ?: 0L) }.toLongArray()) },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
+    }
+
+    @Test
+    fun testFlatMapToDoubleExample() {
+        check(
+            BaseStreamExample::flatMapToDoubleExample,
+            ignoreExecutionsNumber,
+            { c, r -> r.contentEquals(c.flatMap { listOf(it.toDouble(), it.toDouble()) }.toDoubleArray()) },
+            coverage = FullWithAssumptions(assumeCallsNumber = 1)
+        )
+    }
+
+    @Test
     fun testDistinctExample() {
         check(
             BaseStreamExample::distinctExample,
@@ -146,9 +210,9 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     fun testForEachExample() {
         checkThisAndStaticsAfter(
             BaseStreamExample::forEachExample,
-            eq(2),
+            ignoreExecutionsNumber,
             *streamConsumerStaticsMatchers,
-            coverage = DoNotCalculate
+            coverage = AtLeast(92)
         )
     }
 
@@ -156,7 +220,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     fun testToArrayExample() {
         check(
             BaseStreamExample::toArrayExample,
-            ignoreExecutionsNumber,
+            eq(2),
             { c, r -> c.toTypedArray().contentEquals(r) },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
@@ -311,10 +375,11 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     fun testIteratorExample() {
         checkWithException(
             BaseStreamExample::iteratorSumExample,
-            eq(2),
+            ignoreExecutionsNumber,
+            { c, r -> c.isEmpty() && r.getOrThrow() == 0 },
             { c, r -> null in c && r.isException<NullPointerException>() },
-            { c, r -> null !in c && r.getOrThrow() == c.sum() },
-            coverage = DoNotCalculate
+            { c, r -> c.isNotEmpty() && null !in c && r.getOrThrow() == c.sum() },
+            coverage = AtLeast(75)
         )
     }
 
@@ -393,15 +458,15 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
             coverage = Full
         )
     }
-
-    private val streamConsumerStaticsMatchers = arrayOf(
-        { _: BaseStreamExample, c: List<Int?>, _: StaticsType, _: Int? -> null in c },
-        { _: BaseStreamExample, c: List<Int?>, statics: StaticsType, r: Int? ->
-            val x = statics.values.single().value as Int
-
-            r!! + c.sumOf { it ?: 0 } == x
-        }
-    )
 }
 
-private fun <E : Comparable<E>> Sequence<E>.isSorted(): Boolean = zipWithNext { a, b -> a <= b }.all { it }
+internal val streamConsumerStaticsMatchers = arrayOf(
+    { _: Any, c: List<Int?>, _: StaticsType, _: Int? -> null in c },
+    { _: Any, c: List<Int?>, statics: StaticsType, r: Int? ->
+        val x = statics.values.single().value as Int
+
+        r!! + c.sumOf { it ?: 0 } == x
+    }
+)
+
+internal fun <E : Comparable<E>> Sequence<E>.isSorted(): Boolean = zipWithNext { a, b -> a <= b }.all { it }

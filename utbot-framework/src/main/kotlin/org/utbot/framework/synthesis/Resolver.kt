@@ -20,7 +20,7 @@ class Resolver(
             is MethodUnit -> unitToModel.getOrPut(unit) { resolveMethodUnit(unit) }
             is ObjectUnit -> unitToModel[unit] ?: error("Can't map $unit")
             is NullUnit -> UtNullModel(unit.classId)
-            is RefUnit -> resolve(rootUnits[unit.referenceParam])
+            is ReferenceToUnit -> resolve(rootUnits[unit.referenceParam])
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =

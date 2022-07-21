@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.UtConstraintParameter
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.synthesis.SynthesisParameter
 import soot.ArrayType
+import soot.RefType
 
 class ConstraintBasedPostConditionConstructor(
     private val models: ResolvedModels,
@@ -152,6 +153,7 @@ private class UtConstraintBuilder(
             is UtOrConstraint -> mkOr(
                 buildConstraintInternal(lhv), buildConstraintInternal(rhv)
             )
+            is UtBoolConstraint -> buildExpression(operand).exprValue as UtBoolExpression
         }
     }
 
@@ -189,9 +191,39 @@ private class UtConstraintBuilder(
             is UtConstraintNumericConstant -> value.primitiveToSymbolic()
             is UtConstraintCharConstant -> value.toPrimitiveValue()
             is UtConstraintArrayAccess -> {
-                val array = buildExpression(instance)
+                val arrayInstance = buildExpression(instance)
                 val index = buildExpression(index)
-                TODO()
+                val type = instance.classId.toSootType() as ArrayType
+                val elementType = type.elementType
+                val chunkId = engine.typeRegistry.arrayChunkId(type)
+                val descriptor = MemoryChunkDescriptor(chunkId, type, elementType).also { engine.touchMemoryChunk(it) }
+                val array = engine.memory.findArray(descriptor)
+
+                when (elementType) {
+                    is RefType -> {
+                        val generator = UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(elementType.id, mockAddr) }
+
+                        val objectValue = engine.createObject(
+                            UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
+                            elementType,
+                            useConcreteType = false,
+                            generator
+                        )
+
+                        if (objectValue.type.isJavaLangObject()) {
+                            engine.queuedSymbolicStateUpdates += engine.typeRegistry.zeroDimensionConstraint(objectValue.addr)
+                                .asSoftConstraint()
+                        }
+
+                        objectValue
+                    }
+                    is ArrayType -> engine.createArray(
+                        UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
+                        elementType,
+                        useConcreteType = false
+                    )
+                    else -> PrimitiveValue(elementType, array.select(arrayInstance.addr, index.exprValue))
+                }
             }
             is UtConstraintArrayLengthAccess -> {
                 val array = buildExpression(instance)
@@ -216,6 +248,122 @@ private class UtConstraintBuilder(
                     mockInfoGenerator = null,
                     useConcreteType = false
                 )
+            }
+            is UtConstraintAdd -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Add(elhv, erhv)
+                )
+            }
+            is UtConstraintAnd -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    And(elhv, erhv)
+                )
+            }
+            is UtConstraintCmp -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Cmp(elhv, erhv)
+                )
+            }
+            is UtConstraintCmpg -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Cmpg(elhv, erhv)
+                )
+            }
+            is UtConstraintCmpl -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Cmpl(elhv, erhv)
+                )
+            }
+            is UtConstraintDiv ->{
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Div(elhv, erhv)
+                )
+            }
+            is UtConstraintMul -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Mul(elhv, erhv)
+                )
+            }
+            is UtConstraintOr -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Or(elhv, erhv)
+                )
+            }
+            is UtConstraintRem -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Rem(elhv, erhv)
+                )
+            }
+            is UtConstraintShl -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Shl(elhv, erhv)
+                )
+            }
+            is UtConstraintShr ->{
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Shr(elhv, erhv)
+                )
+            }
+            is UtConstraintSub -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Sub(elhv, erhv)
+                )
+            }
+            is UtConstraintUshr -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Ushr(elhv, erhv)
+                )
+            }
+            is UtConstraintXor -> {
+                val elhv = buildExpression(lhv) as PrimitiveValue
+                val erhv = buildExpression(rhv) as PrimitiveValue
+                PrimitiveValue(
+                    classId.toSootType(),
+                    Xor(elhv, erhv)
+                )
+            }
+            is UtConstraintNot -> {
+                val oper = buildExpression(operand) as PrimitiveValue
+                PrimitiveValue(oper.type, mkNot(oper.expr as UtBoolExpression))
             }
         }
     }

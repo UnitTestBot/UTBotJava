@@ -31,7 +31,7 @@ class LeafExpanderProducer(
             }
             is ObjectUnit -> leafExpander.expand(state)
             is NullUnit -> emptyList()
-            is RefUnit -> emptyList()
+            is ReferenceToUnit -> emptyList()
         }
 }
 

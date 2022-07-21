@@ -1,7 +1,6 @@
 package org.utbot.framework.synthesis
 
 import org.utbot.engine.*
-import org.utbot.engine.ConstraintResolver
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
@@ -72,7 +71,7 @@ class ConstrainedJimpleMethodSynthesizer {
             is ObjectUnit -> synthesizeCompositeUnit(unit)
             is MethodUnit -> synthesizeMethodUnit(unit)
             is NullUnit -> synthesizeNullUnit(unit)
-            is RefUnit -> synthesizeRefUnit(unit)
+            is ReferenceToUnit -> synthesizeRefUnit(unit)
         }
 
         private fun synthesizeCompositeUnit(unit: SynthesisUnit): JimpleLocal {
@@ -111,7 +110,7 @@ class ConstrainedJimpleMethodSynthesizer {
             return local
         }
 
-        private fun synthesizeRefUnit(unit: RefUnit): JimpleLocal {
+        private fun synthesizeRefUnit(unit: ReferenceToUnit): JimpleLocal {
             val sootType = unit.classId.toSootType()
             val ref = unitToLocal[rootUnits[unit.referenceParam]]!!
             val local = JimpleLocal(nextName(), sootType)

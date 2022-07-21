@@ -491,7 +491,11 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             System.err.println((execution.hole as ResolvedExecution).modelsAfter)
             System.err.println("-------------------------------")
             val aa = ConstrainedSynthesizer((execution.hole as ResolvedExecution).modelsAfter)
-            val synthesizedModels = aa.synthesize() ?: return this
+            val synthesizedModels = try {
+                aa.synthesize() ?: return this
+            } catch (e: Throwable) {
+                return this
+            }
 
             val newThisModel = oldStateBefore.thisInstance?.let { synthesizedModels.first() }
             val newParameters = oldStateBefore.thisInstance?.let { synthesizedModels.drop(1) } ?: synthesizedModels

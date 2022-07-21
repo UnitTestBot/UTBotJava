@@ -473,6 +473,13 @@ data class UtReferenceToConstraintModel(
     val reference: UtModel
 ) : UtConstraintModel(variable, emptySet())
 
+data class UtArrayConstraintModel(
+    override val variable: UtConstraintVariable,
+    val length: UtConstraintVariable,
+    val indices: Set<UtConstraintVariable>,
+    override val utConstraints: Set<UtConstraint>
+) : UtConstraintModel(variable, utConstraints)
+
 /**
  * Model for complex objects with assemble instructions.
  *

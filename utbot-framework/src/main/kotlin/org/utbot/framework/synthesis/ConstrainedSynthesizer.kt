@@ -2,13 +2,11 @@ package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
 import org.utbot.engine.ResolvedModels
-import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionConstructor
 import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
@@ -48,7 +46,7 @@ fun List<UtModel>.toSynthesisUnits() = map {
         is UtNullModel -> NullUnit(it.classId)
         is UtPrimitiveConstraintModel -> ObjectUnit(it.classId)
         is UtReferenceConstraintModel -> ObjectUnit(it.classId)
-        is UtReferenceToConstraintModel -> RefUnit(it.classId, indexOf(it.reference))
+        is UtReferenceToConstraintModel -> ReferenceToUnit(it.classId, indexOf(it.reference))
         else -> error("Only UtSynthesisModel supported")
     }
 }
@@ -93,7 +91,7 @@ class MultipleSynthesisUnitQueue(
         when {
             unit is ObjectUnit && unit.isPrimitive() -> queue.push(unit)
             unit is NullUnit -> queue.push(unit)
-            unit is RefUnit -> queue.push(unit)
+            unit is ReferenceToUnit -> queue.push(unit)
             else -> producer.produce(unit).forEach { queue.push(it) }
         }
         peekUntilFullyDefined(queue)

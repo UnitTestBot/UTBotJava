@@ -18,6 +18,7 @@ class UtConstraintBuilder(
         if ("addrToType" in expr.toString()) return true
         if ("addrToNumDimensions" in expr.toString()) return true
         if ("isMock" in expr.toString()) return true
+        if ("org.utbot.engine.overrides.collections." in expr.toString()) return true
         return false
     }
 
@@ -76,18 +77,20 @@ class UtConstraintBuilder(
         return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
 
-    override fun visit(expr: UtEqExpression): UtConstraint = applyConstraint(expr) {
+    override fun visit(expr: UtEqExpression): UtConstraint? = applyConstraint(expr) {
+        if (shouldSkip(expr)) return@applyConstraint null
+
         val lhv = expr.left.accept(varBuilder)
         val rhv = expr.right.accept(varBuilder)
         when {
             lhv.isPrimitive && rhv.isPrimitive ->UtEqConstraint(lhv, rhv)
             else -> UtRefEqConstraint(lhv, rhv)
         }
-    }!!
-
-    override fun visit(expr: UtBoolConst): UtConstraint {
-        return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
     }
+
+    override fun visit(expr: UtBoolConst): UtConstraint = applyConstraint(expr) {
+        UtBoolConstraint(expr.accept(varBuilder))
+    }!!
 
     override fun visit(expr: NotBoolExpression): UtConstraint {
         return UtEqConstraint(UtConstraintBoolConstant(true), UtConstraintBoolConstant(true))
@@ -141,7 +144,8 @@ class UtConstraintBuilder(
         }
     }
 
-    override fun visit(expr: UtIsExpression): UtConstraint {
+    override fun visit(expr: UtIsExpression): UtConstraint? {
+        if (shouldSkip(expr)) return null
         val operand = expr.addr.accept(varBuilder)
         return UtRefTypeConstraint(operand, expr.type.classId)
     }

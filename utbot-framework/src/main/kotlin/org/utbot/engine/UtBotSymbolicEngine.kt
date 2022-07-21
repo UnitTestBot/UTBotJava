@@ -327,7 +327,7 @@ class UtBotSymbolicEngine(
 
     private val preferredCexInstanceCache = mutableMapOf<ObjectValue, MutableSet<SootField>>()
 
-    private var queuedSymbolicStateUpdates = SymbolicStateUpdate()
+    var queuedSymbolicStateUpdates = SymbolicStateUpdate()
 
     private val featureProcessor: FeatureProcessor? =
         if (enableFeatureProcess) EngineAnalyticsContext.featureProcessorFactory(globalGraph) else null
@@ -2309,7 +2309,7 @@ class UtBotSymbolicEngine(
         return memory.findArray(descriptor).select(addr)
     }
 
-    private fun touchMemoryChunk(chunkDescriptor: MemoryChunkDescriptor) {
+    fun touchMemoryChunk(chunkDescriptor: MemoryChunkDescriptor) {
         queuedSymbolicStateUpdates += MemoryUpdate(touchedChunkDescriptors = persistentSetOf(chunkDescriptor))
     }
 

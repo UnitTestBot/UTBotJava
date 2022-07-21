@@ -23,14 +23,18 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.*
 import soot.ArrayType
 import soot.BooleanType
+import soot.ByteType
+import soot.CharType
+import soot.DoubleType
+import soot.FloatType
 import soot.IntType
+import soot.LongType
 import soot.RefType
 import soot.Scene
+import soot.ShortType
 import soot.SootClass
 import soot.Type
 
@@ -241,8 +245,18 @@ private class SoftConstraintBuilder(
 
 internal fun ClassId.toSoot(): SootClass = Scene.v().getSootClass(this.name)
 
-internal fun ClassId.toSootType(): Type = when (this) {
-    booleanClassId -> BooleanType.v()
-    intClassId -> IntType.v()
+internal fun ClassId.toSootType(): Type = when {
+    this.isPrimitive -> when (this) {
+        booleanClassId -> BooleanType.v()
+        byteClassId -> ByteType.v()
+        shortClassId -> ShortType.v()
+        charClassId -> CharType.v()
+        intClassId -> IntType.v()
+        longClassId -> LongType.v()
+        floatClassId -> FloatType.v()
+        doubleClassId -> DoubleType.v()
+        else -> error("Unexpected primitive type: $this")
+    }
+    this.isArray -> elementClassId!!.toSootType().makeArrayType()
     else -> toSoot().type
 }

@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api
 
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 
@@ -70,6 +71,131 @@ data class UtConstraintNumericConstant(
     override fun toString(): String = "$value"
 }
 
+sealed class UtConstraintExpr : UtConstraintVariable()
+
+sealed class UtConstraintBinExpr(
+    open val lhv: UtConstraintVariable,
+    open val rhv: UtConstraintVariable
+) : UtConstraintExpr()
+
+data class UtConstraintAdd(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintAnd(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintCmp(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = intClassId
+}
+
+data class UtConstraintCmpg(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = intClassId
+}
+
+data class UtConstraintCmpl(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = intClassId
+}
+
+data class UtConstraintDiv(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintMul(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintOr(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintRem(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintShl(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintShr(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintSub(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintUshr(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintXor(
+    override val lhv: UtConstraintVariable,
+    override val rhv: UtConstraintVariable
+) : UtConstraintBinExpr(lhv, rhv) {
+    override val classId: ClassId
+        get() = lhv.classId
+}
+
+data class UtConstraintNot(
+    val operand: UtConstraintVariable
+) : UtConstraintExpr() {
+    override val classId: ClassId
+        get() = operand.classId
+}
 
 sealed class UtConstraint {
     abstract fun negated(): UtConstraint
@@ -102,6 +228,10 @@ data class UtRefNotTypeConstraint(val operand: UtConstraintVariable, val type: C
 }
 
 sealed class UtPrimitiveConstraint : UtConstraint()
+
+data class UtBoolConstraint(val operand: UtConstraintVariable) : UtPrimitiveConstraint() {
+    override fun negated(): UtConstraint = UtBoolConstraint(UtConstraintNot(operand))
+}
 
 data class UtEqConstraint(val lhv: UtConstraintVariable, val rhv: UtConstraintVariable) : UtPrimitiveConstraint() {
     override fun negated(): UtConstraint = UtNeqConstraint(lhv, rhv)

@@ -1,12 +1,10 @@
 package org.utbot.framework.synthesis
 
 import org.utbot.framework.modifications.StatementsStorage
-import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.synthesis.postcondition.constructors.ModelBasedPostConditionConstructor
 import org.utbot.framework.synthesis.postcondition.constructors.toSoot
-import java.nio.file.Path
 import java.util.PriorityQueue
 
 class Synthesizer(
@@ -74,7 +72,7 @@ class SynthesisUnitQueue(
         private fun SynthesisUnit.countMethodCalls(): Int = when (this) {
             is NullUnit -> 0
             is ObjectUnit -> 0
-            is RefUnit -> 0
+            is ReferenceToUnit -> 0
             is MethodUnit -> 1 + this.params.fold(0) { sum, unit -> sum + unit.countMethodCalls() }
         }
     }

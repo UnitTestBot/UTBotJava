@@ -18,9 +18,9 @@ class UtVarBuilder(
 ) : UtExpressionVisitor<UtConstraintVariable> {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
 
-    override fun visit(expr: UtArraySelectExpression): UtConstraintVariable = when (val array = expr.arrayExpression) {
-        is UtMkArrayExpression -> {
-            when (array.name) {
+    override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
+        val res = when (val base = expr.arrayExpression.accept(this)) {
+            is UtConstraintParameter -> when (base.name) {
                 "arraysLength" -> {
                     val instance = expr.index.accept(this)
                     UtConstraintArrayLengthAccess(instance)
@@ -29,26 +29,42 @@ class UtVarBuilder(
                     val instance = expr.index.accept(this)
                     instance
                 }
-                else -> {
-                    val (type, field) = array.name.split("_")
+                "char_Arrays" -> {
                     val instance = expr.index.accept(this)
-                    UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
+                    instance
+                }
+                "int_Arrays" -> {
+                    val instance = expr.index.accept(this)
+                    instance
+                }
+                else -> {
+                    val instance = expr.index.accept(this)
+                    try {
+                        val (type, field) = base.name.split("_")
+                        UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
+                    } catch (e: Throwable) {
+                        UtConstraintArrayAccess(base, instance, objectClassId)
+                    }
                 }
             }
-        }
-        is UtArraySelectExpression -> when (val array2 = array.arrayExpression) {
-            is UtMkArrayExpression -> when (array2.name) {
-                "RefValues_Arrays" -> expr.index.accept(this)
-                "int_Arrays" -> expr.index.accept(this)
-                else -> error("Unexpected")
+            is UtConstraintFieldAccess -> {
+                val index = expr.index.accept(this)
+                when {
+                    base.classId.isArray && index.classId.isPrimitive -> {
+                        UtConstraintArrayAccess(base, index, base.classId.elementClassId!!)
+                    }
+                    base.classId.isMap -> {
+                        UtConstraintArrayAccess(base, index, objectClassId)
+                    }
+                    base.classId.isSet -> {
+                        UtConstraintArrayAccess(base, index, objectClassId)
+                    }
+                    else -> TODO()
+                }
             }
-            else -> error("Unexpected")
+            else -> error("Unexpected: $base")
         }
-        else -> {
-            val array2 = expr.arrayExpression.accept(this)
-            val index = expr.index.accept(this)
-            UtConstraintArrayAccess(array2, index, array2.classId.elementClassId!!)
-        }
+        return res
     }
 
     override fun visit(expr: UtConstArrayExpression): UtConstraintVariable {
@@ -56,11 +72,16 @@ class UtVarBuilder(
     }
 
     override fun visit(expr: UtMkArrayExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        return UtConstraintParameter(expr.name, objectClassId)
     }
 
     override fun visit(expr: UtArrayMultiStoreExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        if (expr.initial !is UtConstArrayExpression) {
+            return expr.initial.accept(this)
+        }
+
+        val stores = expr.stores.map { it.index.accept(this) }
+        return stores.first()
     }
 
     override fun visit(expr: UtBvLiteral): UtConstraintVariable {
@@ -84,14 +105,14 @@ class UtVarBuilder(
         return when (val internal = expr.internal) {
             is UtBvConst -> UtConstraintParameter(
                 (expr.internal as UtBvConst).name,
-                holder.findBaseTypeOrNull(expr)?.classId ?: objectClassId
+                holder.findTypeOrNull(expr)?.classId ?: objectClassId
             )
             is UtBvLiteral -> when (internal.value) {
                 0 -> NullUtConstraintVariable(objectClassId)
                 else -> internalAddrs.getOrPut(internal.value.toInt()) {
                     UtConstraintParameter(
                         "object${internal.value}",
-                        holder.findBaseTypeOrNull(expr)?.classId ?: objectClassId
+                        holder.findTypeOrNull(expr)?.classId ?: objectClassId
                     )
                 }
             }
@@ -99,16 +120,36 @@ class UtVarBuilder(
         }
     }
 
-    override fun visit(expr: UtFpLiteral): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
+    override fun visit(expr: UtFpLiteral): UtConstraintVariable = UtConstraintNumericConstant(expr.value)
 
-    override fun visit(expr: UtFpConst): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
+    override fun visit(expr: UtFpConst): UtConstraintVariable =
+        UtConstraintParameter(
+            expr.name, when (expr.sort) {
+                UtFp32Sort -> floatClassId
+                UtFp64Sort -> doubleClassId
+                else -> error("Unexpected")
+            }
+        )
 
     override fun visit(expr: UtOpExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        val lhv = expr.left.expr.accept(this)
+        val rhv = expr.right.expr.accept(this)
+        return when (expr.operator) {
+            Add -> UtConstraintAdd(lhv, rhv)
+            And -> UtConstraintAnd(lhv, rhv)
+            Cmp -> UtConstraintCmp(lhv, rhv)
+            Cmpg -> UtConstraintCmpg(lhv, rhv)
+            Cmpl -> UtConstraintCmpl(lhv, rhv)
+            Div -> UtConstraintDiv(lhv, rhv)
+            Mul -> UtConstraintMul(lhv, rhv)
+            Or -> UtConstraintOr(lhv, rhv)
+            Rem -> UtConstraintRem(lhv, rhv)
+            Shl -> UtConstraintShl(lhv, rhv)
+            Shr -> UtConstraintShr(lhv, rhv)
+            Sub -> UtConstraintSub(lhv, rhv)
+            Ushr -> UtConstraintUshr(lhv, rhv)
+            Xor -> UtConstraintXor(lhv, rhv)
+        }
     }
 
     override fun visit(expr: UtTrue): UtConstraintVariable {
@@ -124,11 +165,11 @@ class UtVarBuilder(
     }
 
     override fun visit(expr: UtBoolConst): UtConstraintVariable {
-        TODO("Not yet implemented")
+        return UtConstraintParameter(expr.name, booleanClassId)
     }
 
     override fun visit(expr: NotBoolExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        return UtConstraintNot(expr.expr.accept(this))
     }
 
     override fun visit(expr: UtOrBoolExpression): UtConstraintVariable {
@@ -287,6 +328,19 @@ class UtVarBuilder(
         TODO("Not yet implemented")
     }
 
+    /**
+     * Returns evaluated type by object's [addr] or null if there is no information about evaluated typeId.
+     */
+    private fun UtSolverStatusSAT.findTypeOrNull(addr: UtAddrExpression): Type? {
+        val base = findBaseTypeOrNull(addr)
+        val dimensions = findNumDimensionsOrNull(addr)
+        return base?.let { b ->
+            dimensions?.let { d ->
+                if (d == 0) b
+                else b.makeArrayType(d)
+            }
+        }
+    }
 
     /**
      * Returns evaluated type by object's [addr] or null if there is no information about evaluated typeId.

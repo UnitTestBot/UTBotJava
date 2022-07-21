@@ -458,20 +458,17 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         preconditionCheck();
 
         int size = elementData.end;
-        Object[] data = elementData.toArray(0, size);
+        E[] data = (E[]) new Object[size];
+        for (int i = 0; i < size; i++) {
+            data[i] = elementData.get(i);
+        }
 
-        return new UtStream<>((E[]) data, size);
+        return new UtStream<>(data, size);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Stream<E> parallelStream() {
-        preconditionCheck();
-
-        int size = elementData.end;
-        Object[] data = elementData.toArray(0, size);
-
-        return new UtStream<>((E[]) data, size);
+        return stream();
     }
 
     public class ReverseIteratorWrapper implements ListIterator<E> {

@@ -266,20 +266,23 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return new UtStream<>();
         }
 
-        Object[] sortedElements = UtArrayMock.copyOf(elementData.toArray(0, size), size);
+        E[] sortedElements = (E[]) new Object[size];
+        for (int i = 0; i < size; i++) {
+            sortedElements[i] = elementData.get(i);
+        }
 
         // bubble sort
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - i - 1; j++) {
-                if (((Comparable<E>) sortedElements[j]).compareTo((E) sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
+                if (((Comparable<E>) sortedElements[j]).compareTo(sortedElements[j + 1]) > 0) {
+                    E tmp = sortedElements[j];
                     sortedElements[j] = sortedElements[j + 1];
                     sortedElements[j + 1] = tmp;
                 }
             }
         }
 
-        return new UtStream<>((E[]) sortedElements, size);
+        return new UtStream<>(sortedElements, size);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
@@ -294,20 +297,23 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return new UtStream<>();
         }
 
-        Object[] sortedElements = UtArrayMock.copyOf(elementData.toArray(0, size), size);
+        E[] sortedElements = (E[]) new Object[size];
+        for (int i = 0; i < size; i++) {
+            sortedElements[i] = elementData.get(i);
+        }
 
         // bubble sort
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - i - 1; j++) {
-                if (comparator.compare((E) sortedElements[j], (E) sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
+                if (comparator.compare(sortedElements[j], sortedElements[j + 1]) > 0) {
+                    E tmp = sortedElements[j];
                     sortedElements[j] = sortedElements[j + 1];
                     sortedElements[j + 1] = tmp;
                 }
             }
         }
 
-        return new UtStream<>((E[]) sortedElements, size);
+        return new UtStream<>(sortedElements, size);
     }
 
     @Override
@@ -347,7 +353,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             newSize = curSize;
         }
 
-        return new UtStream<>((E[]) elementData.toArray(0, newSize), newSize);
+        E[] elements = (E[]) new Object[newSize];
+        for (int i = 0; i < newSize; i++) {
+            elements[i] = elementData.get(i);
+        }
+
+        return new UtStream<>(elements, newSize);
     }
 
     @SuppressWarnings("unchecked")
@@ -367,7 +378,16 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         // n is 1...Integer.MAX_VALUE here
         int newSize = (int) (curSize - n);
 
-        return new UtStream<>((E[]) elementData.toArray((int) n, newSize), newSize);
+        if (newSize == 0) {
+            return new UtStream<>();
+        }
+
+        E[] elements = (E[]) new Object[newSize];
+        for (int i = (int) n; i < newSize; i++) {
+            elements[i] = elementData.get(i);
+        }
+
+        return new UtStream<>(elements, newSize);
     }
 
     @Override

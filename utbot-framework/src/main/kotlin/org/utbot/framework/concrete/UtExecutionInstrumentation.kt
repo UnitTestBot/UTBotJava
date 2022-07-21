@@ -108,7 +108,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 
     private val instrumentationContext = InstrumentationContext()
 
-    private val traceHandler = TraceHandler()
+    private lateinit var traceHandler: TraceHandler
     private val pathsToUserClasses = mutableSetOf<String>()
 
     override val useSeparateClassLoaders: Boolean
@@ -117,6 +117,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     override fun init(pathsToUserClasses: Set<String>) {
         this.pathsToUserClasses.clear()
         this.pathsToUserClasses += pathsToUserClasses
+        traceHandler = TraceHandler()
     }
 
     /**

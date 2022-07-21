@@ -27,6 +27,7 @@ import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
+import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAnnotation
@@ -45,7 +46,6 @@ import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgIfStatement
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgMethodCall
@@ -505,7 +505,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expectedModel: UtModel,
         expected: CgVariable?,
         actual: CgVariable,
-        statements: MutableList<CgStatement>,
         depth: Int,
         visitedModels: MutableSet<UtModel>,
     ) {
@@ -521,14 +520,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         with(testFrameworkManager) {
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
-                statements += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
-                statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                currentBlock += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
+                currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
                 return
             }
 
             when (expectedModel) {
                 is UtPrimitiveModel -> {
-                    statements += when {
+                    currentBlock += when {
                         (expected.type == floatClassId || expected.type == floatWrapperClassId) ->
                             assertions[assertFloatEquals]( // cast have to be not safe here because of signature
                                 typeCast(floatClassId, expected, isSafetyCast = false),
@@ -563,7 +562,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }.toStatement()
                 }
                 is UtEnumConstantModel -> {
-                    statements += assertions[assertEquals](
+                    currentBlock += assertions[assertEquals](
                         expected,
                         actual
                     ).toStatement()
@@ -571,26 +570,22 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 is UtClassRefModel -> {
                     // TODO this stuff is needed because Kotlin has javaclass property instead of Java getClass method
                     //  probably it is better to change getClass method behaviour in the future
-                    val actualObject: CgVariable
-                    if (codegenLanguage == CodegenLanguage.KOTLIN) {
-                        val actualCastedToObject = CgDeclaration(
-                            objectClassId,
-                            variableConstructor.constructVarName("actualObject"),
-                            CgTypeCast(objectClassId, actual)
+                    val actualObject: CgVariable = when (codegenLanguage) {
+                        CodegenLanguage.KOTLIN -> newVar(
+                            baseType = objectClassId,
+                            baseName = variableConstructor.constructVarName("actualObject"),
+                            init = { CgTypeCast(objectClassId, actual) }
                         )
-                        statements += actualCastedToObject
-                        actualObject = actualCastedToObject.variable
-                    } else {
-                        actualObject = actual
+                        else -> actual
                     }
 
-                    statements += assertions[assertEquals](
+                    currentBlock += assertions[assertEquals](
                         CgGetJavaClass(expected.type),
                         actualObject[getClass]()
                     ).toStatement()
                 }
                 is UtNullModel -> {
-                    statements += assertions[assertNull](actual).toStatement()
+                    currentBlock += assertions[assertNull](actual).toStatement()
                 }
                 is UtArrayModel -> {
                     val arrayInfo = expectedModel.collectArrayInfo()
@@ -607,20 +602,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         // actual[1] instance of int[][][]
                         // actual[2] instance of Object[]
 
-                        addArraysLengthAssertion(expected, actual, statements)
-                        statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                        addArraysLengthAssertion(expected, actual)
+                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
                         return
                     }
 
                     // It does not work for Double and Float because JUnit does not have equals overloading with wrappers
                     if (nestedElementClassId == floatClassId || nestedElementClassId == doubleClassId) {
-                        floatingPointArraysDeepEquals(arrayInfo, expected, actual, statements)
+                        floatingPointArraysDeepEquals(arrayInfo, expected, actual)
                         return
                     }
 
                     // common primitive array, can use default array equals
-                    addArraysLengthAssertion(expected, actual, statements)
-                    statements += getArrayEqualsAssertion(
+                    addArraysLengthAssertion(expected, actual)
+                    currentBlock += getArrayEqualsAssertion(
                         expectedModel.classId,
                         typeCast(expectedModel.classId, expected, isSafetyCast = true),
                         typeCast(expectedModel.classId, actual, isSafetyCast = true)
@@ -628,19 +623,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 is UtAssembleModel -> {
                     if (expectedModel.classId.isPrimitiveWrapper) {
-                        statements += assertions[assertEquals](expected, actual).toStatement()
+                        currentBlock += assertions[assertEquals](expected, actual).toStatement()
                         return
                     }
 
                     // UtCompositeModel deep equals is much more easier and human friendly
                     expectedModel.origin?.let {
-                        assertDeepEquals(it, expected, actual, statements, depth, visitedModels)
+                        assertDeepEquals(it, expected, actual, depth, visitedModels)
                         return
                     }
 
                     // special case for strings as they are constructed from UtAssembleModel but can be compared with equals
                     if (expectedModel.classId == stringClassId) {
-                        statements += assertions[assertEquals](
+                        currentBlock += assertions[assertEquals](
                             expected,
                             actual
                         ).toStatement()
@@ -656,7 +651,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // We can add some heuristics to process standard assemble models like List, Set and Map.
                     // So, there is a space for improvements
                     if (expectedModel.modificationsChain.isEmpty() || expectedModel.modificationsChain.any { it !is UtDirectSetFieldModel }) {
-                        statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
                         return
                     }
 
@@ -674,7 +669,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             fieldModel,
                             expected,
                             actual,
-                            statements,
                             depth,
                             visitedModels
                         )
@@ -685,18 +679,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // But it leads to a lot of trash code in each test method, and it is more clear to use
                     // outer deep equals here
                     if (expected.isIterableOrMap()) {
-                        statements += CgSingleLineComment(
+                        currentBlock += CgSingleLineComment(
                             "${expected.type.canonicalName} is iterable or Map, use outer deep equals to iterate over"
                         )
-                        statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
 
                         return
                     }
 
                     if (expected.hasNotParametrizedCustomEquals()) {
                         // We rely on already existing equals
-                        statements += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
-                        statements += assertions[assertEquals](expected, actual).toStatement()
+                        currentBlock += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
+                        currentBlock += assertions[assertEquals](expected, actual).toStatement()
 
                         return
                     }
@@ -711,7 +705,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             fieldModel,
                             expected,
                             actual,
-                            statements,
                             depth,
                             visitedModels
                         )
@@ -728,15 +721,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun TestFrameworkManager.addArraysLengthAssertion(
         expected: CgVariable,
         actual: CgVariable,
-        statements: MutableList<CgStatement>
     ): CgDeclaration {
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
             variableConstructor.constructVarName("${expected.name}Size"),
             expected.length(this, testClassThisInstance, getArrayLength)
         )
-        statements += cgGetLengthDeclaration
-        statements += assertions[assertEquals](
+        currentBlock += cgGetLengthDeclaration
+        currentBlock += assertions[assertEquals](
             cgGetLengthDeclaration.variable,
             actual.length(this, testClassThisInstance, getArrayLength)
         ).toStatement()
@@ -751,9 +743,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expectedArrayInfo: ClassIdArrayInfo,
         expected: CgVariable,
         actual: CgVariable,
-        statements: MutableList<CgStatement>,
     ) {
-        val cgGetLengthDeclaration = addArraysLengthAssertion(expected, actual, statements)
+        val cgGetLengthDeclaration = addArraysLengthAssertion(expected, actual)
 
         val nestedElementClassId = expectedArrayInfo.nestedElementClassId
             ?: error("Expected from floating point array ${expectedArrayInfo.classId} to contain elements but null found")
@@ -763,7 +754,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         if (expectedArrayInfo.isSingleDimensionalArray) {
             // we can use array equals for all single dimensional arrays
-            statements += when (nestedElementClassId) {
+            currentBlock += when (nestedElementClassId) {
                 floatClassId -> getFloatArrayEqualsAssertion(
                     typeCast(floatArrayClassId, expected, isSafetyCast = true),
                     typeCast(floatArrayClassId, actual, isSafetyCast = true),
@@ -778,51 +769,40 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         } else {
             // we can't use array equals for multidimensional double and float arrays
             // so we need to go deeper to single-dimensional array
-            val loop = buildForLoop {
+            forLoop {
                 val (i, init) = variableConstructor.loopInitialization(intClassId, "i", initializer = 0)
                 initialization = init
                 condition = i lessThan cgGetLengthDeclaration.variable.resolve()
                 update = i.inc()
 
-                val loopStatements = mutableListOf<CgStatement>()
-                val expectedNestedElement = CgDeclaration(
-                    expected.type.elementClassId!!,
-                    variableConstructor.constructVarName("${expected.name}NestedElement"),
-                    CgArrayElementAccess(expected, i)
-                )
-                val actualNestedElement = CgDeclaration(
-                    actual.type.elementClassId!!,
-                    variableConstructor.constructVarName("${actual.name}NestedElement"),
-                    CgArrayElementAccess(actual, i)
-                )
+                statements = block {
+                    val expectedNestedElement = newVar(
+                        baseType = expected.type.elementClassId!!,
+                        baseName = variableConstructor.constructVarName("${expected.name}NestedElement"),
+                        init = { CgArrayElementAccess(expected, i) }
+                    )
 
-                loopStatements += expectedNestedElement
-                loopStatements += actualNestedElement
-                loopStatements += CgEmptyLine()
+                    val actualNestedElement = newVar(
+                        baseType = actual.type.elementClassId!!,
+                        baseName = variableConstructor.constructVarName("${actual.name}NestedElement"),
+                        init = { CgArrayElementAccess(actual, i) }
+                    )
 
-                val nullBranchStatements = listOf<CgStatement>(
-                    assertions[assertNull](actualNestedElement.variable).toStatement()
-                )
+                    emptyLine()
 
-                val notNullBranchStatements = mutableListOf<CgStatement>()
-                floatingPointArraysDeepEquals(
-                    expectedArrayInfo.getNested(),
-                    expectedNestedElement.variable,
-                    actualNestedElement.variable,
-                    notNullBranchStatements
-                )
-
-                loopStatements += CgIfStatement(
-                    CgEqualTo(expectedNestedElement.variable, nullLiteral()),
-                    nullBranchStatements,
-                    notNullBranchStatements
-                )
-
-
-                this@buildForLoop.statements = loopStatements
+                    ifStatement(
+                        CgEqualTo(expectedNestedElement, nullLiteral()),
+                        trueBranch = { assertions[assertNull](actualNestedElement).toStatement() },
+                        falseBranch = {
+                            floatingPointArraysDeepEquals(
+                                expectedArrayInfo.getNested(),
+                                expectedNestedElement,
+                                actualNestedElement,
+                            )
+                        }
+                    )
+                }
             }
-
-            statements += loop
         }
     }
 
@@ -863,7 +843,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         fieldModel: UtModel,
         expected: CgVariable,
         actual: CgVariable,
-        statements: MutableList<CgStatement>,
         depth: Int,
         visitedModels: MutableSet<UtModel>
     ) {
@@ -885,22 +864,21 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (needExpectedDeclaration(fieldModel)) {
             val expectedFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, expected, fieldName)
 
-            statements += expectedFieldDeclaration
+            currentBlock += expectedFieldDeclaration
             expectedVariable = expectedFieldDeclaration.variable
         }
 
         val actualFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, actual, fieldName)
-        statements += actualFieldDeclaration
+        currentBlock += actualFieldDeclaration
 
         assertDeepEquals(
             fieldModel,
             expectedVariable,
             actualFieldDeclaration.variable,
-            statements,
             depth + 1,
             visitedModels,
         )
-        statements.addEmptyLineIfNeeded()
+        emptyLineIfNeeded()
     }
 
     @Suppress("UNUSED_ANONYMOUS_PARAMETER")
@@ -1071,21 +1049,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         actual: CgVariable,
     ) {
         when (parameterizedTestSource) {
-            ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
-                currentBlock = currentBlock.addAll(generateDeepEqualsAssertion(expected, actual))
-            ParametrizedTestSource.PARAMETRIZE -> {
-                currentBlock = if (actual.type.isPrimitive) {
-                    currentBlock.addAll(generateDeepEqualsAssertion(expected, actual))
-                } else {
-                    val assertNullStmt = listOf(testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement())
-                    currentBlock.add(
-                        CgIfStatement(
-                            CgEqualTo(expected, nullLiteral()),
-                            assertNullStmt,
-                            generateDeepEqualsAssertion(expected, actual)
-                        )
-                    )
-                }
+            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> generateDeepEqualsAssertion(expected, actual)
+            ParametrizedTestSource.PARAMETRIZE -> when {
+                actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
+                else -> ifStatement(
+                    CgEqualTo(expected, nullLiteral()),
+                    trueBranch = { testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
+                    falseBranch = { generateDeepEqualsAssertion(expected, actual) }
+                )
             }
         }
     }
@@ -1093,22 +1064,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun generateDeepEqualsAssertion(
         expected: CgValue,
         actual: CgVariable,
-    ): List<CgStatement> {
+    ) {
         require(expected is CgVariable) {
             "Expected value have to be Literal or Variable but `${expected::class}` found"
         }
 
-        val statements = mutableListOf<CgStatement>(CgEmptyLine())
         assertDeepEquals(
             resultModel,
             expected,
             actual,
-            statements,
             depth = 0,
             visitedModels = hashSetOf()
         )
-
-        return statements.dropLastWhile { it is CgEmptyLine }
     }
 
     private fun recordActualResult() {
@@ -1406,8 +1373,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 //create a block for current test case
                 dataProviderStatements += innerBlock(
                     {},
-                    block(executionArgumentsBody)
-                            + createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
+                    block(executionArgumentsBody).addAll(createArgumentsCallRepresentation(execIndex, argListVariable, arguments))
                 )
 
                 dataProviderExceptions += collectedExceptions

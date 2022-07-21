@@ -37,7 +37,6 @@ dependencies {
     testImplementation project(':utbot-analytics')
 
     // used for testing code generation
-    testImplementation group: 'commons-io', name: 'commons-io', version: commons_io_version
     testImplementation group: 'junit', name: 'junit', version: junit4_version
     testImplementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4_platform_version
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version

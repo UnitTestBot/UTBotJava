@@ -275,7 +275,7 @@ object UtSettings {
     /**
      * Set to true to initialize symbolic parameters by values from fuzzing.
      */
-    var useFuzzingInitialization: Boolean by getBooleanProperty(false)
+    var useFuzzingInitialization: Boolean by getBooleanProperty(true)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors

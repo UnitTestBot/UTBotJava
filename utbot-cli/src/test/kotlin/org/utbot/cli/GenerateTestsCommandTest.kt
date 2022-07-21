@@ -8,6 +8,7 @@ import java.io.File
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
+import org.junit.jupiter.api.Disabled
 
 internal class GenerateTestsCommandTest {
     private val className = "MathUtils"
@@ -101,6 +102,7 @@ internal class GenerateTestsCommandTest {
     }
 
     @Test
+    @Disabled
     fun negativeCase_sarif() {
         performSarifChecks(
             testFramework = "junit4",

@@ -10,6 +10,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.ScrollingUtil
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTextField
@@ -27,7 +28,6 @@ import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import java.awt.BorderLayout
 import javax.swing.*
-import javax.swing.event.ListDataListener
 
 
 private const val SAME_PACKAGE_LABEL = "same as for sources"
@@ -72,7 +72,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             }
             row("Add to sys.path:") {}
             row {
-                scrollPane(pathChooser.createPanel())
+                component(Panel().apply { add(pathChooser.createPanel()) })
             }
             row("Module to import:") {
                 component(moduleToImportField.component)
@@ -181,7 +181,14 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                 files.forEach { model.add(0, it) }
             }
             decorator.setRemoveAction {
-                list.selectedIndices.forEach { model.removeElementAt(it) }
+                val selectedIndex = list.selectedIndex
+                val selection = list.selectedIndices
+                selection.reversed().forEach {
+                    model.removeElementAt(it)
+                }
+                if (model.size > 0) {
+                    ScrollingUtil.selectItem(list, selectedIndex.coerceIn(0, model.size - 1))
+                }
             }
         }
         fun createPanel() = decorator.createPanel()

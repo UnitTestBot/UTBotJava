@@ -14,6 +14,21 @@ public class ComplexEnumExamples {
         BLUE
     }
 
+    public int countEqualColors(@NotNull Color a, @NotNull Color b, @NotNull Color c) {
+        int equalToA = 1;
+        if (b == a) equalToA++;
+        if (c == a) equalToA++;
+
+        int equalToB = 1;
+        if (a == b) equalToB++;
+        if (c == b) equalToB++;
+
+        if (equalToA > equalToB)
+            return equalToA;
+        else
+            return equalToB;
+    }
+
     public List<Color> returnColors(@NotNull List<Color> source) {
         if (source.isEmpty())
             return new LinkedList<>();
@@ -47,6 +62,8 @@ public class ComplexEnumExamples {
         for (Color key: map.keySet()) {
             if (key == Color.GREEN || Color.BLUE.equals(key)) {
                 count++;
+            } else {
+                // Do nothing
             }
         }
         return count;

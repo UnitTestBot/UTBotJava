@@ -1976,6 +1976,19 @@ class Traverser(
     private fun createEnum(type: RefType, addr: UtAddrExpression): ObjectValue {
         val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = true)
 
+        // Add "singleton" values for each enum value.
+        // E.g., if we have an enum like `public enum MyEnum { A, B, C }`,
+        // we should have 3 objects (addrA -> MyEnum.A, addrB -> MyEnum.B, addrC -> MyEnum.C)
+        // before we create any "real" value of that type.
+        //
+        // (We probably should have some kind of storage in `Memory` so we don't create duplicates for these
+        // predefined objects).
+
+        // When we create an instance for the enum, we add the following disjunction as the hard constraint:
+        // (addr == addrA && ordinal(addr) == ordinal(addrA)) ||
+        // (addr == addrB && ordinal(addr) == ordinal(addrB)) ||
+        // (addr == addrC && ordinal(addr) == ordinal(addrC))
+
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 
         val array = memory.findArray(MemoryChunkDescriptor(ENUM_ORDINAL, type, IntType.v()))

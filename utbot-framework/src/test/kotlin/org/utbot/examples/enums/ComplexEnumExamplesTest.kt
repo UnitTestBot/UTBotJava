@@ -21,6 +21,7 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
 ) {
 
     @Test
+    @Disabled
     fun testReturnColors() {
         check(
             ComplexEnumExamples::returnColors,
@@ -31,6 +32,7 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled
     fun testCopyColors() {
         check(
             ComplexEnumExamples::copyColors,
@@ -42,6 +44,7 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled
     fun testEnumToEnumMapCountValues() {
         check(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -53,6 +56,7 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled
     fun testEnumToEnumMapCountKeys() {
         check(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -64,12 +68,25 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled
     fun testEnumToEnumMapCountMatches() {
         check(
             ComplexEnumExamples::enumToEnumMapCountMatches,
             ignoreExecutionsNumber,
             { m, r -> m.isEmpty() && r == 0 },
             { m, r -> m.entries.count { it.key == it.value } == r }
+        )
+    }
+
+    @Test
+    fun testCountEqualColors() {
+        check(
+            ComplexEnumExamples::countEqualColors,
+            ignoreExecutionsNumber,
+            { a, b, c, r -> a == b && a == c && r == 3 },
+            { a, b, c, r -> a == b && b != c && r == 2 },
+            { a, b, c, r -> a != b && a == c && r == 2 },
+            { a, b, c, r -> a != b && b != c && a != c && r == 1 }
         )
     }
 

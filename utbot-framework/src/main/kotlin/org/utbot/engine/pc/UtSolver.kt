@@ -16,7 +16,6 @@ import org.utbot.engine.prettify
 import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.prettify
 import org.utbot.engine.toIntValue
 import org.utbot.engine.z3.Z3Initializer
 import org.utbot.framework.UtSettings

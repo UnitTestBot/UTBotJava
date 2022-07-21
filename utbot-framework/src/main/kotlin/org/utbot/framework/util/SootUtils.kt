@@ -32,9 +32,7 @@ import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
-import org.utbot.engine.overrides.stream.Arrays
-import org.utbot.engine.overrides.stream.Stream
-import org.utbot.engine.overrides.stream.UtStream
+import org.utbot.engine.overrides.stream.*
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
@@ -198,5 +196,14 @@ private val classesToLoad = arrayOf(
     Collection::class,
     List::class,
     UtStream::class,
-    UtStream.UtStreamIterator::class
+    UtIntStream::class,
+    UtLongStream::class,
+    UtDoubleStream::class,
+    UtStream.UtStreamIterator::class,
+    UtIntStream.UtIntStreamIterator::class,
+    UtLongStream.UtLongStreamIterator::class,
+    UtDoubleStream.UtDoubleStreamIterator::class,
+    IntStream::class,
+    LongStream::class,
+    DoubleStream::class,
 ).map { it.java }.toTypedArray()

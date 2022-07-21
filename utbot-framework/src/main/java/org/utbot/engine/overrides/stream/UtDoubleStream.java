@@ -453,7 +453,13 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             return OptionalDouble.empty();
         }
 
-        double average = sum() / count();
+        // "reopen" this stream to use sum and count
+        isClosed = false;
+        final double sum = sum();
+        isClosed = false;
+        final long count = count();
+
+        double average = sum / count;
 
         return OptionalDouble.of(average);
     }
@@ -478,13 +484,16 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
+        boolean matches = false;
         for (int i = 0; i < size; i++) {
-            if (predicate.test(elementData.get(i))) {
-                return true;
-            }
+            matches |= predicate.test(elementData.get(i));
+//            if (predicate.test(elementData.get(i))) {
+//                return true;
+//            }
         }
 
-        return false;
+//        return false;
+        return matches;
     }
 
     @Override
@@ -503,8 +512,6 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public boolean noneMatch(DoublePredicate predicate) {
-        preconditionCheckWithClosingStream();
-
         return !anyMatch(predicate);
     }
 

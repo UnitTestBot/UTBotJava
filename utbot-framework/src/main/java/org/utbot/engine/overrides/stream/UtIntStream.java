@@ -455,7 +455,13 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             return OptionalDouble.empty();
         }
 
-        double average = (double) sum() / count();
+        // "reopen" this stream to use sum and count
+        isClosed = false;
+        final double sum = sum();
+        isClosed = false;
+        final long count = count();
+
+        double average = sum / count;
 
         return OptionalDouble.of(average);
     }
@@ -505,8 +511,6 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public boolean noneMatch(IntPredicate predicate) {
-        preconditionCheckWithClosingStream();
-
         return !anyMatch(predicate);
     }
 

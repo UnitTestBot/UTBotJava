@@ -8,6 +8,7 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.compiler.CompileContext
 import com.intellij.openapi.compiler.CompilerManager
 import com.intellij.openapi.compiler.CompilerPaths
+import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
@@ -49,6 +50,8 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
+import org.utbot.framework.plugin.api.testFlow
+import org.utbot.intellij.plugin.settings.Settings
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -188,7 +191,18 @@ object UtTestsDialogProcessor {
 
                                     val notEmptyCases = withUtContext(context) {
                                         testCaseGenerator
-                                            .generate(methods, model.mockStrategy, model.chosenClassesToMockAlways, model.timeout)
+                                            .generate(
+                                                methods,
+                                                model.mockStrategy,
+                                                model.chosenClassesToMockAlways,
+                                                model.timeout,
+                                                generate = testFlow {
+                                                    generationTimeout = model.timeout
+                                                    isSymbolicEngineEnabled = true
+                                                    isFuzzingEnabled = UtSettings.useFuzzing
+                                                    fuzzingValue = project.service<Settings>().fuzzingValue
+                                                }
+                                            )
                                             .map { it.summarize(searchDirectory) }
                                             .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
                                     }

@@ -270,7 +270,7 @@ object UtSettings {
     /**
      * Fuzzer tries to generate and run tests during this time.
      */
-    var fuzzingTimeoutInMillis: Int by getIntProperty(3_000)
+    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors

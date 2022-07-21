@@ -9,5 +9,5 @@ open class BaseTestsModel(
     val srcModule: Module,
     val testModule: Module,
 ) {
-    var testSourceRoot: VirtualFile? = null
+    open var testSourceRoot: VirtualFile? = null
 }

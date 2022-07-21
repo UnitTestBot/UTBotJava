@@ -1,9 +1,9 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
-import jasmin.Main.assemble
 import org.utbot.common.PathUtil
 import org.utbot.common.packageName
 import org.utbot.engine.isStatic
+import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.JUNIT5_PARAMETERIZED_PACKAGE
 import org.utbot.framework.codegen.Junit4
@@ -926,7 +926,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
-        // Can directly access field only if it is declared in variable class (or in its ancestors)
+    // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
         if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
             if (field.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
@@ -1260,23 +1260,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 val pseudoExceptionVarName = when (codegenLanguage) {
                                     CodegenLanguage.JAVA -> "${expectedErrorVarName}.isInstance(${e.name.decapitalize()})"
                                     CodegenLanguage.KOTLIN -> "${expectedErrorVarName}!!.isInstance(${e.name.decapitalize()})"
+                                    CodegenLanguage.PYTHON -> TODO()
                                 }
-            methodType = PARAMETRIZED
-            testMethod(
-                testName,
-                displayName = null,
-                testArguments,
-                parameterized = true,
-                dataProviderMethodName
-            ) {
-                if (containsFailureExecution(utTestCase)) {
-                    +tryBlock(mainBody)
-                        .catch(Throwable::class.java.id) { e ->
-                            val pseudoExceptionVarName = when (codegenLanguage) {
-                                CodegenLanguage.JAVA -> "${expectedErrorVarName}.isInstance(${e.name.decapitalize()})"
-                                CodegenLanguage.KOTLIN -> "${expectedErrorVarName}!!.isInstance(${e.name.decapitalize()})"
-                                CodegenLanguage.PYTHON -> TODO("Not yet implemented")
-                            }
 
                                 testFrameworkManager.assertBoolean(CgVariable(pseudoExceptionVarName, booleanClassId))
                             }
@@ -1557,7 +1542,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             simpleName = when (codegenLanguage) {
                 CodegenLanguage.JAVA -> "Object[][]"
                 CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
-                else -> error("Incorrect language")
+                CodegenLanguage.PYTHON -> TODO()
             },
             canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
             packageName = Array<Array<Any?>?>::class.java.packageName,

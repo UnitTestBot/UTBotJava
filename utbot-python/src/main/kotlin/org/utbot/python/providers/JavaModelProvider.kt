@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.providers.ConstantsModelProvider
@@ -19,27 +20,28 @@ object JavaModelProvider: ModelProvider {
         StringConstantModelProvider,
     )
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, FuzzedValue>) {
+    override fun generate(description: FuzzedMethodDescription) = sequence {
         val typeMap = mapOf(
             PythonIntModel.classId to intClassId,
             PythonStrModel.classId to stringClassId
         )
         val substitutedDescription = substituteType(description, typeMap)
-        javaModelProvider.generate(substitutedDescription) { index, fuzzedValue ->
+        javaModelProvider.generate(substitutedDescription).forEach { fuzzedParameter ->
+            val (index, fuzzedValue) = fuzzedParameter
             when (description.parameters[index]) {
                 PythonIntModel.classId ->
                     ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Int)?.let { intValue ->
-                        consumer.accept(
+                        yield(FuzzedParameter(
                             index,
                             PythonIntModel(BigInteger.valueOf(intValue.toLong())).fuzzed()
-                        )
+                        ))
                     }
                 PythonStrModel.classId ->
                     ((fuzzedValue.model as? UtPrimitiveModel)?.value as? String)?.let { strValue ->
-                        consumer.accept(
+                        yield(FuzzedParameter(
                             index,
                             PythonStrModel(strValue).fuzzed()
-                        )
+                        ))
                     }
             }
         }

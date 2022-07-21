@@ -62,6 +62,10 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         TODO("Not yet implemented")
     }
 
+    override fun visit(element: CgNotNullAssertion) {
+        TODO("Not yet implemented")
+    }
+
     override fun visit(element: CgAllocateArray) {
         TODO("Not yet implemented")
     }
@@ -141,10 +145,6 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
                 statement.accept(this)
             }
         }
-    }
-
-    override fun visit(element: CgNotNullVariable) {
-        print(element.name.escapeNamePossibleKeyword())
     }
 
     override fun renderForLoopVarControl(element: CgForLoop) {

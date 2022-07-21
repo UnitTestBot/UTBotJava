@@ -269,11 +269,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             newSize = curSize;
         }
 
-        Double[] elements = new Double[newSize];
-        for (int i = 0; i < newSize; i++) {
-            elements[i] = elementData.get(i);
-        }
-
+        Double[] elements = elementData.toCastedArray(0, newSize);
         return new UtDoubleStream(elements, newSize);
     }
 

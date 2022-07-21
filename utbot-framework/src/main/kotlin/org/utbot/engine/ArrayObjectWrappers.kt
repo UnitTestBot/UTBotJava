@@ -34,175 +34,251 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import kotlin.reflect.KFunction4
 
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
 class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
-    override fun Traverser.invoke(
+    @Suppress("UNUSED_PARAMETER")
+    private fun initMethodWrapper(
+        traverser: Traverser,
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
-    ): List<InvokeResult> {
-        return when (method.name) {
-            "<init>" -> {
-                val arrayAddr = findNewAddr()
+    ): List<MethodResult> =
+        with(traverser) {
+            val arrayAddr = findNewAddr()
 
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            arrayAddr,
-                            OBJECT_TYPE.arrayType,
-                            mkArrayWithConst(UtArraySort(UtIntSort, UtAddrSort), mkInt(0))
-                        )
-                                + objectUpdate(wrapper, storageField, arrayAddr)
-                                + objectUpdate(wrapper, beginField, mkInt(0))
-                                + objectUpdate(wrapper, endField, mkInt(0))
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        arrayAddr,
+                        OBJECT_TYPE.arrayType,
+                        mkArrayWithConst(UtArraySort(UtIntSort, UtAddrSort), mkInt(0))
                     )
+                            + objectUpdate(wrapper, storageField, arrayAddr)
+                            + objectUpdate(wrapper, beginField, mkInt(0))
+                            + objectUpdate(wrapper, endField, mkInt(0))
                 )
-            }
-            "insert" -> {
-                val value = UtArrayInsert(
-                    getStorageArrayExpression(wrapper),
-                    parameters[0] as PrimitiveValue,
-                    parameters[1].addr
-                )
-
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            value
-                        )
-                    )
-                )
-            }
-            "insertRange" -> {
-                val value = UtArrayInsertRange(
-                    getStorageArrayExpression(wrapper),
-                    parameters[0] as PrimitiveValue,
-                    selectArrayExpressionFromMemory(parameters[1] as ArrayValue),
-                    parameters[2] as PrimitiveValue,
-                    parameters[3] as PrimitiveValue
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            value
-                        ),
-                    )
-                )
-            }
-            "remove" -> {
-                val value = UtArrayRemove(
-                    getStorageArrayExpression(wrapper),
-                    parameters[0] as PrimitiveValue
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            value
-                        ),
-                    )
-                )
-            }
-            "removeRange" -> {
-                val value = UtArrayRemoveRange(
-                    getStorageArrayExpression(wrapper),
-                    parameters[0] as PrimitiveValue,
-                    parameters[1] as PrimitiveValue
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            value
-                        ),
-                    )
-                )
-            }
-            "set" -> {
-                val value =
-                    getStorageArrayExpression(wrapper).store((parameters[0] as PrimitiveValue).expr, parameters[1].addr)
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            value
-                        ),
-                    )
-                )
-            }
-            "get" -> {
-                val value = getStorageArrayExpression(wrapper).select((parameters[0] as PrimitiveValue).expr)
-                val addr = UtAddrExpression(value)
-                val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
-
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(resultObject),
-                        typeRegistry.typeConstraintToGenericTypeParameter(addr, wrapper.addr, i = TYPE_PARAMETER_INDEX)
-                            .asHardConstraint()
-                    )
-                )
-            }
-            "toArray" -> {
-                val arrayAddr = findNewAddr()
-                val offset = parameters[0] as PrimitiveValue
-                val length = parameters[1] as PrimitiveValue
-
-                val value = UtArrayShiftIndexes(getStorageArrayExpression(wrapper), offset)
-
-                val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE.arrayType, useConcreteType = false)
-                val array = ArrayValue(typeStorage, arrayAddr)
-
-                val hardConstraints = setOf(
-                    Eq(memory.findArrayLength(arrayAddr), length),
-                    typeRegistry.typeConstraint(arrayAddr, array.typeStorage).all(),
-                ).asHardConstraint()
-
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(array),
-                        hardConstraints = hardConstraints,
-                        memoryUpdates = arrayUpdateWithValue(arrayAddr, OBJECT_TYPE.arrayType, value)
-                    )
-                )
-            }
-            "setRange" -> {
-                val value = UtArraySetRange(
-                    getStorageArrayExpression(wrapper),
-                    parameters[0] as PrimitiveValue,
-                    selectArrayExpressionFromMemory(parameters[1] as ArrayValue),
-                    parameters[2] as PrimitiveValue,
-                    parameters[3] as PrimitiveValue
-                )
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            value
-                        ),
-                    )
-                )
-            }
-            else -> error("unknown method ${method.name} for ${javaClass.simpleName} class")
+            )
         }
-    }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun insertMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = UtArrayInsert(
+                getStorageArrayExpression(wrapper),
+                parameters[0] as PrimitiveValue,
+                parameters[1].addr
+            )
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        value
+                    )
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun insertRangeMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = UtArrayInsertRange(
+                getStorageArrayExpression(wrapper),
+                parameters[0] as PrimitiveValue,
+                selectArrayExpressionFromMemory(parameters[1] as ArrayValue),
+                parameters[2] as PrimitiveValue,
+                parameters[3] as PrimitiveValue
+            )
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        value
+                    ),
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun removeMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = UtArrayRemove(
+                getStorageArrayExpression(wrapper),
+                parameters[0] as PrimitiveValue
+            )
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        value
+                    ),
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun removeRangeMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = UtArrayRemoveRange(
+                getStorageArrayExpression(wrapper),
+                parameters[0] as PrimitiveValue,
+                parameters[1] as PrimitiveValue
+            )
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        value
+                    ),
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun setMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value =
+                getStorageArrayExpression(wrapper).store((parameters[0] as PrimitiveValue).expr, parameters[1].addr)
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        value
+                    ),
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun getMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = getStorageArrayExpression(wrapper).select((parameters[0] as PrimitiveValue).expr)
+            val addr = UtAddrExpression(value)
+            val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(resultObject),
+                    typeRegistry.typeConstraintToGenericTypeParameter(addr, wrapper.addr, i = TYPE_PARAMETER_INDEX)
+                        .asHardConstraint()
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun toArrayMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val arrayAddr = findNewAddr()
+            val offset = parameters[0] as PrimitiveValue
+            val length = parameters[1] as PrimitiveValue
+
+            val value = UtArrayShiftIndexes(getStorageArrayExpression(wrapper), offset)
+
+            val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE.arrayType, useConcreteType = false)
+            val array = ArrayValue(typeStorage, arrayAddr)
+
+            val hardConstraints = setOf(
+                Eq(memory.findArrayLength(arrayAddr), length),
+                typeRegistry.typeConstraint(arrayAddr, array.typeStorage).all(),
+            ).asHardConstraint()
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(array),
+                    hardConstraints = hardConstraints,
+                    memoryUpdates = arrayUpdateWithValue(arrayAddr, OBJECT_TYPE.arrayType, value)
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun setRangeMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = UtArraySetRange(
+                getStorageArrayExpression(wrapper),
+                parameters[0] as PrimitiveValue,
+                selectArrayExpressionFromMemory(parameters[1] as ArrayValue),
+                parameters[2] as PrimitiveValue,
+                parameters[3] as PrimitiveValue
+            )
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        value
+                    ),
+                )
+            )
+        }
+
+    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> =
+        mapOf(
+            "<init>" to ::initMethodWrapper,
+            "insert" to ::insertMethodWrapper,
+            "insertRange" to ::insertMethodWrapper,
+            "remove" to ::removeMethodWrapper,
+            "removeRange" to ::removeRangeMethodWrapper,
+            "set" to ::setMethodWrapper,
+            "get" to ::getMethodWrapper,
+            "toArray" to ::toArrayMethodWrapper,
+            "setRange" to ::setRangeMethodWrapper,
+        )
 
     private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, rangeModifiableArrayClass, storageField)
@@ -285,73 +361,92 @@ class AssociativeArrayWrapper : WrapperInterface {
     private val touchedField = associativeArrayClass.getField("java.lang.Object[] touched")
     private val storageField = associativeArrayClass.getField("java.lang.Object[] storage")
 
-
-    override fun Traverser.invoke(
+    @Suppress("UNUSED_PARAMETER")
+    private fun initMethodWrapper(
+        traverser: Traverser,
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
-    ): List<InvokeResult> {
-        return when (method.name) {
-            "<init>" -> {
-                val storageArrayAddr = findNewAddr()
-                val touchedArrayAddr = findNewAddr()
+    ): List<MethodResult> =
+        with(traverser) {
+            val storageArrayAddr = findNewAddr()
+            val touchedArrayAddr = findNewAddr()
 
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            storageArrayAddr,
-                            OBJECT_TYPE.arrayType,
-                            mkArrayWithConst(UtArraySort(UtAddrSort, UtAddrSort), mkInt(0))
-                        ) + arrayUpdateWithValue(
-                            touchedArrayAddr,
-                            OBJECT_TYPE.arrayType,
-                            mkArrayWithConst(UtArraySort(UtIntSort, UtAddrSort), mkInt(0))
-                        )
-                                + objectUpdate(wrapper, storageField, storageArrayAddr)
-                                + objectUpdate(wrapper, touchedField, touchedArrayAddr)
-                                + objectUpdate(wrapper, sizeField, mkInt(0))
+            return listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        storageArrayAddr,
+                        OBJECT_TYPE.arrayType,
+                        mkArrayWithConst(UtArraySort(UtAddrSort, UtAddrSort), mkInt(0))
+                    ) + arrayUpdateWithValue(
+                        touchedArrayAddr,
+                        OBJECT_TYPE.arrayType,
+                        mkArrayWithConst(UtArraySort(UtIntSort, UtAddrSort), mkInt(0))
                     )
+                            + objectUpdate(wrapper, storageField, storageArrayAddr)
+                            + objectUpdate(wrapper, touchedField, touchedArrayAddr)
+                            + objectUpdate(wrapper, sizeField, mkInt(0))
                 )
-            }
-            "select" -> {
-                val value = getStorageArrayExpression(wrapper).select(parameters[0].addr)
-                val addr = UtAddrExpression(value)
-                val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
-
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(resultObject),
-                        typeRegistry.typeConstraintToGenericTypeParameter(
-                            addr,
-                            wrapper.addr,
-                            TYPE_PARAMETER_INDEX
-                        ).asHardConstraint()
-                    )
-                )
-            }
-            "store" -> {
-                val storageValue = getStorageArrayExpression(wrapper).store(parameters[0].addr, parameters[1].addr)
-                val sizeValue = getIntFieldValue(wrapper, sizeField)
-                val touchedValue = getTouchedArrayExpression(wrapper).store(sizeValue, parameters[0].addr)
-                listOf(
-                    MethodResult(
-                        SymbolicSuccess(voidValue),
-                        memoryUpdates = arrayUpdateWithValue(
-                            getStorageArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            storageValue
-                        ) + arrayUpdateWithValue(
-                            getTouchedArrayField(wrapper.addr).addr,
-                            OBJECT_TYPE.arrayType,
-                            touchedValue,
-                        ) + objectUpdate(wrapper, sizeField, Add(sizeValue.toIntValue(), 1.toPrimitiveValue()))
-                    )
-                )
-            }
-            else -> error("unknown method ${method.name} for AssociativeArray class")
+            )
         }
-    }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun selectMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val value = getStorageArrayExpression(wrapper).select(parameters[0].addr)
+            val addr = UtAddrExpression(value)
+            val resultObject = createObject(addr, OBJECT_TYPE, useConcreteType = false)
+
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(resultObject),
+                    typeRegistry.typeConstraintToGenericTypeParameter(
+                        addr,
+                        wrapper.addr,
+                        TYPE_PARAMETER_INDEX
+                    ).asHardConstraint()
+                )
+            )
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun storeMethodWrapper(
+        traverser: Traverser,
+        wrapper: ObjectValue,
+        method: SootMethod,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> =
+        with(traverser) {
+            val storageValue = getStorageArrayExpression(wrapper).store(parameters[0].addr, parameters[1].addr)
+            val sizeValue = getIntFieldValue(wrapper, sizeField)
+            val touchedValue = getTouchedArrayExpression(wrapper).store(sizeValue, parameters[0].addr)
+            listOf(
+                MethodResult(
+                    SymbolicSuccess(voidValue),
+                    memoryUpdates = arrayUpdateWithValue(
+                        getStorageArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        storageValue
+                    ) + arrayUpdateWithValue(
+                        getTouchedArrayField(wrapper.addr).addr,
+                        OBJECT_TYPE.arrayType,
+                        touchedValue,
+                    ) + objectUpdate(wrapper, sizeField, Add(sizeValue.toIntValue(), 1.toPrimitiveValue()))
+                )
+            )
+        }
+
+    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> = mapOf(
+        "init>" to ::initMethodWrapper,
+        "select" to ::selectMethodWrapper,
+        "store" to ::storeMethodWrapper,
+    )
 
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel {
         // get arrayExpression from arrayChunk with object type by arrayAddr

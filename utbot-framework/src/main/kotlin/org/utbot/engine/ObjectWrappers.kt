@@ -43,6 +43,7 @@ import java.util.OptionalInt
 import java.util.OptionalLong
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
+import kotlin.reflect.KFunction4
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -219,6 +220,10 @@ internal fun wrapper(type: RefType, addr: UtAddrExpression): ObjectValue? =
     wrappers[type.id]?.invoke(type, addr)
 
 interface WrapperInterface {
+    fun isWrappedMethod(method: SootMethod): Boolean = method.name in wrappedMethods
+
+    val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>>
+
     /**
      * Returns list of invocation results
      */
@@ -226,13 +231,22 @@ interface WrapperInterface {
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
-    ): List<InvokeResult>
+    ): List<InvokeResult> {
+        val wrappedMethodResult = wrappedMethods[method.name]
+            ?: error("unknown wrapped method ${method.name} for ${this@WrapperInterface::class}")
+
+        return wrappedMethodResult(this, wrapper, method, parameters)
+    }
 
     fun value(resolver: Resolver, wrapper: ObjectValue): UtModel
 }
 
 // TODO: perhaps we have to have wrapper around concrete value here
 data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
+    override val wrappedMethods: Map<String, KFunction4<Traverser, ObjectValue, SootMethod, List<SymbolicValue>, List<MethodResult>>> = emptyMap()
+
+    override fun isWrappedMethod(method: SootMethod): Boolean = true
+
     override fun Traverser.invoke(wrapper: ObjectValue, method: SootMethod, parameters: List<SymbolicValue>) =
         workaround(MAKE_SYMBOLIC) {
             listOf(

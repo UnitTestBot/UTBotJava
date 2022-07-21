@@ -13,6 +13,9 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.ToDoubleFunction;
+import java.util.function.ToIntFunction;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -93,20 +96,47 @@ public class BaseStreamExample {
 
     int[] flatMapToIntExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
+        final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
 
-        return list.stream().flatMapToInt(value -> Arrays.stream(new int[]{value, value})).toArray();
+        return list
+                .stream()
+                .flatMapToInt(value ->
+                        Arrays.stream(new int[]{
+                                shortToIntFunction.applyAsInt(value),
+                                shortToIntFunction.applyAsInt(value)}
+                        )
+                )
+                .toArray();
     }
 
     long[] flatMapToLongExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
+        final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
 
-        return list.stream().flatMapToLong(value -> Arrays.stream(new long[]{value, value})).toArray();
+        return list
+                .stream()
+                .flatMapToLong(value ->
+                        Arrays.stream(new long[]{
+                                shortToLongFunction.applyAsLong(value),
+                                shortToLongFunction.applyAsLong(value)}
+                        )
+                )
+                .toArray();
     }
 
     double[] flatMapToDoubleExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
+        final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
 
-        return list.stream().flatMapToDouble(value -> Arrays.stream(new double[]{value, value})).toArray();
+        return list
+                .stream()
+                .flatMapToDouble(value ->
+                        Arrays.stream(new double[]{
+                                shortToDoubleFunction.applyAsDouble(value),
+                                shortToDoubleFunction.applyAsDouble(value)}
+                        )
+                )
+                .toArray();
     }
 
     boolean distinctExample(List<Integer> list) {

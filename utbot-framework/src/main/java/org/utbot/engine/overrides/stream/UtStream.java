@@ -1,5 +1,6 @@
 package org.utbot.engine.overrides.stream;
 
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
@@ -145,6 +146,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return new UtStream<>((R[]) mapped, size);
     }
 
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
     @Override
     public IntStream mapToInt(ToIntFunction<? super E> mapper) {
         preconditionCheckWithClosingStream();
@@ -152,12 +154,15 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Integer[] data = new Integer[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsInt(elementData.get(i));
+            final Object object = elementData.get(i);
+            UtMock.disableClassCastExceptionCheck(object);
+            data[i] = mapper.applyAsInt((E) object);
         }
 
         return new UtIntStream(data, size);
     }
 
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
     @Override
     public LongStream mapToLong(ToLongFunction<? super E> mapper) {
         preconditionCheckWithClosingStream();
@@ -165,12 +170,15 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Long[] data = new Long[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsLong(elementData.get(i));
+            final Object object = elementData.get(i);
+            UtMock.disableClassCastExceptionCheck(object);
+            data[i] = mapper.applyAsLong((E) object);
         }
 
         return new UtLongStream(data, size);
     }
 
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
     @Override
     public DoubleStream mapToDouble(ToDoubleFunction<? super E> mapper) {
         preconditionCheckWithClosingStream();
@@ -178,7 +186,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Double[] data = new Double[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsDouble(elementData.get(i));
+            final Object object = elementData.get(i);
+            UtMock.disableClassCastExceptionCheck(object);
+            data[i] = mapper.applyAsDouble((E) object);
         }
 
         return new UtDoubleStream(data, size);
@@ -266,20 +276,23 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return new UtStream<>();
         }
 
-        Object[] sortedElements = UtArrayMock.copyOf(elementData.toArray(0, size), size);
+        E[] sortedElements = (E[]) new Object[size];
+        for (int i = 0; i < size; i++) {
+            sortedElements[i] = elementData.get(i);
+        }
 
         // bubble sort
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - i - 1; j++) {
-                if (((Comparable<E>) sortedElements[j]).compareTo((E) sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
+                if (((Comparable<E>) sortedElements[j]).compareTo(sortedElements[j + 1]) > 0) {
+                    E tmp = sortedElements[j];
                     sortedElements[j] = sortedElements[j + 1];
                     sortedElements[j + 1] = tmp;
                 }
             }
         }
 
-        return new UtStream<>((E[]) sortedElements, size);
+        return new UtStream<>(sortedElements, size);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
@@ -294,20 +307,23 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return new UtStream<>();
         }
 
-        Object[] sortedElements = UtArrayMock.copyOf(elementData.toArray(0, size), size);
+        E[] sortedElements = (E[]) new Object[size];
+        for (int i = 0; i < size; i++) {
+            sortedElements[i] = elementData.get(i);
+        }
 
         // bubble sort
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - i - 1; j++) {
-                if (comparator.compare((E) sortedElements[j], (E) sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
+                if (comparator.compare(sortedElements[j], sortedElements[j + 1]) > 0) {
+                    E tmp = sortedElements[j];
                     sortedElements[j] = sortedElements[j + 1];
                     sortedElements[j + 1] = tmp;
                 }
             }
         }
 
-        return new UtStream<>((E[]) sortedElements, size);
+        return new UtStream<>(sortedElements, size);
     }
 
     @Override
@@ -347,7 +363,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             newSize = curSize;
         }
 
-        return new UtStream<>((E[]) elementData.toArray(0, newSize), newSize);
+        E[] elements = (E[]) new Object[newSize];
+        for (int i = 0; i < newSize; i++) {
+            elements[i] = elementData.get(i);
+        }
+
+        return new UtStream<>(elements, newSize);
     }
 
     @SuppressWarnings("unchecked")
@@ -367,7 +388,16 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         // n is 1...Integer.MAX_VALUE here
         int newSize = (int) (curSize - n);
 
-        return new UtStream<>((E[]) elementData.toArray((int) n, newSize), newSize);
+        if (newSize == 0) {
+            return new UtStream<>();
+        }
+
+        E[] elements = (E[]) new Object[newSize];
+        for (int i = (int) n; i < newSize; i++) {
+            elements[i] = elementData.get(i);
+        }
+
+        return new UtStream<>(elements, newSize);
     }
 
     @Override

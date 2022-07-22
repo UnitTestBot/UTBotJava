@@ -62,7 +62,7 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
             isFuzzingEnabled -> {
                 when (val value = if (isSymbolicEngineEnabled) (fuzzingValue * generationTimeout).toLong() else generationTimeout) {
                     0L -> engine.traverse()
-                    generationTimeout -> engine.fuzzing()
+                    generationTimeout -> engine.fuzzing(System.currentTimeMillis() + value)
                     else -> flowOf(
                         engine.fuzzing(System.currentTimeMillis() + value),
                         engine.traverse()

@@ -435,7 +435,7 @@ class UtBotSymbolicEngine(
             })
         }
         fuzzedValues.forEach { values ->
-            if (System.currentTimeMillis() >= until) {
+            if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 return@flow
             }

@@ -29,8 +29,10 @@ class Hierarchy(private val typeRegistry: TypeRegistry) {
 
         val realType = typeRegistry.findRealType(type) as RefType
 
-        val ancestorType = ancestors(realType.sootClass.id).lastOrNull { it.declaresField(field.subSignature) }?.type
-            ?: error("No such field ${field.subSignature} found in ${realType.sootClass.name}")
+
+        val ancestorType = field.declaringClass
+        //val ancestorType = ancestors(realType.sootClass.id).firstOrNull { it.declaresField(field.subSignature) }?.type
+            //?: error("No such field ${field.subSignature} found in ${realType.sootClass.name}")
         return ChunkId("$ancestorType", field.name)
     }
 

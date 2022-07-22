@@ -519,12 +519,20 @@ data class UtDirectSetFieldModel(
     val fieldId: FieldId,
     val fieldModel: UtModel,
 ) : UtStatementModel(instance) {
+    private val fieldName
+        get() =
+            if (instance.classId == fieldId.declaringClass)
+                "${instance.modelName}.${fieldId.name}"
+            else
+                "${instance.modelName}.(${fieldId.declaringClass.name})${fieldId.name}"
+
+
     override fun toString(): String = withToStringThreadLocalReentrancyGuard {
             val modelRepresentation = when (fieldModel) {
                 is UtAssembleModel -> fieldModel.modelName
                 else -> fieldModel.toString()
             }
-            "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+            "$fieldName = $modelRepresentation"
         }
 
 }

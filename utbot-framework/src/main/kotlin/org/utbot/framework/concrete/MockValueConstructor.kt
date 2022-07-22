@@ -394,7 +394,7 @@ class MockValueConstructor(
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = instance::class.java.findField(directSetterModel.fieldId.name)
+        val field = directSetterModel.fieldId.declaringClass.jClass.findField(directSetterModel.fieldId.name)
         val isAccessible = field.isAccessible
 
         try {

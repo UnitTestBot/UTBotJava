@@ -3,8 +3,9 @@ package org.utbot.examples.objects
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+
+
 
 internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = HiddenFieldExample::class) {
     @Test
@@ -22,7 +23,7 @@ internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = Hidde
     }
 
     @Test
-    @Disabled("SAT-315 Engine cannot work with hidden fields")
+    //@Disabled("SAT-315 Engine cannot work with hidden fields")
     // Engine translates calls to super.b as calls to succ.b
     fun testCheckSuccField() {
         check(

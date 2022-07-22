@@ -20,6 +20,7 @@ jobs:
         
     - name: Build and run tests in UTBot Java
       run: |
+        export KOTLIN_HOME="/snap/kotlin/current/" 
         gradle clean build --no-daemon
         
     - name: Upload utbot-framework logs

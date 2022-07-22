@@ -1,5 +1,6 @@
 package org.utbot.engine.overrides.collections;
 
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.UtArrayMock;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -378,10 +379,9 @@ public class UtArrayList<E> extends AbstractList<E>
         preconditionCheck();
 
         int size = elementData.end;
-        E[] data = (E[]) new Object[size];
-        for (int i = 0; i < size; i++) {
-            data[i] = elementData.get(i);
-        }
+        final Object[] toArray = elementData.toArray(0, size);
+        UtMock.disableClassCastExceptionCheck(toArray);
+        E[] data = (E[]) toArray;
 
         return new UtStream<>(data, size);
     }

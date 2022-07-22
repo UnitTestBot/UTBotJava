@@ -1,5 +1,6 @@
 package org.utbot.engine.overrides.stream;
 
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
@@ -145,6 +146,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return new UtStream<>((R[]) mapped, size);
     }
 
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
     @Override
     public IntStream mapToInt(ToIntFunction<? super E> mapper) {
         preconditionCheckWithClosingStream();
@@ -152,12 +154,15 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Integer[] data = new Integer[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsInt(elementData.get(i));
+            final Object object = elementData.get(i);
+            UtMock.disableClassCastExceptionCheck(object);
+            data[i] = mapper.applyAsInt((E) object);
         }
 
         return new UtIntStream(data, size);
     }
 
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
     @Override
     public LongStream mapToLong(ToLongFunction<? super E> mapper) {
         preconditionCheckWithClosingStream();
@@ -165,12 +170,15 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Long[] data = new Long[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsLong(elementData.get(i));
+            final Object object = elementData.get(i);
+            UtMock.disableClassCastExceptionCheck(object);
+            data[i] = mapper.applyAsLong((E) object);
         }
 
         return new UtLongStream(data, size);
     }
 
+    @SuppressWarnings({"unchecked", "CastCanBeRemovedNarrowingVariableType"})
     @Override
     public DoubleStream mapToDouble(ToDoubleFunction<? super E> mapper) {
         preconditionCheckWithClosingStream();
@@ -178,7 +186,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         int size = elementData.end;
         Double[] data = new Double[size];
         for (int i = 0; i < size; i++) {
-            data[i] = mapper.applyAsDouble(elementData.get(i));
+            final Object object = elementData.get(i);
+            UtMock.disableClassCastExceptionCheck(object);
+            data[i] = mapper.applyAsDouble((E) object);
         }
 
         return new UtDoubleStream(data, size);

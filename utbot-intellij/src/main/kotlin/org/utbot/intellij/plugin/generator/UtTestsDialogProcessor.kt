@@ -178,15 +178,11 @@ object UtTestsDialogProcessor {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
                                     if (!mockFrameworkInstalled) {
-                                         ForceMockListener(model.conflictTriggers).apply {
-                                             testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
-                                         }
+                                        ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
                                     }
 
                                     if (!model.staticsMocking.isConfigured) {
-                                        ForceStaticMockListener(model.conflictTriggers).apply {
-                                            testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(this) }
-                                        }
+                                        ForceStaticMockListener.create(testCaseGenerator, model.conflictTriggers)
                                     }
 
                                     val notEmptyCases = withUtContext(context) {

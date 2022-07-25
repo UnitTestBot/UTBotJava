@@ -2,6 +2,7 @@ package org.utbot.engine.util.mockListeners
 import org.utbot.engine.EngineController
 import org.utbot.engine.MockStrategy
 import org.utbot.engine.UtMockInfo
+import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.ConflictTriggers
 
@@ -17,5 +18,14 @@ class ForceMockListener(triggers: ConflictTriggers): MockListener(triggers) {
         controller.job?.cancel(ForceMockCancellationException())
 
         triggers[Conflict.ForceMockHappened] = true
+    }
+
+    companion object {
+        fun create(testCaseGenerator: TestCaseGenerator, conflictTriggers: ConflictTriggers) : ForceMockListener {
+            val listener = ForceMockListener(conflictTriggers)
+            testCaseGenerator.engineActions.add { engine -> engine.attachMockListener(listener) }
+
+            return listener
+        }
     }
 }

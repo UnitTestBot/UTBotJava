@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -10,30 +11,10 @@ import org.utbot.framework.codegen.model.constructor.util.get
 import org.utbot.framework.codegen.model.constructor.util.isDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.isNotDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.typeCast
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.util.at
-import org.utbot.framework.codegen.model.util.canBeSetIn
+import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.codegen.model.util.*
 import org.utbot.framework.codegen.model.util.get
-import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
-import org.utbot.framework.codegen.model.util.lessThan
-import org.utbot.framework.codegen.model.util.nullLiteral
-import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -46,17 +27,33 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.field
-import org.utbot.framework.plugin.api.util.findFieldOrNull
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.autoboxIfNeeded
+import org.utbot.jcdb.api.ifArrayGetElementClass
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
+import kotlin.collections.List
+import kotlin.collections.MutableMap
+import kotlin.collections.all
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.filter
+import kotlin.collections.first
+import kotlin.collections.forEach
+import kotlin.collections.getOrPut
+import kotlin.collections.getValue
+import kotlin.collections.iterator
+import kotlin.collections.last
+import kotlin.collections.lastIndex
+import kotlin.collections.map
+import kotlin.collections.mutableListOf
+import kotlin.collections.plusAssign
+import kotlin.collections.set
+import kotlin.collections.singleOrNull
+import kotlin.collections.sortedBy
+import kotlin.collections.toTypedArray
 
 /**
  * Constructs CgValue or CgVariable given a UtModel
@@ -202,22 +199,22 @@ internal class CgVariableConstructor(val context: CgContext) :
      * with direct setting of the value. The reason is that in Kotlin constructors
      * of primitive wrappers are private.
      */
-    private fun cgLiteralForWrapper(params: List<UtModel>): CgLiteral {
+    private fun cgLiteralForWrapper(params: List<UtModel>): CgLiteral = runBlocking {
         val paramModel = params.singleOrNull()
         require(paramModel is UtPrimitiveModel) { "Incorrect param models for primitive wrapper" }
 
-        val classId = wrapperByPrimitive[paramModel.classId]
+        val classId = paramModel.classId.autoboxIfNeeded()
             ?: if (paramModel.classId == stringClassId) {
                 stringClassId
             } else {
                 error("${paramModel.classId} is not a primitive wrapper or a string")
             }
 
-        return CgLiteral(classId, paramModel.value)
+        CgLiteral(classId, paramModel.value)
     }
 
     private fun constructArray(arrayModel: UtArrayModel, baseName: String?): CgVariable {
-        val elementType = arrayModel.classId.elementClassId!!
+        val elementType = arrayModel.classId.ifArrayGetElementClass()!!
         val elementModels = (0 until arrayModel.length).map {
             arrayModel.stores.getOrDefault(it, arrayModel.constModel)
         }

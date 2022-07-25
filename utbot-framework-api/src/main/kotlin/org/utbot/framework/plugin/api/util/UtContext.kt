@@ -1,17 +1,18 @@
 package org.utbot.framework.plugin.api.util
 
+import kotlinx.coroutines.ThreadContextElement
 import org.utbot.common.StopWatch
 import org.utbot.common.currentThreadInfo
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.jcdb.api.ClasspathSet
 import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.ThreadContextElement
 
 val utContext: UtContext
     get() = UtContext.currentContext()
         ?: error("No context is set. Please use `withUtContext() {...}` or `setUtContext().use {...}`. Thread: ${currentThreadInfo()}")
 
 
-class UtContext(val classLoader: ClassLoader) : ThreadContextElement<UtContext?> {
+class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : ThreadContextElement<UtContext?> {
 
     // This StopWatch is used to respect bytecode transforming time while invoking with timeout
     var stopWatch: StopWatch? = null

@@ -1,31 +1,17 @@
 package org.utbot.framework.codegen.model.tree
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.DocClassLinkStmt
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocMethodLinkStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.objectArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
 
 interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
@@ -723,7 +709,7 @@ abstract class CgAbstractFieldAccess : CgReferenceExpression {
     abstract val fieldId: FieldId
 
     override val type: ClassId
-        get() = fieldId.type
+        get() = runBlocking{ fieldId.type() }
 }
 
 class CgFieldAccess(
@@ -734,7 +720,7 @@ class CgFieldAccess(
 class CgStaticFieldAccess(
     override val fieldId: FieldId
 ) : CgAbstractFieldAccess() {
-    val declaringClass: ClassId = fieldId.declaringClass
+    val declaringClass: ClassId = fieldId.classId
     val fieldName: String = fieldId.name
 }
 
@@ -838,7 +824,7 @@ class CgClassId(
     elementClassId: ClassId? = null,
     override val typeParameters: TypeParameters = TypeParameters(),
     override val isNullable: Boolean = true,
-) : ClassId(name, elementClassId) {
+) : (name, elementClassId) {
     constructor(
         classId: ClassId,
         typeParameters: TypeParameters = TypeParameters(),

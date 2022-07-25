@@ -8,48 +8,21 @@
 
 package org.utbot.framework.plugin.api
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
-import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
-import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.findFieldOrNull
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
-import org.utbot.framework.plugin.api.util.voidClassId
-import soot.ArrayType
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.LongType
-import soot.RefType
-import soot.ShortType
-import soot.SootClass
-import soot.Type
-import soot.VoidType
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.ext.findClass
+import org.utbot.jcdb.api.isPrimitive
+import soot.*
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
-import java.lang.reflect.Modifier
 import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
@@ -562,10 +535,15 @@ data class UtStaticMethodInstrumentation(
 ) : UtInstrumentation()
 
 val SootClass.id: ClassId
-    get() = ClassId(name)
+    get() = runBlocking {
+        utContext.classpath.findClass(name)
+    }
 
 val RefType.id: ClassId
-    get() = ClassId(className)
+    get() = runBlocking {
+        utContext.classpath.findClass(className)
+    }
+
 val ArrayType.id: ClassId
     get() {
         val elementId = elementType.classId
@@ -610,188 +588,188 @@ val Type.classId: ClassId
  * [elementClassId] if this class id represents an array class, then this property
  * represents the class id of the array's elements. Otherwise, this property is null.
  */
-open class ClassId @JvmOverloads constructor(
-    val name: String,
-    val elementClassId: ClassId? = null,
-    // Treat simple class ids as non-nullable
-    open val isNullable: Boolean = false
-) {
-
-    open val canonicalName: String
-        get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
-
-    open val simpleName: String get() = jClass.simpleName
-
-    /**
-     * For regular classes this is just a simple name.
-     * For anonymous classes this includes the containing class and numeric indices of the anonymous class.
-     *
-     * Note: according to [java.lang.Class.getCanonicalName] documentation, local and anonymous classes
-     * do not have canonical names, as well as arrays whose elements don't have canonical classes themselves.
-     * In these cases prettified names are constructed using [ClassId.name] instead of [ClassId.canonicalName].
-     */
-    val prettifiedName: String
-        get() {
-            val className = jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
-            return className
-                .substringAfterLast(".")
-                .replace(Regex("[^a-zA-Z0-9]"), "")
-                .let { if (this.isArray) it + "Array" else it }
-        }
-
-    open val packageName: String get() = jClass.`package`?.name ?: "" // empty package for primitives
-
-    open val isInDefaultPackage: Boolean
-        get() = packageName.isEmpty()
-
-    open val isPublic: Boolean
-        get() = Modifier.isPublic(jClass.modifiers)
-
-    open val isProtected: Boolean
-        get() = Modifier.isProtected(jClass.modifiers)
-
-    open val isPrivate: Boolean
-        get() = Modifier.isPrivate(jClass.modifiers)
-
-    val isPackagePrivate: Boolean
-        get() = !(isPublic || isProtected || isPrivate)
-
-    open val isFinal: Boolean
-        get() = Modifier.isFinal(jClass.modifiers)
-
-    open val isStatic: Boolean
-        get() = Modifier.isStatic(jClass.modifiers)
-
-    open val isAbstract: Boolean
-        get() = Modifier.isAbstract(jClass.modifiers)
-
-    open val isAnonymous: Boolean
-        get() = jClass.isAnonymousClass
-
-    open val isLocal: Boolean
-        get() = jClass.isLocalClass
-
-    open val isInner: Boolean
-        get() = jClass.isMemberClass && !isStatic
-
-    open val isNested: Boolean
-        get() = jClass.enclosingClass != null
-
-    open val isSynthetic: Boolean
-        get() = jClass.isSynthetic
-
-    /**
-     * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
-     */
-    open val allMethods: Sequence<MethodId>
-        get() = generateSequence(jClass) { it.superclass }
-            .mapNotNull { it.declaredMethods }
-            .flatMap { it.toList() }
-            .map { it.executableId }
-
-    /**
-     * Collects all declared constructors (including private and protected) from class to sequence
-     */
-    open val allConstructors: Sequence<ConstructorId>
-        get() = jClass.declaredConstructors.asSequence().map { it.executableId }
-
-    open val typeParameters: TypeParameters
-        get() = TypeParameters()
-
-    open val outerClass: Class<*>?
-        get() = jClass.enclosingClass
-
-    /**
-     * For member classes returns a name including
-     * enclosing classes' simple names e.g. `A.B`.
-     *
-     * For other classes returns [simpleName].
-     *
-     * It is needed because [simpleName] for inner classes does not
-     * take into account enclosing classes' names.
-     */
-    open val simpleNameWithEnclosings: String
-        get() {
-            val clazz = jClass
-            return if (clazz.isMemberClass) {
-                "${clazz.enclosingClass.id.simpleNameWithEnclosings}.$simpleName"
-            } else {
-                simpleName
-            }
-        }
-
-    val jvmName: String
-        get() = when {
-            isArray -> "[${elementClassId!!.jvmName}"
-            isPrimitive -> primitiveTypeJvmNameOrNull()!!
-            else -> name.toReferenceTypeBytecodeSignature()
-        }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is ClassId) return false
-
-        return name == other.name
-    }
-
-    override fun hashCode(): Int = name.hashCode()
-
-    override fun toString(): String =
-        if (elementClassId == null) {
-            name
-        } else {
-            "$name, elementClass=${elementClassId}"
-        }
-}
+//open class ClassId @JvmOverloads constructor(
+//    val name: String,
+//    val elementClassId: ClassId? = null,
+//    // Treat simple class ids as non-nullable
+//    open val isNullable: Boolean = false
+//) {
+//
+//    open val canonicalName: String
+//        get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
+//
+//    open val simpleName: String get() = jClass.simpleName
+//
+//    /**
+//     * For regular classes this is just a simple name.
+//     * For anonymous classes this includes the containing class and numeric indices of the anonymous class.
+//     *
+//     * Note: according to [java.lang.Class.getCanonicalName] documentation, local and anonymous classes
+//     * do not have canonical names, as well as arrays whose elements don't have canonical classes themselves.
+//     * In these cases prettified names are constructed using [ClassId.name] instead of [ClassId.canonicalName].
+//     */
+//    val prettifiedName: String
+//        get() {
+//            val className = jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
+//            return className
+//                .substringAfterLast(".")
+//                .replace(Regex("[^a-zA-Z0-9]"), "")
+//                .let { if (this.isArray) it + "Array" else it }
+//        }
+//
+//    open val packageName: String get() = jClass.`package`?.name ?: "" // empty package for primitives
+//
+//    open val isInDefaultPackage: Boolean
+//        get() = packageName.isEmpty()
+//
+//    open val isPublic: Boolean
+//        get() = Modifier.isPublic(jClass.modifiers)
+//
+//    open val isProtected: Boolean
+//        get() = Modifier.isProtected(jClass.modifiers)
+//
+//    open val isPrivate: Boolean
+//        get() = Modifier.isPrivate(jClass.modifiers)
+//
+//    val isPackagePrivate: Boolean
+//        get() = !(isPublic || isProtected || isPrivate)
+//
+//    open val isFinal: Boolean
+//        get() = Modifier.isFinal(jClass.modifiers)
+//
+//    open val isStatic: Boolean
+//        get() = Modifier.isStatic(jClass.modifiers)
+//
+//    open val isAbstract: Boolean
+//        get() = Modifier.isAbstract(jClass.modifiers)
+//
+//    open val isAnonymous: Boolean
+//        get() = jClass.isAnonymousClass
+//
+//    open val isLocal: Boolean
+//        get() = jClass.isLocalClass
+//
+//    open val isInner: Boolean
+//        get() = jClass.isMemberClass && !isStatic
+//
+//    open val isNested: Boolean
+//        get() = jClass.enclosingClass != null
+//
+//    open val isSynthetic: Boolean
+//        get() = jClass.isSynthetic
+//
+//    /**
+//     * Collects all declared methods (including private and protected) from class and all its superclasses to sequence
+//     */
+//    open val allMethods: Sequence<MethodId>
+//        get() = generateSequence(jClass) { it.superclass }
+//            .mapNotNull { it.declaredMethods }
+//            .flatMap { it.toList() }
+//            .map { it.executableId }
+//
+//    /**
+//     * Collects all declared constructors (including private and protected) from class to sequence
+//     */
+//    open val allConstructors: Sequence<ConstructorId>
+//        get() = jClass.declaredConstructors.asSequence().map { it.executableId }
+//
+//    open val typeParameters: TypeParameters
+//        get() = TypeParameters()
+//
+//    open val outerClass: Class<*>?
+//        get() = jClass.enclosingClass
+//
+//    /**
+//     * For member classes returns a name including
+//     * enclosing classes' simple names e.g. `A.B`.
+//     *
+//     * For other classes returns [simpleName].
+//     *
+//     * It is needed because [simpleName] for inner classes does not
+//     * take into account enclosing classes' names.
+//     */
+//    open val simpleNameWithEnclosings: String
+//        get() {
+//            val clazz = jClass
+//            return if (clazz.isMemberClass) {
+//                "${clazz.enclosingClass.id.simpleNameWithEnclosings}.$simpleName"
+//            } else {
+//                simpleName
+//            }
+//        }
+//
+//    val jvmName: String
+//        get() = when {
+//            isArray -> "[${elementClassId!!.jvmName}"
+//            isPrimitive -> primitiveTypeJvmNameOrNull()!!
+//            else -> name.toReferenceTypeBytecodeSignature()
+//        }
+//
+//    override fun equals(other: Any?): Boolean {
+//        if (this === other) return true
+//        if (other !is ClassId) return false
+//
+//        return name == other.name
+//    }
+//
+//    override fun hashCode(): Int = name.hashCode()
+//
+//    override fun toString(): String =
+//        if (elementClassId == null) {
+//            name
+//        } else {
+//            "$name, elementClass=${elementClassId}"
+//        }
+//}
 
 /**
  * By default, we assume that class represented by BuiltinClassId is not nested and package is calculated in this assumption
  * (it is important because name for nested classes contains $ as a delimiter between nested and outer classes)
  */
-class BuiltinClassId(
-    name: String,
-    override val canonicalName: String,
-    override val simpleName: String,
-    // by default we assume that the class is not a member class
-    override val simpleNameWithEnclosings: String = simpleName,
-    override val isNullable: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
-    override val isStatic: Boolean = false,
-    override val isAbstract: Boolean = false,
-    override val isAnonymous: Boolean = false,
-    override val isLocal: Boolean = false,
-    override val isInner: Boolean = false,
-    override val isNested: Boolean = false,
-    override val isSynthetic: Boolean = false,
-    override val allMethods: Sequence<MethodId> = emptySequence(),
-    override val allConstructors: Sequence<ConstructorId> = emptySequence(),
-    override val outerClass: Class<*>? = null,
-    override val packageName: String =
-        when (val index = canonicalName.lastIndexOf('.')) {
-            -1, 0 -> ""
-            else -> canonicalName.substring(0, index)
-        },
-) : ClassId(name = name, isNullable = isNullable) {
-    init {
-        BUILTIN_CLASSES_BY_NAMES[name] = this
-    }
-
-    companion object {
-        /**
-         * Stores all created builtin classes by their names. Useful when we want to create ClassId only from name
-         */
-        // TODO replace ClassId constructor with a factory?
-        val BUILTIN_CLASSES_BY_NAMES: MutableMap<String, BuiltinClassId> = mutableMapOf()
-
-        /**
-         * Returns [BuiltinClassId] if any [BuiltinClassId] was created with such [name], null otherwise
-         */
-        fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
-    }
-}
+//class BuiltinClassId(
+//    name: String,
+//    override val canonicalName: String,
+//    override val simpleName: String,
+//    // by default we assume that the class is not a member class
+//    override val simpleNameWithEnclosings: String = simpleName,
+//    override val isNullable: Boolean = false,
+//    override val isPublic: Boolean = true,
+//    override val isProtected: Boolean = false,
+//    override val isPrivate: Boolean = false,
+//    override val isFinal: Boolean = false,
+//    override val isStatic: Boolean = false,
+//    override val isAbstract: Boolean = false,
+//    override val isAnonymous: Boolean = false,
+//    override val isLocal: Boolean = false,
+//    override val isInner: Boolean = false,
+//    override val isNested: Boolean = false,
+//    override val isSynthetic: Boolean = false,
+//    override val allMethods: Sequence<MethodId> = emptySequence(),
+//    override val allConstructors: Sequence<ConstructorId> = emptySequence(),
+//    override val outerClass: Class<*>? = null,
+//    override val packageName: String =
+//        when (val index = canonicalName.lastIndexOf('.')) {
+//            -1, 0 -> ""
+//            else -> canonicalName.substring(0, index)
+//        },
+//) : ClassId(name = name, isNullable = isNullable) {
+//    init {
+//        BUILTIN_CLASSES_BY_NAMES[name] = this
+//    }
+//
+//    companion object {
+//        /**
+//         * Stores all created builtin classes by their names. Useful when we want to create ClassId only from name
+//         */
+//        // TODO replace ClassId constructor with a factory?
+//        val BUILTIN_CLASSES_BY_NAMES: MutableMap<String, BuiltinClassId> = mutableMapOf()
+//
+//        /**
+//         * Returns [BuiltinClassId] if any [BuiltinClassId] was created with such [name], null otherwise
+//         */
+//        fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
+//    }
+//}
 
 enum class FieldIdStrategyValues {
     Reflection,
@@ -803,60 +781,60 @@ enum class FieldIdStrategyValues {
  *
  * Created to avoid usage String objects as a key.
  */
-open class FieldId(val declaringClass: ClassId, val name: String) {
-
-    object Strategy {
-        var value: FieldIdStrategyValues = FieldIdStrategyValues.Soot
-    }
-
-    private val strategy
-        get() = if (Strategy.value == FieldIdStrategyValues.Soot)
-            FieldIdSootStrategy(declaringClass, this) else FieldIdReflectionStrategy(this)
-
-    open val isPublic: Boolean
-        get() = strategy.isPublic
-
-    open val isProtected: Boolean
-        get() = strategy.isProtected
-
-    open val isPrivate: Boolean
-        get() = strategy.isPrivate
-
-    open val isPackagePrivate: Boolean
-        get() = strategy.isPackagePrivate
-
-    open val isFinal: Boolean
-        get() = strategy.isFinal
-
-    open val isStatic: Boolean
-        get() = strategy.isStatic
-
-    open val isSynthetic: Boolean
-        get() = strategy.isSynthetic
-
-    open val type: ClassId
-        get() = strategy.type
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as FieldId
-
-        if (declaringClass != other.declaringClass) return false
-        if (name != other.name) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = declaringClass.hashCode()
-        result = 31 * result + name.hashCode()
-        return result
-    }
-
-    override fun toString() = declaringClass.findFieldOrNull(name).toString()
-}
+//open class FieldId(val declaringClass: ClassId, val name: String) {
+//
+//    object Strategy {
+//        var value: FieldIdStrategyValues = FieldIdStrategyValues.Soot
+//    }
+//
+//    private val strategy
+//        get() = if (Strategy.value == FieldIdStrategyValues.Soot)
+//            FieldIdSootStrategy(declaringClass, this) else FieldIdReflectionStrategy(this)
+//
+//    open val isPublic: Boolean
+//        get() = strategy.isPublic
+//
+//    open val isProtected: Boolean
+//        get() = strategy.isProtected
+//
+//    open val isPrivate: Boolean
+//        get() = strategy.isPrivate
+//
+//    open val isPackagePrivate: Boolean
+//        get() = strategy.isPackagePrivate
+//
+//    open val isFinal: Boolean
+//        get() = strategy.isFinal
+//
+//    open val isStatic: Boolean
+//        get() = strategy.isStatic
+//
+//    open val isSynthetic: Boolean
+//        get() = strategy.isSynthetic
+//
+//    open val type: ClassId
+//        get() = strategy.type
+//
+//    override fun equals(other: Any?): Boolean {
+//        if (this === other) return true
+//        if (javaClass != other?.javaClass) return false
+//
+//        other as FieldId
+//
+//        if (declaringClass != other.declaringClass) return false
+//        if (name != other.name) return false
+//
+//        return true
+//    }
+//
+//    override fun hashCode(): Int {
+//        var result = declaringClass.hashCode()
+//        result = 31 * result + name.hashCode()
+//        return result
+//    }
+//
+//    override fun toString() = declaringClass.findFieldOrNull(name).toString()
+//}
 
 inline fun <T> withReflection(block: () -> T): T {
     val prevStrategy = FieldId.Strategy.value
@@ -875,17 +853,17 @@ inline fun <T> withReflection(block: () -> T): T {
  * Some properties are passed to the constructor directly in order to
  * avoid using class loader to load a possibly missing class.
  */
-@Suppress("unused")
-class BuiltinFieldId(
-    declaringClass: ClassId,
-    name: String,
-    override val type: ClassId,
-    // by default we assume that the builtin field is public and non-final
-    override val isPublic: Boolean = true,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
-    override val isSynthetic: Boolean = false,
-) : FieldId(declaringClass, name)
+//@Suppress("unused")
+//class BuiltinFieldId(
+//    declaringClass: ClassId,
+//    name: String,
+//    override val type: ClassId,
+//    // by default we assume that the builtin field is public and non-final
+//    override val isPublic: Boolean = true,
+//    override val isPrivate: Boolean = false,
+//    override val isFinal: Boolean = false,
+//    override val isSynthetic: Boolean = false,
+//) : FieldId(declaringClass, name)
 
 sealed class StatementId {
     abstract val classId: ClassId
@@ -902,46 +880,46 @@ class DirectFieldAccessId(
 ) : StatementId()
 
 
-sealed class ExecutableId : StatementId() {
-    abstract override val classId: ClassId
-    abstract override val name: String
-    abstract val returnType: ClassId
-    abstract val parameters: List<ClassId>
-
-    abstract val isPublic: Boolean
-    abstract val isProtected: Boolean
-    abstract val isPrivate: Boolean
-
-    val isPackagePrivate: Boolean
-        get() = !(isPublic || isProtected || isPrivate)
-
-    val signature: String
-        get() {
-            val args = parameters.joinToString(separator = "") { it.jvmName }
-            val retType = returnType.jvmName
-            return "$name($args)$retType"
-        }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as ExecutableId
-
-        if (classId != other.classId) return false
-        if (signature != other.signature) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = classId.hashCode()
-        result = 31 * result + signature.hashCode()
-        return result
-    }
-
-    override fun toString() = "$classId.$name"
-}
+//sealed class ExecutableId : StatementId() {
+//    abstract override val classId: ClassId
+//    abstract override val name: String
+//    abstract val returnType: ClassId
+//    abstract val parameters: List<ClassId>
+//
+//    abstract val isPublic: Boolean
+//    abstract val isProtected: Boolean
+//    abstract val isPrivate: Boolean
+//
+//    val isPackagePrivate: Boolean
+//        get() = !(isPublic || isProtected || isPrivate)
+//
+//    val signature: String
+//        get() {
+//            val args = parameters.joinToString(separator = "") { it.jvmName }
+//            val retType = returnType.jvmName
+//            return "$name($args)$retType"
+//        }
+//
+//    override fun equals(other: Any?): Boolean {
+//        if (this === other) return true
+//        if (javaClass != other?.javaClass) return false
+//
+//        other as ExecutableId
+//
+//        if (classId != other.classId) return false
+//        if (signature != other.signature) return false
+//
+//        return true
+//    }
+//
+//    override fun hashCode(): Int {
+//        var result = classId.hashCode()
+//        result = 31 * result + signature.hashCode()
+//        return result
+//    }
+//
+//    override fun toString() = "$classId.$name"
+//}
 
 /**
  * Method id.
@@ -949,53 +927,53 @@ sealed class ExecutableId : StatementId() {
  * Using extension property 'signature' of this class
  * one can get a signature that identifies method unambiguously
  */
-open class MethodId(
-    override val classId: ClassId,
-    override val name: String,
-    override val returnType: ClassId,
-    override val parameters: List<ClassId>
-) : ExecutableId() {
-    open val isStatic: Boolean
-        get() = Modifier.isStatic(method.modifiers)
-
-    override val isPublic: Boolean
-        get() = Modifier.isPublic(method.modifiers)
-
-    override val isProtected: Boolean
-        get() = Modifier.isProtected(method.modifiers)
-
-    override val isPrivate: Boolean
-        get() = Modifier.isPrivate(method.modifiers)
-}
-
-class ConstructorId(
-    override val classId: ClassId,
-    override val parameters: List<ClassId>
-) : ExecutableId() {
-    override val name: String = "<init>"
-    override val returnType: ClassId = voidClassId
-
-    override val isPublic: Boolean
-        get() = Modifier.isPublic(constructor.modifiers)
-
-    override val isProtected: Boolean
-        get() = Modifier.isProtected(constructor.modifiers)
-
-    override val isPrivate: Boolean
-        get() = Modifier.isPrivate(constructor.modifiers)
-}
-
-class BuiltinMethodId(
-    classId: ClassId,
-    name: String,
-    returnType: ClassId,
-    parameters: List<ClassId>,
-    // by default we assume that the builtin method is non-static and public
-    override val isStatic: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters)
+//open class MethodId(
+//    override val classId: ClassId,
+//    override val name: String,
+//    override val returnType: ClassId,
+//    override val parameters: List<ClassId>
+//) : ExecutableId() {
+//    open val isStatic: Boolean
+//        get() = Modifier.isStatic(method.modifiers)
+//
+//    override val isPublic: Boolean
+//        get() = Modifier.isPublic(method.modifiers)
+//
+//    override val isProtected: Boolean
+//        get() = Modifier.isProtected(method.modifiers)
+//
+//    override val isPrivate: Boolean
+//        get() = Modifier.isPrivate(method.modifiers)
+//}
+//
+//class ConstructorId(
+//    override val classId: ClassId,
+//    override val parameters: List<ClassId>
+//) : ExecutableId() {
+//    override val name: String = "<init>"
+//    override val returnType: ClassId = voidClassId
+//
+//    override val isPublic: Boolean
+//        get() = Modifier.isPublic(constructor.modifiers)
+//
+//    override val isProtected: Boolean
+//        get() = Modifier.isProtected(constructor.modifiers)
+//
+//    override val isPrivate: Boolean
+//        get() = Modifier.isPrivate(constructor.modifiers)
+//}
+//
+//class BuiltinMethodId(
+//    classId: ClassId,
+//    name: String,
+//    returnType: ClassId,
+//    parameters: List<ClassId>,
+//    // by default we assume that the builtin method is non-static and public
+//    override val isStatic: Boolean = false,
+//    override val isPublic: Boolean = true,
+//    override val isProtected: Boolean = false,
+//    override val isPrivate: Boolean = false
+//) : MethodId(classId, name, returnType, parameters)
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 

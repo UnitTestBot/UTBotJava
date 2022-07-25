@@ -1,7 +1,9 @@
 package org.utbot.framework.codegen.model.util
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.util.id
+import kotlinx.coroutines.runBlocking
+import org.utbot.framework.plugin.api.isAccessibleFrom
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.jcdb.api.*
 
 /**
  * For now we will count class accessible if it is:
@@ -12,14 +14,10 @@ import org.utbot.framework.plugin.api.util.id
  *
  * @param packageName name of the package we check accessibility from
  */
-infix fun ClassId.isAccessibleFrom(packageName: String): Boolean {
-    val isOuterClassAccessible = if (isNested) {
-        outerClass!!.id.isAccessibleFrom(packageName)
-    } else {
-        true
-    }
+infix fun ClassId.isAccessibleFrom(packageName: String): Boolean = runBlocking {
+    val isOuterClassAccessible = outerClass()?.isAccessibleFrom(packageName) ?: true
 
-    val isAccessibleFromPackageByModifiers = isPublic || (this.packageName == packageName && (isPackagePrivate || isProtected))
+    val isAccessibleFromPackageByModifiers = isPublic() || (this@isAccessibleFrom.packageName == packageName && (isPackagePrivate() || isProtected()))
 
-    return isOuterClassAccessible && isAccessibleFromPackageByModifiers && !isLocal && !isSynthetic
+    isOuterClassAccessible && isAccessibleFromPackageByModifiers && !isLocal() && !isSynthetic()
 }

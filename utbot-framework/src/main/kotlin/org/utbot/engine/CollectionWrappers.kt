@@ -1,44 +1,25 @@
 package org.utbot.engine
 
 import org.utbot.common.unreachableBranch
-import org.utbot.engine.overrides.collections.AssociativeArray
-import org.utbot.engine.overrides.collections.UtArrayList
-import org.utbot.engine.overrides.collections.UtGenericAssociative
-import org.utbot.engine.overrides.collections.UtGenericStorage
-import org.utbot.engine.overrides.collections.UtHashMap
-import org.utbot.engine.overrides.collections.UtHashSet
-import org.utbot.engine.overrides.collections.UtLinkedList
+import org.utbot.engine.overrides.collections.*
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.util.graph
-import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.util.graph
 import org.utbot.framework.util.nextModelName
-import soot.IntType
-import soot.RefType
-import soot.Scene
-import soot.SootClass
-import soot.SootField
-import soot.SootMethod
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.ifArrayGetElementClass
+import soot.*
 
 abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) : WrapperInterface {
     val overriddenClass: SootClass = Scene.v().getSootClass(overriddenClassName)
@@ -350,7 +331,7 @@ class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
 internal fun constructValues(model: UtModel, size: Int): List<List<UtModel>> = when (model) {
     is UtArrayModel -> List(size) { listOf(model.stores[it] ?: model.constModel) }
     is UtNullModel -> {
-        val elementClassId = model.classId.elementClassId
+        val elementClassId = model.classId.ifArrayGetElementClass()
             ?: error("Class has to have elementClassId: ${model.classId}")
         List(size) { listOf(UtNullModel(elementClassId)) }
     }
@@ -363,9 +344,9 @@ internal fun constructValues(model: UtModel, size: Int): List<List<UtModel>> = w
 private fun constructKeysAndValues(keysModel: UtModel, valuesModel: UtModel, size: Int): List<List<UtModel>> =
     when {
         keysModel is UtNullModel || valuesModel is UtNullModel -> {
-            val keyElementClassId = keysModel.classId.elementClassId
+            val keyElementClassId = keysModel.classId.ifArrayGetElementClass()
                 ?: error("Class has to have elementClassId: ${keysModel.classId}")
-            val valuesElementClassId = valuesModel.classId.elementClassId
+            val valuesElementClassId = valuesModel.classId.ifArrayGetElementClass()
                 ?: error("Class has to have elementClassId: ${valuesModel.classId}")
 
             List(size) { listOf(UtNullModel(keyElementClassId), UtNullModel(valuesElementClassId)) }
@@ -376,7 +357,7 @@ private fun constructKeysAndValues(keysModel: UtModel, valuesModel: UtModel, siz
                     val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id
                     // as we do not support generics for now, valuesModel.classId.elementClassId is unknown,
                     // but it can be known with generics support
-                    val defaultValue = UtNullModel(valuesModel.classId.elementClassId ?: objectClassId)
+                    val defaultValue = UtNullModel(valuesModel.classId.ifArrayGetElementClass() ?: objectClassId)
                     // Missing address means Map precondition check was not traversed fully -
                     // keys were constructed with constraints but values were not.
                     // So, we use default null model for missing value.

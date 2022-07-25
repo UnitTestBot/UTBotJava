@@ -12,6 +12,7 @@ dependencies {
     // TODO do we really need apache commons?
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: commons_lang_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+    api group: 'com.github.UnitTestBot.jcdb', name: 'jcdb-core', version: '84914235e2'
 }
 
 shadowJar {

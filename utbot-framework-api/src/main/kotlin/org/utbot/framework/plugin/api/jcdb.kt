@@ -1,0 +1,110 @@
+package org.utbot.framework.plugin.api
+
+import kotlinx.coroutines.runBlocking
+import org.utbot.jcdb.api.*
+
+val ClassId.isPublic: Boolean
+    get() = runBlocking { isPublic() }
+
+val ClassId.isProtected: Boolean
+    get() = runBlocking { isProtected() }
+
+val ClassId.isPrivate: Boolean
+    get() = runBlocking { isPrivate() }
+
+val ClassId.isFinal: Boolean
+    get() = runBlocking { isFinal() }
+
+val ClassId.isStatic: Boolean
+    get() = runBlocking { isStatic() }
+
+val ClassId.isAbstract: Boolean
+    get() = runBlocking { isAbstract() }
+
+val ClassId.isAnonymous: Boolean
+    get() = runBlocking { isAnonymous() }
+
+val ClassId.isLocalClass: Boolean
+    get() = runBlocking { isLocal() }
+
+val ClassId.isInner: Boolean
+    get() = isNested && !isStatic
+
+val ClassId.isNested: Boolean
+    get() = runBlocking { outerClass() != null }
+
+val ClassId.isSynthetic: Boolean
+    get() = runBlocking { isSynthetic() }
+
+val ClassId.isMemberClass: Boolean
+    get() = runBlocking { isMemberClass() }
+
+val ClassId.superclass: ClassId?
+    get() = runBlocking {
+        superclass()
+    }
+
+val ClassId.methods: List<MethodId>
+    get() {
+        return runBlocking {
+            methods()
+        }
+    }
+
+val ClassId.interfaces: List<ClassId>
+    get() {
+        return runBlocking {
+            interfaces()
+        }
+    }
+
+val ClassId.packageName: String
+    get() {
+        return name.substringBeforeLast(".")
+    }
+
+
+val FieldId.isPublic: Boolean
+    get() = runBlocking { isPublic() }
+
+val FieldId.isProtected: Boolean
+    get() = runBlocking { isProtected() }
+
+val FieldId.isPrivate: Boolean
+    get() = runBlocking { isPrivate() }
+
+val Accessible.isPackagePrivate: Boolean
+    get() = runBlocking { !isPublic() && !isProtected() && !isPrivate() }
+
+val FieldId.isFinal: Boolean
+    get() = runBlocking { isFinal() }
+
+val FieldId.isStatic: Boolean
+    get() = runBlocking { isStatic() }
+
+val FieldId.isSynthetic: Boolean
+    get() = runBlocking { isSynthetic() }
+
+
+/**
+ * we will count item accessible if it is whether public
+ * or package-private inside target package [packageName].
+ *
+ * @param packageName name of the package we check accessibility from
+ */
+suspend fun Accessible.isAccessibleFrom(packageName: String): Boolean {
+    val classId = when (this) {
+        is ClassId -> this
+        is MethodId -> classId
+        is FieldId -> classId
+        else -> throw IllegalStateException("unknown type $this")
+    }
+
+    val isAccessibleFromPackageByModifiers = isPublic() || (classId.packageName == packageName && (isPackagePrivate() || isProtected()))
+
+    return classId.isClassAccessibleFrom(packageName) && isAccessibleFromPackageByModifiers
+}
+
+suspend fun ClassId.isClassAccessibleFrom(packageName: String): Boolean {
+    return isPublic() || (this.packageName == packageName && (isPackagePrivate() || isProtected()))
+}

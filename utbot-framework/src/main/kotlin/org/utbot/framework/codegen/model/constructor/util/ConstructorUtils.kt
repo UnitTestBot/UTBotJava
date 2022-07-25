@@ -1,47 +1,22 @@
 package org.utbot.framework.codegen.model.constructor.util
 
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetClass
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.enclosingClass
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.underlyingType
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.PersistentSet
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.isStatic
+import org.utbot.jcdb.api.isSubtypeOf
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -53,7 +28,7 @@ internal data class EnvironmentFieldStateCache(
             val argumentsCache = Array(execution.stateBefore.parameters.size) { FieldStateCache() }
 
             val staticFields = execution.stateBefore.statics.keys
-            val classesWithStaticFields = staticFields.groupBy { it.declaringClass }.keys
+            val classesWithStaticFields = staticFields.groupBy { it.classId }.keys
             val staticFieldsCache = mutableMapOf<ClassId, FieldStateCache>().apply {
                 for (classId in classesWithStaticFields) {
                     put(classId, FieldStateCache())
@@ -189,7 +164,7 @@ internal fun CgContextOwner.importIfNeeded(type: ClassId) {
 internal fun CgContextOwner.importIfNeeded(method: MethodId) {
     val name = method.name
     val packageName = method.classId.packageName
-    method.takeIf { it.isStatic && packageName != testClassPackageName && packageName != "java.lang" }
+    method.takeIf { it.isStatic() && packageName != testClassPackageName && packageName != "java.lang" }
         .takeIf { importedStaticMethods.none { it.name == name } }
         // do not import method under test in order to specify the declaring class directly for its calls
         .takeIf { currentExecutable != method }

@@ -5,30 +5,8 @@ import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
 import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.field
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.singleExecutableId
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.framework.plugin.api.withReflection
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
@@ -37,8 +15,9 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import org.utbot.jcdb.api.FieldId
 import java.security.ProtectionDomain
-import java.util.IdentityHashMap
+import java.util.*
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -206,7 +185,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     )
 
     private val FieldId.isInaccessibleViaReflection: Boolean
-        get() = (name to declaringClass.name) in inaccessibleViaReflectionFields
+        get() = (name to classId.name) in inaccessibleViaReflectionFields
 
     private fun sortOutException(exception: Throwable): UtExecutionFailure {
         if (exception is TimeoutException) {

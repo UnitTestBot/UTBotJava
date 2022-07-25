@@ -86,14 +86,7 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.*
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {
@@ -594,7 +587,13 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgFieldAccess) {
-        element.caller.accept(this)
+        if (element.caller.type.findFieldOrNull(element.fieldId.name)!!.fieldId != element.fieldId) {
+            print("((${element.fieldId.declaringClass.asString()}) ")
+            element.caller.accept(this)
+            print(")")
+        } else {
+            element.caller.accept(this)
+        }
         print(".")
         print(element.fieldId.name)
     }

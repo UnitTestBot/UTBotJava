@@ -47,12 +47,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
-import org.utbot.framework.plugin.api.util.kClass
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.util.*
 
 //TODO rewrite using KtPsiFactory?
 internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
@@ -121,7 +116,13 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     // Property access
 
     override fun visit(element: CgFieldAccess) {
-        element.caller.accept(this)
+        if (element.caller.type.findFieldOrNull(element.fieldId.name)!!.fieldId != element.fieldId) {
+            print("(")
+            element.caller.accept(this)
+            print(" as ${element.fieldId.declaringClass.asString()})")
+        } else {
+            element.caller.accept(this)
+        }
         renderAccess(element.caller)
         print(element.fieldId.name)
     }

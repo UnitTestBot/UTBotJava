@@ -14,7 +14,6 @@ import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.utbot.common.PathUtil
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
@@ -46,7 +45,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
             }
         }
 
-        val testRoots = model.testModule.suitableTestSourceRoots(CodegenLanguage.JAVA).toMutableList()
+        val testRoots = model.testModule.suitableTestSourceRoots().toMutableList()
         model.testModule.addDedicatedTestRoot(testRoots)
         if (testRoots.isNotEmpty()) {
             configureRootsCombo(testRoots)

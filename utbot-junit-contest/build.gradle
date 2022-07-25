@@ -56,7 +56,6 @@ dependencies {
 
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
     implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.2'
-    implementation group: 'commons-io', name: 'commons-io', version: commons_io_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'org.jsoup', name: 'jsoup', version: '1.6.2'
     testImplementation fileTree(dir: 'src/main/resources/projects/', include: '*/*.jar')

@@ -7,6 +7,7 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Au
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.PythonMethod
+import org.utbot.python.PythonTypesStorage
 
 object ConstantSuggester {
     fun suggestBasedOnConstants(method: PythonMethod, indices: List<Int>): List<List<ClassId>> {
@@ -27,6 +28,7 @@ object ConstantSuggester {
 
     private class MatchVisitor(val paramName: String): ModifierVisitor<MutableCollection<Storage>>() {
 
+        val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
         fun <A, N> namePat(): Parser<A, A, N> = refl(name(equal(paramName)))
         fun <A, N> valuePat(): Parser<(Storage) -> A, A, N> {
             val consts = listOf<Parser<(Storage) -> A, A, N>>(
@@ -40,7 +42,10 @@ object ConstantSuggester {
                 map0(refl(set(drop())), Storage("set")),
                 map0(refl(tuple(drop())), Storage("tuple"))
             )
-            return consts.reduce { acc, elem -> or(acc, elem) }
+            val constructors: List<Parser<(Storage) -> A, A, N>> = knownTypes.map { typeName ->
+                map0(refl(functionCall(name(equal(typeName)), drop())), Storage(typeName))
+            }
+            return (consts + constructors).reduce { acc, elem -> or(acc, elem) }
         }
 
         private fun <N> parseAndPut(

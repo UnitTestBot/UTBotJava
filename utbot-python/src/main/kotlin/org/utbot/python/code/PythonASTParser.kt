@@ -10,6 +10,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 
 sealed class Result<T>
 class Match<T>(val value: T): Result<T>()
@@ -126,6 +127,17 @@ fun <A, B, C> binOp(
             return@Parser Error()
         val x1 = fleft.go(node.left, x)
         go(fright, node.right, x1)
+    }
+
+fun <A, B, C> functionCall(
+    fname: Parser<A, B, Name>,
+    farguments: Parser<B, C, Arguments>
+): Parser<A, C, Atom> =
+    Parser { node, x ->
+        if (!(node.atomElement is Name && node.trailers.size == 1 && node.trailers[0] is Arguments))
+            return@Parser Error()
+        val x1 = fname.go(node.atomElement as Name, x)
+        go(farguments, node.trailers[0] as Arguments, x1)
     }
 
 fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =

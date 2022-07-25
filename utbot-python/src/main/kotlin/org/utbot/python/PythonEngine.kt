@@ -39,6 +39,10 @@ class PythonEngine(
 
         val anyTypeIndices = methodUnderTestDescription.parametersMap[pythonAnyClassId] ?: emptyList()
         val suggestedTypes = suggestBasedOnConstants(methodUnderTest, anyTypeIndices)
+
+        if (suggestedTypes.any { it.isEmpty() })
+            return@sequence
+
         CartesianProduct(suggestedTypes, Random(0L)).forEach { types ->
             val substitutedDescription = substituteTypesByIndex(methodUnderTestDescription, types)
             fuzz(substitutedDescription, concreteTypesModelProvider).forEach { values ->

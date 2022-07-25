@@ -1,0 +1,51 @@
+package org.utbot.framework.concrete
+
+import java.util.IdentityHashMap
+
+/**
+ * Class for getting mock objects in runtime.
+ */
+object MockGetter {
+    data class MockContainer(private val values: List<*>) {
+        private var ptr: Int = 0
+        fun hasNext(): Boolean = ptr < values.size
+        fun nextValue(): Any? = values[ptr++]
+    }
+
+    /**
+     * Instance -> method -> list of values in the return order
+     */
+    @JvmStatic
+    private val mocks = IdentityHashMap<Any?, MutableMap<String, MockContainer>>()
+
+    @JvmStatic
+    private val callSites = HashMap<String, Set<String>>()
+
+    /**
+     * Returns possibility of taking mock object of method with supplied [methodSignature] on an [obj] object.
+     */
+    @JvmStatic
+    fun hasMock(obj: Any?, methodSignature: String): Boolean =
+        mocks[obj]?.get(methodSignature)?.hasNext() ?: false
+
+    /**
+     * Returns the next value for mocked method with supplied [methodSignature] on an [obj] object.
+     *
+     * This function has only to be called from the instrumented bytecode everytime
+     * we need a next value for a mocked method.
+     */
+    @JvmStatic
+    fun getMock(obj: Any?, methodSignature: String): Any? =
+        mocks[obj]?.get(methodSignature).let { container ->
+            container ?: error("Can't get mock container for method [$obj\$$methodSignature]")
+            container.nextValue()
+        }
+
+    /**
+     * Returns current callSites for mocking new instance of [instanceType] contains [callSite] or not
+     */
+    @JvmStatic
+    fun checkCallSite(instanceType: String, callSite: String): Boolean {
+        return callSites.getOrDefault(instanceType, emptySet()).contains(callSite)
+    }
+}

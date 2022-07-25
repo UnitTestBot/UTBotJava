@@ -2,6 +2,7 @@ package org.utbot.instrumentation.instrumentation
 
 import org.utbot.instrumentation.util.Protocol
 import java.lang.instrument.ClassFileTransformer
+import org.utbot.framework.plugin.api.util.UtContext
 
 /**
  * Abstract class for the instrumentation.
@@ -12,6 +13,16 @@ import java.lang.instrument.ClassFileTransformer
  */
 
 interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer {
+    /**
+     * Tells about this instrumentation can work with separate classloaders or not.
+     *
+     * Use [UtContext.classLoader] for invocation functions and constructing objects if the value is true.
+     *
+     * @see Protocol.UseSeparateClassLoadersCommand
+     */
+    val useSeparateClassLoaders: Boolean
+        get() = false
+
     /**
      * Invokes a method with the given [methodSignature], the declaring class of which is [clazz], with the supplied
      * [arguments] and [parameters]. Parameters are additional data, the type of which depends on the specific implementation.

@@ -9,10 +9,6 @@ dependencies {
     // this is necessary for serialization of some collections
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryo_serializers_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
-
-    // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
-    implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
-    implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
 }
 
 jar {

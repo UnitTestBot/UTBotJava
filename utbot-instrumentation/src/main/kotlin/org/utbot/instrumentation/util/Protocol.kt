@@ -2,6 +2,8 @@ package org.utbot.instrumentation.util
 
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
+import org.utbot.instrumentation.classloaders.UserRuntimeClassLoader
+import org.utbot.instrumentation.classloaders.HandlerClassLoader
 
 /**
  * This object represents base commands for interprocess communication.
@@ -57,7 +59,7 @@ object Protocol {
     /**
      * Warmup - load classes from classpath and instrument them
      */
-    class WarmupCommand() : Command()
+    class WarmupCommand : Command()
 
     /**
      * The child process sends this command if unexpected exception was thrown.
@@ -76,13 +78,22 @@ object Protocol {
     class StopProcessCommand : Command()
 
     /**
+     * This command tells the child process use separate ClassLoaders or not.
+     *
+     * User's code instrumenting and invocation will be in separate classloader if [useSeparate] will be true.
+     *
+     * @see UserRuntimeClassLoader
+     * @see HandlerClassLoader
+     */
+    data class UseSeparateClassLoadersCommand(val useSeparate: Boolean) : Command()
+
+    /**
      * [org.utbot.instrumentation.ConcreteExecutor] can send other commands depending on specific instrumentation.
      * This commands will be handled in [Instrumentation.handle] function.
      *
      * Only inheritors of this abstract class will be passed in [Instrumentation.handle] function.
      */
-    abstract class InstrumentationCommand : Protocol.Command()
-
+    abstract class InstrumentationCommand : Command()
 
 }
 

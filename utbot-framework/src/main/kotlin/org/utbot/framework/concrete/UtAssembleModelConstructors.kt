@@ -72,7 +72,9 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
 }
 
 internal fun findUtAssembleModelConstructor(classId: ClassId): UtAssembleModelConstructorBase? =
-    predefinedConstructors[classId.jClass]?.invoke()
+    runCatching { classId.jClass }.getOrNull()?.let { clazz ->
+        predefinedConstructors[clazz]?.invoke()
+    }
 
 internal abstract class UtAssembleModelConstructorBase {
     fun constructAssembleModel(

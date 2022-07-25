@@ -4,6 +4,7 @@ import org.utbot.common.asPathToFile
 import org.utbot.framework.plugin.api.util.UtContext
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
+import org.utbot.instrumentation.classloaders.UserRuntimeClassLoader
 
 /**
  * Transformer, which will transform only classes with certain names.
@@ -24,11 +25,12 @@ class DynamicClassTransformer : ClassFileTransformer {
         protectionDomain: ProtectionDomain,
         classfileBuffer: ByteArray
     ): ByteArray? {
+        if (loader !is UserRuntimeClassLoader) return null
         try {
             UtContext.currentContext()?.stopWatch?.stop()
             val pathToClassfile = protectionDomain.codeSource?.location?.path?.asPathToFile()
             return if (pathToClassfile in pathsToUserClasses ||
-                packsToAlwaysTransform.any(className::startsWith)
+                loader.packsToAlwaysInstrument.any(className.replace('/', '.')::startsWith)
             ) {
                 System.err.println("Transforming: $className")
                 transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
@@ -41,15 +43,6 @@ class DynamicClassTransformer : ClassFileTransformer {
         } finally {
             UtContext.currentContext()?.stopWatch?.start()
         }
-    }
-
-    companion object {
-
-        private val packsToAlwaysTransform = listOf(
-            "org/slf4j",
-            "org/utbot/instrumentation/warmup"
-        )
-
     }
 
 }

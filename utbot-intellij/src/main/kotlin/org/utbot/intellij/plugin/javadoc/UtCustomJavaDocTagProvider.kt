@@ -23,8 +23,10 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
             UtCustomTag.ThrowsException,
         )
 
-    sealed class UtCustomTag(private val name: String) : JavadocTagInfo {
+    sealed class UtCustomTag(private val name: String, private val message: String) : JavadocTagInfo {
         override fun getName(): String = name
+
+        fun getMessage(): String = message
 
         override fun isInline() = false
 
@@ -36,13 +38,13 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
             return element is PsiMethod
         }
 
-        object ClassUnderTest : UtCustomTag("utbot.classUnderTest")
-        object MethodUnderTest : UtCustomTag("utbot.methodUnderTest")
-        object ExpectedResult : UtCustomTag("utbot.expectedResult")
-        object ActualResult : UtCustomTag("utbot.actualResult")
-        object Executes : UtCustomTag("utbot.executes")
-        object Invokes : UtCustomTag("utbot.invokes")
-        object ReturnsFrom : UtCustomTag("utbot.returnsFrom")
-        object ThrowsException : UtCustomTag("utbot.throwsException")
+        object ClassUnderTest : UtCustomTag("utbot.classUnderTest", "Class under test")
+        object MethodUnderTest : UtCustomTag("utbot.methodUnderTest", "Method under test")
+        object ExpectedResult : UtCustomTag("utbot.expectedResult", "Expected result")
+        object ActualResult : UtCustomTag("utbot.actualResult", "Actual result")
+        object Executes : UtCustomTag("utbot.executes", "Executes")
+        object Invokes : UtCustomTag("utbot.invokes", "Invokes")
+        object ReturnsFrom : UtCustomTag("utbot.returnsFrom", "Returns from")
+        object ThrowsException : UtCustomTag("utbot.throwsException", "Throws exception")
     }
 }

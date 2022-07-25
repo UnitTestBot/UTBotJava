@@ -36,6 +36,7 @@
         <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtProjectModelModifier"/>
         <!--Documentation-->
         <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
+        <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>
     </extensions>
 
     <!-- Minimum and maximum build of IDE compatible with the plugin -->

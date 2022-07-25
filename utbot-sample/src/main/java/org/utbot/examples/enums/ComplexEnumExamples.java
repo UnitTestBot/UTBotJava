@@ -2,6 +2,7 @@ package org.utbot.examples.enums;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,8 @@ public class ComplexEnumExamples {
         GREEN,
         BLUE
     }
+
+    private static final Color[] COLOR_VALUES = Color.values();
 
     public int countEqualColors(@NotNull Color a, @NotNull Color b, @NotNull Color c) {
         int equalToA = 1;
@@ -81,5 +84,26 @@ public class ComplexEnumExamples {
 
     public State findState(int code) {
         return State.findStateByCode(code);
+    }
+
+    public Map<Color, Integer> countValuesInArray(@NotNull Color[] colors) {
+        HashMap<Color, Integer> counters = new HashMap<>();
+        for (Color c : colors) {
+            if (c != null) {
+                Integer value = counters.getOrDefault(c, 0);
+                counters.put(c, value + 1);
+            }
+        }
+        return counters;
+    }
+
+    public int countRedInArray(@NotNull Color[] colors) {
+        int count = 0;
+        for (Color c : colors) {
+            if (c == Color.RED) {
+                count++;
+            }
+        }
+        return count;
     }
 }

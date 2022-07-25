@@ -33,4 +33,13 @@ internal class ObjectWithPrimitivesClassTest : UtValueTestCaseChecker(testClass 
             coverage = DoNotCalculate
         )
     }
+
+    @Test
+    fun testToString() {
+        check(
+            ObjectWithPrimitivesClass::toString,
+            eq(1),
+            { r -> r == "ObjectWithPrimitivesClass(valueByDefault = 5, x = 0, y = 0, shortValue = 0, weight = 0.0)}" }
+        )
+    }
 }

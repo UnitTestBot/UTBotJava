@@ -5,6 +5,11 @@ import org.utbot.engine.MemoryUpdate
 import org.utbot.engine.pc.UtBoolExpression
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.toPersistentSet
+import org.utbot.engine.StaticFieldMemoryUpdateInfo
+import org.utbot.engine.UtNamedStore
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.classId
 
 /**
  * Represents appendable-only immutable constraints.

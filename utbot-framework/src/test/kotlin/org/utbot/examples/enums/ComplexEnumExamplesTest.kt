@@ -7,6 +7,7 @@ import org.utbot.examples.FullWithAssumptions
 import org.utbot.examples.enums.ComplexEnumExamples.Color.BLUE
 import org.utbot.examples.enums.ComplexEnumExamples.Color.GREEN
 import org.utbot.examples.enums.ComplexEnumExamples.Color.RED
+import org.utbot.examples.eq
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -21,7 +22,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
 ) {
 
     @Test
-    @Disabled
     fun testReturnColors() {
         check(
             ComplexEnumExamples::returnColors,
@@ -32,7 +32,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
     fun testCopyColors() {
         check(
             ComplexEnumExamples::copyColors,
@@ -44,7 +43,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
     fun testEnumToEnumMapCountValues() {
         check(
             ComplexEnumExamples::enumToEnumMapCountValues,
@@ -56,7 +54,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
     fun testEnumToEnumMapCountKeys() {
         check(
             ComplexEnumExamples::enumToEnumMapCountKeys,
@@ -68,7 +65,6 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
     fun testEnumToEnumMapCountMatches() {
         check(
             ComplexEnumExamples::enumToEnumMapCountMatches,
@@ -91,12 +87,31 @@ class ComplexEnumExamplesTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
     fun testFindState() {
         check(
             ComplexEnumExamples::findState,
             ignoreExecutionsNumber,
             { c, r -> c in setOf(0, 127, 255) && r != null && r.code == c }
+        )
+    }
+
+    @Test
+    fun testCountValuesInArray() {
+        check(
+            ComplexEnumExamples::countValuesInArray,
+            eq(3),
+            { colors, result -> colors.isEmpty() && result != null && result.isEmpty() },
+            { colors, result -> colors.size == 1 && colors[0] == null && result != null && result.isEmpty() },
+            { colors, result -> colors.size == 1 && colors[0] != null && result != null && result[colors[0]] == 1 }
+        )
+    }
+
+    @Test
+    fun testCountRedInArray() {
+        check(
+            ComplexEnumExamples::countRedInArray,
+            eq(3),
+            { colors, result -> colors.count { it == RED } == result }
         )
     }
 }

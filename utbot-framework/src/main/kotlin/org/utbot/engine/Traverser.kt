@@ -497,7 +497,7 @@ class Traverser(
         val declaringClass = field.declaringClass
 
         val updates = if (declaringClass.isEnum) {
-            makeConcreteUpdatesForEnums(fieldId, declaringClass, stmt)
+            makeConcreteUpdatesForEnumsWithStmt(fieldId, declaringClass, stmt)
         } else {
             makeConcreteUpdatesForNonEnumStaticField(field, fieldId, declaringClass, stmt)
         }
@@ -518,13 +518,10 @@ class Traverser(
         return true
     }
 
-    @Suppress("UnnecessaryVariable")
-    private fun makeConcreteUpdatesForEnums(
-        fieldId: FieldId,
-        declaringClass: SootClass,
-        stmt: Stmt
-    ): SymbolicStateUpdate {
-        val type = declaringClass.type
+    private fun makeConcreteUpdatesForEnum(
+        type: RefType,
+        fieldId: FieldId? = null
+    ): Pair<SymbolicStateUpdate, SymbolicValue?> {
         val jClass = type.id.jClass
 
         // symbolic value for enum class itself
@@ -545,7 +542,7 @@ class Traverser(
 
         val (staticFieldUpdates, curFieldSymbolicValueForLocalVariable) = makeEnumStaticFieldsUpdates(
             staticFields,
-            declaringClass,
+            type.sootClass,
             enumConstantSymbolicResultsByName,
             enumConstantSymbolicValues,
             enumClassValue,
@@ -564,14 +561,25 @@ class Traverser(
 
         val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
             initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
-            meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet()
+            meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet(),
+            symbolicEnumValues = enumConstantSymbolicValues.toPersistentList()
         )
 
-        val allUpdates = staticFieldUpdates +
-                nonStaticFieldsUpdates +
-                initializedStaticFieldsMemoryUpdate +
-                createConcreteLocalValueUpdate(stmt, curFieldSymbolicValueForLocalVariable)
+        return Pair(
+            staticFieldUpdates + nonStaticFieldsUpdates + initializedStaticFieldsMemoryUpdate,
+            curFieldSymbolicValueForLocalVariable
+        )
+    }
 
+    @Suppress("UnnecessaryVariable")
+    private fun makeConcreteUpdatesForEnumsWithStmt(
+        fieldId: FieldId,
+        declaringClass: SootClass,
+        stmt: Stmt
+    ): SymbolicStateUpdate {
+        val (enumUpdates, curFieldSymbolicValueForLocalVariable) =
+            makeConcreteUpdatesForEnum(declaringClass.type, fieldId)
+        val allUpdates =  enumUpdates + createConcreteLocalValueUpdate(stmt, curFieldSymbolicValueForLocalVariable)
         return allUpdates
     }
 
@@ -1974,29 +1982,40 @@ class Traverser(
         }
 
     private fun createEnum(type: RefType, addr: UtAddrExpression): ObjectValue {
+
+        fun findOrdinal(type: RefType, addr: UtAddrExpression): PrimitiveValue {
+            val array = memory.findArray(MemoryChunkDescriptor(ENUM_ORDINAL, type, IntType.v()))
+            return array.select(addr).toIntValue()
+        }
+
+        val classId = type.classId
+        var predefinedEnumValues = memory.getSymbolicEnumValues(classId)
+        if (predefinedEnumValues.isEmpty()) {
+            val (enumValuesUpdate, _) = makeConcreteUpdatesForEnum(type)
+            queuedSymbolicStateUpdates += enumValuesUpdate
+            predefinedEnumValues = enumValuesUpdate.memoryUpdates.getSymbolicEnumValues(classId)
+        }
+
         val typeStorage = typeResolver.constructTypeStorage(type, useConcreteType = true)
-
-        // Add "singleton" values for each enum value.
-        // E.g., if we have an enum like `public enum MyEnum { A, B, C }`,
-        // we should have 3 objects (addrA -> MyEnum.A, addrB -> MyEnum.B, addrC -> MyEnum.C)
-        // before we create any "real" value of that type.
-        //
-        // (We probably should have some kind of storage in `Memory` so we don't create duplicates for these
-        // predefined objects).
-
-        // When we create an instance for the enum, we add the following disjunction as the hard constraint:
-        // (addr == addrA && ordinal(addr) == ordinal(addrA)) ||
-        // (addr == addrB && ordinal(addr) == ordinal(addrB)) ||
-        // (addr == addrC && ordinal(addr) == ordinal(addrC))
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 
-        val array = memory.findArray(MemoryChunkDescriptor(ENUM_ORDINAL, type, IntType.v()))
-        val ordinal = array.select(addr).toIntValue()
+        val ordinal = findOrdinal(type, addr)
         val enumSize = classLoader.loadClass(type.sootClass.name).enumConstants.size
 
         queuedSymbolicStateUpdates += mkOr(Ge(ordinal, 0), addrEq(addr, nullObjectAddr)).asHardConstraint()
         queuedSymbolicStateUpdates += mkOr(Lt(ordinal, enumSize), addrEq(addr, nullObjectAddr)).asHardConstraint()
+
+        val enumValueConstraints = mkOr(
+            predefinedEnumValues.map {
+                mkAnd(
+                    addrEq(addr, it.addr),
+                    mkEq(ordinal, findOrdinal(it.type, it.addr))
+                )
+            }
+        )
+
+        queuedSymbolicStateUpdates += mkOr(enumValueConstraints).asHardConstraint()
 
         touchAddress(addr)
 

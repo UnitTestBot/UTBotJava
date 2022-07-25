@@ -223,6 +223,15 @@ object FileUtil {
         this.parentFile.mkdirs()
         this.createNewFile()
     }
+
+    // https://stackoverflow.com/a/68822715
+    fun byteCountToDisplaySize(bytes: Long): String =
+        when {
+            bytes >= 1 shl 30 -> "%.1f GB".format(bytes / (1 shl 30))
+            bytes >= 1 shl 20 -> "%.1f MB".format(bytes / (1 shl 20))
+            bytes >= 1 shl 10 -> "%.0f kB".format(bytes / (1 shl 10))
+            else -> "$bytes bytes"
+        }
 }
 
 /**

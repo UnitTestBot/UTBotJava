@@ -1,15 +1,20 @@
 package org.utbot.intellij.plugin.util
 
+import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Computable
 import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.javaType
 
-fun MemberInfo.signature(): Signature =
-    (this.member as PsiMethod).signature()
+fun MemberInfo.signature(project: Project): Signature =
+    DumbService.getInstance(project).runReadActionInSmartMode(Computable {
+        (this.member as PsiMethod).signature()
+    })
 
-fun PsiMethod.signature() =
+private fun PsiMethod.signature() =
     Signature(this.name, this.parameterList.parameters.map {
         it.type.canonicalText
             .replace("...", "[]") //for PsiEllipsisType

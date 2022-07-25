@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 
-data class PythonArgument(val name: String, val type: ClassId?)
+data class PythonArgument(val name: String, val type: ClassId)
 
 interface PythonMethod {
     val name: String

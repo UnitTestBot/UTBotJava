@@ -233,6 +233,8 @@ class PythonDefaultModel(val repr: String, val type: String): PythonModel(ClassI
     override fun toString() = repr
 }
 
+val pythonAnyClassId = ClassId("Any")
+
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {

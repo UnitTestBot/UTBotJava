@@ -2,6 +2,7 @@ package org.utbot.python
 
 import com.beust.klaxon.Klaxon
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.code.PythonCodeGenerator
 import java.io.File
 
 

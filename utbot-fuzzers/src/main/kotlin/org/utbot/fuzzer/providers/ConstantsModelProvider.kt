@@ -1,6 +1,7 @@
 package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
@@ -8,6 +9,7 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import java.math.BigInteger
 
 /**
  * Traverses through method constants and creates appropriate models for them.
@@ -17,7 +19,7 @@ object ConstantsModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
-            .filter { (classId, _) -> classId.isPrimitive }
+            .filter { (classId, _) -> classId.isPrimitive || classId == BigInteger::class.id }
             .forEach { (_, value, op) ->
                 sequenceOf(
                     UtPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
@@ -44,6 +46,7 @@ object ConstantsModelProvider : ModelProvider {
             is Long -> value + multiplier.toLong()
             is Float -> value + multiplier.toDouble()
             is Double -> value + multiplier.toDouble()
+            is BigInteger -> value + multiplier.toBigInteger()
             else -> null
         }?.let { UtPrimitiveModel(it).fuzzed { summary = "%var% ${
             (if (op == FuzzedOp.EQ || op == FuzzedOp.LE || op == FuzzedOp.GE) {

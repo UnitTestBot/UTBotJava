@@ -16,10 +16,10 @@ import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
-import org.utbot.python.PythonCode
-import org.utbot.python.PythonCode.Companion.getFromString
-import org.utbot.python.PythonCodeGenerator.generateTestCode
-import org.utbot.python.PythonCodeGenerator.saveToFile
+import org.utbot.python.code.PythonCode
+import org.utbot.python.code.PythonCode.Companion.getFromString
+import org.utbot.python.code.PythonCodeGenerator.generateTestCode
+import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
 

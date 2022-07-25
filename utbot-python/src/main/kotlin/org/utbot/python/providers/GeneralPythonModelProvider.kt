@@ -5,7 +5,7 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.ModelProvider
 
-val PythonModelProvider = ModelProvider.of(JavaModelProvider, DefaultValuesModelProvider)
+val concreteTypesModelProvider = ModelProvider.of(JavaModelProvider, DefaultValuesModelProvider)
 
 fun substituteType(description: FuzzedMethodDescription, typeMap: Map<ClassId, ClassId>): FuzzedMethodDescription {
     val newReturnType = typeMap[description.returnType] ?: description.returnType
@@ -20,4 +20,13 @@ fun substituteType(description: FuzzedMethodDescription, typeMap: Map<ClassId, C
     }
 
     return FuzzedMethodDescription(description.name, newReturnType, newParameters, newConcreteValues)
+}
+
+fun substituteTypesByIndex(description: FuzzedMethodDescription, newTypes: List<ClassId>): FuzzedMethodDescription {
+    return FuzzedMethodDescription(
+        description.name,
+        description.returnType,
+        newTypes,
+        description.concreteValues
+    )
 }

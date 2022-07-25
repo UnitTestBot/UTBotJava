@@ -1,19 +1,11 @@
 package org.utbot.intellij.plugin.python
 
-import org.utbot.python.PythonCode
-import org.utbot.python.PythonCode.Companion.getFromString
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.module.Module
-import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.jetbrains.python.psi.*
-import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
-import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
-import org.jetbrains.kotlin.idea.util.module
-import java.nio.charset.StandardCharsets
 
 
 object PythonActionMethods {

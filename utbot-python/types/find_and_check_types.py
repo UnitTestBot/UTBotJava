@@ -129,12 +129,7 @@ def find_all_types(code, test_module_path):
     print(all_classes)
     return all_classes
 
-
-def main(test_module_path, function_name):
-    with open(test_module_path, 'r') as fin:
-        code = ''.join(fin.readlines())
-    print(code)
-
+def check_annotations(code, test_module_path, function_name, actual_annotations):
     current_annotations = {
         arg.arg: arg.annotation
         for arg in find_function_arguments(code, function_name)
@@ -143,19 +138,6 @@ def main(test_module_path, function_name):
         1 for arg, annotation in current_annotations.items()
         if annotation is None
     )
-
-    all_classes = find_all_types(code, test_module_path[:-3])
-
-    actual_annotations = [
-        annotation for annotation in all_classes
-        if all([err not in annotation for err in [
-            'Error', 'Exit', 'Warning', 'StopIteration',
-            'StopAsyncIteration', 'KeyboardInterrupt', 
-            'staticmethod', 'property', 'type', 'super',
-            '._',
-        ]])
-    ]
-    print(len(actual_annotations))
 
     default_res = run_mypy(code)
     print(default_res)
@@ -194,6 +176,86 @@ def main(test_module_path, function_name):
     report(test_module_path, function_name, code, good_types, f'{test_module_path}_{function_name}_report.txt')
 
 
+from parser import *
+import functools
+
+def get_const_from_node(arg_name, node):
+    name_pat = name(equal(arg_name))
+
+    const_pat = map1(const(apply_()), type)
+    list_pat = map0(list_(), list)
+    tuple_pat = map0(tuple_(), tuple)
+    set_pat = map0(set_(), set)
+    dict_pat = map0(dict_(), dict)
+    values = [const_pat, list_pat, tuple_pat, set_pat, dict_pat]
+    val_pat = functools.reduce(or_, values, reject())
+
+    assign_pat = assign(
+                   ftargets=any_(name_pat),
+                   fvalue=val_pat)
+    aug_assign_pat = aug_assign(
+                       ftarget=name_pat,
+                       fvalue=val_pat)
+    bin_op_pat = or_(
+                   bin_op(fleft=name_pat, fright=val_pat),
+                   bin_op(fleft=val_pat, fright=name_pat))
+    compare_pat = or_(
+                    compare_(fleft=name_pat, fcomparators=any_(val_pat)),
+                    compare_(fleft=val_pat, fcomparators=any_(name_pat)))
+
+    patterns = [assign_pat, aug_assign_pat, bin_op_pat, compare_pat]
+    pattern = functools.reduce(or_, patterns, reject())
+    return parse(pattern, none, node, id_)
+    
+
+def find_types_for_arg(code, arg_name):
+    class MyVisitor(ast.NodeVisitor):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.types = set()
+
+        def visit(self, node):
+            cur_node_const = get_const_from_node(arg_name, node)
+            if cur_node_const != None:
+                self.types.add(cur_node_const)
+            return super().visit(node)
+
+    root = ast.parse(code)
+    visitor = MyVisitor()
+    visitor.visit(root)
+    return visitor.types
+
+
+def find_type_by_constants(code, function_name):
+    arg_names = [arg.arg for arg in find_function_arguments(code, function_name)]
+    for arg_name in arg_names:
+        print(find_types_for_arg(code, arg_name))
+
+
+def main(test_module_path, function_name):
+    with open(test_module_path, 'r') as fin:
+        code = ''.join(fin.readlines())
+    print(code)
+
+    find_type_by_constants(code, function_name)
+
+    """
+    all_classes = find_all_types(code, test_module_path[:-3])
+    actual_annotations = [
+        annotation for annotation in all_classes
+        if all([err not in annotation for err in [
+            'Error', 'Exit', 'Warning', 'StopIteration',
+            'StopAsyncIteration', 'KeyboardInterrupt', 
+            'staticmethod', 'property', 'type', 'super',
+            '._',
+        ]])
+    ]
+    print(len(actual_annotations))
+
+    check_annotations(code, test_module_path, function_name, actual_annotations)
+    """
+    
+
 def report(filename, function_name, code, good_types, output):
     with open(output, 'w') as fout:
         print(f'File: {filename}', file=fout)
@@ -203,4 +265,4 @@ def report(filename, function_name, code, good_types, output):
 
 
 if __name__ == '__main__':
-    main('test5.py', 'f')
+    main('test_module.py', 'f')

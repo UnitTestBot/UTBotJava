@@ -1,5 +1,6 @@
 package org.utbot.fuzzer.providers
 
+import org.utbot.framework.plugin.api.PythonStrModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription

@@ -7,6 +7,13 @@
     ]
   },
   {
+  "name": "NoneType",
+  "useAsReturn": true,
+  "instances": [
+    "None"
+  ]
+},
+  {
     "name": "bool",
     "useAsReturn": true,
     "instances": [

@@ -95,7 +95,7 @@ private fun generateExecutionTags(executions: List<UtExecution>, splitSteps: Spl
  * @return clustered executions
  */
 private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
-    val methodExecutions = testSet.executions.filter { it.path.isNotEmpty() }
+    val methodExecutions = testSet.executions
     val clusters = mutableListOf<ExecutionCluster>()
     val commentPostfix = "for method ${testSet.method.displayName}"
 

@@ -8,6 +8,7 @@ import com.esotericsoftware.kryo.io.Output
 import com.esotericsoftware.kryo.serializers.JavaSerializer
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy
 import com.jetbrains.rd.framework.impl.RdSignal
+import com.jetbrains.rd.framework.util.startChildAsync
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import com.jetbrains.rd.util.reactive.IScheduler
@@ -15,6 +16,9 @@ import de.javakaffee.kryoserializers.GregorianCalendarSerializer
 import de.javakaffee.kryoserializers.JdkProxySerializer
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.receiveOrNull
+import kotlinx.coroutines.runBlocking
 import org.objenesis.instantiator.ObjectInstantiator
 import org.objenesis.strategy.StdInstantiatorStrategy
 import org.utbot.framework.plugin.api.TimeoutException
@@ -36,37 +40,37 @@ class KryoHelper internal constructor(
     private val doLog: (() -> String) -> Unit = { _ -> }
 ) {
     private val outputBuffer = ByteArrayOutputStream()
-    private val queue = LinkedBlockingQueue<ByteArray>()
+    private val queue = Channel<ByteArray>(Channel.UNLIMITED)
     private var lastInputStream = ByteArrayInputStream(ByteArray(0))
-    private val kryoInput = object : Input(1024 * 1024) {
-        override fun fill(buffer: ByteArray, offset: Int, count: Int): Int {
-            var already = 0
+    private val kryoInput: Input = object : Input(1024 * 1024) {
+        override fun fill(buffer: ByteArray, offset: Int, count: Int): Int = runBlocking {
+            this.startChildAsync(parent) {
+                var already = 0
 
-            while (already < count) {
-                val readed = lastInputStream.read(buffer, offset + already, count - already)
+//                while (already < count) {
+                    val readed = lastInputStream.read(buffer, offset + already, count - already)
 
-                if (readed == -1) {
-                    parent.throwIfNotAlive()
+                    if (readed == -1) {
+                        val lastReceived =
+                            queue.receiveOrNull() ?: return@startChildAsync already // todo child process might not die?
 
-                    val lastReceived = queue.poll() // todo sleep?
-                        ?: return already
+                        lastInputStream = lastReceived.inputStream()
 
-                    lastInputStream = lastReceived.inputStream()
+//                        continue
+                    } else {
+                        already += readed
+                    }
+//                }
 
-                    continue
-                } else {
-                    already += readed
-                }
-            }
-
-            return already
+                return@startChildAsync already
+            }.await()
         }
     }
 
     init {
         inputSignal.advise(parent) { byteArray ->
             doLog { "received chunk: size - ${byteArray.size}, hash - ${byteArray.contentHashCode()}" }
-            queue.put(byteArray)
+            queue.offer(byteArray)
         }
         parent.onTermination {
             close()
@@ -111,11 +115,9 @@ class KryoHelper internal constructor(
             parent.throwIfNotAlive()
             doLog { "sending chunk: size - ${toSend.size}, hash - ${toSend.contentHashCode()}" }
             outputSignal.fire(toSend)
-        }
-        catch (e: CancellationException) {
+        } catch (e: CancellationException) {
             throw e
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             throw WritingToKryoException(e)
         } finally {
             kryoOutput.reset()
@@ -136,11 +138,9 @@ class KryoHelper internal constructor(
         try {
             parent.throwIfNotAlive()
             ReceivedCommand(readLong(), receiveKryo.readClassAndObject(kryoInput) as Protocol.Command)
-        }
-        catch (e: CancellationException) {
+        } catch (e: CancellationException) {
             throw e
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             throw ReadingFromKryoException(e)
         }
 

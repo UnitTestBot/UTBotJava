@@ -1,5 +1,6 @@
 package org.utbot.instrumentation
 
+import com.jetbrains.rd.util.AtomicInteger
 import com.jetbrains.rd.util.catch
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
@@ -100,6 +101,12 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     private val childProcessRunner = ChildProcessRunner()
 
     companion object {
+        private val sendTimestamp = AtomicInteger()
+        private val receiveTimeStamp = AtomicInteger()
+        val lastSendTimeMs: Int
+            get() = AtomicInteger().get()
+        val lastReceiveTimeMs: Int
+            get() = AtomicInteger().get()
         val defaultPool = ConcreteExecutorPool()
         var defaultPathsToDependencyClasses = ""
 

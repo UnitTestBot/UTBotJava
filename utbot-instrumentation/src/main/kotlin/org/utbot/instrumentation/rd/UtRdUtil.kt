@@ -46,7 +46,7 @@ object UtRdUtil {
         )
     }
 
-    fun startUtProcessWithRdServer(
+    suspend fun startUtProcessWithRdServer(
         parent: Lifetime? = null,
         factory: (Int) -> Process
     ): ProcessWithRdServer {

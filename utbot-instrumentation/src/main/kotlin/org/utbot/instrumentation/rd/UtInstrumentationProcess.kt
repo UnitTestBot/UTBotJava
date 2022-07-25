@@ -1,5 +1,7 @@
 package org.utbot.instrumentation.rd
 
+import com.jetbrains.rd.framework.base.static
+import com.jetbrains.rd.framework.impl.RdSignal
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.isAlive
 import kotlinx.coroutines.*
@@ -8,6 +10,8 @@ import org.utbot.common.*
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.util.*
+import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListMap
 import kotlin.concurrent.thread
@@ -17,10 +21,11 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
 private val logger = KotlinLogging.logger("UtInstrumentationProcess")
+private const val fileWaitTimeoutMillis = 10L
 
 /**
  * Main goals of this class:
- * 1. prepare started child process for execution - sending paths and instrumentation
+ * 1. prepare started child process for execution - initializing rd, sending paths and instrumentation
  * 2. communicate with child process, i.e. send and receive messages
  *
  * facts
@@ -29,9 +34,6 @@ private val logger = KotlinLogging.logger("UtInstrumentationProcess")
  * also removes orphaned continuation on termination
  * 3. child process operations are executed consequently and must always return exactly one answer command
  * 4. if process is dead - it always throws CancellationException on any operation
- */
-
-/**
  * do not allow to obtain dead process, return newly restart instance it if terminated
  *
  * there are 2 ways of communicating with process
@@ -39,6 +41,7 @@ private val logger = KotlinLogging.logger("UtInstrumentationProcess")
  *      - operation can be executed only and if only previous operation was completed
  *      - process cannot be obtained until any operation is executing
  *
+ * -------------------------------------------------------------------
  * 2. optimistic
  *      - process can be obtained if it's lifetime.isAlive
  *      - operations are always sent
@@ -57,6 +60,7 @@ private val logger = KotlinLogging.logger("UtInstrumentationProcess")
  * NOTE: we first register and then send!
  * then there will in separate process read everything and then resume callback
  * and pessimitic locking is solved in concrete executor
+ * -------------------------------------------------------------------
  *
  *
  * 3. may be we need process acknowledgement of operation -
@@ -66,17 +70,59 @@ private val logger = KotlinLogging.logger("UtInstrumentationProcess")
  * 7. operations executed in FIFO - command-answer | command-answer, so if child process is busy
  */
 class UtInstrumentationProcess private constructor(
-    parent: Lifetime,
     private val classLoader: ClassLoader?,
     private val rdProcess: ProcessWithRdServer
 ) : ProcessWithRdServer by rdProcess {
     private var lastSent = 0L
     private var lastReceived = 0L
     private val callbacks: ConcurrentMap<Long, Continuation<Protocol.Command>> = ConcurrentSkipListMap()
-    private val kryoHelper =
-        KryoHelper(rdProcess.lifetime, rdProcess.protocol.scheduler, rdProcess.fromProcess, rdProcess.toProcess) { logger.info(it) }.apply {
+    private val toProcess = RdSignal<ByteArray>().static(1).apply { async = true }
+    private val fromProcess = RdSignal<ByteArray>().static(2).apply { async = true }
+
+    suspend fun init(): UtInstrumentationProcess {
+        lifetime.usingNested { operation ->
+            val bound = CompletableDeferred<Boolean>()
+
+            protocol.scheduler.invokeOrQueue {
+                toProcess.bind(lifetime, protocol, "mainInputSignal")
+                fromProcess.bind(lifetime, protocol, "mainOutputSignal")
+                bound.complete(true)
+            }
+            operation.onTermination { bound.cancel() }
+            bound.await()
+        }
+        processSyncDirectory.mkdirs()
+
+        val syncFile = File(processSyncDirectory, "$pid.created")
+
+        while (lifetime.isAlive) {
+            if (Files.deleteIfExists(syncFile.toPath()))
+                break
+
+            delay(fileWaitTimeoutMillis)
+        }
+
+        lifetime.onTermination {
+            if (syncFile.exists()) {
+                syncFile.delete()
+            }
+        }
+        kryoHelper = KryoHelper(
+            rdProcess.lifetime,
+            rdProcess.protocol.scheduler,
+            fromProcess,
+            toProcess
+        ) { logger.info(it) }.apply {
             classLoader?.let { setKryoClassLoader(it) }
         }
+
+        receiver.start()
+
+        return this
+    }
+
+    private val receiver: Thread
+    private lateinit var kryoHelper: KryoHelper
 
     companion object {
         suspend operator fun <TIResult, TInstrumentation : Instrumentation<TIResult>> invoke(
@@ -85,18 +131,17 @@ class UtInstrumentationProcess private constructor(
             instrumentation: TInstrumentation,
             pathsToUserClasses: String,
             pathsToDependencyClasses: String,
-            classLoader: ClassLoader?,
-            rdProcess: ProcessWithRdServer = UtRdUtil.startUtProcessWithRdServer(
+            classLoader: ClassLoader?
+        ): UtInstrumentationProcess {
+            val rdProcess: ProcessWithRdServer = UtRdUtil.startUtProcessWithRdServer(
                 parent = parent
             ) {
                 childProcessRunner.start(it)
             }
-        ): UtInstrumentationProcess {
             val proc = UtInstrumentationProcess(
-                parent,
                 classLoader,
                 rdProcess
-            )
+            ).init()
             proc.lifetime.onTermination {
                 logger.info { "process is terminating" }
             }
@@ -201,8 +246,8 @@ class UtInstrumentationProcess private constructor(
     }
 
     init {
-        val receiver =
-            thread(name = "UtInstrumentationProcess-${rdProcess.pid}-receiver", isDaemon = true, start = true) {
+        receiver =
+            thread(name = "UtInstrumentationProcess-${rdProcess.pid}-receiver", isDaemon = true, start = false) {
                 while (lifetime.isAlive) {
                     try {
                         val (commandId, command) = kryoHelper.readCommand()

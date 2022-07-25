@@ -88,10 +88,8 @@ fun main(args: Array<String>): Unit = Lifetime.using { lifetime ->
 
     val pid = currentProcessPid
 
-
-
     lifetime += { logInfo { "terminating lifetime" } }
-    initiate(lifetime, port, pid)
+    initiate(lifetime, port, pid.toInt())
 }
 
 fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({

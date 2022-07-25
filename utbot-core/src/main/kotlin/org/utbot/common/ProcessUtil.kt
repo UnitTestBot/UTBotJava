@@ -30,17 +30,19 @@ val Process.pid : Long get() = try {
 private interface CLibrary : Library {
     fun getpid(): Int
 
+    fun kill(pid: Int, signal: Int): Int
+
     companion object {
-        val INSTANCE = Native.loadLibrary("c", CLibrary::class.java) as CLibrary
+        val INSTANCE = Native.load("c", CLibrary::class.java) as CLibrary
     }
 }
 
 private val os = System.getProperty("os.name").toLowerCase()
 val isWindows = os.startsWith("windows")
 val isUnix = !isWindows
-val isMacOs = os.startsWith("mac")
+val isMac = os.startsWith("mac")
 
-val currentProcessPid: Int get() = try {
+val currentProcessPid: Long get() = try {
     if (isWindows) {
         Kernel32.INSTANCE.GetCurrentProcessId()
     } else {
@@ -49,6 +51,30 @@ val currentProcessPid: Int get() = try {
 }
 catch (e: Throwable) {
     -1
+}.toLong()
+
+fun Process.kill(killChildren: Boolean = false): Boolean {
+    try {
+        val id = pid
+
+        if (isWindows) {
+            val taskkill = listOf("taskkill", "/f", "/pid", id.toString(), if (killChildren) "/t" else "")
+
+            ProcessBuilder(taskkill).start().waitFor()
+        } else {
+            if (killChildren) {
+                TODO("this is hard at java8, need /bin/ps with format, different arguments for linux & macos, output parsing\n" +
+                        "at java 9+ we have ProcessHandle that can return process list and process descendants\n" +
+                        "hope this won't be needed until we move to java9+")
+            }
+            CLibrary.INSTANCE.kill(id.toInt(), 9)
+        }
+
+        return isAlive
+    }
+    catch (e: Throwable) {
+        return false
+    }
 }
 
 fun getCurrentProcessId() =

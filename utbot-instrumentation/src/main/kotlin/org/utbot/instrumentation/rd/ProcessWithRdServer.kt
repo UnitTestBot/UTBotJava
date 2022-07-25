@@ -1,18 +1,15 @@
 package org.utbot.instrumentation.rd
 
 import com.jetbrains.rd.framework.Protocol
-import com.jetbrains.rd.framework.base.static
-import com.jetbrains.rd.framework.impl.RdSignal
 import com.jetbrains.rd.framework.serverPort
 import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.util.lifetime.Lifetime
-import com.jetbrains.rd.util.lifetime.isAlive
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.coroutineScope
 import org.utbot.common.utBotTempDirectory
 import java.io.File
-import java.nio.file.Files
-import java.util.concurrent.CountDownLatch
 
-fun Process.withRdServer(
+suspend fun Process.withRdServer(
     parent: Lifetime? = null,
     serverFactory: (Lifetime) -> Protocol
 ): ProcessWithRdServer {
@@ -21,7 +18,7 @@ fun Process.withRdServer(
     }
 }
 
-fun LifetimedProcess.withRdServer(
+suspend fun LifetimedProcess.withRdServer(
     serverFactory: (Lifetime) -> Protocol
 ): ProcessWithRdServer {
     return ProcessWithRdServerImpl(this) {
@@ -29,7 +26,7 @@ fun LifetimedProcess.withRdServer(
     }
 }
 
-fun startProcessWithRdServer(
+suspend fun startProcessWithRdServer(
     cmd: List<String>,
     parent: Lifetime? = null,
     serverFactory: (Lifetime) -> Protocol
@@ -39,7 +36,7 @@ fun startProcessWithRdServer(
     return ProcessWithRdServerImpl(child, serverFactory)
 }
 
-fun startProcessWithRdServer(
+suspend fun startProcessWithRdServer(
     processFactory: (Int) -> Process,
     parent: Lifetime? = null,
     serverFactory: (Int, Lifetime) -> Protocol
@@ -51,7 +48,7 @@ fun startProcessWithRdServer(
     }
 }
 
-fun startProcessWithRdServer2(
+suspend fun startProcessWithRdServer2(
     cmd: (Int) -> List<String>,
     parent: Lifetime? = null,
     serverFactory: (Int, Lifetime) -> Protocol
@@ -79,56 +76,31 @@ interface ProcessWithRdServer : LifetimedProcess {
     val protocol: Protocol
     val port: Int
         get() = protocol.wire.serverPort
-    val toProcess: RdSignal<ByteArray>
-    val fromProcess: RdSignal<ByteArray>
 }
 
-class ProcessWithRdServerImpl(
+class ProcessWithRdServerImpl private constructor(
     private val child: LifetimedProcess,
     serverFactory: (Lifetime) -> Protocol
 ) : ProcessWithRdServer, LifetimedProcess by child {
     override val protocol = serverFactory(lifetime)
-    override val toProcess = RdSignal<ByteArray>().static(1).apply { async = true }
-    override val fromProcess = RdSignal<ByteArray>().static(2).apply { async = true }
 
-    init {
-        lifetime.bracketIfAlive({
-            lifetime.usingNested {
-                val latch = CountDownLatch(1)
+    companion object {
+        suspend operator fun invoke(
+            child: LifetimedProcess, serverFactory: (Lifetime) -> Protocol
+        ): ProcessWithRdServerImpl = coroutineScope {
+            ProcessWithRdServerImpl(child, serverFactory).apply {
+                lifetime.usingNested { operation ->
+                    val def = CompletableDeferred<Boolean>()
 
-                it.onTermination {
-                    latch.countDown()
-                }
-                protocol.wire.connected.advise(it) { isConnected ->
-                    if (isConnected) {
-                        latch.countDown()
+                    protocol.wire.connected.advise(operation) { isConnected ->
+                        if (isConnected) {
+                            def.complete(true)
+                        }
                     }
+
+                    operation.onTermination { def.cancel() }
+                    def.await()
                 }
-                latch.await()// todo coroutines
-            }
-
-            val bound = CountDownLatch(1)
-
-            protocol.scheduler.invokeOrQueue {
-                toProcess.bind(lifetime, protocol, "mainInputSignal")
-                fromProcess.bind(lifetime, protocol, "mainOutputSignal")
-                bound.countDown()
-            }
-            bound.await()
-            processSyncDirectory.mkdirs()
-
-            val syncFile = File(processSyncDirectory, "$pid.created")
-
-            while (lifetime.isAlive) {
-                if (Files.deleteIfExists(syncFile.toPath()))
-                    break
-                Thread.sleep(10)
-            }
-        }) {
-            val syncFile = File(processSyncDirectory, "$pid.created")
-
-            if (syncFile.exists()) {
-                syncFile.delete()
             }
         }
     }

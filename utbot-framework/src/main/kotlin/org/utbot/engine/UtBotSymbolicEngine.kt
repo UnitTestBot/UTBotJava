@@ -275,7 +275,7 @@ class UtBotSymbolicEngine(
                     logger.trace { "executing $state concretely..." }
 
 
-                    logger.info().bracket("concolicStrategy<$methodUnderTest>: execute concretely") {
+                    logger.debug().bracket("concolicStrategy<$methodUnderTest>: execute concretely") {
                         val resolver = Resolver(
                             hierarchy,
                             state.memory,

@@ -4,6 +4,7 @@ import mu.KotlinLogging
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -15,6 +16,30 @@ class ConstrainedSynthesizer(
     val parameters: ResolvedModels,
     val depth: Int = 4
 ) {
+    companion object {
+        private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
+        private var attempts = 0
+        private var successes = 0
+
+
+        fun stats(): String = buildString {
+            appendLine("Total attempts: $attempts")
+            appendLine("Successful attempts $successes")
+            appendLine("Success rate: ${String.format("%.2f", successes.toDouble() / attempts)}")
+        }
+
+        fun success() {
+            ++attempts
+            ++successes
+            logger.debug { stats() }
+        }
+
+        fun failure() {
+            ++attempts
+            logger.debug { stats() }
+        }
+    }
+
     private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
     private val statementStorage = StatementsStorage().also { storage ->
         storage.update(parameters.parameters.map { it.classId }.expandable())
@@ -35,17 +60,24 @@ class ConstrainedSynthesizer(
             val assembleModel = unitChecker.tryGenerate(units, parameters)
             if (assembleModel != null) {
                 logger.debug { "Found $assembleModel" }
+                success()
                 return assembleModel
             }
         }
+        failure()
         return null
     }
 }
+
 fun List<UtModel>.toSynthesisUnits() = map {
     when (it) {
         is UtNullModel -> NullUnit(it.classId)
         is UtPrimitiveConstraintModel -> ObjectUnit(it.classId)
         is UtReferenceConstraintModel -> ObjectUnit(it.classId)
+        is UtArrayConstraintModel -> ArrayUnit(
+            it.classId,
+            elements = it.indices.map { index -> ObjectUnit(intClassId) to ObjectUnit(index.first().classId) }
+        )
         is UtReferenceToConstraintModel -> ReferenceToUnit(it.classId, indexOf(it.reference))
         else -> error("Only UtSynthesisModel supported")
     }
@@ -91,6 +123,7 @@ class MultipleSynthesisUnitQueue(
         when {
             unit is ObjectUnit && unit.isPrimitive() -> queue.push(unit)
             unit is NullUnit -> queue.push(unit)
+            unit is ArrayUnit -> queue.push(unit)
             unit is ReferenceToUnit -> queue.push(unit)
             else -> producer.produce(unit).forEach { queue.push(it) }
         }

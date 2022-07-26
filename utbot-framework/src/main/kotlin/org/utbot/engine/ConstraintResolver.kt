@@ -5,6 +5,8 @@ import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
 import org.utbot.engine.pc.*
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.framework.plugin.api.util.objectClassId
 import soot.VoidType
 
 /**
@@ -139,13 +141,97 @@ class ConstraintResolver(
                 value.addr.accept(varBuilder),
                 resolvedConstraints[address]!!
             )
-            else -> UtReferenceConstraintModel(
-                value.addr.accept(varBuilder),
-                collectAtoms(value, addrs)
-            ).also {
+            else -> when (value) {
+                is ArrayValue -> resolveArray(value, addrs)
+                is ObjectValue -> UtReferenceConstraintModel(
+                    value.addr.accept(varBuilder),
+                    collectAtoms(value, addrs)
+                )
+            }.also {
                 resolvedConstraints[address!!] = it
             }
         }
     }
+
+    private fun resolveArray(value: ArrayValue, addrs: Map<UtAddrExpression, Address>): UtModel {
+        val base = value.addr.accept(varBuilder)
+        val elementClassId = when (val id = base.classId.elementClassId) {
+            null -> error("Unknown element type: $id")
+            else -> when {
+                id.isPrimitive -> id
+                else -> objectClassId
+            }
+        }
+        val defaultConstraint = { index: UtConstraintVariable ->
+            when {
+                elementClassId.isPrimitive -> UtEqConstraint(
+                    UtConstraintArrayAccess(base, index, elementClassId), elementClassId.defaultValue
+                )
+                else -> UtRefEqConstraint(
+                    UtConstraintArrayAccess(base, index, elementClassId), elementClassId.defaultValue
+                )
+            }
+        }
+
+        val constraints = collectAtoms(value, addrs)
+        val indexMap = constraints.flatMap {
+            it.accept(UtConstraintVariableCollector { variable ->
+                variable is UtConstraintArrayAccess && variable.instance == base
+            })
+        }.map { (it as UtConstraintArrayAccess).index }.groupBy {
+            holder.eval(varBuilder[it])
+        }.mapValues { it.value.toSet() }
+        val indices = indexMap.values
+            .filterNot { set ->
+                set.any { defaultConstraint(it) in constraints }
+            }
+            .toSet()
+        return UtArrayConstraintModel(
+            value.addr.accept(varBuilder),
+            indices,
+            constraints
+        )
+    }
+
+    private fun buildPrimitiveModel(
+        atoms: Set<UtConstraint>,
+        variable: UtConstraintVariable
+    ): UtModel {
+        assert(variable.isPrimitive)
+
+        val primitiveConstraints = atoms.filter { constraint ->
+            variable in constraint
+        }.toSet()
+
+        return UtPrimitiveConstraintModel(
+            variable, primitiveConstraints
+        )
+    }
+
+    private fun buildObjectModel(
+        atoms: Set<UtConstraint>,
+        variable: UtConstraintVariable,
+        aliases: Set<UtConstraintVariable>
+    ): UtModel {
+        assert(!variable.isPrimitive && !variable.isArray)
+        assert(aliases.all { !it.isPrimitive && !it.isArray })
+
+        val allAliases = aliases + variable
+        val refConstraints = atoms.filter { constraint ->
+            allAliases in constraint
+        }.toSet()
+
+        return UtReferenceConstraintModel(
+            variable, refConstraints
+        )
+    }
 }
 
+
+private operator fun UtConstraint.contains(variable: UtConstraintVariable) = this.accept(UtConstraintVariableCollector {
+    it == variable
+}).isNotEmpty()
+
+private operator fun UtConstraint.contains(variables: Set<UtConstraintVariable>) = this.accept(UtConstraintVariableCollector {
+    it in variables
+}).isNotEmpty()

@@ -71,6 +71,7 @@ class ConstrainedJimpleMethodSynthesizer {
             is ObjectUnit -> synthesizeCompositeUnit(unit)
             is MethodUnit -> synthesizeMethodUnit(unit)
             is NullUnit -> synthesizeNullUnit(unit)
+            is ArrayUnit -> synthesizeArrayUnit(unit)
             is ReferenceToUnit -> synthesizeRefUnit(unit)
         }
 
@@ -105,8 +106,7 @@ class ConstrainedJimpleMethodSynthesizer {
         private fun synthesizeNullUnit(unit: NullUnit): JimpleLocal {
             val sootType = unit.classId.toSootType()
             val local = JimpleLocal(nextName(), sootType)
-            val assign = assignStmt(local, NullConstant.v())
-            stmts += assign
+            stmts += assignStmt(local, NullConstant.v())
             return local
         }
 
@@ -114,9 +114,27 @@ class ConstrainedJimpleMethodSynthesizer {
             val sootType = unit.classId.toSootType()
             val ref = unitToLocal[rootUnits[unit.referenceParam]]!!
             val local = JimpleLocal(nextName(), sootType)
-            val assign = assignStmt(local, ref)
-            stmts += assign
+            stmts += assignStmt(local, ref)
             return local
+        }
+
+        private fun synthesizeArrayUnit(unit: ArrayUnit): JimpleLocal {
+            val arrayType = unit.classId.toSootType()
+            val lengthLocal = synthesizeUnit(unit.length)
+
+            val arrayLocal = JimpleLocal(nextName(), arrayType)
+            val arrayExpr = newArrayExpr(arrayType, lengthLocal)
+            stmts += assignStmt(arrayLocal, arrayExpr)
+
+            for ((index, value) in unit.elements) {
+                val indexLocal = synthesizeUnit(index)
+                val valueLocal = synthesizeUnit(value)
+
+                val arrayRef = newArrayRef(arrayLocal, indexLocal)
+                stmts += assignStmt(arrayRef, valueLocal)
+
+            }
+            return arrayLocal
         }
 
         private fun synthesizeVirtualInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {

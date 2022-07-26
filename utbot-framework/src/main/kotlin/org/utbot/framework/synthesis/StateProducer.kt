@@ -32,7 +32,42 @@ class LeafExpanderProducer(
             is ObjectUnit -> leafExpander.expand(state)
             is NullUnit -> emptyList()
             is ReferenceToUnit -> emptyList()
+            is ArrayUnit -> expandArray(state)
         }
+
+    private fun expandArray(arrayUnit: ArrayUnit): List<SynthesisUnit> {
+        if (arrayUnit.isPrimitive()) return emptyList()
+
+        var current = arrayUnit
+
+        while (true) {
+            val index = current.currentIndex
+            val elements = current.elements
+            if (index >= elements.size) break
+
+            val currentUnit = elements[index]
+            val newLeafs = produce(currentUnit.second)
+            if (newLeafs.isEmpty()) {
+                val newElements = elements.toMutableList()
+                for (i in 0..index) newElements[i] = current.bases[i]
+                current = current.copy(
+                    elements = newElements,
+                    currentIndex = index + 1,
+                )
+            } else {
+                return newLeafs.map {
+                    val newElements = elements.toMutableList()
+                    newElements[index] = currentUnit.first to it
+                    current.copy(
+                        elements = newElements,
+                        currentIndex = index
+                    )
+                }
+            }
+        }
+
+        return emptyList()
+    }
 }
 
 class CompositeUnitExpander(

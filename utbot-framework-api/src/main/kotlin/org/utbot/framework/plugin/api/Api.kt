@@ -464,7 +464,7 @@ data class UtReferenceConstraintModel(
     override val utConstraints: Set<UtConstraint>
 ) : UtConstraintModel(variable, utConstraints) {
     fun isNull() = utConstraints.any {
-        it is UtRefEqConstraint && it.lhv == variable && it.rhv is NullUtConstraintVariable
+        it is UtRefEqConstraint && it.lhv == variable && it.rhv is UtConstraintNull
     }
 }
 
@@ -475,8 +475,7 @@ data class UtReferenceToConstraintModel(
 
 data class UtArrayConstraintModel(
     override val variable: UtConstraintVariable,
-    val length: UtConstraintVariable,
-    val indices: Set<UtConstraintVariable>,
+    val indices: Set<Set<UtConstraintVariable>>,
     override val utConstraints: Set<UtConstraint>
 ) : UtConstraintModel(variable, utConstraints)
 

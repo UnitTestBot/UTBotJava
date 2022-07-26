@@ -1,6 +1,5 @@
 package org.utbot.framework.synthesis.postcondition.constructors
 
-import com.microsoft.z3.ArrayExpr
 import org.utbot.engine.*
 import org.utbot.engine.pc.*
 import org.utbot.engine.symbolic.SymbolicStateUpdate
@@ -225,7 +224,7 @@ private class UtConstraintBuilder(
                     else -> PrimitiveValue(elementType, array.select(arrayInstance.addr, index.exprValue))
                 }
             }
-            is UtConstraintArrayLengthAccess -> {
+            is UtConstraintArrayLength -> {
                 val array = buildExpression(instance)
                 engine.memory.findArrayLength(array.addr)
             }
@@ -240,7 +239,7 @@ private class UtConstraintBuilder(
                     mockInfoGenerator = null
                 )
             }
-            is NullUtConstraintVariable -> when {
+            is UtConstraintNull -> when {
                 classId.isArray -> engine.createArray(nullObjectAddr, classId.toSootType() as ArrayType)
                 else -> engine.createObject(
                     nullObjectAddr,

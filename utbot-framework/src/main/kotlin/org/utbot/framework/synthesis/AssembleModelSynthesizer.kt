@@ -74,6 +74,7 @@ class SynthesisUnitQueue(
             is ObjectUnit -> 0
             is ReferenceToUnit -> 0
             is MethodUnit -> 1 + this.params.fold(0) { sum, unit -> sum + unit.countMethodCalls() }
+            is ArrayUnit -> elements.fold(0) { sum, unit -> sum + unit.second.countMethodCalls() }
         }
     }
 }

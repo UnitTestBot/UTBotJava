@@ -9,6 +9,7 @@ import soot.Type
 import soot.Unit
 import soot.Value
 import soot.jimple.AddExpr
+import soot.jimple.ArrayRef
 import soot.jimple.AssignStmt
 import soot.jimple.DynamicInvokeExpr
 import soot.jimple.GeExpr
@@ -53,6 +54,8 @@ fun parameterRef(type: Type, number: Int): ParameterRef = Jimple.v().newParamete
 fun identityStmt(local: Value, identityRef: Value): IdentityStmt = Jimple.v().newIdentityStmt(local, identityRef)
 
 fun newArrayExpr(type: Type, size: Value): NewArrayExpr = Jimple.v().newNewArrayExpr(type, size)
+
+fun newArrayRef(base: Value, index: Value): ArrayRef = Jimple.v().newArrayRef(base, index)
 
 fun newExpr(type: RefType): NewExpr = Jimple.v().newNewExpr(type)
 

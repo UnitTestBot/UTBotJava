@@ -17,13 +17,16 @@ class UtVarBuilder(
     val typeResolver: TypeResolver,
 ) : UtExpressionVisitor<UtConstraintVariable> {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
+    private val backMapping = mutableMapOf<UtConstraintVariable, UtExpression>()
+
+    operator fun get(variable: UtConstraintVariable) = backMapping.getValue(variable)
 
     override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
         val res = when (val base = expr.arrayExpression.accept(this)) {
             is UtConstraintParameter -> when (base.name) {
                 "arraysLength" -> {
                     val instance = expr.index.accept(this)
-                    UtConstraintArrayLengthAccess(instance)
+                    UtConstraintArrayLength(instance)
                 }
                 "RefValues_Arrays" -> {
                     val instance = expr.index.accept(this)
@@ -64,6 +67,7 @@ class UtVarBuilder(
             }
             else -> error("Unexpected: $base")
         }
+        backMapping[res] = expr
         return res
     }
 
@@ -72,7 +76,9 @@ class UtVarBuilder(
     }
 
     override fun visit(expr: UtMkArrayExpression): UtConstraintVariable {
-        return UtConstraintParameter(expr.name, objectClassId)
+        return UtConstraintParameter(expr.name, objectClassId).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: UtArrayMultiStoreExpression): UtConstraintVariable {
@@ -85,7 +91,9 @@ class UtVarBuilder(
     }
 
     override fun visit(expr: UtBvLiteral): UtConstraintVariable {
-        return UtConstraintNumericConstant(expr.value)
+        return UtConstraintNumericConstant(expr.value).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: UtBvConst): UtConstraintVariable {
@@ -98,7 +106,9 @@ class UtVarBuilder(
                 64 -> primitiveModelValueToClassId(0L)
                 else -> error("Unexpected")
             }
-        )
+        ).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: UtAddrExpression): UtConstraintVariable {
@@ -108,7 +118,7 @@ class UtVarBuilder(
                 holder.findTypeOrNull(expr)?.classId ?: objectClassId
             )
             is UtBvLiteral -> when (internal.value) {
-                0 -> NullUtConstraintVariable(objectClassId)
+                0 -> UtConstraintNull(objectClassId)
                 else -> internalAddrs.getOrPut(internal.value.toInt()) {
                     UtConstraintParameter(
                         "object${internal.value}",
@@ -117,10 +127,14 @@ class UtVarBuilder(
                 }
             }
             else -> expr.internal.accept(this)
+        }.also {
+            backMapping[it] = expr
         }
     }
 
-    override fun visit(expr: UtFpLiteral): UtConstraintVariable = UtConstraintNumericConstant(expr.value)
+    override fun visit(expr: UtFpLiteral): UtConstraintVariable = UtConstraintNumericConstant(expr.value).also {
+        backMapping[it] = expr
+    }
 
     override fun visit(expr: UtFpConst): UtConstraintVariable =
         UtConstraintParameter(
@@ -129,7 +143,9 @@ class UtVarBuilder(
                 UtFp64Sort -> doubleClassId
                 else -> error("Unexpected")
             }
-        )
+        ).also {
+            backMapping[it] = expr
+        }
 
     override fun visit(expr: UtOpExpression): UtConstraintVariable {
         val lhv = expr.left.expr.accept(this)
@@ -149,15 +165,21 @@ class UtVarBuilder(
             Sub -> UtConstraintSub(lhv, rhv)
             Ushr -> UtConstraintUshr(lhv, rhv)
             Xor -> UtConstraintXor(lhv, rhv)
+        }.also {
+            backMapping[it] = expr
         }
     }
 
     override fun visit(expr: UtTrue): UtConstraintVariable {
-        return UtConstraintBoolConstant(true)
+        return UtConstraintBoolConstant(true).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: UtFalse): UtConstraintVariable {
-        return UtConstraintBoolConstant(true)
+        return UtConstraintBoolConstant(true).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: UtEqExpression): UtConstraintVariable {
@@ -165,11 +187,15 @@ class UtVarBuilder(
     }
 
     override fun visit(expr: UtBoolConst): UtConstraintVariable {
-        return UtConstraintParameter(expr.name, booleanClassId)
+        return UtConstraintParameter(expr.name, booleanClassId).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: NotBoolExpression): UtConstraintVariable {
-        return UtConstraintNot(expr.expr.accept(this))
+        return UtConstraintNot(expr.expr.accept(this)).also {
+            backMapping[it] = expr
+        }
     }
 
     override fun visit(expr: UtOrBoolExpression): UtConstraintVariable {

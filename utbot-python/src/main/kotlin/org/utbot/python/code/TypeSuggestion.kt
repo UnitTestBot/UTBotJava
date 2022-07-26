@@ -23,12 +23,12 @@ class ConstantCollector(val method: PythonMethod) {
         visitor.visitFunctionDef(method.ast(), collectedValues)
     }
 
-    fun suggestBasedOnConstants(): List<List<ClassId>> {
+    fun suggestBasedOnConstants(): List<Set<ClassId>> {
         return method.arguments.map { param ->
             if (param.type == pythonAnyClassId)
-                collectedValues[param.name]?.map { ClassId(it.typeName) } ?: emptyList()
+                collectedValues[param.name]?.map { ClassId(it.typeName) }?.toSet() ?: emptySet()
             else
-                listOf(param.type)
+                setOf(param.type)
         }
     }
 

@@ -39,7 +39,7 @@ class PythonEngine(
 
         var testsGenerated = 0
 
-        val suggestedTypes = constantCollector.suggestBasedOnConstants()
+        val suggestedTypes = constantCollector.suggestBasedOnConstants().map { it.toList() }
 
         if (suggestedTypes.any { it.isEmpty() })
             return@sequence

@@ -11,8 +11,12 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.*
 import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.Invert
+import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.UAdd
+import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.USub
+import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Delete
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
@@ -22,9 +26,15 @@ import org.utbot.fuzzer.FuzzedOp
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTypesStorage
 import java.math.BigInteger
-import org.utbot.python.StubFileFinder
 
 class ConstantCollector(val method: PythonMethod) {
+    data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
+    data class AttributeStorage(val attributeName: String)
+    data class Storage(
+        val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
+        val attributeStorages: MutableSet<AttributeStorage> = mutableSetOf(),
+    )
+
     private val paramNames = method.arguments.mapNotNull { param ->
         if (param.type == pythonAnyClassId) param.name else null
     }
@@ -51,13 +61,6 @@ class ConstantCollector(val method: PythonMethod) {
             .flatMap { storageList ->
                 storageList.mapNotNull { storage -> storage.const }
             }
-
-    data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
-    data class AttributeStorage(val attributeName: String)
-    data class Storage(
-        val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
-        val attributeStorages: MutableSet<AttributeStorage> = mutableSetOf(),
-    )
 
     private class MatchVisitor(val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
 
@@ -169,9 +172,11 @@ class ConstantCollector(val method: PythonMethod) {
                 when (name) {
                     is Name -> {
                         if (name.id.toString() == methodName) {
-                            (param[it] ?: Storage()).attributeStorages.add(
+                            val storage = param[it] ?: Storage()
+                            storage.attributeStorages.add(
                                 AttributeStorage(name.id.toString())
                             )
+                            param[it] = storage
                         }
                     }
                 }
@@ -181,116 +186,128 @@ class ConstantCollector(val method: PythonMethod) {
         override fun visitGt(gt: Gt, param: MutableMap<String, Storage>): AST {
             saveToAttributeStorage(gt.left, "__gt__", param)
             saveToAttributeStorage(gt.right, "__gt__", param)
-//                param[it]?.attributeStorages?.addAll(getTypesFromStub(gt.left, "__gt__", it))
-//                param[it]?.attributeStorages?.addAll(getTypesFromStub(gt.right, "__gt__", it))
             return super.visitGt(gt, param)
         }
 
         override fun visitGtE(gte: GtE, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(gte.left, "__ge__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(gte.right, "__ge__", it))
-            }
+            saveToAttributeStorage(gte.left, "__ge__", param)
+            saveToAttributeStorage(gte.right, "__ge__", param)
             return super.visitGtE(gte, param)
         }
 
         override fun visitLt(lt: Lt, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(lt.left, "__lt__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(lt.right, "__lt__", it))
-            }
+            saveToAttributeStorage(lt.left, "__lt__", param)
+            saveToAttributeStorage(lt.right, "__lt__", param)
             return super.visitLt(lt, param)
         }
 
         override fun visitLtE(lte: LtE, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(lte.left, "__le__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(lte.right, "__le__", it))
-            }
+            saveToAttributeStorage(lte.left, "__le__", param)
+            saveToAttributeStorage(lte.right, "__le__", param)
             return super.visitLtE(lte, param)
         }
 
         override fun visitEq(eq: Eq, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(eq.left, "__eq__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(eq.right, "__eq__", it))
-            }
+            saveToAttributeStorage(eq.left, "__eq__", param)
+            saveToAttributeStorage(eq.right, "__eq__", param)
             return super.visitEq(eq, param)
         }
 
         override fun visitNotEq(ne: NotEq, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(ne.left, "__ne__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(ne.right, "__ne__", it))
-            }
+            saveToAttributeStorage(ne.left, "__ne__", param)
+            saveToAttributeStorage(ne.right, "__ne__", param)
             return super.visitNotEq(ne, param)
         }
 
         override fun visitIn(`in`: In, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(`in`.left, "__contains__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(`in`.right, "__contains__", it))
-            }
+            saveToAttributeStorage(`in`.left, "__contains__", param)
+            saveToAttributeStorage(`in`.right, "__contains__", param)
             return super.visitIn(`in`, param)
         }
 
         override fun visitIndex(index: Index, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(index.value, "__index__", it))
-            }
+            saveToAttributeStorage(index.value, "__index__", param)
             return super.visitIndex(index, param)
         }
 
         override fun visitFloorDiv(floorDiv: FloorDiv, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(floorDiv.left, "__floordiv__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(floorDiv.right, "__floordiv__", it))
-            }
+            saveToAttributeStorage(floorDiv.left, "__floordiv__", param)
+            saveToAttributeStorage(floorDiv.right, "__floordiv__", param)
             return super.visitFloorDiv(floorDiv, param)
         }
 
         override fun visitInvert(invert: Invert, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(invert.expression, "__invert__", it))
-            }
+            saveToAttributeStorage(invert.expression, "__invert__", param)
             return super.visitInvert(invert, param)
         }
 
         override fun visitLShift(lShift: LShift, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(lShift.left, "__lshift__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(lShift.right, "__lshift__", it))
-            }
+            saveToAttributeStorage(lShift.left, "__lshift__", param)
+            saveToAttributeStorage(lShift.right, "__lshift__", param)
             return super.visitLShift(lShift, param)
         }
 
         override fun visitModulo(modulo: Mod, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(modulo.left, "__mod__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(modulo.right, "__mod__", it))
-            }
+            saveToAttributeStorage(modulo.left, "__mod__", param)
+            saveToAttributeStorage(modulo.right, "__mod__", param)
             return super.visitModulo(modulo, param)
         }
 
         override fun visitMult(mult: Mult, param: MutableMap<String, Storage>): AST {
-            paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(mult.left, "__mul__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(mult.right, "__mul__", it))
-            }
+            saveToAttributeStorage(mult.left, "__mul__", param)
+            saveToAttributeStorage(mult.right, "__mul__", param)
             return super.visitMult(mult, param)
         }
 
-        fun getTypesFromStub(name: AST, methodName: String, paramName: String): MutableSet<AttributeStorage> {
-            return when (name) {
-                is Name -> {
-                    if (name.id.toString() == paramName) {
-                        StubFileFinder.findTypeWithMethod(methodName).map {
-                            AttributeStorage(it)
-                        }.toMutableSet()
-                    } else mutableSetOf()
-                }
-                else -> mutableSetOf()
-            }
+        override fun visitUSub(uSub: USub, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(uSub.expression, "__neg__", param)
+            return super.visitUSub(uSub, param)
+        }
+
+        override fun visitOr(or: Or, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(or.left, "__or__", param)
+            saveToAttributeStorage(or.right, "__or__", param)
+            return super.visitOr(or, param)
+        }
+
+        override fun visitUAdd(uAdd: UAdd, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(uAdd.expression, "__pos__", param)
+            return super.visitUAdd(uAdd, param)
+        }
+
+        override fun visitPow(pow: Pow, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(pow.left, "__pow__", param)
+            saveToAttributeStorage(pow.right, "__pow__", param)
+            return super.visitPow(pow, param)
+        }
+
+        override fun visitRShift(rShift: RShift, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(rShift.left, "__rshift__", param)
+            saveToAttributeStorage(rShift.right, "__rshift__", param)
+            return super.visitRShift(rShift, param)
+        }
+
+        override fun visitSub(sub: Sub, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(sub.left, "__sub__", param)
+            saveToAttributeStorage(sub.right, "__sub__", param)
+            return super.visitSub(sub, param)
+        }
+
+        override fun visitDiv(div: Div, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(div.left, "__truediv__", param)
+            saveToAttributeStorage(div.right, "__truediv__", param)
+            return super.visitDiv(div, param)
+        }
+
+        override fun visitBitXor(bitXor: BitXor, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(bitXor.left, "__xor__", param)
+            saveToAttributeStorage(bitXor.right, "__xor__", param)
+            return super.visitBitXor(bitXor, param)
+        }
+
+        override fun visitDelete(delete: Delete, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(delete.expression, "__delitem__", param)
+            return super.visitDelete(delete, param)
         }
     }
 }

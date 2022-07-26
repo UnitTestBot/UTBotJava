@@ -1,6 +1,8 @@
 package org.utbot.python.code
 
 import io.github.danielnaczo.python3parser.model.AST
+import io.github.danielnaczo.python3parser.model.expr.Expression
+import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Gt
@@ -30,9 +32,11 @@ import java.math.BigInteger
 class ConstantCollector(val method: PythonMethod) {
     data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
     data class AttributeStorage(val attributeName: String)
+    data class FunctionArgStorage(val name: String, val index: Int)
     data class Storage(
         val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
         val attributeStorages: MutableSet<AttributeStorage> = mutableSetOf(),
+        val functionArgStorages: MutableSet<FunctionArgStorage> = mutableSetOf()
     )
 
     private val paramNames = method.arguments.mapNotNull { param ->
@@ -61,6 +65,12 @@ class ConstantCollector(val method: PythonMethod) {
             .flatMap { storageList ->
                 storageList.mapNotNull { storage -> storage.const }
             }
+
+    fun getFunctionArgs(): List<List<Pair<String, Int>>> =
+        collectedValues.values
+            .map { it.functionArgStorages.map { functionArgStorage ->
+                Pair(functionArgStorage.name, functionArgStorage.index)
+            } }
 
     private class MatchVisitor(val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
 
@@ -95,17 +105,7 @@ class ConstantCollector(val method: PythonMethod) {
                 map0(refl(tuple(drop())), TypeStorage("tuple", null))
             )
             val constructors: List<Parser<(TypeStorage) -> A, A, N>> = knownTypes.map { typeName ->
-                map0(
-                    refl(
-                        functionCall(
-                            name(
-                                equal(typeName)
-                            ),
-                            drop()
-                        )
-                    ),
-                    TypeStorage(typeName, null)
-                )
+                map0(refl(functionCall(name(equal(typeName)), drop())), TypeStorage(typeName, null))
             }
             return (consts + constructors).reduce { acc, elem -> or(acc, elem) }
         }
@@ -124,6 +124,31 @@ class ConstantCollector(val method: PythonMethod) {
                 listOfStorage.typeStorages.add(it.second)
                 collection[it.first] = listOfStorage
             }
+        }
+
+        override fun visitAtom(atom: Atom, param: MutableMap<String, Storage>): AST {
+            val argNamePatterns: List<Parser<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>>> =
+                paramNames.map { paramName ->
+                    map0(anyIndexed(refl(name(equal(paramName)))), paramName)
+                }
+            parse(
+                functionCall(
+                    fname = name(apply()),
+                    farguments = arguments(
+                        fargs = argNamePatterns.reduce { acc, elem -> or(acc, elem) },
+                        drop(), drop(), drop()
+                    )
+                ),
+                onError = null,
+                atom
+            ) { funcName -> { paramName -> { index ->
+                Pair(paramName, FunctionArgStorage(funcName, index))
+            } } } ?. let {
+                val listOfStorage = param[it.first] ?: Storage()
+                listOfStorage.functionArgStorages.add(it.second)
+                param[it.first] = listOfStorage
+            }
+            return super.visitAtom(atom, param)
         }
 
         override fun visitAssign(ast: Assign, param: MutableMap<String, Storage>): AST {
@@ -311,3 +336,5 @@ class ConstantCollector(val method: PythonMethod) {
         }
     }
 }
+
+typealias ResFuncArg = Pair<String, ConstantCollector.FunctionArgStorage>?

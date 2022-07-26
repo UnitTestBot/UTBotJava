@@ -11,6 +11,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
 
 sealed class Result<T>
 class Match<T>(val value: T): Result<T>()
@@ -140,10 +141,33 @@ fun <A, B, C> functionCall(
         go(farguments, node.trailers[0] as Arguments, x1)
     }
 
+fun <A, B, C, D, E> arguments(
+    fargs: Parser<A, B, List<Expression>>,
+    fkeywords: Parser<B, C, List<Keyword>>,
+    fstarredArgs: Parser<C, D, List<Expression>>,
+    fdoubleStarredArgs: Parser<D, E, List<Keyword>>
+): Parser<A, E, Arguments> =
+    Parser { node, x ->
+        val x1 = fargs.go(node.args, x)
+        val x2 = go(fkeywords, node.keywords, x1)
+        val x3 = go(fstarredArgs, node.starredArgs, x2)
+        go(fdoubleStarredArgs, node.doubleStarredArgs, x3)
+    }
+
 fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =
     Parser { node, x ->
         for (elem in node) {
             val x1 = felem.go(elem, x)
+            if (x1 is Match)
+                return@Parser x1
+        }
+        return@Parser Error()
+    }
+
+fun <A, B, N> anyIndexed(felem: Parser<A, B, N>): Parser<(Int) -> A, B, List<N>> =
+    Parser { node, x ->
+        node.forEachIndexed { index, elem ->
+            val x1 = felem.go(elem, x(index))
             if (x1 is Match)
                 return@Parser x1
         }

@@ -19,6 +19,7 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
             UtCustomTag.ActualResult,
             UtCustomTag.Executes,
             UtCustomTag.Invokes,
+            UtCustomTag.Iterates,
             UtCustomTag.ReturnsFrom,
             UtCustomTag.ThrowsException,
         )
@@ -44,6 +45,7 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
         object ActualResult : UtCustomTag("utbot.actualResult", "Actual result")
         object Executes : UtCustomTag("utbot.executes", "Executes")
         object Invokes : UtCustomTag("utbot.invokes", "Invokes")
+        object Iterates : UtCustomTag("utbot.iterates", "Iterates")
         object ReturnsFrom : UtCustomTag("utbot.returnsFrom", "Returns from")
         object ThrowsException : UtCustomTag("utbot.throwsException", "Throws exception")
     }

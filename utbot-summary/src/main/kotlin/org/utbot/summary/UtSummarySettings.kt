@@ -12,6 +12,11 @@ object UtSummarySettings {
     var GENERATE_CLUSTER_COMMENTS = true
 
     /**
+     * Generate summaries using plugin's custom JavaDoc tags.
+     */
+    var USE_CUSTOM_JAVADOC_TAGS = true
+
+    /**
      * If True names for tests will be generated
      */
     var GENERATE_NAMES = true

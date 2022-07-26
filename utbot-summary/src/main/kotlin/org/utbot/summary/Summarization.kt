@@ -5,6 +5,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionCluster
+import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
@@ -28,6 +29,8 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.summary.UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS
+import org.utbot.summary.comment.CustomJavaDocCommentBuilder
 import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
@@ -154,7 +157,10 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 }
 
                 for (traceTags in clusterTraceTags.traceTags) {
-                    if (GENERATE_COMMENTS) {
+                    if (GENERATE_COMMENTS && USE_CUSTOM_JAVADOC_TAGS) {
+                        traceTags.execution.summary =
+                            CustomJavaDocCommentBuilder(traceTags, sootToAST).buildDocStatements(methodUnderTest)
+                    } else if (GENERATE_COMMENTS) {
                         traceTags.execution.summary =
                             SimpleCommentBuilder(traceTags, sootToAST).buildDocStmts(methodUnderTest)
                     }

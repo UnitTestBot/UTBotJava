@@ -309,10 +309,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
     override fun visit(element: CgDocPreTagStatement) {
         if (element.content.all { it.isEmpty() }) return
-
-        println("<pre>")
         for (stmt in element.content) stmt.accept(this)
-        println("</pre>")
     }
     override fun visit(element: CgDocCodeStmt) {
         if (element.isEmpty()) return

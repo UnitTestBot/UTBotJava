@@ -117,6 +117,8 @@ open class TestCaseGenerator(
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
+        engineActions.map { engine.apply(it) }
+        engineActions.clear()
         return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
     }
 

@@ -122,7 +122,7 @@ internal val ClassId.streamsDeepEqualsMethodId: MethodId
     get() = utilMethodId(
         name = "streamsDeepEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
+        arguments = arrayOf(java.util.stream.BaseStream::class.id, java.util.stream.BaseStream::class.id)
     )
 
 internal val ClassId.mapsDeepEqualsMethodId: MethodId

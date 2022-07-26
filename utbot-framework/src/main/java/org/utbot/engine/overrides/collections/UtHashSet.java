@@ -1,5 +1,6 @@
 package org.utbot.engine.overrides.collections;
 
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.UtArrayMock;
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -272,20 +273,16 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
         preconditionCheck();
 
         int size = elementData.end;
-        Object[] data = elementData.toArray(0, size);
+        final Object[] toArray = elementData.toArray(0, size);
+        UtMock.disableClassCastExceptionCheck(toArray);
+        E[] data = (E[]) toArray;
 
-        return new UtStream<>((E[]) data, size);
+        return new UtStream<>(data, size);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Stream<E> parallelStream() {
-        preconditionCheck();
-
-        int size = elementData.end;
-        Object[] data = elementData.toArray(0, size);
-
-        return new UtStream<>((E[]) data, size);
+        return stream();
     }
 
     public class UtHashSetIterator implements Iterator<E> {

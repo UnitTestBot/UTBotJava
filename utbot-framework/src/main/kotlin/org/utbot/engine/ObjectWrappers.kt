@@ -8,6 +8,9 @@ import org.utbot.engine.UtOptionalClass.UT_OPTIONAL
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_DOUBLE
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_INT
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_LONG
+import org.utbot.engine.UtStreamClass.UT_DOUBLE_STREAM
+import org.utbot.engine.UtStreamClass.UT_INT_STREAM
+import org.utbot.engine.UtStreamClass.UT_LONG_STREAM
 import org.utbot.engine.UtStreamClass.UT_STREAM
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
@@ -85,7 +88,9 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
 
         putSootClass(java.util.stream.BaseStream::class, UT_STREAM.className)
         putSootClass(java.util.stream.Stream::class, UT_STREAM.className)
-        // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
+        putSootClass(java.util.stream.IntStream::class, UT_INT_STREAM.className)
+        putSootClass(java.util.stream.LongStream::class, UT_LONG_STREAM.className)
+        putSootClass(java.util.stream.DoubleStream::class, UT_DOUBLE_STREAM.className)
     }
 
 /**
@@ -186,7 +191,9 @@ private val wrappers = mapOf(
     // stream wrappers
     wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
     wrap(java.util.stream.Stream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
-    // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
+    wrap(java.util.stream.IntStream::class) { _, addr -> objectValue(INT_STREAM_TYPE, addr, IntStreamWrapper()) },
+    wrap(java.util.stream.LongStream::class) { _, addr -> objectValue(LONG_STREAM_TYPE, addr, LongStreamWrapper()) },
+    wrap(java.util.stream.DoubleStream::class) { _, addr -> objectValue(DOUBLE_STREAM_TYPE, addr, DoubleStreamWrapper()) },
 ).also {
     // check every `wrapped` class has a corresponding value in [classToWrapper]
     it.keys.all { key ->

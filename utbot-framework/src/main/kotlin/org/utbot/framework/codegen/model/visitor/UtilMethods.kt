@@ -435,15 +435,15 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                     return false;
                 }
                 
-                if (o1 instanceof java.util.stream.Stream) {
-                    if (!(o2 instanceof java.util.stream.Stream)) {
+                if (o1 instanceof java.util.stream.BaseStream) {
+                    if (!(o2 instanceof java.util.stream.BaseStream)) {
                         return false;
                     }
         
-                    return streamsDeepEquals((java.util.stream.Stream<?>) o1, (java.util.stream.Stream<?>) o2, visited);
+                    return streamsDeepEquals((java.util.stream.BaseStream<?, ?>) o1, (java.util.stream.BaseStream<?, ?>) o2, visited);
                 }
         
-                if (o2 instanceof java.util.stream.Stream) {
+                if (o2 instanceof java.util.stream.BaseStream) {
                     return false;
                 }
         
@@ -527,11 +527,11 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                 
                 if (o2 is kotlin.collections.Iterable<*>) return false
                 
-                if (o1 is java.util.stream.Stream<*>) {
-                    return if (o2 !is java.util.stream.Stream<*>) false else streamsDeepEquals(o1, o2, visited)
+                if (o1 is java.util.stream.BaseStream<*, *>) {
+                    return if (o2 !is java.util.stream.BaseStream<*, *>) false else streamsDeepEquals(o1, o2, visited)
                 }
                 
-                if (o2 is java.util.stream.Stream<*>) return false
+                if (o2 is java.util.stream.BaseStream<*, *>) return false
         
                 if (o1 is kotlin.collections.Map<*, *>) {
                     return if (o2 !is kotlin.collections.Map<*, *>) false else mapsDeepEquals(o1, o2, visited)
@@ -670,8 +670,8 @@ fun streamsDeepEquals(language: CodegenLanguage): String =
         CodegenLanguage.JAVA -> {
             """
             private boolean streamsDeepEquals(
-                java.util.stream.Stream<?> s1, 
-                java.util.stream.Stream<?> s2, 
+                java.util.stream.BaseStream<?, ?> s1, 
+                java.util.stream.BaseStream<?, ?> s2, 
                 java.util.Set<FieldsPair> visited
             ) {
                 final java.util.Iterator<?> firstIterator = s1.iterator();
@@ -693,8 +693,8 @@ fun streamsDeepEquals(language: CodegenLanguage): String =
         CodegenLanguage.KOTLIN -> {
             """
             private fun streamsDeepEquals(
-                s1: java.util.stream.Stream<*>, 
-                s2: java.util.stream.Stream<*>, 
+                s1: java.util.stream.BaseStream<*, *>, 
+                s2: java.util.stream.BaseStream<*, *>, 
                 visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
             ): Boolean {
                 val firstIterator = s1.iterator()
@@ -860,7 +860,7 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
             CodegenLanguage.KOTLIN -> emptyList()
         }
         streamsDeepEqualsMethodId -> when (codegenLanguage) {
-            CodegenLanguage.JAVA -> listOf(java.util.stream.Stream::class.id, Set::class.id)
+            CodegenLanguage.JAVA -> listOf(java.util.stream.BaseStream::class.id, Set::class.id)
             CodegenLanguage.KOTLIN -> emptyList()
         }
         mapsDeepEqualsMethodId -> when (codegenLanguage) {

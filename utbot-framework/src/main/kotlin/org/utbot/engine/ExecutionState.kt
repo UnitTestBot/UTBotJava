@@ -23,7 +23,24 @@ import org.utbot.framework.plugin.api.UtExecution
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2
 
-data class Edge(val src: Stmt, val dst: Stmt, val decisionNum: Int)
+data class Edge(val src: Stmt, val dst: Stmt, val decisionNum: Int) {
+    private val hashCode: Int = Objects.hash(src, dst, decisionNum)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Edge
+
+        if (src != other.src) return false
+        if (dst != other.dst) return false
+        if (decisionNum != other.decisionNum) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int = hashCode
+}
 
 /**
  * Possible state types. Engine matches on them and processes differently.

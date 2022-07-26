@@ -5,6 +5,7 @@ import guava.examples.math.Stats
 import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.UtClusterInfo
 
 /**
  * It runs test generation for the poor analogue of the Stats.of method ported from the guava-26.0 framework
@@ -74,7 +75,12 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
             methodName4
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        val clusterInfo = listOf(
+            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS for method ofInts(int[])", null), IntRange(0, 2)),
+            Pair(UtClusterInfo("ERROR SUITE for method ofInts(int[])", null), IntRange(3, 3))
+        )
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, clusterInfo)
     }
 
     @Test
@@ -210,6 +216,37 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
             methodName7
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        val clusterInfo = listOf(
+            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS #0 for method ofDoubles(double[])", null), IntRange(0, 2)),
+            Pair(
+                UtClusterInfo(
+                    "SUCCESSFUL EXECUTIONS #1 for method ofDoubles(double[])", "\n" +
+                            "Common steps:\n" +
+                            "<pre>\n" +
+                            "Tests execute conditions:\n" +
+                            "    {@code (null): True}\n" +
+                            "call {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
+                            "    there it execute conditions:\n" +
+                            "        {@code (count == 0): True}\n" +
+                            "    invoke:\n" +
+                            "        {@link guava.examples.math.StatsAccumulator#isFinite(double)} twice\n" +
+                            "Tests next execute conditions:\n" +
+                            "    {@code (null): False}\n" +
+                            "call {@link guava.examples.math.StatsAccumulator#isFinite(double)},\n" +
+                            "    there it invoke:\n" +
+                            "        {@link guava.examples.math.StatsAccumulator#isFinite(double)} once\n" +
+                            "    execute conditions:\n" +
+                            "        {@code (null): False}\n" +
+                            "    invoke:\n" +
+                            "        {@link guava.examples.math.StatsAccumulator#calculateNewMeanNonFinite(double,double)} twice,\n" +
+                            "        {@link java.lang.Math#min(double,double)} twice,\n" +
+                            "        {@link java.lang.Math#max(double,double)} twice\n" +
+                            "</pre>"
+                ), IntRange(3, 5)
+            ),
+            Pair(UtClusterInfo("ERROR SUITE for method ofDoubles(double[])", null), IntRange(6, 6))
+        )
+
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, clusterInfo)
     }
 }

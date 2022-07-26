@@ -6,7 +6,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.python.code.ConstantSuggester.suggestBasedOnConstants
+import org.utbot.python.code.ConstantCollector
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import kotlin.random.Random
@@ -22,11 +22,13 @@ class PythonEngine(
         val returnType = methodUnderTest.returnType ?: ClassId("")
         val argumentTypes = methodUnderTest.arguments.map { it.type }
 
+        val constantCollecter = ConstantCollector(methodUnderTest)
+
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
             returnType,
             argumentTypes,
-            methodUnderTest.getConcreteValues()
+            constantCollecter.getConstants()
         ).apply {
             compilableName = methodUnderTest.name // what's the difference with ordinary name?
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
@@ -37,8 +39,7 @@ class PythonEngine(
 
         var testsGenerated = 0
 
-        val anyTypeIndices = methodUnderTestDescription.parametersMap[pythonAnyClassId] ?: emptyList()
-        val suggestedTypes = suggestBasedOnConstants(methodUnderTest, anyTypeIndices)
+        val suggestedTypes = constantCollecter.suggestBasedOnConstants()
 
         if (suggestedTypes.any { it.isEmpty() })
             return@sequence

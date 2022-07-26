@@ -6,68 +6,95 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.As
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonIntModel
+import org.utbot.framework.plugin.api.pythonAnyClassId
+import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTypesStorage
+import java.math.BigInteger
 
-object ConstantSuggester {
-    fun suggestBasedOnConstants(method: PythonMethod, indices: List<Int>): List<List<ClassId>> {
-        val params = method.arguments
-        return params.mapIndexed { index, param ->
-            if (indices.contains(index)) {
-                val visitor = MatchVisitor(param.name)
-                val types = mutableSetOf<Storage>()
-                visitor.visitFunctionDef(method.ast(), types)
-                types.map { ClassId(it.value) }
-            } else {
+class ConstantCollector(val method: PythonMethod) {
+    private val paramNames = method.arguments.mapNotNull { param ->
+        if (param.type == pythonAnyClassId) param.name else null
+    }
+
+    private val collectedValues = mutableMapOf<String, MutableList<Storage>>()
+    private val visitor = MatchVisitor(paramNames)
+
+    init {
+        visitor.visitFunctionDef(method.ast(), collectedValues)
+    }
+
+    fun suggestBasedOnConstants(): List<List<ClassId>> {
+        return method.arguments.map { param ->
+            if (param.type == pythonAnyClassId)
+                collectedValues[param.name]?.map { ClassId(it.typeName) } ?: emptyList()
+            else
                 listOf(param.type)
-            }
         }
     }
 
-    data class Storage(val value: String)
+    fun getConstants(): List<FuzzedConcreteValue> =
+        collectedValues.values.flatMap { storageList ->
+            storageList.mapNotNull { storage -> storage.const }
+        }
 
-    private class MatchVisitor(val paramName: String): ModifierVisitor<MutableCollection<Storage>>() {
+    data class Storage(val typeName: String, val const: FuzzedConcreteValue?)
+
+    private class MatchVisitor(val paramNames: List<String>): ModifierVisitor<MutableMap<String, MutableList<Storage>>>() {
 
         val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
-        fun <A, N> namePat(): Parser<A, A, N> = refl(name(equal(paramName)))
+        fun <A, N> namePat(): Parser<(String) -> A, A, N> {
+            val names: List<Parser<(String) -> A, A, N>> = paramNames.map { paramName ->
+                map0(refl(name(equal(paramName))), paramName)
+            }
+            return names.reduce { acc, elem -> or(acc, elem) }
+        }
         fun <A, N> valuePat(): Parser<(Storage) -> A, A, N> {
             val consts = listOf<Parser<(Storage) -> A, A, N>>(
-                map0(refl(num(drop())), Storage("int")),
-                map0(refl(str(drop())), Storage("str")),
-                map0(refl(true_()), Storage("bool")),
-                map0(refl(false_()), Storage("bool")),
+                map1(refl(num(apply()))) { x ->
+                    Storage("int", FuzzedConcreteValue(PythonIntModel.classId, BigInteger(x))) },
+                map1(refl(str(apply()))) { x ->
+                    Storage("str", FuzzedConcreteValue(PythonIntModel.classId, x)) },
+                map0(refl(true_()), Storage("bool", null)),
+                map0(refl(false_()), Storage("bool", null)),
                 // map0(refl(none()), Storage("None")),
-                map0(refl(dict(drop(), drop())), Storage("dict")),
-                map0(refl(list(drop())), Storage("list")),
-                map0(refl(set(drop())), Storage("set")),
-                map0(refl(tuple(drop())), Storage("tuple"))
+                map0(refl(dict(drop(), drop())), Storage("dict", null)),
+                map0(refl(list(drop())), Storage("list", null)),
+                map0(refl(set(drop())), Storage("set", null)),
+                map0(refl(tuple(drop())), Storage("tuple", null))
             )
             val constructors: List<Parser<(Storage) -> A, A, N>> = knownTypes.map { typeName ->
-                map0(refl(functionCall(name(equal(typeName)), drop())), Storage(typeName))
+                map0(refl(functionCall(name(equal(typeName)), drop())), Storage(typeName, null))
             }
             return (consts + constructors).reduce { acc, elem -> or(acc, elem) }
         }
 
         private fun <N> parseAndPut(
-            collection: MutableCollection<Storage>,
-            pat: Parser<(Storage) -> Storage?, Storage?, N>,
+            collection: MutableMap<String, MutableList<Storage>>,
+            pat: Parser<(String) -> (Storage) -> Pair<String, Storage>?, Pair<String, Storage>?, N>,
             ast: N
         ) {
             parse(
                 pat,
                 onError = null,
                 ast
-            ) { it }?.let {
-                collection.add(it)
+            ) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
+                val listOfStorage = collection[it.first]
+                listOfStorage?.add(it.second) ?: collection.put(it.first, mutableListOf(it.second))
             }
         }
 
-        override fun visitAssign(ast: Assign, param: MutableCollection<Storage>): AST {
-            parseAndPut(param, assign(ftargets = any(namePat()), fvalue = valuePat()), ast)
+        override fun visitAssign(ast: Assign, param: MutableMap<String, MutableList<Storage>>): AST {
+            parseAndPut(
+                param,
+                assign(ftargets = any(namePat()), fvalue = valuePat()),
+                ast
+            )
             return super.visitAssign(ast, param)
         }
 
-        override fun visitAugAssign(ast: AugAssign, param: MutableCollection<Storage>): AST {
+        override fun visitAugAssign(ast: AugAssign, param: MutableMap<String, MutableList<Storage>>): AST {
             parseAndPut(
                 param,
                 augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()),
@@ -76,12 +103,12 @@ object ConstantSuggester {
             return super.visitAugAssign(ast, param)
         }
 
-        override fun visitBinOp(ast: BinOp, param: MutableCollection<Storage>): AST {
+        override fun visitBinOp(ast: BinOp, param: MutableMap<String, MutableList<Storage>>): AST {
             parseAndPut(
                 param,
                 or(
                     binOp(fleft = namePat(), fright = valuePat()),
-                    binOp(fleft = valuePat(), fright = namePat())
+                    swap(binOp(fleft = valuePat(), fright = namePat()))
                 ),
                 ast
             )

@@ -165,3 +165,13 @@ fun <A, B, C, N> map0(pat: Parser<A, B, N>, value: C): Parser<(C) -> A, B, N> =
     Parser { node, x: (C) -> A ->
         pat.go(node, x(value))
     }
+
+fun <A, B, C, D, N> map1(pat: Parser<(A) -> B, C, N>, f: (A) -> D): Parser<(D) -> B, C, N> =
+    Parser { node, x: (D) -> B ->
+        pat.go(node) { y -> x(f(y)) }
+    }
+
+fun <A, B, C, D, N> swap(pat: Parser<(A) -> (B) -> C, D, N>): Parser<(B) -> (A) -> C, D, N> =
+    Parser { node, f: (B) -> (A) -> C ->
+        pat.go(node) { x -> { y -> f(y)(x) } }
+    }

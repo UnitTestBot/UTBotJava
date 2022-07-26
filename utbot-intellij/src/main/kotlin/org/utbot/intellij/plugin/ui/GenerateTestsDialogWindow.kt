@@ -569,7 +569,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         try {
             val contentEntry = modifiableModel.contentEntries
                 .filterNot { it.file == null }
-                .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, true) }
+                .firstOrNull { VfsUtil.isAncestor(it.file!!, testSourceRoot, false) }
                 ?: return false
 
             contentEntry.addSourceRootIfAbsent(

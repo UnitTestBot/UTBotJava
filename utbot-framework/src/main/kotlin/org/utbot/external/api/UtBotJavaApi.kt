@@ -18,6 +18,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -240,12 +241,12 @@ object UtBotJavaApi {
         }
 
         val utExecution = UtExecution(
-            testInfo.initialState,
-            testInfo.initialState, // it seems ok for concrete execution
-            utExecutionResult,
-            emptyList(),
-            mutableListOf(),
-            listOf()
+            stateBefore = testInfo.initialState,
+            stateAfter = testInfo.initialState, // it seems ok for concrete execution
+            result = utExecutionResult,
+            instrumentation = emptyList(),
+            path = mutableListOf(),
+            fullPath = listOf()
         )
 
         val utMethod = UtMethod(methodCallable, containingClass.kotlin)

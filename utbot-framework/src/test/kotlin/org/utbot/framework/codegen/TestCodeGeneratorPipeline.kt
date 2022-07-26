@@ -107,7 +107,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                 if (isParametrizedAndMocked) 0
                 else when (parametrizedTestSource) {
                     ParametrizedTestSource.DO_NOT_PARAMETRIZE -> testSets.sumOf { it.executions.size }
-                    ParametrizedTestSource.PARAMETRIZE -> testSets.size
+                    ParametrizedTestSource.PARAMETRIZE -> testSets.filter { it.executions.isNotEmpty() }.size
                 }
 
             // check for error in the generated file

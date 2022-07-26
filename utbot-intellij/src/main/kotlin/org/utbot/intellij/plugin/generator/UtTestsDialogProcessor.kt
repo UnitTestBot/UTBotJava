@@ -150,7 +150,7 @@ object UtTestsDialogProcessor {
                                             .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
                                                 it.member !is SyntheticElement
                                             }
-                                    findMethodsInClassMatchingSelected(clazz, srcMethods)
+                                    findMethodsInClassMatchingSelected(project, clazz, srcMethods)
                                 }.executeSynchronously()
 
                                 val className = srcClass.name
@@ -251,8 +251,8 @@ object UtTestsDialogProcessor {
         appendLine("Alternatively, you could try to increase current timeout $timeout sec for generating tests in generation dialog.")
     }
 
-    private fun findMethodsInClassMatchingSelected(clazz: KClass<*>, selectedMethods: List<MemberInfo>): List<UtMethod<*>> {
-        val selectedSignatures = selectedMethods.map { it.signature() }
+    private fun findMethodsInClassMatchingSelected(project: Project, clazz: KClass<*>, selectedMethods: List<MemberInfo>): List<UtMethod<*>> {
+        val selectedSignatures = selectedMethods.map { it.signature(project) }
         return clazz.functions
             .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
             .filter { it.signature().normalized() in selectedSignatures }

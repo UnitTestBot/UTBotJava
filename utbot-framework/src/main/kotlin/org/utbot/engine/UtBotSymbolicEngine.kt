@@ -17,10 +17,9 @@ import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.FeatureProcessor
 import org.utbot.analytics.Predictors
+import org.utbot.common.*
+import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
-import org.utbot.common.bracket
-import org.utbot.common.debug
-import org.utbot.common.workaround
 import org.utbot.engine.MockStrategy.NO_MOCKS
 import org.utbot.engine.pc.UtArraySelectExpression
 import org.utbot.engine.pc.UtBoolExpression
@@ -318,7 +317,8 @@ class UtBotSymbolicEngine(
                         }
                     }
 
-                } else {
+                }
+                else {
                     val state = pathSelector.poll()
 
                     // state is null in case states queue is empty

@@ -7,65 +7,125 @@ import com.esotericsoftware.kryo.io.Input
 import com.esotericsoftware.kryo.io.Output
 import com.esotericsoftware.kryo.serializers.JavaSerializer
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy
-import org.utbot.framework.plugin.api.TimeoutException
+import com.jetbrains.rd.framework.impl.RdSignal
+import com.jetbrains.rd.framework.util.startChildAsync
+import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.throwIfNotAlive
+import com.jetbrains.rd.util.reactive.IScheduler
 import de.javakaffee.kryoserializers.GregorianCalendarSerializer
 import de.javakaffee.kryoserializers.JdkProxySerializer
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer
-import java.io.ByteArrayOutputStream
-import java.io.Closeable
-import java.io.InputStream
-import java.io.OutputStream
-import java.lang.reflect.InvocationHandler
-import java.util.GregorianCalendar
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.receiveOrNull
+import kotlinx.coroutines.runBlocking
 import org.objenesis.instantiator.ObjectInstantiator
 import org.objenesis.strategy.StdInstantiatorStrategy
+import org.utbot.framework.plugin.api.TimeoutException
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.lang.reflect.InvocationHandler
+import java.util.*
+import java.util.concurrent.CancellationException
+import java.util.concurrent.LinkedBlockingQueue
 
 /**
  * Helpful class for working with the kryo.
  */
 class KryoHelper internal constructor(
-    inputStream: InputStream,
-    private val outputStream: OutputStream
-) : Closeable {
-    private val temporaryBuffer = ByteArrayOutputStream()
+    private val parent: Lifetime,
+    scheduler: IScheduler,
+    inputSignal: RdSignal<ByteArray>,
+    private val outputSignal: RdSignal<ByteArray>,
+    private val doLog: (() -> String) -> Unit = { _ -> }
+) {
+    private val outputBuffer = ByteArrayOutputStream()
+    private val queue = Channel<ByteArray>(Channel.UNLIMITED)
+    private var lastInputStream = ByteArrayInputStream(ByteArray(0))
+    private val kryoInput: Input = object : Input(1024 * 1024) {
+        override fun fill(buffer: ByteArray, offset: Int, count: Int): Int = runBlocking {
+            this.startChildAsync(parent) {
+                var already = 0
 
-    private val kryoOutput = Output(temporaryBuffer)
-    private val kryoInput = Input(inputStream)
+//                while (already < count) {
+                    val readed = lastInputStream.read(buffer, offset + already, count - already)
+
+                    if (readed == -1) {
+                        val lastReceived =
+                            queue.receiveOrNull() ?: return@startChildAsync already // todo child process might not die?
+
+                        lastInputStream = lastReceived.inputStream()
+
+//                        continue
+                    } else {
+                        already += readed
+                    }
+//                }
+
+                return@startChildAsync already
+            }.await()
+        }
+    }
+
+    init {
+        inputSignal.advise(parent) { byteArray ->
+            doLog { "received chunk: size - ${byteArray.size}, hash - ${byteArray.contentHashCode()}" }
+            queue.offer(byteArray)
+        }
+        parent.onTermination {
+            close()
+        }
+    }
+
+
+    private val kryoOutput = Output(outputBuffer)
 
     private val sendKryo: Kryo = TunedKryo()
     private val receiveKryo: Kryo = TunedKryo()
+
+    fun discard() {
+        kryoInput.reset()
+    }
 
     fun setKryoClassLoader(classLoader: ClassLoader) {
         sendKryo.classLoader = classLoader
         receiveKryo.classLoader = classLoader
     }
 
-    fun readLong(): Long {
+    private fun readLong(): Long {
         return receiveKryo.readObject(kryoInput, Long::class.java)
     }
 
     /**
-     * Kryo tries to write the [cmd] to the [temporaryBuffer].
+     * Kryo tries to write the [cmd] to the [outputBuffer].
      * If no exception occurs, the output is flushed to the [outputStream].
      *
      * If an exception occurs, rethrows it wrapped in [WritingToKryoException].
      */
     fun <T : Protocol.Command> writeCommand(id: Long, cmd: T) {
         try {
+            parent.throwIfNotAlive()
+
             sendKryo.writeObject(kryoOutput, id)
             sendKryo.writeClassAndObject(kryoOutput, cmd)
             kryoOutput.flush()
 
-            temporaryBuffer.writeTo(outputStream)
-            outputStream.flush()
+            val toSend = outputBuffer.toByteArray()
+
+            parent.throwIfNotAlive()
+            doLog { "sending chunk: size - ${toSend.size}, hash - ${toSend.contentHashCode()}" }
+            outputSignal.fire(toSend)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw WritingToKryoException(e)
         } finally {
             kryoOutput.reset()
-            temporaryBuffer.reset()
+            outputBuffer.reset()
         }
     }
+
+    data class ReceivedCommand(val cmdId: Long, val command: Protocol.Command)
 
     /**
      * Kryo tries to read a command.
@@ -74,17 +134,19 @@ class KryoHelper internal constructor(
      *
      * @return successfully read command.
      */
-    fun readCommand(): Protocol.Command =
+    fun readCommand(): ReceivedCommand =
         try {
-            receiveKryo.readClassAndObject(kryoInput) as Protocol.Command
+            parent.throwIfNotAlive()
+            ReceivedCommand(readLong(), receiveKryo.readClassAndObject(kryoInput) as Protocol.Command)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw ReadingFromKryoException(e)
         }
 
-    override fun close() {
+    private fun close() {
         kryoInput.close()
         kryoOutput.close()
-        outputStream.close()
     }
 }
 

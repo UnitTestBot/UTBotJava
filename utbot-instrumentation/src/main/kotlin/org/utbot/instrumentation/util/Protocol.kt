@@ -12,11 +12,10 @@ object Protocol {
      */
     abstract class Command
 
-
     /**
-     * The child process sends this command to the main process to indicate readiness.
+     * The child process sends this command to the main process when operation completed.
      */
-    class ProcessReadyCommand : Command()
+    class OperationCompleted : Command()
 
     /**
      * The main process tells where the child process should search for the classes.
@@ -25,7 +24,6 @@ object Protocol {
         val pathsToUserClasses: String,
         val pathsToDependencyClasses: String
     ) : Command()
-
 
     /**
      * The main process sends [instrumentation] to the child process.
@@ -61,14 +59,13 @@ object Protocol {
 
     /**
      * The child process sends this command if unexpected exception was thrown.
+     * This command means child process stil can operate
      *
      * @property exception unexpected exception.
      */
     data class ExceptionInChildProcess(
         val exception: Throwable
     ) : Command()
-
-    data class ExceptionInKryoCommand(val exception: Throwable) : Command()
 
     /**
      * This command tells the child process to stop.
@@ -82,8 +79,6 @@ object Protocol {
      * Only inheritors of this abstract class will be passed in [Instrumentation.handle] function.
      */
     abstract class InstrumentationCommand : Protocol.Command()
-
-
 }
 
 

@@ -1,0 +1,85 @@
+[
+ {
+  "name": "print",
+  "typeInfos": [
+   {
+    "function": {
+     "args": [],
+     "kwonlyargs": [
+      {
+       "annotation": [
+        "str",
+        "None"
+       ],
+       "arg": "sep"
+      },
+      {
+       "annotation": [
+        "str",
+        "None"
+       ],
+       "arg": "end"
+      },
+      {
+       "annotation": [
+        "SupportsWrite[str]",
+        "None"
+       ],
+       "arg": "file"
+      },
+      {
+       "annotation": [
+        "Literal[False]"
+       ],
+       "arg": "flush"
+      }
+     ],
+     "name": "print",
+     "returns": [
+      "None"
+     ]
+    },
+    "module": "builtins"
+   },
+   {
+    "function": {
+     "args": [],
+     "kwonlyargs": [
+      {
+       "annotation": [
+        "str",
+        "None"
+       ],
+       "arg": "sep"
+      },
+      {
+       "annotation": [
+        "str",
+        "None"
+       ],
+       "arg": "end"
+      },
+      {
+       "annotation": [
+        "_SupportsWriteAndFlush[str]",
+        "None"
+       ],
+       "arg": "file"
+      },
+      {
+       "annotation": [
+        "bool"
+       ],
+       "arg": "flush"
+      }
+     ],
+     "name": "print",
+     "returns": [
+      "None"
+     ]
+    },
+    "module": "builtins"
+   }
+  ]
+ }
+]

@@ -255,6 +255,12 @@ class Traverser(
     // A counter for objects created as native method call result.
     private var unboundedConstCounter = 0
 
+    fun collectUpdates(): SymbolicStateUpdate {
+        val updates = queuedSymbolicStateUpdates
+        queuedSymbolicStateUpdates = SymbolicStateUpdate()
+        return updates
+    }
+
     fun traverse(state: ExecutionState): Collection<ExecutionState> {
         val context = TraversalContext()
 
@@ -1245,13 +1251,7 @@ class Traverser(
             }
             is ClassConstant -> {
                 val sootType = constant.toSootType()
-                val result = if (sootType is RefLikeType) {
-                    typeRegistry.createClassRef(sootType.baseType, sootType.numDimensions)
-                } else {
-                    error("Can't get class constant for ${constant.value}")
-                }
-                queuedSymbolicStateUpdates += result.symbolicStateUpdate
-                (result.symbolicResult as SymbolicSuccess).value
+                createClassRef(sootType)
             }
             else -> error("Unsupported type: $constant")
         }
@@ -1990,6 +1990,16 @@ class Traverser(
         return ObjectValue(typeStorage, addr)
     }
 
+    fun createClassRef(sootType: Type): SymbolicValue {
+        val result = if (sootType is RefLikeType) {
+            typeRegistry.createClassRef(sootType.baseType, sootType.numDimensions)
+        } else {
+            error("Can't get class constant for $sootType")
+        }
+        queuedSymbolicStateUpdates += result.symbolicStateUpdate
+        return (result.symbolicResult as SymbolicSuccess).value
+    }
+
     private fun arrayUpdate(array: ArrayValue, index: PrimitiveValue, value: UtExpression): MemoryUpdate {
         val type = array.type
         val chunkId = typeRegistry.arrayChunkId(type)
@@ -2052,7 +2062,7 @@ class Traverser(
      *
      * If the field belongs to a substitute object, record the read access for the real type instead.
      */
-    private fun recordInstanceFieldRead(addr: UtAddrExpression, field: SootField) {
+    fun recordInstanceFieldRead(addr: UtAddrExpression, field: SootField) {
         val realType = typeRegistry.findRealType(field.declaringClass.type)
         if (realType is RefType) {
             val readOperation = InstanceFieldReadOperation(addr, FieldId(realType.id, field.name))
@@ -2681,10 +2691,8 @@ class Traverser(
             return when (instance) {
                 is ReferenceValue -> {
                     val type = instance.type
-                    val createClassRef = if (type is RefLikeType) {
-                        typeRegistry.createClassRef(type.baseType, type.numDimensions)
-                    } else {
-                        error("Can't get class name for $type")
+                    val createClassRef = asMethodResult {
+                        createClassRef(type)
                     }
                     OverrideResult(success = true, createClassRef)
                 }

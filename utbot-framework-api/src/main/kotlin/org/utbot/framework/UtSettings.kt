@@ -258,7 +258,7 @@ object UtSettings {
 
 
     /**
-     * Set to true to start fuzzing if symbolic execution haven't return anything
+     * Set to true to start fuzzing if symbolic execution haven't return anything.
      */
     var useFuzzing: Boolean by getBooleanProperty(true)
 
@@ -271,6 +271,11 @@ object UtSettings {
      * Fuzzer tries to generate and run tests during this time.
      */
     var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)
+
+    /**
+     * Set to true to initialize symbolic parameters by values from fuzzing.
+     */
+    var useFuzzingInitialization: Boolean by getBooleanProperty(true)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors

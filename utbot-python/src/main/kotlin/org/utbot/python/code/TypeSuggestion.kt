@@ -2,11 +2,18 @@ package org.utbot.python.code
 
 import io.github.danielnaczo.python3parser.model.AST
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Gt
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.GtE
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Lt
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.LtE
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.NotEq
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
+import org.utbot.fuzzer.FuzzedOp
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTypesStorage
 import java.math.BigInteger
@@ -48,22 +55,23 @@ class ConstantCollector(val method: PythonMethod) {
             }
             return names.reduce { acc, elem -> or(acc, elem) }
         }
-        fun <A, N> valuePat(): Parser<(Storage) -> A, A, N> {
+        fun <A, N> valuePat(op: FuzzedOp = FuzzedOp.NONE): Parser<(Storage) -> A, A, N> {
             val consts = listOf<Parser<(Storage) -> A, A, N>>(
                 map1(refl(num(apply()))) { x ->
-                    Storage("int", FuzzedConcreteValue(PythonIntModel.classId, BigInteger(x))) },
+                    Storage("int", FuzzedConcreteValue(PythonIntModel.classId, BigInteger(x), op)) },
                 map1(refl(str(apply()))) { x ->
                     Storage(
                         "str",
                         FuzzedConcreteValue(
                             PythonStrModel.classId,
-                            x.removeSurrounding("\"", "\"").removeSurrounding("'", "'")
+                            x.removeSurrounding("\"", "\"").removeSurrounding("'", "'"),
+                            op
                         )
                     ) },
                 map0(refl(true_()),
-                    Storage("bool", FuzzedConcreteValue(PythonBoolModel.classId, true))),
+                    Storage("bool", FuzzedConcreteValue(PythonBoolModel.classId, true, op))),
                 map0(refl(false_()),
-                    Storage("bool", FuzzedConcreteValue(PythonBoolModel.classId, false))),
+                    Storage("bool", FuzzedConcreteValue(PythonBoolModel.classId, false, op))),
                 // map0(refl(none()), Storage("None")),
                 map0(refl(dict(drop(), drop())), Storage("dict", null)),
                 map0(refl(list(drop())), Storage("list", null)),
@@ -109,12 +117,23 @@ class ConstantCollector(val method: PythonMethod) {
             return super.visitAugAssign(ast, param)
         }
 
+        private fun getOp(ast: BinOp): FuzzedOp =
+            when (ast) {
+                is Eq -> FuzzedOp.EQ
+                is NotEq -> FuzzedOp.NE
+                is Gt -> FuzzedOp.GT
+                is GtE -> FuzzedOp.GE
+                is Lt -> FuzzedOp.LT
+                is LtE -> FuzzedOp.LE
+                else -> FuzzedOp.NONE
+            }
+
         override fun visitBinOp(ast: BinOp, param: MutableMap<String, MutableList<Storage>>): AST {
             parseAndPut(
                 param,
                 or(
-                    binOp(fleft = namePat(), fright = valuePat()),
-                    swap(binOp(fleft = valuePat(), fright = namePat()))
+                    binOp(fleft = namePat(), fright = valuePat(getOp(ast))),
+                    swap(binOp(fleft = valuePat(getOp(ast)), fright = namePat()))
                 ),
                 ast
             )

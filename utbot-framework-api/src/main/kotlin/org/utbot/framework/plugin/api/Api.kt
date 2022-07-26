@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.findFieldOrNull
+import org.utbot.framework.plugin.api.util.fieldOrNull
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -347,7 +347,7 @@ data class UtCompositeModel(
             if (fields.isNotEmpty()) {
                 append(" ")
                 append(fields.entries.joinToString(", ", "{", "}") { (field, value) ->
-                    if (value.classId != classId || value.isNull()) "${field.name}: $value" else "${field.name}: not evaluated"
+                    if (value.classId != classId || value.isNull()) "(${field.declaringClass}) ${field.name}: $value" else "${field.name}: not evaluated"
                 }) // TODO: here we can get an infinite recursion if we have cyclic dependencies.
             }
             if (mocks.isNotEmpty()) {
@@ -863,7 +863,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = declaringClass.findFieldOrNull(name).toString()
+    override fun toString() = declaringClass.fieldOrNull(this).toString()
 }
 
 inline fun <T> withReflection(block: () -> T): T {

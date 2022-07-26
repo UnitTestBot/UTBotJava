@@ -1,6 +1,5 @@
 package org.utbot.examples.enums
 
-import org.utbot.common.findField
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR
@@ -13,6 +12,8 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.field
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
     @Test
@@ -111,7 +112,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
             eq(1),
             { t, staticsAfter, r ->
                 // for some reasons x is inaccessible
-                val x = t.javaClass.findField("x").get(t) as Int
+                val x = FieldId(t.javaClass.id, "x").field.get(t) as Int
 
                 val y = staticsAfter[FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")]!!.value as Int
 

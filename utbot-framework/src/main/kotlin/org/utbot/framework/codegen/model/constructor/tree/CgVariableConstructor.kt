@@ -47,8 +47,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.field
-import org.utbot.framework.plugin.api.util.findFieldOrNull
+import org.utbot.framework.plugin.api.util.fieldOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
@@ -128,9 +127,8 @@ internal class CgVariableConstructor(val context: CgContext) :
         }
 
         for ((fieldId, fieldModel) in model.fields) {
-            val field = fieldId.field
             val variableForField = getOrCreateVariable(fieldModel)
-            val fieldFromVariableSpecifiedType = obj.type.findFieldOrNull(field.name)
+            val field = obj.type.fieldOrNull(fieldId)
 
             // we cannot set field directly if variable declared type does not have such field
             // or we cannot directly create variable for field with the specified type (it is private, for example)
@@ -138,11 +136,8 @@ internal class CgVariableConstructor(val context: CgContext) :
             // Object heapByteBuffer = createInstance("java.nio.HeapByteBuffer");
             // branchRegisterRequest.byteBuffer = heapByteBuffer;
             // byteBuffer is field of type ByteBuffer and upper line is incorrect
-            val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
-                fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
-            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetIn(testClassPackageName)) {
-                // TODO: check if it is correct to use declaringClass of a field here
-                val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
+            if (field != null && field.type.id == variableForField.type && fieldId.canBeSetIn(testClassPackageName)) {
+                val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else obj[fieldId]
                 fieldAccess `=` variableForField
             } else {
                 // composite models must not have info about static fields, hence only non-static fields are set here

@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.util
 
+import org.utbot.common.findDirectAccessedField
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgDecrement
@@ -16,22 +17,13 @@ import org.utbot.framework.codegen.model.tree.CgLessThan
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgThisInstance
+import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.*
 
 fun CgExpression.at(index: Any?): CgArrayElementAccess =
     CgArrayElementAccess(this, index.resolve())
@@ -72,7 +64,10 @@ fun stringLiteral(string: String) = CgLiteral(stringClassId, string)
 
 // non-static fields
 operator fun CgExpression.get(fieldId: FieldId): CgFieldAccess =
-    CgFieldAccess(this, fieldId)
+    if (type.jClass.findDirectAccessedField(fieldId.name) != fieldId.field)
+        CgFieldAccess(CgTypeCast(fieldId.declaringClass, this), fieldId)
+    else
+        CgFieldAccess(this, fieldId)
 
 // static fields
 // TODO: unused receiver

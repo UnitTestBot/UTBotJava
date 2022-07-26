@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.common.findFieldOrNull
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -286,9 +285,13 @@ val ClassId.isMap: Boolean
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
 
-fun ClassId.findFieldOrNull(fieldName: String): Field? = jClass.findFieldOrNull(fieldName)
+fun ClassId.fieldOrNull(fieldId: FieldId): Field? {
+    if (this.isNotSubtypeOf(fieldId.declaringClass))
+        return null
+    return fieldId.field
+}
 
-fun ClassId.hasField(fieldName: String): Boolean = findFieldOrNull(fieldName) != null
+fun ClassId.hasField(fieldId: FieldId): Boolean = fieldOrNull(fieldId) != null
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
     intClassId -> UtPrimitiveModel(0)

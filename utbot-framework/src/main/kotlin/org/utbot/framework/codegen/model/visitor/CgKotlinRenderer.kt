@@ -116,13 +116,9 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     // Property access
 
     override fun visit(element: CgFieldAccess) {
-        if (element.caller.type.findFieldOrNull(element.fieldId.name)!!.fieldId != element.fieldId) {
-            print("(")
-            element.caller.accept(this)
-            print(" as ${element.fieldId.declaringClass.asString()})")
-        } else {
-            element.caller.accept(this)
-        }
+        if (element.caller is CgTypeCast) print("(")
+        element.caller.accept(this)
+        if (element.caller is CgTypeCast) print(")")
         renderAccess(element.caller)
         print(element.fieldId.name)
     }

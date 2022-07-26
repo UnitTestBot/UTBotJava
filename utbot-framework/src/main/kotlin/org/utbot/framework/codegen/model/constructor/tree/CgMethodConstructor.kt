@@ -928,8 +928,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
-            if (field.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
+        if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
+            if (field.isStatic) CgStaticFieldAccess(this) else variable[this]
         } else {
             testClassThisInstance[getFieldValue](variable, stringLiteral(name))
         }

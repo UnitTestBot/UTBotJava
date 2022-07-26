@@ -7,22 +7,9 @@ import java.lang.reflect.Method
 
 val Class<*>.packageName: String get() = `package`?.name?:""
 
-fun Class<*>.findField(name: String): Field =
-    findFieldOrNull(name) ?: error("Can't find field $name in $this")
-
-fun Class<*>.findFieldOrNull(name: String): Field? = generateSequence(this) { it.superclass }
-    .mapNotNull {
-        try {
-            it.getField(name)
-        } catch (e: NoSuchFieldException) {
-            try {
-                it.getDeclaredField(name)
-            } catch (e: NoSuchFieldException) {
-                null
-            }
-        }
-    }
-    .firstOrNull()
+fun Class<*>.findDirectAccessedField(fieldName: String): Field? = generateSequence(this) { it.superclass }
+    .flatMap { it.declaredFields.asSequence() }
+    .firstOrNull { it.name == fieldName }
 
 fun Method.invokeCatching(obj: Any?, args: List<Any?>) = try {
     Result.success(invoke(obj, *args.toTypedArray()))

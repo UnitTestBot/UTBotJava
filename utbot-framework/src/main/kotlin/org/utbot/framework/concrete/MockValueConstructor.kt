@@ -1,7 +1,5 @@
 package org.utbot.framework.concrete
 
-import org.utbot.common.findField
-import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -33,6 +31,8 @@ import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.fieldOrNull
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
@@ -171,7 +171,7 @@ class MockValueConstructor(
 
         model.fields.forEach { (field, fieldModel) ->
             val declaredField =
-                javaClass.findFieldOrNull(field.name) ?: error("Can't find field: $field for $javaClass")
+                model.classId.fieldOrNull(field) ?: error("Can't find field: $field for $javaClass")
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 
@@ -394,7 +394,7 @@ class MockValueConstructor(
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = directSetterModel.fieldId.declaringClass.jClass.findField(directSetterModel.fieldId.name)
+        val field = directSetterModel.fieldId.field
         val isAccessible = field.isAccessible
 
         try {

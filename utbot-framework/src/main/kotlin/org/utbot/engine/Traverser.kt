@@ -8,7 +8,6 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
-import org.utbot.common.findField
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -91,6 +90,7 @@ import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.field
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
@@ -639,7 +639,7 @@ class Traverser(
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
-            else -> declaringClass.id.jClass.findField(field.name).let { it.withAccessibility { it.get(null) } }
+            else -> field.fieldId.field.let { it.withAccessibility { it.get(null) } }
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =

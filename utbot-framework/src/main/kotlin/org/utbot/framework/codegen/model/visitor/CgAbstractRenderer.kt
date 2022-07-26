@@ -587,13 +587,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgFieldAccess) {
-        if (element.caller.type.findFieldOrNull(element.fieldId.name)!!.fieldId != element.fieldId) {
-            print("((${element.fieldId.declaringClass.asString()}) ")
-            element.caller.accept(this)
-            print(")")
-        } else {
-            element.caller.accept(this)
-        }
+        element.caller.accept(this)
         print(".")
         print(element.fieldId.name)
     }

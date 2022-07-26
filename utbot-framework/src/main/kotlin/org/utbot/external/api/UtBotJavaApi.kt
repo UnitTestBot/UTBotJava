@@ -246,8 +246,7 @@ object UtBotJavaApi {
             result = utExecutionResult,
             instrumentation = emptyList(),
             path = mutableListOf(),
-            fullPath = listOf(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE
+            fullPath = listOf()
         )
 
         val utMethod = UtMethod(methodCallable, containingClass.kotlin)

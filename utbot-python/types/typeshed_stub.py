@@ -14,30 +14,31 @@ from typeshed_client.resolver import Resolver
 from ast_json_encoders import AstClassEncoder, AstFunctionDefEncoder, AstAnnAssignEncoder
 
 
-MODULES = [
-    'getpass', 'runpy', 'gettext', 'sched', 'glob', 'secrets', 'graphlib', 'select', 'grp', 'selectors', 'gzip',
-    'setuptools', 'hashlib', 'shelve', 'heapq', 'shlex', 'hmac', 'shutil', 'html', 'signal', 'http', 'site', 'idlelib',
-    'smtpd', 'abc', 'imaplib', 'smtplib', 'aifc', 'imghdr', 'sndhdr', 'antigravity', 'imp', 'socket', 'argparse',
-    'importlib', 'socketserver', 'array', 'inspect', 'spwd', 'ast', 'io', 'sqlite3', 'asynchat', 'ipaddress',
-    'sre_compile', 'asyncio', 'itertools', 'sre_constants', 'asyncore', 'json', 'sre_parse', 'atexit', 'keyword',
-    'ssl', 'audioop', 'lib2to3', 'stat', 'base64', 'linecache', 'statistics', 'bdb', 'locale', 'string', 'binascii',
-    'logging', 'stringprep', 'binhex', 'lzma', 'struct', 'bisect', 'mailbox', 'subprocess', 'builtins', 'mailcap',
-    'sunau', 'bz2', 'marshal', 'symtable', 'cProfile', 'math', 'sys', 'calendar', 'mimetypes', 'sysconfig', 'cgi',
-    'mmap', 'syslog', 'cgitb', 'modulefinder', 'tabnanny', 'chunk', 'multiprocessing', 'tarfile', 'cmath', 'netrc',
-    'telnetlib', 'cmd', 'nis', 'tempfile', 'code', 'nntplib', 'termios', 'codecs', 'ntpath', 'test', 'codeop',
-    'nturl2path', 'textwrap', 'collections', 'numbers', 'this', 'colorsys', 'opcode', 'threading', 'compileall',
-    'operator', 'time', 'concurrent', 'optparse', 'timeit', 'configparser', 'os', 'tkinter', 'contextlib',
-    'ossaudiodev', 'token', 'contextvars', 'pathlib', 'tokenize', 'copy', 'pdb', 'trace', 'copyreg', 'pickle',
-    'traceback', 'crypt', 'pickletools', 'tracemalloc', 'csv', 'pip', 'tty', 'ctypes', 'pipes', 'turtle', 'curses',
-    'pkg_resources', 'turtledemo', 'dataclasses', 'pkgutil', 'types', 'datetime', 'platform', 'typing', 'dbm',
-    'plistlib', 'unicodedata', 'decimal', 'poplib', 'unittest', 'difflib', 'posix', 'urllib', 'dis', 'posixpath',
-    'uu', 'distutils', 'pprint', 'uuid', 'doctest', 'profile', 'venv', 'email', 'pstats', 'warnings', 'encodings',
-    'pty', 'wave', 'ensurepip', 'pwd', 'weakref', 'enum', 'py_compile', 'webbrowser', 'errno', 'pyclbr', 'wsgiref',
-    'faulthandler', 'pydoc', 'xdrlib', 'fcntl', 'pydoc_data', 'xml', 'filecmp', 'pyexpat', 'xmlrpc', 'fileinput',
-    'queue', 'xxlimited', 'fnmatch', 'quopri', 'xxlimited_35', 'fractions', 'random', 'xxsubtype', 'ftplib', 're',
-    'zipapp', 'functools', 'readline', 'zipfile', 'gc', 'reprlib', 'zipimport', 'genericpath', 'resource', 'zlib',
-    'getopt', 'rlcompleter', 'zoneinfo'
-]
+# MODULES = [
+#     'getpass', 'runpy', 'gettext', 'sched', 'glob', 'secrets', 'graphlib', 'select', 'grp', 'selectors', 'gzip',
+#     'setuptools', 'hashlib', 'shelve', 'heapq', 'shlex', 'hmac', 'shutil', 'html', 'signal', 'http', 'site', 'idlelib',
+#     'smtpd', 'abc', 'imaplib', 'smtplib', 'aifc', 'imghdr', 'sndhdr', 'antigravity', 'imp', 'socket', 'argparse',
+#     'importlib', 'socketserver', 'array', 'inspect', 'spwd', 'ast', 'io', 'sqlite3', 'asynchat', 'ipaddress',
+#     'sre_compile', 'asyncio', 'itertools', 'sre_constants', 'asyncore', 'json', 'sre_parse', 'atexit', 'keyword',
+#     'ssl', 'audioop', 'lib2to3', 'stat', 'base64', 'linecache', 'statistics', 'bdb', 'locale', 'string', 'binascii',
+#     'logging', 'stringprep', 'binhex', 'lzma', 'struct', 'bisect', 'mailbox', 'subprocess', 'builtins', 'mailcap',
+#     'sunau', 'bz2', 'marshal', 'symtable', 'cProfile', 'math', 'sys', 'calendar', 'mimetypes', 'sysconfig', 'cgi',
+#     'mmap', 'syslog', 'cgitb', 'modulefinder', 'tabnanny', 'chunk', 'multiprocessing', 'tarfile', 'cmath', 'netrc',
+#     'telnetlib', 'cmd', 'nis', 'tempfile', 'code', 'nntplib', 'termios', 'codecs', 'ntpath', 'test', 'codeop',
+#     'nturl2path', 'textwrap', 'collections', 'numbers', 'this', 'colorsys', 'opcode', 'threading', 'compileall',
+#     'operator', 'time', 'concurrent', 'optparse', 'timeit', 'configparser', 'os', 'tkinter', 'contextlib',
+#     'ossaudiodev', 'token', 'contextvars', 'pathlib', 'tokenize', 'copy', 'pdb', 'trace', 'copyreg', 'pickle',
+#     'traceback', 'crypt', 'pickletools', 'tracemalloc', 'csv', 'pip', 'tty', 'ctypes', 'pipes', 'turtle', 'curses',
+#     'pkg_resources', 'turtledemo', 'dataclasses', 'pkgutil', 'types', 'datetime', 'platform', 'typing', 'dbm',
+#     'plistlib', 'unicodedata', 'decimal', 'poplib', 'unittest', 'difflib', 'posix', 'urllib', 'dis', 'posixpath',
+#     'uu', 'distutils', 'pprint', 'uuid', 'doctest', 'profile', 'venv', 'email', 'pstats', 'warnings', 'encodings',
+#     'pty', 'wave', 'ensurepip', 'pwd', 'weakref', 'enum', 'py_compile', 'webbrowser', 'errno', 'pyclbr', 'wsgiref',
+#     'faulthandler', 'pydoc', 'xdrlib', 'fcntl', 'pydoc_data', 'xml', 'filecmp', 'pyexpat', 'xmlrpc', 'fileinput',
+#     'queue', 'xxlimited', 'fnmatch', 'quopri', 'xxlimited_35', 'fractions', 'random', 'xxsubtype', 'ftplib', 're',
+#     'zipapp', 'functools', 'readline', 'zipfile', 'gc', 'reprlib', 'zipimport', 'genericpath', 'resource', 'zlib',
+#     'getopt', 'rlcompleter', 'zoneinfo'
+# ]
+MODULES = ['__future__', '_testinternalcapi', 'getpass', 'runpy', '_abc', '_testmultiphase', 'gettext', 'sched', '_aix_support', '_thread', 'glob', 'secrets', '_ast', '_threading_local', 'graphlib', 'select', '_asyncio', '_tracemalloc', 'grp', 'selectors', '_bisect', '_uuid', 'gzip', 'setuptools', '_blake2', '_warnings', 'hashlib', 'shelve', '_bootsubprocess', '_weakref', 'heapq', 'shlex', '_bz2', '_weakrefset', 'hmac', 'shutil', '_codecs', '_xxsubinterpreters', 'html', 'signal', '_codecs_cn', '_xxtestfuzz', 'http', 'site', '_codecs_hk', '_zoneinfo', 'idlelib', 'smtpd', '_codecs_iso2022', 'abc', 'imaplib', 'smtplib', '_codecs_jp', 'aifc', 'imghdr', 'sndhdr', '_codecs_kr', 'antigravity', 'imp', 'socket', '_codecs_tw', 'argparse', 'importlib', 'socketserver', '_collections', 'array', 'inspect', 'spwd', '_collections_abc', 'ast', 'io', 'sqlite3', '_compat_pickle', 'asynchat', 'ipaddress', 'sre_compile', '_compression', 'asyncio', 'itertools', 'sre_constants', '_contextvars', 'asyncore', 'json', 'sre_parse', '_crypt', 'atexit', 'keyword', 'ssl', '_csv', 'audioop', 'lib2to3', 'stat', '_ctypes', 'base64', 'linecache', 'statistics', '_ctypes_test', 'bdb', 'locale', 'string', '_curses', 'binascii', 'logging', 'stringprep', '_curses_panel', 'binhex', 'lzma', 'struct', '_datetime', 'bisect', 'mailbox', 'subprocess', '_dbm', 'builtins', 'mailcap', 'sunau', '_decimal', 'bz2', 'marshal', 'symtable', '_distutils_hack', 'cProfile', 'math', 'sys', '_elementtree', 'calendar', 'mimetypes', 'sysconfig', '_functools', 'cgi', 'mmap', 'syslog', '_gdbm', 'cgitb', 'modulefinder', 'tabnanny', '_hashlib', 'chunk', 'multiprocessing', 'tarfile', '_heapq', 'cmath', 'netrc', 'telnetlib', '_imp', 'cmd', 'nis', 'tempfile', '_io', 'code', 'nntplib', 'termios', '_json', 'codecs', 'ntpath', 'test', '_locale', 'codeop', 'nturl2path', 'textwrap', '_lsprof', 'collections', 'numbers', 'this', '_lzma', 'colorsys', 'opcode', 'threading', '_markupbase', 'compileall', 'operator', 'time', '_md5', 'concurrent', 'optparse', 'timeit', '_multibytecodec', 'configparser', 'os', 'tkinter', '_multiprocessing', 'contextlib', 'ossaudiodev', 'token', '_opcode', 'contextvars', 'pathlib', 'tokenize', '_operator', 'copy', 'pdb', 'trace', '_osx_support', 'copyreg', 'pickle', 'traceback', '_pickle', 'crypt', 'pickletools', 'tracemalloc', '_posixshmem', 'csv', 'pip', 'tty', '_posixsubprocess', 'ctypes', 'pipes', 'turtle', '_py_abc', 'curses', 'pkg_resources', 'turtledemo', '_pydecimal', 'dataclasses', 'pkgutil', 'types', '_pyio', 'datetime', 'platform', 'typing', '_queue', 'dbm', 'plistlib', 'unicodedata', '_random', 'decimal', 'poplib', 'unittest', '_sha1', 'difflib', 'posix', 'urllib', '_sha256', 'dis', 'posixpath', 'uu', '_sha3', 'distutils', 'pprint', 'uuid', '_sha512', 'doctest', 'profile', 'venv', '_signal', 'email', 'pstats', 'warnings', '_sitebuiltins', 'encodings', 'pty', 'wave', '_socket', 'ensurepip', 'pwd', 'weakref', '_sqlite3', 'enum', 'py_compile', 'webbrowser', '_sre', 'errno', 'pyclbr', 'wsgiref', '_ssl', 'faulthandler', 'pydoc', 'xdrlib', '_stat', 'fcntl', 'pydoc_data', 'xml', '_statistics', 'filecmp', 'pyexpat', 'xmlrpc', '_string', 'fileinput', 'queue', 'xxlimited', '_strptime', 'fnmatch', 'quopri', 'xxlimited_35', '_struct', 'fractions', 'random', 'xxsubtype', '_symtable', 'ftplib', 're', 'zipapp', 'functools', 'readline', 'zipfile', '_testbuffer', 'gc', 'reprlib', 'zipimport', '_testcapi', 'genericpath', 'resource', 'zlib', '_testimportmultiple', 'getopt', 'rlcompleter', 'zoneinfo']
 
 
 BUILTIN_TYPES = [

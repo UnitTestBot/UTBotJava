@@ -5,8 +5,6 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-
-
 internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = HiddenFieldExample::class) {
     @Test
     // Engine creates HiddenFieldSuccClass instead of HiddenFieldSuperClass, feels wrong field and matchers fail

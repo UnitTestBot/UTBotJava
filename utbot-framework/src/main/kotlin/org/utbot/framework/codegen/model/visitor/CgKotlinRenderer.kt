@@ -47,7 +47,12 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
+import org.utbot.framework.plugin.api.util.kClass
+import org.utbot.framework.plugin.api.util.voidClassId
 
 //TODO rewrite using KtPsiFactory?
 internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {

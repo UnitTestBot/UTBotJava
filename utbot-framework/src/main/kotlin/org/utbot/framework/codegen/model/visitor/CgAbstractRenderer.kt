@@ -86,7 +86,14 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.shortClassId
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {

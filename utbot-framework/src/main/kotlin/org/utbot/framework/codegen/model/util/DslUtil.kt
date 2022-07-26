@@ -23,7 +23,19 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.byteClassId
+import org.utbot.framework.plugin.api.util.charClassId
+import org.utbot.framework.plugin.api.util.doubleClassId
+import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.floatClassId
+import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.stringClassId
 
 fun CgExpression.at(index: Any?): CgArrayElementAccess =
     CgArrayElementAccess(this, index.resolve())

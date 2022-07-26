@@ -5,7 +5,7 @@ import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class HiddenFieldAccessModifiersTest : UtValueTestCaseChecker(testClass = HiddenFieldExample::class) {
+internal class HiddenFieldAccessModifiersTest : UtValueTestCaseChecker(testClass = HiddenFieldAccessModifiersExample::class) {
     @Test
     fun testCheckSuperFieldEqualsOne() {
         check(

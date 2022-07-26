@@ -22,13 +22,13 @@ class PythonEngine(
         val returnType = methodUnderTest.returnType ?: ClassId("")
         val argumentTypes = methodUnderTest.arguments.map { it.type }
 
-        val constantCollecter = ConstantCollector(methodUnderTest)
+        val constantCollector = ConstantCollector(methodUnderTest)
 
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
             returnType,
             argumentTypes,
-            constantCollecter.getConstants()
+            constantCollector.getConstants()
         ).apply {
             compilableName = methodUnderTest.name // what's the difference with ordinary name?
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
@@ -39,7 +39,7 @@ class PythonEngine(
 
         var testsGenerated = 0
 
-        val suggestedTypes = constantCollecter.suggestBasedOnConstants()
+        val suggestedTypes = constantCollector.suggestBasedOnConstants()
 
         if (suggestedTypes.any { it.isEmpty() })
             return@sequence

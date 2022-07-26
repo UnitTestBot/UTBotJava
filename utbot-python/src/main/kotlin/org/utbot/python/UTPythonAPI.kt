@@ -4,7 +4,6 @@ import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStm
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.*
-import org.utbot.fuzzer.FuzzedConcreteValue
 
 data class PythonArgument(val name: String, val type: ClassId)
 
@@ -14,7 +13,6 @@ interface PythonMethod {
     val arguments: List<PythonArgument>
     fun asString(): String
     fun ast(): FunctionDef
-    fun getConcreteValues(): List<FuzzedConcreteValue>
 }
 
 sealed class PythonResult(val parameters: List<UtModel>)

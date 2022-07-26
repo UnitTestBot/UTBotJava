@@ -249,6 +249,14 @@ class PythonStrModel(val value: String): PythonModel(classId) {
     }
 }
 
+class PythonBoolModel(val value: Boolean): PythonModel(classId) {
+    override fun toString() =
+        if (value) "True" else "False"
+    companion object {
+        val classId = ClassId("bool")
+    }
+}
+
 /**
  * Class representing models for values that might have an address.
  *

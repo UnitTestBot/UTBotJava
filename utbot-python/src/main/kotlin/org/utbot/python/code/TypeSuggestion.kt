@@ -5,9 +5,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.PythonIntModel
-import org.utbot.framework.plugin.api.pythonAnyClassId
+import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTypesStorage
@@ -55,9 +53,17 @@ class ConstantCollector(val method: PythonMethod) {
                 map1(refl(num(apply()))) { x ->
                     Storage("int", FuzzedConcreteValue(PythonIntModel.classId, BigInteger(x))) },
                 map1(refl(str(apply()))) { x ->
-                    Storage("str", FuzzedConcreteValue(PythonIntModel.classId, x)) },
-                map0(refl(true_()), Storage("bool", null)),
-                map0(refl(false_()), Storage("bool", null)),
+                    Storage(
+                        "str",
+                        FuzzedConcreteValue(
+                            PythonStrModel.classId,
+                            x.removeSurrounding("\"", "\"").removeSurrounding("'", "'")
+                        )
+                    ) },
+                map0(refl(true_()),
+                    Storage("bool", FuzzedConcreteValue(PythonBoolModel.classId, true))),
+                map0(refl(false_()),
+                    Storage("bool", FuzzedConcreteValue(PythonBoolModel.classId, false))),
                 // map0(refl(none()), Storage("None")),
                 map0(refl(dict(drop(), drop())), Storage("dict", null)),
                 map0(refl(list(drop())), Storage("list", null)),

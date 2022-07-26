@@ -94,28 +94,6 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         return ast
     }
 
-    override fun getConcreteValues(): List<FuzzedConcreteValue> {
-        val visitor = ConcreteValuesVisitor()
-        val res = mutableListOf<FuzzedConcreteValue>()
-        visitor.visitFunctionDef(ast, res)
-        return res
-    }
-
-    private class ConcreteValuesVisitor: ModifierVisitor<MutableList<FuzzedConcreteValue>>() {
-        override fun visitNum(num: Num, res: MutableList<FuzzedConcreteValue>): AST {
-            res += FuzzedConcreteValue(PythonIntModel.classId, BigInteger(num.n))
-            return super.visitNum(num, res)
-        }
-
-        override fun visitStr(str: Str, res: MutableList<FuzzedConcreteValue>): AST {
-            res += FuzzedConcreteValue(
-                PythonStrModel.classId,
-                str.s.removeSurrounding("\"", "\"").removeSurrounding("'", "'")
-            )
-            return super.visitStr(str, res)
-        }
-    }
-
     companion object {
         fun typeAsStringToClassId(typeAsString: String): ClassId = ClassId(typeAsString)
 

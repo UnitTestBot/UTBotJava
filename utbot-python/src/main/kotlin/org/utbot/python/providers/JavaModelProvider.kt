@@ -1,5 +1,7 @@
 package org.utbot.python.providers
 
+import com.sun.org.apache.xpath.internal.operations.Bool
+import org.utbot.framework.plugin.api.PythonBoolModel
 import org.utbot.framework.plugin.api.PythonIntModel
 import org.utbot.framework.plugin.api.PythonStrModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -20,7 +22,8 @@ object JavaModelProvider: ModelProvider {
     override fun generate(description: FuzzedMethodDescription) = sequence {
         val typeMap = mapOf(
             PythonIntModel.classId to BigInteger::class.id,
-            PythonStrModel.classId to String::class.id
+            PythonStrModel.classId to String::class.id,
+            PythonBoolModel.classId to Boolean::class.id
         )
         val substitutedDescription = substituteType(description, typeMap)
         javaModelProvider.generate(substitutedDescription).forEach { fuzzedParameter ->
@@ -38,6 +41,13 @@ object JavaModelProvider: ModelProvider {
                         yield(FuzzedParameter(
                             index,
                             PythonStrModel(strValue).fuzzed()
+                        ))
+                    }
+                PythonBoolModel.classId ->
+                    ((fuzzedValue.model as? UtPrimitiveModel)?.value as? Boolean)?.let { boolValue ->
+                        yield(FuzzedParameter(
+                            index,
+                            PythonBoolModel(boolValue).fuzzed()
                         ))
                     }
             }

@@ -28,6 +28,7 @@ data class GenerateTestsModel(
     var selectedMethods: Set<MemberInfo>?,
     var timeout:Long,
     var generateWarningsForStaticMocking: Boolean = false,
+    var fuzzingValue: Double = 0.05
 ) {
     var testSourceRoot: VirtualFile? = null
     var testPackageName: String? = null

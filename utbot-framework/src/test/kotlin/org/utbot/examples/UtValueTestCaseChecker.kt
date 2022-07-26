@@ -2550,7 +2550,7 @@ abstract class UtValueTestCaseChecker(
         val substituteStatics: Boolean
     )
 
-    data class MethodResult(val testCase: UtMethodTestSet, val coverage: Coverage)
+    data class MethodResult(val testSet: UtMethodTestSet, val coverage: Coverage)
 }
 
 @Suppress("UNCHECKED_CAST")

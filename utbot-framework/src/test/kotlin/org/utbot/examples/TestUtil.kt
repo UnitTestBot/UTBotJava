@@ -14,6 +14,8 @@ import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
+import org.utbot.framework.util.Conflict
+import org.utbot.framework.util.ConflictTriggers
 
 
 data class TestFrameworkConfiguration(
@@ -28,6 +30,11 @@ data class TestFrameworkConfiguration(
     val runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.PASS,
     val enableTestsTimeout: Boolean = false // our tests should not fail due to timeout
 ) {
+    val isParametrizedAndMocked: Boolean
+        get() = parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE &&
+                (mockStrategy != NO_MOCKS ||
+                        conflictTriggers[Conflict.ForceMockHappened] ?: false || conflictTriggers[Conflict.ForceStaticMockHappened] ?: false)
+
     val isDisabled: Boolean
         get() = run {
             // TODO Any? JIRA:1366
@@ -42,9 +49,6 @@ data class TestFrameworkConfiguration(
             // because otherwise the code generator will not create mocks even for mandatory to mock classes
             if (forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking == NoStaticMocking) return true
 
-            // TODO find if mocks are used during the analysis JIRA:1418
-            if (parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE) return true
-
             // junit4 doesn't support parametrized tests
             if (testFramework == Junit4 && parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE) return true
 
@@ -54,6 +58,8 @@ data class TestFrameworkConfiguration(
             return false
         }
 }
+
+val conflictTriggers: ConflictTriggers = ConflictTriggers()
 
 val allTestFrameworkConfigurations: List<TestFrameworkConfiguration> = run {
     val possibleConfiguration = mutableListOf<TestFrameworkConfiguration>()

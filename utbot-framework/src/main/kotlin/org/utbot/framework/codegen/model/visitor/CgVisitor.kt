@@ -52,7 +52,7 @@ import org.utbot.framework.codegen.model.tree.CgMultilineComment
 import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
 import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
+import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
@@ -184,7 +184,10 @@ interface CgVisitor<R> {
 
     // Variables
     fun visit(element: CgVariable): R
-    fun visit(element: CgNotNullVariable): R
+
+    // Not-null assertion
+
+    fun visit(element: CgNotNullAssertion): R
 
     // Method parameters
     fun visit(element: CgParameterDeclaration): R

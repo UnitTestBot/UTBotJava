@@ -14,6 +14,10 @@ class MockListenerController(private val controller: EngineController) {
         listeners += listener
     }
 
+    fun detach(listener: MockListener) {
+        listeners -= listener
+    }
+
     fun onShouldMock(strategy: MockStrategy, mockInfo: UtMockInfo) {
         listeners.map { it.onShouldMock(controller, strategy, mockInfo) }
     }

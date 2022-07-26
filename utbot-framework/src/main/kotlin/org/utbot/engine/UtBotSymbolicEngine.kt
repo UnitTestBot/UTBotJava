@@ -180,6 +180,8 @@ class UtBotSymbolicEngine(
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
 
+    fun detachMockListener(mockListener: MockListener) = mocker.mockListenerController?.detach(mockListener)
+
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
     private val traverser = Traverser(
@@ -435,7 +437,7 @@ class UtBotSymbolicEngine(
             })
         }
         fuzzedValues.forEach { values ->
-            if (System.currentTimeMillis() >= until) {
+            if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 return@flow
             }

@@ -1,24 +1,23 @@
 package org.utbot.engine.selectors.strategies
 
+import mu.KotlinLogging
+import org.utbot.common.FileUtil.createNewFileWithParentDirectories
 import org.utbot.engine.CALL_DECISION_NUM
 import org.utbot.engine.Edge
 import org.utbot.engine.ExecutionState
 import org.utbot.engine.InterProceduralUnitGraph
+import org.utbot.engine.isLibraryNonOverriddenClass
 import org.utbot.engine.isReturn
 import org.utbot.engine.selectors.PathSelector
 import org.utbot.engine.stmts
 import org.utbot.framework.UtSettings.copyVisualizationPathToClipboard
+import soot.jimple.Stmt
+import soot.toolkits.graph.ExceptionalUnitGraph
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Paths
-import mu.KotlinLogging
-import org.apache.commons.io.FileUtils
-import org.utbot.engine.isLibraryNonOverriddenClass
-import org.utbot.engine.isOverridden
-import soot.jimple.Stmt
-import soot.toolkits.graph.ExceptionalUnitGraph
 
 private val logger = KotlinLogging.logger {}
 
@@ -51,10 +50,17 @@ class GraphViz(
         val classLoader = GraphViz::class.java.classLoader
 
         for (file in requiredFileNames) {
-            FileUtils.copyInputStreamToFile(
-                classLoader.getResourceAsStream("html/$file"),
-                Paths.get(graphVisDirectory.toString(), file).toFile()
-            )
+            classLoader.getResourceAsStream("html/$file").use { inputStream ->
+                val path = Paths.get(graphVisDirectory.toString(), file)
+                val targetFile = path.toFile()
+                targetFile.createNewFileWithParentDirectories()
+
+                targetFile.outputStream().use { targetOutputStream ->
+                    inputStream?.copyTo(targetOutputStream) ?: logger.error {
+                        "Could not start a visualization because of missing resource html/$file"
+                    }
+                }
+            }
         }
         FileWriter(graphJs).use {
             it.write(

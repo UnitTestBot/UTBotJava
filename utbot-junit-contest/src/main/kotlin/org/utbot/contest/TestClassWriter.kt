@@ -4,7 +4,7 @@ import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.plugin.api.UtMethod
 import mu.KotlinLogging
-import org.apache.commons.io.FileUtils
+import org.utbot.common.FileUtil
 
 private val logger = KotlinLogging.logger {}
 
@@ -91,7 +91,7 @@ class TestClassWriter(
             insert(lastIndexOf("}"), tests)
             insert(lastIndexOf("}"), utils)
         }
-        logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(codeBuilder.length.toLong())}" }
+        logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtil.byteCountToDisplaySize(codeBuilder.length.toLong())}" }
         cut.generatedTestFile.writeText(codeBuilder.toString(), charset)
     }
 

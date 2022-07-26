@@ -7,6 +7,8 @@ import org.utbot.common.runIgnoringCancellationException
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
 import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.util.mockListeners.ForceMockListener
+import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
@@ -45,6 +47,9 @@ class TestSpecificTestCaseGenerator(
         val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
         val defaultTimeEstimator = ExecutionTimeEstimator(UtSettings.utBotGenerationTimeoutInMillis, 1)
 
+        val forceMockListener = ForceMockListener.create(this, conflictTriggers)
+        val forceStaticMockListener = ForceStaticMockListener.create(this, conflictTriggers)
+
         runIgnoringCancellationException {
             runBlockingWithCancellationPredicate(isCanceled) {
                 super
@@ -57,6 +62,9 @@ class TestSpecificTestCaseGenerator(
                     }
             }
         }
+
+        forceMockListener.detach(this, forceMockListener)
+        forceStaticMockListener.detach(this, forceStaticMockListener)
 
         val minimizedExecutions = super.minimizeExecutions(executions)
         return UtMethodTestSet(method, minimizedExecutions, jimpleBody(method), errors)

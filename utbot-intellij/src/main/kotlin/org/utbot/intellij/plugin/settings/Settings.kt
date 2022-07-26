@@ -51,7 +51,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
         var treatOverflowAsError: TreatOverflowAsError = TreatOverflowAsError.defaultItem,
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
-        var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray()
+        var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
+        var fuzzingValue: Double = 0.05,
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,
@@ -63,7 +64,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             hangingTestsTimeout = model.hangingTestsTimeout,
             forceStaticMocking = model.forceStaticMocking,
             parametrizedTestSource = model.parametrizedTestSource,
-            classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray()
+            classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
+            fuzzingValue = model.fuzzingValue
         )
 
         override fun equals(other: Any?): Boolean {
@@ -83,6 +85,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (treatOverflowAsError != other.treatOverflowAsError) return false
             if (parametrizedTestSource != other.parametrizedTestSource) return false
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
+            if (fuzzingValue != other.fuzzingValue) return false
 
             return true
         }
@@ -98,6 +101,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + treatOverflowAsError.hashCode()
             result = 31 * result + parametrizedTestSource.hashCode()
             result = 31 * result + classesToMockAlways.contentHashCode()
+            result = 31 * result + fuzzingValue.hashCode()
 
             return result
         }
@@ -128,6 +132,12 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
     val parametrizedTestSource: ParametrizedTestSource get() = state.parametrizedTestSource
 
     val classesToMockAlways: Set<String> get() = state.classesToMockAlways.toSet()
+
+    var fuzzingValue: Double
+        get() = state.fuzzingValue
+        set(value) {
+            state.fuzzingValue = value.coerceIn(0.0, 1.0)
+        }
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()
@@ -217,8 +227,7 @@ private class HangingTestsTimeoutConverter : Converter<HangingTestsTimeout>() {
 
     override fun fromString(value: String): HangingTestsTimeout {
         val arguments = value.substringAfter("HangingTestsTimeout:")
-        val timeoutMs = arguments.first().toLong()
-
+        val timeoutMs = arguments.toLong()
         return HangingTestsTimeout(timeoutMs)
     }
 }

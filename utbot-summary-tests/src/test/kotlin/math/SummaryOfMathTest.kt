@@ -143,13 +143,13 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
                 "Test then returns from: return acummulator.snapshot();\n"
         val summary6 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
-                "        inside this loop, the test calls StatsAccumulator::add,\n" +
+                "        inside this loop, the test calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +
                 "        there it executes conditions:\n" +
                 "            (!isFinite(value)): True\n" +
-                "Test afterwards calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
+                "Test then calls {@link guava.examples.math.StatsAccumulator#snapshot()},\n" +
                 "    there it returns from: return new Stats(count, mean, sumOfSquaresOfDeltas, min, max);\n" +
                 "    \n" +
-                "Test then returns from: return acummulator.snapshot();\n"
+                "Test afterwards returns from: return acummulator.snapshot();\n"
         val summary7 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(double[])},\n" +
                 "    there it iterates the loop for(double value: values) twice,\n" +
                 "        inside this loop, the test calls {@link guava.examples.math.StatsAccumulator#add(double)},\n" +

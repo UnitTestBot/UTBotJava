@@ -29,7 +29,7 @@ class ConstantCollector(val method: PythonMethod) {
         if (param.type == pythonAnyClassId) param.name else null
     }
 
-    private val collectedValues = mutableMapOf<String, Storage>().withDefault { Storage() }
+    private val collectedValues = mutableMapOf<String, Storage>()
     private val visitor = MatchVisitor(paramNames)
 
     init {
@@ -117,8 +117,9 @@ class ConstantCollector(val method: PythonMethod) {
                 onError = null,
                 ast
             ) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
-                val listOfStorage = collection[it.first]
-                listOfStorage?.typeStorages?.add(it.second)
+                val listOfStorage = collection[it.first] ?: Storage()
+                listOfStorage.typeStorages.add(it.second)
+                collection[it.first] = listOfStorage
             }
         }
 
@@ -163,11 +164,25 @@ class ConstantCollector(val method: PythonMethod) {
             return super.visitBinOp(ast, param)
         }
 
-        override fun visitGt(gt: Gt, param: MutableMap<String, Storage>): AST {
+        fun saveToAttributeStorage(name: AST, methodName: String, param: MutableMap<String, Storage>) {
             paramNames.forEach {
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(gt.left, "__gt__", it))
-                param[it]?.attributeStorages?.addAll(getTypesFromStub(gt.right, "__gt__", it))
+                when (name) {
+                    is Name -> {
+                        if (name.id.toString() == methodName) {
+                            (param[it] ?: Storage()).attributeStorages.add(
+                                AttributeStorage(name.id.toString())
+                            )
+                        }
+                    }
+                }
             }
+        }
+
+        override fun visitGt(gt: Gt, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(gt.left, "__gt__", param)
+            saveToAttributeStorage(gt.right, "__gt__", param)
+//                param[it]?.attributeStorages?.addAll(getTypesFromStub(gt.left, "__gt__", it))
+//                param[it]?.attributeStorages?.addAll(getTypesFromStub(gt.right, "__gt__", it))
             return super.visitGt(gt, param)
         }
 

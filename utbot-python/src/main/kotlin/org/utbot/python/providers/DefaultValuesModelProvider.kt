@@ -10,13 +10,13 @@ import java.util.function.BiConsumer
 
 object DefaultValuesModelProvider: ModelProvider {
     override fun generate(description: FuzzedMethodDescription) = sequence {
-        var generated = 0
+        val generated = Array(description.parameters.size) { 0 }
         description.parametersMap.forEach { (classId, parameterIndices) ->
             PythonTypesStorage.typeNameMap[classId.name]?.let { pythonType ->
                 pythonType.instances.forEach { instance ->
                     parameterIndices.forEach { index ->
-                        generated += 1
-                        if (generated < 10)
+                        generated[index] += 1
+                        if (generated[index] < 10)
                             yield(FuzzedParameter(index, PythonDefaultModel(instance, pythonType.name).fuzzed()))
                     }
                 }

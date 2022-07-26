@@ -1,5 +1,6 @@
 rootProject.name = 'utbot'
 
+include 'utbot-codegen-utils'
 include 'utbot-core'
 include 'utbot-framework'
 include 'utbot-framework-api'

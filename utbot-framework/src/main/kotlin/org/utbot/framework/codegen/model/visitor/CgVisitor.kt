@@ -77,7 +77,6 @@ import org.utbot.framework.codegen.model.tree.CgThrowStatement
 import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
 import org.utbot.framework.codegen.model.tree.CgTryCatch
 import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.tree.CgWhileLoop
 
@@ -94,8 +93,6 @@ interface CgVisitor<R> {
     fun visit(element: CgSimpleRegion<*>): R
     fun visit(element: CgTestMethodCluster): R
     fun visit(element: CgExecutableUnderTestCluster): R
-
-    fun visit(element: CgUtilMethod): R
 
     // Methods
     fun visit(element: CgMethod): R

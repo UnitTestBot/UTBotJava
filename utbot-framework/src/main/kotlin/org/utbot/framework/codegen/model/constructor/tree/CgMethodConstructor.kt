@@ -18,6 +18,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
+import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -237,7 +238,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     val declaringClassVar = newVar(classCgClassId) {
                         Class::class.id[forName](declaringClass.name)
                     }
-                    testClassThisInstance[getStaticFieldValue](declaringClassVar, field.name)
+                    utUtilsClassId[getStaticFieldValue](declaringClassVar, field.name)
                 }
             }
             // remember the previous value of a static field to recover it at the end of the test
@@ -256,7 +257,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val declaringClassVar = newVar(classCgClassId) {
                     Class::class.id[forName](declaringClass.name)
                 }
-                +testClassThisInstance[setStaticField](declaringClassVar, field.name, fieldValue)
+                +utUtilsClassId[setStaticField](declaringClassVar, field.name, fieldValue)
             }
         }
     }
@@ -267,7 +268,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
-                +testClassThisInstance[setStaticField](declaringClass, field.name, prevValue)
+                +utUtilsClassId[setStaticField](declaringClass, field.name, prevValue)
             }
         }
     }
@@ -733,12 +734,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
             variableConstructor.constructVarName("${expected.name}Size"),
-            expected.length(this, testClassThisInstance, getArrayLength)
+            expected.length(this)
         )
         statements += cgGetLengthDeclaration
         statements += assertions[assertEquals](
             cgGetLengthDeclaration.variable,
-            actual.length(this, testClassThisInstance, getArrayLength)
+            actual.length(this)
         ).toStatement()
 
         return cgGetLengthDeclaration
@@ -931,7 +932,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
             if (field.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
-            testClassThisInstance[getFieldValue](variable, stringLiteral(name))
+            utUtilsClassId[getFieldValue](variable, stringLiteral(name))
         }
 
     /**

@@ -12,6 +12,7 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.As
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 
 sealed class Result<T>
 class Match<T>(val value: T): Result<T>()
@@ -152,6 +153,17 @@ fun <A, B, C, D, E> arguments(
         val x2 = go(fkeywords, node.keywords, x1)
         val x3 = go(fstarredArgs, node.starredArgs, x2)
         go(fdoubleStarredArgs, node.doubleStarredArgs, x3)
+    }
+
+fun <A, B, C> classField(
+    fname: Parser<A, B, Name>,
+    fattributeId: Parser<B, C, String>
+): Parser<A, C, Atom> =
+    Parser { node, x ->
+        if (!(node.atomElement is Name && node.trailers.size == 1 && node.trailers[0] is Attribute))
+            return@Parser Error()
+        val x1 = fname.go(node.atomElement as Name, x)
+        go(fattributeId, (node.trailers[0] as Attribute).attr.name, x1)
     }
 
 fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =

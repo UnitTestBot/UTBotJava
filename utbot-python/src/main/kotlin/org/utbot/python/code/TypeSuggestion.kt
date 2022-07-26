@@ -33,10 +33,12 @@ class ConstantCollector(val method: PythonMethod) {
     data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
     data class AttributeStorage(val attributeName: String)
     data class FunctionArgStorage(val name: String, val index: Int)
+    data class FieldStorage(val name: String)
     data class Storage(
         val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
         val attributeStorages: MutableSet<AttributeStorage> = mutableSetOf(),
-        val functionArgStorages: MutableSet<FunctionArgStorage> = mutableSetOf()
+        val functionArgStorages: MutableSet<FunctionArgStorage> = mutableSetOf(),
+        val fieldStorages: MutableSet<FieldStorage> = mutableSetOf()
     )
 
     private val paramNames = method.arguments.mapNotNull { param ->
@@ -66,11 +68,14 @@ class ConstantCollector(val method: PythonMethod) {
                 storageList.mapNotNull { storage -> storage.const }
             }
 
-    fun getFunctionArgs(): List<List<Pair<String, Int>>> =
-        collectedValues.values
-            .map { it.functionArgStorages.map { functionArgStorage ->
-                Pair(functionArgStorage.name, functionArgStorage.index)
-            } }
+    fun getFunctionArgs(): List<List<FunctionArgStorage>> =
+        collectedValues.values.map { it.functionArgStorages.toList() }
+
+    fun getAttributes(): List<List<AttributeStorage>> =
+        collectedValues.values.map { it.attributeStorages.toList() }
+
+    fun getField(): List<List<FieldStorage>> =
+        collectedValues.values.map { it.fieldStorages.toList() }
 
     private class MatchVisitor(val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
 
@@ -126,7 +131,7 @@ class ConstantCollector(val method: PythonMethod) {
             }
         }
 
-        override fun visitAtom(atom: Atom, param: MutableMap<String, Storage>): AST {
+        private fun collectFunctionArg(atom: Atom, param: MutableMap<String, Storage>) {
             val argNamePatterns: List<Parser<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>>> =
                 paramNames.map { paramName ->
                     map0(anyIndexed(refl(name(equal(paramName)))), paramName)
@@ -148,6 +153,30 @@ class ConstantCollector(val method: PythonMethod) {
                 listOfStorage.functionArgStorages.add(it.second)
                 param[it.first] = listOfStorage
             }
+        }
+
+        private fun collectField(atom: Atom, param: MutableMap<String, Storage>) {
+            val namePatterns: List<Parser<(String) -> (String) -> ResField, (String) -> ResField, Name>> =
+                paramNames.map { paramName ->
+                    map0(name(equal(paramName)), paramName)
+                }
+            parse(
+                classField(
+                    fname = namePatterns.reduce { acc, elem -> or(acc, elem) },
+                    fattributeId = apply()
+                ),
+                onError = null,
+                atom
+            ) { paramName -> { attributeId -> Pair(paramName, FieldStorage(attributeId)) } } ?.let {
+                val listOfStorage = param[it.first] ?: Storage()
+                listOfStorage.fieldStorages.add(it.second)
+                param[it.first] = listOfStorage
+            }
+        }
+
+        override fun visitAtom(atom: Atom, param: MutableMap<String, Storage>): AST {
+            collectFunctionArg(atom, param)
+            collectField(atom, param)
             return super.visitAtom(atom, param)
         }
 
@@ -338,3 +367,4 @@ class ConstantCollector(val method: PythonMethod) {
 }
 
 typealias ResFuncArg = Pair<String, ConstantCollector.FunctionArgStorage>?
+typealias ResField = Pair<String, ConstantCollector.FieldStorage>?

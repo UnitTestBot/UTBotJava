@@ -3,6 +3,11 @@ package org.utbot.python
 import com.beust.klaxon.Klaxon
 
 
+data class ClassDatasetInfo(
+    val name: String,
+    val typeInfos: List<ClassInfo>
+)
+
 data class FunctionDatasetInfo(
     val name: String,
     val typeInfos: List<FunctionInfo>
@@ -16,6 +21,17 @@ data class MethodDatasetInfo(
 data class FunctionInfo(
     val function: FunctionDefInfo,
     val module: String,
+)
+
+data class AttributeInfo(
+    val annotation: List<AnnotationInfo>,
+    val target: String,
+)
+
+data class ClassInfo(
+    val attributes: List<AttributeInfo>,
+    val methods: List<FunctionDefInfo>,
+    val name: String,
 )
 
 data class ClassDefInfo(
@@ -36,19 +52,28 @@ data class ArgInfo(
     val arg: String,
 )
 
+data class AnnotationInfo(
+    val annotation: List<String>,
+    val target: String,
+)
+
 object StubFileFinder {
 
     private val builtinMethods: List<MethodDatasetInfo>
     private val builtinFunctions: List<FunctionDatasetInfo>
+    private val builtinClasses: List<ClassDatasetInfo>
 
     init {
         val methodResource = StubFileFinder::class.java.getResourceAsStream("/method_annotations.json")
             ?: error("Didn't find method_annotations.json")
-        val functionResource = StubFileFinder::class.java.getResource("/function_annotations.json")?.readText(Charsets.UTF_8)
+        val functionResource = StubFileFinder::class.java.getResourceAsStream("/function_annotations.json")
+            ?: error("Didn't find function_annotations.json")
+        val classResource = StubFileFinder::class.java.getResourceAsStream("/classes_annotations.json")
             ?: error("Didn't find function_annotations.json")
 
         builtinMethods = Klaxon().parseArray(methodResource) ?: emptyList()
         builtinFunctions = Klaxon().parseArray(functionResource) ?: emptyList()
+        builtinClasses = Klaxon().parseArray(classResource) ?: emptyList()
     }
 
     val methodToTypeMap: Map<String, List<ClassDefInfo>> by lazy {
@@ -65,6 +90,14 @@ object StubFileFinder {
             result[function.name] = function.typeInfos.map {
                 it.function
             }
+        }
+        result
+    }
+
+    val classToTypeMap: Map<String, List<ClassInfo>> by lazy {
+        val result = mutableMapOf<String, List<ClassInfo>>()
+        builtinClasses.forEach { pyClass ->
+            result[pyClass.name] = pyClass.typeInfos
         }
         result
     }
@@ -115,13 +148,11 @@ fun main() {
         "print", "sep"
     ))
     println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
-        "sum"
+        "heapify"
     ))
     println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
         "gt"
     ))
-    println(StubFileFinder.findTypeWithMethod(
-        "__not__"
-    ))
+    println(StubFileFinder.classToTypeMap["int"])
 }
 

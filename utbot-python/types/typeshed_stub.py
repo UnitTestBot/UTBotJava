@@ -212,12 +212,12 @@ class StubFileCollector:
     def __init__(self, dataset_directory: str):
         self.methods_dataset: dict[str, Any] = defaultdict(list)
         self.functions_dataset: dict[str, Any] = defaultdict(list)
+        self.classes_dataset: dict[str, Any] = defaultdict(list)
+        self.assigns_dataset: dict[str, Any] = defaultdict(list)
+        self.ann_assigns_dataset: dict[str, Any] = defaultdict(list)
         self.dataset_directory = dataset_directory
 
     def create_module_table(self, module_name: str, python_version: tuple[int, int] = (3, 10)):
-        classes_dataset: dict[str, Any] = {}
-        assigns_dataset: dict[str, Any] = {}
-        ann_assigns_dataset: dict[str, Any] = {}
 
         stub = get_stub_names(
             module_name,
@@ -230,7 +230,7 @@ class StubFileCollector:
                     _ast_handler(definition)
             elif isinstance(ast_, ast.ClassDef):
                 json_data = AstClassEncoder().default(ast_)
-                classes_dataset[ast_.name] = json_data
+                self.classes_dataset[ast_.name].append(json_data)
                 for method in json_data['methods']:
                     self.methods_dataset[method['name']].append({
                         'className': ast_.name,
@@ -245,17 +245,17 @@ class StubFileCollector:
                 })
             elif isinstance(ast_, ast.AnnAssign):
                 if isinstance(ast_.annotation, ast.Name) and isinstance(ast_.target, ast.Name):
-                    ann_assigns_dataset[ast_.target.id] = {
+                    self.ann_assigns_dataset[ast_.target.id].append({
                         'annotation': ast_.annotation.id,
                         'value': None if ast_.value is None else astor.code_gen.to_source(ast_.value)
-                    }
+                    })
             elif isinstance(ast_, ast.Assign):
                 if isinstance(ast_.value, ast.Name):
                     for target in ast_.targets:
                         if isinstance(target, ast.Name):
-                            assigns_dataset[target.id] = {
+                            self.assigns_dataset[target.id].append({
                                 'link': ast_.value.id
-                            }
+                            })
             elif isinstance(ast_, ImportedName):
                 pass
                 # print('ImportedName:')
@@ -274,13 +274,16 @@ class StubFileCollector:
             ast_nodes.add(name_info.ast.__class__.__name__)
             _ast_handler(name_info.ast)
 
-        # with open(f'{self.dataset_directory}/{module_name}__assigns.json', 'w') as fout:
-        #     print(json.dumps(assigns_dataset, sort_keys=True, indent=True), file=fout)
-        #
-        # with open(f'{self.dataset_directory}/{module_name}__ann_assigns.json', 'w') as fout:
-        #     print(json.dumps(ann_assigns_dataset, sort_keys=True, indent=True), file=fout)
-
     def save_method_annotations(self):
+        with open(f'{self.dataset_directory}/assigns_annotations.json', 'w') as fout:
+            print(json.dumps(defaultdict_to_array(self.assigns_dataset), sort_keys=True, indent=True), file=fout)
+
+        with open(f'{self.dataset_directory}/ann_assigns_annotations.json', 'w') as fout:
+            print(json.dumps(defaultdict_to_array(self.ann_assigns_dataset), sort_keys=True, indent=True), file=fout)
+
+        with open(f'{self.dataset_directory}/classes_annotations.json', 'w') as fout:
+            print(json.dumps(defaultdict_to_array(self.classes_dataset), sort_keys=True, indent=True), file=fout)
+
         with open(f'{self.dataset_directory}/method_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.methods_dataset), sort_keys=True, indent=True), file=fout)
 

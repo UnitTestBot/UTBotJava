@@ -315,6 +315,3 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 }
-
-
-

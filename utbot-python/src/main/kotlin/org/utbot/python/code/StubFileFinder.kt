@@ -115,7 +115,13 @@ fun main() {
         "print", "sep"
     ))
     println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
-        "__add__"
+        "sum"
+    ))
+    println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
+        "gt"
+    ))
+    println(StubFileFinder.findTypeWithMethod(
+        "__not__"
     ))
 }
 

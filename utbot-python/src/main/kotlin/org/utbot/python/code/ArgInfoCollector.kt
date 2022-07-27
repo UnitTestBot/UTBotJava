@@ -29,14 +29,14 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTypesStorage
 import java.math.BigInteger
 
-class ConstantCollector(val method: PythonMethod) {
+class ArgInfoCollector(val method: PythonMethod) {
     data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
-    data class AttributeStorage(val attributeName: String)
+    data class MethodStorage(val methodName: String)
     data class FunctionArgStorage(val name: String, val index: Int)
     data class FieldStorage(val name: String)
     data class Storage(
         val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
-        val attributeStorages: MutableSet<AttributeStorage> = mutableSetOf(),
+        val methodStorages: MutableSet<MethodStorage> = mutableSetOf(),
         val functionArgStorages: MutableSet<FunctionArgStorage> = mutableSetOf(),
         val fieldStorages: MutableSet<FieldStorage> = mutableSetOf()
     )
@@ -71,34 +71,36 @@ class ConstantCollector(val method: PythonMethod) {
     fun getFunctionArgs(): List<List<FunctionArgStorage>> =
         collectedValues.values.map { it.functionArgStorages.toList() }
 
-    fun getAttributes(): List<List<AttributeStorage>> =
-        collectedValues.values.map { it.attributeStorages.toList() }
+    fun getMethods(): List<List<MethodStorage>> =
+        collectedValues.values.map { it.methodStorages.toList() }
 
-    fun getField(): List<List<FieldStorage>> =
+    fun getFields(): List<List<FieldStorage>> =
         collectedValues.values.map { it.fieldStorages.toList() }
 
-    private class MatchVisitor(val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
+    private class MatchVisitor(private val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
 
-        val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
-        fun <A, N> namePat(): Parser<(String) -> A, A, N> {
+        private val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
+        private fun <A, N> namePat(): Parser<(String) -> A, A, N> {
             val names: List<Parser<(String) -> A, A, N>> = paramNames.map { paramName ->
                 map0(refl(name(equal(paramName))), paramName)
             }
             return names.reduce { acc, elem -> or(acc, elem) }
         }
-        fun <A, N> valuePat(op: FuzzedOp = FuzzedOp.NONE): Parser<(TypeStorage) -> A, A, N> {
+
+        private fun getStr(str: String): String {
+            val res = str.removeSurrounding("\"")
+            return if (res.length == str.length)
+                str.removeSurrounding("\'")
+            else
+                res
+        }
+
+        private fun <A, N> valuePat(op: FuzzedOp = FuzzedOp.NONE): Parser<(TypeStorage) -> A, A, N> {
             val consts = listOf<Parser<(TypeStorage) -> A, A, N>>(
                 map1(refl(num(apply()))) { x ->
                     TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, BigInteger(x), op)) },
                 map1(refl(str(apply()))) { x ->
-                    TypeStorage(
-                        "str",
-                        FuzzedConcreteValue(
-                            PythonStrModel.classId,
-                            x.removeSurrounding("\"", "\"").removeSurrounding("'", "'"),
-                            op
-                        )
-                    ) },
+                    TypeStorage("str", FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)) },
                 map0(refl(true_()),
                     TypeStorage("bool", FuzzedConcreteValue(PythonBoolModel.classId, true, op))),
                 map0(refl(false_()),
@@ -115,19 +117,23 @@ class ConstantCollector(val method: PythonMethod) {
             return (consts + constructors).reduce { acc, elem -> or(acc, elem) }
         }
 
+        private fun addToStorage(
+            paramName: String,
+            collection: MutableMap<String, Storage>,
+            add: (Storage) -> Unit
+        ) {
+            val storage = collection[paramName] ?: Storage()
+            add(storage)
+            collection[paramName] = storage
+        }
+
         private fun <N> parseAndPut(
             collection: MutableMap<String, Storage>,
             pat: Parser<(String) -> (TypeStorage) -> Pair<String, TypeStorage>?, Pair<String, TypeStorage>?, N>,
             ast: N
         ) {
-            parse(
-                pat,
-                onError = null,
-                ast
-            ) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
-                val listOfStorage = collection[it.first] ?: Storage()
-                listOfStorage.typeStorages.add(it.second)
-                collection[it.first] = listOfStorage
+            parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
+                addToStorage(it.first, collection) { storage -> storage.typeStorages.add(it.second) }
             }
         }
 
@@ -136,22 +142,17 @@ class ConstantCollector(val method: PythonMethod) {
                 paramNames.map { paramName ->
                     map0(anyIndexed(refl(name(equal(paramName)))), paramName)
                 }
-            parse(
-                functionCall(
-                    fname = name(apply()),
-                    farguments = arguments(
-                        fargs = argNamePatterns.reduce { acc, elem -> or(acc, elem) },
-                        drop(), drop(), drop()
-                    )
-                ),
-                onError = null,
-                atom
-            ) { funcName -> { paramName -> { index ->
+            val pat = functionCall(
+                fname = name(apply()),
+                farguments = arguments(
+                    fargs = argNamePatterns.reduce { acc, elem -> or(acc, elem) },
+                    drop(), drop(), drop()
+                )
+            )
+            parse(pat, onError = null, atom) { funcName -> { paramName -> { index ->
                 Pair(paramName, FunctionArgStorage(funcName, index))
             } } } ?. let {
-                val listOfStorage = param[it.first] ?: Storage()
-                listOfStorage.functionArgStorages.add(it.second)
-                param[it.first] = listOfStorage
+                addToStorage(it.first, param) { storage -> storage.functionArgStorages.add(it.second) }
             }
         }
 
@@ -160,17 +161,14 @@ class ConstantCollector(val method: PythonMethod) {
                 paramNames.map { paramName ->
                     map0(name(equal(paramName)), paramName)
                 }
-            parse(
-                classField(
-                    fname = namePatterns.reduce { acc, elem -> or(acc, elem) },
-                    fattributeId = apply()
-                ),
-                onError = null,
-                atom
-            ) { paramName -> { attributeId -> Pair(paramName, FieldStorage(attributeId)) } } ?.let {
-                val listOfStorage = param[it.first] ?: Storage()
-                listOfStorage.fieldStorages.add(it.second)
-                param[it.first] = listOfStorage
+            val pat = classField(
+                fname = namePatterns.reduce { acc, elem -> or(acc, elem) },
+                fattributeId = apply()
+            )
+            parse(pat, onError = null, atom) { paramName -> { attributeId ->
+                Pair(paramName, FieldStorage(attributeId))
+            } } ?.let {
+                addToStorage(it.first, param) { storage -> storage.fieldStorages.add(it.second) }
             }
         }
 
@@ -181,20 +179,12 @@ class ConstantCollector(val method: PythonMethod) {
         }
 
         override fun visitAssign(ast: Assign, param: MutableMap<String, Storage>): AST {
-            parseAndPut(
-                param,
-                assign(ftargets = any(namePat()), fvalue = valuePat()),
-                ast
-            )
+            parseAndPut(param, assign(ftargets = any(namePat()), fvalue = valuePat()), ast)
             return super.visitAssign(ast, param)
         }
 
         override fun visitAugAssign(ast: AugAssign, param: MutableMap<String, Storage>): AST {
-            parseAndPut(
-                param,
-                augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()),
-                ast
-            )
+            parseAndPut(param, augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()), ast)
             return super.visitAugAssign(ast, param)
         }
 
@@ -223,15 +213,9 @@ class ConstantCollector(val method: PythonMethod) {
 
         fun saveToAttributeStorage(name: AST, methodName: String, param: MutableMap<String, Storage>) {
             paramNames.forEach {
-                when (name) {
-                    is Name -> {
-                        if (name.id.toString() == methodName) {
-                            val storage = param[it] ?: Storage()
-                            storage.attributeStorages.add(
-                                AttributeStorage(name.id.toString())
-                            )
-                            param[it] = storage
-                        }
+                if (name is Name && name.id.name == it) {
+                    addToStorage(it, param) { storage ->
+                        storage.methodStorages.add(MethodStorage(methodName))
                     }
                 }
             }
@@ -347,6 +331,12 @@ class ConstantCollector(val method: PythonMethod) {
             return super.visitSub(sub, param)
         }
 
+        override fun visitAdd(add: Add, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(add.left, "__add__", param)
+            saveToAttributeStorage(add.right, "__add__", param)
+            return super.visitAdd(add, param)
+        }
+
         override fun visitDiv(div: Div, param: MutableMap<String, Storage>): AST {
             saveToAttributeStorage(div.left, "__truediv__", param)
             saveToAttributeStorage(div.right, "__truediv__", param)
@@ -366,5 +356,5 @@ class ConstantCollector(val method: PythonMethod) {
     }
 }
 
-typealias ResFuncArg = Pair<String, ConstantCollector.FunctionArgStorage>?
-typealias ResField = Pair<String, ConstantCollector.FieldStorage>?
+typealias ResFuncArg = Pair<String, ArgInfoCollector.FunctionArgStorage>?
+typealias ResField = Pair<String, ArgInfoCollector.FieldStorage>?

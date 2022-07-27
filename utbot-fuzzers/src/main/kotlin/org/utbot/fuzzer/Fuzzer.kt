@@ -11,13 +11,18 @@ import org.utbot.fuzzer.providers.CollectionModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
+import java.lang.IllegalArgumentException
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.function.IntSupplier
 import kotlin.random.Random
 
-private val logger = KotlinLogging.logger {}
+private val logger by lazy { KotlinLogging.logger {} }
 
 fun fuzz(description: FuzzedMethodDescription, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
+    if (modelProviders.isEmpty()) {
+        throw IllegalArgumentException("At least one model provider is required")
+    }
+
     val values = List<MutableList<FuzzedValue>>(description.parameters.size) { mutableListOf() }
     modelProviders.forEach { fuzzingProvider ->
         fuzzingProvider.generate(description).forEach { (index, model) ->

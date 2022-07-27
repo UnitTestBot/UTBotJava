@@ -1,91 +1,40 @@
-package org.utbot.python
+package org.utbot.python.code
 
 import com.beust.klaxon.Klaxon
 
-
-data class ClassDatasetInfo(
-    val name: String,
-    val typeInfos: List<ClassInfo>
-)
-
-data class FunctionDatasetInfo(
-    val name: String,
-    val typeInfos: List<FunctionInfo>
-)
-
-data class MethodDatasetInfo(
-    val name: String,
-    val typeInfos: List<ClassDefInfo>
-)
-
-data class FunctionInfo(
-    val function: FunctionDefInfo,
-    val module: String,
-)
-
-data class AttributeInfo(
-    val annotation: List<AnnotationInfo>,
-    val target: String,
-)
-
-data class ClassInfo(
-    val attributes: List<AttributeInfo>,
-    val methods: List<FunctionDefInfo>,
-    val name: String,
-)
-
-data class ClassDefInfo(
-    val className: String,
-    val method: FunctionDefInfo,
-    val module: String,
-)
-
-data class FunctionDefInfo(
-    val args: List<ArgInfo>,
-    val kwonlyargs: List<ArgInfo>,
-    val name: String,
-    val returns: List<String>,
-)
-
-data class ArgInfo(
-    val annotation: List<String>,
-    val arg: String,
-)
-
-data class AnnotationInfo(
-    val annotation: List<String>,
-    val target: String,
-)
-
 object StubFileFinder {
 
-    private val builtinMethods: List<MethodDatasetInfo>
-    private val builtinFunctions: List<FunctionDatasetInfo>
-    private val builtinClasses: List<ClassDatasetInfo>
+    private val builtinMethods: List<StubFileStructures.MethodDatasetInfo>
+    private val builtinFields: List<StubFileStructures.FieldDatasetInfo>
+    private val builtinFunctions: List<StubFileStructures.FunctionDatasetInfo>
+    private val builtinClasses: List<StubFileStructures.ClassDatasetInfo>
 
     init {
         val methodResource = StubFileFinder::class.java.getResourceAsStream("/method_annotations.json")
             ?: error("Didn't find method_annotations.json")
+        val fieldResource = StubFileFinder::class.java.getResourceAsStream("/field_annotations.json")
+            ?: error("Didn't find fields_annotations.json")
         val functionResource = StubFileFinder::class.java.getResourceAsStream("/function_annotations.json")
             ?: error("Didn't find function_annotations.json")
-        val classResource = StubFileFinder::class.java.getResourceAsStream("/classes_annotations.json")
-            ?: error("Didn't find function_annotations.json")
+        val classResource = StubFileFinder::class.java.getResourceAsStream("/class_annotations.json")
+            ?: error("Didn't find class_annotations.json")
 
         builtinMethods = Klaxon().parseArray(methodResource) ?: emptyList()
         builtinFunctions = Klaxon().parseArray(functionResource) ?: emptyList()
+        builtinFields = Klaxon().parseArray(fieldResource) ?: emptyList()
         builtinClasses = Klaxon().parseArray(classResource) ?: emptyList()
     }
 
-    val methodToTypeMap: Map<String, List<ClassDefInfo>> by lazy {
-        val result = mutableMapOf<String, List<ClassDefInfo>>()
+    val methodToTypeMap: Map<String, List<StubFileStructures.ClassMethodInfo>> by lazy {
+        val result = mutableMapOf<String, List<StubFileStructures.ClassMethodInfo>>()
         builtinMethods.forEach { function ->
             result[function.name] = function.typeInfos
         }
         result
     }
 
-    val functionToAnnotationMap: Map<String, List<FunctionDefInfo>> by lazy {
-        val result = mutableMapOf<String, List<FunctionDefInfo>>()
+    val functionToAnnotationMap: Map<String, List<StubFileStructures.FunctionDefInfo>> by lazy {
+        val result = mutableMapOf<String, List<StubFileStructures.FunctionDefInfo>>()
         builtinFunctions.forEach { function ->
             result[function.name] = function.typeInfos.map {
                 it.function
@@ -94,8 +43,16 @@ object StubFileFinder {
         result
     }
 
-    val classToTypeMap: Map<String, List<ClassInfo>> by lazy {
-        val result = mutableMapOf<String, List<ClassInfo>>()
+    val fieldToTypeMap: Map<String, List<StubFileStructures.FieldInfo>> by lazy {
+        val result = mutableMapOf<String, List<StubFileStructures.FieldInfo>>()
+        builtinFields.forEach { field ->
+            result[field.name] = field.typeInfos
+        }
+        result
+    }
+
+    val nameToClassMap: Map<String, List<StubFileStructures.ClassInfo>> by lazy {
+        val result = mutableMapOf<String, List<StubFileStructures.ClassInfo>>()
         builtinClasses.forEach { pyClass ->
             result[pyClass.name] = pyClass.typeInfos
         }
@@ -106,6 +63,14 @@ object StubFileFinder {
         methodName: String
     ): Set<String> {
         return (methodToTypeMap[methodName] ?: emptyList()).map {
+            "${it.module}.${it.className}"
+        }.toSet()
+    }
+
+    fun findTypeWithField(
+        fieldName: String
+    ): Set<String> {
+        return (fieldToTypeMap[fieldName] ?: emptyList()).map {
             "${it.module}.${it.className}"
         }.toSet()
     }
@@ -144,15 +109,25 @@ object StubFileFinder {
 
 fun main() {
     println(StubFileFinder.findTypeWithMethod("__add__"))
-    println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
-        "print", "sep"
-    ))
-    println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
-        "heapify"
-    ))
-    println(StubFileFinder.findTypeByFunctionWithArgumentPosition(
-        "gt"
-    ))
-    println(StubFileFinder.classToTypeMap["int"])
+    println(
+        StubFileFinder.findTypeByFunctionWithArgumentPosition(
+            "print", "sep"
+        )
+    )
+    println(
+        StubFileFinder.findTypeByFunctionWithArgumentPosition(
+            "heapify", argumentPosition = 0
+        )
+    )
+    println(
+        StubFileFinder.findTypeByFunctionWithArgumentPosition(
+            "gt"
+        )
+    )
+    println(
+        StubFileFinder.findTypeWithField(
+            "value"
+        )
+    )
 }
 

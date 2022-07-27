@@ -9,10 +9,8 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.jvm.javaType
 
-fun MemberInfo.signature(project: Project): Signature =
-    DumbService.getInstance(project).runReadActionInSmartMode(Computable {
+fun MemberInfo.signature(): Signature =
         (this.member as PsiMethod).signature()
-    })
 
 private fun PsiMethod.signature() =
     Signature(this.name, this.parameterList.parameters.map {

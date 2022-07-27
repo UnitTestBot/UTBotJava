@@ -68,14 +68,19 @@ class ArgInfoCollector(val method: PythonMethod) {
                 storageList.mapNotNull { storage -> storage.const }
             }
 
-    fun getFunctionArgs(): List<List<FunctionArgStorage>> =
-        collectedValues.values.map { it.functionArgStorages.toList() }
+    fun getFunctionArgs(): Map<String, Set<FunctionArgStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.functionArgStorages }
 
-    fun getMethods(): List<List<MethodStorage>> =
-        collectedValues.values.map { it.methodStorages.toList() }
+    fun getMethods(): Map<String, Set<MethodStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.methodStorages
+        }
 
-    fun getFields(): List<List<FieldStorage>> =
-        collectedValues.values.map { it.fieldStorages.toList() }
+    fun getFields(): Map<String, Set<FieldStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.fieldStorages
+        }
 
     private class MatchVisitor(private val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
 

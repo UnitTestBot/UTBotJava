@@ -13,6 +13,8 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Au
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Subscript
 
 sealed class Result<T>
 class Match<T>(val value: T): Result<T>()
@@ -68,6 +70,23 @@ fun <A, B, N> go(y: Parser<A, B, N>, node: N, x: Result<A>) =
         is Error -> Error()
     }
 
+fun <A> toMatch(x: Result<List<A>>): Match<List<A>> =
+    when (x) {
+        is Error -> Match(emptyList())
+        is Match -> x
+    }
+
+fun <A, B, N> multiGo(y: Parser<A, B, N>, node: N, x: Result<List<A>>): Result<List<B>> {
+    val res = mutableListOf<B>()
+    for (z in (toMatch(x)).value) {
+        when (val w = y.go(node, z)) {
+            is Error -> Unit
+            is Match -> res.add(w.value)
+        }
+    }
+    return Match(res)
+}
+
 fun <A, B, C> assign(
     ftargets: Parser<A, B, List<Expression>>,
     fvalue: Parser<B, C, Expression>
@@ -77,6 +96,17 @@ fun <A, B, C> assign(
             return@Parser Error()
         val x1 = ftargets.go(node.targets, x)
         go(fvalue, node.value.get(), x1)
+    }
+
+fun <A, B, C> assignAll(
+    ftargets: Parser<A, List<B>, List<Expression>>,
+    fvalue: Parser<B, C, Expression>
+): Parser<A, List<C>, Assign> =
+    Parser { node, x ->
+        if (!node.value.isPresent)
+            return@Parser Error()
+        val x1 = ftargets.go(node.targets, x)
+        multiGo(fvalue, node.value.get(), x1)
     }
 
 fun <A, B, C> dict(
@@ -149,22 +179,76 @@ fun <A, B, C, D, E> arguments(
     fdoubleStarredArgs: Parser<D, E, List<Keyword>>
 ): Parser<A, E, Arguments> =
     Parser { node, x ->
-        val x1 = fargs.go(node.args, x)
-        val x2 = go(fkeywords, node.keywords, x1)
-        val x3 = go(fstarredArgs, node.starredArgs, x2)
-        go(fdoubleStarredArgs, node.doubleStarredArgs, x3)
+        val x1 = fargs.go(node.args ?: emptyList(), x)
+        val x2 = go(fkeywords, node.keywords ?: emptyList(), x1)
+        val x3 = go(fstarredArgs, node.starredArgs ?: emptyList(), x2)
+        go(fdoubleStarredArgs, node.doubleStarredArgs ?: emptyList(), x3)
     }
+
+fun <A, B, C> atom(
+    fatomElement: Parser<A, B, Expression>,
+    ftrailers: Parser<B, C, List<Expression>>
+): Parser<A, C, Atom> =
+    Parser { node, x ->
+        val x1 = fatomElement.go(node.atomElement, x)
+        go(ftrailers, node.trailers, x1)
+    }
+
+fun <A, B, N> list1(
+    felem1: Parser<A, B, N>
+): Parser<A, B, List<N>> =
+    Parser { node, x ->
+        if (node.size != 1)
+            return@Parser Error()
+        felem1.go(node[0], x)
+    }
+
+fun <A, B, C, N> list2(
+    felem1: Parser<A, B, N>,
+    felem2: Parser<B, C, N>
+): Parser<A, C, List<N>> =
+    Parser { node, x ->
+        if (node.size != 2)
+            return@Parser Error()
+        val x1 = felem1.go(node[0], x)
+        go(felem2, node[1], x1)
+    }
+
+fun <A, B, N> first(
+    felem: Parser<A, B, N>
+): Parser<A, B, List<N>> =
+    Parser { node, x ->
+        if (node.isEmpty())
+            return@Parser Error()
+        felem.go(node[0], x)
+    }
+
+fun <A, B> index(
+    felem: Parser<A, B, Expression>
+): Parser<A, B, Subscript> =
+    Parser { node, x ->
+        if (node.slice !is Index)
+            return@Parser Error()
+        felem.go((node.slice as Index).value, x)
+    }
+
+fun <A, B> attribute(
+    fattributeId: Parser<A, B, String>
+): Parser<A, B, Attribute> =
+    Parser { node, x -> fattributeId.go(node.attr.name, x) }
 
 fun <A, B, C> classField(
     fname: Parser<A, B, Name>,
     fattributeId: Parser<B, C, String>
 ): Parser<A, C, Atom> =
-    Parser { node, x ->
-        if (!(node.atomElement is Name && node.trailers.size == 1 && node.trailers[0] is Attribute))
-            return@Parser Error()
-        val x1 = fname.go(node.atomElement as Name, x)
-        go(fattributeId, (node.trailers[0] as Attribute).attr.name, x1)
-    }
+    atom(refl(fname), list1(refl(attribute(fattributeId))))
+
+fun <A, B, C, D> classMethod(
+    fname: Parser<A, B, Name>,
+    fattributeId: Parser<B, C, String>,
+    farguments: Parser<C, D, Arguments>
+):Parser<A, D, Atom> =
+    atom(refl(fname), list2(refl(attribute(fattributeId)), refl(farguments)))
 
 fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =
     Parser { node, x ->
@@ -174,6 +258,17 @@ fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =
                 return@Parser x1
         }
         return@Parser Error()
+    }
+
+fun <A, B, N> allMatches(felem: Parser<A, B, N>): Parser<A, List<B>, List<N>> =
+    Parser { node, x ->
+        val res = mutableListOf<B>()
+        for (elem in node) {
+            val x1 = felem.go(elem, x)
+            if (x1 is Match)
+                res.add(x1.value)
+        }
+        Match(res)
     }
 
 fun <A, B, N> anyIndexed(felem: Parser<A, B, N>): Parser<(Int) -> A, B, List<N>> =

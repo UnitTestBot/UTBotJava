@@ -9,6 +9,7 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import java.math.BigDecimal
 import java.math.BigInteger
 
 /**
@@ -19,7 +20,8 @@ object ConstantsModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
-            .filter { (classId, _) -> classId.isPrimitive || classId == BigInteger::class.id }
+            .filter { (classId, _) ->
+                classId.isPrimitive || classId == BigInteger::class.id || classId == BigDecimal::class.id }
             .forEach { (_, value, op) ->
                 sequenceOf(
                     UtPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
@@ -47,6 +49,7 @@ object ConstantsModelProvider : ModelProvider {
             is Float -> value + multiplier.toDouble()
             is Double -> value + multiplier.toDouble()
             is BigInteger -> value + multiplier.toBigInteger()
+            is BigDecimal -> value + multiplier.toBigDecimal()
             else -> null
         }?.let { UtPrimitiveModel(it).fuzzed { summary = "%var% ${
             (if (op == FuzzedOp.EQ || op == FuzzedOp.LE || op == FuzzedOp.GE) {

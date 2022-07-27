@@ -34,7 +34,7 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        // model provider with fallback?
+        // model provider argwith fallback?
         // attempts?
 
         var testsGenerated = 0

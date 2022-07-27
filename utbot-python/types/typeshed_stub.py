@@ -211,6 +211,7 @@ def create_module_table(module_name: str, python_version: tuple[int, int] = (3, 
 class StubFileCollector:
     def __init__(self, dataset_directory: str):
         self.methods_dataset: dict[str, Any] = defaultdict(list)
+        self.fields_dataset: dict[str, Any] = defaultdict(list)
         self.functions_dataset: dict[str, Any] = defaultdict(list)
         self.classes_dataset: dict[str, Any] = defaultdict(list)
         self.assigns_dataset: dict[str, Any] = defaultdict(list)
@@ -236,6 +237,12 @@ class StubFileCollector:
                         'className': ast_.name,
                         'module': module,
                         'method': method,
+                    })
+                for field in json_data['attributes']:
+                    self.fields_dataset[field['target']].append({
+                        'className': ast_.name,
+                        'module': module,
+                        'annotation': field['annotation'],
                     })
             elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 json_data = AstFunctionDefEncoder().default(ast_)
@@ -281,11 +288,15 @@ class StubFileCollector:
         with open(f'{self.dataset_directory}/ann_assigns_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.ann_assigns_dataset), sort_keys=True, indent=True), file=fout)
 
-        with open(f'{self.dataset_directory}/classes_annotations.json', 'w') as fout:
+        with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.classes_dataset), sort_keys=True, indent=True), file=fout)
+
+        with open(f'{self.dataset_directory}/field_annotations.json', 'w') as fout:
+            print(json.dumps(defaultdict_to_array(self.fields_dataset), sort_keys=True, indent=True), file=fout)
 
         with open(f'{self.dataset_directory}/method_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.methods_dataset), sort_keys=True, indent=True), file=fout)
+
 
         with open(f'{self.dataset_directory}/function_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.functions_dataset), sort_keys=True, indent=True), file=fout)

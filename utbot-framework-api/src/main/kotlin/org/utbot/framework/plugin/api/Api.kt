@@ -806,9 +806,6 @@ enum class FieldIdStrategyValues {
  */
 open class FieldId(val declaringClass: ClassId, val name: String) {
 
-    init {
-        //assert(declaringClass.jClass.declaredFields.any { it.name == name })
-    }
     object Strategy {
         var value: FieldIdStrategyValues = FieldIdStrategyValues.Soot
     }

@@ -290,7 +290,7 @@ fun ClassId.fieldOrNull(fieldId: FieldId): Field? {
         return null
     return try {
         fieldId.field
-    } catch (e: Exception) {
+    } catch (e: IllegalStateException) {
         null
     }
 }

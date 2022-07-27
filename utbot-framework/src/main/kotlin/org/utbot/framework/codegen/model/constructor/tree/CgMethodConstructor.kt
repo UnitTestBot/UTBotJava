@@ -32,14 +32,11 @@ import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgAssignment
 import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
 import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
 import org.utbot.framework.codegen.model.tree.CgDocumentationComment
-import org.utbot.framework.codegen.model.tree.CgEmptyLine
 import org.utbot.framework.codegen.model.tree.CgEqualTo
 import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
@@ -55,11 +52,9 @@ import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgRegion
-import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSingleLineComment
 import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodType
@@ -827,17 +822,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return false
     }
 
-    /**
-     * We can't use [emptyLineIfNeeded] from here because it changes field [currentBlock].
-     * Also, we can't extract generic part because [currentBlock] is PersistentList (not mutable).
-     */
-    private fun MutableList<CgStatement>.addEmptyLineIfNeeded() {
-        val lastStatement = lastOrNull() ?: return
-        if (lastStatement is CgEmptyLine) return
-
-        this += CgEmptyLine()
-    }
-
     private fun traverseFieldRecursively(
         fieldId: FieldId,
         fieldModel: UtModel,
@@ -1323,79 +1307,78 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         testSet: UtMethodTestSet,
         dataProviderMethodName: String
     ): CgParameterizedTestDataProviderMethod {
-        val dataProviderStatements = mutableListOf<CgStatement>()
-        val dataProviderExceptions = mutableSetOf<ClassId>()
+        return withDataProviderScope {
+            dataProviderMethod(dataProviderMethodName) {
+                val argListLength = testSet.executions.size
+                val argListVariable = createArgList(argListLength)
 
-        val argListLength = testSet.executions.size
-        val argListDeclaration = createArgList(argListLength)
-        val argListVariable = argListDeclaration.variable
+                emptyLine()
 
-        dataProviderStatements += argListDeclaration
-        dataProviderStatements += CgEmptyLine()
-
-        for ((execIndex, execution) in testSet.executions.withIndex()) {
-            withTestMethodScope(execution) {
-                //collect arguments
-                val arguments = mutableListOf<CgExpression>()
-                val executionArgumentsBody = {
-                    execution.stateBefore.thisInstance?.let {
-                        arguments += variableConstructor.getOrCreateVariable(it)
+                for ((execIndex, execution) in testSet.executions.withIndex()) {
+                    // create a block for current test case
+                    innerBlock {
+                        val arguments = createExecutionArguments(testSet, execution)
+                        createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
                     }
-
-                    for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
-                        val argumentName = paramNames[testSet.method]?.get(paramIndex)
-                        arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
-                    }
-
-                    val method = currentExecutable as MethodId
-                    val needsReturnValue = method.returnType != voidClassId
-                    val containsFailureExecution = containsFailureExecution(testSet)
-                    execution.result
-                        .onSuccess {
-                            if (needsReturnValue) {
-                                arguments += variableConstructor.getOrCreateVariable(it)
-                            }
-                            if (containsFailureExecution) {
-                                arguments += nullLiteral()
-                            }
-                        }
-                        .onFailure {
-                            if (needsReturnValue) {
-                                arguments += nullLiteral()
-                            }
-                            if (containsFailureExecution) {
-                                arguments += CgGetJavaClass(it::class.id)
-                            }
-                        }
-                    emptyLineIfNeeded()
                 }
 
-                //create a block for current test case
-                dataProviderStatements += innerBlock(
-                    {},
-                    block(executionArgumentsBody).addAll(createArgumentsCallRepresentation(execIndex, argListVariable, arguments))
-                )
+                emptyLineIfNeeded()
 
-                dataProviderExceptions += collectedExceptions
+                returnStatement { argListVariable }
             }
-        }
-
-        dataProviderStatements.addEmptyLineIfNeeded()
-        dataProviderStatements += CgReturnStatement(argListVariable)
-
-        return buildParameterizedTestDataProviderMethod {
-            name = dataProviderMethodName
-            returnType = argListClassId()
-            statements = dataProviderStatements
-            annotations = createDataProviderAnnotations(dataProviderMethodName)
-            exceptions = dataProviderExceptions
         }
     }
 
+    private fun createExecutionArguments(testSet: UtMethodTestSet, execution: UtExecution): List<CgExpression> {
+        val arguments = mutableListOf<CgExpression>()
+        execution.stateBefore.thisInstance?.let {
+            arguments += variableConstructor.getOrCreateVariable(it)
+        }
+
+        for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
+            val argumentName = paramNames[testSet.method]?.get(paramIndex)
+            arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
+        }
+
+        val method = currentExecutable as MethodId
+        val needsReturnValue = method.returnType != voidClassId
+        val containsFailureExecution = containsFailureExecution(testSet)
+        execution.result
+            .onSuccess {
+                if (needsReturnValue) {
+                    arguments += variableConstructor.getOrCreateVariable(it)
+                }
+                if (containsFailureExecution) {
+                    arguments += nullLiteral()
+                }
+            }
+            .onFailure {
+                if (needsReturnValue) {
+                    arguments += nullLiteral()
+                }
+                if (containsFailureExecution) {
+                    arguments += CgGetJavaClass(it::class.id)
+                }
+            }
+
+        emptyLineIfNeeded()
+
+        return arguments
+    }
+
     private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
-        clearMethodScope()
+        clearTestMethodScope()
         currentExecution = execution
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)
+        return try {
+            block()
+        } finally {
+            clearTestMethodScope()
+        }
+    }
+
+    private fun <R> withDataProviderScope(block: () -> R): R {
+        clearMethodScope()
         return try {
             block()
         } finally {
@@ -1403,9 +1386,24 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
+    /**
+     * This function makes sure some information about the method currently being generated is empty.
+     * It clears only the information that is relevant to all kinds of methods:
+     * - test methods
+     * - data provider methods
+     * - and any other kinds of methods that may be added in the future
+     */
     private fun clearMethodScope() {
         collectedExceptions.clear()
-        collectedTestMethodAnnotations.clear()
+        collectedMethodAnnotations.clear()
+    }
+
+    /**
+     * This function makes sure some information about the **test method** currently being generated is empty.
+     * It is used at the start of test method generation and right after it.
+     */
+    private fun clearTestMethodScope() {
+        clearMethodScope()
         prevStaticFieldValues.clear()
         thisInstance = null
         methodArguments.clear()
@@ -1422,38 +1420,32 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         executionIndex: Int,
         argsVariable: CgVariable,
         arguments: List<CgExpression>,
-    ): List<CgStatement> = when (testFramework) {
-        Junit5 -> {
-            val argumentsMethodCall = CgMethodCall(caller = null, argumentsMethodId(), arguments)
-            listOf(
-                CgStatementExecutableCall(CgMethodCall(argsVariable, addToListMethodId(), listOf(argumentsMethodCall)))
-            )
-        }
-        TestNg -> {
-            val statements = mutableListOf<CgStatement>()
-            val argsArrayAllocation = CgAllocateArray(Array<Any?>::class.java.id, objectClassId, arguments.size)
-            val argsArrayDeclaration = CgDeclaration(objectArrayClassId, "testCaseObjects", argsArrayAllocation)
-            statements += argsArrayDeclaration
-            for ((i, argument) in arguments.withIndex()) {
-                statements += setArgumentsArrayElement(argsArrayDeclaration.variable, i, argument)
+    ) {
+        when (testFramework) {
+            Junit5 -> argsVariable[addToListMethodId](argumentsClassId[argumentsMethodId](arguments))
+            TestNg -> {
+                val argsArray = newVar(objectArrayClassId, "testCaseObjects") {
+                    CgAllocateArray(Array<Any?>::class.java.id, objectClassId, arguments.size)
+                }
+                for ((i, argument) in arguments.withIndex()) {
+                    setArgumentsArrayElement(argsArray, i, argument)
+                }
+                setArgumentsArrayElement(argsVariable, executionIndex, argsArray)
             }
-            statements += setArgumentsArrayElement(argsVariable, executionIndex, argsArrayDeclaration.variable)
-
-            statements
+            Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
-        Junit4 -> error("Parameterized tests are not supported for JUnit4")
     }
 
     /**
      * Sets an element of arguments array in parameterized test,
      * if test framework represents arguments as array.
      */
-    private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression): CgStatement =
-        if (array.type == objectClassId) {
-            java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
-        } else {
-            CgAssignment(array.at(index), value)
+    private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression) {
+        when (array.type) {
+            objectClassId -> java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+            else -> array.at(index) `=` value
         }
+    }
 
     /**
      * Creates annotations for data provider method in parameterized tests
@@ -1474,16 +1466,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * Creates declaration of argList collection in parameterized tests.
      */
-    private fun createArgList(length: Int): CgDeclaration = when (testFramework) {
-        Junit5 -> {
-            val constructorCall = CgConstructorCall(ConstructorId(argListClassId(), emptyList()), emptyList())
-            CgDeclaration(argListClassId(), "argList", constructorCall)
+    private fun createArgList(length: Int): CgVariable {
+        val argListName = "argList"
+        return when (testFramework) {
+            Junit5 ->
+                newVar(argListClassId(), argListName) {
+                    val constructor = ConstructorId(argListClassId(), emptyList())
+                    constructor.invoke()
+                }
+            TestNg ->
+                newVar(argListClassId(), argListName) {
+                    CgAllocateArray(argListClassId(), Array<Any>::class.java.id, length)
+                }
+            Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
-        TestNg -> {
-            val allocateArrayCall = CgAllocateArray(argListClassId(), Array<Any>::class.java.id, length)
-            CgDeclaration(argListClassId(), "argList", allocateArrayCall)
-        }
-        Junit4 -> error("Parameterized tests are not supported for JUnit4")
     }
 
     /**
@@ -1512,7 +1508,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * A [MethodId] to add an item into [ArrayList].
      */
-    private fun addToListMethodId(): MethodId = methodId(
+    private val addToListMethodId: MethodId = methodId(
         classId = ArrayList::class.id,
         name = "add",
         returnType = booleanClassId,
@@ -1520,23 +1516,24 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     )
 
     /**
+     * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
+     */
+    private val argumentsClassId: ClassId = BuiltinClassId(
+        name = "org.junit.jupiter.params.provider.Arguments",
+        simpleName = "Arguments",
+        canonicalName = "org.junit.jupiter.params.provider.Arguments",
+        packageName = "org.junit.jupiter.params.provider",
+    )
+
+    /**
      * A [MethodId] to call JUnit Arguments method.
      */
-    private fun argumentsMethodId(): MethodId {
-        val argumentsClassId = BuiltinClassId(
-            name = "org.junit.jupiter.params.provider.Arguments",
-            simpleName = "Arguments",
-            canonicalName = "org.junit.jupiter.params.provider.Arguments",
-            packageName = "org.junit.jupiter.params.provider",
-        )
-
-        return methodId(
-            classId = argumentsClassId,
-            name = "arguments",
-            returnType = argumentsClassId,
-            arguments = arrayOf(Object::class.id),
-        )
-    }
+    private val argumentsMethodId: MethodId = methodId(
+        classId = argumentsClassId,
+        name = "arguments",
+        returnType = argumentsClassId,
+        arguments = arrayOf(Object::class.id),
+    )
 
     private fun containsFailureExecution(testSet: UtMethodTestSet) =
         testSet.executions.any { it.result is UtExecutionFailure }
@@ -1575,7 +1572,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         dataProviderMethodName: String? = null,
         body: () -> Unit,
     ): CgTestMethod {
-        collectedTestMethodAnnotations += if (parameterized) {
+        collectedMethodAnnotations += if (parameterized) {
             collectParameterizedTestAnnotations(dataProviderMethodName)
         } else {
             setOf(annotation(testFramework.testAnnotationId))
@@ -1603,9 +1600,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             name = methodName
             parameters = params
             statements = block(body)
-            // Exceptions and annotations assignment must run after everything else is set up
+            // Exceptions and annotations assignment must run after the statements block is build,
+            // because we collect info about exceptions and required annotations while building the statements
             exceptions += collectedExceptions
-            annotations += collectedTestMethodAnnotations
+            annotations += collectedMethodAnnotations
             methodType = this@CgMethodConstructor.methodType
             val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
 
@@ -1634,6 +1632,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
         testMethods += testMethod
         return testMethod
+    }
+
+    private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
+        return buildParameterizedTestDataProviderMethod {
+            name = dataProviderMethodName
+            returnType = argListClassId()
+            statements = block(body)
+            // Exceptions and annotations assignment must run after the statements block is build,
+            // because we collect info about exceptions and required annotations while building the statements
+            exceptions = collectedExceptions
+            annotations = createDataProviderAnnotations(dataProviderMethodName)
+        }
     }
 
     fun errorMethod(method: UtMethod<*>, errors: Map<String, Int>): CgRegion<CgMethod> {

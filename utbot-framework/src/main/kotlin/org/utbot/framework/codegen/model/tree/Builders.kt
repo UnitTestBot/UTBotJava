@@ -145,14 +145,6 @@ class CgTryCatchBuilder : CgBuilder<CgTryCatch> {
 
 fun buildTryCatch(init: CgTryCatchBuilder.() -> Unit): CgTryCatch = CgTryCatchBuilder().apply(init).build()
 
-class CgBlockBuilder : CgBuilder<CgInnerBlock> {
-    lateinit var statements: List<CgStatement>
-
-    override fun build() = CgInnerBlock(statements)
-}
-
-fun buildSimpleBlock(init: CgBlockBuilder.() -> Unit) = CgBlockBuilder().apply(init).build()
-
 // Loops
 interface CgLoopBuilder<T : CgLoop> : CgBuilder<T> {
     val condition: CgExpression

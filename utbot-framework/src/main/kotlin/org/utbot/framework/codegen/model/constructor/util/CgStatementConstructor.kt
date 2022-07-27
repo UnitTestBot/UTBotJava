@@ -31,7 +31,6 @@ import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
 import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgStatement
 import org.utbot.framework.codegen.model.tree.CgThrowStatement
 import org.utbot.framework.codegen.model.tree.CgTryCatch
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -40,7 +39,6 @@ import org.utbot.framework.codegen.model.tree.buildCgForEachLoop
 import org.utbot.framework.codegen.model.tree.buildDeclaration
 import org.utbot.framework.codegen.model.tree.buildDoWhileLoop
 import org.utbot.framework.codegen.model.tree.buildForLoop
-import org.utbot.framework.codegen.model.tree.buildSimpleBlock
 import org.utbot.framework.codegen.model.tree.buildTryCatch
 import org.utbot.framework.codegen.model.tree.buildWhileLoop
 import org.utbot.framework.codegen.model.util.buildExceptionHandler
@@ -117,7 +115,7 @@ interface CgStatementConstructor {
     fun CgTryCatch.catch(exception: ClassId, init: (CgVariable) -> Unit): CgTryCatch
     fun CgTryCatch.finally(init: () -> Unit): CgTryCatch
 
-    fun innerBlock(init: () -> Unit, additionalStatements: List<CgStatement>): CgInnerBlock
+    fun innerBlock(init: () -> Unit): CgInnerBlock
 
 //    fun CgTryCatchBuilder.statements(init: () -> Unit)
 //    fun CgTryCatchBuilder.handler(exception: ClassId, init: (CgVariable) -> Unit)
@@ -302,12 +300,10 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         return this.copy(finally = finallyBlock)
     }
 
-    override fun innerBlock(
-        init: () -> Unit,
-        additionalStatements: List<CgStatement>,
-    ): CgInnerBlock = buildSimpleBlock {
-        statements = mutableListOf<CgStatement>() + block(init) + additionalStatements
-    }
+    override fun innerBlock(init: () -> Unit): CgInnerBlock =
+        CgInnerBlock(block(init)).also {
+            currentBlock += it
+        }
 
     override fun comment(text: String): CgComment =
         CgSingleLineComment(text).also {

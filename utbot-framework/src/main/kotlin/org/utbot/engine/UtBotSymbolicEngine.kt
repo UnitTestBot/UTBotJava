@@ -90,8 +90,6 @@ import org.utbot.fuzzer.Trie
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.names.MethodBasedNameSuggester
-import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import soot.jimple.Stmt
@@ -472,13 +470,6 @@ class UtBotSymbolicEngine(
                     return@forEach
                 }
                 coveredInstructionValues[count] = values
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                val testMethodName = try {
-                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()
-                } catch (t: Throwable) {
-                    logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
-                    null
-                }
 
                 emit(
                     UtExecution(
@@ -490,8 +481,8 @@ class UtBotSymbolicEngine(
                         fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
                         createdBy = UtExecutionCreator.FUZZER,
-                        testMethodName = testMethodName?.testName,
-                        displayName = testMethodName?.takeIf { hasMethodUnderTestParametersToFuzz }?.displayName
+                        fuzzingValues = values,
+                        fuzzedMethodDescription = methodUnderTestDescription
                     )
                 )
             } catch (e: CancellationException) {
@@ -515,7 +506,7 @@ class UtBotSymbolicEngine(
             instrumentation = emptyList(),
             path = mutableListOf(),
             fullPath = listOf(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
+            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE
         )
 
         emit(failedConcreteExecution)
@@ -556,7 +547,7 @@ class UtBotSymbolicEngine(
             instrumentation = instrumentation,
             path = entryMethodPath(state),
             fullPath = state.fullPath(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
+            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE
         )
 
         globalGraph.traversed(state)

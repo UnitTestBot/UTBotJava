@@ -24,6 +24,10 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
+import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
 import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
@@ -80,11 +84,23 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         val executionsProducedByFuzzer = testSet.executions.filter { it.createdBy == UtExecutionCreator.FUZZER }
 
         if (executionsProducedByFuzzer.isNotEmpty()) {
-            executionsProducedByFuzzer.forEach {
-                logger.info {
+            executionsProducedByFuzzer.forEach { utExecution ->
+
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap { it.suggest(utExecution.fuzzedMethodDescription as FuzzedMethodDescription, utExecution.fuzzingValues as List<FuzzedValue>, utExecution.result) }.firstOrNull()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behavoiur
+                    null
+                }
+
+                utExecution.testMethodName = testMethodName?.testName
+                utExecution.displayName =  testMethodName?.displayName
+
+                /*logger.info {
                     "Test is created by Fuzzing. The path for test ${it.testMethodName} " +
                             "for method ${testSet.method.clazz.qualifiedName} is empty and summaries could not be generated."
-                }
+                }*/
             }
 
             clustersToReturn.add(

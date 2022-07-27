@@ -154,6 +154,8 @@ data class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null,
+    val fuzzingValues: List<Any>? = null,
+    val fuzzedMethodDescription: Any? = null
 ) : UtResult() {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.

@@ -470,13 +470,15 @@ data class UtReferenceConstraintModel(
 
 data class UtReferenceToConstraintModel(
     override val variable: UtConstraintVariable,
-    val reference: UtModel
-) : UtConstraintModel(variable, emptySet())
+    val reference: UtModel,
+    override val utConstraints: Set<UtConstraint> = emptySet()
+) : UtConstraintModel(variable, utConstraints)
 
 data class UtArrayConstraintModel(
     override val variable: UtConstraintVariable,
-    val indices: Set<Set<UtConstraintVariable>>,
-    override val utConstraints: Set<UtConstraint>
+    val length: UtModel,
+    val elements: Map<UtModel, UtModel>,
+    override val utConstraints: Set<UtConstraint> = emptySet()
 ) : UtConstraintModel(variable, utConstraints)
 
 /**

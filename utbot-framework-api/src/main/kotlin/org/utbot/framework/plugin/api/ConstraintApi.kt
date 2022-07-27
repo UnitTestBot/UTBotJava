@@ -7,13 +7,13 @@ sealed class UtConstraintVariable {
     val isPrimitive get() = classId.isPrimitive
     val isArray get() = classId.isArray
 
-    abstract fun <T> accept(visitor: UtConstraintVisitor<T>): T
+    abstract fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T
 }
 
 data class UtConstraintNull(override val classId: ClassId) : UtConstraintVariable() {
     override fun toString(): String = "null"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintNull(this)
     }
 }
@@ -24,7 +24,7 @@ data class UtConstraintParameter(
 ) : UtConstraintVariable() {
     override fun toString(): String = name
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintParameter(this)
     }
 }
@@ -38,7 +38,7 @@ data class UtConstraintFieldAccess(
 
     override fun toString(): String = "$instance.${fieldId.name}"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintFieldAccess(this)
     }
 }
@@ -50,7 +50,7 @@ data class UtConstraintArrayAccess(
 ) : UtConstraintVariable() {
     override fun toString(): String = "$instance[$index]"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintArrayAccess(this)
     }
 }
@@ -61,7 +61,7 @@ data class UtConstraintArrayLength(
     override val classId: ClassId = Integer.TYPE.id
     override fun toString(): String = "$instance.length"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintArrayLengthAccess(this)
     }
 }
@@ -73,7 +73,7 @@ data class UtConstraintBoolConstant(
 
     override fun toString(): String = "$value"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintBoolConstant(this)
     }
 }
@@ -85,7 +85,7 @@ data class UtConstraintCharConstant(
 
     override fun toString(): String = "$value"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintCharConstant(this)
     }
 }
@@ -97,7 +97,7 @@ data class UtConstraintNumericConstant(
 
     override fun toString(): String = "$value"
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintNumericConstant(this)
     }
 }
@@ -116,7 +116,7 @@ data class UtConstraintAdd(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintAdd(this)
     }
 }
@@ -128,7 +128,7 @@ data class UtConstraintAnd(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintAnd(this)
     }
 }
@@ -140,7 +140,7 @@ data class UtConstraintCmp(
     override val classId: ClassId
         get() = intClassId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintCmp(this)
     }
 }
@@ -152,7 +152,7 @@ data class UtConstraintCmpg(
     override val classId: ClassId
         get() = intClassId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintCmpg(this)
     }
 }
@@ -164,7 +164,7 @@ data class UtConstraintCmpl(
     override val classId: ClassId
         get() = intClassId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintCmpl(this)
     }
 }
@@ -176,7 +176,7 @@ data class UtConstraintDiv(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintDiv(this)
     }
 }
@@ -188,7 +188,7 @@ data class UtConstraintMul(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintMul(this)
     }
 }
@@ -200,7 +200,7 @@ data class UtConstraintOr(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintOr(this)
     }
 }
@@ -212,7 +212,7 @@ data class UtConstraintRem(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintRem(this)
     }
 }
@@ -224,7 +224,7 @@ data class UtConstraintShl(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintShl(this)
     }
 }
@@ -236,7 +236,7 @@ data class UtConstraintShr(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintShr(this)
     }
 }
@@ -248,7 +248,7 @@ data class UtConstraintSub(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintSub(this)
     }
 }
@@ -260,7 +260,7 @@ data class UtConstraintUshr(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintUshr(this)
     }
 }
@@ -272,7 +272,7 @@ data class UtConstraintXor(
     override val classId: ClassId
         get() = lhv.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintXor(this)
     }
 }
@@ -283,7 +283,7 @@ data class UtConstraintNot(
     override val classId: ClassId
         get() = operand.classId
 
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintNot(this)
     }
 }
@@ -426,7 +426,7 @@ data class UtOrConstraint(val lhv: UtConstraint, val rhv: UtConstraint) : UtPrim
 }
 
 
-val ClassId.defaultValue: UtConstraintVariable
+val ClassId.defaultVariable: UtConstraintVariable
     get() = when (this) {
         voidClassId -> error("Unexpected")
         booleanClassId -> UtConstraintBoolConstant(false)
@@ -438,4 +438,18 @@ val ClassId.defaultValue: UtConstraintVariable
         floatClassId -> UtConstraintNumericConstant(0.toFloat())
         doubleClassId -> UtConstraintNumericConstant(0.toDouble())
         else -> UtConstraintNull(this)
+    }
+
+val ClassId.defaultValue: Any
+    get() = when (this) {
+        voidClassId -> Unit
+        booleanClassId -> false
+        charClassId -> 0.toChar()
+        byteClassId -> 0.toByte()
+        shortClassId -> 0.toShort()
+        intClassId -> 0
+        longClassId -> 0.toLong()
+        floatClassId -> 0.toFloat()
+        doubleClassId -> 0.toDouble()
+        else -> UtNullModel(this)
     }

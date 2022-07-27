@@ -17,9 +17,10 @@ class UtVarBuilder(
     val typeResolver: TypeResolver,
 ) : UtExpressionVisitor<UtConstraintVariable> {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
-    private val backMapping = mutableMapOf<UtConstraintVariable, UtExpression>()
+    val backMapping = mutableMapOf<UtConstraintVariable, UtExpression>()
 
-    operator fun get(variable: UtConstraintVariable) = backMapping.getValue(variable)
+    operator fun get(variable: UtConstraintVariable) = backMapping[variable]
+        ?: error("a")
 
     override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
         val res = when (val base = expr.arrayExpression.accept(this)) {
@@ -46,7 +47,7 @@ class UtVarBuilder(
                         val (type, field) = base.name.split("_")
                         UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
                     } catch (e: Throwable) {
-                        UtConstraintArrayAccess(base, instance, objectClassId)
+                        UtConstraintArrayAccess(base, instance, base.classId.elementClassId!!)
                     }
                 }
             }
@@ -65,6 +66,7 @@ class UtVarBuilder(
                     else -> TODO()
                 }
             }
+            is UtConstraintNull -> UtConstraintArrayAccess(base, expr.index.accept(this), objectClassId)
             else -> error("Unexpected: $base")
         }
         backMapping[res] = expr

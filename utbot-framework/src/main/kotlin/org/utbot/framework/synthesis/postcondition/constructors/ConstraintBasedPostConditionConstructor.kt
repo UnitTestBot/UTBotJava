@@ -8,50 +8,72 @@ import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.UtConstraintParameter
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.framework.synthesis.SynthesisParameter
+import org.utbot.framework.synthesis.ArrayUnit
+import org.utbot.framework.synthesis.SynthesisMethodContext
+import org.utbot.framework.synthesis.SynthesisUnitContext
 import soot.ArrayType
 import soot.RefType
 
+
 class ConstraintBasedPostConditionConstructor(
-    private val models: ResolvedModels,
-    private val parameters: List<SynthesisParameter?>,
-    private val locals: List<LocalVariable?>
+    private val models: List<UtModel>,
+    private val unitContext: SynthesisUnitContext,
+    private val methodContext: SynthesisMethodContext
 ) : PostConditionConstructor {
 
     override fun constructPostCondition(
         engine: UtBotSymbolicEngine,
         symbolicResult: SymbolicResult?
-    ): SymbolicStateUpdate = UtConstraintBuilder(
-        engine, soft = false
-    ).run {
+    ): SymbolicStateUpdate = UtConstraintBuilder(engine).run {
+        var constraints = SymbolicStateUpdate()
         val entryFrame = engine.environment.state.executionStack.first()
         val frameParameters = entryFrame.parameters.map { it.value }
-        for ((index, model) in models.parameters.withIndex()) {
-            val sv = when {
-                model.classId.isPrimitive -> frameParameters[parameters[index]!!.number]
-                else -> engine.environment.state.localVariableMemory.local(locals[index]!!) ?: continue
-            }
-            when (model) {
-                is UtNullModel -> {
-                    constraints += mkEq(sv.addr, nullObjectAddr).asHardConstraint()
-                }
-                is UtConstraintModel -> {
-                    for (constraint in model.utConstraints) {
-                        buildConstraint(constraint)
-                        constraints += mkEq(sv, buildExpression(model.variable)).asHardConstraint()
-                    }
-
-                }
-                else -> error("Unknown model: ${model::class}")
-            }
+        for (model in models) {
+            constraints += buildPostCondition(
+                model,
+                this,
+                frameParameters,
+                engine.environment.state.localVariableMemory
+            ).asHardConstraint()
         }
         constraints
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun buildPostCondition(
+        model: UtModel,
+        builder: UtConstraintBuilder,
+        parameters: List<SymbolicValue>,
+        localVariableMemory: LocalVariableMemory,
+    ): Set<UtBoolExpression> = buildSet {
+        val modelUnit = unitContext[model]
+        val symbolicValue = when {
+            model.classId.isPrimitive -> parameters[methodContext.unitToParameter[modelUnit]!!.number]
+            else -> localVariableMemory.local(methodContext.unitToLocal[modelUnit]!!.variable)
+                ?: return@buildSet
+        }
+        when (model) {
+            is UtNullModel -> {
+                add(mkEq(symbolicValue.addr, nullObjectAddr))
+            }
+            is UtConstraintModel -> {
+                if (model is UtArrayConstraintModel) {
+                    addAll(buildPostCondition(model.length, builder, parameters, localVariableMemory))
+                    for ((index, element) in model.elements) {
+                        addAll(buildPostCondition(index, builder, parameters, localVariableMemory))
+                        addAll(buildPostCondition(element, builder, parameters, localVariableMemory))
+                    }
+                }
+                add(mkEq(symbolicValue, model.variable.accept(builder)))
+            }
+            else -> error("Unknown model: ${model::class}")
+        }
     }
 
     override fun constructSoftPostCondition(
         engine: UtBotSymbolicEngine
     ): SymbolicStateUpdate = UtConstraintBuilder(
-        engine, soft = true
+        engine
     ).run {
         TODO()
 //        for ((index, parameter) in models.parameters.withIndex()) {
@@ -76,296 +98,314 @@ class ConstraintBasedPostConditionConstructor(
 }
 
 private class UtConstraintBuilder(
-    private val engine: UtBotSymbolicEngine,
-    private val soft: Boolean = false
-) {
-    var constraints = SymbolicStateUpdate()
-
-    private fun asConstraint(body: () -> UtBoolExpression) {
+    private val engine: UtBotSymbolicEngine
+) : UtConstraintVisitor<UtBoolExpression>, UtConstraintVariableVisitor<SymbolicValue> {
+    override fun visitUtConstraintParameter(expr: UtConstraintParameter): SymbolicValue = with(expr) {
         when {
-            soft -> constraints += body().asSoftConstraint()
-            else -> constraints += body().asHardConstraint()
+            isPrimitive -> {
+                val newName = "post_condition_$name"
+                when (classId) {
+                    voidClassId -> voidValue
+                    byteClassId -> mkBVConst(newName, UtByteSort).toByteValue()
+                    shortClassId -> mkBVConst(newName, UtShortSort).toShortValue()
+                    charClassId -> mkBVConst(newName, UtCharSort).toCharValue()
+                    intClassId -> mkBVConst(newName, UtIntSort).toIntValue()
+                    longClassId -> mkBVConst(newName, UtLongSort).toLongValue()
+                    floatClassId -> mkFpConst(newName, Float.SIZE_BITS).toFloatValue()
+                    doubleClassId -> mkFpConst(newName, Double.SIZE_BITS).toDoubleValue()
+                    else -> error("Unknown primitive parameter: $this")
+                }
+            }
+            isArray -> {
+                val sootType = classId.toSootType().arrayType
+                val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
+                engine.createArray(addr, sootType, useConcreteType = addr.isThisAddr)
+            }
+            else -> {
+                val sootType = classId.toSoot().type
+                val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
+                engine.createObject(addr, sootType, useConcreteType = addr.isThisAddr)
+            }
         }
     }
 
-    fun buildConstraint(
-        constraint: UtConstraint
-    ) {
-        asConstraint { buildConstraintInternal(constraint) }
-    }
-
-    private fun buildConstraintInternal(constraint: UtConstraint): UtBoolExpression = with(constraint) {
-        when (this) {
-            is UtRefEqConstraint -> {
-                val lhvVal = buildExpression(lhv)
-                val rhvVal = buildExpression(rhv)
-                mkEq(lhvVal, rhvVal)
-            }
-            is UtRefNeqConstraint -> {
-                val lhvVal = buildExpression(lhv)
-                val rhvVal = buildExpression(rhv)
-                mkNot(mkEq(lhvVal, rhvVal))
-            }
-            is UtRefNotTypeConstraint -> {
-                val lhvVal = buildExpression(operand)
-                val type = type.toSootType()
-                mkNot(engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint())
-            }
-            is UtRefTypeConstraint -> {
-                val lhvVal = buildExpression(operand)
-                val type = type.toSootType()
-                engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint()
-            }
-            is UtAndConstraint -> mkAnd(
-                buildConstraintInternal(lhv), buildConstraintInternal(rhv)
+    override fun visitUtConstraintNull(expr: UtConstraintNull): SymbolicValue = with(expr) {
+        when {
+            classId.isArray -> engine.createArray(nullObjectAddr, classId.toSootType() as ArrayType)
+            else -> engine.createObject(
+                nullObjectAddr,
+                classId.toSoot().type,
+                mockInfoGenerator = null,
+                useConcreteType = false
             )
-            is UtEqConstraint -> {
-                val lhvVal = buildExpression(lhv)
-                val rhvVal = buildExpression(rhv)
-                mkEq(lhvVal, rhvVal)
+        }
+    }
+
+    override fun visitUtConstraintFieldAccess(expr: UtConstraintFieldAccess): SymbolicValue = with(expr) {
+        val type = instance.classId.toSoot().type
+        val instanceVal = instance.accept(this@UtConstraintBuilder)
+        val sootField = fieldId.declaringClass.toSoot().getFieldByName(fieldId.name)
+        engine.createFieldOrMock(
+            type,
+            instanceVal.addr,
+            sootField,
+            mockInfoGenerator = null
+        )
+    }
+
+    override fun visitUtConstraintArrayAccess(expr: UtConstraintArrayAccess): SymbolicValue = with(expr) {
+        val arrayInstance = instance.accept(this@UtConstraintBuilder)
+        val index = index.accept(this@UtConstraintBuilder)
+        val type = instance.classId.toSootType() as ArrayType
+        val elementType = type.elementType
+        val chunkId = engine.typeRegistry.arrayChunkId(type)
+        val descriptor = MemoryChunkDescriptor(chunkId, type, elementType).also { engine.touchMemoryChunk(it) }
+        val array = engine.memory.findArray(descriptor)
+
+        when (elementType) {
+            is RefType -> {
+                val generator = UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(elementType.id, mockAddr) }
+
+                val objectValue = engine.createObject(
+                    UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
+                    elementType,
+                    useConcreteType = false,
+                    generator
+                )
+
+                if (objectValue.type.isJavaLangObject()) {
+                    engine.queuedSymbolicStateUpdates += engine.typeRegistry.zeroDimensionConstraint(objectValue.addr)
+                        .asSoftConstraint()
+                }
+
+                objectValue
             }
-            is UtGeConstraint -> {
-                val lhvVal = buildExpression(lhv) as PrimitiveValue
-                val rhvVal = buildExpression(rhv) as PrimitiveValue
-                Ge(lhvVal, rhvVal)
-            }
-            is UtGtConstraint -> {
-                val lhvVal = buildExpression(lhv) as PrimitiveValue
-                val rhvVal = buildExpression(rhv) as PrimitiveValue
-                Gt(lhvVal, rhvVal)
-            }
-            is UtLeConstraint -> {
-                val lhvVal = buildExpression(lhv) as PrimitiveValue
-                val rhvVal = buildExpression(rhv) as PrimitiveValue
-                Le(lhvVal, rhvVal)
-            }
-            is UtLtConstraint -> {
-                val lhvVal = buildExpression(lhv) as PrimitiveValue
-                val rhvVal = buildExpression(rhv) as PrimitiveValue
-                Lt(lhvVal, rhvVal)
-            }
-            is UtNeqConstraint -> {
-                val lhvVal = buildExpression(lhv) as PrimitiveValue
-                val rhvVal = buildExpression(rhv) as PrimitiveValue
-                mkNot(mkEq(lhvVal, rhvVal))
-            }
-            is UtOrConstraint -> mkOr(
-                buildConstraintInternal(lhv), buildConstraintInternal(rhv)
+            is ArrayType -> engine.createArray(
+                UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
+                elementType,
+                useConcreteType = false
             )
-            is UtBoolConstraint -> buildExpression(operand).exprValue as UtBoolExpression
+            else -> PrimitiveValue(elementType, array.select(arrayInstance.addr, index.exprValue))
         }
     }
 
-    fun buildExpression(
-        variable: UtConstraintVariable
-    ): SymbolicValue = with(variable) {
-        when (this) {
-            is UtConstraintParameter -> when {
-                isPrimitive -> {
-                    val newName = "post_condition_$name"
-                    when (classId) {
-                        voidClassId -> voidValue
-                        byteClassId -> mkBVConst(newName, UtByteSort).toByteValue()
-                        shortClassId -> mkBVConst(newName, UtShortSort).toShortValue()
-                        charClassId -> mkBVConst(newName, UtCharSort).toCharValue()
-                        intClassId -> mkBVConst(newName, UtIntSort).toIntValue()
-                        longClassId -> mkBVConst(newName, UtLongSort).toLongValue()
-                        floatClassId -> mkFpConst(newName, Float.SIZE_BITS).toFloatValue()
-                        doubleClassId -> mkFpConst(newName, Double.SIZE_BITS).toDoubleValue()
-                        else -> error("Unknown primitive parameter: $this")
-                    }
-                }
-                isArray -> {
-                    val sootType = classId.toSootType().arrayType
-                    val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
-                    engine.createArray(addr, sootType, useConcreteType = addr.isThisAddr)
-                }
-                else -> {
-                    val sootType = classId.toSoot().type
-                    val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
-                    engine.createObject(addr, sootType, useConcreteType = addr.isThisAddr)
-                }
-            }
-            is UtConstraintBoolConstant -> value.toPrimitiveValue()
-            is UtConstraintNumericConstant -> value.primitiveToSymbolic()
-            is UtConstraintCharConstant -> value.toPrimitiveValue()
-            is UtConstraintArrayAccess -> {
-                val arrayInstance = buildExpression(instance)
-                val index = buildExpression(index)
-                val type = instance.classId.toSootType() as ArrayType
-                val elementType = type.elementType
-                val chunkId = engine.typeRegistry.arrayChunkId(type)
-                val descriptor = MemoryChunkDescriptor(chunkId, type, elementType).also { engine.touchMemoryChunk(it) }
-                val array = engine.memory.findArray(descriptor)
-
-                when (elementType) {
-                    is RefType -> {
-                        val generator = UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(elementType.id, mockAddr) }
-
-                        val objectValue = engine.createObject(
-                            UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
-                            elementType,
-                            useConcreteType = false,
-                            generator
-                        )
-
-                        if (objectValue.type.isJavaLangObject()) {
-                            engine.queuedSymbolicStateUpdates += engine.typeRegistry.zeroDimensionConstraint(objectValue.addr)
-                                .asSoftConstraint()
-                        }
-
-                        objectValue
-                    }
-                    is ArrayType -> engine.createArray(
-                        UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
-                        elementType,
-                        useConcreteType = false
-                    )
-                    else -> PrimitiveValue(elementType, array.select(arrayInstance.addr, index.exprValue))
-                }
-            }
-            is UtConstraintArrayLength -> {
-                val array = buildExpression(instance)
-                engine.memory.findArrayLength(array.addr)
-            }
-            is UtConstraintFieldAccess -> {
-                val type = instance.classId.toSoot().type
-                val instanceVal = buildExpression(instance)
-                val sootField = fieldId.declaringClass.toSoot().getFieldByName(fieldId.name)
-                engine.createFieldOrMock(
-                    type,
-                    instanceVal.addr,
-                    sootField,
-                    mockInfoGenerator = null
-                )
-            }
-            is UtConstraintNull -> when {
-                classId.isArray -> engine.createArray(nullObjectAddr, classId.toSootType() as ArrayType)
-                else -> engine.createObject(
-                    nullObjectAddr,
-                    classId.toSoot().type,
-                    mockInfoGenerator = null,
-                    useConcreteType = false
-                )
-            }
-            is UtConstraintAdd -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Add(elhv, erhv)
-                )
-            }
-            is UtConstraintAnd -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    And(elhv, erhv)
-                )
-            }
-            is UtConstraintCmp -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Cmp(elhv, erhv)
-                )
-            }
-            is UtConstraintCmpg -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Cmpg(elhv, erhv)
-                )
-            }
-            is UtConstraintCmpl -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Cmpl(elhv, erhv)
-                )
-            }
-            is UtConstraintDiv ->{
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Div(elhv, erhv)
-                )
-            }
-            is UtConstraintMul -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Mul(elhv, erhv)
-                )
-            }
-            is UtConstraintOr -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Or(elhv, erhv)
-                )
-            }
-            is UtConstraintRem -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Rem(elhv, erhv)
-                )
-            }
-            is UtConstraintShl -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Shl(elhv, erhv)
-                )
-            }
-            is UtConstraintShr ->{
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Shr(elhv, erhv)
-                )
-            }
-            is UtConstraintSub -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Sub(elhv, erhv)
-                )
-            }
-            is UtConstraintUshr -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Ushr(elhv, erhv)
-                )
-            }
-            is UtConstraintXor -> {
-                val elhv = buildExpression(lhv) as PrimitiveValue
-                val erhv = buildExpression(rhv) as PrimitiveValue
-                PrimitiveValue(
-                    classId.toSootType(),
-                    Xor(elhv, erhv)
-                )
-            }
-            is UtConstraintNot -> {
-                val oper = buildExpression(operand) as PrimitiveValue
-                PrimitiveValue(oper.type, mkNot(oper.expr as UtBoolExpression))
-            }
-        }
+    override fun visitUtConstraintArrayLengthAccess(expr: UtConstraintArrayLength): SymbolicValue = with(expr) {
+        val array = instance.accept(this@UtConstraintBuilder)
+        engine.memory.findArrayLength(array.addr)
     }
+
+    override fun visitUtConstraintBoolConstant(expr: UtConstraintBoolConstant): SymbolicValue =
+        expr.value.toPrimitiveValue()
+
+    override fun visitUtConstraintCharConstant(expr: UtConstraintCharConstant): SymbolicValue =
+        expr.value.toPrimitiveValue()
+
+    override fun visitUtConstraintNumericConstant(expr: UtConstraintNumericConstant): SymbolicValue =
+        expr.value.primitiveToSymbolic()
+
+    override fun visitUtConstraintAdd(expr: UtConstraintAdd): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Add(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintAnd(expr: UtConstraintAnd): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            And(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintCmp(expr: UtConstraintCmp): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Cmp(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintCmpg(expr: UtConstraintCmpg): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Cmpg(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintCmpl(expr: UtConstraintCmpl): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Cmpl(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintDiv(expr: UtConstraintDiv): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Div(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintMul(expr: UtConstraintMul): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Mul(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintOr(expr: UtConstraintOr): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Or(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintRem(expr: UtConstraintRem): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Rem(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintShl(expr: UtConstraintShl): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Shl(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintShr(expr: UtConstraintShr): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Shr(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintSub(expr: UtConstraintSub): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Sub(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintUshr(expr: UtConstraintUshr): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Ushr(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintXor(expr: UtConstraintXor): SymbolicValue = with(expr) {
+        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            classId.toSootType(),
+            Xor(elhv, erhv)
+        )
+    }
+
+    override fun visitUtConstraintNot(expr: UtConstraintNot): SymbolicValue = with(expr) {
+        val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(oper.type, mkNot(oper.expr as UtBoolExpression))
+    }
+
+    override fun visitUtRefEqConstraint(expr: UtRefEqConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder)
+        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        mkEq(lhvVal, rhvVal)
+    }
+
+    override fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder)
+        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        mkNot(mkEq(lhvVal, rhvVal))
+    }
+
+    override fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = operand.accept(this@UtConstraintBuilder)
+        val type = type.toSootType()
+        engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint()
+    }
+
+    override fun visitUtRefNotTypeConstraint(expr: UtRefNotTypeConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = operand.accept(this@UtConstraintBuilder)
+        val type = type.toSootType()
+        mkNot(engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint())
+    }
+
+    override fun visitUtBoolConstraint(expr: UtBoolConstraint): UtBoolExpression =
+        expr.operand.accept(this@UtConstraintBuilder).exprValue as UtBoolExpression
+
+    override fun visitUtEqConstraint(expr: UtEqConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder)
+        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        mkEq(lhvVal, rhvVal)
+    }
+
+    override fun visitUtNeqConstraint(expr: UtNeqConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder)
+        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        mkNot(mkEq(lhvVal, rhvVal))
+    }
+
+    override fun visitUtLtConstraint(expr: UtLtConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        Lt(lhvVal, rhvVal)
+    }
+
+    override fun visitUtGtConstraint(expr: UtGtConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        Gt(lhvVal, rhvVal)
+    }
+
+    override fun visitUtLeConstraint(expr: UtLeConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        Le(lhvVal, rhvVal)
+    }
+
+    override fun visitUtGeConstraint(expr: UtGeConstraint): UtBoolExpression = with(expr) {
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        Ge(lhvVal, rhvVal)
+    }
+
+    override fun visitUtAndConstraint(expr: UtAndConstraint): UtBoolExpression = mkAnd(
+        expr.lhv.accept(this),
+        expr.rhv.accept(this)
+    )
+
+    override fun visitUtOrConstraint(expr: UtOrConstraint): UtBoolExpression = mkOr(
+        expr.lhv.accept(this),
+        expr.rhv.accept(this)
+    )
 
     private val SymbolicValue.exprValue
         get() = when (this) {
@@ -373,3 +413,4 @@ private class UtConstraintBuilder(
             is PrimitiveValue -> expr
         }
 }
+

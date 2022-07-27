@@ -18,154 +18,157 @@ import soot.jimple.Stmt
 import soot.jimple.internal.JimpleLocal
 import java.util.*
 
-class ConstrainedJimpleMethodSynthesizer {
-    fun synthesize(units: List<SynthesisUnit>): SynthesisContext {
-        return SynthesisContext(units)
+data class SynthesisParameter(
+    val type: Type,
+    val number: Int
+)
+
+
+class SynthesisMethodContext(
+    private val context: SynthesisUnitContext
+) {
+    private var localCounter = 0
+    private fun nextName() = "\$r${localCounter++}"
+
+    private var parameterCount = 0
+    private fun nextParameterCount() = parameterCount++
+
+    private val identities = mutableListOf<IdentityStmt>()
+    private val parameters_ = mutableListOf<SynthesisParameter>()
+    private val stmts = mutableListOf<Stmt>()
+    private val unitToLocal_ = IdentityHashMap<SynthesisUnit, JimpleLocal>()
+
+    val parameters: List<SynthesisParameter> by ::parameters_
+    val returnType: Type = VoidType.v()
+    val body: JimpleBody
+    val unitToLocal: Map<SynthesisUnit, JimpleLocal> get() = unitToLocal_
+
+    val unitToParameter = IdentityHashMap<SynthesisUnit, SynthesisParameter>()
+
+    init {
+        for (model in context.models) {
+            val unit = context[model]
+            val local = synthesizeUnit(unit)
+            unitToLocal_[unit] = local
+        }
+        val returnStmt = returnVoidStatement()
+
+        body = (identities + stmts + returnStmt).toGraphBody()
     }
 
-    class SynthesisContext(
-        private val rootUnits: List<SynthesisUnit>
-    ) {
-        private var localCounter = 0
-        private fun nextName() = "\$r${localCounter++}"
+    fun method(name: String, declaringClass: SootClass): SootMethod {
+        val parameterTypes = parameters.map { it.type }
 
-        private var parameterCount = 0
-        private fun nextParameterCount() = parameterCount++
+        return createSootMethod(name, parameterTypes, returnType, declaringClass, body, isStatic = true).also {
+            System.err.println("Done!")
+        }
+    }
 
-        private val identities = mutableListOf<IdentityStmt>()
-        private val parameters_ = mutableListOf<SynthesisParameter>()
-        private val stmts = mutableListOf<Stmt>()
-        private val unitToLocal_ = mutableMapOf<SynthesisUnit, JimpleLocal>()
+    fun resolve(parameterModels: List<UtModel>): List<UtModel> {
+        val resolver = Resolver(parameterModels, context, unitToParameter)
+        return context.models.map { resolver.resolve(context[it]) }
+    }
 
-        val parameters: List<SynthesisParameter> by ::parameters_
-        val returnType: Type = VoidType.v()
-        val body: JimpleBody
-        val unitToLocal: Map<SynthesisUnit, JimpleLocal> get() = unitToLocal_
+    private fun synthesizeUnit(unit: SynthesisUnit): JimpleLocal = when (unit) {
+        is ObjectUnit -> synthesizeCompositeUnit(unit)
+        is MethodUnit -> synthesizeMethodUnit(unit)
+        is NullUnit -> synthesizeNullUnit(unit)
+        is ArrayUnit -> synthesizeArrayUnit(unit)
+        is ReferenceToUnit -> synthesizeRefUnit(unit)
+    }.also {
+        unitToLocal_[unit] = it
+    }
 
-        val unitToParameter = IdentityHashMap<SynthesisUnit, SynthesisParameter>()
+    private fun synthesizeCompositeUnit(unit: SynthesisUnit): JimpleLocal {
+        val sootType = unit.classId.toSootType()
+        val parameterNumber = nextParameterCount()
+        val parameterRef = parameterRef(sootType, parameterNumber)
+        val local = JimpleLocal(nextName(), sootType)
+        val identity = identityStmt(local, parameterRef)
 
-        init {
-            for (unit in rootUnits) {
-                val local = synthesizeUnit(unit)
-                unitToLocal_[unit] = local
+        identities += identity
+        val parameter = SynthesisParameter(sootType, parameterNumber)
+        parameters_ += parameter
+        unitToParameter[unit] = parameter
+
+        return local
+    }
+
+    private fun synthesizeMethodUnit(unit: MethodUnit): JimpleLocal {
+        val parameterLocals = unit.params.map { synthesizeUnit(it) }
+        val result = with(unit.method) {
+            when {
+                this is ConstructorId -> synthesizeConstructorInvoke(this, parameterLocals)
+                this is MethodId && isStatic -> TODO()
+                this is MethodId -> synthesizeVirtualInvoke(this, parameterLocals)
+                else -> TODO()
             }
-            val returnStmt = returnVoidStatement()
-
-            body = (identities + stmts + returnStmt).toGraphBody()
         }
+        return result
+    }
 
-        fun method(name: String, declaringClass: SootClass): SootMethod {
-            val parameterTypes = parameters.map { it.type }
+    private fun synthesizeNullUnit(unit: NullUnit): JimpleLocal {
+        val sootType = unit.classId.toSootType()
+        val local = JimpleLocal(nextName(), sootType)
+        stmts += assignStmt(local, NullConstant.v())
+        return local
+    }
 
-            return createSootMethod(name, parameterTypes, returnType, declaringClass, body, isStatic = true).also {
-                System.err.println("Done!")
-            }
+    private fun synthesizeRefUnit(unit: ReferenceToUnit): JimpleLocal {
+        val sootType = unit.classId.toSootType()
+        val ref = unitToLocal[context[unit.reference]]!!
+        val local = JimpleLocal(nextName(), sootType)
+        stmts += assignStmt(local, ref)
+        return local
+    }
+
+    private fun synthesizeArrayUnit(unit: ArrayUnit): JimpleLocal {
+        val arrayType = unit.classId.toSootType()
+        val lengthLocal = synthesizeUnit(context[unit.length])
+
+        val arrayLocal = JimpleLocal(nextName(), arrayType)
+        val arrayExpr = newArrayExpr(arrayType, lengthLocal)
+        stmts += assignStmt(arrayLocal, arrayExpr)
+
+        for ((index, value) in unit.elements) {
+            val indexLocal = synthesizeUnit(context[index])
+            val valueLocal = synthesizeUnit(context[value])
+
+            val arrayRef = newArrayRef(arrayLocal, indexLocal)
+            stmts += assignStmt(arrayRef, valueLocal)
+
         }
+        return arrayLocal
+    }
 
-        fun resolve(parameterModels: List<UtModel>): List<UtModel> {
-            val resolver = Resolver(parameterModels, rootUnits, unitToParameter)
-            return rootUnits.map { resolver.resolve(it) }
-        }
+    private fun synthesizeVirtualInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {
+        val local = parameterLocals.firstOrNull() ?: error("No this parameter found for $method")
+        val parametersWithoutThis = parameterLocals.drop(1)
 
-        private fun synthesizeUnit(unit: SynthesisUnit): JimpleLocal = when (unit) {
-            is ObjectUnit -> synthesizeCompositeUnit(unit)
-            is MethodUnit -> synthesizeMethodUnit(unit)
-            is NullUnit -> synthesizeNullUnit(unit)
-            is ArrayUnit -> synthesizeArrayUnit(unit)
-            is ReferenceToUnit -> synthesizeRefUnit(unit)
-        }
+        val sootMethod = method.classId.toSoot().methods.first { it.pureJavaSignature == method.signature }
+        val invokeStmt = sootMethod.toVirtualInvoke(local, parametersWithoutThis).toInvokeStmt()
 
-        private fun synthesizeCompositeUnit(unit: SynthesisUnit): JimpleLocal {
-            val sootType = unit.classId.toSootType()
-            val parameterNumber = nextParameterCount()
-            val parameterRef = parameterRef(sootType, parameterNumber)
-            val local = JimpleLocal(nextName(), sootType)
-            val identity = identityStmt(local, parameterRef)
+        stmts += invokeStmt
 
-            identities += identity
-            val parameter = SynthesisParameter(sootType, parameterNumber)
-            parameters_ += parameter
-            unitToParameter[unit] = parameter
+        return local
+    }
 
-            return local
-        }
+    private fun synthesizeConstructorInvoke(
+        method: ConstructorId,
+        parameterLocals: List<JimpleLocal>
+    ): JimpleLocal {
+        val sootType = method.classId.toSootType() as RefType
+        val local = JimpleLocal(nextName(), sootType)
+        val new = newExpr(sootType)
+        val assignStmt = assignStmt(local, new)
 
-        private fun synthesizeMethodUnit(unit: MethodUnit): JimpleLocal {
-            val parameterLocals = unit.params.map { synthesizeUnit(it) }
-            val result = with(unit.method) {
-                when {
-                    this is ConstructorId -> synthesizeConstructorInvoke(this, parameterLocals)
-                    this is MethodId && isStatic -> TODO()
-                    this is MethodId -> synthesizeVirtualInvoke(this, parameterLocals)
-                    else -> TODO()
-                }
-            }
-            return result
-        }
+        stmts += assignStmt
 
-        private fun synthesizeNullUnit(unit: NullUnit): JimpleLocal {
-            val sootType = unit.classId.toSootType()
-            val local = JimpleLocal(nextName(), sootType)
-            stmts += assignStmt(local, NullConstant.v())
-            return local
-        }
+        val sootMethod = method.classId.toSoot().methods.first { it.pureJavaSignature == method.signature }
+        val invokeStmt = sootMethod.toSpecialInvoke(local, parameterLocals).toInvokeStmt()
 
-        private fun synthesizeRefUnit(unit: ReferenceToUnit): JimpleLocal {
-            val sootType = unit.classId.toSootType()
-            val ref = unitToLocal[rootUnits[unit.referenceParam]]!!
-            val local = JimpleLocal(nextName(), sootType)
-            stmts += assignStmt(local, ref)
-            return local
-        }
+        stmts += invokeStmt
 
-        private fun synthesizeArrayUnit(unit: ArrayUnit): JimpleLocal {
-            val arrayType = unit.classId.toSootType()
-            val lengthLocal = synthesizeUnit(unit.length)
-
-            val arrayLocal = JimpleLocal(nextName(), arrayType)
-            val arrayExpr = newArrayExpr(arrayType, lengthLocal)
-            stmts += assignStmt(arrayLocal, arrayExpr)
-
-            for ((index, value) in unit.elements) {
-                val indexLocal = synthesizeUnit(index)
-                val valueLocal = synthesizeUnit(value)
-
-                val arrayRef = newArrayRef(arrayLocal, indexLocal)
-                stmts += assignStmt(arrayRef, valueLocal)
-
-            }
-            return arrayLocal
-        }
-
-        private fun synthesizeVirtualInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {
-            val local = parameterLocals.firstOrNull() ?: error("No this parameter found for $method")
-            val parametersWithoutThis = parameterLocals.drop(1)
-
-            val sootMethod = method.classId.toSoot().methods.first { it.pureJavaSignature == method.signature }
-            val invokeStmt = sootMethod.toVirtualInvoke(local, parametersWithoutThis).toInvokeStmt()
-
-            stmts += invokeStmt
-
-            return local
-        }
-
-        private fun synthesizeConstructorInvoke(
-            method: ConstructorId,
-            parameterLocals: List<JimpleLocal>
-        ): JimpleLocal {
-            val sootType = method.classId.toSootType() as RefType
-            val local = JimpleLocal(nextName(), sootType)
-            val new = newExpr(sootType)
-            val assignStmt = assignStmt(local, new)
-
-            stmts += assignStmt
-
-            val sootMethod = method.classId.toSoot().methods.first { it.pureJavaSignature == method.signature }
-            val invokeStmt = sootMethod.toSpecialInvoke(local, parameterLocals).toInvokeStmt()
-
-            stmts += invokeStmt
-
-            return local
-        }
+        return local
     }
 }

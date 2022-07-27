@@ -47,7 +47,6 @@ import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.synthesis.ConstrainedSynthesizer
-import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import soot.Scene
@@ -439,13 +438,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             return UtTestCase(method, minimizedExecutions, jimpleBody(method), errors)
         }
     }
-
-    private fun toAssembleModel(model: UtModel) = (model as? UtCompositeModel)?.let {
-        val statementStorage = StatementsStorage()
-        statementStorage.update(setOf(it.classId))
-        val synthesizer = Synthesizer(statementStorage, it)
-        synthesizer.synthesize()
-    } ?: model
 
 
     private fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =

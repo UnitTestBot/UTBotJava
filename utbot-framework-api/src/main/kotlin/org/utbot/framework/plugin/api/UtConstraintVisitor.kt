@@ -1,6 +1,6 @@
 package org.utbot.framework.plugin.api
 
-interface UtConstraintVisitor<T> {
+interface UtConstraintVariableVisitor<T> {
     fun visitUtConstraintParameter(expr: UtConstraintParameter): T
     fun visitUtConstraintNull(expr: UtConstraintNull): T
     fun visitUtConstraintFieldAccess(expr: UtConstraintFieldAccess): T
@@ -24,7 +24,9 @@ interface UtConstraintVisitor<T> {
     fun visitUtConstraintUshr(expr: UtConstraintUshr): T
     fun visitUtConstraintXor(expr: UtConstraintXor): T
     fun visitUtConstraintNot(expr: UtConstraintNot): T
+}
 
+interface UtConstraintVisitor<T> {
     fun visitUtRefEqConstraint(expr: UtRefEqConstraint): T
     fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint): T
     fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): T

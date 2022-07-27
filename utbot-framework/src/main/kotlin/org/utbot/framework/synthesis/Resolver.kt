@@ -2,12 +2,13 @@ package org.utbot.framework.synthesis
 
 import org.utbot.engine.nextDefaultModelId
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.util.nextModelName
 import java.util.IdentityHashMap
 
 class Resolver(
     parameterModels: List<UtModel>,
-    val rootUnits: List<SynthesisUnit>,
+    val synthesisUnitContext: SynthesisUnitContext,
     unitToParameter: IdentityHashMap<SynthesisUnit, SynthesisParameter>,
 ) {
     private val unitToModel = IdentityHashMap<SynthesisUnit, UtModel>().apply {
@@ -20,8 +21,8 @@ class Resolver(
             is MethodUnit -> unitToModel.getOrPut(unit) { resolveMethodUnit(unit) }
             is ObjectUnit -> unitToModel[unit] ?: error("Can't map $unit")
             is NullUnit -> UtNullModel(unit.classId)
-            is ReferenceToUnit -> resolve(rootUnits[unit.referenceParam])
-            else -> TODO()
+            is ReferenceToUnit -> resolve(synthesisUnitContext[unit.reference])
+            is ArrayUnit -> unitToModel.getOrPut(unit) { resolveArray(unit) }
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =
@@ -73,5 +74,20 @@ class Resolver(
         )
 
         return model
+    }
+
+    private fun resolveArray(unit: ArrayUnit): UtModel {
+        val lengthModel = resolve(synthesisUnitContext[unit.length]) as UtPrimitiveModel
+        val elements = unit.elements.associate {
+            ((resolve(synthesisUnitContext[it.first]) as UtPrimitiveModel).value as Int) to resolve(synthesisUnitContext[it.second])
+        }
+
+        return UtArrayModel(
+            nextDefaultModelId++,
+            unit.classId,
+            lengthModel.value as Int,
+            unit.classId.elementClassId!!.defaultValueModel(),
+            elements.toMutableMap()
+        )
     }
 }

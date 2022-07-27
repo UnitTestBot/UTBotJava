@@ -13,9 +13,11 @@ import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
 class ConstrainedSynthesizer(
-    val parameters: ResolvedModels,
+    models: ResolvedModels,
     val depth: Int = 4
 ) {
+    val parameters = models.parameters
+
     companion object {
         private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
         private var attempts = 0
@@ -42,19 +44,16 @@ class ConstrainedSynthesizer(
 
     private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
     private val statementStorage = StatementsStorage().also { storage ->
-        storage.update(parameters.parameters.map { it.classId }.expandable())
+        storage.update(parameters.map { it.classId }.expandable())
     }
 
-    private val queue = MultipleSynthesisUnitQueue(
-        parameters,
-        LeafExpanderProducer(statementStorage),
-        depth
-    )
+    private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
     private val unitChecker = ConstrainedSynthesisUnitChecker(objectClassId.toSoot())
 
     fun synthesize(): List<UtModel>? {
-        while (!queue.isEmpty()) {
-            val units = queue.poll()
+        while (queueIterator.hasNext()) {
+            val units = queueIterator.next()
+            if (!units.isFullyDefined) continue
             logger.debug { "Visiting state: $units" }
 
             val assembleModel = unitChecker.tryGenerate(units, parameters)
@@ -69,79 +68,156 @@ class ConstrainedSynthesizer(
     }
 }
 
-fun List<UtModel>.toSynthesisUnits() = map {
-    when (it) {
-        is UtNullModel -> NullUnit(it.classId)
-        is UtPrimitiveConstraintModel -> ObjectUnit(it.classId)
-        is UtReferenceConstraintModel -> ObjectUnit(it.classId)
-        is UtArrayConstraintModel -> ArrayUnit(
-            it.classId,
-            elements = it.indices.map { index -> ObjectUnit(intClassId) to ObjectUnit(index.first().classId) }
-        )
-        is UtReferenceToConstraintModel -> ReferenceToUnit(it.classId, indexOf(it.reference))
-        else -> error("Only UtSynthesisModel supported")
+class SynthesisUnitContext(
+    val models: List<UtModel>,
+    initialMap: Map<UtModel, SynthesisUnit> = emptyMap()
+) {
+    private val mapping = initialMap.toMutableMap()
+
+    val isFullyDefined get() = models.all { it.synthesisUnit.isFullyDefined() }
+
+    init {
+        models.forEach { it.synthesisUnit }
+    }
+
+    val UtModel.synthesisUnit: SynthesisUnit
+        get() = mapping.getOrPut(this) {
+            when (this) {
+                is UtNullModel -> NullUnit(this.classId)
+                is UtPrimitiveConstraintModel -> ObjectUnit(this.classId)
+                is UtReferenceConstraintModel -> ObjectUnit(this.classId)
+                is UtArrayConstraintModel -> ArrayUnit(
+                    this.classId,
+                    this.elements.toList(),
+                    this.length
+                )
+
+                is UtReferenceToConstraintModel -> ReferenceToUnit(this.classId, this.reference)
+                else -> error("Only UtSynthesisModel supported")
+            }
+        }
+
+    operator fun get(utModel: UtModel): SynthesisUnit = mapping[utModel]
+        ?: utModel.synthesisUnit
+
+    fun set(model: UtModel, newUnit: SynthesisUnit): SynthesisUnitContext {
+        val newMapping = mapping.toMutableMap()
+        newMapping[model] = newUnit
+        return SynthesisUnitContext(models, newMapping)
+    }
+
+    fun SynthesisUnit.isFullyDefined(): Boolean = when (this) {
+        is NullUnit -> true
+        is ReferenceToUnit -> true
+        is ObjectUnit -> isPrimitive()
+        is ArrayUnit -> elements.all {
+            this@SynthesisUnitContext[it.first].isFullyDefined() && this@SynthesisUnitContext[it.second].isFullyDefined()
+        }
+        is MethodUnit -> params.all { it.isFullyDefined() }
     }
 }
 
-class MultipleSynthesisUnitQueue(
-    val parameters: ResolvedModels,
-    val producer: LeafExpanderProducer,
+class SynthesisUnitContextQueue(
+    val models: List<UtModel>,
+    statementsStorage: StatementsStorage,
     val depth: Int
-) {
-    private val inits = parameters.parameters.toSynthesisUnits()
-    private val queues = inits.map { init -> initializeQueue(init) }.toMutableList()
-    private var hasNext = true
-
-    fun isEmpty(): Boolean = !hasNext
-
-    fun poll(): List<SynthesisUnit> {
-        val results = queues.map { it.peek()!! }
-        increase()
-        return results
+) : Iterator<SynthesisUnitContext> {
+    private val leafExpander = CompositeUnitExpander(statementsStorage)
+    val queue = ArrayDeque<SynthesisUnitContext>().also {
+        it.addLast(SynthesisUnitContext(models))
     }
 
-    private fun increase() {
-        var shouldGoNext = true
+    override fun hasNext(): Boolean {
+        return queue.isNotEmpty()
+    }
+
+    override fun next(): SynthesisUnitContext {
+        val result = queue.removeFirst()
+        queue.addAll(produceNext(result))
+        return result
+    }
+
+    private fun produceNext(context: SynthesisUnitContext): List<SynthesisUnitContext> {
         var index = 0
-        while (shouldGoNext) {
-            pollUntilFullyDefined(queues[index])
-            if (queues[index].isEmpty()) {
-                queues[index] = initializeQueue(inits[index])
-                index++
-                if (index >= queues.size) {
-                    hasNext = false
-                    return
+        var currentContext = context
+        while (true) {
+            with(currentContext) {
+                if (index >= models.size) {
+                    return emptyList()
                 }
-                shouldGoNext = true
-            } else {
-                shouldGoNext = false
+
+                val currentModel = models[index]
+                val newContexts = produce(currentContext, currentModel)
+                if (newContexts.isEmpty()) {
+                    currentContext = currentContext.set(currentModel, currentModel.synthesisUnit)
+                    index++
+                } else {
+                    return newContexts
+                }
             }
         }
     }
 
-    private fun initializeQueue(unit: SynthesisUnit): SynthesisUnitQueue = SynthesisUnitQueue(depth).also { queue ->
-        when {
-            unit is ObjectUnit && unit.isPrimitive() -> queue.push(unit)
-            unit is NullUnit -> queue.push(unit)
-            unit is ArrayUnit -> queue.push(unit)
-            unit is ReferenceToUnit -> queue.push(unit)
-            else -> producer.produce(unit).forEach { queue.push(it) }
+    private fun produce(
+        context: SynthesisUnitContext,
+        model: UtModel
+    ): List<SynthesisUnitContext> = when (val unit = context[model]) {
+        is NullUnit -> emptyList()
+        is ReferenceToUnit -> emptyList()
+        is MethodUnit -> produce(unit).map {
+            context.set(model, it)
         }
-        peekUntilFullyDefined(queue)
+
+        is ObjectUnit -> produce(unit).map {
+            context.set(model, it)
+        }
+
+        is ArrayUnit -> {
+            if (unit.isPrimitive()) emptyList()
+            else {
+                var currentContext = context
+                var result = emptyList<SynthesisUnitContext>()
+                var index = 0
+
+                while (true) {
+                    model as UtArrayConstraintModel
+                    val current = currentContext[model] as ArrayUnit
+                    val elements = current.elements
+                    if (index >= elements.size) break
+
+                    val currentModel = model.elements[unit.elements[index].first]!!
+                    val newLeafs = produce(context, currentModel)
+                    if (newLeafs.isEmpty()) {
+                        for (i in 0..index) {
+                            currentContext = currentContext.set(currentModel, currentContext[currentModel])
+                        }
+                        index++
+                    } else {
+                        result = newLeafs
+                        break
+                    }
+                }
+                result
+            }
+        }
     }
 
-    private fun peekUntilFullyDefined(queue: SynthesisUnitQueue) {
-        if (queue.isEmpty()) return
-        while (!queue.peek()!!.isFullyDefined()) {
-            val state = queue.poll()!!
-            producer.produce(state).forEach { queue.push(it) }
-            if (queue.isEmpty()) return
-        }
-    }
+    private fun produce(state: SynthesisUnit): List<SynthesisUnit> =
+        when (state) {
+            is MethodUnit -> state.params.run {
+                flatMapIndexed { idx, leaf ->
+                    val newLeafs = produce(leaf)
+                    newLeafs.map { newLeaf ->
+                        val newParams = toMutableList()
+                        newParams[idx] = newLeaf
+                        state.copy(params = newParams)
+                    }
+                }
+            }
 
-    private fun pollUntilFullyDefined(queue: SynthesisUnitQueue) {
-        val state = queue.poll()!!
-        producer.produce(state).forEach { queue.push(it) }
-        peekUntilFullyDefined(queue)
-    }
+            is ObjectUnit -> leafExpander.expand(state)
+            is NullUnit -> emptyList()
+            is ReferenceToUnit -> emptyList()
+            is ArrayUnit -> emptyList()
+        }
 }

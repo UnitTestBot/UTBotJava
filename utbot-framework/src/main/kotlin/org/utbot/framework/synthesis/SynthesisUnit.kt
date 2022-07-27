@@ -2,6 +2,7 @@ package org.utbot.framework.synthesis
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.primitives
 
@@ -17,10 +18,8 @@ data class ObjectUnit(
 
 data class ArrayUnit(
     override val classId: ClassId,
-    val elements: List<Pair<SynthesisUnit, SynthesisUnit>>,
-    val length: SynthesisUnit = ObjectUnit(intClassId),
-    val bases: List<Pair<SynthesisUnit, SynthesisUnit>> = elements,
-    val currentIndex: Int = 0
+    val elements: List<Pair<UtModel, UtModel>>,
+    val length: UtModel
 ) : SynthesisUnit() {
     fun isPrimitive() = classId.elementClassId in primitives
 }
@@ -31,7 +30,7 @@ data class NullUnit(
 
 data class ReferenceToUnit(
     override val classId: ClassId,
-    val referenceParam: Int
+    val reference: UtModel
 ) : SynthesisUnit()
 
 data class MethodUnit(
@@ -44,6 +43,6 @@ fun SynthesisUnit.isFullyDefined(): Boolean = when (this) {
     is NullUnit -> true
     is ReferenceToUnit -> true
     is ObjectUnit -> isPrimitive()
-    is ArrayUnit -> elements.all { it.second.isFullyDefined() }
+    is ArrayUnit -> true
     is MethodUnit -> params.all { it.isFullyDefined() }
 }

@@ -4,13 +4,12 @@ import org.utbot.framework.plugin.api.*
 
 class UtConstraintVariableCollector(
     val predicate: (UtConstraintVariable) -> Boolean
-) : UtConstraintVisitor<Set<UtConstraintVariable>> {
+) : UtConstraintVisitor<Set<UtConstraintVariable>>, UtConstraintVariableVisitor<Unit> {
     private val result = mutableSetOf<UtConstraintVariable>()
 
-    private inline fun visitVar(expr: UtConstraintVariable, body: () -> Unit): Set<UtConstraintVariable> {
+    private inline fun visitVar(expr: UtConstraintVariable, body: () -> Unit) {
         if (predicate(expr)) result += expr
         body()
-        return result
     }
 
     private inline fun visitConstraint(expr: UtConstraint, body: () -> Unit): Set<UtConstraintVariable> {

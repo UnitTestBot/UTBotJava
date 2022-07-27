@@ -5,24 +5,16 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.CoverageMatcher
-import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.codegen.TestExecution
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction3
-import kotlin.reflect.KFunction4
 
 
 private const val NEW_LINE = "\n"
@@ -50,49 +42,14 @@ open class SummaryTestCaseGeneratorTest(
         cookie.close()
     }
 
-    protected inline fun <reified R> checkNoArguments(
-        method: KFunction1<*, R>,
-        coverage: CoverageMatcher = DoNotCalculate,
-        mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
-        summaryKeys: List<String>,
-        methodNames: List<String> = listOf(),
-        displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
-
-    protected inline fun <reified T, reified R> checkOneArgument(
-        method: KFunction2<*, T, R>,
-        coverage: CoverageMatcher = DoNotCalculate,
-        mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
-        summaryKeys: List<String>,
-        methodNames: List<String> = listOf(),
-        displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
-
-    protected inline fun <reified T1, reified T2, reified R> checkTwoArguments(
-        method: KFunction3<*, T1, T2, R>,
-        coverage: CoverageMatcher = DoNotCalculate,
-        mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
-        summaryKeys: List<String>,
-        methodNames: List<String> = listOf(),
-        displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
-
-    protected inline fun <reified T1, reified T2, reified T3, reified R> checkThreeArguments(
-        method: KFunction4<*, T1, T2, T3, R>,
-        coverage: CoverageMatcher = DoNotCalculate,
-        mockStrategy: MockStrategyApi = MockStrategyApi.NO_MOCKS,
-        summaryKeys: List<String>,
-        methodNames: List<String> = listOf(),
-        displayNames: List<String> = listOf()
-    ) = check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
-
-    inline fun <reified R> check(
+    inline fun <reified R> summaryCheck(
         method: KFunction<R>,
         mockStrategy: MockStrategyApi,
         coverageMatcher: CoverageMatcher,
         summaryKeys: List<String>,
-        methodNames: List<String>,
-        displayNames: List<String>
+        methodNames: List<String> = listOf(),
+        displayNames: List<String> = listOf(),
+        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf()
     ) {
         workaround(WorkaroundReason.HACK) {
             // @todo change to the constructor parameter
@@ -102,11 +59,12 @@ open class SummaryTestCaseGeneratorTest(
         }
         val utMethod = UtMethod.from(method)
         val testSet = executionsModel(utMethod, mockStrategy)
-        testSet.summarize(searchDirectory)
+        val testSetWithSummarization = testSet.summarize(searchDirectory)
 
-        testSet.executions.checkMatchersWithTextSummary(summaryKeys)
-        testSet.executions.checkMatchersWithMethodNames(methodNames)
-        testSet.executions.checkMatchersWithDisplayNames(displayNames)
+        testSetWithSummarization.executions.checkMatchersWithTextSummary(summaryKeys)
+        testSetWithSummarization.executions.checkMatchersWithMethodNames(methodNames)
+        testSetWithSummarization.executions.checkMatchersWithDisplayNames(displayNames)
+        testSetWithSummarization.checkClusterInfo(clusterInfo)
     }
 
     /**
@@ -123,6 +81,37 @@ open class SummaryTestCaseGeneratorTest(
         }
         return result
     }
+
+    // TODO: if next synonyms and normalize function will be removed, this method could be moved as overridden equals to the dataClass [UtClusterInfo]
+    private fun UtClusterInfo.normalizedAndEquals(other: UtClusterInfo): Boolean {
+        if (header != other.header) return false
+
+        return if (content == null) {
+            other.content == null
+        } else {
+            if (other.content == null) false
+            else {
+                content!!.normalize() == other.content!!.normalize()
+            }
+        }
+    }
+
+    /**
+     * Verifies that there are the same number of clusters, its content and number of included tests in each cluster.
+     */
+    fun UtMethodTestSet.checkClusterInfo(clusterInfo: List<Pair<UtClusterInfo, Int>>) {
+        if (clusterInfo.isEmpty()) {
+            return
+        }
+
+        Assertions.assertEquals(this.clustersInfo.size, clusterInfo.size)
+
+        this.clustersInfo.forEachIndexed { index, it ->
+            Assertions.assertTrue(it.first!!.normalizedAndEquals(clusterInfo[index].first))
+            Assertions.assertEquals(it.second.count(), clusterInfo[index].second)
+        }
+    }
+
 
     fun List<UtExecution>.checkMatchersWithTextSummary(
         comments: List<String>,

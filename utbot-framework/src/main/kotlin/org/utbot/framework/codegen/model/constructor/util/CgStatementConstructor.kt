@@ -1,64 +1,21 @@
 package org.utbot.framework.codegen.model.constructor.util
 
+import fj.data.Either
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.mockMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAnnotation
-import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
-import org.utbot.framework.codegen.model.tree.CgComment
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgEmptyLine
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgErrorWrapper
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgForEachLoopBuilder
-import org.utbot.framework.codegen.model.tree.CgForLoopBuilder
-import org.utbot.framework.codegen.model.tree.CgGetClass
-import org.utbot.framework.codegen.model.tree.CgIfStatement
-import org.utbot.framework.codegen.model.tree.CgInnerBlock
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgLogicalAnd
-import org.utbot.framework.codegen.model.tree.CgLogicalOr
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultilineComment
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgReturnStatement
-import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
-import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgThrowStatement
-import org.utbot.framework.codegen.model.tree.CgTryCatch
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.tree.buildAssignment
-import org.utbot.framework.codegen.model.tree.buildCgForEachLoop
-import org.utbot.framework.codegen.model.tree.buildDeclaration
-import org.utbot.framework.codegen.model.tree.buildDoWhileLoop
-import org.utbot.framework.codegen.model.tree.buildForLoop
-import org.utbot.framework.codegen.model.tree.buildSimpleBlock
-import org.utbot.framework.codegen.model.tree.buildTryCatch
-import org.utbot.framework.codegen.model.tree.buildWhileLoop
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.buildExceptionHandler
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isNotSubtypeOf
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.objectArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import fj.data.Either
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.ext.findClass
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -399,7 +356,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
             val name = (expr.arguments.getOrNull(0) as? CgLiteral)?.value as? String
 
             if (name != null) {
-                return BuiltinClassId.getBuiltinClassByNameOrNull(name) ?: ClassId(name)
+                return BuiltinClassId.getBuiltinClassByNameOrNull(name) ?: runBlocking { utContext.classpath.findClass(name) }
             }
         }
 

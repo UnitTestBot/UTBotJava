@@ -1,13 +1,13 @@
 package org.utbot.framework.plugin.api.impl
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.field
 import org.utbot.framework.plugin.api.util.id
-import java.lang.reflect.Modifier
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 import soot.Scene
 import soot.SootClass
+import java.lang.reflect.Modifier
 
 interface FieldIdStrategy {
 

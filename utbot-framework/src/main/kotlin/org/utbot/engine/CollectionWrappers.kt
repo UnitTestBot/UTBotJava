@@ -8,15 +8,10 @@ import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.z3.intValue
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.constructorId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.methodId
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.nextModelName
 import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.MethodId
 import org.utbot.jcdb.api.ifArrayGetElementClass
 import soot.*
@@ -164,7 +159,7 @@ abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: Strin
         }
 
     override fun Resolver.resolveValueModels(wrapper: ObjectValue): List<List<UtModel>> {
-        val elementDataFieldId = FieldId(overriddenClass.type.classId, "elementData")
+        val elementDataFieldId = overriddenClass.type.classId.findFieldOrNull("elementData")
         val arrayModel = collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as? UtArrayModel
 
         return arrayModel?.let { constructValues(arrayModel, arrayModel.length) } ?: emptyList()
@@ -295,7 +290,7 @@ class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
 
         val valuesFieldId = overriddenClass.getFieldByName("values").fieldId
         val valuesCompositeModel = (fieldModels[valuesFieldId] as? UtCompositeModel) ?: return emptyList()
-        val valuesStorageFieldId = FieldId(AssociativeArray::class.id, "storage")
+        val valuesStorageFieldId = AssociativeArray::class.id.findFieldOrNull("storage")
         val valuesModel = valuesCompositeModel.fields[valuesStorageFieldId] as? UtArrayModel
 
         return if (valuesModel == null || keyModels == null) {

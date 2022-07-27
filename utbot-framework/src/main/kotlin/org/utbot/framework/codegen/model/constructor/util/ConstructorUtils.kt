@@ -12,7 +12,6 @@ import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.framework.plugin.api.util.executable
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.MethodId
 import org.utbot.jcdb.api.isStatic
@@ -197,13 +196,17 @@ internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
     return CgGetJavaClass(classId)
 }
 
-internal fun Class<*>.overridesEquals(): Boolean =
+internal suspend fun ClassId.overridesEquals(): Boolean =
     when {
         // Object does not override equals
-        this == Any::class.java -> false
-        id isSubtypeOf Map::class.id -> true
-        id isSubtypeOf Collection::class.id -> true
-        else -> declaredMethods.any { it.name == "equals" && it.parameterTypes.contentEquals(arrayOf(Any::class.java)) }
+        name == Any::class.java.name -> false
+        this isSubtypeOf Map::class.id -> true
+        this isSubtypeOf Collection::class.id -> true
+        else -> methods().any {
+            it.name == "equals" &&it.parameters().let {
+                it.size == 1 && it.first() == objectClassId
+            }
+        }
     }
 
 // NOTE: this function does not consider executable return type because it is not important in our case

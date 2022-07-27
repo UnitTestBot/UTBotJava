@@ -1,9 +1,8 @@
 package org.utbot.framework.plugin.api.util
 
 import kotlinx.coroutines.runBlocking
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.objectweb.asm.Type
+import org.utbot.framework.plugin.api.*
 import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import org.utbot.jcdb.impl.types.*
@@ -135,44 +134,47 @@ val doubleWrapperClassId get() = java.lang.Double::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here
-val primitiveWrappers = setOf(
-    voidWrapperClassId,
-    booleanWrapperClassId,
-    byteWrapperClassId,
-    charWrapperClassId,
-    shortWrapperClassId,
-    intWrapperClassId,
-    longWrapperClassId,
-    floatWrapperClassId,
-    doubleWrapperClassId,
-)
+val primitiveWrappers
+    get() = setOf(
+        voidWrapperClassId,
+        booleanWrapperClassId,
+        byteWrapperClassId,
+        charWrapperClassId,
+        shortWrapperClassId,
+        intWrapperClassId,
+        longWrapperClassId,
+        floatWrapperClassId,
+        doubleWrapperClassId,
+    )
 
-val primitiveByWrapper = mapOf(
-    booleanWrapperClassId to booleanClassId,
-    byteWrapperClassId to byteClassId,
-    charWrapperClassId to charClassId,
-    shortWrapperClassId to shortClassId,
-    intWrapperClassId to intClassId,
-    longWrapperClassId to longClassId,
-    floatWrapperClassId to floatClassId,
-    doubleWrapperClassId to doubleClassId,
-)
+val primitiveByWrapper
+    get() = mapOf(
+        booleanWrapperClassId to booleanClassId,
+        byteWrapperClassId to byteClassId,
+        charWrapperClassId to charClassId,
+        shortWrapperClassId to shortClassId,
+        intWrapperClassId to intClassId,
+        longWrapperClassId to longClassId,
+        floatWrapperClassId to floatClassId,
+        doubleWrapperClassId to doubleClassId,
+    )
 
 val wrapperByPrimitive = primitiveByWrapper.entries.associateBy({ it.value }) { it.key }
 
 // We consider void primitive here
 // It is sometimes useful even if void is not technically a primitive type
-val primitives = setOf(
-    voidClassId,
-    booleanClassId,
-    byteClassId,
-    charClassId,
-    shortClassId,
-    intClassId,
-    longClassId,
-    floatClassId,
-    doubleClassId
-)
+val primitives
+    get() = setOf(
+        voidClassId,
+        booleanClassId,
+        byteClassId,
+        charClassId,
+        shortClassId,
+        intClassId,
+        longClassId,
+        floatClassId,
+        doubleClassId
+    )
 
 val booleanArrayClassId get() = utContext.classpath.booleanArray
 val byteArrayClassId get() = utContext.classpath.byteArray
@@ -191,16 +193,18 @@ val objectArrayClassId get() = Array<Any>::class.id
 
 val atomicIntegerClassId get() = AtomicInteger::class.id
 
-val atomicIntegerGet: MethodId get() {
-    return runBlocking {
-        atomicIntegerClassId.methods().first { it.name == "get" }
+val atomicIntegerGet: MethodId
+    get() {
+        return runBlocking {
+            atomicIntegerClassId.methods().first { it.name == "get" }
+        }
     }
-}
-val atomicIntegerGetAndIncrement: MethodId get() {
-    return runBlocking {
-        atomicIntegerClassId.methods().first { it.name == "getAndIncrement" }
+val atomicIntegerGetAndIncrement: MethodId
+    get() {
+        return runBlocking {
+            atomicIntegerClassId.methods().first { it.name == "getAndIncrement" }
+        }
     }
-}
 
 val iterableClassId get() = java.lang.Iterable::class.id
 val mapClassId get() = java.util.Map::class.id
@@ -257,25 +261,33 @@ fun wrapIfPrimitive(type: ClassId): ClassId = when (type) {
  * Note: currently uses class$innerClass form to load classes with classloader.
  */
 @Suppress("MapGetWithNotNullAssertionOperator")
-val Class<*>.id: ClassId
-    get() {
-        fun nameOf(clazz: Class<*>): String {
-            return when {
-                clazz.isArray -> nameOf(clazz.componentType) + "[]"
-                else ->  clazz.name
-            }
-        }
+val Class<*>.id: ClassId get() = runBlocking { asClassId() }
 
-        return runBlocking {
-            val name = nameOf(this@id)
-            utContext.classpath.findClass(name)
+@Suppress("MapGetWithNotNullAssertionOperator")
+suspend fun Class<*>.asClassId(): ClassId {
+    fun nameOf(clazz: Class<*>): String {
+        return when {
+            clazz.isArray -> nameOf(clazz.componentType) + "[]"
+            else -> clazz.name
         }
     }
+
+    val name = nameOf(this)
+    return utContext.classpath.findClass(name)
+}
+
+suspend inline fun <reified T> asClass(): ClassId {
+    return T::class.java.asClassId()
+}
 
 val KClass<*>.id: ClassId
     get() = runBlocking {
         utContext.classpath.findClass(jvmName)
     }
+
+suspend fun KClass<*>.asClassId(): ClassId {
+    return java.asClassId()
+}
 
 val ClassId.isArray: Boolean
     get() = this is ArrayClassId
@@ -299,6 +311,10 @@ fun ClassId.findFieldOrNull(fieldName: String): FieldId? = runBlocking {
     fields().firstOrNull { it.name == fieldName }
 }
 
+fun ClassId.findField(fieldName: String): FieldId = runBlocking {
+    fields().firstOrNull { it.name == fieldName } ?: error("Can't find field $name#$fieldName")
+}
+
 fun ClassId.hasField(fieldName: String): Boolean = findFieldOrNull(fieldName) != null
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
@@ -317,32 +333,32 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
 
 // TODO: maybe cache it somehow in the future
 val FieldId.field: Field
-    get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }
-        ?: error("Field $name is not found in class ${declaringClass.jClass.name}")
+    get() = classId.jClass.declaredFields.firstOrNull { it.name == name }
+        ?: error("Field $name is not found in class ${classId.name}")
 
 // https://docstore.mik.ua/orelly/java-ent/jnut/ch03_13.htm
 val FieldId.isInnerClassEnclosingClassReference: Boolean
-    get() = declaringClass.isNested && name == "this$0"
+    get() = classId.isNested && name == "this$0"
 
 val KProperty<*>.fieldId: FieldId
     get() = javaField?.fieldId ?: error("Expected field, but got: $this")
 
 val Field.fieldId: FieldId
-    get() = FieldId(declaringClass.id, name)
+    get() = declaringClass.id.findFieldOrNull(name) ?: error("field not found $this but expected to be existed")
 
 // ExecutableId utils
 
 val ExecutableId.executable: Executable
     get() = when (this) {
-        is MethodId -> method
-        is ConstructorId -> constructor
+        is MethodExecutableId -> method
+        is ConstructorExecutableId -> constructor
     }
 
 val ExecutableId.exceptions: List<ClassId>
     get() = executable.exceptionTypes.map { it.id }
 
 // TODO: maybe cache it somehow in the future
-val MethodId.method: Method
+val MethodExecutableId.method: Method
     get() {
         val declaringClass = classId.jClass
         return declaringClass.singleMethodOrNull(signature)
@@ -350,7 +366,7 @@ val MethodId.method: Method
     }
 
 // TODO: maybe cache it somehow in the future
-val ConstructorId.constructor: Constructor<*>
+val ConstructorExecutableId.constructor: Constructor<*>
     get() {
         val declaringClass = classId.jClass
         return declaringClass.singleConstructorOrNull(signature)
@@ -366,51 +382,54 @@ val KCallable<*>.executableId: ExecutableId
         else -> error("Unknown KCallable type: ${this::class}")
     }
 
-val Method.executableId: MethodId
-    get() {
-        val classId = declaringClass.id
-        val arguments = parameterTypes.map { it.id }.toTypedArray()
-        val retType = returnType.id
-        return methodId(classId, name, retType, *arguments)
+val Method.executableId: MethodExecutableId
+    get() = runBlocking {
+        val classId = declaringClass.asClassId()
+        val descriptor = name + Type.getType(this@executableId).descriptor
+        MethodExecutableId(classId.methods().first { it.signature(true) == descriptor })
     }
 
-val Constructor<*>.executableId: ConstructorId
-    get() {
+val Constructor<*>.executableId: ConstructorExecutableId
+    get() = runBlocking {
         val classId = declaringClass.id
-        val arguments = parameterTypes.map { it.id }.toTypedArray()
-        return constructorId(classId, *arguments)
+        val descriptor = "<init>" + Type.getType(this@executableId).descriptor
+        ConstructorExecutableId(classId.methods().first { it.signature(true) == descriptor })
     }
 
 @ExperimentalContracts
 fun ExecutableId.isMethod(): Boolean {
     contract {
-        returns(true) implies (this@isMethod is MethodId)
-        returns(false) implies (this@isMethod is ConstructorId)
+        returns(true) implies (this@isMethod is MethodExecutableId)
+        returns(false) implies (this@isMethod is ConstructorExecutableId)
     }
-    return this is MethodId
+    return this is MethodExecutableId
 }
 
 @ExperimentalContracts
 fun ExecutableId.isConstructor(): Boolean {
     contract {
-        returns(true) implies (this@isConstructor is ConstructorId)
-        returns(false) implies (this@isConstructor is MethodId)
+        returns(true) implies (this@isConstructor is ConstructorExecutableId)
+        returns(false) implies (this@isConstructor is MethodExecutableId)
     }
-    return this is ConstructorId
+    return this is ConstructorExecutableId
 }
 
 /**
  * Construct MethodId
  */
-fun methodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): MethodId {
-    return MethodId(classId, name, returnType, arguments.toList())
+fun methodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): MethodId = runBlocking{
+    classId.methods().first {
+        it.name == name && it.returnType == returnType && it.parameters().toTypedArray().contentEquals(arguments)
+    }
 }
 
 /**
  * Construct ConstructorId
  */
-fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorId {
-    return ConstructorId(classId, arguments.toList())
+fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorExecutableId = runBlocking {
+    ConstructorExecutableId(classId.methods().first {
+        it.name == "<init>" && it.parameters().toTypedArray().contentEquals(arguments)
+    })
 }
 
 fun builtinMethodId(

@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.instrumentation.et
 
-import org.utbot.framework.plugin.api.FieldId
+import org.utbot.jcdb.api.FieldId
 
 // TODO: refactor this later
 

@@ -1,14 +1,17 @@
 package org.utbot.instrumentation.instrumentation.et
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.instrumentation.Settings
-import kotlin.reflect.jvm.javaField
-import kotlin.reflect.jvm.javaMethod
+import kotlinx.coroutines.runBlocking
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.LocalVariablesSorter
+import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.instrumentation.Settings
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.ext.findClass
+import org.utbot.jcdb.api.findFieldOrNull
+import kotlin.reflect.jvm.javaField
+import kotlin.reflect.jvm.javaMethod
 
 sealed class InstructionData {
     abstract val line: Int
@@ -203,10 +206,14 @@ class TraceHandler {
         return instructionsList!!
     }
 
-    fun computePutStatics(): List<FieldId> =
+    fun computePutStatics(): List<FieldId> = runBlocking {
         computeInstructionList().map { it.instructionData }
             .filterIsInstance<PutStaticInstruction>()
-            .map { FieldId(ClassId(it.owner.replace("/", ".")), it.name) }
+            .map {
+                val className = it.owner.replace("/", ".")
+                utContext.classpath.findClass(className).findFieldOrNull(it.name) ?: error("can't find $className#${it.name}")
+            }
+    }
 
     fun computeTrace(): Trace {
         val instructionList = computeInstructionList()

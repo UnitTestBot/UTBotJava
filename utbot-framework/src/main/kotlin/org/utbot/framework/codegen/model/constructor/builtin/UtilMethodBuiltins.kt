@@ -4,15 +4,9 @@ import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
 import sun.misc.Unsafe
 
 /**

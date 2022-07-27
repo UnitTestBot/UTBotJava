@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.ifArrayGetElementClass
 
 interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
@@ -384,7 +385,7 @@ class CgReturnStatement(val expression: CgExpression) : CgStatement
 // TODO: check nested array element access expressions e.g. a[0][1][2]
 // TODO in general it is not CgReferenceExpression because array element can have a primitive type
 class CgArrayElementAccess(val array: CgExpression, val index: CgExpression) : CgReferenceExpression {
-    override val type: ClassId = array.type.elementClassId ?: objectClassId
+    override val type: ClassId = array.type.ifArrayGetElementClass() ?: objectClassId
 }
 
 // Loop conditions
@@ -677,16 +678,18 @@ open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int) :
         }
     }
 
-    private fun updateElementType(type: ClassId): ClassId =
-        if (type.elementClassId != null) {
-            CgClassId(type.name, updateElementType(type.elementClassId!!), isNullable = true)
+    private fun updateElementType(type: ClassId): ClassId {
+        val elementClassId = type.ifArrayGetElementClass()
+        return if (elementClassId != null) {
+            CgClassId(type.name, updateElementType(elementClassId), isNullable = true)
         } else {
             CgClassId(type, isNullable = true)
         }
+    }
 }
 
 class CgAllocateInitializedArray(val model: UtArrayModel) :
-    CgAllocateArray(model.classId, model.classId.elementClassId!!, model.length)
+    CgAllocateArray(model.classId, model.classId.ifArrayGetElementClass()!!, model.length)
 
 
 // Spread operator (for Kotlin, empty for Java)
@@ -804,7 +807,7 @@ class CgMethodCall(
     override val arguments: List<CgExpression>,
     override val typeParameters: TypeParameters = TypeParameters()
 ) : CgExecutableCall() {
-    override val type: ClassId = executableId.returnType
+    override val type: ClassId = runBlocking { executableId.returnType() }
 }
 
 fun CgExecutableCall.toStatement(): CgStatementExecutableCall = CgStatementExecutableCall(this)
@@ -824,7 +827,7 @@ class CgClassId(
     elementClassId: ClassId? = null,
     override val typeParameters: TypeParameters = TypeParameters(),
     override val isNullable: Boolean = true,
-) : (name, elementClassId) {
+) : ClassId(name, elementClassId) {
     constructor(
         classId: ClassId,
         typeParameters: TypeParameters = TypeParameters(),

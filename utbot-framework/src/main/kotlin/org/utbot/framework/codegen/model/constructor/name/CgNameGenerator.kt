@@ -4,13 +4,10 @@ import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.infiniteInts
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.jcdb.api.ClassId
 
 /**
  * Interface for method and variable name generators
@@ -28,8 +25,8 @@ internal interface CgNameGenerator {
      */
     fun nameFrom(id: ClassId): String =
             when {
-                id.isAnonymous -> id.prettifiedName
-                id.isArray -> id.prettifiedName
+                id.isAnonymous -> id.name
+                id.isArray -> id.name
                 id.simpleName.isScreamingSnakeCase() -> id.simpleName.fromScreamingSnakeCaseToCamelCase() // special case for enum instances
                 else -> id.simpleName.decapitalize()
             }
@@ -88,8 +85,8 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
 
     override fun testMethodNameFor(method: UtMethod<*>, customName: String?): String {
         val executableName = when (val id = method.callable.executableId) {
-            is ConstructorId -> id.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
-            is MethodId -> id.name
+            is ConstructorExecutableId -> id.classId.name // TODO: maybe we need some suffix e.g. "Ctor"?
+            is MethodExecutableId -> id.name
         }
         // no index suffix allowed only when there's a vacant custom name
         val name = if (customName != null && customName !in existingMethodNames) {
@@ -116,8 +113,8 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
 
     override fun errorMethodNameFor(method: UtMethod<*>): String {
         val executableName = when (val id = method.callable.executableId) {
-            is ConstructorId -> id.classId.prettifiedName
-            is MethodId -> id.name
+            is ConstructorExecutableId -> id.classId.name
+            is MethodExecutableId -> id.name
         }
         val newName = when (val base = "test${executableName.capitalize()}_errors") {
             !in existingMethodNames -> base

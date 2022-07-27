@@ -3,20 +3,15 @@ package org.utbot.framework.codegen.model.constructor.tree
 import kotlinx.collections.immutable.PersistentList
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.constructor.builtin.any
-import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
+import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
-import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
 import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
 import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
@@ -29,41 +24,25 @@ import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMetho
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
-import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
-import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.constructor.util.typeCast
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAssignment
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgSpread
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.constructor.util.*
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ConstructorExecutableId
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.isSubtypeOf
 
 typealias Block = PersistentList<CgStatement>
 
@@ -80,7 +59,7 @@ interface CgCallableAccessManager {
 
     operator fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall
 
-    operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall
+    operator fun ConstructorExecutableId.invoke(vararg args: Any?): CgExecutableCall
 
     operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall
 }
@@ -98,7 +77,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall =
         CgIncompleteMethodCall(staticMethodId, null)
 
-    override operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
+    override operator fun ConstructorExecutableId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()
         val constructorCall = if (this canBeCalledWith resolvedArgs) {
             CgConstructorCall(this, resolvedArgs.guardedForDirectCallOf(this))

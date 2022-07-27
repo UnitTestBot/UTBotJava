@@ -2,8 +2,8 @@ package org.utbot.contest
 
 import org.utbot.common.FileUtil
 import org.utbot.framework.codegen.model.util.createTestClassName
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.jcdb.api.ClassId
 import java.io.File
 import java.nio.file.Paths
 

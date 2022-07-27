@@ -1,6 +1,6 @@
 package org.utbot.instrumentation.util
 
-import org.utbot.framework.plugin.api.FieldId
+import org.utbot.jcdb.api.FieldId
 
 typealias StaticField = Pair<FieldId, Any?>
 

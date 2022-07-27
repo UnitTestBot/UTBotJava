@@ -1,25 +1,19 @@
 package org.utbot.engine
 
 import org.utbot.engine.TypeRegistry.Companion.objectTypeStorage
-import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtBoolExpression
-import org.utbot.engine.pc.UtInstanceOfExpression
-import org.utbot.engine.pc.UtIsExpression
-import org.utbot.engine.pc.UtTrue
-import org.utbot.engine.pc.mkAnd
-import org.utbot.engine.pc.mkOr
+import org.utbot.engine.pc.*
 import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.SymbolicStateUpdate
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtInstrumentation
-import java.util.Objects
+import org.utbot.jcdb.api.FieldId
 import soot.Scene
 import soot.SootMethod
 import soot.Type
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
+import java.util.*
 
 /**
  * Result of method invocation: either Success or Failure with some exception

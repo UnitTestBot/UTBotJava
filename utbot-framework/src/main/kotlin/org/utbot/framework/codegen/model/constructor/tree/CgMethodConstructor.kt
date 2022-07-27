@@ -4,157 +4,67 @@ import org.utbot.common.PathUtil
 import org.utbot.common.packageName
 import org.utbot.engine.isStatic
 import org.utbot.framework.assemble.assemble
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.JUNIT5_PARAMETERIZED_PACKAGE
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
-import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.constructor.builtin.closeMethodIdOrNull
-import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.getClass
-import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
+import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
-import org.utbot.framework.codegen.model.constructor.builtin.newInstance
-import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
-import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
-import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
-import org.utbot.framework.codegen.model.constructor.util.overridesEquals
-import org.utbot.framework.codegen.model.constructor.util.typeCast
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAnnotation
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgAssignment
-import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
-import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
-import org.utbot.framework.codegen.model.tree.CgDocumentationComment
-import org.utbot.framework.codegen.model.tree.CgEmptyLine
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgIfStatement
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultilineComment
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterKind
-import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgRegion
-import org.utbot.framework.codegen.model.tree.CgReturnStatement
-import org.utbot.framework.codegen.model.tree.CgSimpleRegion
-import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTestMethodType
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.CRASH
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.FAILING
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.PARAMETRIZED
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.SUCCESSFUL
-import org.utbot.framework.codegen.model.tree.CgTestMethodType.TIMEOUT
-import org.utbot.framework.codegen.model.tree.CgTryCatch
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.tree.buildForLoop
-import org.utbot.framework.codegen.model.tree.buildParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.buildTestMethod
-import org.utbot.framework.codegen.model.tree.convertDocToCg
+import org.utbot.framework.codegen.model.constructor.util.*
+import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.tree.toStatement
-import org.utbot.framework.codegen.model.util.at
-import org.utbot.framework.codegen.model.util.canBeSetIn
-import org.utbot.framework.codegen.model.util.equalTo
+import org.utbot.framework.codegen.model.util.*
 import org.utbot.framework.codegen.model.util.get
-import org.utbot.framework.codegen.model.util.inc
-import org.utbot.framework.codegen.model.util.isAccessibleFrom
-import org.utbot.framework.codegen.model.util.isInaccessible
-import org.utbot.framework.codegen.model.util.length
-import org.utbot.framework.codegen.model.util.lessThan
-import org.utbot.framework.codegen.model.util.nullLiteral
-import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.onFailure
-import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.doubleArrayClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.doubleWrapperClassId
-import org.utbot.framework.plugin.api.util.field
-import org.utbot.framework.plugin.api.util.floatArrayClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.floatWrapperClassId
-import org.utbot.framework.plugin.api.util.hasField
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isInnerClassEnclosingClassReference
-import org.utbot.framework.plugin.api.util.isIterableOrMap
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.isPrimitiveArray
-import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.kClass
-import org.utbot.framework.plugin.api.util.methodId
-import org.utbot.framework.plugin.api.util.objectArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.framework.plugin.api.util.wrapIfPrimitive
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.isUnit
+import org.utbot.jcdb.api.*
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
+import kotlin.collections.ArrayList
+import kotlin.collections.List
+import kotlin.collections.Map
+import kotlin.collections.MutableList
+import kotlin.collections.MutableSet
+import kotlin.collections.Set
+import kotlin.collections.any
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.dropLastWhile
+import kotlin.collections.emptyList
+import kotlin.collections.filterIsInstance
+import kotlin.collections.filterKeys
+import kotlin.collections.first
+import kotlin.collections.firstOrNull
+import kotlin.collections.flatMap
+import kotlin.collections.forEach
+import kotlin.collections.groupBy
+import kotlin.collections.hashSetOf
+import kotlin.collections.indices
+import kotlin.collections.isNotEmpty
+import kotlin.collections.iterator
+import kotlin.collections.joinToString
+import kotlin.collections.lastOrNull
+import kotlin.collections.listOf
+import kotlin.collections.map
+import kotlin.collections.mutableListOf
+import kotlin.collections.mutableSetOf
+import kotlin.collections.plus
+import kotlin.collections.plusAssign
+import kotlin.collections.removeLast
+import kotlin.collections.reversed
+import kotlin.collections.set
+import kotlin.collections.setOf
+import kotlin.collections.singleOrNull
+import kotlin.collections.sortedByDescending
+import kotlin.collections.toMutableList
+import kotlin.collections.toTypedArray
+import kotlin.collections.windowed
+import kotlin.collections.withIndex
 import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
@@ -223,7 +133,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun rememberInitialStaticFields() {
         for ((field, _) in currentExecution!!.stateBefore.statics.accessibleFields()) {
-            val declaringClass = field.declaringClass
+            val declaringClass = field.classId
             val fieldAccessible = field.isAccessibleFrom(testClassPackageName)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
@@ -247,7 +157,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun mockStaticFields() {
         for ((field, model) in currentExecution!!.stateBefore.statics.accessibleFields()) {
-            val declaringClass = field.declaringClass
+            val declaringClass = field.classId
             val fieldAccessible = field.canBeSetIn(testClassPackageName)
             val fieldValue = variableConstructor.getOrCreateVariable(model, field.name)
             if (fieldAccessible) {
@@ -264,9 +174,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
             if (field.canBeSetIn(testClassPackageName)) {
-                field.declaringClass[field] `=` prevValue
+                field.classId[field] `=` prevValue
             } else {
-                val declaringClass = getClassOf(field.declaringClass)
+                val declaringClass = getClassOf(field.classId)
                 +testClassThisInstance[setStaticField](declaringClass, field.name, prevValue)
             }
         }
@@ -555,7 +465,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         }
                         // other primitives and string
                         else -> {
-                            require(expected.type.isPrimitive || expected.type == String::class.java) {
+                            require(expected.type.isPrimitive || expected.type == stringClassId) {
                                 "Expected primitive or String but got ${expected.type}"
                             }
                             assertions[assertEquals](expected, actual)
@@ -686,7 +596,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // outer deep equals here
                     if (expected.isIterableOrMap()) {
                         statements += CgSingleLineComment(
-                            "${expected.type.canonicalName} is iterable or Map, use outer deep equals to iterate over"
+                            "${expected.type.name} is iterable or Map, use outer deep equals to iterate over"
                         )
                         statements += getDeepEqualsAssertion(expected, actual).toStatement()
 
@@ -695,7 +605,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                     if (expected.hasNotParametrizedCustomEquals()) {
                         // We rely on already existing equals
-                        statements += CgSingleLineComment("${expected.type.canonicalName} has overridden equals method")
+                        statements += CgSingleLineComment("${expected.type.name} has overridden equals method")
                         statements += assertions[assertEquals](expected, actual).toStatement()
 
                         return
@@ -786,12 +696,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 val loopStatements = mutableListOf<CgStatement>()
                 val expectedNestedElement = CgDeclaration(
-                    expected.type.elementClassId!!,
+                    expected.type.ifArrayGetElementClass()!!,
                     variableConstructor.constructVarName("${expected.name}NestedElement"),
                     CgArrayElementAccess(expected, i)
                 )
                 val actualNestedElement = CgDeclaration(
-                    actual.type.elementClassId!!,
+                    actual.type.ifArrayGetElementClass()!!,
                     variableConstructor.constructVarName("${actual.name}NestedElement"),
                     CgArrayElementAccess(actual, i)
                 )
@@ -836,8 +746,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * We overapproximate this assumption for all parametrized classes because we can't be sure that
      * overridden equals doesn't rely on type parameters equals.
      */
-    private fun CgVariable.hasNotParametrizedCustomEquals(): Boolean {
-        if (type.jClass.overridesEquals()) {
+    private suspend fun CgVariable.hasNotParametrizedCustomEquals(): Boolean {
+        if (type.overridesEquals()) {
             // type parameters is list of class type parameters - empty if class is not generic
             val typeParameters = type.kClass.typeParameters
 

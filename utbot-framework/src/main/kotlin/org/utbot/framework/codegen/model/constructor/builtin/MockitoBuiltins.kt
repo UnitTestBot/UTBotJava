@@ -1,20 +1,8 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.builtinMethodId
-import org.utbot.framework.plugin.api.util.builtinStaticMethodId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.MethodId
 
 internal val mockitoBuiltins: Set<MethodId>
     get() = setOf(
@@ -23,36 +11,15 @@ internal val mockitoBuiltins: Set<MethodId>
         anyFloat, anyDouble, anyBoolean, anyString
     )
 
-internal val mockitoClassId = BuiltinClassId(
-    name = "org.mockito.Mockito",
-    canonicalName = "org.mockito.Mockito",
-    simpleName = "Mockito",
-)
+internal val mockitoClassId = BuiltinClassId(name = "org.mockito.Mockito")
 
-internal val ongoingStubbingClassId = BuiltinClassId(
-    name = "org.mockito.stubbing.OngoingStubbing",
-    canonicalName = "org.mockito.stubbing.OngoingStubbing",
-    simpleName = "OngoingStubbing",
-)
+internal val ongoingStubbingClassId = BuiltinClassId(name = "org.mockito.stubbing.OngoingStubbing")
 
-internal val answerClassId = BuiltinClassId(
-    name = "org.mockito.stubbing.Answer",
-    canonicalName = "org.mockito.stubbing.Answer",
-    simpleName = "Answer",
-)
+internal val answerClassId = BuiltinClassId(name = "org.mockito.stubbing.Answer")
 
-internal val argumentMatchersClassId = BuiltinClassId(
-    name = "org.mockito.ArgumentMatchers",
-    canonicalName = "org.mockito.ArgumentMatchers",
-    simpleName = "ArgumentMatchers",
-)
+internal val argumentMatchersClassId = BuiltinClassId(name = "org.mockito.ArgumentMatchers")
 
-internal val mockedConstructionContextClassId = BuiltinClassId(
-    name = "org.mockito.MockedConstruction.Context",
-    canonicalName = "org.mockito.MockedConstruction.Context", // TODO use $ as a delimiter of outer and nested classes?
-    simpleName = "Context",
-    isNested = true
-)
+internal val mockedConstructionContextClassId = BuiltinClassId(name = "org.mockito.MockedConstruction.Context", isNested = true)
 
 internal val mockMethodId = builtinStaticMethodId(
     classId = mockitoClassId,

@@ -37,7 +37,7 @@ fun Constructor<*>.bytecodeSignature() = buildString {
 //}
 
 
-fun Class<*>.bytecodeSignature(): String = id.jvmName
+fun Class<*>.bytecodeSignature(): String = id.name
 
 fun String.toReferenceTypeBytecodeSignature(): String {
     val packageName = this

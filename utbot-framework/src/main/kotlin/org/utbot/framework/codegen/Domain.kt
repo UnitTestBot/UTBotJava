@@ -8,27 +8,10 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
-import org.utbot.framework.plugin.api.util.booleanArrayClassId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.builtinMethodId
-import org.utbot.framework.plugin.api.util.builtinStaticMethodId
-import org.utbot.framework.plugin.api.util.byteArrayClassId
-import org.utbot.framework.plugin.api.util.charArrayClassId
-import org.utbot.framework.plugin.api.util.doubleArrayClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatArrayClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.longArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortArrayClassId
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.MethodId
 import java.io.File
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
 

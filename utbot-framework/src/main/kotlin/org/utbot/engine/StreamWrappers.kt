@@ -1,19 +1,11 @@
 package org.utbot.engine
 
 import org.utbot.engine.overrides.stream.UtStream
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.methodId
-import org.utbot.framework.plugin.api.util.objectArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.nextModelName
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
 import soot.RefType
 import soot.Scene
 
@@ -87,7 +79,7 @@ abstract class StreamWrapper(
         get() = error("No modification method for Stream")
 
     private fun Resolver.resolveElementsAsArrayModel(wrapper: ObjectValue): UtArrayModel? {
-        val elementDataFieldId = FieldId(overriddenClass.type.classId, "elementData")
+        val elementDataFieldId = overriddenClass.type.classId.findFieldOrNull("elementData")
 
         return collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as? UtArrayModel
     }

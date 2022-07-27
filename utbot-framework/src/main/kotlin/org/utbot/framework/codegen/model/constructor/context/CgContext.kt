@@ -12,23 +12,12 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.isSubtypeOf
 import java.util.*
-import kotlin.collections.List
-import kotlin.collections.Map
-import kotlin.collections.MutableList
-import kotlin.collections.MutableMap
-import kotlin.collections.MutableSet
-import kotlin.collections.any
-import kotlin.collections.mutableListOf
-import kotlin.collections.mutableMapOf
-import kotlin.collections.mutableSetOf
 import kotlin.collections.set
-import kotlin.collections.toMutableMap
 
 /**
  * Interface for all code generation context aware entities
@@ -206,13 +195,13 @@ internal interface CgContextOwner {
         currentExecutable = method.callable.executableId
     }
 
-    fun addExceptionIfNeeded(exception: ClassId) {
+    suspend fun addExceptionIfNeeded(exception: ClassId) {
         if (exception !is BuiltinClassId) {
             require(exception isSubtypeOf Throwable::class.id) {
                 "Class $exception which is not a Throwable was passed"
             }
 
-            val isUnchecked = !exception.jClass.isCheckedException
+            val isUnchecked = !exception.isCheckedException
             val alreadyAdded =
                 collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
 

@@ -2,39 +2,17 @@ package org.utbot.engine
 
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
-import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtAddrSort
-import org.utbot.engine.pc.UtArrayInsert
-import org.utbot.engine.pc.UtArrayInsertRange
-import org.utbot.engine.pc.UtArrayRemove
-import org.utbot.engine.pc.UtArrayRemoveRange
-import org.utbot.engine.pc.UtArraySetRange
-import org.utbot.engine.pc.UtArrayShiftIndexes
-import org.utbot.engine.pc.UtArraySort
-import org.utbot.engine.pc.UtExpression
-import org.utbot.engine.pc.UtIntSort
-import org.utbot.engine.pc.mkArrayWithConst
-import org.utbot.engine.pc.mkInt
-import org.utbot.engine.pc.select
-import org.utbot.engine.pc.store
+import org.utbot.engine.pc.*
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
-import soot.ArrayType
-import soot.Scene
-import soot.SootClass
-import soot.SootField
-import soot.SootMethod
+import org.utbot.jcdb.api.ClassId
+import soot.*
 
-val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
+
+val rangeModifiableArrayId: ClassId get() = RangeModifiableUnlimitedArray::class.id
 
 class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
     override fun Traverser.invoke(

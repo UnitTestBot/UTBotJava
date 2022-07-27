@@ -1,14 +1,8 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.methodId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.MethodId
 import sun.misc.Unsafe
 import java.lang.reflect.AccessibleObject
 import java.lang.reflect.Field
@@ -28,42 +22,42 @@ internal val reflectionBuiltins: Set<MethodId>
                 setArrayElement, getArrayElement, getTargetException,
         )
 
-internal val setAccessible = methodId(
+internal val setAccessible get() = methodId(
         classId = AccessibleObject::class.id,
         name = "setAccessible",
         returnType = voidClassId,
         arguments = arrayOf(booleanClassId)
 )
 
-internal val invoke = methodId(
+internal val invoke get() = methodId(
         classId = java.lang.reflect.Method::class.id,
         name = "invoke",
         returnType = objectClassId,
         arguments = arrayOf(objectClassId, Array<Any>::class.id)
 )
 
-internal val newInstance = methodId(
+internal val newInstance get() = methodId(
         classId = java.lang.reflect.Constructor::class.id,
         name = "newInstance",
         returnType = objectClassId,
         arguments = arrayOf(Array<Any>::class.id)
 )
 
-internal val get = methodId(
+internal val get get() = methodId(
         classId = Field::class.id,
         name = "get",
         returnType = objectClassId,
         arguments = arrayOf(objectClassId)
 )
 
-internal val forName = methodId(
+internal val forName get() = methodId(
         classId = Class::class.id,
         name = "forName",
         returnType = Class::class.id,
         arguments = arrayOf(stringClassId)
 )
 
-internal val getDeclaredMethod = methodId(
+internal val getDeclaredMethod get() = methodId(
         classId = Class::class.id,
         name = "getDeclaredMethod",
         returnType = java.lang.reflect.Method::class.id,
@@ -73,27 +67,27 @@ internal val getDeclaredMethod = methodId(
         )
 )
 
-internal val getDeclaredConstructor = methodId(
+internal val getDeclaredConstructor get() = methodId(
         classId = Class::class.id,
         name = "getDeclaredConstructor",
         returnType = java.lang.reflect.Constructor::class.id,
         arguments = arrayOf(ClassId("[Ljava.lang.Class;", Class::class.id))
 )
 
-internal val allocateInstance = methodId(
+internal val allocateInstance get() = methodId(
         classId = Unsafe::class.id,
         name = "allocateInstance",
         returnType = objectClassId,
         arguments = arrayOf(Class::class.id)
 )
 
-internal val getClass = methodId(
+internal val getClass get() = methodId(
         classId = objectClassId,
         name = "getClass",
         returnType = Class::class.id
 )
 
-internal val getDeclaredField = methodId(
+internal val getDeclaredField get() = methodId(
         classId = Class::class.id,
         name = "getDeclaredField",
         returnType = Field::class.id,

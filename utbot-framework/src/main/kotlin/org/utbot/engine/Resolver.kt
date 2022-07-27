@@ -1,93 +1,32 @@
 package org.utbot.engine
 
-import org.utbot.common.WorkaroundReason.HACK
-import org.utbot.common.WorkaroundReason.MAKE_SYMBOLIC
-import org.utbot.common.WorkaroundReason.RUN_CONCRETE
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.common.WorkaroundReason.*
 import org.utbot.common.workaround
-import org.utbot.engine.MemoryState.CURRENT
-import org.utbot.engine.MemoryState.INITIAL
-import org.utbot.engine.MemoryState.STATIC_INITIAL
+import org.utbot.engine.MemoryState.*
 import org.utbot.engine.TypeRegistry.Companion.objectNumDimensions
-import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtArrayExpressionBase
-import org.utbot.engine.pc.UtArraySort
-import org.utbot.engine.pc.UtExpression
-import org.utbot.engine.pc.UtInt32Sort
-import org.utbot.engine.pc.UtSolverStatusSAT
-import org.utbot.engine.pc.mkBVConst
-import org.utbot.engine.pc.mkBool
-import org.utbot.engine.pc.mkByte
-import org.utbot.engine.pc.mkChar
-import org.utbot.engine.pc.mkDouble
-import org.utbot.engine.pc.mkFloat
-import org.utbot.engine.pc.mkInt
-import org.utbot.engine.pc.mkLong
-import org.utbot.engine.pc.mkShort
-import org.utbot.engine.pc.select
-import org.utbot.engine.pc.store
-import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
+import org.utbot.engine.pc.*
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.z3.intValue
 import org.utbot.engine.z3.value
 import org.utbot.framework.assemble.AssembleModelGenerator
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.constructorId
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.primitiveByWrapper
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.nextModelName
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
+import soot.*
+import sun.java2d.cmm.lcms.LcmsServiceProvider
 import java.awt.color.ICC_ProfileRGB
 import java.io.PrintStream
 import java.security.AccessControlContext
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.math.min
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import soot.ArrayType
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.LongType
-import soot.PrimType
-import soot.RefType
-import soot.Scene
-import soot.ShortType
-import soot.SootClass
-import soot.SootField
-import soot.Type
-import soot.VoidType
-import sun.java2d.cmm.lcms.LcmsServiceProvider
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -541,7 +480,7 @@ class Resolver(
             val fields = collectFieldModels(UtAddrExpression(mkInt(addr)), actualType)
             val baseModelName = primitiveClassId.name
             val constructorId = constructorId(classId, primitiveClassId)
-            val valueModel = fields[FieldId(classId, "value")] ?: primitiveClassId.defaultValueModel()
+            val valueModel = fields[classId.findFieldOrNull("value")] ?: primitiveClassId.defaultValueModel()
             val instantiationChain = mutableListOf<UtExecutableCallModel>()
             UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationChain)
                 .apply {

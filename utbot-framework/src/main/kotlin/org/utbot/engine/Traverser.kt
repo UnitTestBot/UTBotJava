@@ -1,11 +1,6 @@
 package org.utbot.engine
 
-import kotlinx.collections.immutable.persistentHashMapOf
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
-import kotlinx.collections.immutable.toPersistentSet
+import kotlinx.collections.immutable.*
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.findField
@@ -15,88 +10,36 @@ import org.utbot.common.workaround
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
-import org.utbot.engine.pc.NotBoolExpression
-import org.utbot.engine.pc.UtAddNoOverflowExpression
-import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtAndBoolExpression
-import org.utbot.engine.pc.UtArrayApplyForAll
-import org.utbot.engine.pc.UtArrayExpressionBase
-import org.utbot.engine.pc.UtArraySelectExpression
-import org.utbot.engine.pc.UtArraySetRange
-import org.utbot.engine.pc.UtArraySort
-import org.utbot.engine.pc.UtBoolExpression
-import org.utbot.engine.pc.UtBoolOpExpression
-import org.utbot.engine.pc.UtBvConst
-import org.utbot.engine.pc.UtBvLiteral
-import org.utbot.engine.pc.UtByteSort
-import org.utbot.engine.pc.UtCastExpression
-import org.utbot.engine.pc.UtCharSort
-import org.utbot.engine.pc.UtContextInitializer
-import org.utbot.engine.pc.UtExpression
-import org.utbot.engine.pc.UtFalse
-import org.utbot.engine.pc.UtInstanceOfExpression
-import org.utbot.engine.pc.UtIntSort
-import org.utbot.engine.pc.UtIsExpression
-import org.utbot.engine.pc.UtIteExpression
-import org.utbot.engine.pc.UtLongSort
-import org.utbot.engine.pc.UtMkTermArrayExpression
-import org.utbot.engine.pc.UtNegExpression
-import org.utbot.engine.pc.UtOrBoolExpression
-import org.utbot.engine.pc.UtPrimitiveSort
-import org.utbot.engine.pc.UtShortSort
-import org.utbot.engine.pc.UtSolver
-import org.utbot.engine.pc.UtSolverStatusSAT
-import org.utbot.engine.pc.UtSubNoOverflowExpression
-import org.utbot.engine.pc.UtTrue
-import org.utbot.engine.pc.addrEq
-import org.utbot.engine.pc.align
-import org.utbot.engine.pc.cast
-import org.utbot.engine.pc.findTheMostNestedAddr
-import org.utbot.engine.pc.isInteger
-import org.utbot.engine.pc.mkAnd
-import org.utbot.engine.pc.mkBVConst
-import org.utbot.engine.pc.mkBoolConst
-import org.utbot.engine.pc.mkChar
-import org.utbot.engine.pc.mkEq
-import org.utbot.engine.pc.mkFalse
-import org.utbot.engine.pc.mkFpConst
-import org.utbot.engine.pc.mkInt
-import org.utbot.engine.pc.mkNot
-import org.utbot.engine.pc.mkOr
-import org.utbot.engine.pc.select
-import org.utbot.engine.pc.store
-import org.utbot.engine.symbolic.HardConstraint
-import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.symbolic.Assumption
-import org.utbot.engine.symbolic.SymbolicStateUpdate
-import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.engine.symbolic.asSoftConstraint
-import org.utbot.engine.symbolic.asAssumption
-import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.pc.*
+import org.utbot.engine.symbolic.*
+import org.utbot.engine.util.statics.concrete.*
 import org.utbot.engine.util.trusted.isFromTrustedLibrary
-import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
-import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
-import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
-import org.utbot.engine.util.statics.concrete.makeEnumNonStaticFieldsUpdates
-import org.utbot.engine.util.statics.concrete.makeEnumStaticFieldsUpdates
-import org.utbot.engine.util.statics.concrete.makeSymbolicValuesFromEnumConcreteValues
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.signature
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.isSynthetic
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.findFieldOrNull
+import soot.*
+import soot.jimple.*
+import soot.jimple.internal.*
+import soot.toolkits.graph.ExceptionalUnitGraph
+import sun.reflect.Reflection
+import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
+import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
 import java.lang.reflect.ParameterizedType
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
@@ -104,96 +47,6 @@ import kotlin.math.min
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.valueParameters
 import kotlin.reflect.jvm.javaType
-import soot.ArrayType
-import soot.BooleanType
-import soot.ByteType
-import soot.CharType
-import soot.DoubleType
-import soot.FloatType
-import soot.IntType
-import soot.LongType
-import soot.PrimType
-import soot.RefLikeType
-import soot.RefType
-import soot.Scene
-import soot.ShortType
-import soot.SootClass
-import soot.SootField
-import soot.SootMethod
-import soot.SootMethodRef
-import soot.Type
-import soot.Value
-import soot.VoidType
-import soot.jimple.ArrayRef
-import soot.jimple.BinopExpr
-import soot.jimple.ClassConstant
-import soot.jimple.Constant
-import soot.jimple.DefinitionStmt
-import soot.jimple.DoubleConstant
-import soot.jimple.Expr
-import soot.jimple.FieldRef
-import soot.jimple.FloatConstant
-import soot.jimple.IdentityRef
-import soot.jimple.IntConstant
-import soot.jimple.InvokeExpr
-import soot.jimple.LongConstant
-import soot.jimple.MonitorStmt
-import soot.jimple.NeExpr
-import soot.jimple.NullConstant
-import soot.jimple.ParameterRef
-import soot.jimple.ReturnStmt
-import soot.jimple.StaticFieldRef
-import soot.jimple.Stmt
-import soot.jimple.StringConstant
-import soot.jimple.SwitchStmt
-import soot.jimple.ThisRef
-import soot.jimple.internal.JAddExpr
-import soot.jimple.internal.JArrayRef
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JBreakpointStmt
-import soot.jimple.internal.JCastExpr
-import soot.jimple.internal.JCaughtExceptionRef
-import soot.jimple.internal.JDivExpr
-import soot.jimple.internal.JDynamicInvokeExpr
-import soot.jimple.internal.JEqExpr
-import soot.jimple.internal.JGeExpr
-import soot.jimple.internal.JGotoStmt
-import soot.jimple.internal.JGtExpr
-import soot.jimple.internal.JIdentityStmt
-import soot.jimple.internal.JIfStmt
-import soot.jimple.internal.JInstanceFieldRef
-import soot.jimple.internal.JInstanceOfExpr
-import soot.jimple.internal.JInterfaceInvokeExpr
-import soot.jimple.internal.JInvokeStmt
-import soot.jimple.internal.JLeExpr
-import soot.jimple.internal.JLengthExpr
-import soot.jimple.internal.JLookupSwitchStmt
-import soot.jimple.internal.JLtExpr
-import soot.jimple.internal.JMulExpr
-import soot.jimple.internal.JNeExpr
-import soot.jimple.internal.JNegExpr
-import soot.jimple.internal.JNewArrayExpr
-import soot.jimple.internal.JNewExpr
-import soot.jimple.internal.JNewMultiArrayExpr
-import soot.jimple.internal.JNopStmt
-import soot.jimple.internal.JRemExpr
-import soot.jimple.internal.JRetStmt
-import soot.jimple.internal.JReturnStmt
-import soot.jimple.internal.JReturnVoidStmt
-import soot.jimple.internal.JSpecialInvokeExpr
-import soot.jimple.internal.JStaticInvokeExpr
-import soot.jimple.internal.JSubExpr
-import soot.jimple.internal.JTableSwitchStmt
-import soot.jimple.internal.JThrowStmt
-import soot.jimple.internal.JVirtualInvokeExpr
-import soot.jimple.internal.JimpleLocal
-import soot.toolkits.graph.ExceptionalUnitGraph
-import sun.reflect.Reflection
-import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
-import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
-import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
-import java.util.concurrent.atomic.AtomicInteger
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -1645,7 +1498,7 @@ class Traverser(
             }
             val generator = (value.field.type as? RefType)?.let { refType ->
                 UtMockInfoGenerator { mockAddr ->
-                    val fieldId = FieldId(objectType.id, value.field.name)
+                    val fieldId = objectType.id.findFieldOrNull(value.field.name)
                     UtFieldMockInfo(refType.id, mockAddr, fieldId, instance.addr)
                 }
             }
@@ -1707,7 +1560,7 @@ class Traverser(
 
         val generator = (field.type as? RefType)?.let { refType ->
             UtMockInfoGenerator { mockAddr ->
-                val fieldId = FieldId(declaringClassType.id, field.name)
+                val fieldId = declaringClassType.id.findFieldOrNull(field.name)
                 UtFieldMockInfo(refType.id, mockAddr, fieldId, ownerAddr = null)
             }
         }
@@ -2055,7 +1908,7 @@ class Traverser(
     private fun recordInstanceFieldRead(addr: UtAddrExpression, field: SootField) {
         val realType = typeRegistry.findRealType(field.declaringClass.type)
         if (realType is RefType) {
-            val readOperation = InstanceFieldReadOperation(addr, FieldId(realType.id, field.name))
+            val readOperation = InstanceFieldReadOperation(addr, realType.id.findFieldOrNull(field.name))
             queuedSymbolicStateUpdates += MemoryUpdate(instanceFieldReads = persistentSetOf(readOperation))
         }
     }

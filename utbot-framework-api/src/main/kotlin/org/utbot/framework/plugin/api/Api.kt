@@ -9,16 +9,14 @@
 package org.utbot.framework.plugin.api
 
 import kotlinx.coroutines.runBlocking
+import org.objectweb.asm.Opcodes
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.FieldId
-import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
-import org.utbot.jcdb.api.isPrimitive
 import soot.*
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
@@ -460,8 +458,8 @@ data class UtExecutableCallModel(
         buildString {
 
             val executableName = when (executable) {
-                is ConstructorId -> executable.classId.name
-                is MethodId -> executable.name
+                is ConstructorExecutableId -> executable.classId.name
+                is MethodExecutableId -> executable.name
             }
 
             if (returnValue != null) {
@@ -493,12 +491,12 @@ data class UtDirectSetFieldModel(
     val fieldModel: UtModel,
 ) : UtStatementModel(instance) {
     override fun toString(): String = withToStringThreadLocalReentrancyGuard {
-            val modelRepresentation = when (fieldModel) {
-                is UtAssembleModel -> fieldModel.modelName
-                else -> fieldModel.toString()
-            }
-            "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+        val modelRepresentation = when (fieldModel) {
+            is UtAssembleModel -> fieldModel.modelName
+            else -> fieldModel.toString()
         }
+        "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+    }
 
 }
 
@@ -547,12 +545,12 @@ val RefType.id: ClassId
 val ArrayType.id: ClassId
     get() {
         val elementId = elementType.classId
-        val elementTypeName = when {
-            elementId.isArray -> elementId.name
-            elementId.isPrimitive -> elementId.primitiveTypeJvmNameOrNull()!!
-            else -> "L${elementId.name};"
-        }
-        return ClassId("[$elementTypeName", elementId)
+//        val elementTypeName = when {
+//            elementId.isArray -> elementId.name
+//            elementId.isPrimitive -> elementId.primitiveTypeJvmNameOrNull()!!
+//            else -> "${elementId.name}[]"
+//        }
+        return runBlocking { utContext.classpath.findClass(elementId.name + "[]") }
     }
 
 /**
@@ -726,50 +724,54 @@ val Type.classId: ClassId
  * By default, we assume that class represented by BuiltinClassId is not nested and package is calculated in this assumption
  * (it is important because name for nested classes contains $ as a delimiter between nested and outer classes)
  */
-//class BuiltinClassId(
-//    name: String,
-//    override val canonicalName: String,
-//    override val simpleName: String,
-//    // by default we assume that the class is not a member class
-//    override val simpleNameWithEnclosings: String = simpleName,
-//    override val isNullable: Boolean = false,
-//    override val isPublic: Boolean = true,
-//    override val isProtected: Boolean = false,
-//    override val isPrivate: Boolean = false,
-//    override val isFinal: Boolean = false,
-//    override val isStatic: Boolean = false,
-//    override val isAbstract: Boolean = false,
-//    override val isAnonymous: Boolean = false,
-//    override val isLocal: Boolean = false,
-//    override val isInner: Boolean = false,
-//    override val isNested: Boolean = false,
-//    override val isSynthetic: Boolean = false,
-//    override val allMethods: Sequence<MethodId> = emptySequence(),
-//    override val allConstructors: Sequence<ConstructorId> = emptySequence(),
-//    override val outerClass: Class<*>? = null,
-//    override val packageName: String =
-//        when (val index = canonicalName.lastIndexOf('.')) {
-//            -1, 0 -> ""
-//            else -> canonicalName.substring(0, index)
-//        },
-//) : ClassId(name = name, isNullable = isNullable) {
-//    init {
-//        BUILTIN_CLASSES_BY_NAMES[name] = this
-//    }
-//
-//    companion object {
-//        /**
-//         * Stores all created builtin classes by their names. Useful when we want to create ClassId only from name
-//         */
-//        // TODO replace ClassId constructor with a factory?
-//        val BUILTIN_CLASSES_BY_NAMES: MutableMap<String, BuiltinClassId> = mutableMapOf()
-//
-//        /**
-//         * Returns [BuiltinClassId] if any [BuiltinClassId] was created with such [name], null otherwise
-//         */
-//        fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
-//    }
-//}
+class BuiltinClassId(
+    override val name: String,
+    // by default we assume that the class is not a member class
+) : ClassId {
+    init {
+        BUILTIN_CLASSES_BY_NAMES[name] = this
+    }
+
+    companion object {
+        /**
+         * Stores all created builtin classes by their names. Useful when we want to create ClassId only from name
+         */
+        // TODO replace ClassId constructor with a factory?
+        val BUILTIN_CLASSES_BY_NAMES: MutableMap<String, BuiltinClassId> = mutableMapOf()
+
+        /**
+         * Returns [BuiltinClassId] if any [BuiltinClassId] was created with such [name], null otherwise
+         */
+        fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
+    }
+
+    override val simpleName: String get() = name.substringAfterLast(".")
+
+    override val classpath: ClasspathSet
+        get() = utContext.classpath
+    override val location: ByteCodeLocation?
+        get() = TODO("Not yet implemented")
+
+    override suspend fun annotations() = emptyList<ClassId>()
+    override suspend fun byteCode() = null
+    override suspend fun fields() = emptyList<FieldId>()
+    override suspend fun innerClasses() = emptyList<ClassId>()
+
+    override suspend fun interfaces() = emptyList<ClassId>()
+
+    override suspend fun isAnonymous() = false
+
+    override suspend fun methods() = emptyList<MethodId>()
+
+    override suspend fun outerClass() = null
+
+    override suspend fun outerMethod() = null
+
+    override suspend fun signature() = Raw
+
+    override suspend fun superclass() = null
+    override suspend fun access() = Opcodes.ACC_PUBLIC
+}
 
 enum class FieldIdStrategyValues {
     Reflection,
@@ -854,16 +856,19 @@ inline fun <T> withReflection(block: () -> T): T {
  * avoid using class loader to load a possibly missing class.
  */
 //@Suppress("unused")
-//class BuiltinFieldId(
-//    declaringClass: ClassId,
-//    name: String,
-//    override val type: ClassId,
-//    // by default we assume that the builtin field is public and non-final
-//    override val isPublic: Boolean = true,
-//    override val isPrivate: Boolean = false,
-//    override val isFinal: Boolean = false,
-//    override val isSynthetic: Boolean = false,
-//) : FieldId(declaringClass, name)
+class BuiltinFieldId(
+    declaringClass: ClassId,
+    override val name: String,
+    // by default we assume that the builtin field is public and non-final
+    override val isPublic: Boolean = true,
+    override val isPrivate: Boolean = false,
+    override val isFinal: Boolean = false,
+    override val isSynthetic: Boolean = false,
+) : FieldId {
+    override suspend fun type(): ClassId {
+        TODO("Not yet implemented")
+    }
+}
 
 sealed class StatementId {
     abstract val classId: ClassId
@@ -878,6 +883,55 @@ class DirectFieldAccessId(
     override val name: String,
     val fieldId: FieldId,
 ) : StatementId()
+
+
+sealed class ExecutableId {
+    abstract val methodId: MethodId
+
+    val classId: ClassId get() = methodId.classId
+    val name: String get() = methodId.name
+    val returnType: ClassId get() = methodId.returnType
+    val parameters: List<ClassId> get() =  methodId.parameters
+
+    val isPublic: Boolean get() = methodId.isPublic
+    val isProtected: Boolean get() = methodId.isProtected
+    val isPrivate: Boolean get() = methodId.isPrivate
+
+    val isPackagePrivate: Boolean
+        get() = !(isPublic || isProtected || isPrivate)
+
+    val signature: String
+        get() {
+            val args = parameters.joinToString(separator = "") { it.name }
+            val retType = returnType.name
+            return "$name($args)$retType"
+        }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as ExecutableId
+
+        if (classId != other.classId) return false
+        if (signature != other.signature) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = classId.hashCode()
+        result = 31 * result + signature.hashCode()
+        return result
+    }
+
+    override fun toString() = "$classId.$name"
+
+}
+
+class ConstructorExecutableId(override val methodId: MethodId): ExecutableId()
+
+class MethodExecutableId(override val methodId: MethodId): ExecutableId()
 
 
 //sealed class ExecutableId : StatementId() {
@@ -977,7 +1031,7 @@ class DirectFieldAccessId(
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
-class WildcardTypeParameter: TypeParameters(emptyList())
+class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface CodeGenerationSettingItem {
     val displayName: String

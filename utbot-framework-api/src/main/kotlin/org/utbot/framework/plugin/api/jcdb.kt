@@ -3,19 +3,19 @@ package org.utbot.framework.plugin.api
 import kotlinx.coroutines.runBlocking
 import org.utbot.jcdb.api.*
 
-val ClassId.isPublic: Boolean
+val Accessible.isPublic: Boolean
     get() = runBlocking { isPublic() }
 
-val ClassId.isProtected: Boolean
+val Accessible.isProtected: Boolean
     get() = runBlocking { isProtected() }
 
-val ClassId.isPrivate: Boolean
+val Accessible.isPrivate: Boolean
     get() = runBlocking { isPrivate() }
 
-val ClassId.isFinal: Boolean
+val Accessible.isFinal: Boolean
     get() = runBlocking { isFinal() }
 
-val ClassId.isStatic: Boolean
+val Accessible.isStatic: Boolean
     get() = runBlocking { isStatic() }
 
 val ClassId.isAbstract: Boolean
@@ -42,6 +42,11 @@ val ClassId.isMemberClass: Boolean
 val ClassId.superclass: ClassId?
     get() = runBlocking {
         superclass()
+    }
+
+val ClassId.isEnum: Boolean
+    get() = runBlocking {
+        isEnum
     }
 
 val ClassId.methods: List<MethodId>
@@ -84,6 +89,15 @@ val FieldId.isStatic: Boolean
 
 val FieldId.isSynthetic: Boolean
     get() = runBlocking { isSynthetic() }
+
+val FieldId.type: ClassId
+    get() = runBlocking { type() }
+
+val MethodId.returnType: ClassId
+    get() = runBlocking { returnType() }
+
+val MethodId.parameters: List<ClassId>
+    get() = runBlocking { parameters() }
 
 
 /**

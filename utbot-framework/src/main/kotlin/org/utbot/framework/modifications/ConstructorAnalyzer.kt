@@ -1,12 +1,12 @@
 package org.utbot.framework.modifications
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 import soot.Scene
 import soot.SootMethod
 import soot.Type
@@ -14,13 +14,7 @@ import soot.jimple.InvokeExpr
 import soot.jimple.JimpleBody
 import soot.jimple.ParameterRef
 import soot.jimple.StaticFieldRef
-import soot.jimple.internal.JAssignStmt
-import soot.jimple.internal.JIdentityStmt
-import soot.jimple.internal.JInstanceFieldRef
-import soot.jimple.internal.JInvokeStmt
-import soot.jimple.internal.JReturnStmt
-import soot.jimple.internal.JReturnVoidStmt
-import soot.jimple.internal.JimpleLocal
+import soot.jimple.internal.*
 
 /**
  * Information about constructor required to use it

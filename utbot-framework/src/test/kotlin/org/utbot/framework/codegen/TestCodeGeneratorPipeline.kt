@@ -11,9 +11,9 @@ import org.utbot.examples.conflictTriggers
 import org.utbot.framework.codegen.ExecutionStatus.SUCCESS
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description
@@ -217,7 +217,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         testSets: List<UtMethodTestSet>,
         classUnderTest: KClass<*>
     ): String {
-        val params = mutableMapOf<UtMethod<*>, List<String>>()
+        val params = mutableMapOf<ExecutableId, List<String>>()
 
         val codeGenerator = with(testFrameworkConfiguration) {
             CodeGenerator(

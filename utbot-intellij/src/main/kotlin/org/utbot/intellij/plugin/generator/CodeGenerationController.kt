@@ -55,9 +55,10 @@ import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.TestsCodeWithTestReport
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.*
@@ -347,13 +348,11 @@ object CodeGenerationController {
         }
     }
 
-    private fun findMethodParams(clazz: KClass<*>, methods: List<MemberInfo>): Map<UtMethod<*>, List<String>> {
+    private fun findMethodParams(clazz: KClass<*>, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
         val bySignature = methods.associate { it.signature() to it.paramNames() }
-        return clazz.functions.mapNotNull { method ->
-            bySignature[method.signature()]?.let { params ->
-                UtMethod(method, clazz) to params
-            }
-        }.toMap()
+        return clazz.functions
+            .mapNotNull { method -> bySignature[method.signature()]?.let { params -> method.executableId to params } }
+            .toMap()
     }
 
     private fun MemberInfo.paramNames(): List<String> =

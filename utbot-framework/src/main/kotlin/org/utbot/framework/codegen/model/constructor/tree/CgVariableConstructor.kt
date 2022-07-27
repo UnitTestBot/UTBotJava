@@ -14,46 +14,17 @@ import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.*
 import org.utbot.framework.codegen.model.util.get
-import org.utbot.framework.codegen.model.util.isAccessibleFrom
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.autoboxIfNeeded
 import org.utbot.jcdb.api.ifArrayGetElementClass
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
-import kotlin.collections.List
-import kotlin.collections.MutableMap
-import kotlin.collections.all
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.filter
-import kotlin.collections.first
-import kotlin.collections.forEach
-import kotlin.collections.getOrPut
-import kotlin.collections.getValue
-import kotlin.collections.iterator
-import kotlin.collections.last
-import kotlin.collections.lastIndex
-import kotlin.collections.map
-import kotlin.collections.mutableListOf
-import kotlin.collections.plusAssign
 import kotlin.collections.set
-import kotlin.collections.singleOrNull
-import kotlin.collections.sortedBy
-import kotlin.collections.toTypedArray
 
 /**
  * Constructs CgValue or CgVariable given a UtModel
@@ -161,12 +132,12 @@ internal class CgVariableConstructor(val context: CgContext) :
                     val executable = statementModel.executable
                     val params = statementModel.params
                     val cgCall = when (executable) {
-                        is MethodId -> {
+                        is MethodExecutableId -> {
                             val caller = statementModel.instance?.let { declareOrGet(it) }
                             val args = params.map { declareOrGet(it) }
                             caller[executable](*args.toTypedArray())
                         }
-                        is ConstructorId -> {
+                        is ConstructorExecutableId -> {
                             val args = params.map { declareOrGet(it) }
                             executable(*args.toTypedArray())
                         }
@@ -177,8 +148,8 @@ internal class CgVariableConstructor(val context: CgContext) :
                         +cgCall
                     } else {
                         val type = when (executable) {
-                            is MethodId -> executable.returnType
-                            is ConstructorId -> executable.classId
+                            is MethodExecutableId -> executable.returnType
+                            is ConstructorExecutableId -> executable.classId
                         }
 
                         // Don't use redundant constructors for primitives and String
@@ -405,7 +376,7 @@ internal class CgVariableConstructor(val context: CgContext) :
             val arrayElement = if (type == value.type) {
                 value
             } else {
-                typeCast(type.elementClassId!!, value, isSafetyCast = true)
+                typeCast(type.ifArrayGetElementClass()!!, value, isSafetyCast = true)
             }
 
             this.at(i) `=` arrayElement

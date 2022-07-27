@@ -144,7 +144,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
 
         val name = when {
             classRef != null && baseName == null -> {
-                val base = classRef.prettifiedName.decapitalize()
+                val base = classRef.simpleName.decapitalize()
                 nameGenerator.variableName(base + "Clazz")
             }
             // we use baseType here intentionally
@@ -417,15 +417,15 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         val typeAccessible = baseType.isAccessibleFrom(testClassPackageName)
 
         when {
-            expression.type isSubtypeOf baseType && typeAccessible -> {
+            expression.type blockingIsSubtypeOf baseType && typeAccessible -> {
                 type = baseType
                 expr = expression
             }
-            expression.type isSubtypeOf baseType && !typeAccessible -> {
+            expression.type blockingIsSubtypeOf baseType && !typeAccessible -> {
                 type = if (expression.type.isArray) objectArrayClassId else objectClassId
                 expr = expression
             }
-            expression.type isNotSubtypeOf baseType && typeAccessible -> {
+            expression.type blockingIsNotSubtypeOf baseType && typeAccessible -> {
                 // consider util methods getField and getStaticField
                 // TODO should we consider another cases?
                 val isGetFieldUtilMethod = (expression is CgMethodCall && expression.executableId.isGetFieldUtilMethod)
@@ -434,7 +434,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 type = baseType
                 expr = typeCast(baseType, expression, shouldCastBeSafety)
             }
-            expression.type isNotSubtypeOf baseType && !typeAccessible -> {
+            expression.type blockingIsNotSubtypeOf baseType && !typeAccessible -> {
                 type = if (expression.type.isArray) objectArrayClassId else objectClassId
                 expr = if (expression is CgMethodCall && expression.executableId.isUtil) {
                     CgErrorWrapper("${expression.executableId.name} failed", expression)

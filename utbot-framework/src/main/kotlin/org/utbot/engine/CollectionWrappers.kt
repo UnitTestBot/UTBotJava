@@ -107,7 +107,7 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
                 )
 
                 modificationsChain += parameterModels.map {
-                    UtExecutableCallModel(this, modificationMethodId, it)
+                    UtExecutableCallModel(this, modificationMethodId.asExecutable(), it)
                 }
             }
     }

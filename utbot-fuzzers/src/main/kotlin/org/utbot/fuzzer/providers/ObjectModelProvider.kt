@@ -1,14 +1,12 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.isPrimitive
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Member
@@ -89,7 +87,7 @@ class ObjectModelProvider : ModelProvider {
         }
     }
 
-    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
+    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorExecutableId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
         if (limitValuesCreatedByFieldAccessors == 0) return emptySequence()
         val fields = findSuitableFields(constructorId.classId, description)
         val syntheticClassFieldsSetterMethodDescription = FuzzedMethodDescription(
@@ -112,12 +110,12 @@ class ObjectModelProvider : ModelProvider {
                     when {
                         field.canBeSetDirectly -> UtDirectSetFieldModel(
                             fuzzedModel.model,
-                            FieldId(constructorId.classId, field.name),
+                            constructorId.classId.findField(field.name),
                             value.model
                         )
                         field.setter != null -> UtExecutableCallModel(
                             fuzzedModel.model,
-                            MethodId(constructorId.classId, field.setter.name, field.setter.returnType.id, listOf(field.classId)),
+                            methodId(constructorId.classId, field.setter.name, field.setter.returnType.id, field.classId).asExecutable(),
                             listOf(value.model)
                         )
                         else -> null
@@ -128,11 +126,11 @@ class ObjectModelProvider : ModelProvider {
     }
 
     companion object {
-        private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorId> {
+        private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorExecutableId> {
             return classId.jClass.declaredConstructors.asSequence()
                 .filter(predicate)
                 .map { javaConstructor ->
-                    ConstructorId(classId, javaConstructor.parameters.map { it.type.id })
+                    constructorId(classId, javaConstructor.parameters.map { it.type.id })
                 }
         }
 
@@ -148,7 +146,7 @@ class ObjectModelProvider : ModelProvider {
             return !hasAnyAccessModifier
         }
 
-        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
+        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorExecutableId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
             val fuzzedMethod = FuzzedMethodDescription(
                 executableId = constructorId,
                 concreteValues = this.concreteValues
@@ -158,7 +156,7 @@ class ObjectModelProvider : ModelProvider {
             return fuzz(fuzzedMethod, *modelProviders)
         }
 
-        private fun assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
+        private fun assembleModel(id: Int, constructorId: ConstructorExecutableId, params: List<FuzzedValue>): FuzzedValue {
             val instantiationChain = mutableListOf<UtStatementModel>()
             return UtAssembleModel(
                 id,
@@ -203,7 +201,7 @@ class ObjectModelProvider : ModelProvider {
         }
 
         private val primitiveParameterizedConstructorsFirstAndThenByParameterCount =
-            compareByDescending<ConstructorId> { constructorId ->
+            compareByDescending<ConstructorExecutableId> { constructorId ->
                 constructorId.parameters.all { classId ->
                     classId.isPrimitive || classId == stringClassId
                 }

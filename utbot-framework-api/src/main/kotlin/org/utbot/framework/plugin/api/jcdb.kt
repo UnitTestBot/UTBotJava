@@ -99,6 +99,18 @@ val MethodId.returnType: ClassId
 val MethodId.parameters: List<ClassId>
     get() = runBlocking { parameters() }
 
+val MethodId.signature: String
+    get() = runBlocking { signature(false) }
+
+val MethodId.internalSignature: String
+    get() = runBlocking { signature(true) }
+
+
+infix fun ClassId.blockingIsSubtypeOf(another: ClassId): Boolean = runBlocking {
+    this@blockingIsSubtypeOf isSubtypeOf another
+}
+
+infix fun ClassId.blockingIsNotSubtypeOf(another: ClassId): Boolean = !this.blockingIsSubtypeOf(another)
 
 /**
  * we will count item accessible if it is whether public
@@ -114,7 +126,8 @@ suspend fun Accessible.isAccessibleFrom(packageName: String): Boolean {
         else -> throw IllegalStateException("unknown type $this")
     }
 
-    val isAccessibleFromPackageByModifiers = isPublic() || (classId.packageName == packageName && (isPackagePrivate() || isProtected()))
+    val isAccessibleFromPackageByModifiers =
+        isPublic() || (classId.packageName == packageName && (isPackagePrivate() || isProtected()))
 
     return classId.isClassAccessibleFrom(packageName) && isAccessibleFromPackageByModifiers
 }

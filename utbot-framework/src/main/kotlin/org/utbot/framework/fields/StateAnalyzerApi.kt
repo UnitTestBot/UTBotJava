@@ -1,8 +1,9 @@
 package org.utbot.framework.fields
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.type
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 
 data class StateModificationInfo(
         val thisInstance: ModifiedFields = emptyList(),

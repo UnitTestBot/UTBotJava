@@ -417,20 +417,37 @@ fun ExecutableId.isConstructor(): Boolean {
 /**
  * Construct MethodId
  */
-fun methodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): MethodId = runBlocking{
+fun methodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): MethodId = runBlocking {
     classId.methods().first {
         it.name == name && it.returnType == returnType && it.parameters().toTypedArray().contentEquals(arguments)
     }
 }
 
+fun MethodId.asExecutable(): ExecutableId {
+    if (isConstructor()) {
+        return ConstructorExecutableId(this)
+    }
+    return MethodExecutableId(this)
+}
+
+fun MethodId.asExecutableMethod(): MethodExecutableId {
+    if (isConstructor()) {
+        throw IllegalStateException("Method $this is a constructor")
+    }
+    return MethodExecutableId(this)
+}
+
 /**
  * Construct ConstructorId
  */
-fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorExecutableId = runBlocking {
+fun constructorId(classId: ClassId, arguments: List<ClassId> = emptyList()): ConstructorExecutableId = runBlocking {
+    val argsArray = arguments.toTypedArray()
     ConstructorExecutableId(classId.methods().first {
-        it.name == "<init>" && it.parameters().toTypedArray().contentEquals(arguments)
+        it.name == "<init>" && it.parameters().toTypedArray().contentEquals(argsArray)
     })
 }
+
+fun constructorId(classId: ClassId, vararg arguments: ClassId) = constructorId(classId, arguments.toList())
 
 fun builtinMethodId(
     classId: BuiltinClassId,

@@ -13,9 +13,7 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.*
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
-import org.utbot.framework.codegen.model.tree.toStatement
 import org.utbot.framework.codegen.model.util.*
-import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.*
@@ -25,46 +23,9 @@ import org.utbot.jcdb.api.*
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
-import kotlin.collections.ArrayList
-import kotlin.collections.List
-import kotlin.collections.Map
-import kotlin.collections.MutableList
-import kotlin.collections.MutableSet
-import kotlin.collections.Set
-import kotlin.collections.any
 import kotlin.collections.component1
 import kotlin.collections.component2
-import kotlin.collections.dropLastWhile
-import kotlin.collections.emptyList
-import kotlin.collections.filterIsInstance
-import kotlin.collections.filterKeys
-import kotlin.collections.first
-import kotlin.collections.firstOrNull
-import kotlin.collections.flatMap
-import kotlin.collections.forEach
-import kotlin.collections.groupBy
-import kotlin.collections.hashSetOf
-import kotlin.collections.indices
-import kotlin.collections.isNotEmpty
-import kotlin.collections.iterator
-import kotlin.collections.joinToString
-import kotlin.collections.lastOrNull
-import kotlin.collections.listOf
-import kotlin.collections.map
-import kotlin.collections.mutableListOf
-import kotlin.collections.mutableSetOf
-import kotlin.collections.plus
-import kotlin.collections.plusAssign
-import kotlin.collections.removeLast
-import kotlin.collections.reversed
 import kotlin.collections.set
-import kotlin.collections.setOf
-import kotlin.collections.singleOrNull
-import kotlin.collections.sortedByDescending
-import kotlin.collections.toMutableList
-import kotlin.collections.toTypedArray
-import kotlin.collections.windowed
-import kotlin.collections.withIndex
 import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
@@ -200,10 +161,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun generateResultAssertions() {
         when (currentExecutable) {
-            is ConstructorId -> {
+            is ConstructorExecutableId -> {
                 // we cannot generate any assertions for constructor testing
                 // but we need to generate a constructor call
-                val constructorCall = currentExecutable as ConstructorId
+                val constructorCall = currentExecutable as ConstructorExecutableId
                 val currentExecution = currentExecution!!
                 currentExecution.result
                     .onSuccess {
@@ -225,7 +186,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
             }
             is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
-            is MethodId -> {
+            is MethodExecutableId -> {
                 emptyLineIfNeeded()
                 val method = currentExecutable as MethodId
                 val currentExecution = currentExecution!!
@@ -254,8 +215,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val methodInvocationBlock = {
             with(currentExecutable) {
                 when (this) {
-                    is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
-                    is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
+                    is MethodExecutableId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
+                    is ConstructorExecutableId -> this(*methodArguments.toTypedArray()).intercepted()
                 }
             }
         }

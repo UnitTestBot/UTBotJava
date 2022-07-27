@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.constructor.util
 
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
@@ -14,7 +15,6 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.MethodId
-import org.utbot.jcdb.api.isStatic
 import org.utbot.jcdb.api.isSubtypeOf
 
 internal data class EnvironmentFieldStateCache(
@@ -160,16 +160,16 @@ internal fun CgContextOwner.importIfNeeded(type: ClassId) {
     }
 }
 
-internal fun CgContextOwner.importIfNeeded(method: MethodId) {
+internal fun CgContextOwner.importIfNeeded(method: MethodExecutableId) {
     val name = method.name
     val packageName = method.classId.packageName
-    method.takeIf { it.isStatic() && packageName != testClassPackageName && packageName != "java.lang" }
+    method.takeIf { it.methodId.isStatic && packageName != testClassPackageName && packageName != "java.lang" }
         .takeIf { importedStaticMethods.none { it.name == name } }
         // do not import method under test in order to specify the declaring class directly for its calls
         .takeIf { currentExecutable != method }
         ?.let {
             importedStaticMethods += method
-            collectedImports += StaticImport(method.classId.canonicalName, method.name)
+            collectedImports += StaticImport(method.classId.name, method.name)
         }
 }
 
@@ -203,7 +203,7 @@ internal suspend fun ClassId.overridesEquals(): Boolean =
         this isSubtypeOf Map::class.id -> true
         this isSubtypeOf Collection::class.id -> true
         else -> methods().any {
-            it.name == "equals" &&it.parameters().let {
+            it.name == "equals" && it.parameters().let {
                 it.size == 1 && it.first() == objectClassId
             }
         }
@@ -212,8 +212,8 @@ internal suspend fun ClassId.overridesEquals(): Boolean =
 // NOTE: this function does not consider executable return type because it is not important in our case
 internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequence<ExecutableId> {
     val allExecutables = when (executableId) {
-        is MethodId -> allMethods
-        is ConstructorId -> allConstructors
+        is MethodExecutableId -> allMethods
+        is ConstructorExecutableId -> allConstructors
     }
 
     return allExecutables.filter {
@@ -274,7 +274,14 @@ internal operator fun UtArrayModel.get(index: Int): UtModel = stores[index] ?: c
 internal fun ClassId.utilMethodId(name: String, returnType: ClassId, vararg arguments: ClassId): MethodId =
     BuiltinMethodId(this, name, returnType, arguments.toList())
 
-fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosings)
+fun ClassId.toImport(): RegularImport = runBlocking {
+    val outerClass = outerClass()
+    val name = when {
+        outerClass != null -> outerClass.simpleName + "." + simpleName
+        else -> simpleName
+    }
+    RegularImport(packageName, name)
+}
 
 // Immutable collections utils
 

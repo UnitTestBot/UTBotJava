@@ -3,8 +3,8 @@ package org.utbot.framework.codegen.model.tree
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.jcdb.api.ClassId
 
 interface CgBuilder<T : CgElement> {
     fun build(): T

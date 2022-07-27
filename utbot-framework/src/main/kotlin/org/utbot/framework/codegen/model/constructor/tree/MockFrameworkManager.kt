@@ -176,7 +176,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         val mockClassCounter = CgDeclaration(
             atomicIntegerClassId,
             variableConstructor.constructVarName(MOCK_CLASS_COUNTER_NAME),
-            CgConstructorCall(ConstructorId(atomicIntegerClassId, emptyList()), emptyList())
+            CgConstructorCall(constructorId(atomicIntegerClassId), emptyList())
         )
         +mockClassCounter
 
@@ -210,7 +210,8 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 error("Cannot mock static method $methodId with not accessible parameters" )
             }
 
-            val matchers = mockitoArgumentMatchersFor(methodId)
+            val executable = methodId.asExecutable() as MethodExecutableId
+            val matchers = mockitoArgumentMatchersFor(executable)
             val mockedStaticDeclaration = getOrCreateMockStatic(classId)
             val mockedStaticVariable = mockedStaticDeclaration.variable
             val methodRunnable = if (matchers.isEmpty()) {
@@ -221,7 +222,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                     parameters = emptyList(),
                     listOf(CgStatementExecutableCall(CgMethodCall(
                         caller = null,
-                        methodId,
+                        executable,
                         matchers.toList()
                     )))
                 )

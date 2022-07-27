@@ -66,7 +66,7 @@ abstract class StreamWrapper(
 
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
-                    executable = builder,
+                    executable = builder.asExecutable(),
                     params = params,
                     returnValue = this
                 )

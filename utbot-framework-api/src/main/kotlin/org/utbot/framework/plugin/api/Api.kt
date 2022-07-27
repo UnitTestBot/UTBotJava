@@ -767,7 +767,7 @@ class BuiltinClassId(
 
     override suspend fun outerMethod() = null
 
-    override suspend fun signature() = Raw
+    override suspend fun resolution() = Raw
 
     override suspend fun superclass() = null
     override suspend fun access() = Opcodes.ACC_PUBLIC
@@ -856,19 +856,19 @@ inline fun <T> withReflection(block: () -> T): T {
  * avoid using class loader to load a possibly missing class.
  */
 //@Suppress("unused")
-class BuiltinFieldId(
-    declaringClass: ClassId,
-    override val name: String,
-    // by default we assume that the builtin field is public and non-final
-    override val isPublic: Boolean = true,
-    override val isPrivate: Boolean = false,
-    override val isFinal: Boolean = false,
-    override val isSynthetic: Boolean = false,
-) : FieldId {
-    override suspend fun type(): ClassId {
-        TODO("Not yet implemented")
-    }
-}
+//class BuiltinFieldId(
+//    declaringClass: ClassId,
+//    override val name: String,
+//    // by default we assume that the builtin field is public and non-final
+//    override val isPublic: Boolean = true,
+//    override val isPrivate: Boolean = false,
+//    override val isFinal: Boolean = false,
+//    override val isSynthetic: Boolean = false,
+//) : FieldId {
+//    override suspend fun type(): ClassId {
+//        TODO("Not yet implemented")
+//    }
+//}
 
 sealed class StatementId {
     abstract val classId: ClassId
@@ -901,10 +901,11 @@ sealed class ExecutableId {
         get() = !(isPublic || isProtected || isPrivate)
 
     val signature: String
-        get() {
-            val args = parameters.joinToString(separator = "") { it.name }
-            val retType = returnType.name
-            return "$name($args)$retType"
+        get() = runBlocking {
+            methodId.signature(false)
+//            val args = parameters.joinToString(separator = "") { it.name }
+//            val retType = returnType.name
+//            return "$name($args)$retType"
         }
 
     override fun equals(other: Any?): Boolean {

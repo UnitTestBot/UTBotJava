@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.context
 
 import kotlinx.collections.immutable.*
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.tree.Block
@@ -62,11 +63,11 @@ internal interface CgContextOwner {
     // imports required by the test class being built
     val collectedImports: MutableSet<Import>
 
-    val importedStaticMethods: MutableSet<MethodId>
+    val importedStaticMethods: MutableSet<MethodExecutableId>
     val importedClasses: MutableSet<ClassId>
 
     // util methods required by the test class being built
-    val requiredUtilMethods: MutableSet<MethodId>
+    val requiredUtilMethods: MutableSet<MethodExecutableId>
 
     // test methods being generated
     val testMethods: MutableList<CgTestMethod>
@@ -195,7 +196,7 @@ internal interface CgContextOwner {
         currentExecutable = method.callable.executableId
     }
 
-    suspend fun addExceptionIfNeeded(exception: ClassId) {
+        fun addExceptionIfNeeded(exception: ClassId) = runBlocking {
         if (exception !is BuiltinClassId) {
             require(exception isSubtypeOf Throwable::class.id) {
                 "Class $exception which is not a Throwable was passed"
@@ -205,10 +206,10 @@ internal interface CgContextOwner {
             val alreadyAdded =
                 collectedExceptions.any { existingException -> exception isSubtypeOf existingException }
 
-            if (isUnchecked || alreadyAdded) return
+            if (isUnchecked || alreadyAdded) return@runBlocking
 
             collectedExceptions
-                .removeIf { existingException -> existingException isSubtypeOf exception }
+                .removeIf { existingException -> existingException blockingIsSubtypeOf exception }
         }
 
         if (collectedExceptions.add(exception)) {
@@ -280,14 +281,14 @@ internal interface CgContextOwner {
     /**
      * Check whether a method is an util method of the current class
      */
-    val MethodId.isUtil: Boolean
-        get() = this in currentTestClass.possibleUtilMethodIds
+    val MethodExecutableId.isUtil: Boolean
+        get() = methodId in currentTestClass.possibleUtilMethodIds
 
     /**
      * Checks is it our util reflection field getter method.
      * When this method is used with type cast in Kotlin, this type cast have to be safety
      */
-    val MethodId.isGetFieldUtilMethod: Boolean
+    val MethodExecutableId.isGetFieldUtilMethod: Boolean
         get() = isUtil && (name == getFieldValue.name || name == getStaticFieldValue.name)
 
     val testClassThisInstance: CgThisInstance
@@ -351,9 +352,9 @@ internal data class CgContext(
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedTestMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
-    override val importedStaticMethods: MutableSet<MethodId> = mutableSetOf(),
+    override val importedStaticMethods: MutableSet<MethodExecutableId> = mutableSetOf(),
     override val importedClasses: MutableSet<ClassId> = mutableSetOf(),
-    override val requiredUtilMethods: MutableSet<MethodId> = mutableSetOf(),
+    override val requiredUtilMethods: MutableSet<MethodExecutableId> = mutableSetOf(),
     override val testMethods: MutableList<CgTestMethod> = mutableListOf(),
     override val existingMethodNames: MutableSet<String> = mutableSetOf(),
     override val prevStaticFieldValues: MutableMap<FieldId, CgVariable> = mutableMapOf(),

@@ -794,7 +794,7 @@ abstract class CgExecutableCall : CgReferenceExpression {
 }
 
 class CgConstructorCall(
-    override val executableId: ConstructorId,
+    override val executableId: ConstructorExecutableId,
     override val arguments: List<CgExpression>,
     override val typeParameters: TypeParameters = TypeParameters()
 ) : CgExecutableCall() {
@@ -803,11 +803,11 @@ class CgConstructorCall(
 
 class CgMethodCall(
     val caller: CgExpression?,
-    override val executableId: MethodId,
+    override val executableId: MethodExecutableId,
     override val arguments: List<CgExpression>,
     override val typeParameters: TypeParameters = TypeParameters()
 ) : CgExecutableCall() {
-    override val type: ClassId = runBlocking { executableId.returnType() }
+    override val type: ClassId = executableId.returnType
 }
 
 fun CgExecutableCall.toStatement(): CgStatementExecutableCall = CgStatementExecutableCall(this)

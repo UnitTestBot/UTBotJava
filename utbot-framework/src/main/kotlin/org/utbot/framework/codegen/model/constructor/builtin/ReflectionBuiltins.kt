@@ -1,7 +1,8 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
-import org.utbot.framework.plugin.api.ClassId
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.MethodId
 import sun.misc.Unsafe
 import java.lang.reflect.AccessibleObject
@@ -21,6 +22,10 @@ internal val reflectionBuiltins: Set<MethodId>
                 equals, getSuperclass, set, newArrayInstance,
                 setArrayElement, getArrayElement, getTargetException,
         )
+
+internal val arrayOfClasses: ClassId get() = runBlocking { 
+        utContext.classpath.findClassOrNull("java.lang.Class[]")!!
+} 
 
 internal val setAccessible get() = methodId(
         classId = AccessibleObject::class.id,
@@ -63,7 +68,7 @@ internal val getDeclaredMethod get() = methodId(
         returnType = java.lang.reflect.Method::class.id,
         arguments = arrayOf(
                 stringClassId,
-                ClassId("[Ljava.lang.Class;", Class::class.id)
+                arrayOfClasses
         )
 )
 
@@ -71,7 +76,7 @@ internal val getDeclaredConstructor get() = methodId(
         classId = Class::class.id,
         name = "getDeclaredConstructor",
         returnType = java.lang.reflect.Constructor::class.id,
-        arguments = arrayOf(ClassId("[Ljava.lang.Class;", Class::class.id))
+        arguments = arrayOf(arrayOfClasses)
 )
 
 internal val allocateInstance get() = methodId(
@@ -94,67 +99,67 @@ internal val getDeclaredField get() = methodId(
         arguments = arrayOf(stringClassId)
 )
 
-internal val getDeclaredFields = methodId(
+internal val getDeclaredFields get() = methodId(
         classId = Class::class.id,
         name = "getDeclaredFields",
         returnType = Array<Field>::class.id
 )
 
-internal val isEnumConstant = methodId(
+internal val isEnumConstant get() = methodId(
         classId = java.lang.reflect.Field::class.id,
         name = "isEnumConstant",
         returnType = booleanClassId
 )
 
-internal val getFieldName = methodId(
+internal val getFieldName get()  = methodId(
         classId = java.lang.reflect.Field::class.id,
         name = "getName",
         returnType = stringClassId
 )
 
 // Object's equals() method
-internal val equals = methodId(
+internal val equals get() = methodId(
         classId = objectClassId,
         name = "equals",
         returnType = booleanClassId,
         arguments = arrayOf(objectClassId)
 )
 
-internal val getSuperclass = methodId(
+internal val getSuperclass get() = methodId(
         classId = Class::class.id,
         name = "getSuperclass",
         returnType = Class::class.id
 )
 
-internal val set = methodId(
+internal val set get() = methodId(
         classId = Field::class.id,
         name = "set",
         returnType = voidClassId,
         arguments = arrayOf(objectClassId, objectClassId)
 )
 
-internal val newArrayInstance = methodId(
+internal val newArrayInstance get()  = methodId(
         classId = java.lang.reflect.Array::class.id,
         name = "newInstance",
         returnType = objectClassId,
         arguments = arrayOf(java.lang.Class::class.id, intClassId)
 )
 
-internal val setArrayElement = methodId(
+internal val setArrayElement get() = methodId(
         classId = java.lang.reflect.Array::class.id,
         name = "set",
         returnType = voidClassId,
         arguments = arrayOf(objectClassId, intClassId, objectClassId)
 )
 
-internal val getArrayElement = methodId(
+internal val getArrayElement get() = methodId(
         classId = java.lang.reflect.Array::class.id,
         name = "get",
         returnType = objectClassId,
         arguments = arrayOf(objectClassId, intClassId)
 )
 
-internal val getTargetException = methodId(
+internal val getTargetException get() = methodId(
         classId = InvocationTargetException::class.id,
         name = "getTargetException",
         returnType = java.lang.Throwable::class.id

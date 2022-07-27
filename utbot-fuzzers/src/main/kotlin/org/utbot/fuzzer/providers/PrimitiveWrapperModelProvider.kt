@@ -1,5 +1,6 @@
 package org.utbot.fuzzer.providers
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -10,7 +11,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.autoboxIfNeeded
+import org.utbot.jcdb.api.unboxIfNeeded
 
 object PrimitiveWrapperModelProvider: ModelProvider {
 
@@ -30,7 +31,7 @@ object PrimitiveWrapperModelProvider: ModelProvider {
             .mapNotNull { classId ->
                 when {
                     classId == stringClassId -> stringClassId
-                    classId.isPrimitiveWrapper -> classId.autoboxIfNeeded()
+                    classId.isPrimitiveWrapper -> runBlocking { classId.unboxIfNeeded() }
                     else -> null
                 }
             }.toList()

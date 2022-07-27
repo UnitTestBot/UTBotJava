@@ -12,6 +12,7 @@ import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.packageName
+import org.utbot.framework.plugin.api.signature
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.util.executableId

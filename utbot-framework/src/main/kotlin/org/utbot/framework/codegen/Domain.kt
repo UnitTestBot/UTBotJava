@@ -5,11 +5,11 @@ import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.MethodId
 import java.io.File
 

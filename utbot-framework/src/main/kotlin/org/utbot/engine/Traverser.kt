@@ -28,7 +28,6 @@ import org.utbot.framework.util.graph
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.MethodId
-import org.utbot.jcdb.api.findFieldOrNull
 import soot.*
 import soot.jimple.*
 import soot.jimple.internal.*
@@ -688,7 +687,7 @@ class Traverser(
             val declaringClassType = fieldRef.field.declaringClass.type
             val fieldTypeId = fieldRef.field.type.classId
             val generator = UtMockInfoGenerator { mockAddr ->
-                val fieldId = FieldId(declaringClassType.id, fieldRef.field.name)
+                val fieldId = declaringClassType.id.findField(fieldRef.field.name)
                 UtFieldMockInfo(fieldTypeId, mockAddr, fieldId, ownerAddr = null)
             }
             findOrCreateStaticObject(declaringClassType, generator)
@@ -1498,7 +1497,7 @@ class Traverser(
             }
             val generator = (value.field.type as? RefType)?.let { refType ->
                 UtMockInfoGenerator { mockAddr ->
-                    val fieldId = objectType.id.findFieldOrNull(value.field.name)
+                    val fieldId = objectType.id.findField(value.field.name)
                     UtFieldMockInfo(refType.id, mockAddr, fieldId, instance.addr)
                 }
             }
@@ -1560,7 +1559,7 @@ class Traverser(
 
         val generator = (field.type as? RefType)?.let { refType ->
             UtMockInfoGenerator { mockAddr ->
-                val fieldId = declaringClassType.id.findFieldOrNull(field.name)
+                val fieldId = declaringClassType.id.findField(field.name)
                 UtFieldMockInfo(refType.id, mockAddr, fieldId, ownerAddr = null)
             }
         }
@@ -1908,7 +1907,7 @@ class Traverser(
     private fun recordInstanceFieldRead(addr: UtAddrExpression, field: SootField) {
         val realType = typeRegistry.findRealType(field.declaringClass.type)
         if (realType is RefType) {
-            val readOperation = InstanceFieldReadOperation(addr, realType.id.findFieldOrNull(field.name))
+            val readOperation = InstanceFieldReadOperation(addr, realType.id.findField(field.name))
             queuedSymbolicStateUpdates += MemoryUpdate(instanceFieldReads = persistentSetOf(readOperation))
         }
     }

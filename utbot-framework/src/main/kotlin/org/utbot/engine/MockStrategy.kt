@@ -1,6 +1,7 @@
 package org.utbot.engine
 
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.jcdb.api.ClassId
 
 /**
  * Mock strategies.

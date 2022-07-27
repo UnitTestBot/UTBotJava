@@ -50,6 +50,7 @@ import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
 import java.lang.reflect.Modifier
+import java.math.BigDecimal
 import java.math.BigInteger
 import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
@@ -239,6 +240,13 @@ class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {
         val classId = ClassId("int")
+    }
+}
+
+class PythonFloatModel(val value: BigDecimal): PythonModel(classId) {
+    override fun toString() = "$value"
+    companion object {
+        val classId = ClassId("float")
     }
 }
 

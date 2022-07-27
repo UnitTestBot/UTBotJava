@@ -22,11 +22,13 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Delete
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
+import org.apache.commons.lang3.math.NumberUtils
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedOp
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTypesStorage
+import java.math.BigDecimal
 import java.math.BigInteger
 
 class ArgInfoCollector(val method: PythonMethod) {
@@ -100,10 +102,17 @@ class ArgInfoCollector(val method: PythonMethod) {
                 res
         }
 
+        private fun getNum(num: String, op: FuzzedOp): TypeStorage =
+            when (val x = NumberUtils.createNumber(num)) {
+                is Int -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op))
+                is Long -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op))
+                is BigInteger -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x, op))
+                else -> TypeStorage("float", FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op))
+            }
+
         private fun <A, N> valuePat(op: FuzzedOp = FuzzedOp.NONE): Parser<(TypeStorage) -> A, A, N> {
             val consts = listOf<Parser<(TypeStorage) -> A, A, N>>(
-                map1(refl(num(apply()))) { x ->
-                    TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, BigInteger(x), op)) },
+                map1(refl(num(apply()))) { x -> getNum(x, op) },
                 map1(refl(str(apply()))) { x ->
                     TypeStorage("str", FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)) },
                 map0(refl(true_()),
@@ -132,7 +141,7 @@ class ArgInfoCollector(val method: PythonMethod) {
             collection[paramName] = storage
         }
 
-        private fun <N> parseAndPut(
+        private fun <N> parseAndPutType(
             collection: MutableMap<String, Storage>,
             pat: Parser<(String) -> (TypeStorage) -> Pair<String, TypeStorage>?, Pair<String, TypeStorage>?, N>,
             ast: N
@@ -161,13 +170,14 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
         }
 
+        private fun <A> namePatterns(): List<Parser<(String) -> A, A, Name>> =
+            paramNames.map { paramName ->
+                map0(name(equal(paramName)), paramName)
+            }
+
         private fun collectField(atom: Atom, param: MutableMap<String, Storage>) {
-            val namePatterns: List<Parser<(String) -> (String) -> ResField, (String) -> ResField, Name>> =
-                paramNames.map { paramName ->
-                    map0(name(equal(paramName)), paramName)
-                }
             val pat = classField(
-                fname = namePatterns.reduce { acc, elem -> or(acc, elem) },
+                fname = namePatterns<(String) -> ResField>().reduce { acc, elem -> or(acc, elem) },
                 fattributeId = apply()
             )
             parse(pat, onError = null, atom) { paramName -> { attributeId ->
@@ -177,19 +187,62 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
         }
 
+        private fun <A> subscriptPat(): Parser<(String) -> A, A, Atom> =
+            atom(
+                fatomElement = refl(namePatterns<A>().reduce { acc, elem -> or(acc, elem) }),
+                ftrailers = first(refl(index(drop())))
+            )
+
+        private fun collectAtomMethod(atom: Atom, param: MutableMap<String, Storage>) {
+            val methodPat = classMethod(
+                fname = namePatterns<(String) -> ResMethod>().reduce { acc, elem -> or(acc, elem) },
+                fattributeId = apply(),
+                farguments = drop()
+            )
+            val getPat = swap(map0(subscriptPat<ResMethod>(), "__getitem__"))
+            val pat = or(methodPat, getPat)
+            parse(pat, onError = null, atom) { paramName -> { attributeId ->
+                Pair(paramName, MethodStorage(attributeId))
+            } } ?.let {
+                addToStorage(it.first, param) { storage -> storage.methodStorages.add(it.second) }
+            }
+        }
+
         override fun visitAtom(atom: Atom, param: MutableMap<String, Storage>): AST {
             collectFunctionArg(atom, param)
             collectField(atom, param)
+            collectAtomMethod(atom, param)
             return super.visitAtom(atom, param)
         }
 
         override fun visitAssign(ast: Assign, param: MutableMap<String, Storage>): AST {
-            parseAndPut(param, assign(ftargets = any(namePat()), fvalue = valuePat()), ast)
+            val pat: Parser<(String) -> (TypeStorage) -> ResAssign, List<ResAssign>, Assign> = assignAll(
+                ftargets = allMatches(namePat()), fvalue = valuePat()
+            )
+            parse(
+                pat,
+                onError = emptyList(),
+                ast
+            ) { paramName -> { typeStorage -> Pair(paramName, typeStorage) } } .map {
+                addToStorage(it.first, param) { storage -> storage.typeStorages.add(it.second) }
+            }
+
+            val setItemPat: Parser<(String) -> String, List<String>, Assign> = assignAll(
+                ftargets = allMatches(refl(subscriptPat())),
+                fvalue = drop()
+            )
+            val setItemParams = parse(setItemPat, onError = emptyList(), ast) { it }
+            setItemParams.map { paramName ->
+                addToStorage(paramName, param) { storage ->
+                    storage.methodStorages.add(MethodStorage("__setitem__"))
+                }
+            }
+
             return super.visitAssign(ast, param)
         }
 
         override fun visitAugAssign(ast: AugAssign, param: MutableMap<String, Storage>): AST {
-            parseAndPut(param, augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()), ast)
+            parseAndPutType(param, augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()), ast)
             return super.visitAugAssign(ast, param)
         }
 
@@ -205,7 +258,7 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
 
         override fun visitBinOp(ast: BinOp, param: MutableMap<String, Storage>): AST {
-            parseAndPut(
+            parseAndPutType(
                 param,
                 or(
                     binOp(fleft = namePat(), fright = valuePat(getOp(ast))),
@@ -363,3 +416,5 @@ class ArgInfoCollector(val method: PythonMethod) {
 
 typealias ResFuncArg = Pair<String, ArgInfoCollector.FunctionArgStorage>?
 typealias ResField = Pair<String, ArgInfoCollector.FieldStorage>?
+typealias ResMethod = Pair<String, ArgInfoCollector.MethodStorage>?
+typealias ResAssign = Pair<String, ArgInfoCollector.TypeStorage>

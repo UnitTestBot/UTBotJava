@@ -5,7 +5,6 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.CoverageMatcher
-import org.utbot.examples.DoNotCalculate
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -16,10 +15,6 @@ import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
-import kotlin.reflect.KFunction1
-import kotlin.reflect.KFunction2
-import kotlin.reflect.KFunction3
-import kotlin.reflect.KFunction4
 
 
 private const val NEW_LINE = "\n"
@@ -54,7 +49,7 @@ open class SummaryTestCaseGeneratorTest(
         summaryKeys: List<String>,
         methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf(),
-        clusterInfo: List<Pair<UtClusterInfo, IntRange>> = listOf()
+        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf()
     ) {
         workaround(WorkaroundReason.HACK) {
             // @todo change to the constructor parameter
@@ -101,14 +96,19 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    fun UtMethodTestSet.checkClusterInfo(clusterInfo: List<Pair<UtClusterInfo, IntRange>>) {
+    /**
+     * Verifies that there are the same number of clusters, its content and number of included tests in each cluster.
+     */
+    fun UtMethodTestSet.checkClusterInfo(clusterInfo: List<Pair<UtClusterInfo, Int>>) {
         if (clusterInfo.isEmpty()) {
             return
         }
 
+        Assertions.assertEquals(this.clustersInfo.size, clusterInfo.size)
+
         this.clustersInfo.forEachIndexed { index, it ->
             Assertions.assertTrue(it.first!!.normalizedAndEquals(clusterInfo[index].first))
-            Assertions.assertEquals(it.second.count(), clusterInfo[index].second.count())
+            Assertions.assertEquals(it.second.count(), clusterInfo[index].second)
         }
     }
 

@@ -137,7 +137,7 @@ class SummaryIntMathTest : SummaryTestCaseGeneratorTest(
         )
 
         val clusterInfo = listOf(
-            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS for method pow(int, int)", null), IntRange(0, 13))
+            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS for method pow(int, int)", null), 14)
         )
 
         val method = IntMath::pow

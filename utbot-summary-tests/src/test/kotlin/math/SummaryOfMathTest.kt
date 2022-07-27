@@ -76,8 +76,8 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
         )
 
         val clusterInfo = listOf(
-            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS for method ofInts(int[])", null), IntRange(0, 2)),
-            Pair(UtClusterInfo("ERROR SUITE for method ofInts(int[])", null), IntRange(3, 3))
+            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS for method ofInts(int[])", null), 3),
+            Pair(UtClusterInfo("ERROR SUITE for method ofInts(int[])", null), 1)
         )
 
         summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, clusterInfo)
@@ -217,7 +217,7 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
         )
 
         val clusterInfo = listOf(
-            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS #0 for method ofDoubles(double[])", null), IntRange(0, 2)),
+            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS #0 for method ofDoubles(double[])", null), 3),
             Pair(
                 UtClusterInfo(
                     "SUCCESSFUL EXECUTIONS #1 for method ofDoubles(double[])", "\n" +
@@ -242,9 +242,9 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
                             "        {@link java.lang.Math#min(double,double)} twice,\n" +
                             "        {@link java.lang.Math#max(double,double)} twice\n" +
                             "</pre>"
-                ), IntRange(3, 5)
+                ), 3
             ),
-            Pair(UtClusterInfo("ERROR SUITE for method ofDoubles(double[])", null), IntRange(6, 6))
+            Pair(UtClusterInfo("ERROR SUITE for method ofDoubles(double[])", null), 1)
         )
 
         summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, clusterInfo)

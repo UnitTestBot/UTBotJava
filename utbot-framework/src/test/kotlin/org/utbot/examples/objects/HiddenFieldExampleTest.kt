@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 
 internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = HiddenFieldExample::class) {
     @Test
-    // Engine creates HiddenFieldSuccClass instead of HiddenFieldSuperClass, feels wrong field and matchers fail
     fun testCheckHiddenField() {
         check(
             HiddenFieldExample::checkHiddenField,
@@ -21,8 +20,6 @@ internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = Hidde
     }
 
     @Test
-    //@Disabled("SAT-315 Engine cannot work with hidden fields")
-    // Engine translates calls to super.b as calls to succ.b
     fun testCheckSuccField() {
         check(
             HiddenFieldExample::checkSuccField,

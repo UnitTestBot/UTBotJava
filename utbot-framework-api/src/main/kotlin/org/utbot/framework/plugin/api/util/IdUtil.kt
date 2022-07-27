@@ -288,7 +288,11 @@ val ClassId.isIterableOrMap: Boolean
 fun ClassId.fieldOrNull(fieldId: FieldId): Field? {
     if (this.isNotSubtypeOf(fieldId.declaringClass))
         return null
-    return fieldId.field
+    return try {
+        fieldId.field
+    } catch (e: Exception) {
+        null
+    }
 }
 
 fun ClassId.hasField(fieldId: FieldId): Boolean = fieldOrNull(fieldId) != null

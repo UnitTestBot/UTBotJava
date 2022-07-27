@@ -43,7 +43,7 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
         object MethodUnderTest : UtCustomTag("utbot.methodUnderTest", "Method under test")
         object ExpectedResult : UtCustomTag("utbot.expectedResult", "Expected result")
         object ActualResult : UtCustomTag("utbot.actualResult", "Actual result")
-        object Executes : UtCustomTag("utbot.executes", "Executes")
+        object Executes : UtCustomTag("utbot.executesCondition", "Executes condition")
         object Invokes : UtCustomTag("utbot.invokes", "Invokes")
         object Iterates : UtCustomTag("utbot.iterates", "Iterates")
         object ReturnsFrom : UtCustomTag("utbot.returnsFrom", "Returns from")

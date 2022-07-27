@@ -154,8 +154,8 @@ open class SimpleCommentBuilder(
         if (exceptionNode == null) return ""
 
         reason += when {
-            exceptionNode is IfStmt -> exceptionNode.condition.toString()
-            isLoopStatement(exceptionNode) -> getTextIterationDescription(exceptionNode)
+            exceptionNode is IfStmt -> "{@code ${exceptionNode.condition}}"
+            isLoopStatement(exceptionNode) -> "{@code ${getTextIterationDescription(exceptionNode)}"
             exceptionNode is SwitchStmt -> textSwitchCase(step, jimpleToASTMap)
             else -> exceptionNode.toString()
         }

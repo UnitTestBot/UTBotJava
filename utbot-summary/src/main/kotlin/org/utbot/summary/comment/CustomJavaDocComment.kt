@@ -8,9 +8,9 @@ data class CustomJavaDocComment(
     val methodUnderTest: String,
     val expectedResult: String?,
     val actualResult: String?,
-    var executes: String?,
+    var executesCondition: String?,
     var invokes: String?,
     var iterates: String?,
     var returnsFrom: String?,
-    val throwsException: String?
+    var throwsException: String?
 )

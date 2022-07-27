@@ -32,6 +32,7 @@ class UtJavaDocInfoGenerator {
         generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.MethodUnderTest)
         generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.Invokes)
         generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.Executes)
+        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.Iterates)
         generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ExpectedResult)
         generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ActualResult)
         generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ReturnsFrom)

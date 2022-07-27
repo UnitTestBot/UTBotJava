@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
@@ -7,6 +8,7 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.isSubtypeOf
 import sun.misc.Unsafe
 
 /**
@@ -143,11 +145,10 @@ internal val ClassId.getArrayLengthMethodId: MethodId
 /**
  * [MethodId] for [AutoCloseable.close].
  */
-val closeMethodId = MethodId(
+val closeMethodId get() = methodId(
     classId = AutoCloseable::class.java.id,
     name = "close",
-    returnType = voidClassId,
-    parameters = emptyList()
+    returnType = voidClassId
 )
 
 val mocksAutoCloseable: Set<ClassId> = setOf(
@@ -170,8 +171,11 @@ internal val ClassId.isPredefinedAutoCloseable: Boolean
  * Null always for [BuiltinClassId].
  */
 internal val ClassId.closeMethodIdOrNull: MethodId?
-    get() = when {
-        isPredefinedAutoCloseable -> closeMethodId
-        this is BuiltinClassId -> null
-        else -> (jClass as? AutoCloseable)?.let { closeMethodId }
+    get() = runBlocking {
+        when {
+            isPredefinedAutoCloseable -> closeMethodId
+            this is BuiltinClassId -> null
+            this@closeMethodIdOrNull isSubtypeOf asClass<AutoCloseable>() -> closeMethodId
+            else -> null
+        }
     }

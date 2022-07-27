@@ -1,20 +1,11 @@
 package org.utbot.framework.concrete
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import java.util.Optional
-import java.util.OptionalDouble
-import java.util.OptionalInt
-import java.util.OptionalLong
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import java.util.*
 import kotlin.reflect.KFunction1
 
 
@@ -25,8 +16,8 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
     abstract val isPresent: KFunction1<*, Boolean>
     abstract val getter: KFunction1<*, Any>
 
-    private val emptyMethodId by lazy { MethodId(classId, "empty", classId, emptyList()) }
-    private val ofMethodId by lazy { MethodId(classId, "of", classId, listOf(elementClassId)) }
+    private val emptyMethodId by lazy { methodId(classId, "empty", classId) }
+    private val ofMethodId by lazy { methodId(classId, "of", classId, elementClassId) }
 
     final override fun UtAssembleModel.modifyChains(
         internalConstructor: UtModelConstructorInterface,
@@ -41,14 +32,14 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
         modificationChain += if (!isPresent.call(valueToConstructFrom)) {
             UtExecutableCallModel(
                 instance = null,
-                emptyMethodId,
+                emptyMethodId.asExecutable(),
                 emptyList(),
                 this
             )
         } else {
             UtExecutableCallModel(
                 instance = null,
-                ofMethodId,
+                ofMethodId.asExecutable(),
                 listOf(internalConstructor.construct(getter.call(valueToConstructFrom), elementClassId)),
                 this
             )

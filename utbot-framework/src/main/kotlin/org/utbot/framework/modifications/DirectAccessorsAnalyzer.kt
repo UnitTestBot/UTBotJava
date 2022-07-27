@@ -1,10 +1,10 @@
 package org.utbot.framework.modifications
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.fieldId
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 
@@ -18,7 +18,7 @@ class DirectAccessorsAnalyzer {
     fun collectDirectAccesses(classIds: Set<ClassId>): Set<DirectFieldAccessId> =
         classIds
             .flatMap { classId -> collectFieldsInPackage(classId) }
-            .map { fieldId -> DirectFieldAccessId(fieldId.declaringClass, directSetterName(fieldId), fieldId) }
+            .map { fieldId -> DirectFieldAccessId(fieldId.classId, directSetterName(fieldId), fieldId) }
             .toSet()
 
     /**

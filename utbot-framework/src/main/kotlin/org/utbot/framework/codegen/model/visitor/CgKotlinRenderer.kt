@@ -11,16 +11,14 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.ifArrayGetElementClass
 import org.utbot.jcdb.api.isPrimitive
 
 //TODO rewrite using KtPsiFactory?
@@ -399,7 +397,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
-        print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type.kClass.simpleName}")
+        print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type.name}")
     }
 
     override fun isAccessibleBySimpleNameImpl(classId: ClassId): Boolean {
@@ -433,14 +431,15 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
             }
         }
 
-    private fun getKotlinArrayClassOfString(classId: ClassId): String =
-        if (!classId.elementClassId!!.isPrimitive) {
-            if (classId.elementClassId != java.lang.Object::class.id) {
+    private fun getKotlinArrayClassOfString(classId: ClassId): String {
+        val elementClass = classId.ifArrayGetElementClass()
+        return if (!elementClass!!.isPrimitive) {
+            if (elementClass != java.lang.Object::class.id) {
                 workaround(WorkaroundReason.ARRAY_ELEMENT_TYPES_ALWAYS_NULLABLE) {
                     // for now all element types are nullable
                     // Use kotlin.Array, because Array becomes java.lang.reflect.Array
                     // when passed as a type parameter
-                    "kotlin.Array<${getKotlinClassString(classId.elementClassId!!)}?>"
+                    "kotlin.Array<${getKotlinClassString(elementClass)}?>"
                 }
             } else {
                 "kotlin.Array<Any?>"
@@ -458,6 +457,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
                 else -> classId.kClass.id.asString()
             }
         }
+    }
 
     override fun renderTypeParameters(typeParameters: TypeParameters) {
         if (typeParameters.parameters.isNotEmpty()) {

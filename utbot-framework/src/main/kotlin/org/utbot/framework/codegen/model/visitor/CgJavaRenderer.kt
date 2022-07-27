@@ -131,8 +131,8 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgAllocateArray) {
         // TODO: Arsen strongly required to rewrite later
-        val typeName = element.type.canonicalName.substringBefore("[")
-        val otherDimensions = element.type.canonicalName.substringAfter("]")
+        val typeName = element.type.name //.substringBefore("[")
+        val otherDimensions = element.type.name //.substringAfter("]")
         print("new $typeName[${element.size}]$otherDimensions")
     }
 

@@ -885,13 +885,13 @@ class DirectFieldAccessId(
 ) : StatementId()
 
 
-sealed class ExecutableId {
+sealed class ExecutableId : StatementId() {
     abstract val methodId: MethodId
 
-    val classId: ClassId get() = methodId.classId
-    val name: String get() = methodId.name
+    override val classId: ClassId get() = methodId.classId
+    override val name: String get() = methodId.name
     val returnType: ClassId get() = methodId.returnType
-    val parameters: List<ClassId> get() =  methodId.parameters
+    val parameters: List<ClassId> get() = methodId.parameters
 
     val isPublic: Boolean get() = methodId.isPublic
     val isProtected: Boolean get() = methodId.isProtected
@@ -930,9 +930,9 @@ sealed class ExecutableId {
 
 }
 
-class ConstructorExecutableId(override val methodId: MethodId): ExecutableId()
+class ConstructorExecutableId(override val methodId: MethodId) : ExecutableId()
 
-class MethodExecutableId(override val methodId: MethodId): ExecutableId()
+class MethodExecutableId(override val methodId: MethodId) : ExecutableId()
 
 
 //sealed class ExecutableId : StatementId() {

@@ -2,21 +2,10 @@ package org.utbot.framework.util
 
 import org.utbot.common.Reflection
 import org.utbot.engine.ValueConstructor
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtMethodValueTestSet
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.constructorId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.methodId
-import org.utbot.framework.plugin.api.util.objectClassId
-import java.util.concurrent.atomic.AtomicInteger
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import soot.SootMethod
+import java.util.concurrent.atomic.AtomicInteger
 
 
 @Suppress("DEPRECATION")
@@ -65,7 +54,7 @@ val SootMethod.executableId: ExecutableId
                 name = name,
                 returnType = returnType.classId,
                 arguments = parameterTypes.map { it.classId }.toTypedArray()
-        )
+        ).asExecutable()
     }
 
 val modelIdCounter = AtomicInteger(0)

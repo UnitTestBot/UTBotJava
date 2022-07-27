@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.PathUtil
 import org.utbot.common.packageName
 import org.utbot.engine.isStatic
@@ -20,6 +21,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.isUnit
 import org.utbot.jcdb.api.*
+import org.utbot.jcdb.api.ext.findClass
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
@@ -710,9 +712,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private suspend fun CgVariable.hasNotParametrizedCustomEquals(): Boolean {
         if (type.overridesEquals()) {
             // type parameters is list of class type parameters - empty if class is not generic
-            val typeParameters = type.kClass.typeParameters
+            val resolution = runBlocking { type.resolution() }
 
-            return typeParameters.isEmpty()
+            return resolution == Raw
         }
 
         return false
@@ -800,7 +802,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
         if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
-            if (field.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
+            if (isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             testClassThisInstance[getFieldValue](variable, stringLiteral(name))
         }
@@ -835,7 +837,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             dimensions = 0
         )
 
-        val nestedElementClassIdList = generateSequence(classId.elementClassId) { it.elementClassId }.toList()
+        val nestedElementClassIdList = generateSequence(classId.ifArrayGetElementClass()) { it.ifArrayGetElementClass() }.toList()
         val dimensions = nestedElementClassIdList.size
         val nestedElementClassId = nestedElementClassIdList.last()
 
@@ -848,7 +850,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 // TODO: How to compare arrays of Float and Double wrappers?
                 // TODO: For example, JUnit5 does not have an assertEquals() overload for these wrappers.
                 // TODO: So for now we compare arrays of these wrappers as arrays of Objects, but that is probably wrong.
-                when (expected.type.elementClassId!!) {
+                when (expected.type..ifArrayGetElementClass()!!) {
                     floatClassId -> testFrameworkManager.assertFloatArrayEquals(
                         typeCast(floatArrayClassId, expected, isSafetyCast = true),
                         typeCast(floatArrayClassId, actual, isSafetyCast = true),
@@ -987,12 +989,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun recordActualResult() {
         currentExecution!!.result.onSuccess { result ->
             when (val executable = currentExecutable) {
-                is ConstructorId -> {
+                is ConstructorExecutableId -> {
                     // there is nothing to generate for constructors
                     return
                 }
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
-                is MethodId -> {
+                is MethodExecutableId -> {
                     // TODO possible engine bug - void method return type and result not UtVoidModel
                     if (result.isUnit() || executable.returnType == voidClassId) return
 
@@ -1053,7 +1055,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     val closeFinallyBlock = resources.map {
                         val variable = it.variable
                         variable.type.closeMethodIdOrNull?.let { closeMethod ->
-                            CgMethodCall(variable, closeMethod, arguments = emptyList()).toStatement()
+                            CgMethodCall(variable, closeMethod.asExecutableMethod(), arguments = emptyList()).toStatement()
                         } ?: error("Resource $variable was expected to be auto closeable but it is not")
                     }
 
@@ -1174,7 +1176,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
                     paramType is ParameterizedTypeImpl -> paramType.rawType.id
-                    else -> ClassId(paramType.typeName)
+                    else -> runBlocking { utContext.classpath.findClass(paramType.typeName) }
                 }
 
                 val argument = CgParameterDeclaration(
@@ -1335,9 +1337,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         arguments: List<CgExpression>,
     ): List<CgStatement> = when (testFramework) {
         Junit5 -> {
-            val argumentsMethodCall = CgMethodCall(caller = null, argumentsMethodId(), arguments)
+            val argumentsMethodCall = CgMethodCall(caller = null, argumentsMethodId().asExecutableMethod(), arguments)
             listOf(
-                CgStatementExecutableCall(CgMethodCall(argsVariable, addToListMethodId(), listOf(argumentsMethodCall)))
+                CgStatementExecutableCall(CgMethodCall(argsVariable, addToListMethodId().asExecutableMethod(), listOf(argumentsMethodCall)))
             )
         }
         TestNg -> {
@@ -1387,7 +1389,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun createArgList(length: Int): CgDeclaration = when (testFramework) {
         Junit5 -> {
-            val constructorCall = CgConstructorCall(ConstructorId(argListClassId(), emptyList()), emptyList())
+            val constructorCall = CgConstructorCall(constructorId(argListClassId()), emptyList())
             CgDeclaration(argListClassId(), "argList", constructorCall)
         }
         TestNg -> {
@@ -1608,8 +1610,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun CgExecutableCall.intercepted() {
         val executableToWrap = when (executableId) {
-            is MethodId -> invoke
-            is ConstructorId -> newInstance
+            is MethodExecutableId -> invoke
+            is ConstructorExecutableId -> newInstance
         }
         if (executableId == executableToWrap) {
             this.wrapReflectiveCall()

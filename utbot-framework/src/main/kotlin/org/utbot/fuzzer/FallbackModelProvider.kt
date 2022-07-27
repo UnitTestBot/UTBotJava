@@ -1,29 +1,14 @@
 package org.utbot.fuzzer
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.engine.isPublic
 import org.utbot.framework.concrete.UtModelConstructor
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isIterable
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.kClass
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.providers.AbstractModelProvider
+import org.utbot.jcdb.api.*
 import java.util.*
 import java.util.function.IntSupplier
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.reflect.KClass
 
 /**
  * Provides some simple default models of any class.
@@ -38,14 +23,12 @@ open class FallbackModelProvider(
         return createModelByClassId(classId)
     }
 
-    fun toModel(klazz: KClass<*>): UtModel = createSimpleModelByKClass(klazz)
-
-    private fun createModelByClassId(classId: ClassId): UtModel {
+    private fun createModelByClassId(classId: ClassId): UtModel = runBlocking {
         val modelConstructor = UtModelConstructor(IdentityHashMap())
         val defaultConstructor = classId.jClass.constructors.firstOrNull {
             it.parameters.isEmpty() && it.isPublic
         }
-        return when {
+        when {
             classId.isPrimitive ->
                 classId.defaultValueModel()
             classId.isArray ->
@@ -53,52 +36,53 @@ open class FallbackModelProvider(
                     id = idGenerator.asInt,
                     classId,
                     length = 0,
-                    classId.elementClassId!!.defaultValueModel(),
+                    classId.ifArrayGetElementClass()!!.defaultValueModel(),
                     mutableMapOf()
                 )
             classId.isIterable -> {
                 @Suppress("RemoveRedundantQualifierName") // ArrayDeque must be taken from java, not from kotlin
                 val defaultInstance = when {
                     defaultConstructor != null -> defaultConstructor.newInstance()
-                    classId.jClass.isAssignableFrom(java.util.ArrayList::class.java) -> ArrayList<Any>()
-                    classId.jClass.isAssignableFrom(java.util.TreeSet::class.java) -> TreeSet<Any>()
-                    classId.jClass.isAssignableFrom(java.util.HashMap::class.java) -> HashMap<Any, Any>()
-                    classId.jClass.isAssignableFrom(java.util.ArrayDeque::class.java) -> java.util.ArrayDeque<Any>()
-                    classId.jClass.isAssignableFrom(java.util.BitSet::class.java) -> BitSet()
+                    classId isSubtypeOf asClass<java.util.ArrayList<*>>() -> ArrayList<Any>()
+                    classId isSubtypeOf asClass<java.util.TreeSet<*>>() -> TreeSet<Any>()
+                    classId isSubtypeOf asClass<java.util.HashMap<*,*>>() -> HashMap<Any, Any>()
+                    classId isSubtypeOf asClass<java.util.ArrayDeque<*>>() -> java.util.ArrayDeque<Any>()
+                    classId isSubtypeOf asClass<java.util.BitSet>() -> BitSet()
                     else -> null
                 }
-                if (defaultInstance != null)
+                if (defaultInstance != null) {
                     modelConstructor.construct(defaultInstance, classId)
-                else
-                    createSimpleModelByKClass(classId.kClass)
+                }else {
+                    createSimpleModel(classId)
+                }
             }
             else ->
-                createSimpleModelByKClass(classId.kClass)
+                createSimpleModel(classId)
         }
     }
 
-    private fun createSimpleModelByKClass(kclass: KClass<*>): UtModel {
-        val defaultConstructor = kclass.java.constructors.firstOrNull {
-            it.parameters.isEmpty() && it.isPublic // check constructor is public
+    private suspend fun createSimpleModel(classId: ClassId): UtModel {
+        val defaultConstructor = classId.methods().firstOrNull {
+            it.isPublic() && it.isConstructor() && it.parameters().isEmpty()
         }
-        return if (kclass.isAbstract) { // sealed class is abstract by itself
-            UtNullModel(kclass.java.id)
+        return if (classId.isAbstract()) { // sealed class is abstract by itself
+            UtNullModel(classId)
         } else if (defaultConstructor != null) {
             val chain = mutableListOf<UtStatementModel>()
             val model = UtAssembleModel(
                 id = idGenerator.asInt,
-                kclass.id,
-                kclass.id.toString(),
+                classId,
+                classId.name,
                 chain
             )
             chain.add(
-                UtExecutableCallModel(model, defaultConstructor.executableId, listOf(), model)
+                UtExecutableCallModel(model, defaultConstructor.asExecutable(), listOf(), model)
             )
             model
         } else {
             UtCompositeModel(
                 id = idGenerator.asInt,
-                kclass.id,
+                classId,
                 isMock = false
             )
         }

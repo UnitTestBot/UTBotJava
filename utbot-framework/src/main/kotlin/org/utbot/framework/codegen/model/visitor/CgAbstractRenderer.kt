@@ -14,7 +14,6 @@ import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.MethodId
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {
@@ -42,7 +41,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         }
     }
 
-    private val MethodId.accessibleByName: Boolean
+    private val MethodExecutableId.accessibleByName: Boolean
         get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
 
     override fun visit(element: CgElement) {
@@ -718,10 +717,10 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected fun String.escapeNamePossibleKeyword(): String = escapeNamePossibleKeywordImpl(this)
 
     protected fun ClassId.asString(): String {
-        if (!context.shouldOptimizeImports) return canonicalName
+        if (!context.shouldOptimizeImports) return name
 
         // use simpleNameWithEnclosings instead of simpleName to consider nested classes case
-        return if (this.isAccessibleBySimpleName()) simpleNameWithEnclosings else canonicalName
+        return if (isAccessibleBySimpleName()) simpleNameWithEnclosings else name
     }
 
     private fun renderClassPackage(element: CgTestClass) {

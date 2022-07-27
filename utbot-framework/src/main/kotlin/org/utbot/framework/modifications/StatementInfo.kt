@@ -1,8 +1,8 @@
 package org.utbot.framework.modifications
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 
 /**
  * Information about the statement in the invocation graph

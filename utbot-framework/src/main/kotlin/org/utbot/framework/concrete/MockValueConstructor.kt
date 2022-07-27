@@ -8,12 +8,7 @@ import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.isMockModel
-import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.utContext
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.anyInstance
 import org.utbot.jcdb.api.*
 import java.io.Closeable
@@ -216,7 +211,7 @@ class MockValueConstructor(
         methodToValues: Map<ExecutableId, List<UtModel>>,
     ) {
         controllers += computeConcreteValuesForMethods(methodToValues).map { (method, values) ->
-            if (method !is MethodId) {
+            if (method !is MethodExecutableId) {
                 throw IllegalArgumentException("Expected MethodId, but got: $method")
             }
             MethodMockController(
@@ -343,8 +338,8 @@ class MockValueConstructor(
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {
-            is MethodId -> executable.call(params, instanceValue)
-            is ConstructorId -> executable.call(params)
+            is MethodExecutableId -> executable.call(params, instanceValue)
+            is ConstructorExecutableId -> executable.call(params)
         }
 
         // Ignore result if returnId is null. Otherwise add it to instance cache.
@@ -408,14 +403,14 @@ class MockValueConstructor(
         return construct(model, target).value
     }
 
-    private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
+    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? =
         method.run {
             withAccessibility {
                 invokeCatching(obj = instance, args = args).getOrThrow()
             }
         }
 
-    private fun ConstructorId.call(args: List<Any?>): Any? =
+    private fun ConstructorExecutableId.call(args: List<Any?>): Any? =
         constructor.run {
             withAccessibility {
                 newInstance(*args.toTypedArray())

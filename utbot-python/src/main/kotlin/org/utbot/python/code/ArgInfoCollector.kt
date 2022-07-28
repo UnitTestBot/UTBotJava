@@ -12,12 +12,11 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.NotEq
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
+import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.*
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.Invert
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.UAdd
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.USub
+import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.*
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Delete
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
@@ -266,9 +265,38 @@ class ArgInfoCollector(val method: PythonMethod) {
             return super.visitAssign(ast, param)
         }
 
+        private fun getOpMagicMethod(op: Operator?) =
+            when (op) {
+                is Gt -> "__gt__"
+                is GtE -> "__ge__"
+                is Lt -> "__lt__"
+                is LtE -> "__le__"
+                is Eq -> "__eq__"
+                is NotEq -> "__ne__"
+                is In -> "__contains__"
+                is FloorDiv -> "__floordiv__"
+                is Invert -> "__invert__"
+                is LShift -> "__lshift__"
+                is Mod -> "__mod__"
+                is Mult -> "__mul__"
+                is USub -> "__neg__"
+                is Or -> "__or__"
+                is UAdd -> "__pos__"
+                is Pow -> "__pow__"
+                is RShift -> "__rshift__"
+                is Sub -> "__sub__"
+                is Add -> "__add__"
+                is Div -> "__truediv__"
+                is BitXor -> "__xor__"
+                is Not -> "__not__"
+                else -> null
+            }
+
         override fun visitAugAssign(ast: AugAssign, param: MutableMap<String, Storage>): AST {
             parseAndPutType(param, augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()), ast)
             parseAndPutFunctionRet(param, augAssign(ftarget = namePat(), fvalue = funcCallNamePat(), fop = drop()), ast)
+            saveToAttributeStorage(ast.target, getOpMagicMethod(ast.op), param)
+            saveToAttributeStorage(ast.value, getOpMagicMethod(ast.op), param)
             return super.visitAugAssign(ast, param)
         }
 
@@ -300,10 +328,14 @@ class ArgInfoCollector(val method: PythonMethod) {
                 ),
                 ast
             )
+            saveToAttributeStorage(ast.left, getOpMagicMethod(ast), param)
+            saveToAttributeStorage(ast.right, getOpMagicMethod(ast), param)
             return super.visitBinOp(ast, param)
         }
 
-        fun saveToAttributeStorage(name: AST?, methodName: String, param: MutableMap<String, Storage>) {
+        fun saveToAttributeStorage(name: AST?, methodName: String?, param: MutableMap<String, Storage>) {
+            if (methodName == null)
+                return
             paramNames.forEach {
                 if (name is Name && name.id.name == it) {
                     addToStorage(it, param) { storage ->
@@ -313,132 +345,9 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
         }
 
-        override fun visitGt(gt: Gt, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(gt.left, "__gt__", param)
-            saveToAttributeStorage(gt.right, "__gt__", param)
-            return super.visitGt(gt, param)
-        }
-
-        override fun visitGtE(gte: GtE, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(gte.left, "__ge__", param)
-            saveToAttributeStorage(gte.right, "__ge__", param)
-            return super.visitGtE(gte, param)
-        }
-
-        override fun visitLt(lt: Lt, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(lt.left, "__lt__", param)
-            saveToAttributeStorage(lt.right, "__lt__", param)
-            return super.visitLt(lt, param)
-        }
-
-        override fun visitLtE(lte: LtE, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(lte.left, "__le__", param)
-            saveToAttributeStorage(lte.right, "__le__", param)
-            return super.visitLtE(lte, param)
-        }
-
-        override fun visitEq(eq: Eq, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(eq.left, "__eq__", param)
-            saveToAttributeStorage(eq.right, "__eq__", param)
-            return super.visitEq(eq, param)
-        }
-
-        override fun visitNotEq(ne: NotEq, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(ne.left, "__ne__", param)
-            saveToAttributeStorage(ne.right, "__ne__", param)
-            return super.visitNotEq(ne, param)
-        }
-
-        override fun visitIn(`in`: In, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(`in`.left, "__contains__", param)
-            saveToAttributeStorage(`in`.right, "__contains__", param)
-            return super.visitIn(`in`, param)
-        }
-
-        override fun visitIndex(index: Index, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(index.value, "__index__", param)
-            return super.visitIndex(index, param)
-        }
-
-        override fun visitFloorDiv(floorDiv: FloorDiv, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(floorDiv.left, "__floordiv__", param)
-            saveToAttributeStorage(floorDiv.right, "__floordiv__", param)
-            return super.visitFloorDiv(floorDiv, param)
-        }
-
-        override fun visitInvert(invert: Invert, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(invert.expression, "__invert__", param)
-            return super.visitInvert(invert, param)
-        }
-
-        override fun visitLShift(lShift: LShift, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(lShift.left, "__lshift__", param)
-            saveToAttributeStorage(lShift.right, "__lshift__", param)
-            return super.visitLShift(lShift, param)
-        }
-
-        override fun visitModulo(modulo: Mod, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(modulo.left, "__mod__", param)
-            saveToAttributeStorage(modulo.right, "__mod__", param)
-            return super.visitModulo(modulo, param)
-        }
-
-        override fun visitMult(mult: Mult, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(mult.left, "__mul__", param)
-            saveToAttributeStorage(mult.right, "__mul__", param)
-            return super.visitMult(mult, param)
-        }
-
-        override fun visitUSub(uSub: USub, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(uSub.expression, "__neg__", param)
-            return super.visitUSub(uSub, param)
-        }
-
-        override fun visitOr(or: Or, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(or.left, "__or__", param)
-            saveToAttributeStorage(or.right, "__or__", param)
-            return super.visitOr(or, param)
-        }
-
-        override fun visitUAdd(uAdd: UAdd, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(uAdd.expression, "__pos__", param)
-            return super.visitUAdd(uAdd, param)
-        }
-
-        override fun visitPow(pow: Pow, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(pow.left, "__pow__", param)
-            saveToAttributeStorage(pow.right, "__pow__", param)
-            return super.visitPow(pow, param)
-        }
-
-        override fun visitRShift(rShift: RShift, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(rShift.left, "__rshift__", param)
-            saveToAttributeStorage(rShift.right, "__rshift__", param)
-            return super.visitRShift(rShift, param)
-        }
-
-        override fun visitSub(sub: Sub, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(sub.left, "__sub__", param)
-            saveToAttributeStorage(sub.right, "__sub__", param)
-            return super.visitSub(sub, param)
-        }
-
-        override fun visitAdd(add: Add, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(add.left, "__add__", param)
-            saveToAttributeStorage(add.right, "__add__", param)
-            return super.visitAdd(add, param)
-        }
-
-        override fun visitDiv(div: Div, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(div.left, "__truediv__", param)
-            saveToAttributeStorage(div.right, "__truediv__", param)
-            return super.visitDiv(div, param)
-        }
-
-        override fun visitBitXor(bitXor: BitXor, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(bitXor.left, "__xor__", param)
-            saveToAttributeStorage(bitXor.right, "__xor__", param)
-            return super.visitBitXor(bitXor, param)
+        override fun visitUnaryOp(unaryOp: UnaryOp, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(unaryOp.expression, getOpMagicMethod(unaryOp), param)
+            return super.visitUnaryOp(unaryOp, param)
         }
 
         override fun visitDelete(delete: Delete, param: MutableMap<String, Storage>): AST {

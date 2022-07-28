@@ -6,7 +6,7 @@ on:
 jobs:
   build-and-run-tests:
     runs-on: [self-hosted]
-    container: unittestbot/java-env:java8-zulu-jdk-fx-gradle6.8-kotlinc1.6.21
+    container: unittestbot/java-env:java8-zulu-jdk-fx-gradle6.8-kotlinc1.7.10
     steps:
     - uses: actions/checkout@v2
 #     - uses: actions/setup-java@v2

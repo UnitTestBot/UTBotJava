@@ -12,9 +12,11 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.OrderEnumerator
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
 import com.intellij.psi.SyntheticElement
@@ -150,7 +152,9 @@ object UtTestsDialogProcessor {
                                             .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
                                                 it.member !is SyntheticElement
                                             }
-                                    findMethodsInClassMatchingSelected(clazz, srcMethods)
+                                    DumbService.getInstance(project).runReadActionInSmartMode(Computable {
+                                        findMethodsInClassMatchingSelected(clazz, srcMethods)
+                                    })
                                 }.executeSynchronously()
 
                                 val className = srcClass.name

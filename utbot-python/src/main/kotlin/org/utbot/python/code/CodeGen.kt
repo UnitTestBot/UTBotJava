@@ -13,6 +13,8 @@ import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.ExceptHandler
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.Try
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.With
@@ -21,6 +23,7 @@ import io.github.danielnaczo.python3parser.model.stmts.importStmts.Alias
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Assert
+import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AnnAssign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
@@ -177,8 +180,12 @@ object PythonCodeGenerator {
         return Arguments(args, keywords, starredArgs, doubleStarredArgs)
     }
 
-    private fun generateImportFunctionCode(functionPath: String, directoriesForSysPath: List<String>): List<Statement> {
-        val systemImport = Import(listOf(Alias("sys"), Alias("json")))
+    private fun generateImportFunctionCode(
+        functionPath: String,
+        directoriesForSysPath: List<String>,
+        additionalModules: List<StubFileStructures.PythonInfoType> = emptyList(),
+    ): List<Statement> {
+        val systemImport = Import(listOf(Alias("sys"), Alias("typing"), Alias("json")))
         val systemCalls = directoriesForSysPath.map { path ->
             Atom(
                 Name("sys.path.append"),
@@ -190,7 +197,10 @@ object PythonCodeGenerator {
             )
         }
         val import = ImportFrom(functionPath, listOf(Alias("*")))
-        return listOf(systemImport) + systemCalls + listOf(import)
+        val additionalImport = additionalModules.map {
+            ImportFrom(it.module, listOf(Alias(it.name)))
+        }
+        return listOf(systemImport) + systemCalls + listOf(import) + additionalImport
     }
 
     fun generateRunFunctionCode(
@@ -276,24 +286,40 @@ object PythonCodeGenerator {
         return file
     }
 
-//    fun generateStubFile(
-//        method: PythonMethod,
-//        annotations: List<String>,
-//    ): String {
-//        val parameters = method.arguments.zip(annotations).map { (argument, annotation) ->
-//            Parameter(argument.name, Name(annotation))
-//        }
-//        val sourceCodeFile = File(method.sourceCodePath.toString().split(".").first() + ".py")
-//        val sourceCode = sourceCodeFile.readText()
-//
-//        val functionName = "__mypy_test_${method.name}"
-//        val functionDef = FunctionDef(
-//            functionName,
-//            Parameters(parameters),
-//            method.ast().body
-//        )
-//        return sourceCode + "\n" + PythonMethodBody(functionDef).asString()
-//    }
+    fun generateMypyCheckCode(
+        method: PythonMethod,
+        methodAnnotations: Map<String, StubFileStructures.PythonInfoType>,
+        codeFilename: String,
+        directoriesForSysPath: List<String>,
+        moduleToImport: String
+    ): File {
+        val importStatements = generateImportFunctionCode(
+            moduleToImport,
+            directoriesForSysPath,
+            methodAnnotations.values.toSet().toList(),
+        )
+
+        val parameters = Parameters(
+            method.arguments.map { argument ->
+                Parameter("${argument.name}: ${methodAnnotations[argument.name]?.name ?: "typing.Any"}")
+            },
+        )
+
+        val testFunctionName = "__mypy_check_${method.name}"
+        val testFunction = FunctionDef(
+            testFunctionName,
+            parameters,
+            method.ast().body
+        )
+
+        val functionCode = toString(
+            Module(
+                importStatements + listOf(testFunction)
+            )
+        )
+
+        return saveToFile(codeFilename, functionCode)
+    }
 }
 
 fun String.camelToSnakeCase(): String {

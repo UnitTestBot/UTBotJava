@@ -39,7 +39,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     cgDataProviderMethods.clear()
                     for (testSet in testSets) {
                         updateCurrentExecutable(testSet.method)
-                        val currentMethodUnderTestRegions = construct(testSet)
+                        val currentMethodUnderTestRegions = construct(testSet) ?: continue
                         val executableUnderTestCluster = CgExecutableUnderTestCluster(
                             "Test suites for executable $currentExecutable",
                             currentMethodUnderTestRegions
@@ -63,7 +63,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun construct(testSet: UtMethodTestSet): List<CgRegion<CgMethod>> {
+    private fun construct(testSet: UtMethodTestSet): List<CgRegion<CgMethod>>? {
+        if (testSet.executions.isEmpty()) {
+            return null
+        }
+
         val (methodUnderTest, executions, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
@@ -94,17 +98,15 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     val parameterizedTestMethod =
                         methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
 
-                    if (parameterizedTestMethod != null) {
-                        requiredFields += parameterizedTestMethod.requiredFields
+                    requiredFields += parameterizedTestMethod.requiredFields
 
-                        cgDataProviderMethods +=
-                            methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+                    cgDataProviderMethods +=
+                        methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
 
-                        regions += CgSimpleRegion(
-                            "Parameterized test for method ${methodUnderTest.displayName}",
-                            listOf(parameterizedTestMethod),
-                        )
-                    }
+                    regions += CgSimpleRegion(
+                        "Parameterized test for method ${methodUnderTest.displayName}",
+                        listOf(parameterizedTestMethod),
+                    )
                 }.onFailure { error -> processFailure(testSet, error) }
             }
         }

@@ -110,6 +110,8 @@ sealed class UtResult
  * - static fields changed during execution;
  * - required instrumentation details (such as randoms, time, static methods).
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
+ * - the engine type that created this execution.
+ * - comments, method names and display names created by utbot-summary module.
  */
 data class UtExecution(
     val stateBefore: EnvironmentModels,
@@ -119,6 +121,7 @@ data class UtExecution(
     val path: MutableList<Step>,
     val fullPath: List<Step>,
     val coverage: Coverage? = null,
+    val createdBy: UtExecutionCreator? = null,
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null,
@@ -1205,7 +1208,14 @@ private fun StringBuilder.appendOptional(name: String, value: Map<*, *>) {
 }
 
 /**
- * Entity that represents cluster information that should appear in the comment
+ * Enum that represents different type of engines that produce tests.
+ */
+enum class UtExecutionCreator {
+    FUZZER, SYMBOLIC_ENGINE
+}
+
+/**
+ * Entity that represents cluster information that should appear in the comment.
  */
 data class UtClusterInfo(
     val header: String? = null,
@@ -1213,13 +1223,13 @@ data class UtClusterInfo(
 )
 
 /**
- * Entity that represents cluster of executions
+ * Entity that represents cluster of executions.
  */
 data class UtExecutionCluster(val clusterInfo: UtClusterInfo, val executions: List<UtExecution>)
 
 
 /**
- * Entity that represents various types of statements in comments
+ * Entity that represents various types of statements in comments.
  */
 sealed class DocStatement
 

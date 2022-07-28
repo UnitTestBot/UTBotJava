@@ -43,7 +43,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName2
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -70,7 +70,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName1
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -120,7 +120,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -173,7 +173,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -210,7 +210,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName2
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -247,7 +247,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName2
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -284,7 +284,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName2
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -331,7 +331,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -406,7 +406,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName5
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -466,7 +466,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
 
@@ -508,7 +508,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName2
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -545,7 +545,7 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName2
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -592,6 +592,6 @@ class SummaryTernaryTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 }

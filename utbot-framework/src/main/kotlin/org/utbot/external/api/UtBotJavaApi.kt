@@ -8,6 +8,23 @@ import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.TestCaseGenerator
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionCreator
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.primitiveByWrapper
+import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.util.wrapperByPrimitive
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedValue
@@ -222,12 +239,12 @@ object UtBotJavaApi {
         }
 
         val utExecution = UtExecution(
-            testInfo.initialState,
-            testInfo.initialState, // it seems ok for concrete execution
-            utExecutionResult,
-            emptyList(),
-            mutableListOf(),
-            listOf()
+            stateBefore = testInfo.initialState,
+            stateAfter = testInfo.initialState, // it seems ok for concrete execution
+            result = utExecutionResult,
+            instrumentation = emptyList(),
+            path = mutableListOf(),
+            fullPath = listOf()
         )
 
         val utMethod = UtMethod(methodCallable, containingClass.kotlin)

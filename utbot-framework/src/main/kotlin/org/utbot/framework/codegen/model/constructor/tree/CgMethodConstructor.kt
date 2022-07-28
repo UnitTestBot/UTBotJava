@@ -875,18 +875,17 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         } else {
                             // array of objects, have to use deep equals
 
-                            if (expected is CgLiteral) {
-                                // Literal can only be Primitive or String, can use equals here
-                                testFrameworkManager.assertEquals(expected, actual)
-                                return
+                            when (expected) {
+                                is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
+                                is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
+                                else -> {
+                                    require(resultModel is UtArrayModel) {
+                                        "Result model have to be UtArrayModel to generate arrays assertion " +
+                                                "but `${resultModel::class}` found"
+                                    }
+                                    generateDeepEqualsOrNullAssertion(expected, actual)
+                                }
                             }
-
-                            require(resultModel is UtArrayModel) {
-                                "Result model have to be UtArrayModel to generate arrays assertion " +
-                                        "but `${resultModel::class}` found"
-                            }
-
-                            generateDeepEqualsOrNullAssertion(expected, actual)
                         }
                     }
                 }
@@ -917,21 +916,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 else -> {
                     when (expected) {
-                        is CgLiteral -> {
-                            // Literal can only be Primitive or String, can use equals here
-                            testFrameworkManager.assertEquals(expected, actual)
-                        }
-                        is CgNotNullAssertion -> {
-                            require(expected.expression is CgVariable) {
-                                "Only Variable wrapped in CgNotNullAssertion is supported in deep equals"
-                            }
-                            currentBlock = currentBlock.addAll(generateDeepEqualsAssertion(expected.expression, actual))
-                        }
+                        is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
+                        is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
                         else -> generateDeepEqualsOrNullAssertion(expected, actual)
                     }
                 }
             }
         }
+    }
+
+    private fun generateForNotNullAssertion(expected: CgNotNullAssertion, actual: CgVariable) {
+        require(expected.expression is CgVariable) {
+            "Only CgVariable wrapped in CgNotNullAssertion is supported in deepEquals"
+        }
+        generateDeepEqualsOrNullAssertion(expected.expression, actual)
     }
 
     /**
@@ -1088,11 +1086,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
-    fun createParameterizedTestMethod(testSet: UtMethodTestSet, dataProviderMethodName: String): CgTestMethod? {
-        if (testSet.executions.isEmpty()) {
-            return null
-        }
-
+    fun createParameterizedTestMethod(testSet: UtMethodTestSet, dataProviderMethodName: String): CgTestMethod {
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions

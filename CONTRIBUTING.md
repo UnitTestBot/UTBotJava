@@ -26,6 +26,33 @@ Give us some time to review your proposal and provide you with our feedback. It 
 Our team adheres to the defined requirements to coding style to optimize for readability. You can take a look on this [Coding style guide](https://github.com/saveourtool/diktat/blob/master/info/guide/diktat-coding-convention.md) to better understand what we expect to see in your code. 
 
 
+## Naming conventions
+We have been using GitHub for a while, and now we have a couple of tips for naming issues, commits and pull requests (PRs). You are welcome to stick to them too 🙂
+
+Our favorite recipes are:
+
+   **issue title = feature request or bug description + issue ID**
+
+   **commit message = PR title = fix description + issue ID + (PR number)**
+
+How to insert the issue ID into the commit message and the PR title?<br>
+—	Manually.
+
+How to append the PR number to the PR title?<br>
+—	It appends automatically.
+
+How to insert the PR number into the commit message?<br>
+—	*Push* the feature branch + *Create pull request* on GitHub and then →<br>
+1) The preferred and the easiest flow:
+<br>*Squash and merge* on GitHub → the PR number automatically appends to the resulting commit message
+2) The flow for advanced users:
+<br>(a)	squash the commits locally → insert the PR number in parentheses (!) manually into the resulting commit 
+   message + *Force Push* the resulting commit → *Rebase and merge* on GitHub
+<br>or
+<br>(b)	change the commit message locally → insert the PR number in parentheses (!) manually + *Force Push* the 
+   commit → *Rebase and merge* on GitHub
+
+
 ## How to setup development environment?
 
 Please refer [Developer guide](https://github.com/UnitTestBot/UTBotJava/blob/main/DEVNOTE.md) to setup developer environment, build and run UTBot.

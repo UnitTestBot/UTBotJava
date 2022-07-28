@@ -7,6 +7,7 @@ import org.utbot.common.bracket
 import org.utbot.common.info
 import org.utbot.common.packageName
 import org.utbot.examples.TestFrameworkConfiguration
+import org.utbot.examples.conflictTriggers
 import org.utbot.framework.codegen.ExecutionStatus.SUCCESS
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -71,22 +72,43 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
             val testSets = data as List<UtMethodTestSet>
 
             val codegenLanguage = testFrameworkConfiguration.codegenLanguage
+            val parametrizedTestSource = testFrameworkConfiguration.parametrizedTestSource
+            val isParametrizedAndMocked = testFrameworkConfiguration.isParametrizedAndMocked
 
             val testClass = callToCodeGenerator(testSets, classUnderTest)
+
+            // clear triggered flags from the current launch in order to get ready for the next possible run
+            conflictTriggers.clear()
 
             // actual number of the tests in the generated testClass
             val generatedMethodsCount = testClass
                 .lines()
                 .count {
                     val trimmedLine = it.trimStart()
-                    if (codegenLanguage == CodegenLanguage.JAVA) {
-                        trimmedLine.startsWith("public void")
-                    } else {
-                        trimmedLine.startsWith("fun ")
+                    val prefix = when (codegenLanguage) {
+                        CodegenLanguage.JAVA ->
+                            when (parametrizedTestSource) {
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "public void "
+                                ParametrizedTestSource.PARAMETRIZE -> "public void parameterizedTestsFor"
+                            }
+
+                        CodegenLanguage.KOTLIN ->
+                            when (parametrizedTestSource) {
+                                ParametrizedTestSource.DO_NOT_PARAMETRIZE -> "fun "
+                                ParametrizedTestSource.PARAMETRIZE -> "fun parameterizedTestsFor"
+                            }
                     }
+                    trimmedLine.startsWith(prefix)
                 }
             // expected number of the tests in the generated testClass
-            val expectedNumberOfGeneratedMethods = testSets.sumOf { it.executions.size }
+            // if force mocking took place in parametrized test generation,
+            // we don't generate tests at all
+            val expectedNumberOfGeneratedMethods =
+                if (isParametrizedAndMocked) 0
+                else when (parametrizedTestSource) {
+                    ParametrizedTestSource.DO_NOT_PARAMETRIZE -> testSets.sumOf { it.executions.size }
+                    ParametrizedTestSource.PARAMETRIZE -> testSets.filter { it.executions.isNotEmpty() }.size
+                }
 
             // check for error in the generated file
             runCatching {
@@ -220,7 +242,12 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         }
         val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        return codeGenerator.generateAsString(testSets, testClassCustomName)
+        // if force mocking took place in parametrized test generation,
+        // we don't generate tests at all by passing empty list instead of test sets
+        return codeGenerator.generateAsString(
+            if (testFrameworkConfiguration.isParametrizedAndMocked) listOf() else testSets,
+            testClassCustomName
+        )
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {

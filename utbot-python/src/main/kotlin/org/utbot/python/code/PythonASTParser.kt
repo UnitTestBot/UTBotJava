@@ -15,12 +15,15 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.K
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Subscript
+import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.UnaryOp
+import org.apache.commons.lang3.math.NumberUtils
+import java.math.BigInteger
 
 sealed class Result<T>
 class Match<T>(val value: T): Result<T>()
 class Error<T> : Result<T>()
 
-class Parser<A, B, N> (
+open class Parser<A, B, N> (
     val go: (N, A) -> Result<B>
 )
 
@@ -48,6 +51,16 @@ fun <A, N> apply(): Parser<(N) -> A, A, N> =
 fun <A, B> name(fid: Parser<A, B, String>): Parser<A, B, Name> =
     Parser { node, x ->
         fid.go(node.id.name, x)
+    }
+
+fun <A> int(): Parser<A, A, String> =
+    Parser { node, x ->
+        when (NumberUtils.createNumber(node)) {
+            is Int -> Match(x)
+            is Long -> Match(x)
+            is BigInteger -> Match(x)
+            else -> Error()
+        }
     }
 
 fun <A, B> num(fnum: Parser<A, B, String>): Parser<A, B, Num> = Parser { node, x -> fnum.go(node.n, x) }
@@ -249,6 +262,51 @@ fun <A, B, C, D> classMethod(
     farguments: Parser<C, D, Arguments>
 ):Parser<A, D, Atom> =
     atom(refl(fname), list2(refl(attribute(fattributeId)), refl(farguments)))
+
+fun <A, B, N> goWithMatches(
+    pat: (N, A) -> Result<Pair<B, Int>>,
+    node: N,
+    x: Result<Pair<A, Int>>
+): Result<Pair<B, Int>> =
+    when (x) {
+        is Error -> Error()
+        is Match -> {
+            when (val x1 = pat(node, x.value.first)) {
+                is Error -> Error()
+                is Match -> Match(Pair(x1.value.first, x1.value.second + x.value.second))
+            }
+        }
+    }
+
+fun <A> opExpr(
+    fatomMatch: Parser<A, A, Expression>,
+    fatomExtra: Parser<A, A, Expression>
+): Parser<A, A, Expression> {
+    fun innerGo(node: Expression, x: A): Result<Pair<A, Int>> {
+        val y = fatomMatch.go(node, x)
+        if (y is Match)
+            return Match(Pair(y.value, 1))
+
+        val z = fatomExtra.go(node, x)
+        if (z is Match)
+            return Match(Pair(z.value, 0))
+
+        return when (node) {
+            is BinOp -> {
+                val x1 = innerGo(node.left, x)
+                goWithMatches(::innerGo, node.right, x1)
+            }
+            is UnaryOp -> innerGo(node.expression, x)
+            else -> Error()
+        }
+    }
+    return Parser { node, x ->
+        when (val x1 = innerGo(node, x)) {
+            is Error -> Error()
+            is Match -> if (x1.value.second == 0) Error() else Match(x1.value.first)
+        }
+    }
+}
 
 fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =
     Parser { node, x ->

@@ -11,7 +11,8 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.LtE
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.NotEq
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
+import io.github.danielnaczo.python3parser.model.expr.atoms.Num
+import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
@@ -31,7 +32,7 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 class ArgInfoCollector(val method: PythonMethod) {
-    data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
+    data class TypeStorage(val typeName: String)
     data class MethodStorage(val methodName: String)
     data class FunctionArgStorage(val name: String, val index: Int)
     data class FunctionRetStorage(val name: String)
@@ -44,12 +45,12 @@ class ArgInfoCollector(val method: PythonMethod) {
         val functionRetStorages: MutableSet<FunctionRetStorage> = mutableSetOf()
     )
 
+    private val constants = mutableSetOf<FuzzedConcreteValue>()
     private val paramNames = method.arguments.mapNotNull { param ->
         if (param.type == pythonAnyClassId) param.name else null
     }
-
     private val collectedValues = mutableMapOf<String, Storage>()
-    private val visitor = MatchVisitor(paramNames)
+    private val visitor = MatchVisitor(paramNames, constants)
 
     init {
         visitor.visitFunctionDef(method.ast(), collectedValues)
@@ -64,19 +65,16 @@ class ArgInfoCollector(val method: PythonMethod) {
         }
     }
 
-    fun getConstants(): List<FuzzedConcreteValue> =
-        collectedValues.values
-            .map { it.typeStorages }
-            .flatMap { storageList ->
-                storageList.mapNotNull { storage -> storage.const }
-            }
-
+    fun getConstants(): List<FuzzedConcreteValue> = constants.toList()
     fun getFunctionArgs() = collectedValues.entries.map { Pair(it.key, it.value.functionArgStorages.toList()) }
     fun getMethods() = collectedValues.entries.map { Pair(it.key, it.value.methodStorages.toList()) }
     fun getFields() = collectedValues.entries.map { Pair(it.key, it.value.fieldStorages.toList()) }
     fun getFunctionRets() = collectedValues.entries.map { Pair(it.key, it.value.functionRetStorages.toList()) }
 
-    private class MatchVisitor(private val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
+    private class MatchVisitor(
+        private val paramNames: List<String>,
+        val constStorage: MutableSet<FuzzedConcreteValue>
+    ): ModifierVisitor<MutableMap<String, Storage>>() {
 
         private val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
         private fun <A, N> namePat(): Parser<(String) -> A, A, N> {
@@ -94,33 +92,31 @@ class ArgInfoCollector(val method: PythonMethod) {
                 res
         }
 
-        private fun getNum(num: String, op: FuzzedOp): TypeStorage =
-            when (val x = NumberUtils.createNumber(num)) {
-                is Int -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op))
-                is Long -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op))
-                is BigInteger -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x, op))
-                else -> TypeStorage("float", FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op))
-            }
+        private fun <A> typedExpr(atom: Parser<A, A, Expression>): Parser<A, A, Expression> =
+            opExpr(refl(atom), refl(name(drop())))
 
-        private fun <A, N> valuePat(op: FuzzedOp = FuzzedOp.NONE): Parser<(TypeStorage) -> A, A, N> {
-            val consts = listOf<Parser<(TypeStorage) -> A, A, N>>(
-                map1(refl(num(apply()))) { x -> getNum(x, op) },
-                map1(refl(str(apply()))) { x ->
-                    TypeStorage("str", FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)) },
-                map0(refl(true_()),
-                    TypeStorage("bool", FuzzedConcreteValue(PythonBoolModel.classId, true, op))),
-                map0(refl(false_()),
-                    TypeStorage("bool", FuzzedConcreteValue(PythonBoolModel.classId, false, op))),
-                map0(refl(none()), TypeStorage("NoneType", null)),
-                map0(refl(dict(drop(), drop())), TypeStorage("dict", null)),
-                map0(refl(list(drop())), TypeStorage("list", null)),
-                map0(refl(set(drop())), TypeStorage("set", null)),
-                map0(refl(tuple(drop())), TypeStorage("tuple", null))
+        private fun <A> typedExpressionPat(): Parser<(TypeStorage) -> A, A, Expression> {
+            // map must preserve order
+            val typeMap = linkedMapOf<String, Parser<A, A, Expression>>(
+                "int" to refl(num(int())),
+                "float" to refl(num(drop())),
+                "str" to refl(str(drop())),
+                "bool" to or(refl(true_()), refl(false_())),
+                "NoneType" to refl(none()),
+                "dict" to refl(dict(drop(), drop())),
+                "list" to refl(list(drop())),
+                "set" to refl(set(drop())),
+                "tuple" to refl(tuple(drop()))
             )
-            val constructors: List<Parser<(TypeStorage) -> A, A, N>> = knownTypes.map { typeName ->
-                map0(refl(functionCall(name(equal(typeName)), drop())), TypeStorage(typeName, null))
+            knownTypes.forEach { typeName ->
+                if (typeMap.containsKey(typeName))
+                    typeMap[typeName] = or(typeMap[typeName]!!, refl(functionCall(name(equal(typeName)), drop())))
+                else
+                    typeMap[typeName] = refl(functionCall(name(equal(typeName)), drop()))
             }
-            return (consts + constructors).reduce { acc, elem -> or(acc, elem) }
+            return typeMap.entries.fold(reject()) { acc, entry ->
+                or(acc, map0(typedExpr(entry.value), TypeStorage(entry.key)))
+            }
         }
 
         private fun addToStorage(
@@ -214,7 +210,7 @@ class ArgInfoCollector(val method: PythonMethod) {
 
         private fun collectTypes(assign: Assign, param: MutableMap<String, Storage>) {
             val pat: Parser<(String) -> (TypeStorage) -> ResAssign, List<ResAssign>, Assign> = assignAll(
-                ftargets = allMatches(namePat()), fvalue = valuePat()
+                ftargets = allMatches(namePat()), fvalue = typedExpressionPat()
             )
             parse(
                 pat,
@@ -293,7 +289,7 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
 
         override fun visitAugAssign(ast: AugAssign, param: MutableMap<String, Storage>): AST {
-            parseAndPutType(param, augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()), ast)
+            parseAndPutType(param, augAssign(ftarget = namePat(), fvalue = typedExpressionPat(), fop = drop()), ast)
             parseAndPutFunctionRet(param, augAssign(ftarget = namePat(), fvalue = funcCallNamePat(), fop = drop()), ast)
             saveToAttributeStorage(ast.target, getOpMagicMethod(ast.op), param)
             saveToAttributeStorage(ast.value, getOpMagicMethod(ast.op), param)
@@ -311,12 +307,48 @@ class ArgInfoCollector(val method: PythonMethod) {
                 else -> FuzzedOp.NONE
             }
 
+        private fun getNumFuzzedValue(num: String, op: FuzzedOp = FuzzedOp.NONE): FuzzedConcreteValue =
+            when (val x = NumberUtils.createNumber(num)) {
+                is Int -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
+                is Long -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
+                is BigInteger -> FuzzedConcreteValue(PythonIntModel.classId, x, op)
+                else -> FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op)
+            }
+
+        private fun <A, N> constPat(op: FuzzedOp): Parser<(FuzzedConcreteValue) -> A, A, N> {
+            val pats = listOf<Parser<(FuzzedConcreteValue) -> A, A, N>>(
+                map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
+                map1(refl(str(apply()))) { x ->
+                    FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)
+                },
+                map0(
+                    refl(true_()),
+                    FuzzedConcreteValue(PythonBoolModel.classId, true, op)
+                ),
+                map0(
+                    refl(false_()),
+                    FuzzedConcreteValue(PythonBoolModel.classId, false, op)
+                )
+            )
+            return pats.reduce { acc, elem -> or(acc, elem) }
+        }
+
+        override fun visitNum(num: Num, param: MutableMap<String, Storage>): AST {
+            constStorage.add(getNumFuzzedValue(num.n))
+            return super.visitNum(num, param)
+        }
+
+        override fun visitStr(str: Str, param: MutableMap<String, Storage>?): AST {
+            constStorage.add(FuzzedConcreteValue(PythonStrModel.classId, getStr(str.s)))
+            return super.visitStr(str, param)
+        }
+
         override fun visitBinOp(ast: BinOp, param: MutableMap<String, Storage>): AST {
             parseAndPutType(
                 param,
                 or(
-                    binOp(fleft = namePat(), fright = valuePat(getOp(ast))),
-                    swap(binOp(fleft = valuePat(getOp(ast)), fright = namePat()))
+                    binOp(fleft = namePat(), fright = typedExpressionPat()),
+                    swap(binOp(fleft = typedExpressionPat(), fright = namePat()))
                 ),
                 ast
             )
@@ -328,6 +360,14 @@ class ArgInfoCollector(val method: PythonMethod) {
                 ),
                 ast
             )
+            val op = getOp(ast)
+            if (op != FuzzedOp.NONE)
+                parse(
+                    binOp(fleft = refl(name(drop())), fright = constPat(op)),
+                    onError = null,
+                    ast
+                ) { it } ?.let { constStorage.add(it) }
+
             saveToAttributeStorage(ast.left, getOpMagicMethod(ast), param)
             saveToAttributeStorage(ast.right, getOpMagicMethod(ast), param)
             return super.visitBinOp(ast, param)

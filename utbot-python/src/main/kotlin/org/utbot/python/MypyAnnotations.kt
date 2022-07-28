@@ -13,7 +13,7 @@ object MypyAnnotations {
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String
-    ): MutableList<Map<String, StubFileStructures.PythonInfoType>> {
+    ) = sequence {
         val codeFilename = "${testSourcePath}/__${method.name}__mypy_types.py"
 
         generateMypyCheckCode(
@@ -33,7 +33,6 @@ object MypyAnnotations {
                 }
             }).asSequence()
 
-        val mypyAcceptedAnnotations = mutableListOf<Map<String, StubFileStructures.PythonInfoType>>()
         annotations.forEach {
             val annotationMap = it.toMap()
             val functionFile = generateMypyCheckCode(
@@ -45,13 +44,10 @@ object MypyAnnotations {
             )
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
             if (mypyOutput == defaultOutput) {
-                mypyAcceptedAnnotations.add(annotationMap)
-                println(annotationMap)
+                yield(annotationMap)
             }
             functionFile.deleteOnExit()
         }
-
-        return mypyAcceptedAnnotations
     }
 
     private fun runMypy(

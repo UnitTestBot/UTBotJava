@@ -8,7 +8,6 @@ import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.code.StubFileFinder
-import org.utbot.python.code.StubFileStructures
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import kotlin.random.Random
@@ -26,20 +25,20 @@ class PythonEngine(
 
         val argInfoCollector = ArgInfoCollector(methodUnderTest)
         val argMethodAnnotations = argInfoCollector.getMethods().entries.associate {
-            it.key to it.value.map { storage ->
+            it.key to (it.value.map { storage ->
                 StubFileFinder.findTypeWithMethod(storage.methodName)
-            }.fold(mutableSetOf<StubFileStructures.PythonInfoType>()) { acc, set -> acc.intersect(set) as MutableSet<StubFileStructures.PythonInfoType> }.toList()
+            }.reduceRightOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
         }
-        val argsAttributeAnnotations = argInfoCollector.getFields().entries.associate {
-            it.key to it.value.map { storage ->
-                StubFileFinder.findTypeWithField(storage.name)
-            }.fold(mutableSetOf<StubFileStructures.PythonInfoType>()) { acc, set -> acc.intersect(set) as MutableSet<StubFileStructures.PythonInfoType> }.toList()
-        }
-        val argsFunctionAnnotations = argInfoCollector.getFunctionArgs().entries.associate {
-            it.key to it.value.map { storage ->
-                StubFileFinder.findTypeByFunctionWithArgumentPosition(storage.name, argumentPosition = storage.index)
-            }.fold(mutableSetOf<StubFileStructures.PythonInfoType>()) { acc, set -> acc.intersect(set) as MutableSet<StubFileStructures.PythonInfoType> }.toList()
-        }
+//        val argsAttributeAnnotations = argInfoCollector.getFields().entries.associate {
+//            it.key to (it.value.map { storage ->
+//                StubFileFinder.findTypeWithField(storage.name)
+//            }.reduceOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
+//        }
+//        val argsFunctionAnnotations = argInfoCollector.getFunctionArgs().entries.associate {
+//            it.key to (it.value.map { storage ->
+//                StubFileFinder.findTypeByFunctionWithArgumentPosition(storage.name, argumentPosition = storage.index)
+//            }.reduceOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
+//        }
 
         val methodData = MypyAnnotations.mypyCheckAnnotations(
             methodUnderTest,
@@ -49,7 +48,6 @@ class PythonEngine(
             directoriesForSysPath,
             pythonPath
         )
-
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
             returnType,

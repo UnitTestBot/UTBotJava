@@ -11,13 +11,13 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.LtE
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.NotEq
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
+import io.github.danielnaczo.python3parser.model.expr.atoms.Num
+import io.github.danielnaczo.python3parser.model.expr.atoms.Str
+import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.*
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.Invert
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.UAdd
-import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.USub
+import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.*
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Delete
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
@@ -32,23 +32,25 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 class ArgInfoCollector(val method: PythonMethod) {
-    data class TypeStorage(val typeName: String, val const: FuzzedConcreteValue?)
+    data class TypeStorage(val typeName: String)
     data class MethodStorage(val methodName: String)
     data class FunctionArgStorage(val name: String, val index: Int)
+    data class FunctionRetStorage(val name: String)
     data class FieldStorage(val name: String)
     data class Storage(
         val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
         val methodStorages: MutableSet<MethodStorage> = mutableSetOf(),
         val functionArgStorages: MutableSet<FunctionArgStorage> = mutableSetOf(),
-        val fieldStorages: MutableSet<FieldStorage> = mutableSetOf()
+        val fieldStorages: MutableSet<FieldStorage> = mutableSetOf(),
+        val functionRetStorages: MutableSet<FunctionRetStorage> = mutableSetOf()
     )
 
+    private val constants = mutableSetOf<FuzzedConcreteValue>()
     private val paramNames = method.arguments.mapNotNull { param ->
         if (param.type == pythonAnyClassId) param.name else null
     }
-
     private val collectedValues = mutableMapOf<String, Storage>()
-    private val visitor = MatchVisitor(paramNames)
+    private val visitor = MatchVisitor(paramNames, constants)
 
     init {
         visitor.visitFunctionDef(method.ast(), collectedValues)
@@ -63,28 +65,16 @@ class ArgInfoCollector(val method: PythonMethod) {
         }
     }
 
-    fun getConstants(): List<FuzzedConcreteValue> =
-        collectedValues.values
-            .map { it.typeStorages }
-            .flatMap { storageList ->
-                storageList.mapNotNull { storage -> storage.const }
-            }
+    fun getConstants(): List<FuzzedConcreteValue> = constants.toList()
+    fun getFunctionArgs() = collectedValues.entries.map { Pair(it.key, it.value.functionArgStorages.toList()) }
+    fun getMethods() = collectedValues.entries.map { Pair(it.key, it.value.methodStorages.toList()) }
+    fun getFields() = collectedValues.entries.map { Pair(it.key, it.value.fieldStorages.toList()) }
+    fun getFunctionRets() = collectedValues.entries.map { Pair(it.key, it.value.functionRetStorages.toList()) }
 
-    fun getFunctionArgs(): Map<String, Set<FunctionArgStorage>> =
-        collectedValues.entries.associate {
-            it.key to it.value.functionArgStorages }
-
-    fun getMethods(): Map<String, Set<MethodStorage>> =
-        collectedValues.entries.associate {
-            it.key to it.value.methodStorages
-        }
-
-    fun getFields(): Map<String, Set<FieldStorage>> =
-        collectedValues.entries.associate {
-            it.key to it.value.fieldStorages
-        }
-
-    private class MatchVisitor(private val paramNames: List<String>): ModifierVisitor<MutableMap<String, Storage>>() {
+    private class MatchVisitor(
+        private val paramNames: List<String>,
+        val constStorage: MutableSet<FuzzedConcreteValue>
+    ): ModifierVisitor<MutableMap<String, Storage>>() {
 
         private val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
         private fun <A, N> namePat(): Parser<(String) -> A, A, N> {
@@ -102,33 +92,31 @@ class ArgInfoCollector(val method: PythonMethod) {
                 res
         }
 
-        private fun getNum(num: String, op: FuzzedOp): TypeStorage =
-            when (val x = NumberUtils.createNumber(num)) {
-                is Int -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op))
-                is Long -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op))
-                is BigInteger -> TypeStorage("int", FuzzedConcreteValue(PythonIntModel.classId, x, op))
-                else -> TypeStorage("float", FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op))
-            }
+        private fun <A> typedExpr(atom: Parser<A, A, Expression>): Parser<A, A, Expression> =
+            opExpr(refl(atom), refl(name(drop())))
 
-        private fun <A, N> valuePat(op: FuzzedOp = FuzzedOp.NONE): Parser<(TypeStorage) -> A, A, N> {
-            val consts = listOf<Parser<(TypeStorage) -> A, A, N>>(
-                map1(refl(num(apply()))) { x -> getNum(x, op) },
-                map1(refl(str(apply()))) { x ->
-                    TypeStorage("str", FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)) },
-                map0(refl(true_()),
-                    TypeStorage("bool", FuzzedConcreteValue(PythonBoolModel.classId, true, op))),
-                map0(refl(false_()),
-                    TypeStorage("bool", FuzzedConcreteValue(PythonBoolModel.classId, false, op))),
-                // map0(refl(none()), Storage("None")),
-                map0(refl(dict(drop(), drop())), TypeStorage("dict", null)),
-                map0(refl(list(drop())), TypeStorage("list", null)),
-                map0(refl(set(drop())), TypeStorage("set", null)),
-                map0(refl(tuple(drop())), TypeStorage("tuple", null))
+        private fun <A> typedExpressionPat(): Parser<(TypeStorage) -> A, A, Expression> {
+            // map must preserve order
+            val typeMap = linkedMapOf<String, Parser<A, A, Expression>>(
+                "int" to refl(num(int())),
+                "float" to refl(num(drop())),
+                "str" to refl(str(drop())),
+                "bool" to or(refl(true_()), refl(false_())),
+                "NoneType" to refl(none()),
+                "dict" to refl(dict(drop(), drop())),
+                "list" to refl(list(drop())),
+                "set" to refl(set(drop())),
+                "tuple" to refl(tuple(drop()))
             )
-            val constructors: List<Parser<(TypeStorage) -> A, A, N>> = knownTypes.map { typeName ->
-                map0(refl(functionCall(name(equal(typeName)), drop())), TypeStorage(typeName, null))
+            knownTypes.forEach { typeName ->
+                if (typeMap.containsKey(typeName))
+                    typeMap[typeName] = or(typeMap[typeName]!!, refl(functionCall(name(equal(typeName)), drop())))
+                else
+                    typeMap[typeName] = refl(functionCall(name(equal(typeName)), drop()))
             }
-            return (consts + constructors).reduce { acc, elem -> or(acc, elem) }
+            return typeMap.entries.fold(reject()) { acc, entry ->
+                or(acc, map0(typedExpr(entry.value), TypeStorage(entry.key)))
+            }
         }
 
         private fun addToStorage(
@@ -151,6 +139,16 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
         }
 
+        private fun <N> parseAndPutFunctionRet(
+            collection: MutableMap<String, Storage>,
+            pat: Parser<(String) -> (FunctionRetStorage) -> ResFuncRet, ResFuncRet, N>,
+            ast: N
+        ) {
+            parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
+                addToStorage(it.first, collection) { storage -> storage.functionRetStorages.add(it.second) }
+            }
+        }
+
         private fun collectFunctionArg(atom: Atom, param: MutableMap<String, Storage>) {
             val argNamePatterns: List<Parser<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>>> =
                 paramNames.map { paramName ->
@@ -170,14 +168,9 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
         }
 
-        private fun <A> namePatterns(): List<Parser<(String) -> A, A, Name>> =
-            paramNames.map { paramName ->
-                map0(name(equal(paramName)), paramName)
-            }
-
         private fun collectField(atom: Atom, param: MutableMap<String, Storage>) {
             val pat = classField(
-                fname = namePatterns<(String) -> ResField>().reduce { acc, elem -> or(acc, elem) },
+                fname = namePat<(String) -> ResField, Name>(),
                 fattributeId = apply()
             )
             parse(pat, onError = null, atom) { paramName -> { attributeId ->
@@ -189,13 +182,13 @@ class ArgInfoCollector(val method: PythonMethod) {
 
         private fun <A> subscriptPat(): Parser<(String) -> A, A, Atom> =
             atom(
-                fatomElement = refl(namePatterns<A>().reduce { acc, elem -> or(acc, elem) }),
+                fatomElement = namePat(),
                 ftrailers = first(refl(index(drop())))
             )
 
         private fun collectAtomMethod(atom: Atom, param: MutableMap<String, Storage>) {
             val methodPat = classMethod(
-                fname = namePatterns<(String) -> ResMethod>().reduce { acc, elem -> or(acc, elem) },
+                fname = namePat<(String) -> ResMethod, Name>(),
                 fattributeId = apply(),
                 farguments = drop()
             )
@@ -215,34 +208,91 @@ class ArgInfoCollector(val method: PythonMethod) {
             return super.visitAtom(atom, param)
         }
 
-        override fun visitAssign(ast: Assign, param: MutableMap<String, Storage>): AST {
+        private fun collectTypes(assign: Assign, param: MutableMap<String, Storage>) {
             val pat: Parser<(String) -> (TypeStorage) -> ResAssign, List<ResAssign>, Assign> = assignAll(
-                ftargets = allMatches(namePat()), fvalue = valuePat()
+                ftargets = allMatches(namePat()), fvalue = typedExpressionPat()
             )
             parse(
                 pat,
                 onError = emptyList(),
-                ast
+                assign
             ) { paramName -> { typeStorage -> Pair(paramName, typeStorage) } } .map {
                 addToStorage(it.first, param) { storage -> storage.typeStorages.add(it.second) }
             }
+        }
 
+        private fun collectSetItem(assign: Assign, param: MutableMap<String, Storage>) {
             val setItemPat: Parser<(String) -> String, List<String>, Assign> = assignAll(
                 ftargets = allMatches(refl(subscriptPat())),
                 fvalue = drop()
             )
-            val setItemParams = parse(setItemPat, onError = emptyList(), ast) { it }
+            val setItemParams = parse(setItemPat, onError = emptyList(), assign) { it }
             setItemParams.map { paramName ->
                 addToStorage(paramName, param) { storage ->
                     storage.methodStorages.add(MethodStorage("__setitem__"))
                 }
             }
+        }
 
+        private fun <A, N> funcCallNamePat(): Parser<(FunctionRetStorage) -> A, A, N> =
+            map1(refl(functionCall(
+                fname = name(apply()),
+                farguments = drop()
+            ))) { x -> FunctionRetStorage(x) }
+
+        private fun collectFuncRet(assign: Assign, param: MutableMap<String, Storage>) {
+            val pat: Parser<(String) -> (FunctionRetStorage) -> ResFuncRet, List<ResFuncRet>, Assign> = assignAll(
+                ftargets = allMatches(namePat()),
+                fvalue = funcCallNamePat()
+            )
+            val functionRets = parse(pat, onError = emptyList(), assign) { paramName ->
+                { functionStorage -> Pair(paramName, functionStorage) }
+            }
+            functionRets.forEach {
+                if (it != null)
+                    addToStorage(it.first, param) { storage -> storage.functionRetStorages.add(it.second) }
+            }
+        }
+
+        override fun visitAssign(ast: Assign, param: MutableMap<String, Storage>): AST {
+            collectTypes(ast, param)
+            collectSetItem(ast, param)
+            collectFuncRet(ast, param)
             return super.visitAssign(ast, param)
         }
 
+        private fun getOpMagicMethod(op: Operator?) =
+            when (op) {
+                is Gt -> "__gt__"
+                is GtE -> "__ge__"
+                is Lt -> "__lt__"
+                is LtE -> "__le__"
+                is Eq -> "__eq__"
+                is NotEq -> "__ne__"
+                is In -> "__contains__"
+                is FloorDiv -> "__floordiv__"
+                is Invert -> "__invert__"
+                is LShift -> "__lshift__"
+                is Mod -> "__mod__"
+                is Mult -> "__mul__"
+                is USub -> "__neg__"
+                is Or -> "__or__"
+                is UAdd -> "__pos__"
+                is Pow -> "__pow__"
+                is RShift -> "__rshift__"
+                is Sub -> "__sub__"
+                is Add -> "__add__"
+                is Div -> "__truediv__"
+                is BitXor -> "__xor__"
+                is Not -> "__not__"
+                else -> null
+            }
+
         override fun visitAugAssign(ast: AugAssign, param: MutableMap<String, Storage>): AST {
-            parseAndPutType(param, augAssign(ftarget = namePat(), fvalue = valuePat(), fop = drop()), ast)
+            parseAndPutType(param, augAssign(ftarget = namePat(), fvalue = typedExpressionPat(), fop = drop()), ast)
+            parseAndPutFunctionRet(param, augAssign(ftarget = namePat(), fvalue = funcCallNamePat(), fop = drop()), ast)
+            saveToAttributeStorage(ast.target, getOpMagicMethod(ast.op), param)
+            saveToAttributeStorage(ast.value, getOpMagicMethod(ast.op), param)
             return super.visitAugAssign(ast, param)
         }
 
@@ -257,19 +307,75 @@ class ArgInfoCollector(val method: PythonMethod) {
                 else -> FuzzedOp.NONE
             }
 
+        private fun getNumFuzzedValue(num: String, op: FuzzedOp = FuzzedOp.NONE): FuzzedConcreteValue =
+            when (val x = NumberUtils.createNumber(num)) {
+                is Int -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
+                is Long -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
+                is BigInteger -> FuzzedConcreteValue(PythonIntModel.classId, x, op)
+                else -> FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op)
+            }
+
+        private fun <A, N> constPat(op: FuzzedOp): Parser<(FuzzedConcreteValue) -> A, A, N> {
+            val pats = listOf<Parser<(FuzzedConcreteValue) -> A, A, N>>(
+                map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
+                map1(refl(str(apply()))) { x ->
+                    FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)
+                },
+                map0(
+                    refl(true_()),
+                    FuzzedConcreteValue(PythonBoolModel.classId, true, op)
+                ),
+                map0(
+                    refl(false_()),
+                    FuzzedConcreteValue(PythonBoolModel.classId, false, op)
+                )
+            )
+            return pats.reduce { acc, elem -> or(acc, elem) }
+        }
+
+        override fun visitNum(num: Num, param: MutableMap<String, Storage>): AST {
+            constStorage.add(getNumFuzzedValue(num.n))
+            return super.visitNum(num, param)
+        }
+
+        override fun visitStr(str: Str, param: MutableMap<String, Storage>?): AST {
+            constStorage.add(FuzzedConcreteValue(PythonStrModel.classId, getStr(str.s)))
+            return super.visitStr(str, param)
+        }
+
         override fun visitBinOp(ast: BinOp, param: MutableMap<String, Storage>): AST {
             parseAndPutType(
                 param,
                 or(
-                    binOp(fleft = namePat(), fright = valuePat(getOp(ast))),
-                    swap(binOp(fleft = valuePat(getOp(ast)), fright = namePat()))
+                    binOp(fleft = namePat(), fright = typedExpressionPat()),
+                    swap(binOp(fleft = typedExpressionPat(), fright = namePat()))
                 ),
                 ast
             )
+            parseAndPutFunctionRet(
+                param,
+                or(
+                    binOp(fleft = namePat(), fright = funcCallNamePat()),
+                    swap(binOp(fleft = funcCallNamePat(), fright = namePat()))
+                ),
+                ast
+            )
+            val op = getOp(ast)
+            if (op != FuzzedOp.NONE)
+                parse(
+                    binOp(fleft = refl(name(drop())), fright = constPat(op)),
+                    onError = null,
+                    ast
+                ) { it } ?.let { constStorage.add(it) }
+
+            saveToAttributeStorage(ast.left, getOpMagicMethod(ast), param)
+            saveToAttributeStorage(ast.right, getOpMagicMethod(ast), param)
             return super.visitBinOp(ast, param)
         }
 
-        fun saveToAttributeStorage(name: AST, methodName: String, param: MutableMap<String, Storage>) {
+        fun saveToAttributeStorage(name: AST?, methodName: String?, param: MutableMap<String, Storage>) {
+            if (methodName == null)
+                return
             paramNames.forEach {
                 if (name is Name && name.id.name == it) {
                     addToStorage(it, param) { storage ->
@@ -279,132 +385,9 @@ class ArgInfoCollector(val method: PythonMethod) {
             }
         }
 
-        override fun visitGt(gt: Gt, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(gt.left, "__gt__", param)
-            saveToAttributeStorage(gt.right, "__gt__", param)
-            return super.visitGt(gt, param)
-        }
-
-        override fun visitGtE(gte: GtE, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(gte.left, "__ge__", param)
-            saveToAttributeStorage(gte.right, "__ge__", param)
-            return super.visitGtE(gte, param)
-        }
-
-        override fun visitLt(lt: Lt, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(lt.left, "__lt__", param)
-            saveToAttributeStorage(lt.right, "__lt__", param)
-            return super.visitLt(lt, param)
-        }
-
-        override fun visitLtE(lte: LtE, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(lte.left, "__le__", param)
-            saveToAttributeStorage(lte.right, "__le__", param)
-            return super.visitLtE(lte, param)
-        }
-
-        override fun visitEq(eq: Eq, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(eq.left, "__eq__", param)
-            saveToAttributeStorage(eq.right, "__eq__", param)
-            return super.visitEq(eq, param)
-        }
-
-        override fun visitNotEq(ne: NotEq, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(ne.left, "__ne__", param)
-            saveToAttributeStorage(ne.right, "__ne__", param)
-            return super.visitNotEq(ne, param)
-        }
-
-        override fun visitIn(`in`: In, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(`in`.left, "__contains__", param)
-            saveToAttributeStorage(`in`.right, "__contains__", param)
-            return super.visitIn(`in`, param)
-        }
-
-        override fun visitIndex(index: Index, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(index.value, "__index__", param)
-            return super.visitIndex(index, param)
-        }
-
-        override fun visitFloorDiv(floorDiv: FloorDiv, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(floorDiv.left, "__floordiv__", param)
-            saveToAttributeStorage(floorDiv.right, "__floordiv__", param)
-            return super.visitFloorDiv(floorDiv, param)
-        }
-
-        override fun visitInvert(invert: Invert, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(invert.expression, "__invert__", param)
-            return super.visitInvert(invert, param)
-        }
-
-        override fun visitLShift(lShift: LShift, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(lShift.left, "__lshift__", param)
-            saveToAttributeStorage(lShift.right, "__lshift__", param)
-            return super.visitLShift(lShift, param)
-        }
-
-        override fun visitModulo(modulo: Mod, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(modulo.left, "__mod__", param)
-            saveToAttributeStorage(modulo.right, "__mod__", param)
-            return super.visitModulo(modulo, param)
-        }
-
-        override fun visitMult(mult: Mult, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(mult.left, "__mul__", param)
-            saveToAttributeStorage(mult.right, "__mul__", param)
-            return super.visitMult(mult, param)
-        }
-
-        override fun visitUSub(uSub: USub, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(uSub.expression, "__neg__", param)
-            return super.visitUSub(uSub, param)
-        }
-
-        override fun visitOr(or: Or, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(or.left, "__or__", param)
-            saveToAttributeStorage(or.right, "__or__", param)
-            return super.visitOr(or, param)
-        }
-
-        override fun visitUAdd(uAdd: UAdd, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(uAdd.expression, "__pos__", param)
-            return super.visitUAdd(uAdd, param)
-        }
-
-        override fun visitPow(pow: Pow, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(pow.left, "__pow__", param)
-            saveToAttributeStorage(pow.right, "__pow__", param)
-            return super.visitPow(pow, param)
-        }
-
-        override fun visitRShift(rShift: RShift, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(rShift.left, "__rshift__", param)
-            saveToAttributeStorage(rShift.right, "__rshift__", param)
-            return super.visitRShift(rShift, param)
-        }
-
-        override fun visitSub(sub: Sub, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(sub.left, "__sub__", param)
-            saveToAttributeStorage(sub.right, "__sub__", param)
-            return super.visitSub(sub, param)
-        }
-
-        override fun visitAdd(add: Add, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(add.left, "__add__", param)
-            saveToAttributeStorage(add.right, "__add__", param)
-            return super.visitAdd(add, param)
-        }
-
-        override fun visitDiv(div: Div, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(div.left, "__truediv__", param)
-            saveToAttributeStorage(div.right, "__truediv__", param)
-            return super.visitDiv(div, param)
-        }
-
-        override fun visitBitXor(bitXor: BitXor, param: MutableMap<String, Storage>): AST {
-            saveToAttributeStorage(bitXor.left, "__xor__", param)
-            saveToAttributeStorage(bitXor.right, "__xor__", param)
-            return super.visitBitXor(bitXor, param)
+        override fun visitUnaryOp(unaryOp: UnaryOp, param: MutableMap<String, Storage>): AST {
+            saveToAttributeStorage(unaryOp.expression, getOpMagicMethod(unaryOp), param)
+            return super.visitUnaryOp(unaryOp, param)
         }
 
         override fun visitDelete(delete: Delete, param: MutableMap<String, Storage>): AST {
@@ -418,3 +401,4 @@ typealias ResFuncArg = Pair<String, ArgInfoCollector.FunctionArgStorage>?
 typealias ResField = Pair<String, ArgInfoCollector.FieldStorage>?
 typealias ResMethod = Pair<String, ArgInfoCollector.MethodStorage>?
 typealias ResAssign = Pair<String, ArgInfoCollector.TypeStorage>
+typealias ResFuncRet = Pair<String, ArgInfoCollector.FunctionRetStorage>?

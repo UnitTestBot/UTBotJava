@@ -3,13 +3,19 @@ package org.utbot.contest
 import org.utbot.common.MutableMultiset
 import org.utbot.common.mutableMultisetOf
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.instrumentation.instrumentation.coverage.CoverageInfo
+import org.utbot.framework.plugin.api.Coverage
 import java.io.File
 
+private fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
 fun <T> Iterable<T>.printMultiline(printer: (T) -> Any?) = "\n" + joinToString("\n") { "${printer(it)}" } + "\n"
 
 class GlobalStats {
+
+    companion object {
+        const val PRECISION: Int = 2
+    }
+
     val statsForClasses = mutableListOf<StatsForClass>()
 
     override fun toString(): String = "\n<Global statistics> :" +
@@ -34,13 +40,19 @@ class GlobalStats {
                 .take(10)
                 .printMultiline { (reason, names) -> " ${names.joinToString()}\n-->> In ${names.size} method(s) :: $reason" } +
             "\n----------------------------------------" +
-            "\n\tCoverage: \n\t\t" +
-                statsForClasses.sumBy { it.coverage?.visitedInstrs?.size?: 0 } +
-                "/" +
-                statsForClasses.sumBy { it.coverage?.let{it.methodToInstrRange.values.sumBy { range -> range.count() }} ?: 0 }
+            "\n\tTotal coverage: \n\t\t" +
+                statsForClasses.sumBy { it.getCoverageInfo().first }.let { num ->
+                    statsForClasses.sumBy { it.coverage?.instructionsCount?.toInt() ?: 0 }.let { denum ->
+                        "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
+                    }
+                } +
+            "\n\tAvg coverage: \n\t\t" +
+                statsForClasses
+                    .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
+                    .map { it.getCoverageInfo().run { 100.0 * first / second } }.average().format(PRECISION) + " %"
 }
 
-class StatsForClass {
+class StatsForClass(val className: String) {
     var methodsCount: Int = -1
     val statsForMethods = mutableListOf<StatsForMethod>()
 
@@ -51,7 +63,16 @@ class StatsForClass {
     val methodsWithAtLeastOneException: Int get() = statsForMethods.count { it.failReasons.isNotEmpty() }
     val testcasesGenerated: Int get() = statsForMethods.sumBy { it.testsGeneratedCount }
 
-    var coverage: CoverageInfo? = null
+    var coverage: Coverage? = null
+
+    fun getCoverageInfo(): Pair<Int, Int> = coverage?.run {
+        coveredInstructions.filter { instr ->
+            instr.className.startsWith(className)
+        }.toSet().size to (instructionsCount?.toInt() ?: 0)
+    } ?: (0 to 0)
+
+    private fun prettyInfo(): String =
+        getCoverageInfo().run { "$first/$second" }
 
     override fun toString(): String = "\n<StatsForClass> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
@@ -60,7 +81,7 @@ class StatsForClass {
             "\n\t#methods with at least one TC = ${statsForMethods.count { it.testsGeneratedCount > 0 }}" +
             "\n\t#methods with exceptions = $methodsWithAtLeastOneException" +
             "\n\t#generated TC = $testcasesGenerated" +
-            "\n\t#coverage = $coverage"
+            "\n\t#coverage = ${prettyInfo()}"
 }
 
 

@@ -42,6 +42,7 @@ import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
+import jdk.internal.org.objectweb.asm.Type
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -201,7 +202,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     UtConcreteExecutionResult(
                         stateAfter,
                         concreteUtModelResult,
-                        traceList.toApiCoverage()
+                        traceList.toApiCoverage(
+                            traceHandler.processingStorage.getInstructionsCount(
+                                Type.getInternalName(clazz)
+                            )
+                        )
                     )
                 }
             }
@@ -287,7 +292,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 /**
  * Transforms a list of internal [EtInstruction]s to a list of api [Instruction]s.
  */
-private fun List<EtInstruction>.toApiCoverage(): Coverage =
+private fun List<EtInstruction>.toApiCoverage(instructionsCount: Long? = null): Coverage =
     Coverage(
-        map { Instruction(it.className, it.methodSignature, it.line, it.id) }
+        map { Instruction(it.className, it.methodSignature, it.line, it.id) },
+        instructionsCount
     )

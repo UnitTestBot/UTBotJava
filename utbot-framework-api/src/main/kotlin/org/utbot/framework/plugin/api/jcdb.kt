@@ -64,8 +64,13 @@ val ClassId.interfaces: List<ClassId>
     }
 
 val ClassId.packageName: String
-    get() {
-        return name.substringBeforeLast(".")
+    get() = runBlocking {
+        val clazz = outerClass()
+        if (clazz != null) {
+            name.substringBeforeLast(".").substringBeforeLast(".")
+        } else {
+            name.substringBeforeLast(".")
+        }
     }
 
 

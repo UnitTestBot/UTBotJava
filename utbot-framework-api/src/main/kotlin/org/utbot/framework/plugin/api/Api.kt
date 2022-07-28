@@ -1021,17 +1021,17 @@ class MethodExecutableId(override val methodId: MethodId) : ExecutableId()
 //        get() = Modifier.isPrivate(constructor.modifiers)
 //}
 //
-//class BuiltinMethodId(
-//    classId: ClassId,
-//    name: String,
-//    returnType: ClassId,
-//    parameters: List<ClassId>,
-//    // by default we assume that the builtin method is non-static and public
-//    override val isStatic: Boolean = false,
-//    override val isPublic: Boolean = true,
-//    override val isProtected: Boolean = false,
-//    override val isPrivate: Boolean = false
-//) : MethodId(classId, name, returnType, parameters)
+class BuiltinMethodId(
+    classId: ClassId,
+    name: String,
+    returnType: ClassId,
+    parameters: List<ClassId>,
+    // by default we assume that the builtin method is non-static and public
+    override val isStatic: Boolean = false,
+    override val isPublic: Boolean = true,
+    override val isProtected: Boolean = false,
+    override val isPrivate: Boolean = false
+) : MethodId(classId, name, returnType, parameters)
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 

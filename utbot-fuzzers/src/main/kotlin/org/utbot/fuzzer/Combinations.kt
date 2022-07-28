@@ -74,9 +74,10 @@ class Combinations(vararg elementNumbers: Int): Iterable<IntArray> {
         }
         count = LongArray(elementNumbers.size) { elementNumbers[it].toLong() }
         for (i in count.size - 2 downTo 0) {
-            count[i] = count[i] * count[i + 1]
-            if(count[i] < count[i + 1]) {
-                throw TooManyCombinationsException("Long overflow or bad sequence: ${count[i]} < ${count[i + 1]}")
+            try {
+                count[i] = StrictMath.multiplyExact(count[i], count[i + 1])
+            } catch (e: ArithmeticException) {
+                throw TooManyCombinationsException("Long overflow: ${count[i]} * ${count[i + 1]}")
             }
         }
     }

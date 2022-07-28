@@ -115,12 +115,12 @@ class FuzzerTest {
         ), fuzz.map { arguments -> arguments.map { fuzzedValue -> fuzzedValue.model } }.toSet())
     }
 
-    // Because of Long limitation fuzzer can process no more than 1700 values for method with 7 parameters
+    // Because of Long limitation fuzzer can process no more than 511 values for method with 7 parameters
     @Test
     @Timeout(1, unit = TimeUnit.SECONDS)
     fun `the worst case works well`() {
         assertDoesNotThrow {
-            val values = (0 until 1700).map { UtPrimitiveModel(it).fuzzed() }.asSequence()
+            val values = (0 until 511).map { UtPrimitiveModel(it).fuzzed() }.asSequence()
             val provider = ModelProvider { descr ->
                 (0 until descr.parameters.size).asSequence()
                     .flatMap { index -> values.map { FuzzedParameter(index, it) } }

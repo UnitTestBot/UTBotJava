@@ -229,11 +229,23 @@ class CombinationsTest {
     }
 
     @Test
+    fun testCartesianProductDoesNotThrowsExceptionBeforeOverflow() {
+        // We assume that a standard method has no more than 7 parameters.
+        // In this case every parameter can accept up to 511 values without Long overflow.
+        // CartesianProduct throws exception
+        val values = Array(511) { it }.toList()
+        val parameters = Array(7) { values }.toList()
+        assertDoesNotThrow {
+            CartesianProduct(parameters, Random(0)).asSequence()
+        }
+    }
+
+    @Test
     fun testCartesianProductThrowsExceptionOnOverflow() {
         // We assume that a standard method has no more than 7 parameters.
-        // In this case every parameter can accept up to 1700 values without Long overflow.
+        // In this case every parameter can accept up to 511 values without Long overflow.
         // CartesianProduct throws exception
-        val values = Array(1701) { it }.toList()
+        val values = Array(512) { it }.toList()
         val parameters = Array(7) { values }.toList()
         assertThrows(TooManyCombinationsException::class.java) {
             CartesianProduct(parameters, Random(0)).asSequence()

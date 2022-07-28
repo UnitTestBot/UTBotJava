@@ -135,3 +135,8 @@ suspend fun Accessible.isAccessibleFrom(packageName: String): Boolean {
 suspend fun ClassId.isClassAccessibleFrom(packageName: String): Boolean {
     return isPublic() || (this.packageName == packageName && (isPackagePrivate() || isProtected()))
 }
+
+val ClassId.isInDefaultPackage: Boolean
+    get() {
+        return this is PredefinedPrimitive || packageName.isEmpty()
+    }

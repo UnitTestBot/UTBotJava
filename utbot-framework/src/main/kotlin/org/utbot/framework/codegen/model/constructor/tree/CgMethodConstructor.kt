@@ -709,15 +709,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * We overapproximate this assumption for all parametrized classes because we can't be sure that
      * overridden equals doesn't rely on type parameters equals.
      */
-    private suspend fun CgVariable.hasNotParametrizedCustomEquals(): Boolean {
+    private fun CgVariable.hasNotParametrizedCustomEquals(): Boolean = runBlocking {
         if (type.overridesEquals()) {
             // type parameters is list of class type parameters - empty if class is not generic
-            val resolution = runBlocking { type.resolution() }
-
-            return resolution == Raw
+            type.resolution() == Raw
+        }else {
+            false
         }
-
-        return false
     }
 
     /**
@@ -850,7 +848,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 // TODO: How to compare arrays of Float and Double wrappers?
                 // TODO: For example, JUnit5 does not have an assertEquals() overload for these wrappers.
                 // TODO: So for now we compare arrays of these wrappers as arrays of Objects, but that is probably wrong.
-                when (expected.type..ifArrayGetElementClass()!!) {
+                when (expected.type.ifArrayGetElementClass()!!) {
                     floatClassId -> testFrameworkManager.assertFloatArrayEquals(
                         typeCast(floatArrayClassId, expected, isSafetyCast = true),
                         typeCast(floatArrayClassId, actual, isSafetyCast = true),

@@ -1,7 +1,6 @@
 package org.utbot.fuzzer
 
 import kotlinx.coroutines.runBlocking
-import org.utbot.engine.isPublic
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
@@ -25,8 +24,8 @@ open class FallbackModelProvider(
 
     private fun createModelByClassId(classId: ClassId): UtModel = runBlocking {
         val modelConstructor = UtModelConstructor(IdentityHashMap())
-        val defaultConstructor = classId.jClass.constructors.firstOrNull {
-            it.parameters.isEmpty() && it.isPublic
+        val defaultConstructor = classId.allConstructors().firstOrNull {
+            it.parameters().isEmpty() && it.isPublic()
         }
         when {
             classId.isPrimitive ->
@@ -42,7 +41,7 @@ open class FallbackModelProvider(
             classId.isIterable -> {
                 @Suppress("RemoveRedundantQualifierName") // ArrayDeque must be taken from java, not from kotlin
                 val defaultInstance = when {
-                    defaultConstructor != null -> defaultConstructor.newInstance()
+                    defaultConstructor != null -> (defaultConstructor.asExecutable() as ConstructorExecutableId).constructor.newInstance()
                     classId isSubtypeOf asClass<java.util.ArrayList<*>>() -> ArrayList<Any>()
                     classId isSubtypeOf asClass<java.util.TreeSet<*>>() -> TreeSet<Any>()
                     classId isSubtypeOf asClass<java.util.HashMap<*,*>>() -> HashMap<Any, Any>()

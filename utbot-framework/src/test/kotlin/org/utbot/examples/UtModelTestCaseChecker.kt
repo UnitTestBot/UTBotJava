@@ -7,7 +7,6 @@ import org.utbot.common.ClassLocation
 import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
 import org.utbot.common.WorkaroundReason.HACK
-import org.utbot.common.findField
 import org.utbot.common.workaround
 import org.utbot.engine.prettify
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -148,7 +147,7 @@ internal abstract class UtModelTestCaseChecker(
      * Finds field model in [UtCompositeModel] and [UtAssembleModel]. For assemble model supports direct field access only.
      */
     protected fun UtModel.findField(fieldName: String): UtModel =
-        findField(this.classId.jClass.findField(fieldName).fieldId)
+        findField(classId.findField(fieldName))
 
     /**
      * Finds field model in [UtCompositeModel] and [UtAssembleModel]. For assemble model supports direct field access only.

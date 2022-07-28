@@ -14,7 +14,6 @@ import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.asExecutable
 import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
@@ -208,7 +207,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         }
 
         try {
-            val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
+            val modelName = nextModelName(compositeModel.classId.simpleName.decapitalize())
 
             val instantiationChain = mutableListOf<UtStatementModel>()
             val modificationsChain = mutableListOf<UtStatementModel>()

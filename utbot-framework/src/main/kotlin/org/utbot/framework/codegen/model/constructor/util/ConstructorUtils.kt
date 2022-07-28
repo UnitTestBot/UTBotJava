@@ -13,9 +13,7 @@ import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.MethodId
-import org.utbot.jcdb.api.isSubtypeOf
+import org.utbot.jcdb.api.*
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -210,15 +208,15 @@ internal suspend fun ClassId.overridesEquals(): Boolean =
     }
 
 // NOTE: this function does not consider executable return type because it is not important in our case
-internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequence<ExecutableId> {
-    val allExecutables = when (executableId) {
-        is MethodExecutableId -> allMethods
-        is ConstructorExecutableId -> allConstructors
+internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequence<ExecutableId> = runBlocking {
+    val methodsOrConstructors = when (executableId) {
+        is MethodExecutableId -> methods().filter { !it.isConstructor }
+        is ConstructorExecutableId -> allConstructors()
     }
 
-    return allExecutables.filter {
+    methodsOrConstructors.filter {
         it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size && it.classId == executableId.classId
-    }
+    }.map { it.asExecutable() }.asSequence()
 }
 
 
@@ -262,7 +260,7 @@ internal infix fun UtModel.isDefaultValueOf(type: ClassId): Boolean =
         else -> false
     }
 
-internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !this.isDefaultValueOf(type)
+internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !isDefaultValueOf(type)
 
 /**
  * If the model contains a store for the given [index], return the model of this store.

@@ -5,7 +5,6 @@ import org.utbot.common.packageName
 import org.utbot.engine.isStatic
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.JUNIT5_PARAMETERIZED_PACKAGE
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -26,6 +25,7 @@ import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateC
 import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
+import org.utbot.framework.codegen.model.constructor.util.newArrayOf
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
 import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.constructor.util.typeCast
@@ -67,7 +67,6 @@ import org.utbot.framework.codegen.model.tree.CgTryCatch
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.tree.buildForLoop
 import org.utbot.framework.codegen.model.tree.buildParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.buildTestMethod
 import org.utbot.framework.codegen.model.tree.convertDocToCg
@@ -121,6 +120,7 @@ import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.booleanClassId
+import org.utbot.framework.plugin.api.util.builtinMethodId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -1285,7 +1285,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             if (containsFailureExecution) {
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = throwableClassId(),
+                        type = Class::class.id,
                         name = nameGenerator.variableName(expectedErrorVarName)
                     ),
                     // exceptions are always reference type
@@ -1422,7 +1422,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         arguments: List<CgExpression>,
     ) {
         when (testFramework) {
-            Junit5 -> argsVariable[addToListMethodId](argumentsClassId[argumentsMethodId](arguments))
+            Junit5 -> {
+                +argsVariable[addToListMethodId](
+                    argumentsClassId[argumentsMethodId](
+                        newArrayOf(objectClassId, arguments)
+                    )
+                )
+            }
             TestNg -> {
                 val argsArray = newVar(objectArrayClassId, "testCaseObjects") {
                     CgAllocateArray(Array<Any?>::class.java.id, objectClassId, arguments.size)
@@ -1442,7 +1448,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression) {
         when (array.type) {
-            objectClassId -> java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+            objectClassId -> {
+                +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+            }
             else -> array.at(index) `=` value
         }
     }
@@ -1470,13 +1478,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val argListName = "argList"
         return when (testFramework) {
             Junit5 ->
-                newVar(argListClassId(), argListName) {
-                    val constructor = ConstructorId(argListClassId(), emptyList())
+                newVar(argListClassId, argListName) {
+                    val constructor = ConstructorId(argListClassId, emptyList())
                     constructor.invoke()
                 }
             TestNg ->
-                newVar(argListClassId(), argListName) {
-                    CgAllocateArray(argListClassId(), Array<Any>::class.java.id, length)
+                newVar(argListClassId, argListName) {
+                    CgAllocateArray(argListClassId, Array<Any>::class.java.id, length)
                 }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
@@ -1485,68 +1493,58 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * Creates a [ClassId] for arguments collection.
      */
-    private fun argListClassId(): ClassId = when (testFramework) {
-        Junit5 -> BuiltinClassId(
-            name = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            simpleName = "ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            canonicalName = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            packageName = "java.util",
-        )
-        TestNg -> BuiltinClassId(
-            name = Array<Array<Any?>?>::class.java.name,
-            simpleName = when (codegenLanguage) {
-                CodegenLanguage.JAVA -> "Object[][]"
-                CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
-            },
-            canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
-            packageName = Array<Array<Any?>?>::class.java.packageName,
-        )
-        Junit4 -> error("Parameterized tests are not supported for JUnit4")
-    }
+    private val argListClassId: ClassId
+        get() = when (testFramework) {
+            Junit5 -> java.util.ArrayList::class.id
+            TestNg -> BuiltinClassId(
+                name = Array<Array<Any?>?>::class.java.name,
+                simpleName = when (codegenLanguage) {
+                    CodegenLanguage.JAVA -> "Object[][]"
+                    CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
+                },
+                canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
+                packageName = Array<Array<Any?>?>::class.java.packageName,
+            )
+            Junit4 -> error("Parameterized tests are not supported for JUnit4")
+        }
 
 
     /**
      * A [MethodId] to add an item into [ArrayList].
      */
-    private val addToListMethodId: MethodId = methodId(
-        classId = ArrayList::class.id,
-        name = "add",
-        returnType = booleanClassId,
-        arguments = arrayOf(Object::class.id),
-    )
+    private val addToListMethodId: MethodId
+        get() = methodId(
+            classId = ArrayList::class.id,
+            name = "add",
+            returnType = booleanClassId,
+            arguments = arrayOf(Object::class.id),
+        )
 
     /**
      * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
      */
-    private val argumentsClassId: ClassId = BuiltinClassId(
-        name = "org.junit.jupiter.params.provider.Arguments",
-        simpleName = "Arguments",
-        canonicalName = "org.junit.jupiter.params.provider.Arguments",
-        packageName = "org.junit.jupiter.params.provider",
-    )
+    private val argumentsClassId: BuiltinClassId
+        get() = BuiltinClassId(
+            name = "org.junit.jupiter.params.provider.Arguments",
+            simpleName = "Arguments",
+            canonicalName = "org.junit.jupiter.params.provider.Arguments",
+            packageName = "org.junit.jupiter.params.provider"
+        )
 
     /**
      * A [MethodId] to call JUnit Arguments method.
      */
-    private val argumentsMethodId: MethodId = methodId(
-        classId = argumentsClassId,
-        name = "arguments",
-        returnType = argumentsClassId,
-        arguments = arrayOf(Object::class.id),
-    )
+    private val argumentsMethodId: BuiltinMethodId
+        get() = builtinMethodId(
+            classId = argumentsClassId,
+            name = "arguments",
+            returnType = argumentsClassId,
+            // vararg of Objects
+            arguments = arrayOf(objectArrayClassId)
+        )
 
     private fun containsFailureExecution(testSet: UtMethodTestSet) =
         testSet.executions.any { it.result is UtExecutionFailure }
-
-    /**
-     * A [ClassId] for Class<Throwable>.
-     */
-    private fun throwableClassId(): ClassId = BuiltinClassId(
-        name = "java.lang.Class<Throwable>",
-        simpleName = "Class<Throwable>",
-        canonicalName = "java.lang.Class<Throwable>",
-        packageName = "java.lang",
-    )
 
 
     private fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> =
@@ -1637,12 +1635,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
-            returnType = argListClassId()
+            returnType = argListClassId
             statements = block(body)
             // Exceptions and annotations assignment must run after the statements block is build,
             // because we collect info about exceptions and required annotations while building the statements
-            exceptions = collectedExceptions
-            annotations = createDataProviderAnnotations(dataProviderMethodName)
+            exceptions += collectedExceptions
+            annotations += createDataProviderAnnotations(dataProviderMethodName)
         }
     }
 

@@ -6,19 +6,18 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
+import org.utbot.framework.codegen.model.constructor.util.arrayInitializer
 import org.utbot.framework.codegen.model.constructor.util.get
 import org.utbot.framework.codegen.model.constructor.util.isDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.isNotDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -225,7 +224,14 @@ internal class CgVariableConstructor(val context: CgContext) :
         val canInitWithValues = elementModels.all { it is UtPrimitiveModel } || elementModels.all { it is UtNullModel }
 
         val initializer = if (canInitWithValues) {
-            CgAllocateInitializedArray(arrayModel)
+            val elements = elementModels.map { model ->
+                when (model) {
+                    is UtPrimitiveModel -> model.value.resolve()
+                    is UtNullModel -> null.resolve()
+                    else -> error("Non primitive or null model $model is unexpected in array initializer")
+                }
+            }
+            arrayInitializer(arrayModel.classId, elementType, elements)
         } else {
             CgAllocateArray(arrayModel.classId, elementType, arrayModel.length)
         }

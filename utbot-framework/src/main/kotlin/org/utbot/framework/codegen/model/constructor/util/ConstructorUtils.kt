@@ -42,6 +42,9 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.underlyingType
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
+import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.plugin.api.util.arrayLikeName
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -214,6 +217,39 @@ internal fun CgContextOwner.typeCast(
     }
     importIfNeeded(targetType)
     return CgTypeCast(targetType, expression, isSafetyCast)
+}
+
+@Suppress("unused")
+internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAllocateInitializedArray {
+    val arrayType = arrayTypeOf(elementType)
+    return CgAllocateInitializedArray(arrayInitializer(arrayType, elementType, values))
+}
+
+internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: List<CgExpression>): CgArrayInitializer =
+    CgArrayInitializer(arrayType, elementType, values)
+
+/**
+ * For a given [elementType] returns a [ClassId] of an array with elements of this type.
+ * For example, for an id of `int` the result will be an id of `int[]`.
+ *
+ * @param elementType the element type of the returned array class id
+ * @param isNullable a flag whether returned array is nullable or not
+ */
+internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
+    val arrayIdName = "[${elementType.arrayLikeName}"
+    return when (elementType) {
+        is BuiltinClassId -> BuiltinClassId(
+            name = arrayIdName,
+            canonicalName = "${elementType.canonicalName}[]",
+            simpleName = "${elementType.simpleName}[]",
+            isNullable = isNullable
+        )
+        else -> ClassId(
+            name = arrayIdName,
+            elementClassId = elementType,
+            isNullable = isNullable
+        )
+    }
 }
 
 @Suppress("unused")

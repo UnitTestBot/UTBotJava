@@ -2,7 +2,6 @@ package org.utbot.python
 
 import org.utbot.fuzzer.CartesianProduct
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
-import org.utbot.python.code.StubFileStructures
 
 
 object MypyAnnotations {

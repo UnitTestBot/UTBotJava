@@ -7,7 +7,6 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.ArgInfoCollector
-import org.utbot.python.code.StubFileFinder
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import kotlin.random.Random
@@ -40,6 +39,7 @@ class PythonEngine(
 //            }.reduceOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
 //        }
 
+        /*
         val methodData = MypyAnnotations.mypyCheckAnnotations(
             methodUnderTest,
             argMethodAnnotations,
@@ -48,6 +48,8 @@ class PythonEngine(
             directoriesForSysPath,
             pythonPath
         )
+
+         */
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
             returnType,
@@ -57,6 +59,7 @@ class PythonEngine(
             compilableName = methodUnderTest.name // what's the difference with ordinary name?
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
+
 
         // model provider argwith fallback?
         // attempts?

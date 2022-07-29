@@ -43,9 +43,9 @@ object MypyAnnotations {
             )
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
             if (mypyOutput == defaultOutput) {
-                val goodTypes = listOf("str", "bool", "int", "float")
-                if (annotationMap.values.all {x ->  goodTypes.contains(x.name) } )
-                    yield(annotationMap)
+//                val goodTypes = listOf("str", "bool", "int", "float")
+//                if (annotationMap.values.all {x ->  goodTypes.contains(x.name) } )
+                yield(annotationMap)
             }
             functionFile.deleteOnExit()
         }
@@ -57,8 +57,6 @@ object MypyAnnotations {
         testSourcePath: String,
     ): String {
         val command = "$pythonPath -m mypy.dmypy run $codeFilename -- --config-file $testSourcePath/mypy.ini"
-//        val command = "$pythonPath -m mypy.dmypy run $codeFilename"
-//        val command = "$pythonPath -m mypy.dmypy start"
         val process = Runtime.getRuntime().exec(
             command
         )

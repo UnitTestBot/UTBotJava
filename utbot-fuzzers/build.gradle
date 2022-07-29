@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "6.1.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
@@ -12,10 +12,4 @@ dependencies {
 
 compileJava {
     options.compilerArgs = []
-}
-
-shadowJar {
-    configurations = [project.configurations.compileClasspath]
-    archiveClassifier.set('')
-    minimize()
 }

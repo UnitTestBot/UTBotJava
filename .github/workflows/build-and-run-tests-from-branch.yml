@@ -1,45 +1,145 @@
 name: "[M] UTBot Java: build and run tests"
 
 on:
-  workflow_dispatch
-  
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        required: false
+        type: string
+        description: "Commit SHA (optional -- otherwise the last commit from the branch will be taken)"
+
+  workflow_call:
+    inputs:
+      commit_sha:
+        required: false
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: utbot_java_cli
+  DOCKERFILE_PATH: docker/Dockerfile_java_cli
+  # Environment variable setting gradle options.
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -javaagent:/tmp/jmx-exporter.jar=12345:/tmp/jmx-exporter.yml -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+
 jobs:
-  build-and-run-tests:
-    runs-on: ubuntu-20.04
+  prepare-tests-matrix:
+    runs-on: ubuntu-latest
+    # Outputs are used for passing data to dependent jobs.
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v2
-      with:
-        java-version: '8'
-        distribution: 'zulu'
-        java-package: jdk+fx
-        cache: gradle
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.8
+      - name: Print environment variables
+        run: printenv
         
-    - name: Build and run tests in UTBot Java
-      run: |
-        export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
-        
-    - name: Upload utbot-framework logs
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+      - name: Check out ${{ github.event.inputs.commit_sha }} commit
+        if: github.event.inputs.commit_sha != ''
+        run: |
+          git fetch
+          git checkout ${{ github.event.inputs.commit_sha }}
+      - id: set-matrix
+        name: Read and print config from framework-tests-matrix.json
+        run: |
+          TASKS=$(echo $(cat .github/workflows/framework-tests-matrix.json))
+          echo "::set-output name=matrix::$TASKS"
+          echo $TASKS
+  framework:
+    # This job does not need to wait for 'prepare-tests-matrix' result.
+    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
+    # to start execution early.
+    needs: prepare-tests-matrix
+    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
+    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+    strategy:
+    # The option forces to execute all jobs even though some of them have failed.
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-tests-matrix.outputs.matrix) }}
+    runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    steps:
+    - name: Print environment variables
+      run: printenv
+      
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Check out ${{ github.event.inputs.commit_sha }} commit
+      if: github.event.inputs.commit_sha != ''
+      run: |
+        git fetch
+        git checkout ${{ github.event.inputs.commit_sha }}
+    - name: Run monitoring
+      run: |
+        echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
+        chmod +x ./scripts/monitoring.sh
+        ./scripts/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+    - name: Run tests
+      run: |     
+        gradle --no-daemon :utbot-framework:test ${{ matrix.project.TESTS_TO_RUN }}
+    - name: Upload logs
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v3
       with:
-        name: utbot_framework_tests_report
+        name: logs ${{ matrix.project.PART_NAME }}
+        path: utbot-framework/logs/*
+
+    - name: Upload UTBot temp directory content
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: utbot_temp ${{ matrix.project.PART_NAME }}
+        path: |
+          /tmp/UTBot/generated*/*
+          /tmp/UTBot/utbot-childprocess-errors/*
+    - name: Upload test report if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: test_report ${{ matrix.project.PART_NAME }}
         path: utbot-framework/build/reports/tests/test/*
-        
-    - name: Upload utbot-intellij tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+
+
+  project:
+    needs: prepare-tests-matrix
+    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
+    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+    strategy:
+    # The option forces to execute all jobs even though some of them have failed.
+      fail-fast: false
+      matrix:
+        project: [utbot-api, utbot-cli, utbot-core, utbot-framework-api, utbot-fuzzers, utbot-gradle, utbot-instrumentation, utbot-instrumentation-tests, utbot-intellij, utbot-junit-contest, utbot-sample, utbot-summary, utbot-summary-tests]
+    runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    steps:
+    - name: Print environment variables
+      run: printenv
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Check out ${{ github.event.inputs.commit_sha }} commit
+      if: github.event.inputs.commit_sha != ''
+      run: |
+        git fetch
+        git checkout ${{ github.event.inputs.commit_sha }}
+    - uses: actions/checkout@v3
       with:
-        name: utbot_intellij_tests_report
-        path: utbot-intellij/build/reports/tests/test/*
+        ref: ${{ env.COMMIT_SHA }}
+
+    - name: Run monitoring
+      run: |
+        echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
+        chmod +x ./scripts/monitoring.sh
+        ./scripts/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+    - name: Run tests
+      run: |
+        cd ${{ matrix.project }}
+        gradle build --no-daemon
+    - name: Upload test report if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: test_report ${{ matrix.project }}
+        path: ${{ matrix.project }}/build/reports/tests/test/*

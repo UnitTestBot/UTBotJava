@@ -1,14 +1,19 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+compileTestJava.dependsOn project(':utbot-instrumentation').tasks.jar
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
 dependencies {
+    //noinspection GroovyAssignabilityCheck
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
+    api project(':utbot-framework-api')
+    implementation project(':utbot-framework-api')
 
-    testImplementation project(':utbot-instrumentation')
+    testImplementation configurations.fetchInstrumentationJar
     testImplementation project(':utbot-sample')
     testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
 }

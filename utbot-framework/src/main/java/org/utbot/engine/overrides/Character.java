@@ -4,7 +4,7 @@ import org.utbot.api.annotation.UtClassMock;
 
 @UtClassMock(target = java.lang.Character.class, internalUsage = true)
 public class Character {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Character valueOf(char x) {
         return new java.lang.Character(x);
     }

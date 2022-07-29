@@ -1,17 +1,26 @@
+plugins {
+    id 'java-library'
+}
+
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-apply plugin: "java"
 
 evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
-    implementation(project(":utbot-framework"))
-    implementation(project(':utbot-instrumentation'))
+    api(project(":utbot-framework"))
+    api(project(':utbot-instrumentation'))
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
-    testCompile project(':utbot-framework').sourceSets.test.output
+    testImplementation project(':utbot-framework').sourceSets.test.output
 }
 
 test {
-    useJUnitPlatform()
+    minHeapSize = "128m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
 }

@@ -1,6 +1,6 @@
 package org.utbot.examples.benchmark
 
-import javafx.util.Pair
+import org.utbot.test.util.UtPair
 
 class Repeater(var sep: String) {
     /*    public DifferentClass0() {
@@ -22,7 +22,7 @@ class Repeater(var sep: String) {
 
 class Unzipper {
     var dc0 = Repeater("-")
-    fun unzip(chars: Array<Pair<Int?, Char>>): String {
+    fun unzip(chars: Array<UtPair<Int?, Char>>): String {
         val sb = java.lang.StringBuilder()
         for (pr in chars) {
             sb.append(dc0.repeat(pr.value.toString(), pr.key!!))

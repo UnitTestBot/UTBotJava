@@ -6,7 +6,7 @@ import java.nio.file.Paths
 data class JdkInfo(
     val path: Path,
     @Suppress("unused")
-    val version: String
+    val version: Int
 )
 
 /**
@@ -28,5 +28,10 @@ interface JdkInfoProvider {
 
 open class JdkInfoDefaultProvider : JdkInfoProvider {
     override val info: JdkInfo =
-        JdkInfo(Paths.get(System.getProperty("java.home")), System.getProperty("java.version"))
+        JdkInfo(Paths.get(System.getProperty("java.home")), fetchJavaVersion(System.getProperty("java.version")))
+}
+
+fun fetchJavaVersion(javaVersion: String): Int {
+    val matcher = "(1\\.)?(\\d+)".toRegex()
+    return Integer.parseInt(matcher.find(javaVersion)?.groupValues?.getOrNull(2)!!)
 }

@@ -455,14 +455,16 @@ fun builtinMethodId(
     returnType: ClassId,
     vararg arguments: ClassId
 ): BuiltinMethodId {
-    return BuiltinMethodId(classId, name, returnType, arguments.toList())
+    return BuiltinMethodId(classId, name, returnType, arguments.toList(), false)
 }
 
 fun builtinStaticMethodId(
-    classId: ClassId,
+    classId: BuiltinClassId,
     name: String,
     returnType: ClassId,
     vararg arguments: ClassId
 ): BuiltinMethodId {
-    return BuiltinMethodId(classId, name, returnType, arguments.toList(), isStatic = true)
+    return BuiltinMethodId(classId, name, returnType, arguments.toList(), true).also {
+        classId.withMethod(it)
+    }
 }

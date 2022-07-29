@@ -386,15 +386,11 @@ internal data class CgContext(
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
 
-    override val currentTestClass: ClassId by lazy {
+    override val currentTestClass: ClassId get() {
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
         val simpleName = testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
         val name = "$packagePrefix$simpleName"
-        BuiltinClassId(
-            name = name,
-            canonicalName = name,
-            simpleName = simpleName
-        )
+        return builtInClass(name)
     }
 
     override var testClassSuperclass: ClassId? = null

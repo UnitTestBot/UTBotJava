@@ -2,7 +2,6 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import kotlinx.coroutines.runBlocking
 import org.utbot.common.PathUtil
-import org.utbot.common.packageName
 import org.utbot.engine.isStatic
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.*
@@ -162,11 +161,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Generates result assertions for unit tests.
      */
     private fun generateResultAssertions() {
-        when (currentExecutable) {
+        when (val executable = currentExecutable) {
             is ConstructorExecutableId -> {
                 // we cannot generate any assertions for constructor testing
                 // but we need to generate a constructor call
-                val constructorCall = currentExecutable as ConstructorExecutableId
                 val currentExecution = currentExecution!!
                 currentExecution.result
                     .onSuccess {
@@ -175,22 +173,26 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         // TODO engine returns UtCompositeModel sometimes (concrete execution?)
 
                         // TODO support inner classes constructors testing JIRA:1461
-                        require(!constructorCall.classId.isInner) {
-                            "Inner class ${constructorCall.classId} constructor testing is not supported yet"
+                        require(!executable.classId.isInner) {
+                            "Inner class ${executable.classId} constructor testing is not supported yet"
                         }
 
-                        actual = newVar(constructorCall.classId, "actual") {
-                            constructorCall(*methodArguments.toTypedArray())
+                        actual = newVar(executable.classId, "actual") {
+                            methodArguments.toTypedArray()
+                            executable(*methodArguments.toTypedArray())
                         }
                     }
                     .onFailure { exception ->
                         processExecutionFailure(currentExecution, exception)
                     }
             }
-            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
             is MethodExecutableId -> {
+                val method = executable.methodId
+                if (method is BuiltinMethodId) {
+                    error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
+                }
                 emptyLineIfNeeded()
-                val method = currentExecutable as MethodId
+
                 val currentExecution = currentExecution!!
                 // build assertions
                 currentExecution.result
@@ -713,7 +715,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (type.overridesEquals()) {
             // type parameters is list of class type parameters - empty if class is not generic
             type.resolution() == Raw
-        }else {
+        } else {
             false
         }
     }
@@ -797,7 +799,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
-        // Can directly access field only if it is declared in variable class (or in its ancestors)
+    // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
         if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
             if (isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
@@ -835,7 +837,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             dimensions = 0
         )
 
-        val nestedElementClassIdList = generateSequence(classId.ifArrayGetElementClass()) { it.ifArrayGetElementClass() }.toList()
+        val nestedElementClassIdList =
+            generateSequence(classId.ifArrayGetElementClass()) { it.ifArrayGetElementClass() }.toList()
         val dimensions = nestedElementClassIdList.size
         val nestedElementClassId = nestedElementClassIdList.last()
 
@@ -948,7 +951,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentBlock = if (actual.type.isPrimitive) {
                     currentBlock.addAll(generateDeepEqualsAssertion(expected, actual))
                 } else {
-                    val assertNullStmt = listOf(testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement())
+                    val assertNullStmt =
+                        listOf(testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement())
                     currentBlock.add(
                         CgIfStatement(
                             CgEqualTo(expected, nullLiteral()),
@@ -989,8 +993,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // there is nothing to generate for constructors
                     return
                 }
-                is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
                 is MethodExecutableId -> {
+                    if (executable.methodId is BuiltinMethodId) {
+                        error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
+                    }
+
                     // TODO possible engine bug - void method return type and result not UtVoidModel
                     if (result.isUnit() || executable.returnType == voidClassId) return
 
@@ -1051,7 +1058,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     val closeFinallyBlock = resources.map {
                         val variable = it.variable
                         variable.type.closeMethodIdOrNull?.let { closeMethod ->
-                            CgMethodCall(variable, closeMethod.asExecutableMethod(), arguments = emptyList()).toStatement()
+                            CgMethodCall(
+                                variable,
+                                closeMethod.asExecutableMethod(),
+                                arguments = emptyList()
+                            ).toStatement()
                         } ?: error("Resource $variable was expected to be auto closeable but it is not")
                     }
 
@@ -1099,7 +1110,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val testParameterDeclarations = createParameterDeclarations(testSet, genericExecution)
                 val mainBody = {
                     // build this instance
-                    thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
+                    thisInstance =
+                        genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
 
                     // build arguments for method under test and parameterized test
                     for (index in genericExecution.stateBefore.parameters.indices) {
@@ -1331,7 +1343,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         Junit5 -> {
             val argumentsMethodCall = CgMethodCall(caller = null, argumentsMethodId().asExecutableMethod(), arguments)
             listOf(
-                CgStatementExecutableCall(CgMethodCall(argsVariable, addToListMethodId().asExecutableMethod(), listOf(argumentsMethodCall)))
+                CgStatementExecutableCall(
+                    CgMethodCall(
+                        argsVariable,
+                        addToListMethodId().asExecutableMethod(),
+                        listOf(argumentsMethodCall)
+                    )
+                )
             )
         }
         TestNg -> {
@@ -1395,21 +1413,17 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Creates a [ClassId] for arguments collection.
      */
     private fun argListClassId(): ClassId = when (testFramework) {
-        Junit5 -> BuiltinClassId(
-            name = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            simpleName = "ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            canonicalName = "java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>",
-            packageName = "java.util",
-        )
-        TestNg -> BuiltinClassId(
-            name = Array<Array<Any?>?>::class.java.name,
-            simpleName = when (codegenLanguage) {
-                CodegenLanguage.JAVA -> "Object[][]"
-                CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
-            },
-            canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
-            packageName = Array<Array<Any?>?>::class.java.packageName,
-        )
+        Junit5 -> builtInClass("java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>")
+        TestNg -> builtInClass(Array<Array<Any?>?>::class.java.name)
+//            BuiltinClassId(
+//            name = Array<Array<Any?>?>::class.java.name,
+//            simpleName = when (codegenLanguage) {
+//                CodegenLanguage.JAVA -> "Object[][]"
+//                CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
+//            },
+//            canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
+//            packageName = Array<Array<Any?>?>::class.java.packageName,
+//        )
         Junit4 -> error("Parameterized tests are not supported for JUnit4")
     }
 
@@ -1428,14 +1442,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * A [MethodId] to call JUnit Arguments method.
      */
     private fun argumentsMethodId(): MethodId {
-        val argumentsClassId = BuiltinClassId(
-            name = "org.junit.jupiter.params.provider.Arguments",
-            simpleName = "Arguments",
-            canonicalName = "org.junit.jupiter.params.provider.Arguments",
-            packageName = "org.junit.jupiter.params.provider",
-        )
+        val argumentsClassId = builtInClass("org.junit.jupiter.params.provider.Arguments")
 
-        return methodId(
+        return builtinMethodId(
             classId = argumentsClassId,
             name = "arguments",
             returnType = argumentsClassId,
@@ -1449,13 +1458,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * A [ClassId] for Class<Throwable>.
      */
-    private fun throwableClassId(): ClassId = BuiltinClassId(
-        name = "java.lang.Class<Throwable>",
-        simpleName = "Class<Throwable>",
-        canonicalName = "java.lang.Class<Throwable>",
-        packageName = "java.lang",
-    )
-
+    private fun throwableClassId(): ClassId = builtInClass("java.lang.Class<Throwable>")
 
     private fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> =
         when (testFramework) {
@@ -1577,7 +1580,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val pureJvmReportPath = jvmReportPath.substringAfter("# ")
 
         // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
+        return PathUtil.toHtmlLinkTag(
+            PathUtil.replaceSeparator(pureJvmReportPath),
+            fileName = "JVM crash report"
+        ) + "\n"
     }
 
     private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =

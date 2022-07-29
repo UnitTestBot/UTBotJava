@@ -8,6 +8,7 @@
 
 package org.utbot.framework.plugin.api
 
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.runBlocking
 import org.objectweb.asm.Opcodes
 import org.utbot.common.isDefaultValue
@@ -15,6 +16,8 @@ import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.jcdb.VirtualClassId
+import org.utbot.framework.plugin.jcdb.VirtualClasspathSet
 import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import soot.*
@@ -730,30 +733,16 @@ val Type.classId: ClassId
 class BuiltinClassId(
     override val name: String,
     // by default we assume that the class is not a member class
-) : ClassId {
-    init {
-        BUILTIN_CLASSES_BY_NAMES[name] = this
-    }
-
-    companion object {
-        /**
-         * Stores all created builtin classes by their names. Useful when we want to create ClassId only from name
-         */
-        // TODO replace ClassId constructor with a factory?
-        val BUILTIN_CLASSES_BY_NAMES: MutableMap<String, BuiltinClassId> = mutableMapOf()
-
-        /**
-         * Returns [BuiltinClassId] if any [BuiltinClassId] was created with such [name], null otherwise
-         */
-        fun getBuiltinClassByNameOrNull(name: String): BuiltinClassId? = BUILTIN_CLASSES_BY_NAMES[name]
-    }
+) : VirtualClassId {
 
     override val simpleName: String get() = name.substringAfterLast(".")
 
-    override val classpath: ClasspathSet
-        get() = utContext.classpath
+    override lateinit var classpath: ClasspathSet
+
     override val location: ByteCodeLocation?
-        get() = TODO("Not yet implemented")
+        get() = null
+
+    private var methods = arrayListOf<BuiltinMethodId>()
 
     override suspend fun annotations() = emptyList<ClassId>()
     override suspend fun byteCode() = null
@@ -764,7 +753,7 @@ class BuiltinClassId(
 
     override suspend fun isAnonymous() = false
 
-    override suspend fun methods() = emptyList<MethodId>()
+    override suspend fun methods() = methods.toPersistentList()
 
     override suspend fun outerClass() = null
 
@@ -774,7 +763,27 @@ class BuiltinClassId(
 
     override suspend fun superclass() = null
     override suspend fun access() = Opcodes.ACC_PUBLIC
+
+    fun withMethod(name: String, returnType: ClassId, isStatic: Boolean = false, vararg params: ClassId) = apply {
+        methods.add(BuiltinMethodId(this, name, returnType, params.toList(), isStatic = isStatic))
+    }
+
+    fun withMethod(method: BuiltinMethodId) = apply {
+        methods.add(method)
+    }
+
 }
+
+fun builtInClass(name: String, action: BuiltinClassId.() -> Unit = {}): BuiltinClassId {
+    return BuiltinClassId(name).let {
+        val classpath = utContext.classpath as VirtualClasspathSet
+        classpath.bind(it).also {
+            it.action()
+        }
+    }
+}
+
+
 
 enum class FieldIdStrategyValues {
     Reflection,
@@ -859,19 +868,18 @@ inline fun <T> withReflection(block: () -> T): T {
  * avoid using class loader to load a possibly missing class.
  */
 //@Suppress("unused")
-//class BuiltinFieldId(
-//    declaringClass: ClassId,
-//    override val name: String,
-//    // by default we assume that the builtin field is public and non-final
-//    override val isPublic: Boolean = true,
-//    override val isPrivate: Boolean = false,
-//    override val isFinal: Boolean = false,
-//    override val isSynthetic: Boolean = false,
-//) : FieldId {
-//    override suspend fun type(): ClassId {
-//        TODO("Not yet implemented")
-//    }
-//}
+class BuiltinFieldId(
+    override val classId: ClassId,
+    private val type: ClassId,
+    override val name: String,
+) : FieldId {
+    override suspend fun type() = type
+
+    override suspend fun access() = Opcodes.ACC_PUBLIC
+    override suspend fun annotations() = emptyList<ClassId>()
+
+    override suspend fun resolution() = Raw
+}
 
 sealed class StatementId {
     abstract val classId: ClassId
@@ -1032,16 +1040,34 @@ class MethodExecutableId(override val methodId: MethodId) : ExecutableId(), Meth
 //}
 //
 class BuiltinMethodId(
-    classId: ClassId,
-    name: String,
-    returnType: ClassId,
-    parameters: List<ClassId>,
+    override val classId: ClassId,
+    override val name: String,
+    private val returnType: ClassId,
+    private val parameters: List<ClassId>,
+    private val isStatic: Boolean
     // by default we assume that the builtin method is non-static and public
-    override val isStatic: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters)
+) : MethodId {
+
+    override suspend fun access() = if(isStatic) Opcodes.ACC_PUBLIC else Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC
+
+    override suspend fun annotations() = emptyList<ClassId>()
+
+    override suspend fun description(): String {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun parameters() = parameters
+
+    override suspend fun readBody() = null
+
+    override suspend fun resolution() = Raw
+
+    override suspend fun returnType() = returnType
+
+    override suspend fun signature(internalNames: Boolean): String {
+        TODO("Not yet implemented")
+    }
+}
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 

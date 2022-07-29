@@ -331,11 +331,6 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
 
 // FieldId utils
 
-// TODO: maybe cache it somehow in the future
-val FieldId.field: Field
-    get() = classId.jClass.declaredFields.firstOrNull { it.name == name }
-        ?: error("Field $name is not found in class ${classId.name}")
-
 // https://docstore.mik.ua/orelly/java-ent/jnut/ch03_13.htm
 val FieldId.isInnerClassEnclosingClassReference: Boolean
     get() = classId.isNested && name == "this$0"

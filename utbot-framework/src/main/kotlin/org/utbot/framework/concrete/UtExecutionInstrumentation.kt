@@ -157,7 +157,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
                     val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
                         .associateWith { fieldId ->
-                            fieldId.field.run { construct(withAccessibility { get(null) }, fieldId.type) }
+                            val field = DefaultReflectionProvider.provideReflectionField(fieldId)
+                            field.run { construct(withAccessibility { get(null) }, fieldId.type) }
                         }
                     val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
                         null to stateAfterParametersWithThis
@@ -237,7 +238,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         val savedFields = mutableMapOf<FieldId, Any?>()
         try {
             staticFields.forEach { (fieldId, value) ->
-                fieldId.field.run {
+                val field = DefaultReflectionProvider.provideReflectionField(fieldId)
+                field.run {
                     withAccessibility {
                         savedFields[fieldId] = get(null)
                         set(null, value)
@@ -247,7 +249,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             return block()
         } finally {
             savedFields.forEach { (fieldId, value) ->
-                fieldId.field.run {
+                val field = DefaultReflectionProvider.provideReflectionField(fieldId)
+                field.run {
                     withAccessibility {
                         set(null, value)
                     }

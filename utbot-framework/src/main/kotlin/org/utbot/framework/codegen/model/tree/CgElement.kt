@@ -570,19 +570,20 @@ open class CgVariable(
  */
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId
-        get() = when (val expressionType = expression.type) {
-            is BuiltinClassId -> BuiltinClassId(
-                name = expressionType.name,
-                canonicalName = expressionType.canonicalName,
-                simpleName = expressionType.simpleName,
-                isNullable = false,
-            )
-            else -> ClassId(
-                expressionType.name,
-                expressionType.elementClassId,
-                isNullable = false,
-            )
-        }
+        get() = expression.type
+//            when (val expressionType = expression.type) {
+//            is BuiltinClassId -> BuiltinClassId(
+//                name = expressionType.name,
+//                canonicalName = expressionType.canonicalName,
+//                simpleName = expressionType.simpleName,
+//                isNullable = false,
+//            )
+//            else -> ClassId(
+//                expressionType.name,
+//                expressionType.elementClassId,
+//                isNullable = false,
+//            )
+//        }
 }
 
 /**

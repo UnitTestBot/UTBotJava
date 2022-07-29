@@ -9,5 +9,5 @@ interface VirtualClassId : ClassId {
 
 interface VirtualClasspathSet : ClasspathSet {
 
-    fun bind(virtualClass: VirtualClassId)
+    fun <CLASS_ID: VirtualClassId> bind(virtualClass: CLASS_ID): CLASS_ID
 }

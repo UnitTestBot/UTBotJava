@@ -174,7 +174,7 @@ internal val ClassId.closeMethodIdOrNull: MethodId?
     get() = runBlocking {
         when {
             isPredefinedAutoCloseable -> closeMethodId
-            this is BuiltinClassId -> null
+            this@closeMethodIdOrNull is BuiltinClassId -> null
             this@closeMethodIdOrNull isSubtypeOf asClass<AutoCloseable>() -> closeMethodId
             else -> null
         }

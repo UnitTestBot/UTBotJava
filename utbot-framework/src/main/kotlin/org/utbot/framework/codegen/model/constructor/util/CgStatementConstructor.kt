@@ -12,7 +12,10 @@ import org.utbot.framework.codegen.model.util.buildExceptionHandler
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.blockingIsNotSubtypeOf
+import org.utbot.framework.plugin.api.blockingIsSubtypeOf
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.ext.findClass
@@ -356,7 +359,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
             val name = (expr.arguments.getOrNull(0) as? CgLiteral)?.value as? String
 
             if (name != null) {
-                return BuiltinClassId.getBuiltinClassByNameOrNull(name) ?: runBlocking { utContext.classpath.findClass(name) }
+                return runBlocking { utContext.classpath.findClass(name) }
             }
         }
 

@@ -16,9 +16,11 @@ class DelegatingClasspathSet(private val cp: ClasspathSet) : VirtualClasspathSet
 
     private val virtualClasses = ConcurrentHashMap<String, VirtualClassId>()
 
-    override fun bind(virtualClass: VirtualClassId) {
-        virtualClasses[virtualClass.name] = virtualClass
+    override fun <CLASS_ID: VirtualClassId> bind(virtualClass: CLASS_ID): CLASS_ID {
         virtualClass.classpath = this
+        return virtualClasses.getOrPut(virtualClass.name) {
+            virtualClass
+        } as CLASS_ID
     }
 
     override suspend fun findClassOrNull(name: String): ClassId? {

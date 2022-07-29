@@ -1,15 +1,18 @@
+plugins {
+    id 'java-library'
+}
+
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-apply plugin: "java"
 
 evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
-    implementation(project(":utbot-framework"))
-    implementation(project(':utbot-instrumentation'))
+    api(project(":utbot-framework-api"))
+    api(project(':utbot-instrumentation'))
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
-    testCompile project(':utbot-framework').sourceSets.test.output
+    testImplementation project(':utbot-framework').sourceSets.test.output
 }
 
 test {

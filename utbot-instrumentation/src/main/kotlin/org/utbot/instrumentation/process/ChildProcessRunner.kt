@@ -28,7 +28,7 @@ class ChildProcessRunner {
         }
 
         listOf(Paths.get(JdkPathService.jdkPath.toString(),"bin", "java").toString()) +
-                debugCmd + listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
+                debugCmd + listOf("-javaagent:$jarFile", "-ea", "--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "--illegal-access=warn", "-jar", "$jarFile")
     }
 
     var errorLogFile: File = NULL_FILE

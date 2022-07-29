@@ -13,7 +13,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Byte.class, internalUsage = true)
 public class Byte {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Byte valueOf(byte x) {
         return new java.lang.Byte(x);
     }

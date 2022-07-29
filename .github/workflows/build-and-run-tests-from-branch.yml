@@ -2,44 +2,55 @@ name: "[M] UTBot Java: build and run tests"
 
 on:
   workflow_dispatch
-  
+
 jobs:
   build-and-run-tests:
     runs-on: ubuntu-20.04
+    #     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc-1.7.0
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v2
-      with:
-        java-version: '8'
-        distribution: 'zulu'
-        java-package: jdk+fx
-        cache: gradle
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.8
-        
-    - name: Build and run tests in UTBot Java
-      run: |
-        export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
-        
-    - name: Upload utbot-framework logs
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
-      
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_tests_report
-        path: utbot-framework/build/reports/tests/test/*
-        
-    - name: Upload utbot-intellij tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_intellij_tests_report
-        path: utbot-intellij/build/reports/tests/test/*
+      - uses: actions/checkout@v2
+
+      - name: Build and run tests in UTBot Java
+        run: |
+          gradle clean build --no-daemon --stacktrace --scan
+
+      - name: Upload utbot-framework logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: utbot_framework_logs
+          path: utbot-framework/logs/*
+
+      - name: Upload utbot-framework tests report artifacts if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: utbot_framework_tests_report
+          path: utbot-framework/build/reports/tests/test/*
+
+      - name: Upload utbot-instrumentation tests report artifacts if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: utbot_instrumentation_tests_report
+          path: utbot-instrumentation/build/reports/tests/test/*
+
+      - name: Upload utbot-intellij tests report artifacts if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: utbot_intellij_tests_report
+          path: utbot-intellij/build/reports/tests/test/*
+
+      - name: Setup tmate session
+        if: ${{ always() }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          sudo: false
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build

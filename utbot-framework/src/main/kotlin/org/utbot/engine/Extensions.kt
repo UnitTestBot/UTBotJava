@@ -71,7 +71,7 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.tagkit.ArtificialEntityTag
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+import java.lang.reflect.ParameterizedType
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -111,7 +111,6 @@ fun SootMethod.canRetrieveBody() =
  */
 fun SootMethod.jimpleBody(): JimpleBody {
     declaringClass.adjustLevel(BODIES)
-    require(canRetrieveBody()) { "Can't retrieve body for $this"}
     return retrieveActiveBody() as JimpleBody
 }
 
@@ -202,7 +201,7 @@ val Type.numDimensions get() = if (this is ArrayType) numDimensions else 0
 /**
  * Invocation. Can generate multiple targets.
  *
- * @see Traverser.virtualAndInterfaceInvoke
+ * @see UtBotSymbolicEngine.virtualAndInterfaceInvoke
  */
 data class Invocation(
     val instance: ReferenceValue?,
@@ -221,7 +220,7 @@ data class Invocation(
 /**
  * Invocation target. Contains constraints to be satisfied for this instance class (related to virtual invoke).
  *
- * @see Traverser.virtualAndInterfaceInvoke
+ * @see UtBotSymbolicEngine.virtualAndInterfaceInvoke
  */
 data class InvocationTarget(
     val instance: ReferenceValue?,
@@ -244,11 +243,11 @@ data class MethodInvocationTarget(
 )
 
 /**
- * Used in the [Traverser.findLibraryTargets] to substitute common types
+ * Used in the [UtBotSymbolicEngine.findLibraryTargets] to substitute common types
  * like [Iterable] with the types that have corresponding wrappers.
  *
- * @see Traverser.findLibraryTargets
- * @see Traverser.findInvocationTargets
+ * @see UtBotSymbolicEngine.findLibraryTargets
+ * @see UtBotSymbolicEngine.findInvocationTargets
  */
 val libraryTargets: Map<String, List<String>> = mapOf(
     Iterable::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
@@ -404,7 +403,7 @@ val Type.baseType: Type
     get() = if (this is ArrayType) this.baseType else this
 
 val java.lang.reflect.Type.rawType: java.lang.reflect.Type
-    get() = if (this is ParameterizedTypeImpl) rawType else this
+    get() = if (this is ParameterizedType) rawType else this
 
 /**
  * Returns true if the addr belongs to “this” value, false otherwise.

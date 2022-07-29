@@ -39,7 +39,9 @@ import org.utbot.framework.plugin.api.util.UtContext;
 import org.utbot.framework.util.Snippet;
 import java.io.File;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1310,8 +1312,20 @@ public class UtBotJavaApiTest {
 
     @NotNull
     private String getDependencyClassPath() {
-        return Arrays.stream(((URLClassLoader) Thread.currentThread().
-                getContextClassLoader()).getURLs()).map(url ->
+
+        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        URL[] urls = contextClassLoader instanceof URLClassLoader ?
+                ((URLClassLoader)contextClassLoader).getURLs() :
+                Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator)).map(path -> {
+                    try {
+                        return new File(path).toURL();
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                }).toArray(URL[]::new);
+
+        return Arrays.stream(urls).map(url ->
         {
             try {
                 return new File(url.toURI()).toString();
@@ -1321,7 +1335,6 @@ public class UtBotJavaApiTest {
             throw new RuntimeException();
         }).collect(Collectors.joining(File.pathSeparator));
     }
-
     public UtCompositeModel createArrayOfComplexArraysModel() {
         ClassId classIdOfArrayOfComplexArraysClass = classIdForType(ArrayOfComplexArrays.class);
         ClassId classIdOfComplexArray = classIdForType(ComplexArray.class);

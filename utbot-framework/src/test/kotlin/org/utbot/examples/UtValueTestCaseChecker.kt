@@ -2374,7 +2374,6 @@ abstract class UtValueTestCaseChecker(
 
             if (testSummary) {
                 valueExecutions.checkSummaryMatchers(summaryTextChecks)
-                valueExecutions.checkCommentsForBasicErrors()
             }
             if (testName) {
                 valueExecutions.checkNameMatchers(summaryNameChecks)
@@ -2468,13 +2467,6 @@ abstract class UtValueTestCaseChecker(
         assertTrue(notMatched.isEmpty()) {
             "Test display name matchers ${notMatched.map { it + 1 }} not match for ${map { it.displayName }.prettify()}"
         }
-    }
-
-    fun List<UtValueExecution<*>>.checkCommentsForBasicErrors() {
-        val emptyLines = this.filter {
-            it.summary?.contains("\n\n") ?: false
-        }
-        assertTrue(emptyLines.isEmpty()) { "Empty lines in the comments: ${emptyLines.map { it.summary }.prettify()}" }
     }
 
     fun List<UtValueExecution<*>>.checkNamesForBasicErrors() {

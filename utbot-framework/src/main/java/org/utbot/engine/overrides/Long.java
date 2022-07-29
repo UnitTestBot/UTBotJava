@@ -12,7 +12,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Long.class, internalUsage = true)
 public class Long {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Long valueOf(long x) {
         return new java.lang.Long(x);
     }

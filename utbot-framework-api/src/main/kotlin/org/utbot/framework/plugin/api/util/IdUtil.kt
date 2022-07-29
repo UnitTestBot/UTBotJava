@@ -11,10 +11,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import java.lang.reflect.Constructor
-import java.lang.reflect.Executable
-import java.lang.reflect.Field
-import java.lang.reflect.Method
+import java.lang.reflect.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -260,6 +257,13 @@ val Class<*>.id: ClassId
         isArray -> ClassId(name, componentType.id)
         isPrimitive -> primitiveToId[this]!!
         else -> ClassId(name)
+    }
+
+val Type.id: ClassId
+    get() = when {
+        javaClass.isArray -> ClassId(javaClass.name)
+        javaClass.isPrimitive -> primitiveToId[this]!!
+        else -> ClassId(javaClass.name)
     }
 
 val KClass<*>.id: ClassId

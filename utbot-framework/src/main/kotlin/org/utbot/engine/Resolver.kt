@@ -87,7 +87,6 @@ import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
-import sun.java2d.cmm.lcms.LcmsServiceProvider
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -1017,9 +1016,9 @@ val typesOfObjectsToRecreate = listOf(
     "java.lang.CharacterDataLatin1",
     "java.lang.CharacterData00",
     "[Ljava.lang.StackTraceElement",
+    "[Lsun.java2d.cmm.lcms.LcmsServiceProvider",
     PrintStream::class.qualifiedName,
     AccessControlContext::class.qualifiedName,
-    LcmsServiceProvider::class.qualifiedName,
     ICC_ProfileRGB::class.qualifiedName,
     AtomicInteger::class.qualifiedName
 )

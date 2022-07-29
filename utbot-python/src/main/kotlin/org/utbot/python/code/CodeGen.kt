@@ -203,8 +203,9 @@ object PythonCodeGenerator {
         }
 
         val mathImport = ImportFrom("math", listOf(Alias("*")))
+        val typingImport = ImportFrom("typing", listOf(Alias("*")))
         val import = ImportFrom(functionPath, listOf(Alias("*")))
-        return listOf(systemImport) + systemCalls + additionalImport + listOf(mathImport, import)
+        return listOf(systemImport) + systemCalls + additionalImport + listOf(typingImport, mathImport, import)
     }
 
     fun generateRunFunctionCode(

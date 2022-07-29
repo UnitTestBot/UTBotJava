@@ -17,8 +17,8 @@
     "name": "bool",
     "useAsReturn": true,
     "instances": [
-    	"True",
-    	"False"
+      "True",
+      "False"
     ]
   },
   {

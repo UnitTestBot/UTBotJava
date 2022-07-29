@@ -27,7 +27,7 @@ import java.util.*
 import javax.xml.bind.DatatypeConverter.parseLong
 
 
-class PythonCode(private val body: Module) {
+class PythonCode(private val body: Module, val filename: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.statements.mapNotNull { statement ->
             (statement as? FunctionDef)?.let { functionDef: FunctionDef ->
@@ -38,29 +38,32 @@ class PythonCode(private val body: Module) {
     fun getToplevelClasses(): List<PythonClass> =
         body.statements.mapNotNull { statement ->
             (statement as? ClassDef)?.let { classDef: ClassDef ->
-                PythonClass(classDef)
+                PythonClass(classDef, filename)
             }
         }
 
     companion object {
-        fun getFromString(code: String): PythonCode {
+        fun getFromString(code: String, filename: String? = null): PythonCode {
             val lexer = Python3Lexer(fromString(code))
             val tokens = CommonTokenStream(lexer)
             val parser = Python3Parser(tokens)
             val moduleVisitor = ModuleVisitor()
             val ast = moduleVisitor.visit(parser.file_input()) as Module
 
-            return PythonCode(ast)
+            return PythonCode(ast, filename)
         }
     }
 }
 
-class PythonClass(private val ast: ClassDef) {
+class PythonClass(private val ast: ClassDef, val filename: String? = null) {
     val name: String
         get() = ast.name.name
 
     val methods: List<PythonMethodBody>
         get() = ast.functionDefs.map { PythonMethodBody(it) }
+
+    val initFunction: PythonMethodBody?
+        get() = ast.functionDefs.find { it.name.name == "__init__" } ?.let { PythonMethodBody(it) }
 }
 
 class PythonMethodBody(private val ast: FunctionDef): PythonMethod {

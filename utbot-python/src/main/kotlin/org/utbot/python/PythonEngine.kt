@@ -9,6 +9,7 @@ import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.typing.StubFileStructures
 
 class PythonEngine(

@@ -145,9 +145,12 @@ class ArgInfoCollector(val method: PythonMethod) {
             )
             knownTypes.forEach { typeName ->
                 if (typeMap.containsKey(typeName))
-                    typeMap[typeName] = or(typeMap[typeName]!!, refl(functionCall(name(equal(typeName)), drop())))
+                    typeMap[typeName] = or(
+                        typeMap[typeName]!!,
+                        refl(functionCallWithoutPrefix(name(equal(typeName)), drop()))
+                    )
                 else
-                    typeMap[typeName] = refl(functionCall(name(equal(typeName)), drop()))
+                    typeMap[typeName] = refl(functionCallWithoutPrefix(name(equal(typeName)), drop()))
             }
             return typeMap.entries.fold(reject()) { acc, entry ->
                 or(acc, map0(typedExpr(entry.value), TypeStorage(entry.key)))
@@ -189,8 +192,9 @@ class ArgInfoCollector(val method: PythonMethod) {
                 paramNames.map { paramName ->
                     map0(anyIndexed(refl(name(equal(paramName)))), paramName)
                 }
-            val pat = functionCall(
-                fname = name(apply()),
+            val pat = functionCallWithPrefix(
+                fprefix = drop(),
+                fid = apply(),
                 farguments = arguments(
                     fargs = argNamePatterns.reduce { acc, elem -> or(acc, elem) },
                     drop(), drop(), drop()
@@ -270,8 +274,9 @@ class ArgInfoCollector(val method: PythonMethod) {
         }
 
         private fun <A, N> funcCallNamePat(): Parser<(FunctionRetStorage) -> A, A, N> =
-            map1(refl(functionCall(
-                fname = name(apply()),
+            map1(refl(functionCallWithPrefix(
+                fprefix = drop(),
+                fid = apply(),
                 farguments = drop()
             ))) { x -> FunctionRetStorage(x) }
 

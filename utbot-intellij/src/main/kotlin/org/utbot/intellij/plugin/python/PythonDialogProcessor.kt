@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
+import org.utbot.python.PythonCodeCollector
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.code.PythonCodeGenerator.generateTestCode
@@ -87,6 +88,10 @@ object PythonDialogProcessor {
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
+
+                // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
+                // val x = PythonCodeCollector.projectClasses
+
                 val pythonMethods = findSelectedPythonMethods(model)
                 val testSourceRoot = model.testSourceRoot!!.path
 

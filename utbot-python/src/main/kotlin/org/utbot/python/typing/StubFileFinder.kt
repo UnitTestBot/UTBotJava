@@ -1,4 +1,4 @@
-package org.utbot.python.code
+package org.utbot.python.typing
 
 import com.beust.klaxon.Klaxon
 
@@ -79,31 +79,44 @@ object StubFileFinder {
         functionName: String,
         argumentName: String? = null,
         argumentPosition: Int? = null,
-    ): Set<String> {
+    ): Set<StubFileStructures.PythonInfoType> {
         val annotations = functionToAnnotationMap[functionName] ?: emptyList()
-        val types = mutableSetOf<String>()
+        val types = mutableSetOf<StubFileStructures.PythonInfoType>()
         if (argumentName != null) {
             annotations.forEach { annotation ->
                 (annotation.args + annotation.kwonlyargs).forEach {
+                    it
                     if (it.arg == argumentName)
-                        types += it.annotation
+                        types += it.annotation.map {
+                                ann -> StubFileStructures.PythonInfoType(ann, "")
+                        }
                 }
             }
         } else if (argumentPosition != null) {
             annotations.forEach { annotation ->
                 val checkCountArgs = annotation.args.size > argumentPosition
                 if (checkCountArgs) {
-                    types += annotation.args[argumentPosition].annotation
+                    types += annotation.args[argumentPosition].annotation.map {
+                            ann -> StubFileStructures.PythonInfoType(ann, "")
+                    }
                 }
             }
         } else {
             annotations.forEach { annotation ->
                 annotation.args.forEach {
-                    types.addAll(it.annotation)
+                    types.addAll(it.annotation.map {
+                            ann -> StubFileStructures.PythonInfoType(ann)
+                    })
                 }
             }
         }
         return types
+    }
+
+    fun findTypeByFunctionReturnValue(functionName: String): Set<StubFileStructures.PythonInfoType> {
+        return functionToAnnotationMap[functionName]?.map {
+            it.returns.map {returnType -> StubFileStructures.PythonInfoType(returnType) }
+        }?.flatten()?.toSet() ?: emptySet()
     }
 }
 

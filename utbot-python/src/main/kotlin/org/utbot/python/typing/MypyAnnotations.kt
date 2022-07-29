@@ -1,8 +1,7 @@
-package org.utbot.python
+package org.utbot.python.typing
 
-import org.utbot.fuzzer.CartesianProduct
+import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
-import org.utbot.python.code.StubFileStructures
 
 
 object MypyAnnotations {
@@ -26,7 +25,7 @@ object MypyAnnotations {
         startMypyDaemon(pythonPath)
         val defaultOutput = runMypy(pythonPath, codeFilename, testSourcePath)
 
-        val annotations = CartesianProduct(
+        val annotations = PriorityCartesianProduct(
             functionArgAnnotations.entries.map { (key, value) ->
                 value.map {
                     Pair(key, it)
@@ -44,7 +43,9 @@ object MypyAnnotations {
             )
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
             if (mypyOutput == defaultOutput) {
-                yield(annotationMap)
+                val goodTypes = listOf("str", "bool", "int", "float")
+                if (annotationMap.values.all {x ->  goodTypes.contains(x.name) } )
+                    yield(annotationMap)
             }
             functionFile.deleteOnExit()
         }

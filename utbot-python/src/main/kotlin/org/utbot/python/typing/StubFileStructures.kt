@@ -1,4 +1,4 @@
-package org.utbot.python.code
+package org.utbot.python.typing
 
 object StubFileStructures {
 
@@ -70,5 +70,10 @@ object StubFileStructures {
     data class PythonInfoType(
         val name: String,
         val module: String,
-    )
+    ) {
+        constructor(name: String) : this(name, "")
+
+        val fullName: String
+            get() = name
+    }
 }

@@ -23,12 +23,12 @@ import io.github.danielnaczo.python3parser.model.stmts.importStmts.Alias
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Assert
-import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AnnAssign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.*
+import org.utbot.python.typing.StubFileStructures
 import java.io.File
 
 
@@ -196,11 +196,15 @@ object PythonCodeGenerator {
                 )
             )
         }
-        val import = ImportFrom(functionPath, listOf(Alias("*")))
-        val additionalImport = additionalModules.map {
+        val additionalImport = additionalModules.filter {
+            it.module != ""
+        }.map {
             ImportFrom(it.module, listOf(Alias(it.name)))
         }
-        return listOf(systemImport) + systemCalls + listOf(import) + additionalImport
+
+        val mathImport = ImportFrom("math", listOf(Alias("*")))
+        val import = ImportFrom(functionPath, listOf(Alias("*")))
+        return listOf(systemImport) + systemCalls + additionalImport + listOf(mathImport, import)
     }
 
     fun generateRunFunctionCode(

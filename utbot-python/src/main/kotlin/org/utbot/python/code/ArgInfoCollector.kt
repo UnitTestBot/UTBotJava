@@ -32,18 +32,28 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 class ArgInfoCollector(val method: PythonMethod) {
-    data class TypeStorage(val typeName: String)
-    data class MethodStorage(val methodName: String)
-    data class FunctionArgStorage(val name: String, val index: Int)
-    data class FunctionRetStorage(val name: String)
-    data class FieldStorage(val name: String)
+    interface BaseStorage { val name: String }
+    data class TypeStorage(override val name: String): BaseStorage
+    data class MethodStorage(override val name: String): BaseStorage
+    data class FunctionArgStorage(override val name: String, val index: Int): BaseStorage
+    data class FunctionRetStorage(override val name: String): BaseStorage
+    data class FieldStorage(override val name: String): BaseStorage
     data class Storage(
         val typeStorages: MutableSet<TypeStorage> = mutableSetOf(),
         val methodStorages: MutableSet<MethodStorage> = mutableSetOf(),
         val functionArgStorages: MutableSet<FunctionArgStorage> = mutableSetOf(),
         val fieldStorages: MutableSet<FieldStorage> = mutableSetOf(),
         val functionRetStorages: MutableSet<FunctionRetStorage> = mutableSetOf()
-    )
+    ) {
+        fun toList(): List<BaseStorage> {
+            return (listOf(typeStorages) + listOf(
+                methodStorages,
+                functionRetStorages,
+                fieldStorages,
+                functionRetStorages
+            ).sortedBy { it.size }).flatten()
+        }
+    }
 
     private val constants = mutableSetOf<FuzzedConcreteValue>()
     private val paramNames = method.arguments.mapNotNull { param ->
@@ -59,13 +69,24 @@ class ArgInfoCollector(val method: PythonMethod) {
     fun suggestBasedOnConstants(): List<Set<ClassId>> {
         return method.arguments.map { param ->
             if (param.type == pythonAnyClassId)
-                collectedValues[param.name]?.typeStorages?.map { ClassId(it.typeName) }?.toSet() ?: emptySet()
+                collectedValues[param.name]?.typeStorages?.map { ClassId(it.name) }?.toSet() ?: emptySet()
             else
                 setOf(param.type)
         }
     }
 
     fun getConstants(): List<FuzzedConcreteValue> = constants.toList()
+
+    fun getPriorityStorages(): Map<String, List<BaseStorage>> {
+       return collectedValues.entries.associate { (argName, storage) ->
+           argName to storage.toList()
+       }
+    }
+
+    fun getConstantAnnotations(): Map<String, Set<TypeStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.typeStorages
+        }
 
     fun getFunctionArgs(): Map<String, Set<FunctionArgStorage>> =
         collectedValues.entries.associate {

@@ -1,4 +1,4 @@
-package org.utbot.python.code
+package org.utbot.python
 
 import com.beust.klaxon.Klaxon
 

@@ -174,17 +174,6 @@ fun <A, B, C> binOp(
         go(fright, node.right, x1)
     }
 
-fun <A, B, C> functionCall(
-    fname: Parser<A, B, Name>,
-    farguments: Parser<B, C, Arguments>
-): Parser<A, C, Atom> =
-    Parser { node, x ->
-        if (!(node.atomElement is Name && node.trailers.size == 1 && node.trailers[0] is Arguments))
-            return@Parser Error()
-        val x1 = fname.go(node.atomElement as Name, x)
-        go(farguments, node.trailers[0] as Arguments, x1)
-    }
-
 fun <A, B, C, D, E> arguments(
     fargs: Parser<A, B, List<Expression>>,
     fkeywords: Parser<B, C, List<Keyword>>,
@@ -262,6 +251,30 @@ fun <A, B, C, D> classMethod(
     farguments: Parser<C, D, Arguments>
 ):Parser<A, D, Atom> =
     atom(refl(fname), list2(refl(attribute(fattributeId)), refl(farguments)))
+
+fun <A, B, C> functionCallWithoutPrefix(
+    fname: Parser<A, B, Name>,
+    farguments: Parser<B, C, Arguments>
+): Parser<A, C, Atom> =
+    atom(refl(fname), list1(refl(farguments)))
+
+fun <A, B, C, D> functionCallWithPrefix(
+    fprefix: Parser<A, B, List<Expression>>,
+    fid: Parser<B, C, String>,
+    farguments: Parser<C, D, Arguments>
+): Parser<A, D, Atom> =
+    Parser { node, x ->
+        if (node.trailers.size == 0)
+            return@Parser Error()
+        if (node.trailers.size == 1) {
+            val x1 = fprefix.go(emptyList(), x)
+            return@Parser go(functionCallWithoutPrefix(name(fid), farguments), node, x1)
+        }
+        val prefix = listOf(node.atomElement) + node.trailers.dropLast(2)
+        val x1 = fprefix.go(prefix, x)
+        val x2 = go(refl(attribute(fid)), node.trailers[node.trailers.size - 2], x1)
+        go(refl(farguments), node.trailers.last(), x2)
+    }
 
 fun <A, B, N> goWithMatches(
     pat: (N, A) -> Result<Pair<B, Int>>,

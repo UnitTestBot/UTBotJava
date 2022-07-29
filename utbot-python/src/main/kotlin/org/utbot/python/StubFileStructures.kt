@@ -1,4 +1,4 @@
-package org.utbot.python.code
+package org.utbot.python
 
 object StubFileStructures {
 

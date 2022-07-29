@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.summary.UtSummarySettings.MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING
@@ -140,7 +141,8 @@ enum class ClusterKind {
     EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS,
     OVERFLOWS,
     TIMEOUTS,
-    CRASH_SUITE;
+    CRASH_SUITE,
+    SECURITY;
 
     val displayName: String get() = toString().replace('_', ' ')
 }
@@ -152,6 +154,7 @@ private fun UtExecutionResult.clusterKind() = when (this) {
     is UtOverflowFailure -> ClusterKind.OVERFLOWS
     is UtTimeoutException -> ClusterKind.TIMEOUTS
     is UtConcreteExecutionFailure -> ClusterKind.CRASH_SUITE
+    is UtSandboxFailure -> ClusterKind.SECURITY
 }
 
 /**

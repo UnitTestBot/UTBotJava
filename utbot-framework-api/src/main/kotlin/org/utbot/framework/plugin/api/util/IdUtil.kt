@@ -285,17 +285,24 @@ val ClassId.isMap: Boolean
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
 
-fun ClassId.fieldById(fieldId: FieldId): Field =
-    fieldByIdOrNull(fieldId) ?: error("Can't find field ${fieldId.name} in $name")
-
-fun ClassId.fieldByIdOrNull(fieldId: FieldId): Field? =
+// TODO: needs to be refactored (do we really need receiver? Can't we specify cases where we should return null?)
+fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
     if (isNotSubtypeOf(fieldId.declaringClass)) {
-        null
-    } else {
-        fieldId.declaringClass.jClass.declaredFields.firstOrNull { it.name == fieldId.name }
+        error("findFieldByIdOrNull is called on class ${name}, which is not a subclass of ${fieldId.name}'s declaring class")
     }
 
-fun ClassId.hasField(fieldId: FieldId): Boolean = fieldByIdOrNull(fieldId) != null
+    return fieldId.declaringClass.jClass.declaredFields.firstOrNull { it.name == fieldId.name }
+}
+
+// TODO: maybe we could replace its usages with FieldId.field
+fun ClassId.findFieldById(fieldId: FieldId): Field =
+    findFieldByIdOrNull(fieldId) ?: error("Can't find field ${fieldId.name} in $name")
+
+// TODO: check if we need this function
+fun ClassId.hasField(fieldId: FieldId): Boolean {
+    assert(findFieldByIdOrNull(fieldId) != null)
+    return findFieldByIdOrNull(fieldId) != null
+}
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
     intClassId -> UtPrimitiveModel(0)

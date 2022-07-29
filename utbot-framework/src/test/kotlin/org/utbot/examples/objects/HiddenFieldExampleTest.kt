@@ -29,7 +29,6 @@ internal class HiddenFieldExampleTest : UtValueTestCaseChecker(testClass = Hidde
             { o, r -> o.a != 1 && o.b == 2.0 && r == 2 },
             { o, r -> o.a != 1 && o.b != 2.0 && (o as HiddenFieldSuperClass).b == 3 && r == 3 },
             { o, r -> o.a != 1 && o.b != 2.0 && (o as HiddenFieldSuperClass).b != 3 && r == 4 },
-            coverage = DoNotCalculate
         )
     }
 }

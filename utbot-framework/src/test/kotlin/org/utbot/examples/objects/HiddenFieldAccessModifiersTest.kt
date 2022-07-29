@@ -14,7 +14,6 @@ internal class HiddenFieldAccessModifiersTest : UtValueTestCaseChecker(testClass
             { o, _ -> o == null },
             { _, r -> r == true },
             { _, r -> r == false},
-            coverage = DoNotCalculate
         )
     }
 }

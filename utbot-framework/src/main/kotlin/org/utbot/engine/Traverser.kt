@@ -89,7 +89,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.fieldById
+import org.utbot.framework.plugin.api.util.findFieldById
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.signature
@@ -639,7 +639,7 @@ class Traverser(
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
-            else -> declaringClass.id.fieldById(field.fieldId).let { it.withAccessibility { it.get(null) } }
+            else -> declaringClass.id.findFieldById(field.fieldId).let { it.withAccessibility { it.get(null) } }
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =

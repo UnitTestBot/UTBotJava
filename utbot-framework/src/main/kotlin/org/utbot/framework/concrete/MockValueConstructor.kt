@@ -45,7 +45,7 @@ import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
 import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.util.fieldById
+import org.utbot.framework.plugin.api.util.findFieldById
 
 /**
  * Constructs values (including mocks) from models.
@@ -170,7 +170,7 @@ class MockValueConstructor(
         }
 
         model.fields.forEach { (field, fieldModel) ->
-            val declaredField = model.classId.fieldById(field)
+            val declaredField = model.classId.findFieldById(field)
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 

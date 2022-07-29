@@ -73,12 +73,8 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
 
             val codegenLanguage = testFrameworkConfiguration.codegenLanguage
             val parametrizedTestSource = testFrameworkConfiguration.parametrizedTestSource
-            val isParametrizedAndMocked = testFrameworkConfiguration.isParametrizedAndMocked
 
             val testClass = callToCodeGenerator(testSets, classUnderTest)
-
-            // clear triggered flags from the current launch in order to get ready for the next possible run
-            conflictTriggers.clear()
 
             // actual number of the tests in the generated testClass
             val generatedMethodsCount = testClass
@@ -101,11 +97,8 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                     trimmedLine.startsWith(prefix)
                 }
             // expected number of the tests in the generated testClass
-            // if force mocking took place in parametrized test generation,
-            // we don't generate tests at all
             val expectedNumberOfGeneratedMethods =
-                if (isParametrizedAndMocked) 0
-                else when (parametrizedTestSource) {
+                when (parametrizedTestSource) {
                     ParametrizedTestSource.DO_NOT_PARAMETRIZE -> testSets.sumOf { it.executions.size }
                     ParametrizedTestSource.PARAMETRIZE -> testSets.filter { it.executions.isNotEmpty() }.size
                 }
@@ -242,12 +235,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         }
         val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        // if force mocking took place in parametrized test generation,
-        // we don't generate tests at all by passing empty list instead of test sets
-        return codeGenerator.generateAsString(
-            if (testFrameworkConfiguration.isParametrizedAndMocked) listOf() else testSets,
-            testClassCustomName
-        )
+        return codeGenerator.generateAsString(testSets, testClassCustomName)
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {
@@ -284,18 +272,17 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     }
 
     companion object {
-        val CodegenLanguage.defaultCodegenPipeline: TestCodeGeneratorPipeline
-            get() = TestCodeGeneratorPipeline(
-                TestFrameworkConfiguration(
-                    testFramework = TestFramework.defaultItem,
-                    codegenLanguage = this,
-                    mockFramework = MockFramework.defaultItem,
-                    mockStrategy = MockStrategyApi.defaultItem,
-                    staticsMocking = StaticsMocking.defaultItem,
-                    parametrizedTestSource = ParametrizedTestSource.defaultItem,
-                    forceStaticMocking = ForceStaticMocking.defaultItem,
-                )
-            )
+        var currentTestFrameworkConfiguration = defaultTestFrameworkConfiguration()
+
+        fun defaultTestFrameworkConfiguration(language: CodegenLanguage = CodegenLanguage.JAVA) = TestFrameworkConfiguration(
+            testFramework = TestFramework.defaultItem,
+            codegenLanguage = language,
+            mockFramework = MockFramework.defaultItem,
+            mockStrategy = MockStrategyApi.defaultItem,
+            staticsMocking = StaticsMocking.defaultItem,
+            parametrizedTestSource = ParametrizedTestSource.defaultItem,
+            forceStaticMocking = ForceStaticMocking.defaultItem,
+        )
 
         private const val ERROR_REGION_BEGINNING = "///region Errors"
         private const val ERROR_REGION_END = "///endregion"

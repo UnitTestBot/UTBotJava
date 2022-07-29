@@ -4,7 +4,6 @@ import org.utbot.common.FileUtil
 import org.utbot.common.packageName
 import org.utbot.common.withAccessibility
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.TestCodeGeneratorPipeline.Companion.defaultCodegenPipeline
 import org.utbot.framework.codegen.ClassStages
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.codegen.ExecutionStatus
@@ -29,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.api.fail
 import org.junit.jupiter.engine.descriptor.ClassTestDescriptor
 import org.junit.jupiter.engine.descriptor.JupiterEngineDescriptor
+import org.utbot.framework.codegen.TestCodeGeneratorPipeline
 import java.nio.file.Path
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -119,7 +119,8 @@ abstract class CodeGenerationIntegrationTest(
                         )
                     }
 
-                    language.defaultCodegenPipeline.runClassesCodeGenerationTests(classStages)
+                    val config = TestCodeGeneratorPipeline.defaultTestFrameworkConfiguration(language)
+                    TestCodeGeneratorPipeline(config).runClassesCodeGenerationTests(classStages)
                 } catch (e: RuntimeException) {
                     pipelineErrors.add(e.message)
                 }

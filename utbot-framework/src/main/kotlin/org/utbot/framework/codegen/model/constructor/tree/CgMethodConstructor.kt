@@ -1277,7 +1277,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             // this instance
             val thisInstanceModel = genericExecution.stateBefore.thisInstance
             if (thisInstanceModel != null) {
-                val type = thisInstanceModel.classId
+                val type = wrapTypeIfRequired(thisInstanceModel.classId)
                 val thisInstance = CgParameterDeclaration(
                     parameter = declareParameter(
                         type = type,

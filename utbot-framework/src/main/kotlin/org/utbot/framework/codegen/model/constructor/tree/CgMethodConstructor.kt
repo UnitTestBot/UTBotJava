@@ -1599,7 +1599,23 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         } else {
             setOf(annotation(testFramework.testAnnotationId))
         }
-        displayName?.let { testFrameworkManager.addDisplayName(it) }
+
+        /* Add a short test's description depending on the test framework type:
+           DisplayName in case of JUni5, and description argument to Test annotation in case of TestNG.
+         */
+        if (displayName != null) {
+            when (testFramework) {
+                is Junit5 -> {
+                    displayName.let { testFrameworkManager.addDisplayName(it) }
+                }
+                is TestNg -> {
+                    testFrameworkManager.addTestDescription(displayName)
+                }
+                else -> {
+                    // nothing
+                }
+            }
+        }
 
         val result = currentExecution!!.result
         if (result is UtTimeoutException) {
@@ -1645,11 +1661,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             }
 
-            documentation = CgDocumentationComment(docComment)
-            documentation = if (parameterized) {
+            val documentationComment = if (parameterized) {
                 CgDocumentationComment(text = null)
             } else {
                 CgDocumentationComment(docComment)
+            }
+            documentation.add(documentationComment)
+
+            /* JUnit4 doesn't have DisplayName annotation and any other suitable for putting short description,
+               that's why we add a single line comment below JavaDoc with a test's short description.
+             */
+            if (testFramework is Junit4 && displayName != null) {
+                documentation.add(CgSingleLineComment(displayName))
             }
         }
         testMethods += testMethod

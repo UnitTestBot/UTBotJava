@@ -53,7 +53,7 @@ interface CgMethodBuilder<T : CgMethod> : CgBuilder<T> {
     val statements: List<CgStatement>
     val exceptions: Set<ClassId>
     val annotations: List<CgAnnotation>
-    val documentation: CgDocumentationComment
+    val documentation: List<CgComment>
 }
 
 class CgTestMethodBuilder : CgMethodBuilder<CgTestMethod> {
@@ -64,7 +64,7 @@ class CgTestMethodBuilder : CgMethodBuilder<CgTestMethod> {
     override val exceptions: MutableSet<ClassId> = mutableSetOf()
     override val annotations: MutableList<CgAnnotation> = mutableListOf()
     lateinit var methodType: CgTestMethodType
-    override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override var documentation: MutableList<CgComment> = mutableListOf()
 
     override fun build() = CgTestMethod(
         name,
@@ -87,7 +87,7 @@ class CgErrorTestMethodBuilder : CgMethodBuilder<CgErrorTestMethod> {
     override lateinit var statements: List<CgStatement>
     override val exceptions: Set<ClassId> = emptySet()
     override val annotations: List<CgAnnotation> = emptyList()
-    override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override var documentation: List<CgComment> = emptyList()
 
     override fun build() = CgErrorTestMethod(name, statements, documentation)
 }
@@ -102,7 +102,7 @@ class CgParameterizedTestDataProviderBuilder : CgMethodBuilder<CgParameterizedTe
     override lateinit var statements: List<CgStatement>
     override val annotations: MutableList<CgAnnotation> = mutableListOf()
     override val exceptions: MutableSet<ClassId> = mutableSetOf()
-    override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
+    override var documentation: MutableList<CgDocumentationComment> = mutableListOf()
 
     override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations, exceptions)
 }

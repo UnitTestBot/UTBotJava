@@ -818,7 +818,9 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     private fun renderMethodDocumentation(element: CgMethod) {
-        element.documentation.accept(this)
+        for (comment in element.documentation) {
+            comment.accept(this)
+        }
     }
 
     private fun Byte.toStringConstant() = when {

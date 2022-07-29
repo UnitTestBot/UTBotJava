@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.model
 
-import org.utbot.common.packageName
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -16,10 +15,11 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.jcdb.api.ClassId
 
 class CodeGenerator(
-    private val classUnderTest: Class<*>,
+    private val classUnderTest: ClassId,
     params: MutableMap<UtMethod<*>, List<String>> = mutableMapOf(),
     testFramework: TestFramework = TestFramework.defaultItem,
     mockFramework: MockFramework? = MockFramework.defaultItem,
@@ -34,7 +34,7 @@ class CodeGenerator(
     testClassPackageName: String = classUnderTest.packageName,
 ) {
     private var context: CgContext = CgContext(
-        classUnderTest = classUnderTest.id,
+        classUnderTest = classUnderTest,
         paramNames = params,
         testFramework = testFramework,
         mockFramework = mockFramework ?: MockFramework.MOCKITO,

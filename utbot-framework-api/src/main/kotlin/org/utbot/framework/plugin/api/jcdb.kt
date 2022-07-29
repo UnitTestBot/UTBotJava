@@ -3,6 +3,9 @@ package org.utbot.framework.plugin.api
 import kotlinx.coroutines.runBlocking
 import org.utbot.jcdb.api.*
 
+val Accessible.access: Int
+    get() = runBlocking { access() }
+
 val Accessible.isPublic: Boolean
     get() = runBlocking { isPublic() }
 
@@ -49,12 +52,18 @@ val ClassId.isEnum: Boolean
         isEnum
     }
 
+val ClassId.fields: List<FieldId>
+    get() = runBlocking { fields() }
+
 val ClassId.methods: List<MethodId>
     get() {
         return runBlocking {
             methods()
         }
     }
+
+val ClassId.allConstructors: List<ConstructorExecutableId>
+    get() = runBlocking { allConstructors().map { ConstructorExecutableId(it) } }
 
 val ClassId.interfaces: List<ClassId>
     get() {

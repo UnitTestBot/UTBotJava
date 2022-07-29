@@ -5,13 +5,11 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
+import org.utbot.jcdb.api.Accessible
 import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
 import org.utbot.jcdb.api.isPrimitive
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier.*
 import java.util.function.IntSupplier
 
 /**
@@ -56,7 +54,7 @@ class ObjectModelProvider : ModelProvider {
                 .filterNot { it == stringClassId || it.isPrimitiveWrapper }
                 .flatMap { classId ->
                     collectConstructors(classId) { javaConstructor ->
-                        isAccessible(javaConstructor, description.packageName)
+                        isAccessible(javaConstructor, classId, description.packageName)
                     }.sortedWith(
                         primitiveParameterizedConstructorsFirstAndThenByParameterCount
                     ).take(limit)
@@ -115,7 +113,7 @@ class ObjectModelProvider : ModelProvider {
                         )
                         field.setter != null -> UtExecutableCallModel(
                             fuzzedModel.model,
-                            methodId(constructorId.classId, field.setter.name, field.setter.returnType.id, field.classId).asExecutable(),
+                            methodId(constructorId.classId, field.setter.name, field.setter.returnType, field.classId).asExecutable(),
                             listOf(value.model)
                         )
                         else -> null
@@ -126,23 +124,21 @@ class ObjectModelProvider : ModelProvider {
     }
 
     companion object {
-        private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorExecutableId> {
-            return classId.jClass.declaredConstructors.asSequence()
+        private fun collectConstructors(classId: ClassId, predicate: (ConstructorExecutableId) -> Boolean): Sequence<ConstructorExecutableId> {
+            return classId.allConstructors
+                .asSequence()
                 .filter(predicate)
-                .map { javaConstructor ->
-                    constructorId(classId, javaConstructor.parameters.map { it.type.id })
-                }
         }
 
-        private fun isAccessible(member: Member, packageName: String?): Boolean {
-            return isPublic(member.modifiers) ||
-                    (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
+        private fun isAccessible(member: Accessible, declaringClass: ClassId, packageName: String?): Boolean {
+            return member.isPublic ||
+                    (packageName != null && isPackagePrivate(member) && declaringClass.packageName == packageName)
         }
 
-        private fun isPackagePrivate(modifiers: Int): Boolean {
-            val hasAnyAccessModifier = isPrivate(modifiers)
-                    || isProtected(modifiers)
-                    || isProtected(modifiers)
+        private fun isPackagePrivate(member: Accessible): Boolean {
+            val hasAnyAccessModifier = member.isPrivate
+                    || member.isProtected
+                    || member.isPublic
             return !hasAnyAccessModifier
         }
 
@@ -172,28 +168,27 @@ class ObjectModelProvider : ModelProvider {
         }
 
         private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {
-            val jClass = classId.jClass
-            return jClass.declaredFields.map { field ->
+            return classId.fields.map { field ->
                 FieldDescription(
                     field.name,
-                    field.type.id,
-                    isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
-                    jClass.findPublicSetterIfHasPublicGetter(field, description)
+                    field.type,
+                    isAccessible(field, classId, description.packageName) && field.isFinal && field.isStatic,
+                    classId.findPublicSetterIfHasPublicGetter(field, description)
                 )
             }
         }
 
-        private fun Class<*>.findPublicSetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): Method? {
+        private fun ClassId.findPublicSetterIfHasPublicGetter(field: FieldId, description: FuzzedMethodDescription): MethodId? {
             val postfixName = field.name.capitalize()
             val setterName = "set$postfixName"
             val getterName = "get$postfixName"
-            val getter = try { getDeclaredMethod(getterName) } catch (_: NoSuchMethodException) { return null }
-            return if (isAccessible(getter, description.packageName) && getter.returnType == field.type) {
-                declaredMethods.find {
-                    isAccessible(it, description.packageName) &&
+            val getter = methods.firstOrNull { it.name == getterName } ?: return null
+            return if (isAccessible(getter, this, description.packageName) && getter.returnType == field.type) {
+                methods.find {
+                    isAccessible(it, this, description.packageName) &&
                             it.name == setterName &&
-                            it.parameterCount == 1 &&
-                            it.parameterTypes[0] == field.type
+                            it.parameters.size == 1 &&
+                            it.parameters[0] == field.type
                 }
             } else {
                 null
@@ -213,7 +208,7 @@ class ObjectModelProvider : ModelProvider {
             val name: String,
             val classId: ClassId,
             val canBeSetDirectly: Boolean,
-            val setter: Method?,
+            val setter: MethodId?,
         )
     }
 }

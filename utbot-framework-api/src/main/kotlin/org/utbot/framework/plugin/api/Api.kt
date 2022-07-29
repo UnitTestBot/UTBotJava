@@ -933,9 +933,19 @@ sealed class ExecutableId : StatementId() {
 
 }
 
-class ConstructorExecutableId(override val methodId: MethodId) : ExecutableId()
+class ConstructorExecutableId(override val methodId: MethodId) : ExecutableId(), MethodId by methodId {
+    override val classId: ClassId
+        get() = methodId.classId
+    override val name: String
+        get() = methodId.name
+}
 
-class MethodExecutableId(override val methodId: MethodId) : ExecutableId()
+class MethodExecutableId(override val methodId: MethodId) : ExecutableId(), MethodId by methodId {
+    override val classId: ClassId
+        get() = methodId.classId
+    override val name: String
+        get() = methodId.name
+}
 
 
 //sealed class ExecutableId : StatementId() {

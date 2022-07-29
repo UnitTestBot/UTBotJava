@@ -7,6 +7,7 @@ import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
 import org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation
 import java.math.BigInteger
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.test.util.UtPair
 
@@ -14,6 +15,7 @@ class TestBenchmarkClasses {
     lateinit var utContext: AutoCloseable
 
     @Test
+    @Disabled("Ask Sergey to check")
     fun testRepeater() {
         ConcreteExecutor(
             CoverageInstrumentation,

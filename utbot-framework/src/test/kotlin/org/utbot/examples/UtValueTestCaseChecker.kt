@@ -54,6 +54,7 @@ import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.toValueTestCase
 import org.utbot.summary.summarize
 import java.io.File
@@ -2296,6 +2297,13 @@ abstract class UtValueTestCaseChecker(
                         walk(utMethod, mockStrategy)
                     }
 
+                    // if force mocking took place in parametrized test generation,
+                    // we do not need to process this [testSet]
+                    if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+                        conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
+                        return
+                    }
+
                     if (checkCoverageInCodeGenerationTests) {
                         // TODO JIRA:1407
                     }
@@ -2348,6 +2356,13 @@ abstract class UtValueTestCaseChecker(
                 "We have errors: ${
                     testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()
                 }"
+            }
+
+            // if force mocking took place in parametrized test generation,
+            // we do not need to process this [testSet]
+            if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+                conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
+                return
             }
 
             val valueExecutions = valueTestCase.executions
@@ -2770,10 +2785,14 @@ inline fun <reified T> withSettingsFromTestFrameworkConfiguration(
 ): T {
     val substituteStaticsWithSymbolicVariable = UtSettings.substituteStaticsWithSymbolicVariable
     UtSettings.substituteStaticsWithSymbolicVariable = config.resetNonFinalFieldsAfterClinit
+
+    val previousConfig = TestCodeGeneratorPipeline.currentTestFrameworkConfiguration
+    TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = config
     try {
         return block()
     } finally {
         UtSettings.substituteStaticsWithSymbolicVariable = substituteStaticsWithSymbolicVariable
+        TestCodeGeneratorPipeline.currentTestFrameworkConfiguration = previousConfig
     }
 }
 

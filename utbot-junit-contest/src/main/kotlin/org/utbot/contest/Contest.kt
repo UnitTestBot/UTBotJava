@@ -442,6 +442,7 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
         .filter { methodNameFilter?.equals(it.callable.name) ?: true }
         .filterNot { it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum) }
         .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+        .filterNot { it.callable.isAbstract }
         .toList()
 
     return if (kotlinClass.nestedClasses.isEmpty()) {

@@ -58,6 +58,13 @@ abstract class NonUniformRandomSearch(
 
     private val randomGen: Random? = seed?.let { Random(seed) }
 
+    // We use this value to avoid non-deterministic behaviour of the
+    // peek method. Without it, we might have different states for
+    // a sequence of the `peek` calls.
+    // Now we remember it at the first `peek` call and use it
+    // until a first `poll` call. The first call should reset it back to null.
+    private var lastTakenRandomValue: Double? = null
+
     override fun update() {
         executionQueue.updateAll()
     }
@@ -75,7 +82,11 @@ abstract class NonUniformRandomSearch(
      * with probability executionState.asWeight.weight / sumWeights
      */
     override fun peekImpl(): ExecutionState? {
-        val rand = (randomGen?.nextDouble() ?: 1.0) * sumWeights
+        if (lastTakenRandomValue == null) {
+            lastTakenRandomValue = randomGen?.nextDouble()
+        }
+
+        val rand = (lastTakenRandomValue ?: 1.0) * sumWeights
 
         return executionQueue.findLeftest(rand)?.first
     }
@@ -83,7 +94,10 @@ abstract class NonUniformRandomSearch(
     override fun removeImpl(state: ExecutionState): Boolean = executionQueue.remove(state)
 
     override fun pollImpl(): ExecutionState? =
-        peekImpl()?.also { remove(it) }
+        peekImpl()?.also {
+            remove(it)
+            lastTakenRandomValue = null
+        }
 
     override fun isEmpty() =
         executionQueue.isEmpty()

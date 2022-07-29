@@ -63,8 +63,8 @@ class Combinations(vararg elementNumbers: Int): Iterable<IntArray> {
      *
      * The total count of all possible combinations is therefore `count[0]`.
      */
-    private val count: IntArray
-    val size: Int
+    private val count: LongArray
+    val size: Long
         get() = if (count.isEmpty()) 0 else count[0]
 
     init {
@@ -72,9 +72,13 @@ class Combinations(vararg elementNumbers: Int): Iterable<IntArray> {
         if (badValue >= 0) {
             throw IllegalArgumentException("Max value must be at least 1 to build combinations, but ${elementNumbers[badValue]} is found at position $badValue (list: $elementNumbers)")
         }
-        count = IntArray(elementNumbers.size) { elementNumbers[it] }
+        count = LongArray(elementNumbers.size) { elementNumbers[it].toLong() }
         for (i in count.size - 2 downTo 0) {
-            count[i] = count[i] * count[i + 1]
+            try {
+                count[i] = StrictMath.multiplyExact(count[i], count[i + 1])
+            } catch (e: ArithmeticException) {
+                throw TooManyCombinationsException("Long overflow: ${count[i]} * ${count[i + 1]}")
+            }
         }
     }
 
@@ -94,7 +98,7 @@ class Combinations(vararg elementNumbers: Int): Iterable<IntArray> {
      * }
      * ```
      */
-    operator fun get(value: Int, target: IntArray = IntArray(count.size)): IntArray {
+    operator fun get(value: Long, target: IntArray = IntArray(count.size)): IntArray {
         if (value >= size) {
             throw java.lang.IllegalArgumentException("Only $size values allowed")
         }
@@ -104,13 +108,20 @@ class Combinations(vararg elementNumbers: Int): Iterable<IntArray> {
         var rem = value
         for (i in target.indices) {
             target[i] = if (i < target.size - 1) {
-                val res = rem / count[i + 1]
+                val res = checkBoundsAndCast(rem / count[i + 1])
                 rem %= count[i + 1]
                 res
             } else {
-                rem
+                checkBoundsAndCast(rem)
             }
         }
         return target
     }
+
+    private fun checkBoundsAndCast(value: Long): Int {
+        check(value >= 0 && value < Int.MAX_VALUE) { "Value is out of bounds: $value" }
+        return value.toInt()
+    }
 }
+
+class TooManyCombinationsException(msg: String) : RuntimeException(msg)

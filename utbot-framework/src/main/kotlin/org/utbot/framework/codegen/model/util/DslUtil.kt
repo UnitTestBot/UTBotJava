@@ -1,6 +1,6 @@
 package org.utbot.framework.codegen.model.util
 
-import org.utbot.common.findDirectAccessedField
+import org.utbot.common.findDirectAccessedFieldOrNull
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgDecrement
@@ -76,10 +76,11 @@ fun stringLiteral(string: String) = CgLiteral(stringClassId, string)
 
 // non-static fields
 operator fun CgExpression.get(fieldId: FieldId): CgFieldAccess =
-    if (type.jClass.findDirectAccessedField(fieldId.name) != fieldId.field)
+    if (type.jClass.findDirectAccessedFieldOrNull(fieldId.name) != fieldId.field) {
         CgFieldAccess(CgTypeCast(fieldId.declaringClass, this), fieldId)
-    else
+    } else {
         CgFieldAccess(this, fieldId)
+    }
 
 // static fields
 // TODO: unused receiver

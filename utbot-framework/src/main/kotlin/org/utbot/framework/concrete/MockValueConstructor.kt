@@ -32,7 +32,6 @@ import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.field
-import org.utbot.framework.plugin.api.util.fieldOrNull
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
@@ -46,6 +45,7 @@ import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
 import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.util.fieldById
 
 /**
  * Constructs values (including mocks) from models.
@@ -170,8 +170,7 @@ class MockValueConstructor(
         }
 
         model.fields.forEach { (field, fieldModel) ->
-            val declaredField =
-                model.classId.fieldOrNull(field) ?: error("Can't find field: $field for $javaClass")
+            val declaredField = model.classId.fieldById(field)
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 

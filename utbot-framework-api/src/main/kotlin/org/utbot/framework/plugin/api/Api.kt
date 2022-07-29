@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.fieldOrNull
+import org.utbot.framework.plugin.api.util.fieldByIdOrNull
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -856,7 +856,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = declaringClass.fieldOrNull(this).toString()
+    override fun toString() = declaringClass.fieldByIdOrNull(this).toString()
 }
 
 inline fun <T> withReflection(block: () -> T): T {

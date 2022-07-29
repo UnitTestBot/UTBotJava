@@ -15,10 +15,8 @@ import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -47,7 +45,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.fieldOrNull
+import org.utbot.framework.plugin.api.util.fieldByIdOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
@@ -128,7 +126,7 @@ internal class CgVariableConstructor(val context: CgContext) :
 
         for ((fieldId, fieldModel) in model.fields) {
             val variableForField = getOrCreateVariable(fieldModel)
-            val field = obj.type.fieldOrNull(fieldId)
+            val field = obj.type.fieldByIdOrNull(fieldId)
 
             // we cannot set field directly if variable declared type does not have such field
             // or we cannot directly create variable for field with the specified type (it is private, for example)

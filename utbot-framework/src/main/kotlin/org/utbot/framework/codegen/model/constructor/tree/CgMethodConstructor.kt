@@ -43,7 +43,6 @@ import org.utbot.framework.codegen.model.tree.CgEqualTo
 import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgIfStatement
 import org.utbot.framework.codegen.model.tree.CgLiteral

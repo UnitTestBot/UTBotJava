@@ -7,7 +7,12 @@ import java.lang.reflect.Method
 
 val Class<*>.packageName: String get() = `package`?.name?:""
 
-fun Class<*>.findDirectAccessedField(fieldName: String): Field? = generateSequence(this) { it.superclass }
+/**
+ * Returns the Field that would be used by compiler when you try to direct access [fieldName] from code, i.e.
+ * when you write `${this.name}.$fieldName`.
+ * If there is no field named [fieldName] in the class, null is returned
+ */
+fun Class<*>.findDirectAccessedFieldOrNull(fieldName: String): Field? = generateSequence(this) { it.superclass }
     .flatMap { it.declaredFields.asSequence() }
     .firstOrNull { it.name == fieldName }
 

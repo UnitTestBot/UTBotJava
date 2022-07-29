@@ -285,17 +285,17 @@ val ClassId.isMap: Boolean
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
 
-fun ClassId.fieldOrNull(fieldId: FieldId): Field? {
-    if (this.isNotSubtypeOf(fieldId.declaringClass))
-        return null
-    return try {
-        fieldId.field
-    } catch (e: IllegalStateException) {
-        null
-    }
-}
+fun ClassId.fieldById(fieldId: FieldId): Field =
+    fieldByIdOrNull(fieldId) ?: error("Can't find field ${fieldId.name} in $name")
 
-fun ClassId.hasField(fieldId: FieldId): Boolean = fieldOrNull(fieldId) != null
+fun ClassId.fieldByIdOrNull(fieldId: FieldId): Field? =
+    if (isNotSubtypeOf(fieldId.declaringClass)) {
+        null
+    } else {
+        fieldId.declaringClass.jClass.declaredFields.firstOrNull { it.name == fieldId.name }
+    }
+
+fun ClassId.hasField(fieldId: FieldId): Boolean = fieldByIdOrNull(fieldId) != null
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
     intClassId -> UtPrimitiveModel(0)

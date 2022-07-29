@@ -12,7 +12,6 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.field
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {

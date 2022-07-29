@@ -165,8 +165,8 @@ internal abstract class UtModelTestCaseChecker(
     /**
      * Finds field model in [UtCompositeModel] and [UtAssembleModel]. For assemble model supports direct field access only.
      */
-    protected fun UtModel.findField(fieldName: String, declarationClass: ClassId = this.classId): UtModel =
-        findField(FieldId(declarationClass, fieldName))
+    protected fun UtModel.findField(fieldName: String, declaringClass: ClassId = this.classId): UtModel =
+        findField(FieldId(declaringClass, fieldName))
 
     /**
      * Finds field model in [UtCompositeModel] and [UtAssembleModel]. For assemble model supports direct field access only.

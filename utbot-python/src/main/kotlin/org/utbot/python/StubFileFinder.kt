@@ -61,17 +61,17 @@ object StubFileFinder {
 
     fun findTypeWithMethod(
         methodName: String
-    ): Set<String> {
+    ): Set<StubFileStructures.PythonInfoType> {
         return (methodToTypeMap[methodName] ?: emptyList()).map {
-            "${it.module}.${it.className}"
+            StubFileStructures.PythonInfoType(it.className, it.module)
         }.toSet()
     }
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<String> {
+    ): Set<StubFileStructures.PythonInfoType> {
         return (fieldToTypeMap[fieldName] ?: emptyList()).map {
-            "${it.module}.${it.className}"
+            StubFileStructures.PythonInfoType(it.className, it.module)
         }.toSet()
     }
 

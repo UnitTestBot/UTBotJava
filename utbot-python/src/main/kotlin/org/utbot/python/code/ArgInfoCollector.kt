@@ -66,10 +66,24 @@ class ArgInfoCollector(val method: PythonMethod) {
     }
 
     fun getConstants(): List<FuzzedConcreteValue> = constants.toList()
-    fun getFunctionArgs() = collectedValues.entries.map { Pair(it.key, it.value.functionArgStorages.toList()) }
-    fun getMethods() = collectedValues.entries.map { Pair(it.key, it.value.methodStorages.toList()) }
-    fun getFields() = collectedValues.entries.map { Pair(it.key, it.value.fieldStorages.toList()) }
-    fun getFunctionRets() = collectedValues.entries.map { Pair(it.key, it.value.functionRetStorages.toList()) }
+
+    fun getFunctionArgs(): Map<String, Set<FunctionArgStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.functionArgStorages }
+
+    fun getMethods(): Map<String, Set<MethodStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.methodStorages
+        }
+
+    fun getFields(): Map<String, Set<FieldStorage>> =
+        collectedValues.entries.associate {
+            it.key to it.value.fieldStorages
+        }
+    fun getFunctionRets() =
+        collectedValues.entries.associate {
+            it.key to it.value.functionRetStorages
+        }
 
     private class MatchVisitor(
         private val paramNames: List<String>,

@@ -1,13 +1,11 @@
-import ast
 import types
+from typing import Optional
+
 import astor.code_gen
-import sys
 import os
 import importlib, inspect
 from modulefinder import ModuleFinder
 from itertools import product
-from collections import defaultdict
-from pprint import pprint
 
 
 def find_all_classes_in_file(filename: str, prefix: str = '') -> list[str]:
@@ -105,13 +103,18 @@ def add_annotations(code, function_name, annotations):
     return astor.code_gen.to_source(root)
 
 
-def run_mypy(code):
+def run_mypy(code: str, filename: Optional[str] = None):
     # print(' --- Run Mypy --- ')
     # print(code)
-    x = os.popen(f'mypy -c """{code}"""')
+    if filename is None:
+        x = os.popen(f'python3 -m mypy -c """{code}"""')
+    else:
+        with open(filename, 'w') as fout:
+            fout.write(code)
+        x = os.popen(f'python3 -m mypy.dmypy check {filename}')
     # print(' --- Mypy output --- ')
     output = x.readlines()
-    print(output[-1])
+    # print(output[-1])
     return output[-1]
 
 
@@ -128,6 +131,7 @@ def find_all_types(code, test_module_path):
     print(f'Possible types (count = {len(all_classes)}):')
     print(all_classes)
     return all_classes
+
 
 def check_annotations(code, test_module_path, function_name, actual_annotations):
     current_annotations = {

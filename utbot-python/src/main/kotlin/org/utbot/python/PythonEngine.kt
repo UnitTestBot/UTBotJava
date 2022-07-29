@@ -7,6 +7,7 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.ArgInfoCollector
+import org.utbot.python.code.StubFileFinder
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import kotlin.random.Random
@@ -23,7 +24,30 @@ class PythonEngine(
         val argumentTypes = methodUnderTest.arguments.map { it.type }
 
         val argInfoCollector = ArgInfoCollector(methodUnderTest)
+        val argMethodAnnotations = argInfoCollector.getMethods().entries.associate {
+            it.key to (it.value.map { storage ->
+                StubFileFinder.findTypeWithMethod(storage.methodName)
+            }.reduceRightOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
+        }
+//        val argsAttributeAnnotations = argInfoCollector.getFields().entries.associate {
+//            it.key to (it.value.map { storage ->
+//                StubFileFinder.findTypeWithField(storage.name)
+//            }.reduceOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
+//        }
+//        val argsFunctionAnnotations = argInfoCollector.getFunctionArgs().entries.associate {
+//            it.key to (it.value.map { storage ->
+//                StubFileFinder.findTypeByFunctionWithArgumentPosition(storage.name, argumentPosition = storage.index)
+//            }.reduceOrNull { acc, set -> acc.intersect(set) }?.toList() ?: emptyList())
+//        }
 
+        val methodData = MypyAnnotations.mypyCheckAnnotations(
+            methodUnderTest,
+            argMethodAnnotations,
+            testSourceRoot,
+            moduleToImport,
+            directoriesForSysPath,
+            pythonPath
+        )
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
             returnType,

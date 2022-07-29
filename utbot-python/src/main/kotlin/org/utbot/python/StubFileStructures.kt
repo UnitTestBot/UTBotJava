@@ -66,4 +66,9 @@ object StubFileStructures {
         val annotation: List<String>,
         val target: String,
     )
+
+    data class PythonInfoType(
+        val name: String,
+        val module: String,
+    )
 }

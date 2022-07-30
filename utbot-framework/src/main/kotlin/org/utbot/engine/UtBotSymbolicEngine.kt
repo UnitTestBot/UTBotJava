@@ -1,5 +1,8 @@
 package org.utbot.engine
 
+import java.lang.reflect.Method
+import kotlin.random.Random
+import kotlin.system.measureTimeMillis
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -22,6 +25,8 @@ import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.common.workaround
 import org.utbot.engine.MockStrategy.NO_MOCKS
+import org.utbot.engine.mvisitors.ConstraintModelVisitor
+import org.utbot.engine.mvisitors.visit
 import org.utbot.engine.pc.UtArraySelectExpression
 import org.utbot.engine.pc.UtBoolExpression
 import org.utbot.engine.pc.UtContextInitializer
@@ -71,17 +76,18 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
-import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.description
-import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.util.graph
+import org.utbot.framework.util.jimpleBody
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -89,16 +95,18 @@ import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.Trie
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.fuzzer.providers.CollectionModelProvider
+import org.utbot.fuzzer.providers.NullModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
+import soot.jimple.ParameterRef
 import soot.jimple.Stmt
+import soot.jimple.internal.JIdentityStmt
 import soot.tagkit.ParamNamesTag
-import java.lang.reflect.Method
-import kotlin.random.Random
-import kotlin.system.measureTimeMillis
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -159,6 +167,11 @@ class UtBotSymbolicEngine(
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
 
+    private val methodUnderTestId = if (methodUnderTest.isConstructor) {
+        methodUnderTest.javaConstructor!!.executableId
+    } else {
+        methodUnderTest.javaMethod!!.executableId
+    }
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
@@ -351,7 +364,7 @@ class UtBotSymbolicEngine(
                         }
                         for (newState in newStates) {
                             when (newState.label) {
-                                StateLabel.INTERMEDIATE -> pathSelector.offer(newState)
+                                StateLabel.INTERMEDIATE -> processIntermediateState(newState)
                                 StateLabel.CONCRETE -> statesForConcreteExecution.add(newState)
                                 StateLabel.TERMINAL -> consumeTerminalState(newState)
                             }
@@ -369,6 +382,58 @@ class UtBotSymbolicEngine(
         }
     }
 
+    private fun getModelProviderToFuzzingInitializing(modelProvider: ModelProvider): ModelProvider =
+        modelProvider
+            .with(NullModelProvider)
+            // these providers use AssembleModel, now impossible to get path conditions from it
+            .exceptIsInstance<ObjectModelProvider>()
+            .exceptIsInstance<CollectionModelProvider>()
+
+    /**
+     * Construct sequence of [ExecutionState] that's initialized by fuzzing.
+     */
+    private fun statesInitializedFromFuzzing(state: ExecutionState): Sequence<ExecutionState> =
+        fuzzInitialValues(::getModelProviderToFuzzingInitializing)
+            .map { parameters ->
+                val stateParametersWithoutThis = if (methodUnderTest.hasThisInParameters) {
+                    state.parameters.drop(1)
+                } else {
+                    state.parameters
+                }
+                val initialConstraints = stateParametersWithoutThis
+                    .zip(parameters)
+                    .flatMap { (parameter, fuzzedValue) ->
+                        buildConstraintsFromModel(parameter.value, fuzzedValue.model)
+                    }
+                state.update(traverser.collectUpdates()).apply {
+                    solver.checkWithInitialConstraints(initialConstraints)
+                }
+            }
+
+    private fun buildConstraintsFromModel(symbolicValue: SymbolicValue, model: UtModel): List<UtBoolExpression> {
+        val modelVisitor = ConstraintModelVisitor(symbolicValue, traverser)
+        return model.visit(modelVisitor)
+    }
+
+    private fun fuzzInitialValues(
+        modelProvider: (ModelProvider) -> ModelProvider,
+        methodDescription: FuzzedMethodDescription? = null
+    ): Sequence<List<FuzzedValue>> {
+        val isFuzzable = methodUnderTestId.parameters.all { classId ->
+            classId != Method::class.java.id && // causes the child process crash at invocation
+                    classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
+        }
+        if (!isFuzzable) {
+            return emptySequence()
+        }
+
+        val methodDescriptionOrDefault = methodDescription ?:
+            FuzzedMethodDescription(methodUnderTestId, collectConstantsForFuzzer(graph))
+        val initializedModelProvider = modelProvider(defaultModelProviders { nextDefaultModelId++ })
+
+        return fuzz(methodDescriptionOrDefault, initializedModelProvider)
+    }
+
 
     /**
      * Run fuzzing flow.
@@ -377,20 +442,6 @@ class UtBotSymbolicEngine(
      * @param modelProvider provides model values for a method
      */
     fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
-        val executableId = if (methodUnderTest.isConstructor) {
-            methodUnderTest.javaConstructor!!.executableId
-        } else {
-            methodUnderTest.javaMethod!!.executableId
-        }
-
-        val isFuzzable = executableId.parameters.all { classId ->
-            classId != Method::class.java.id && // causes the child process crash at invocation
-                classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
-        }
-        if (!isFuzzable) {
-            return@flow
-        }
-
         val fallbackModelProvider = FallbackModelProvider { nextDefaultModelId++ }
         val constantValues = collectConstantsForFuzzer(graph)
 
@@ -415,28 +466,28 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
-            compilableName = if (methodUnderTest.isMethod) executableId.name else null
-            className = executableId.classId.simpleName
-            packageName = executableId.classId.packageName
+        val methodUnderTestDescription = FuzzedMethodDescription(methodUnderTestId, collectConstantsForFuzzer(graph)).apply {
+            compilableName = if (methodUnderTest.isMethod) methodUnderTestId.name else null
+            className = methodUnderTestId.classId.simpleName
+            packageName = methodUnderTestId.classId.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
         val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = UtSettings.fuzzingMaxAttempts
-        val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
+        val hasMethodUnderTestParametersToFuzz = methodUnderTestId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
-            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders { nextDefaultModelId++ }))
+            fuzzInitialValues(modelProvider, methodUnderTestDescription)
         } else {
             // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
             val thisMethodDescription = FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues).apply {
-                className = executableId.classId.simpleName
-                packageName = executableId.classId.packageName
+                className = methodUnderTestId.classId.simpleName
+                packageName = methodUnderTestId.classId.packageName
             }
-            fuzz(thisMethodDescription, ObjectModelProvider { nextDefaultModelId++ }.apply {
+            fuzzInitialValues({ ObjectModelProvider { nextDefaultModelId++ }.apply {
                 limitValuesCreatedByFieldAccessors = 500
-            })
+            } }, thisMethodDescription)
         }
         fuzzedValues.forEach { values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
@@ -519,6 +570,42 @@ class UtBotSymbolicEngine(
         )
 
         emit(failedConcreteExecution)
+    }
+
+    private fun processIntermediateState(
+        state: ExecutionState
+    ) {
+        require(state.label == StateLabel.INTERMEDIATE)
+
+        // create new state initialized by fuzzing if it is the last identity stmt for parameter
+        val initializedStateByFuzzing = if (
+            UtSettings.useFuzzingInitialization &&
+            !state.isInNestedMethod() &&
+            state.stmt is JIdentityStmt &&
+            state.stmt.rightOp is ParameterRef
+        ) {
+            var expectedParamsSize = if (methodUnderTest.isConstructor) {
+                methodUnderTest.javaConstructor!!.parameterCount
+            } else {
+                methodUnderTest.javaMethod!!.parameterCount
+            }
+            if (methodUnderTest.hasThisInParameters) {
+                ++expectedParamsSize
+            }
+
+            // check that is the last parameter identity stmt
+            if (expectedParamsSize == state.parameters.size) {
+                statesInitializedFromFuzzing(state).firstOrNull()
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+
+        initializedStateByFuzzing?.let {
+            pathSelector.offer(it)
+        } ?: pathSelector.offer(state)
     }
 
     private suspend fun FlowCollector<UtResult>.consumeTerminalState(

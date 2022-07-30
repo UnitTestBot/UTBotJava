@@ -7,10 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  commits_behind_the_main:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-20.02
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        
+    - name: "Add commits number ahead of the main to env"
+      run: echo COMMITS_AHEAD_MAIN=$(git rev-list --left-only --count ${GITHUB_REF_NAME}...origin/main) >> $GITHUB_ENV
+        
+    - name: "Output information"
+      run: echo "The ${GITHUB_REF_NAME} is ahead of the [origin/main] by ${{ env.COMMITS_AHEAD_MAIN }} commits"
+        
+    - name: "Fails if the current branch is ahead of the [origin/main] by more than 5 commits"
+      if: ${{ env.COMMITS_AHEAD_MAIN > 5 }}
+      run: exit 1
+
   build_and_run_tests:
+    needs: commits_behind_the_main
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+          
     - uses: actions/setup-java@v2
       with:
         java-version: '8'

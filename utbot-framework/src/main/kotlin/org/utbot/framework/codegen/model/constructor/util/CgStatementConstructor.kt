@@ -57,6 +57,7 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import fj.data.Either
+import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -174,6 +175,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         val (type, expr) = when (baseExpr) {
             is CgEnumConstantAccess -> guardEnumConstantAccess(baseExpr)
             is CgAllocateArray -> guardArrayAllocation(baseExpr)
+            is CgArrayInitializer -> guardArrayInitializer(baseExpr)
             is CgExecutableCall -> guardExecutableCall(baseType, baseExpr)
             else -> guardExpression(baseType, baseExpr)
         }
@@ -419,13 +421,21 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     }
 
     private fun guardArrayAllocation(allocation: CgAllocateArray): ExpressionWithType {
+        return guardArrayCreation(allocation.type, allocation.size, allocation)
+    }
+
+    private fun guardArrayInitializer(initializer: CgArrayInitializer): ExpressionWithType {
+        return guardArrayCreation(initializer.type, initializer.size, initializer)
+    }
+
+    private fun guardArrayCreation(arrayType: ClassId, arraySize: Int, initialization: CgExpression): ExpressionWithType {
         // TODO: check if this is the right way to check array type accessibility
-        return if (allocation.type.isAccessibleFrom(testClassPackageName)) {
-            ExpressionWithType(allocation.type, allocation)
+        return if (arrayType.isAccessibleFrom(testClassPackageName)) {
+            ExpressionWithType(arrayType, initialization)
         } else {
             ExpressionWithType(
                 objectArrayClassId,
-                testClassThisInstance[createArray](allocation.elementType.name, allocation.size)
+                testClassThisInstance[createArray](arrayType.elementClassId!!.name, arraySize)
             )
         }
     }

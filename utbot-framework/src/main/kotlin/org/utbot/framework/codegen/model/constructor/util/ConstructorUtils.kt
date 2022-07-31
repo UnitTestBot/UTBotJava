@@ -156,6 +156,8 @@ private fun FieldPath.toStringList(): List<String> =
 internal fun infiniteInts(): Sequence<Int> =
     generateSequence(1) { it + 1 }
 
+internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
+
 /**
  * Checks if we have already imported a class with such simple name.
  * If so, we cannot import [type] (because it will be used with simple name and will be clashed with already imported)

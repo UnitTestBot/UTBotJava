@@ -753,6 +753,7 @@ open class ClassId @JvmOverloads constructor(
  */
 class BuiltinClassId(
     name: String,
+    elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
     // by default we assume that the class is not a member class
@@ -769,6 +770,7 @@ class BuiltinClassId(
     override val isInner: Boolean = false,
     override val isNested: Boolean = false,
     override val isSynthetic: Boolean = false,
+    override val typeParameters: TypeParameters = TypeParameters(),
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),
     override val outerClass: Class<*>? = null,
@@ -777,7 +779,7 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name = name, isNullable = isNullable) {
+) : ClassId(name = name, isNullable = isNullable, elementClassId = elementClassId) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }

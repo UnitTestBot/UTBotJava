@@ -310,8 +310,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
-        val returnType =
-            if (element.returnType.simpleName == "Array<Array<Any?>?>") "Array<Array<Any?>?>" else "${element.returnType}"
+        val returnType = getKotlinClassString(element.returnType)
         println("fun ${element.name}(): $returnType")
     }
 

@@ -1282,9 +1282,16 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
 
             if (containsFailureExecution) {
+                val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = Class::class.id,
+                        type = BuiltinClassId(
+                            name = classClassId.name,
+                            simpleName = classClassId.simpleName,
+                            canonicalName = classClassId.canonicalName,
+                            packageName = classClassId.packageName,
+                            typeParameters = TypeParameters(listOf(Throwable::class.java.id))
+                        ),
                         name = nameGenerator.variableName(expectedErrorVarName)
                     ),
                     // exceptions are always reference type
@@ -1492,16 +1499,36 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private val argListClassId: ClassId
         get() = when (testFramework) {
-            Junit5 -> java.util.ArrayList::class.id
-            TestNg -> BuiltinClassId(
-                name = Array<Array<Any?>?>::class.java.name,
-                simpleName = when (codegenLanguage) {
-                    CodegenLanguage.JAVA -> "Object[][]"
-                    CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
-                },
-                canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
-                packageName = Array<Array<Any?>?>::class.java.packageName,
-            )
+            Junit5 -> {
+                val arrayListId = java.util.ArrayList::class.id
+                BuiltinClassId(
+                    name = arrayListId.name,
+                    simpleName = arrayListId.simpleName,
+                    canonicalName = arrayListId.canonicalName,
+                    packageName = arrayListId.packageName,
+                    typeParameters = TypeParameters(listOf(argumentsClassId))
+                )
+            }
+            TestNg -> {
+                val outerArrayId = Array<Array<Any?>?>::class.id
+                val innerArrayId = BuiltinClassId(
+                    name = objectArrayClassId.name,
+                    simpleName = objectArrayClassId.simpleName,
+                    canonicalName = objectArrayClassId.canonicalName,
+                    packageName = objectArrayClassId.packageName,
+                    elementClassId = objectClassId,
+                    typeParameters = TypeParameters(listOf(objectClassId))
+                )
+
+                BuiltinClassId(
+                    name = outerArrayId.name,
+                    simpleName = outerArrayId.simpleName,
+                    canonicalName = outerArrayId.canonicalName,
+                    packageName = outerArrayId.packageName,
+                    elementClassId = innerArrayId,
+                    typeParameters = TypeParameters(listOf(innerArrayId))
+                )
+            }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
 

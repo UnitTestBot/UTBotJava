@@ -25,7 +25,6 @@ import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateC
 import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
-import org.utbot.framework.codegen.model.constructor.util.newArrayOf
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
 import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.constructor.util.typeCast
@@ -120,7 +119,7 @@ import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.builtinMethodId
+import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -1421,21 +1420,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         argsVariable: CgVariable,
         arguments: List<CgExpression>,
     ) {
+        val argsArray = newVar(objectArrayClassId, "testCaseObjects") {
+            CgAllocateArray(objectArrayClassId, objectClassId, arguments.size)
+        }
+        for ((i, argument) in arguments.withIndex()) {
+            setArgumentsArrayElement(argsArray, i, argument)
+        }
         when (testFramework) {
             Junit5 -> {
                 +argsVariable[addToListMethodId](
-                    argumentsClassId[argumentsMethodId](
-                        newArrayOf(objectClassId, arguments)
-                    )
+                    argumentsClassId[argumentsMethodId](argsArray)
                 )
             }
             TestNg -> {
-                val argsArray = newVar(objectArrayClassId, "testCaseObjects") {
-                    CgAllocateArray(Array<Any?>::class.java.id, objectClassId, arguments.size)
-                }
-                for ((i, argument) in arguments.withIndex()) {
-                    setArgumentsArrayElement(argsArray, i, argument)
-                }
                 setArgumentsArrayElement(argsVariable, executionIndex, argsArray)
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
@@ -1535,7 +1532,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * A [MethodId] to call JUnit Arguments method.
      */
     private val argumentsMethodId: BuiltinMethodId
-        get() = builtinMethodId(
+        get() = builtinStaticMethodId(
             classId = argumentsClassId,
             name = "arguments",
             returnType = argumentsClassId,

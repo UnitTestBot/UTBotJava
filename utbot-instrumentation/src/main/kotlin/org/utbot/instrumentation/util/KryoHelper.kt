@@ -11,7 +11,6 @@ import com.jetbrains.rd.framework.impl.RdSignal
 import com.jetbrains.rd.framework.util.startChildAsync
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
-import com.jetbrains.rd.util.reactive.IScheduler
 import de.javakaffee.kryoserializers.GregorianCalendarSerializer
 import de.javakaffee.kryoserializers.JdkProxySerializer
 import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer
@@ -27,14 +26,12 @@ import java.io.ByteArrayOutputStream
 import java.lang.reflect.InvocationHandler
 import java.util.*
 import java.util.concurrent.CancellationException
-import java.util.concurrent.LinkedBlockingQueue
 
 /**
  * Helpful class for working with the kryo.
  */
 class KryoHelper internal constructor(
     private val parent: Lifetime,
-    scheduler: IScheduler,
     inputSignal: RdSignal<ByteArray>,
     private val outputSignal: RdSignal<ByteArray>,
     private val doLog: (() -> String) -> Unit = { _ -> }
@@ -45,24 +42,17 @@ class KryoHelper internal constructor(
     private val kryoInput: Input = object : Input(1024 * 1024) {
         override fun fill(buffer: ByteArray, offset: Int, count: Int): Int = runBlocking {
             this.startChildAsync(parent) {
-                var already = 0
+                var readed = lastInputStream.read(buffer, offset, count)
 
-//                while (already < count) {
-                    val readed = lastInputStream.read(buffer, offset + already, count - already)
-
-                    if (readed == -1) {
-                        val lastReceived =
-                            queue.receiveOrNull() ?: return@startChildAsync already // todo child process might not die?
-
-                        lastInputStream = lastReceived.inputStream()
-
-//                        continue
-                    } else {
-                        already += readed
+                if (readed == -1) {
+                    queue.receiveOrNull()?.let {
+                        lastInputStream = it.inputStream()
                     }
-//                }
 
-                return@startChildAsync already
+                    return@startChildAsync 0
+                }
+
+                return@startChildAsync readed
             }.await()
         }
     }
@@ -73,7 +63,9 @@ class KryoHelper internal constructor(
             queue.offer(byteArray)
         }
         parent.onTermination {
-            close()
+            kryoInput.close()
+            kryoOutput.close()
+            queue.close()
         }
     }
 
@@ -85,6 +77,16 @@ class KryoHelper internal constructor(
 
     fun discard() {
         kryoInput.reset()
+
+        val curAvailable = lastInputStream.available()
+
+        lastInputStream.reset()
+
+        val length = lastInputStream.available()
+
+        if (curAvailable != length) {
+            lastInputStream.skip(length.toLong())
+        }
     }
 
     fun setKryoClassLoader(classLoader: ClassLoader) {
@@ -143,11 +145,6 @@ class KryoHelper internal constructor(
         } catch (e: Exception) {
             throw ReadingFromKryoException(e)
         }
-
-    private fun close() {
-        kryoInput.close()
-        kryoOutput.close()
-    }
 }
 
 // This kryo is used to initialize collections properly.

@@ -1,4 +1,4 @@
-package org.utbot.instrumentation.rd
+package org.utbot.rd
 
 import com.jetbrains.rd.framework.Protocol
 import com.jetbrains.rd.framework.serverPort
@@ -6,8 +6,6 @@ import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.util.lifetime.Lifetime
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
-import org.utbot.common.utBotTempDirectory
-import java.io.File
 
 suspend fun Process.withRdServer(
     parent: Lifetime? = null,
@@ -55,9 +53,6 @@ suspend fun startProcessWithRdServer2(
 ): ProcessWithRdServer {
     return startProcessWithRdServer({ ProcessBuilder(cmd(it)).start() }, parent, serverFactory)
 }
-
-const val rdProcessDirName = "rdProcessSync"
-val processSyncDirectory = File(utBotTempDirectory.toFile(), rdProcessDirName)
 
 /**
  * Main goals of this class:

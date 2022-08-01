@@ -1,4 +1,4 @@
-package org.utbot.instrumentation.rd
+package org.utbot.rd
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.util.NetUtils

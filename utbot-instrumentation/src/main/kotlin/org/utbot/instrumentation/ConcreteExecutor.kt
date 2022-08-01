@@ -1,7 +1,5 @@
 package org.utbot.instrumentation
 
-import com.jetbrains.rd.util.AtomicInteger
-import com.jetbrains.rd.util.catch
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.isNotAlive
@@ -19,6 +17,7 @@ import org.utbot.instrumentation.rd.UtInstrumentationProcess
 import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.Protocol
 import java.io.Closeable
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KCallable
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
@@ -98,15 +97,15 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     internal val pathsToDependencyClasses: String
 ) : Closeable, Executor<TIResult> {
     private val def: LifetimeDefinition = LifetimeDefinition()
-    private val childProcessRunner = ChildProcessRunner()
+    private val childProcessRunner: ChildProcessRunner = ChildProcessRunner()
 
     companion object {
-        private val sendTimestamp = AtomicInteger()
-        private val receiveTimeStamp = AtomicInteger()
-        val lastSendTimeMs: Int
-            get() = AtomicInteger().get()
-        val lastReceiveTimeMs: Int
-            get() = AtomicInteger().get()
+        private val sendTimestamp = AtomicLong()
+        private val receiveTimeStamp = AtomicLong()
+        val lastSendTimeMs: Long
+            get() = sendTimestamp.get()
+        val lastReceiveTimeMs: Long
+            get() = receiveTimeStamp.get()
         val defaultPool = ConcreteExecutorPool()
         var defaultPathsToDependencyClasses = ""
 
@@ -136,22 +135,33 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     private val corMutex = Mutex()
     private var processInstance: UtInstrumentationProcess? = null
 
-    private suspend fun process(): UtInstrumentationProcess {
+    private suspend fun regenerate() {
+        val proc = processInstance
+
+        if (proc == null || proc.lifetime.isNotAlive) {
+            processInstance = UtInstrumentationProcess(
+                def.createNested(),
+                childProcessRunner,
+                instrumentation,
+                pathsToUserClasses,
+                pathsToDependencyClasses,
+                classLoader
+            )
+        }
+    }
+
+    private suspend inline fun <T> withProcess(block: UtInstrumentationProcess.() -> T): T {
         corMutex.withLock {
-            val proc = processInstance
+            regenerate()
+        }
 
-            if (proc == null || proc.lifetime.isNotAlive) {
-                processInstance = UtInstrumentationProcess(
-                    def.createNested(),
-                    childProcessRunner,
-                    instrumentation,
-                    pathsToUserClasses,
-                    pathsToDependencyClasses,
-                    classLoader
-                )
-            }
+        return processInstance!!.block()
+    }
 
-            return processInstance!!
+    private suspend inline fun <T> withProcessExclusively(block: UtInstrumentationProcess.() -> T): T {
+        corMutex.withLock {
+            regenerate()
+            return processInstance!!.block()
         }
     }
 
@@ -165,7 +175,6 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         arguments: Array<Any?>,
         parameters: Any?
     ): TIResult {
-        // 1.
         val (clazz, signature) = when (kCallable) {
             is KFunction<*> -> kCallable.javaMethod?.run { declaringClass to signature }
                 ?: kCallable.javaConstructor?.run { declaringClass to signature }
@@ -176,72 +185,48 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         } // actually executableId implements the same logic, but it requires UtContext
 
         try {
-            return invokeMethod(clazz.name, signature, arguments.asList(), parameters)
+            val cmd = Protocol.InvokeMethodCommand(clazz.name, signature, arguments.asList(), parameters)
+
+            return (execute(cmd) as Protocol.InvocationResultCommand<TIResult>).result
         } catch (e: Throwable) {
             logger.trace { "executeAsync, response(ERROR): $e" }
             throw e
         }
     }
-    // required:
-    // cancellation
-    // in child - throw
-    // dead - concrete failed
-    // other - return
 
-
-    // cancellation and ifAlive - cancellation
-    // cancellation and notalive - concrete failed
-    // exception from child - throw
-    // exception from main - throw
-
-    private suspend fun executeOnProcess(cmd: Protocol.Command): Protocol.Command {
-        return process().let { proc ->
-            try {
-                when (val result = proc.executeCommand(cmd)) {
-                    // invocationResult, Completed, Instrumentation
-                    is Protocol.ExceptionInChildProcess -> {
-                        if (proc.lifetime.isAlive)
-                            throw ChildProcessError(result.exception)
-                        else
-                            throw ConcreteExecutionFailureException(
-                                result.exception,
-                                childProcessRunner.errorLogFile,
-                                proc.process.inputStream.bufferedReader().lines().toList()
-                            )
-                    }
-                    else -> result
+    suspend fun <T : Protocol.Command> execute(cmd: T): Protocol.Command = withProcess {
+        try {
+            sendTimestamp.set(System.currentTimeMillis())
+            return when (val result = execute(cmd)) {
+                is Protocol.ExceptionInChildProcess -> {
+                    if (lifetime.isAlive)
+                        throw ChildProcessError(result.exception)
+                    else
+                        throw ConcreteExecutionFailureException(
+                            result.exception,
+                            childProcessRunner.errorLogFile,
+                            process.inputStream.bufferedReader().lines().toList()
+                        )
                 }
-            } catch (e: CancellationException) {
-                if (proc.lifetime.isNotAlive)
-                    throw ConcreteExecutionFailureException(
-                        e,
-                        childProcessRunner.errorLogFile,
-                        proc.process.inputStream.bufferedReader().lines().toList()
-                    )
-                else
-                    throw e
+                else -> result
             }
+        } catch (e: CancellationException) {
+            if (lifetime.isNotAlive)
+                throw ConcreteExecutionFailureException(
+                    e,
+                    childProcessRunner.errorLogFile,
+                    process.inputStream.bufferedReader().lines().toList()
+                )
+            else
+                throw e
+        } finally {
+            receiveTimeStamp.set(System.currentTimeMillis())
         }
     }
 
-    private suspend fun invokeMethod(name: String, signature: String, asList: List<Any?>, parameters: Any?): TIResult {
-        val cmd = Protocol.InvokeMethodCommand(name, signature, asList, parameters)
-
-        return (executeOnProcess(cmd) as Protocol.InvocationResultCommand<TIResult>).result
-    }
-
-    fun warmup() = runBlocking {
-        executeOnProcess(Protocol.WarmupCommand())
-    }
-
-    /**
-     * Sends [requestCmd] to the ChildProcess.
-     * If [action] is not null, waits for the response command, performs [action] on it and returns the result.
-     * This function is helpful for creating extensions for specific instrumentations.
-     * @see [org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation].
-     */
-    fun <T : Protocol.Command, R> request(requestCmd: T, action: ((Protocol.Command) -> R)): R = runBlocking {
-        return@runBlocking action(executeOnProcess(requestCmd))
+    suspend fun <T : Protocol.Command> request(cmd: T) = withProcess {
+        sendTimestamp.set(System.currentTimeMillis())
+        request(cmd)
     }
 
     override fun close() {
@@ -249,10 +234,14 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             alive = false
             def.executeIfAlive {
                 runBlocking {
-                    executeOnProcess(Protocol.StopProcessCommand())// todo this might be very bad
+                    request(Protocol.StopProcessCommand())
                 }
             }
             def.terminate()
         }
     }
+}
+
+fun ConcreteExecutor<*,*>.warmup() = runBlocking {
+    request(Protocol.WarmupCommand())
 }

@@ -1,10 +1,8 @@
-package org.utbot.instrumentation.rd
+package org.utbot.rd
 
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import kotlinx.coroutines.delay
-import org.utbot.common.kill
-import org.utbot.common.pid
 import java.util.concurrent.TimeUnit
 
 fun startLifetimedProcess(cmd: List<String>, parent: Lifetime? = null): LifetimedProcess {
@@ -23,14 +21,13 @@ fun Process.toLifetimedProcess(parent: Lifetime? = null): LifetimedProcess {
  */
 interface LifetimedProcess {
     val lifetime: Lifetime
-    val pid: Long
     val process: Process
     fun terminate()
 }
 
-inline fun <T> LifetimedProcess.use(block: () -> T): T {
+inline fun <T> LifetimedProcess.use(block: (LifetimedProcess) -> T): T {
     try {
-        return block()
+        return block(this)
     }
     finally {
         terminate()
@@ -46,17 +43,13 @@ class LifetimedProcessIml(override val process: Process, parent: Lifetime? = nul
     override val lifetime
         get() = def.lifetime
 
-    override val pid
-        get() = process.pid
-
     init {
-
         def = parent?.createNested() ?: LifetimeDefinition()
         def.onTermination {
             process.destroy()
 
             if (process.waitFor(processKillTimeoutMillis, TimeUnit.MILLISECONDS)) // todo tune?
-                process.kill()
+                process.destroyForcibly()
         }
         UtRdCoroutineScope.current.launch(def) {
             while (process.isAlive) {

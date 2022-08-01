@@ -2,18 +2,17 @@ package org.utbot.instrumentation.process
 
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.plusAssign
-import org.utbot.common.currentProcessPid
+import org.utbot.common.getCurrentProcessId
 import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.rd.UtRdUtil
-import org.utbot.instrumentation.rd.UtSingleThreadScheduler
-import org.utbot.instrumentation.rd.obtainClientIO
-import org.utbot.instrumentation.rd.processSyncDirectory
+import org.utbot.instrumentation.rd.*
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
+import org.utbot.rd.UtRdUtil
+import org.utbot.rd.UtSingleThreadScheduler
 import java.io.File
 import java.io.OutputStream
 import java.io.PrintStream
@@ -26,7 +25,7 @@ import kotlin.system.measureTimeMillis
  * We use this ClassLoader to separate user's classes and our dependency classes.
  * Our classes won't be instrumented.
  */
-private object HandlerClassesLoader : URLClassLoader(emptyArray()) {
+internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     fun addUrls(urls: Iterable<String>) {
         urls.forEach { super.addURL(File(it).toURI().toURL()) }
     }
@@ -51,7 +50,7 @@ private enum class CUSTOM_LOG_LEVEL(val value: Int) {
     TRACE(2)
 }
 
-private val logLevel = CUSTOM_LOG_LEVEL.TRACE
+private val logLevel = CUSTOM_LOG_LEVEL.INFO
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
@@ -86,13 +85,13 @@ fun main(args: Array<String>): Unit = Lifetime.using { lifetime ->
         ?.run { split("=").last().toInt().coerceIn(1..65535) }
         ?: throw IllegalArgumentException("No port provided")
 
-    val pid = currentProcessPid
+    val pid = getCurrentProcessId()
 
     lifetime += { logInfo { "terminating lifetime" } }
     initiate(lifetime, port, pid.toInt())
 }
 
-fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({
+private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({
     // We don't want user code to litter the standard output, so we redirect it.
     // it is import to set output before creating protocol because rd has its own logging to stdout
     val tmpStream = PrintStream(object : OutputStream() {
@@ -103,22 +102,22 @@ fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive(
     val clientProtocol = UtRdUtil.createUtClientProtocol(lifetime, port, UtSingleThreadScheduler { logInfo(it) })
     val (mainToProcess, processToMain) = obtainClientIO(lifetime, clientProtocol, pid)
     val kryoHelper =
-        KryoHelper(lifetime, clientProtocol.scheduler, mainToProcess, processToMain)
-        { logTrace(it) } // - uncomment to log rd/kryo messages. This generates a lot of logs!
+        KryoHelper(lifetime, mainToProcess, processToMain)
+        { logTrace(it) } // this generates a lot of logs - comment if needed
 
 
     logInfo { "starting instrumenting" }
     startInstrumenting(kryoHelper)
 }) {
-    val syncFile = File(processSyncDirectory, "${currentProcessPid}.created")
+    val syncFile = File(processSyncDirectory, childCreatedFileName(pid))
 
     if (syncFile.exists()) {
         syncFile.delete()
     }
 }
 
-fun startInstrumenting(kryoHelper: KryoHelper) {
-    val classPaths = readClasspath(kryoHelper)
+private fun startInstrumenting(kryoHelper: KryoHelper) {
+    val classPaths = readClasspath(kryoHelper) ?: return
     logTrace { "classpaths read $classPaths" }
     val pathsToUserClasses = classPaths.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
     val pathsToDependencyClasses = classPaths.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
@@ -175,8 +174,8 @@ private fun loop(kryoHelper: KryoHelper, instrumentation: Instrumentation<*>) {
         val (id, cmd) = try {
             read(kryoHelper)
         } catch (e: Exception) {
-            logInfo { "error while trying read, sendging -1: $e"}
-            send(kryoHelper, -1, Protocol.ExceptionInChildProcess(e))
+            logInfo { "error while trying read: $e" }
+            kryoHelper.discard()
             continue
         }
 
@@ -208,7 +207,6 @@ private fun loop(kryoHelper: KryoHelper, instrumentation: Instrumentation<*>) {
                 logInfo { "sent cmd: $resultCmd" }
             }
             is Protocol.StopProcessCommand -> {
-                send(kryoHelper, id, Protocol.OperationCompleted())
                 break
             }
             is Protocol.InstrumentationCommand -> {
@@ -235,24 +233,30 @@ private fun getInstrumentation(kryoHelper: KryoHelper): Instrumentation<*>? {
     val (id, cmd) = kryoHelper.readCommand()
     return when (cmd) {
         is Protocol.SetInstrumentationCommand<*> -> {
-            send(kryoHelper, id, Protocol.OperationCompleted())
             cmd.instrumentation
         }
-        is Protocol.StopProcessCommand -> null
+        is Protocol.StopProcessCommand -> {
+            null
+        }
         else -> {
             send(kryoHelper, id, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
-            null
+            error("No instrumentation!")
         }
     }
 }
 
-private fun readClasspath(kryoHelper: KryoHelper): Protocol.AddPathsCommand {
+private fun readClasspath(kryoHelper: KryoHelper): Protocol.AddPathsCommand? {
     val (id, cmd) = kryoHelper.readCommand()
-    return if (cmd is Protocol.AddPathsCommand) {
-        send(kryoHelper, id, Protocol.OperationCompleted())
-        cmd
-    } else {
-        send(kryoHelper, id, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
-        error("No classpath!")
+    return when (cmd) {
+        is Protocol.AddPathsCommand -> {
+            cmd
+        }
+        is Protocol.StopProcessCommand -> {
+            null
+        }
+        else -> {
+            send(kryoHelper, id, Protocol.ExceptionInChildProcess(UnexpectedCommand(cmd)))
+            error("No classpath!")
+        }
     }
 }

@@ -38,6 +38,7 @@ import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.runSoot
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.warmup
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.nio.file.Path

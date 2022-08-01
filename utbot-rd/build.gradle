@@ -1,0 +1,58 @@
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+dependencies {
+    implementation name: 'rd-framework-2022.3.0' // todo api?
+//    implementation name: 'rd-gen-2022.3.0' // todo on kotlin 1.7 - switch to maven
+    implementation name: 'rd-core-2022.3.0'
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+}
+
+sourceSets {
+    lifetimedProcessMock {
+        kotlin {
+            srcDirs = ["src/main/lifetimedProcessMock"]
+        }
+    }
+    processWithRdServerMock {
+        kotlin {
+            srcDirs = ["src/main/processWithRdServerMock"]
+        }
+    }
+}
+
+configurations {
+    lifetimedProcessMockCompileClasspath.extendsFrom configurations.compileClasspath
+    processWithRdServerMockCompileClasspath.extendsFrom configurations.compileClasspath
+}
+
+task lifetimedProcessMockJar (type: Jar) {
+    dependsOn compileLifetimedProcessMockKotlin
+    archiveAppendix.set("lifetimedProcessMock")
+
+    manifest {
+        attributes(
+                'Main-Class': 'org.utbot.rd.tests.LifetimedProcessMockKt'
+        )
+    }
+
+    from configurations.lifetimedProcessMockCompileClasspath.plus(sourceSets.lifetimedProcessMock.output).findAll {it.exists()}.collect { it.isDirectory() ? it : zipTree(it) }
+}
+
+task processWithRdServerMockJar (type: Jar) {
+    dependsOn compileProcessWithRdServerMockKotlin
+    archiveAppendix.set("processWithRdServerMock")
+
+    manifest {
+        attributes(
+                'Main-Class': 'org.utbot.rd.tests.ProcessWithRdServerMockKt'
+        )
+    }
+
+    from configurations.processWithRdServerMockCompileClasspath.plus(sourceSets.processWithRdServerMock.output).findAll {it.exists()}.collect { it.isDirectory() ? it : zipTree(it) }
+}
+
+test {
+    dependsOn lifetimedProcessMockJar
+    dependsOn processWithRdServerMockJar
+    systemProperty("RD_MOCK_PROCESS", lifetimedProcessMockJar.archiveFile.get().getAsFile().canonicalPath)
+}

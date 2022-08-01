@@ -59,7 +59,6 @@ object Protocol {
 
     /**
      * The child process sends this command if unexpected exception was thrown.
-     * This command means child process stil can operate
      *
      * @property exception unexpected exception.
      */

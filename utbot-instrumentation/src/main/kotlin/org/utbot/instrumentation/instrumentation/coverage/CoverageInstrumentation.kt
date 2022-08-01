@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.instrumentation.coverage
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.withAccessibility
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.Settings
@@ -125,7 +126,9 @@ data class CoverageInfoCommand(val coverageInfo: CoverageInfo) : Protocol.Instru
  */
 fun ConcreteExecutor<Result<*>, CoverageInstrumentation>.collectCoverage(clazz: Class<*>): CoverageInfo {
     val collectCoverageCommand = CollectCoverageCommand(clazz)
-    return this.request(collectCoverageCommand) {
+    val executor = this
+
+    return runBlocking { executor.execute(collectCoverageCommand) }.let {
         when (it) {
             is CoverageInfoCommand -> it.coverageInfo
             is Protocol.ExceptionInChildProcess -> throw ChildProcessError(it.exception)

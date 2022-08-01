@@ -16,6 +16,10 @@
         </Console>
     </Appenders>
     <Loggers>
+<!--        <Logger name="org.utbot.instrumentation.rd" level="trace"/>-->
+<!--        <Logger name="org.utbot.instrumentation.util" level="trace"/>-->
+<!--        <Logger name="org.utbot.instrumentation.process" level="trace"/>-->
+
         <!--        Uncomment this logger to see path -->
         <Logger name="org.utbot.engine.UtBotSymbolicEngine.path" level="debug"/>
 

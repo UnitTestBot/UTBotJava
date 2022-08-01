@@ -14,11 +14,11 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
-private var processSeqN = AtomicInteger(0)
 const val serverPortProcessArgumentTag = "serverPort"
 
 class ChildProcessRunner {
     private val id = Random.nextLong()
+    private var processSeqN = 0
     private val cmds: List<String> by lazy {
         val debugCmd = if (Settings.runChildProcessWithDebug) {
             listOf(DEBUG_RUN_CMD)
@@ -36,7 +36,7 @@ class ChildProcessRunner {
         val portArgument = "$serverPortProcessArgumentTag=$port"
 
         logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
-        processSeqN.incrementAndGet()
+        processSeqN++
 
         if (UtSettings.logConcreteExecutionErrors) {
             UT_BOT_TEMP_DIR.mkdirs()

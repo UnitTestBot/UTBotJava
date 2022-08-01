@@ -1,4 +1,4 @@
-package org.utbot.instrumentation.rd
+package org.utbot.rd
 
 import com.jetbrains.rd.framework.util.RdCoroutineScope
 import com.jetbrains.rd.framework.util.asCoroutineDispatcher
@@ -25,8 +25,8 @@ class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
             logger.info { "UtRdCoroutineScope has been reset" }
         })
         lifetime.onTermination {
-            logger.info("UtRdCoroutineScope disposed")
-        }
+                logger.info("UtRdCoroutineScope disposed")
+            }
     }
 
     override val defaultDispatcher = dispatcher

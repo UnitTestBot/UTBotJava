@@ -26,8 +26,8 @@ object PythonCodeCollector {
             DirectoryFileFilter.DIRECTORY
         )
 
-    fun refreshProjectClassesList(dirPath: String) {
-        val pythonFiles = getPythonFiles(dirPath)
+    fun refreshProjectClassesList(path: String) {
+        val pythonFiles = if (path.endsWith(".py")) listOf(File(path)) else getPythonFiles(path)
         projectClasses = pythonFiles.flatMap { file ->
             val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
             val code = PythonCode.getFromString(content, file.path)

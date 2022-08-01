@@ -1,6 +1,5 @@
 package org.utbot.python.providers
 
-import com.sun.org.apache.xpath.internal.operations.Bool
 import org.utbot.framework.plugin.api.PythonBoolModel
 import org.utbot.framework.plugin.api.PythonIntModel
 import org.utbot.framework.plugin.api.PythonStrModel
@@ -13,7 +12,7 @@ import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.math.BigInteger
 
-object JavaModelProvider: ModelProvider {
+object ConstantModelProvider: ModelProvider {
     private val javaModelProvider = ModelProvider.of(
         ConstantsModelProvider,
         StringConstantModelProvider,

@@ -90,7 +90,7 @@ object PythonDialogProcessor {
             override fun run(indicator: ProgressIndicator) {
 
                 // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
-                // val x = PythonCodeCollector.projectClasses
+                PythonCodeCollector.refreshProjectClassesList(model.file.virtualFile.path)
 
                 val pythonMethods = findSelectedPythonMethods(model)
                 val testSourceRoot = model.testSourceRoot!!.path

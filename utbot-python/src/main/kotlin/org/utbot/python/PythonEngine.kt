@@ -6,6 +6,7 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.ArgInfoCollector
+import org.utbot.python.providers.PythonTypesStorage
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import org.utbot.python.typing.MypyAnnotations
@@ -30,15 +31,6 @@ class PythonEngine(
         }
 
         val argInfoCollector = ArgInfoCollector(methodUnderTest)
-        val annotations = joinAnnotations(
-            argInfoCollector,
-            methodUnderTest,
-            existingAnnotations,
-            testSourceRoot,
-            moduleToImport,
-            directoriesForSysPath,
-            pythonPath
-        )
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
             returnType,
@@ -49,17 +41,32 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
+        val annotations: Sequence<Map<String, ClassId>> =
+            if (existingAnnotations.size == methodUnderTest.arguments.size)
+                sequenceOf(
+                    methodUnderTest.arguments.associate {
+                        it.name to it.type
+                    }
+                )
+            else
+                joinAnnotations(
+                    argInfoCollector,
+                    methodUnderTest,
+                    existingAnnotations,
+                    testSourceRoot,
+                    moduleToImport,
+                    directoriesForSysPath,
+                    pythonPath
+                )
+
         // model provider argwith fallback?
         // attempts?
 
         var testsGenerated = 0
 
-        if (existingAnnotations.size == methodUnderTest.arguments.size)
-            return@sequence
-
         annotations.forEach { types ->
             val classIds = methodUnderTest.arguments.map {
-                ClassId(types[it.name]?.fullName ?: "Any")
+                types[it.name] ?: pythonAnyClassId
             }
             val substitutedDescription = substituteTypesByIndex(methodUnderTestDescription, classIds)
             fuzz(substitutedDescription, concreteTypesModelProvider).forEach { values ->
@@ -129,14 +136,14 @@ class PythonEngine(
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,
-    ) = sequence {
+    ): Sequence<Map<String, ClassId>> {
         val storageMap = argInfoCollector.getPriorityStorages()
         val userAnnotations = existingAnnotations.entries.associate {
             it.key to listOf(StubFileStructures.PythonInfoType(it.value))
         }
         val annotationCombinations = storageMap.entries.associate { (name, storages) ->
-            name to storages.map { storage -> (
-                when(storage) {
+            name to storages.map { storage ->
+                when (storage) {
                     is ArgInfoCollector.TypeStorage -> setOf(StubFileStructures.PythonInfoType(storage.name))
                     is ArgInfoCollector.MethodStorage -> StubFileFinder.findTypeWithMethod(storage.name)
                     is ArgInfoCollector.FieldStorage -> StubFileFinder.findTypeWithField(storage.name)
@@ -144,12 +151,14 @@ class PythonEngine(
                         storage.name,
                         argumentPosition = storage.index
                     )
-                    is ArgInfoCollector.FunctionRetStorage -> StubFileFinder.findTypeByFunctionReturnValue(storage.name)
+                    is ArgInfoCollector.FunctionRetStorage -> StubFileFinder.findTypeByFunctionReturnValue(
+                        storage.name
+                    )
                     else -> setOf(StubFileStructures.PythonInfoType(storage.name))
-                })
+                }
             }.flatten().toSet().toList()
         }
-        val mypyCheck = MypyAnnotations.mypyCheckAnnotations(
+        return MypyAnnotations.mypyCheckAnnotations(
             methodUnderTest,
             userAnnotations + annotationCombinations,
             testSourceRoot,
@@ -157,8 +166,5 @@ class PythonEngine(
             directoriesForSysPath,
             pythonPath
         )
-        mypyCheck.forEach {
-            yield(it)
-        }
     }
 }

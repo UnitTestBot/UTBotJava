@@ -1,5 +1,6 @@
 package org.utbot.python.typing
 
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 
@@ -43,9 +44,14 @@ object MypyAnnotations {
             )
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
             if (mypyOutput == defaultOutput) {
+                /*
                 val goodTypes = listOf("str", "bool", "int", "float")
                 if (annotationMap.values.all {x ->  goodTypes.contains(x.name) } )
                     yield(annotationMap)
+                 */
+                yield(annotationMap.mapValues { entry ->
+                    ClassId(entry.value.fullName)
+                })
             }
             functionFile.deleteOnExit()
         }

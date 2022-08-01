@@ -265,6 +265,21 @@ class PythonBoolModel(val value: Boolean): PythonModel(classId) {
     }
 }
 
+class PythonComplexObjectModel(
+    val type: String,
+    val fields: Map<String, PythonModel>
+): PythonModel(ClassId(type))
+
+class PythonInitObjectModel(
+    val type: String,
+    val initValues: List<UtModel>
+): PythonModel(ClassId(type)) {
+    override fun toString(): String {
+        val params = initValues.map { it.toString() }.reduce { acc, value -> "$acc, $value" }
+        return "$type($params)"
+    }
+}
+
 /**
  * Class representing models for values that might have an address.
  *

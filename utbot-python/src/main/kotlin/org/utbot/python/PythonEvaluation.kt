@@ -7,8 +7,16 @@ import java.io.File
 
 
 sealed class EvaluationResult
-data class EvaluationSuccess(val output: OutputData, val isException: Boolean): EvaluationResult()
 object EvaluationError : EvaluationResult()
+class EvaluationSuccess(rawOutput: OutputData, val isException: Boolean): EvaluationResult() {
+    val output: OutputData =
+        when (rawOutput.type) {
+            "complex" -> OutputData("complex('" + rawOutput.output + "')", rawOutput.type)
+            else -> rawOutput
+        }
+    operator fun component1() = output
+    operator fun component2() = isException
+}
 
 data class OutputData(val output: String, val type: String)
 

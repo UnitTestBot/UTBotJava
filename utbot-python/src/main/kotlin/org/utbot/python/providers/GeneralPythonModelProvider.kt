@@ -5,7 +5,7 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.ModelProvider
 
-val concreteTypesModelProvider = ModelProvider.of(JavaModelProvider, DefaultValuesModelProvider)
+val concreteTypesModelProvider = ModelProvider.of(ConstantModelProvider, DefaultValuesModelProvider, InitModelProvider)
 
 fun substituteType(description: FuzzedMethodDescription, typeMap: Map<ClassId, ClassId>): FuzzedMethodDescription {
     val newReturnType = typeMap[description.returnType] ?: description.returnType

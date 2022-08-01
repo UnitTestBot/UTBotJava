@@ -27,7 +27,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedOp
 import org.utbot.python.PythonMethod
-import org.utbot.python.PythonTypesStorage
+import org.utbot.python.providers.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger
 
@@ -347,16 +347,20 @@ class ArgInfoCollector(val method: PythonMethod) {
                 else -> FuzzedOp.NONE
             }
 
-        private fun getNumFuzzedValue(num: String, op: FuzzedOp = FuzzedOp.NONE): FuzzedConcreteValue =
-            when (val x = NumberUtils.createNumber(num)) {
-                is Int -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
-                is Long -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
-                is BigInteger -> FuzzedConcreteValue(PythonIntModel.classId, x, op)
-                else -> FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op)
+        private fun getNumFuzzedValue(num: String, op: FuzzedOp = FuzzedOp.NONE): FuzzedConcreteValue? =
+            try {
+                when (val x = NumberUtils.createNumber(num)) {
+                    is Int -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
+                    is Long -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
+                    is BigInteger -> FuzzedConcreteValue(PythonIntModel.classId, x, op)
+                    else -> FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op)
+                }
+            } catch (e: NumberFormatException) {
+                null
             }
 
-        private fun <A, N> constPat(op: FuzzedOp): Parser<(FuzzedConcreteValue) -> A, A, N> {
-            val pats = listOf<Parser<(FuzzedConcreteValue) -> A, A, N>>(
+        private fun <A, N> constPat(op: FuzzedOp): Parser<(FuzzedConcreteValue?) -> A, A, N> {
+            val pats = listOf<Parser<(FuzzedConcreteValue?) -> A, A, N>>(
                 map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
                 map1(refl(str(apply()))) { x ->
                     FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)
@@ -374,7 +378,9 @@ class ArgInfoCollector(val method: PythonMethod) {
         }
 
         override fun visitNum(num: Num, param: MutableMap<String, Storage>): AST {
-            constStorage.add(getNumFuzzedValue(num.n))
+            val value = getNumFuzzedValue(num.n)
+            if (value != null)
+                constStorage.add(value)
             return super.visitNum(num, param)
         }
 

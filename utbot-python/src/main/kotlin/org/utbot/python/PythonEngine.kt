@@ -139,12 +139,12 @@ class PythonEngine(
     ): Sequence<Map<String, ClassId>> {
         val storageMap = argInfoCollector.getPriorityStorages()
         val userAnnotations = existingAnnotations.entries.associate {
-            it.key to listOf(StubFileStructures.PythonInfoType(it.value))
+            it.key to listOf(it.value)
         }
         val annotationCombinations = storageMap.entries.associate { (name, storages) ->
             name to storages.map { storage ->
                 when (storage) {
-                    is ArgInfoCollector.TypeStorage -> setOf(StubFileStructures.PythonInfoType(storage.name))
+                    is ArgInfoCollector.TypeStorage -> setOf(storage.name)
                     is ArgInfoCollector.MethodStorage -> StubFileFinder.findTypeWithMethod(storage.name)
                     is ArgInfoCollector.FieldStorage -> StubFileFinder.findTypeWithField(storage.name)
                     is ArgInfoCollector.FunctionArgStorage -> StubFileFinder.findTypeByFunctionWithArgumentPosition(
@@ -154,7 +154,7 @@ class PythonEngine(
                     is ArgInfoCollector.FunctionRetStorage -> StubFileFinder.findTypeByFunctionReturnValue(
                         storage.name
                     )
-                    else -> setOf(StubFileStructures.PythonInfoType(storage.name))
+                    else -> setOf(storage.name)
                 }
             }.flatten().toSet().toList()
         }

@@ -8,7 +8,7 @@ import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
 object MypyAnnotations {
     fun mypyCheckAnnotations(
         method: PythonMethod,
-        functionArgAnnotations: Map<String, List<StubFileStructures.PythonInfoType>>,
+        functionArgAnnotations: Map<String, List<String>>,
         testSourcePath: String,
         moduleToImport: String,
         directoriesForSysPath: List<String>,
@@ -45,7 +45,7 @@ object MypyAnnotations {
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
             if (mypyOutput == defaultOutput) {
                 yield(annotationMap.mapValues { entry ->
-                    ClassId(entry.value.fullName)
+                    ClassId(entry.value)
                 })
             }
             functionFile.deleteOnExit()

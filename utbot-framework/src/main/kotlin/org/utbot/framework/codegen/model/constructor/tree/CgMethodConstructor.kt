@@ -2,7 +2,6 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
 import org.utbot.common.packageName
-import org.utbot.engine.isStatic
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
@@ -86,6 +85,7 @@ import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.CgMethodTestSet
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
@@ -106,8 +106,6 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -123,6 +121,7 @@ import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.field
 import org.utbot.framework.plugin.api.util.floatArrayClassId
 import org.utbot.framework.plugin.api.util.floatClassId
@@ -149,7 +148,6 @@ import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
-import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -1086,11 +1084,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun createTestMethod(utMethod: UtMethod<*>, execution: UtExecution): CgTestMethod =
+    fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val testMethodName = nameGenerator.testMethodNameFor(utMethod, execution.testMethodName)
+            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
-            execution.displayName = execution.displayName?.let { "${utMethod.callable.name}: $it" }
+            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 rememberInitialStaticFields()
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
@@ -1105,7 +1103,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[utMethod]?.get(index)
+                        val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     rememberInitialEnvironmentState(modificationInfo)
@@ -1165,7 +1163,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
-    fun createParameterizedTestMethod(testSet: UtMethodTestSet, dataProviderMethodName: String): CgTestMethod {
+    fun createParameterizedTestMethod(testSet: CgMethodTestSet, dataProviderMethodName: String): CgTestMethod {
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
@@ -1217,11 +1215,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun createParameterDeclarations(
-        testSet: UtMethodTestSet,
+        testSet: CgMethodTestSet,
         genericExecution: UtExecution,
     ): List<CgParameterDeclaration> {
-        val methodUnderTest = testSet.method
-        val methodUnderTestParameters = testSet.method.callable.parameters
+        val executableUnderTest = testSet.executableId
+        val executableUnderTestParameters = testSet.executableId.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
             // this instance
@@ -1240,9 +1238,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
-                val argumentName = paramNames[methodUnderTest]?.get(index)
-                val paramIndex = if (methodUnderTest.isStatic) index else index + 1
-                val paramType = methodUnderTestParameters[paramIndex].type.javaType
+                val argumentName = paramNames[executableUnderTest]?.get(index)
+                val paramType = executableUnderTestParameters[index].parameterizedType
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
@@ -1310,7 +1307,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Standard logic for generating each test case parameter code is used.
      */
     fun createParameterizedTestDataProvider(
-        testSet: UtMethodTestSet,
+        testSet: CgMethodTestSet,
         dataProviderMethodName: String
     ): CgParameterizedTestDataProviderMethod {
         return withDataProviderScope {
@@ -1335,14 +1332,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun createExecutionArguments(testSet: UtMethodTestSet, execution: UtExecution): List<CgExpression> {
+    private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
         val arguments = mutableListOf<CgExpression>()
         execution.stateBefore.thisInstance?.let {
             arguments += variableConstructor.getOrCreateVariable(it)
         }
 
         for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
-            val argumentName = paramNames[testSet.method]?.get(paramIndex)
+            val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
             arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
         }
 
@@ -1567,7 +1564,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             arguments = arrayOf(objectArrayClassId)
         )
 
-    private fun containsFailureExecution(testSet: UtMethodTestSet) =
+    private fun containsFailureExecution(testSet: CgMethodTestSet) =
         testSet.executions.any { it.result is UtExecutionFailure }
 
 
@@ -1668,8 +1665,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun errorMethod(method: UtMethod<*>, errors: Map<String, Int>): CgRegion<CgMethod> {
-        val name = nameGenerator.errorMethodNameFor(method)
+    fun errorMethod(executable: ExecutableId, errors: Map<String, Int>): CgRegion<CgMethod> {
+        val name = nameGenerator.errorMethodNameFor(executable)
         val body = block {
             comment("Couldn't generate some tests. List of errors:")
             comment()
@@ -1697,7 +1694,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
         }
         val errorTestMethod = CgErrorTestMethod(name, body)
-        return CgSimpleRegion("Errors report for ${method.callable.name}", listOf(errorTestMethod))
+        return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
     }
 
     private fun getJvmReportDocumentation(jvmReportPath: String): String {

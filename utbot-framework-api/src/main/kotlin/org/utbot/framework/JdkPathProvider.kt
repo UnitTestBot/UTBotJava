@@ -9,4 +9,6 @@ abstract class JdkPathProvider {
     }
 
     abstract val jdkPath: Path
+
+    abstract val jdkVersion: String
 }

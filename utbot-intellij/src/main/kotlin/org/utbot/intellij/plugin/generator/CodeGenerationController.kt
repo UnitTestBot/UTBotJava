@@ -402,13 +402,14 @@ object CodeGenerationController {
 
                     destinationWarningMessage(model.testPackageName, classUnderTestPackageName)
                         ?.let {
+                            hasWarnings = true
                             appendHtmlLine(it)
                             appendHtmlLine()
                         }
 
                 appendHtmlLine(eventLogMessage())
             }
-            hasWarnings = report.hasWarnings
+            hasWarnings = hasWarnings || report.hasWarnings
             Pair(message, report.detailedStatistics)
         } else {
             val accumulatedReport = reports.first()

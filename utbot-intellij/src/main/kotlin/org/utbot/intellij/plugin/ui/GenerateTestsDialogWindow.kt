@@ -561,8 +561,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Creates test source root if absent and target packages for tests.
      */
     private fun createTestRootAndPackages(): Boolean {
-        model.testSourceRoot = createDirectoryIfMissing(model.testSourceRoot)
+        model.setSourceRootAndFindTestModule(createDirectoryIfMissing(model.testSourceRoot))
         val testSourceRoot = model.testSourceRoot ?: return false
+
         if (model.testSourceRoot?.isDirectory != true) return false
         if (getOrCreateTestRoot(testSourceRoot)) {
             if (cbSpecifyTestPackage.isSelected) {
@@ -860,10 +861,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         testSourceFolderField.childComponent.addActionListener { event ->
             with((event.source as JComboBox<*>).selectedItem) {
                 if (this is VirtualFile) {
-                    model.testSourceRoot = this@with
+                    model.setSourceRootAndFindTestModule(this@with)
                 }
                 else {
-                    model.testSourceRoot = null
+                    model.setSourceRootAndFindTestModule(null)
                 }
             }
         }

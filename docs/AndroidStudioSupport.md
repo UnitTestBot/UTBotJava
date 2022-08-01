@@ -14,8 +14,16 @@
 
 > Install and setup gradle version 7.2+ (version 7.4 tested)
 >
-> Use JDK 8 for Gradle in\
+> Use JDK 11 for Gradle in\
 > `File -> Settings -> Build, Execution, Deployment -> Build Tools -> Gradle -> Gradle JVM`
+>
+> \
+> If you want to use JDK 8, you can:
+> 1. Generate tests with JDK 8
+> 2. Switch to JDK 11 and compile tests
+> 3. Switch back to JDK 8 and run tests
+> 
+> The reason for it is the Android Gradle Plugin, which requires Java 11 to build anything.
 
 ## Running in AS
 
@@ -23,6 +31,9 @@
 > create one like this:
 >
 > <https://proandroiddev.com/create-an-android-library-aar-79d2338678ba>
+> 
+> To run generated tests, you must create separate JUnit configuration.\
+> ("Green arrows" will not work, since they launch Android Emulator.)
 >
 ## Debug Intellij code
 

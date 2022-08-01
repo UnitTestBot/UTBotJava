@@ -66,7 +66,7 @@ import org.utbot.framework.plugin.api.util.jClass
  * Although, some of the properties are declared as 'var' so that
  * they can be reassigned as well as modified
  *
- * For example, [currentTestClass] and [currentExecutable] can be reassigned
+ * For example, [currentTestClass] and [currentTestSet] can be reassigned
  * when we start generating another method or test class
  *
  * [existingVariableNames] is a 'var' property
@@ -81,8 +81,8 @@ internal interface CgContextOwner {
     // test class currently being generated
     val currentTestClass: ClassId
 
-    // current executable under test
-    var currentExecutable: ExecutableId?
+    //current executable under test info
+    var currentTestSet: CgMethodTestSet?
 
     // test class superclass (if needed)
     var testClassSuperclass: ClassId?
@@ -230,10 +230,6 @@ internal interface CgContextOwner {
         CgStatementExecutableCall(this).also {
             currentBlock = currentBlock.add(it)
         }
-
-    fun updateCurrentExecutable(executableId: ExecutableId) {
-        currentExecutable = executableId
-    }
 
     fun addExceptionIfNeeded(exception: ClassId) {
         if (exception !is BuiltinClassId) {
@@ -385,7 +381,7 @@ internal interface CgContextOwner {
  */
 internal data class CgContext(
     override val classUnderTest: ClassId,
-    override var currentExecutable: ExecutableId? = null,
+    override var currentTestSet: CgMethodTestSet? = null,
     override val collectedTestClassInterfaces: MutableSet<ClassId> = mutableSetOf(),
     override val collectedTestClassAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),

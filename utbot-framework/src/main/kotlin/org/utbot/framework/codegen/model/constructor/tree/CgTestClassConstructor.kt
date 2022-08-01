@@ -42,6 +42,25 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
     private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
+    private fun <R> withTestSetScope(executableTestSet: CgMethodTestSet, block: () -> R): R {
+        /**
+         * This function makes sure that **test set** currently being generated is reset.
+         * It is used at the start of test set generation and right after it.
+         */
+        fun clearTestSetScope() {
+            currentTestSet = null
+        }
+
+        clearTestSetScope()
+        currentTestSet = executableTestSet
+
+        return try {
+            block()
+        } finally {
+            clearTestSetScope()
+        }
+    }
+
     /**
      * Given a list of test sets constructs CgTestClass
      */
@@ -53,13 +72,17 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 body = buildTestClassBody {
                     cgDataProviderMethods.clear()
                     for (testSet in testSets) {
-                        updateCurrentExecutable(testSet.executableId)
-                        val currentMethodUnderTestRegions = construct(testSet) ?: continue
-                        val executableUnderTestCluster = CgExecutableUnderTestCluster(
-                            "Test suites for executable $currentExecutable",
-                            currentMethodUnderTestRegions
-                        )
-                        testMethodRegions += executableUnderTestCluster
+                        if (testSet.executions.isEmpty()) continue
+
+                        withTestSetScope (testSet) {
+                            val currentTestSetRegions = construct()
+                            val executableUnderTestCluster = CgExecutableUnderTestCluster(
+                                "Test suites for executable ${testSet.executableId}",
+                                currentTestSetRegions,
+                            )
+                            testMethodRegions += executableUnderTestCluster
+                        }
+
                     }
 
                     dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
@@ -78,24 +101,23 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun construct(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
-        if (testSet.executions.isEmpty()) {
-            return null
-        }
+    private fun construct(): List<CgRegion<CgMethod>> {
+        val currentTestSet = currentTestSet
+            ?: error("CurrentTestSet is not defined inside test set scope")
 
-        val (methodUnderTest, executions, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
         when (context.parameterizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
-                for ((clusterSummary, executionIndices) in clustersInfo) {
+                for ((clusterSummary, executionIndices) in currentTestSet.clustersInfo) {
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
                         runCatching {
-                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, executions[i])
-                        }.onFailure { e -> processFailure(testSet, e) }
+                            currentTestCaseTestMethods +=
+                                methodConstructor.createTestMethod(currentTestSet.executions[i])
+                        }.onFailure { error -> processFailure(error) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content
@@ -103,39 +125,37 @@ internal class CgTestClassConstructor(val context: CgContext) :
                         ?.let { CgTripleSlashMultilineComment(it) }
                     regions += CgTestMethodCluster(clusterHeader, clusterContent, currentTestCaseTestMethods)
 
-                    testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
+                    testsGenerationReport.addTestsByType(currentTestSet, currentTestCaseTestMethods)
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
                 runCatching {
-                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.executableId)
-
-                    val parameterizedTestMethod =
-                        methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
+                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor()
+                    val parameterizedTestMethod = methodConstructor.createParameterizedTestMethod(dataProviderMethodName)
 
                     requiredFields += parameterizedTestMethod.requiredFields
 
-                    cgDataProviderMethods +=
-                        methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+                    cgDataProviderMethods += methodConstructor.createParameterizedTestDataProvider(dataProviderMethodName)
 
                     regions += CgSimpleRegion(
-                        "Parameterized test for method ${methodUnderTest.displayName}",
+                        "Parameterized test for method ${currentTestSet.executableId.displayName}",
                         listOf(parameterizedTestMethod),
                     )
-                }.onFailure { error -> processFailure(testSet, error) }
+                }.onFailure { error -> processFailure(error) }
             }
         }
 
-        val errors = testSet.allErrors
+        val errors = currentTestSet.allErrors
         if (errors.isNotEmpty()) {
-            regions += methodConstructor.errorMethod(testSet.executableId, errors)
-            testsGenerationReport.addMethodErrors(testSet, errors)
+            regions += methodConstructor.errorMethod(errors)
+            testsGenerationReport.addMethodErrors(currentTestSet, errors)
         }
 
         return regions
     }
 
-    private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
+    private fun processFailure(failure: Throwable) {
+        val testSet = currentTestSet ?: error("CurrentTestSet must be initialized to process failure")
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)

@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
-import org.utbot.common.packageName
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
@@ -85,7 +84,6 @@ import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.CgMethodTestSet
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
@@ -281,12 +279,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Generates result assertions for unit tests.
      */
     private fun generateResultAssertions() {
-        when (currentExecutable) {
-            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
-            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
+        val executable = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be defined to generate result assertions")
+        when (executable) {
+            is ConstructorId -> generateConstructorCall(executable, currentExecution!!)
+            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $executable while generating result assertions")
             is MethodId -> {
                 emptyLineIfNeeded()
-                val method = currentExecutable as MethodId
                 val currentExecution = currentExecution!!
                 // build assertions
                 currentExecution.result
@@ -294,8 +293,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         methodType = SUCCESSFUL
 
                         // TODO possible engine bug - void method return type and result not UtVoidModel
-                        if (result.isUnit() || method.returnType == voidClassId) {
-                            +thisInstance[method](*methodArguments.toTypedArray())
+                        if (result.isUnit() || executable.returnType == voidClassId) {
+                            +thisInstance[executable](*methodArguments.toTypedArray())
                         } else {
                             resultModel = result
                             val expected = variableConstructor.getOrCreateVariable(result, "expected")
@@ -311,10 +310,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
         val methodInvocationBlock = {
-            with(currentExecutable) {
+            with(currentTestSet?.executableId) {
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
+                    null -> error("CurrentTestSet must be defined to process failure execution")
                 }
             }
         }
@@ -375,9 +375,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun writeWarningAboutFailureTest(exception: Throwable) {
-        require(currentExecutable is ExecutableId)
-        val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
+        val executable = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to write a warning about failing test")
 
+        val executableName = "${executable.classId.name}.${executable.name}"
         val warningLine = mutableListOf(
             "This test fails because method [$executableName] produces [$exception]"
         )
@@ -406,16 +407,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * and just runs the method if all executions are unsuccessful.
      */
     private fun generateAssertionsForParameterizedTest() {
+        val executable = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to generate assertions for parametrized tests")
+
         emptyLineIfNeeded()
 
-        when (currentExecutable) {
-            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
+        when (executable) {
+            is ConstructorId -> generateConstructorCall(executable, currentExecution!!)
             is MethodId -> {
-                val method = currentExecutable as MethodId
                 currentExecution!!.result
                     .onSuccess { result ->
                         if (result.isUnit()) {
-                            +thisInstance[method](*methodArguments.toTypedArray())
+                            +thisInstance[executable](*methodArguments.toTypedArray())
                         } else {
                             //"generic" expected variable is represented with a wrapper if
                             //actual result is primitive to support cases with exceptions.
@@ -428,7 +431,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             println()
                         }
                     }
-                    .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
+                    .onFailure { thisInstance[executable](*methodArguments.toTypedArray()).intercepted() }
             }
         }
     }
@@ -1065,12 +1068,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun recordActualResult() {
         currentExecution!!.result.onSuccess { result ->
-            when (val executable = currentExecutable) {
+            val executable = currentTestSet?.executableId
+                ?: error("CurrentTestSet must be initialized to record actual result")
+            when (executable) {
                 is ConstructorId -> {
                     // there is nothing to generate for constructors
                     return
                 }
-                is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
+                is BuiltinMethodId -> error("Unexpected BuiltinMethodId $executable while generating actual result")
                 is MethodId -> {
                     // TODO possible engine bug - void method return type and result not UtVoidModel
                     if (result.isUnit() || executable.returnType == voidClassId) return
@@ -1088,11 +1093,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    fun createTestMethod(execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
+            val testMethodName = nameGenerator.testMethodNameFor(execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
-            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
+            execution.displayName = execution.displayName?.let { "${currentTestSet?.executableId?.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 rememberInitialStaticFields()
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
@@ -1107,7 +1112,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[executableId]?.get(index)
+                        val name = paramNames[currentTestSet?.executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     rememberInitialEnvironmentState(modificationInfo)
@@ -1167,7 +1172,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
-    fun createParameterizedTestMethod(testSet: CgMethodTestSet, dataProviderMethodName: String): CgTestMethod {
+    fun createParameterizedTestMethod(dataProviderMethodName: String): CgTestMethod {
+        val testSet = currentTestSet
+            ?: error("CurrentTestSet must be initialized to create parametrized test method")
+
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
@@ -1177,7 +1185,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return withTestMethodScope(genericExecution) {
             val testName = nameGenerator.parameterizedTestMethodName(dataProviderMethodName)
             withNameScope {
-                val testParameterDeclarations = createParameterDeclarations(testSet, genericExecution)
+                val testParameterDeclarations = createParameterDeclarations(genericExecution)
                 val mainBody = {
                     // build this instance
                     thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
@@ -1200,7 +1208,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     parameterized = true,
                     dataProviderMethodName
                 ) {
-                    if (containsFailureExecution(testSet)) {
+                    if (containsFailureExecution()) {
                         +tryBlock(mainBody)
                             .catch(Throwable::class.java.id) { e ->
                                 val pseudoExceptionVarName = when (codegenLanguage) {
@@ -1218,12 +1226,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun createParameterDeclarations(
-        testSet: CgMethodTestSet,
-        genericExecution: UtExecution,
-    ): List<CgParameterDeclaration> {
-        val executableUnderTest = testSet.executableId
-        val executableUnderTestParameters = testSet.executableId.executable.parameters
+    private fun createParameterDeclarations(genericExecution: UtExecution): List<CgParameterDeclaration> {
+        val executableUnderTest = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to create parameter declarations")
+        val executableUnderTestParameters = executableUnderTest.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
             // this instance
@@ -1262,8 +1268,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
-            val method = currentExecutable!!
-            val expectedResultClassId = wrapTypeIfRequired(method.returnType)
+            val expectedResultClassId = wrapTypeIfRequired(executableUnderTest.returnType)
 
             if (expectedResultClassId != voidClassId) {
                 val wrappedType = wrapIfPrimitive(expectedResultClassId)
@@ -1280,8 +1285,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.ExpectedResult] = expectedResult.parameter
             }
 
-            val containsFailureExecution = containsFailureExecution(testSet)
-            if (containsFailureExecution) {
+            if (containsFailureExecution()) {
                 val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
@@ -1306,13 +1310,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * Constructs data provider method for parameterized tests.
      *
-     * The body of this method is constructed manually, statement by statement.
      * Standard logic for generating each test case parameter code is used.
      */
-    fun createParameterizedTestDataProvider(
-        testSet: CgMethodTestSet,
-        dataProviderMethodName: String
-    ): CgParameterizedTestDataProviderMethod {
+    fun createParameterizedTestDataProvider(dataProviderMethodName: String): CgParameterizedTestDataProviderMethod {
+        val testSet = currentTestSet
+            ?: error("Current test set must nbe initialized to create data provider method for parametrized tests")
+
         return withDataProviderScope {
             dataProviderMethod(dataProviderMethodName) {
                 val argListLength = testSet.executions.size
@@ -1323,7 +1326,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 for ((execIndex, execution) in testSet.executions.withIndex()) {
                     // create a block for current test case
                     innerBlock {
-                        val arguments = createExecutionArguments(testSet, execution)
+                        val arguments = createExecutionArguments(execution)
                         createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
                     }
                 }
@@ -1335,20 +1338,22 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
+    private fun createExecutionArguments(execution: UtExecution): List<CgExpression> {
+        val executable =  currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to create execution arguments")
+
         val arguments = mutableListOf<CgExpression>()
         execution.stateBefore.thisInstance?.let {
             arguments += variableConstructor.getOrCreateVariable(it)
         }
 
         for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
-            val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
+            val argumentName = paramNames[executable]?.get(paramIndex)
             arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
         }
 
-        val method = currentExecutable!!
-        val needsReturnValue = method.returnType != voidClassId
-        val containsFailureExecution = containsFailureExecution(testSet)
+        val needsReturnValue = executable.returnType != voidClassId
+        val containsFailureExecution = containsFailureExecution()
         execution.result
             .onSuccess {
                 if (needsReturnValue) {
@@ -1567,8 +1572,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             arguments = arrayOf(objectArrayClassId)
         )
 
-    private fun containsFailureExecution(testSet: CgMethodTestSet) =
-        testSet.executions.any { it.result is UtExecutionFailure }
+    private fun containsFailureExecution(): Boolean =
+        currentTestSet?.executions?.any { it.result is UtExecutionFailure } == true
 
 
     private fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> =
@@ -1668,7 +1673,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun errorMethod(executable: ExecutableId, errors: Map<String, Int>): CgRegion<CgMethod> {
+    fun errorMethod(errors: Map<String, Int>): CgRegion<CgMethod> {
+        val executable = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to create error method")
         val name = nameGenerator.errorMethodNameFor(executable)
         val body = block {
             comment("Couldn't generate some tests. List of errors:")

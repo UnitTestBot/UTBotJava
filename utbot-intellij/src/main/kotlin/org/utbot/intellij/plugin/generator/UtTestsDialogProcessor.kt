@@ -203,7 +203,7 @@ object UtTestsDialogProcessor {
                                                 generate = testFlow {
                                                     generationTimeout = model.timeout
                                                     isSymbolicEngineEnabled = true
-                                                    isFuzzingEnabled = UtSettings.useFuzzing
+                                                    isFuzzingEnabled = false
                                                     fuzzingValue = project.service<Settings>().fuzzingValue
                                                 }
                                             )

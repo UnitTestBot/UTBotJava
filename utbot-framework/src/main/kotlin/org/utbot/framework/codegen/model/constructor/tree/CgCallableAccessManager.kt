@@ -135,7 +135,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             addExceptionIfNeeded(Throwable::class.id)
         }
 
-        val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
+        val methodIsUnderTestAndThrowsExplicitly = methodId == currentTestSet?.executableId
                 && currentExecution?.result is UtExplicitlyThrownException
         val frameworkSupportsAssertThrows = testFramework == Junit5 || testFramework == TestNg
 

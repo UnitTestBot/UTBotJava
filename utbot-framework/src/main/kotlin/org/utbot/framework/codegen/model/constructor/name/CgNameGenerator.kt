@@ -44,7 +44,7 @@ internal interface CgNameGenerator {
     /**
      * Generate a new test method name.
      */
-    fun testMethodNameFor(executableId: ExecutableId, customName: String? = null): String
+    fun testMethodNameFor(customName: String? = null): String
 
     /**
      * Generates a new parameterized test method name by data provider method name.
@@ -54,7 +54,7 @@ internal interface CgNameGenerator {
     /**
      * Generates a new data for parameterized test provider method name
      */
-    fun dataProviderMethodNameFor(executableId: ExecutableId): String
+    fun dataProviderMethodNameFor(): String
 
     /**
      * Generate a new error method name
@@ -85,8 +85,10 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         return variableName(baseName.decapitalize(), isMock)
     }
 
-    override fun testMethodNameFor(executableId: ExecutableId, customName: String?): String {
-        val executableName = createExecutableName(executableId)
+    override fun testMethodNameFor(customName: String?): String {
+        val executable = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to create test method name")
+        val executableName = createExecutableName(executable)
 
         // no index suffix allowed only when there's a vacant custom name
         val name = if (customName != null && customName !in existingMethodNames) {
@@ -104,8 +106,10 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
     override fun parameterizedTestMethodName(dataProviderMethodName: String) =
         dataProviderMethodName.replace(dataProviderMethodPrefix, "parameterizedTestsFor")
 
-    override fun dataProviderMethodNameFor(executableId: ExecutableId): String {
-        val executableName = createExecutableName(executableId)
+    override fun dataProviderMethodNameFor(): String {
+        val executable = currentTestSet?.executableId
+            ?: error("CurrentTestSet must be initialized to create name for data provider method")
+        val executableName = createExecutableName(executable)
         val indexedName = nextIndexedMethodName(executableName.capitalize(), skipOne = true)
 
         existingMethodNames += indexedName

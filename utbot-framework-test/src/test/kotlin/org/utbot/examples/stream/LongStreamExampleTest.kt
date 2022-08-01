@@ -9,6 +9,7 @@ import org.utbot.examples.FullWithAssumptions
 import org.utbot.examples.eq
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.isException
+import org.utbot.examples.withPathSelectorStepsLimit
 import org.utbot.examples.withoutConcrete
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -347,80 +348,89 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testAnyMatchExample() {
-        check(
-            LongStreamExample::anyMatchExample,
-            ignoreExecutionsNumber,
-            { c, r -> c.isEmpty() && r == false },
-            { c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == false },
-            { c, r ->
-                val longs = c.longs()
+        // TODO exceeds even default step limit 3500 => too slow
+        withPathSelectorStepsLimit(2000) {
+            check(
+                LongStreamExample::anyMatchExample,
+                ignoreExecutionsNumber,
+                { c, r -> c.isEmpty() && r == false },
+                { c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == false },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.first() != 0L && longs.last() == 0L && r == true
-            },
-            { c, r ->
-                val longs = c.longs()
+                    c.isNotEmpty() && longs.first() != 0L && longs.last() == 0L && r == true
+                },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.first() == 0L && longs.last() != 0L && r == true
-            },
-            { c, r ->
-                val longs = c.longs()
+                    c.isNotEmpty() && longs.first() == 0L && longs.last() != 0L && r == true
+                },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.none { it == 0L } && r == true
-            },
-            coverage = FullWithAssumptions(assumeCallsNumber = 2)
-        )
+                    c.isNotEmpty() && longs.none { it == 0L } && r == true
+                },
+                coverage = FullWithAssumptions(assumeCallsNumber = 2)
+            )
+        }
     }
 
     @Test
     fun testAllMatchExample() {
-        check(
-            LongStreamExample::allMatchExample,
-            ignoreExecutionsNumber,
-            { c, r -> c.isEmpty() && r == true },
-            { c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == false },
-            { c, r ->
-                val longs = c.longs()
+        // TODO exceeds even default step limit 3500 => too slow
+        withPathSelectorStepsLimit(2000) {
+            check(
+                LongStreamExample::allMatchExample,
+                ignoreExecutionsNumber,
+                { c, r -> c.isEmpty() && r == true },
+                { c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == false },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.first() != 0L && longs.last() == 0L && r == false
-            },
-            { c, r ->
-                val longs = c.longs()
+                    c.isNotEmpty() && longs.first() != 0L && longs.last() == 0L && r == false
+                },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.first() == 0L && longs.last() != 0L && r == false
-            },
-            { c, r ->
-                val longs = c.longs()
+                    c.isNotEmpty() && longs.first() == 0L && longs.last() != 0L && r == false
+                },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.none { it == 0L } && r == true
-            },
-            coverage = FullWithAssumptions(assumeCallsNumber = 2)
-        )
+                    c.isNotEmpty() && longs.none { it == 0L } && r == true
+                },
+                coverage = FullWithAssumptions(assumeCallsNumber = 2)
+            )
+        }
     }
 
     @Test
     fun testNoneMatchExample() {
-        check(
-            LongStreamExample::noneMatchExample,
-            ignoreExecutionsNumber,
-            { c, r -> c.isEmpty() && r == true },
-            { c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == true },
-            { c, r ->
-                val longs = c.longs()
+        // TODO exceeds even default step limit 3500 => too slow
+        withPathSelectorStepsLimit(2000) {
+            check(
+                LongStreamExample::noneMatchExample,
+                ignoreExecutionsNumber,
+                { c, r -> c.isEmpty() && r == true },
+                { c, r -> c.isNotEmpty() && c.longs().all { it == 0L } && r == true },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.first() != 0L && longs.last() == 0L && r == false
-            },
-            { c, r ->
-                val longs = c.longs()
+                    c.isNotEmpty() && longs.first() != 0L && longs.last() == 0L && r == false
+                },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.first() == 0L && longs.last() != 0L && r == false
-            },
-            { c, r ->
-                val longs = c.longs()
+                    c.isNotEmpty() && longs.first() == 0L && longs.last() != 0L && r == false
+                },
+                { c, r ->
+                    val longs = c.longs()
 
-                c.isNotEmpty() && longs.none { it == 0L } && r == false
-            },
-            coverage = FullWithAssumptions(assumeCallsNumber = 2)
-        )
+                    c.isNotEmpty() && longs.none { it == 0L } && r == false
+                },
+                coverage = FullWithAssumptions(assumeCallsNumber = 2)
+            )
+        }
     }
 
     @Test
@@ -456,13 +466,16 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testIteratorExample() {
-        check(
-            LongStreamExample::iteratorSumExample,
-            ignoreExecutionsNumber,
-            { c, r -> c.isEmpty() && r == 0L },
-            { c: List<Short?>, r -> c.isNotEmpty() && c.longs().sum() == r },
-            coverage = AtLeast(76)
-        )
+        // TODO exceeds even default step limit 3500 => too slow
+        withPathSelectorStepsLimit(1000) {
+            check(
+                LongStreamExample::iteratorSumExample,
+                ignoreExecutionsNumber,
+                { c, r -> c.isEmpty() && r == 0L },
+                { c: List<Short?>, r -> c.isNotEmpty() && c.longs().sum() == r },
+                coverage = AtLeast(76)
+            )
+        }
     }
 
     @Test
@@ -481,12 +494,15 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
 
     @Test
     fun testClosedStreamExample() {
-        checkWithException(
-            LongStreamExample::closedStreamExample,
-            ignoreExecutionsNumber,
-            { _, r -> r.isException<IllegalStateException>() },
-            coverage = AtLeast(88)
-        )
+        // TODO exceeds even default step limit 3500 => too slow
+        withPathSelectorStepsLimit(500) {
+            checkWithException(
+                LongStreamExample::closedStreamExample,
+                ignoreExecutionsNumber,
+                { _, r -> r.isException<IllegalStateException>() },
+                coverage = AtLeast(88)
+            )
+        }
     }
 
     @Test

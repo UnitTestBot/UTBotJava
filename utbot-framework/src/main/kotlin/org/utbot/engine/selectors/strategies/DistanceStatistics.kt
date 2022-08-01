@@ -138,9 +138,6 @@ class DistanceStatistics(
      * minimal distance to closest uncovered statement in interprocedural graph for execution.
      */
     fun distanceToUncovered(state: ExecutionState): Int {
-        var calc = 0
-        var stmt: Stmt = state.stmt
-        val distances = mutableListOf<Int>()
         if (state.lastEdge != null && state.lastEdge in graph.implicitEdges) {
             return if (state.lastEdge in graph.coveredImplicitEdges) {
                 Int.MAX_VALUE
@@ -149,24 +146,30 @@ class DistanceStatistics(
             }
         }
 
+        var executionStackAccumulatedDistanceToReturn = 0
+        var stmt: Stmt = state.stmt
+        var minDistance: Int? = null
+
         for (stackElement in state.executionStack.asReversed()) {
-            val caller = stackElement.caller
             val distance = distanceToClosestUncovered[stmt] ?: Int.MAX_VALUE
-            val distanceToRet = closestToReturn[stmt] ?: error("$stmt is not in graph")
+            val distanceToReturn = closestToReturn[stmt] ?: error("$stmt is not in graph")
+
             if (distance != Int.MAX_VALUE) {
-                distances += calc + distance
+                minDistance = (minDistance ?: 0) + executionStackAccumulatedDistanceToReturn + distance
             }
-            if (caller == null) {
+
+            val caller = stackElement.caller
+
+            if (caller == null || distanceToReturn == Int.MAX_VALUE) {
                 break
             }
-            if (distanceToRet != Int.MAX_VALUE) {
-                calc += distanceToRet
-            } else {
-                break
-            }
+
+            executionStackAccumulatedDistanceToReturn += distanceToReturn
+
             stmt = caller
         }
-        return distances.minOrNull() ?: Int.MAX_VALUE
+
+        return minDistance ?: Int.MAX_VALUE
     }
 
     /**

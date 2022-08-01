@@ -1074,7 +1074,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     emptyLineIfNeeded()
 
                     actual = newVar(
-                        CgClassId(executable.returnType, isNullable = result is UtNullModel),
+                        CgClassId(result.classId, isNullable = result is UtNullModel),
                         "actual"
                     ) {
                         thisInstance[executable](*methodArguments.toTypedArray())

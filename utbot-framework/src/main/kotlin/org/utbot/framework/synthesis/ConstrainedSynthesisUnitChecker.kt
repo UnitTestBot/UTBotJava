@@ -7,6 +7,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
+import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionConstructor
 import soot.SootClass
@@ -42,7 +43,7 @@ class ConstrainedSynthesisUnitChecker(
                     synthesisMethodContext
                 ),
                 scoringStrategy
-            ).firstOrNull().also {
+            ).firstOrNull { it.result is UtExecutionSuccess }.also {
                 enableSynthesis = true
             }
         } ?: return null

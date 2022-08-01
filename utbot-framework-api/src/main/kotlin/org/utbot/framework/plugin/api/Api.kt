@@ -173,7 +173,7 @@ data class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null,
-    val hole: Any? = null
+    val constrainedExecution: ConstrainedExecution? = null
 ) : UtResult() {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
@@ -479,7 +479,12 @@ data class UtArrayConstraintModel(
     val length: UtModel,
     val elements: Map<UtModel, UtModel>,
     override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtConstraintModel(variable, utConstraints)
+) : UtConstraintModel(variable, utConstraints) {
+    val allConstraints get() = elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
+        acc + ((pair.first as? UtConstraintModel)?.utConstraints
+            ?: emptySet()) + ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet())
+    }
+}
 
 /**
  * Model for complex objects with assemble instructions.

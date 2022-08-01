@@ -425,6 +425,11 @@ data class UtOrConstraint(val lhv: UtConstraint, val rhv: UtConstraint) : UtPrim
     }
 }
 
+data class ConstrainedExecution(
+    val modelsBefore: List<UtModel>,
+    val modelsAfter: List<UtModel>
+)
+
 
 val ClassId.defaultVariable: UtConstraintVariable
     get() = when (this) {

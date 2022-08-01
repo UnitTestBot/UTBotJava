@@ -8,7 +8,6 @@ import org.utbot.engine.symbolic.asSoftConstraint
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.UtConstraintParameter
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.framework.synthesis.ArrayUnit
 import org.utbot.framework.synthesis.SynthesisMethodContext
 import org.utbot.framework.synthesis.SynthesisUnitContext
 import soot.ArrayType
@@ -63,6 +62,9 @@ class ConstraintBasedPostConditionConstructor(
                         addAll(buildPostCondition(index, builder, parameters, localVariableMemory))
                         addAll(buildPostCondition(element, builder, parameters, localVariableMemory))
                     }
+                }
+                for (constraint in model.utConstraints) {
+                    add(constraint.accept(builder))
                 }
                 add(mkEq(symbolicValue, model.variable.accept(builder)))
             }

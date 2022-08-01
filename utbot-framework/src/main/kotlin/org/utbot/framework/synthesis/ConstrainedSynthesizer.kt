@@ -13,11 +13,9 @@ import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
 class ConstrainedSynthesizer(
-    models: ResolvedModels,
+    val parameters: List<UtModel>,
     val depth: Int = 4
 ) {
-    val parameters = models.parameters
-
     companion object {
         private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
         private var attempts = 0

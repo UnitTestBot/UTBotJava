@@ -4,6 +4,7 @@ import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
 import org.utbot.engine.pc.*
+import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.intClassId
 
@@ -58,7 +59,7 @@ class ConstraintResolver(
         }
     }
 
-    internal fun resolveModels(parameters: List<SymbolicValue>): ResolvedExecution {
+    internal fun resolveModels(parameters: List<SymbolicValue>): ConstrainedExecution {
         varBuilder = UtVarBuilder(holder, typeRegistry, typeResolver)
         val allAddresses = UtExprCollector { it is UtAddrExpression }.let {
             holder.constraints.hard.forEach { constraint -> constraint.accept(it) }
@@ -77,7 +78,7 @@ class ConstraintResolver(
             resolvedModels
         }
 
-        return ResolvedExecution(modelsBefore, modelsAfter, emptyList())
+        return ConstrainedExecution(modelsBefore.parameters, modelsAfter.parameters)
     }
 
     private fun internalResolveModel(
@@ -103,6 +104,7 @@ class ConstraintResolver(
             value.expr.variable,
             emptySet()
         )
+
         is ReferenceValue -> buildModel(
             collectAtoms(value, addrs),
             value.addr.variable,
@@ -143,9 +145,11 @@ class ConstraintResolver(
             variable,
             resolvedConstraints.getValue(variable.addr)
         )
+
         variable.isArray -> buildArrayModel(atoms, variable, aliases).also {
             resolvedConstraints[variable.addr] = it
         }
+
         else -> buildObjectModel(atoms, variable, aliases).also {
             resolvedConstraints[variable.addr] = it
         }
@@ -199,15 +203,20 @@ class ConstraintResolver(
         val lengths = atoms.flatMap { it.flatMap() }.filter {
             it is UtConstraintArrayLength && it.instance in allAliases
         }.toSet()
-        val lengthModel = buildModel(atoms, UtConstraintArrayLength(variable), lengths)
+        val lengthVariable = UtConstraintArrayLength(variable)
+        val lengthModel = buildModel(atoms, lengthVariable, lengths)
+        val concreteLength = holder.eval(lengths.first().expr).value() as Int
 
-        val indexMap = atoms.flatMap {
-            it.accept(UtConstraintVariableCollector { indx ->
-                indx is UtConstraintArrayAccess && indx.instance in allAliases
-            })
-        }.map { (it as UtConstraintArrayAccess).index }.groupBy {
-            holder.eval(varBuilder[it])
-        }.map { it.value.toSet() }
+        val indexMap = atoms
+            .flatMap {
+                it.accept(UtConstraintVariableCollector { indx ->
+                    indx is UtConstraintArrayAccess && indx.instance in allAliases
+                })
+            }
+            .map { (it as UtConstraintArrayAccess).index }
+            .filter { (holder.eval(it.expr).value() as Int) < concreteLength }
+            .groupBy { holder.eval(varBuilder[it]) }
+            .map { it.value.toSet() }
 
         var indexCount = 0
         val elements = indexMap.associate { indices ->
@@ -221,25 +230,25 @@ class ConstraintResolver(
             )
 
             val arrayAccess = UtConstraintArrayAccess(variable, indexVariable, elementClassId)
-            varBuilder.backMapping[arrayAccess] = varBuilder.backMapping[UtConstraintArrayAccess(variable, indices.first(), elementClassId)]!!
+            varBuilder.backMapping[arrayAccess] =
+                varBuilder.backMapping[UtConstraintArrayAccess(variable, indices.first(), elementClassId)]!!
             val indexAliases = indices.flatMap { idx ->
                 allAliases.map { UtConstraintArrayAccess(it, idx, elementClassId) }
             }.toSet()
             val res = buildModel(atoms, arrayAccess, indexAliases).withConstraints(
-                indices.map { UtEqConstraint(it, indexVariable) }.toSet()
+                indices.map { UtEqConstraint(it, indexVariable) }.toSet() + setOf(
+                    UtGeConstraint(indexVariable, UtConstraintNumericConstant(0)),
+                    UtLtConstraint(indexVariable, lengthVariable)
+                )
             )
             (indexModel as UtModel) to res
-        }
-
-        val allConstraints = elements.toList().fold((lengthModel as UtConstraintModel).utConstraints) { acc, pair ->
-            acc + ((pair.first as? UtConstraintModel)?.utConstraints ?: emptySet()) + ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet())
         }
 
         return UtArrayConstraintModel(
             variable,
             lengthModel,
             elements,
-            atoms
+            setOf()
         )
     }
 

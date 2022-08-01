@@ -3607,10 +3607,10 @@ class UtBotSymbolicEngine(
         }
 
         if (!isInNestedMethod()) {
-            val postConditionUpdates =
-                postConditionConstructor.constructPostCondition(this@UtBotSymbolicEngine, symbolicResult)
-            logger.error { "HARD POST CONDITION" }
-            logger.error { postConditionUpdates.hardConstraints.constraints.joinToString("\n") }
+            val postConditionUpdates = postConditionConstructor.constructPostCondition(
+                this@UtBotSymbolicEngine,
+                symbolicResult
+            )
             queuedSymbolicStateUpdates += postConditionUpdates
         }
 
@@ -3701,7 +3701,7 @@ class UtBotSymbolicEngine(
             instrumentation,
             entryMethodPath(),
             state.fullPath(),
-            hole = resolvedConstraints
+            constrainedExecution = resolvedConstraints
         )
 
         globalGraph.traversed(state)

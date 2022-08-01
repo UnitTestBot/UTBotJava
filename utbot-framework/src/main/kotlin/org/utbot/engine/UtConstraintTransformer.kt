@@ -154,7 +154,7 @@ class UtConstraintTransformer(
     }
 
     override fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint) = with(expr) {
-        UtRefEqConstraint(
+        UtRefNeqConstraint(
             lhv.accept(this@UtConstraintTransformer),
             rhv.accept(this@UtConstraintTransformer)
         )

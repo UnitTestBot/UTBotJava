@@ -86,10 +86,8 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
     }
 
     override fun testMethodNameFor(executableId: ExecutableId, customName: String?): String {
-        val executableName = when (executableId) {
-            is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
-            is MethodId -> executableId.name
-        }
+        val executableName = createExecutableName(executableId)
+
         // no index suffix allowed only when there's a vacant custom name
         val name = if (customName != null && customName !in existingMethodNames) {
             customName
@@ -107,17 +105,15 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         dataProviderMethodName.replace(dataProviderMethodPrefix, "parameterizedTestsFor")
 
     override fun dataProviderMethodNameFor(executableId: ExecutableId): String {
-        val indexedName = nextIndexedMethodName(executableId.name.capitalize(), skipOne = true)
+        val executableName = createExecutableName(executableId)
+        val indexedName = nextIndexedMethodName(executableName.capitalize(), skipOne = true)
 
         existingMethodNames += indexedName
         return "$dataProviderMethodPrefix$indexedName"
     }
 
     override fun errorMethodNameFor(executableId: ExecutableId): String {
-        val executableName = when (executableId) {
-            is ConstructorId -> executableId.classId.prettifiedName
-            is MethodId -> executableId.name
-        }
+        val executableName = createExecutableName(executableId)
         val newName = when (val base = "test${executableName.capitalize()}_errors") {
             !in existingMethodNames -> base
             else -> nextIndexedMethodName(base)
@@ -151,6 +147,13 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
             if (baseName !in existingVariableNames) "`$baseName`" else nextIndexedVarName(baseName)
         }
         CodegenLanguage.PYTHON -> nextIndexedMethodName(baseName)
+    }
+
+    private fun createExecutableName(executableId: ExecutableId): String {
+        return when (executableId) {
+            is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
+            is MethodId -> executableId.name
+        }
     }
 }
 

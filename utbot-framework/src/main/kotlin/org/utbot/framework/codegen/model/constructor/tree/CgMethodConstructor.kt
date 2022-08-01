@@ -282,30 +282,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun generateResultAssertions() {
         when (currentExecutable) {
-            is ConstructorId -> {
-                // we cannot generate any assertions for constructor testing
-                // but we need to generate a constructor call
-                val constructorCall = currentExecutable as ConstructorId
-                val currentExecution = currentExecution!!
-                currentExecution.result
-                    .onSuccess {
-                        methodType = SUCCESSFUL
-
-                        // TODO engine returns UtCompositeModel sometimes (concrete execution?)
-
-                        // TODO support inner classes constructors testing JIRA:1461
-                        require(!constructorCall.classId.isInner) {
-                            "Inner class ${constructorCall.classId} constructor testing is not supported yet"
-                        }
-
-                        actual = newVar(constructorCall.classId, "actual") {
-                            constructorCall(*methodArguments.toTypedArray())
-                        }
-                    }
-                    .onFailure { exception ->
-                        processExecutionFailure(currentExecution, exception)
-                    }
-            }
+            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
             is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
             is MethodId -> {
                 emptyLineIfNeeded()
@@ -430,24 +407,30 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun generateAssertionsForParameterizedTest() {
         emptyLineIfNeeded()
-        val method = currentExecutable as MethodId
-        currentExecution!!.result
-            .onSuccess { result ->
-                if (result.isUnit()) {
-                    +thisInstance[method](*methodArguments.toTypedArray())
-                } else {
-                    //"generic" expected variable is represented with a wrapper if
-                    //actual result is primitive to support cases with exceptions.
-                    resultModel = if (result is UtPrimitiveModel) assemble(result) else result
 
-                    val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
-                    val expectedExpression = CgNotNullAssertion(expectedVariable)
+        when (currentExecutable) {
+            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
+            is MethodId -> {
+                val method = currentExecutable as MethodId
+                currentExecution!!.result
+                    .onSuccess { result ->
+                        if (result.isUnit()) {
+                            +thisInstance[method](*methodArguments.toTypedArray())
+                        } else {
+                            //"generic" expected variable is represented with a wrapper if
+                            //actual result is primitive to support cases with exceptions.
+                            resultModel = if (result is UtPrimitiveModel) assemble(result) else result
 
-                    assertEquality(expectedExpression, actual)
-                    println()
-                }
+                            val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
+                            val expectedExpression = CgNotNullAssertion(expectedVariable)
+
+                            assertEquality(expectedExpression, actual)
+                            println()
+                        }
+                    }
+                    .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
             }
-            .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
+        }
     }
 
     /**
@@ -1020,6 +1003,27 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         generateDeepEqualsOrNullAssertion(expected.expression, actual)
     }
 
+    private fun generateConstructorCall(currentExecutableId: ExecutableId, currentExecution: UtExecution) {
+        // we cannot generate any assertions for constructor testing
+        // but we need to generate a constructor call
+        val constructorCall = currentExecutableId as ConstructorId
+        currentExecution.result
+            .onSuccess {
+                methodType = SUCCESSFUL
+
+                require(!constructorCall.classId.isInner) {
+                    "Inner class ${constructorCall.classId} constructor testing is not supported yet"
+                }
+
+                actual = newVar(constructorCall.classId, "actual") {
+                    constructorCall(*methodArguments.toTypedArray())
+                }
+            }
+            .onFailure { exception ->
+                processExecutionFailure(currentExecution, exception)
+            }
+    }
+
     /**
      * We can't use standard deepEquals method in parametrized tests
      * because nullable objects require different asserts.
@@ -1259,9 +1263,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
-            val method = currentExecutable as MethodId
-            val containsFailureExecution = containsFailureExecution(testSet)
-
+            val method = currentExecutable!!
             val expectedResultClassId = wrapTypeIfRequired(method.returnType)
 
             if (expectedResultClassId != voidClassId) {
@@ -1279,6 +1281,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.ExpectedResult] = expectedResult.parameter
             }
 
+            val containsFailureExecution = containsFailureExecution(testSet)
             if (containsFailureExecution) {
                 val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
@@ -1344,7 +1347,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
         }
 
-        val method = currentExecutable as MethodId
+        val method = currentExecutable!!
         val needsReturnValue = method.returnType != voidClassId
         val containsFailureExecution = containsFailureExecution(testSet)
         execution.result

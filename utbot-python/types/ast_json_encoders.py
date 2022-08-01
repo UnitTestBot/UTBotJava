@@ -51,16 +51,18 @@ class AstClassEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ast.ClassDef):
             json_dump = {
-                'name': o.name,
+                'className': o.name,
                 'methods': [],
-                'attributes': [],
+                'fields': [],
             }
 
             def _function_statements_handler(_statement):
                 if isinstance(_statement, ast.FunctionDef):
-                    json_dump['methods'].append(AstFunctionDefEncoder().default(_statement))
+                    method = AstFunctionDefEncoder().default(_statement)
+                    json_dump['methods'].append(method)
                 if isinstance(_statement, ast.AnnAssign):
-                    json_dump['attributes'].append(AstAnnAssignEncoder().default(_statement))
+                    field = AstAnnAssignEncoder().default(_statement)
+                    json_dump['fields'].append(field)
 
             for statement in o.body:
                 _function_statements_handler(statement)
@@ -73,8 +75,8 @@ class AstAnnAssignEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ast.AnnAssign):
             json_dump = {
-                'target': '...' if isinstance(o.target, type(Ellipsis)) else o.target.id,
-                'annotation': split_annotations(o.annotation),
+                'name': '...' if isinstance(o.target, type(Ellipsis)) else o.target.id,
+                'annotation': transform_annotation(o.annotation),
             }
             return json_dump
         return json.JSONEncoder.default(self, o)
@@ -92,7 +94,7 @@ class AstFunctionDefEncoder(json.JSONEncoder):
         if isinstance(o, (ast.FunctionDef, ast.AsyncFunctionDef)):
             json_dump = {
                 'name': o.name,
-                'returns': split_annotations(o.returns),
+                'returns': transform_annotation(o.returns),
                 'args': [
                     AstArgEncoder().default(arg)
                     for arg in o.args.args
@@ -110,7 +112,7 @@ class AstArgEncoder(json.JSONEncoder):
         if isinstance(o, ast.arg):
             json_dump = {
                 'arg': o.arg,
-                'annotation': split_annotations(o.annotation)
+                'annotation': transform_annotation(o.annotation)
             }
             return json_dump
 
@@ -124,8 +126,8 @@ class AstConstantEncoder(json.JSONEncoder):
         if isinstance(o, type(Ellipsis)):
             return '...'
         if o is None:
-            return 'null'
+            return None
 
 
-def split_annotations(annotation: Optional[ast.expr]) -> str:
-    return 'null' if annotation is None else astor.code_gen.to_source(annotation).strip()
+def transform_annotation(annotation: Optional[ast.expr]) -> Optional[str]:
+    return '' if annotation is None else astor.code_gen.to_source(annotation).strip()

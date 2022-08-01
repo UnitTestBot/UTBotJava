@@ -118,80 +118,12 @@ BUILTIN_FUNCTIONS = [
 ]
 
 
-def create_module_table(module_name: str, python_version: tuple[int, int] = (3, 10)):
-    functions_dataset: dict[str, Any] = {}
-    methods_dataset: dict[str, Any] = defaultdict(list)
-    classes_dataset: dict[str, Any] = {}
-    assigns_dataset: dict[str, Any] = {}
-    ann_assigns_dataset: dict[str, Any] = {}
-    imported_names_dataset: dict[str, Any] = {}
-
-    stub = get_stub_names(
-        module_name,
-        search_context=get_search_context(version=python_version)
-    )
-
-    def _ast_handler(ast_: ast.AST):
-        if isinstance(ast_, OverloadedName):
-            for definition in ast_.definitions:
-                _ast_handler(definition)
-        elif isinstance(ast_, ast.ClassDef):
-            if not ast_.name.startswith('_'):
-                json_data = AstClassEncoder().default(ast_)
-                classes_dataset[ast_.name] = json_data
-                classes_dataset[ast_.name]['module'] = module_name
-                for method in json_data['methods']:
-                    methods_dataset[method['name']].append({
-                        'type': ast_.name,
-                        'method': method,
-                    })
-        elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            json_data = AstFunctionDefEncoder().default(ast_)
-            functions_dataset[ast_.name] = json_data
-        elif isinstance(ast_, ast.AnnAssign):
-            if isinstance(ast_.annotation, ast.Name) and isinstance(ast_.target, ast.Name):
-                ann_assigns_dataset[ast_.target.id] = {
-                    'annotation': ast_.annotation.id,
-                    'value': None if ast_.value is None else astor.code_gen.to_source(ast_.value)
-                }
-        elif isinstance(ast_, ast.Assign):
-            if isinstance(ast_.value, ast.Name):
-                for target in ast_.targets:
-                    if isinstance(target, ast.Name):
-                        assigns_dataset[target.id] = {
-                            'link': ast_.value.id
-                        }
-        elif isinstance(ast_, ImportedName):
-            print('ImportedName:')
-            print(f'{ast_.module_name} {ast_.name}')
-        else:
-            print('Not supported type')
-            print(astor.code_gen.to_source(ast_))
-
-    ast_nodes: set[str] = set()
-    for name, name_info in stub.items():
-        ast_nodes.add(name_info.ast.__class__.__name__)
-        _ast_handler(name_info.ast)
-
-    with open(f'method_annotations_{module_name}.json', 'w') as fout:
-        print(json.dumps(methods_dataset, sort_keys=True, indent=True), file=fout)
-
-    with open(f'functions_annotations_{module_name}.json', 'w') as fout:
-        print(json.dumps(functions_dataset, sort_keys=True, indent=True), file=fout)
-
-    with open(f'assigns_{module_name}.json', 'w') as fout:
-        print(json.dumps(assigns_dataset, sort_keys=True, indent=True), file=fout)
-
-    with open(f'ann_assigns_{module_name}.json', 'w') as fout:
-        print(json.dumps(ann_assigns_dataset, sort_keys=True, indent=True), file=fout)
-
-
 class StubFileCollector:
     def __init__(self, dataset_directory: str):
         self.methods_dataset: dict[str, Any] = defaultdict(list)
         self.fields_dataset: dict[str, Any] = defaultdict(list)
         self.functions_dataset: dict[str, Any] = defaultdict(list)
-        self.classes_dataset: dict[str, Any] = {}
+        self.classes_dataset: list[Any] = []
         self.assigns_dataset: dict[str, Any] = defaultdict(list)
         self.ann_assigns_dataset: dict[str, Any] = defaultdict(list)
         self.dataset_directory = dataset_directory
@@ -210,37 +142,46 @@ class StubFileCollector:
             elif isinstance(ast_, ast.ClassDef):
                 if not ast_.name.startswith('_'):
                     json_data = AstClassEncoder().default(ast_)
+                    class_name = f'{module_name}.{ast_.name}'
+                    json_data['className'] = class_name
+                    json_data['methods'] = [
+                        method | {'className': class_name}
+                        for method in json_data['methods']
+                    ]
+                    json_data['fields'] = [
+                        field | {'className': class_name}
+                        for field in json_data['fields']
+                    ]
+
+                    self.classes_dataset.append(json_data)
+
                     for method in json_data['methods']:
-                        self.methods_dataset[method['name']].append({
-                            'className': ast_.name,
-                            'module': module,
-                            'method': method,
-                        })
-                    for field in json_data['attributes']:
-                        self.fields_dataset[field['target']].append({
-                            'className': ast_.name,
-                            'module': module,
-                            'annotation': field['annotation'],
-                        })
+                        self.methods_dataset[method['name']].append(method)
+
+                    for field in json_data['fields']:
+                        self.fields_dataset[field['name']].append(field)
+
             elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 json_data = AstFunctionDefEncoder().default(ast_)
-                self.functions_dataset[ast_.name].append({
-                    'function': json_data,
-                    'module': module,
-                })
+                self.functions_dataset[ast_.name].append(
+                    json_data | {'className': None}
+                )
+
             elif isinstance(ast_, ast.AnnAssign):
-                if isinstance(ast_.annotation, ast.Name) and isinstance(ast_.target, ast.Name):
-                    self.ann_assigns_dataset[ast_.target.id].append({
-                        'annotation': ast_.annotation.id,
-                        'value': None if ast_.value is None else astor.code_gen.to_source(ast_.value)
-                    })
+                pass
+                # if isinstance(ast_.annotation, ast.Name) and isinstance(ast_.target, ast.Name):
+                #     self.ann_assigns_dataset[ast_.target.id].append({
+                #         'annotation': ast_.annotation.id,
+                #         'value': None if ast_.value is None else astor.code_gen.to_source(ast_.value)
+                #     })
             elif isinstance(ast_, ast.Assign):
-                if isinstance(ast_.value, ast.Name):
-                    for target in ast_.targets:
-                        if isinstance(target, ast.Name):
-                            self.assigns_dataset[target.id].append({
-                                'link': ast_.value.id
-                            })
+                pass
+                # if isinstance(ast_.value, ast.Name):
+                #     for target in ast_.targets:
+                #         if isinstance(target, ast.Name):
+                #             self.assigns_dataset[target.id].append({
+                #                 'link': ast_.value.id
+                #             })
             elif isinstance(ast_, ImportedName):
                 pass
                 # print('ImportedName:')
@@ -267,7 +208,7 @@ class StubFileCollector:
             print(json.dumps(defaultdict_to_array(self.ann_assigns_dataset), sort_keys=True, indent=True), file=fout)
 
         with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
-            print(json.dumps(defaultdict_to_array(self.classes_dataset), sort_keys=True, indent=True), file=fout)
+            print(json.dumps(self.classes_dataset, sort_keys=True, indent=True), file=fout)
 
         with open(f'{self.dataset_directory}/field_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.fields_dataset), sort_keys=True, indent=True), file=fout)
@@ -283,7 +224,7 @@ def defaultdict_to_array(dataset):
     return [
         {
             'name': name,
-            'typeInfos': types,
+            'definitions': types,
         }
         for name, types in dataset.items()
     ]

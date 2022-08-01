@@ -215,7 +215,12 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 throw ConcreteExecutionFailureException(
                     e,
                     childProcessRunner.errorLogFile,
-                    process.inputStream.bufferedReader().lines().toList()
+                    try {
+                        process.inputStream.bufferedReader().lines().toList()
+                    }
+                    catch (e: Exception) {
+                        emptyList()
+                    }
                 )
             else
                 throw e

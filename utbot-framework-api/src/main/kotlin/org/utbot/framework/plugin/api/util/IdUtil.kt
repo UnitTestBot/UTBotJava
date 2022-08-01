@@ -290,7 +290,7 @@ fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
         return null
     }
 
-    return fieldId.declaringClass.jClass.declaredFields.firstOrNull { it.name == fieldId.name }
+    return fieldId.safeField
 }
 
 fun ClassId.hasField(fieldId: FieldId): Boolean {
@@ -310,11 +310,11 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
 }
 
 // FieldId utils
-
-// TODO: maybe cache it somehow in the future
-val FieldId.field: Field
+val FieldId.safeField: Field?
     get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }
-        ?: error("Field $name is not found in class ${declaringClass.jClass.name}")
+
+val FieldId.field: Field
+    get() = safeField ?: error("Field $name is not found in class ${declaringClass.jClass.name}")
 
 // https://docstore.mik.ua/orelly/java-ent/jnut/ch03_13.htm
 val FieldId.isInnerClassEnclosingClassReference: Boolean

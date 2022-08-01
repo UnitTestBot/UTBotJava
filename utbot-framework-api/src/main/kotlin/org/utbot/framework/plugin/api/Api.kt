@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
+import org.utbot.framework.plugin.api.util.field
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
+import org.utbot.framework.plugin.api.util.safeField
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -856,7 +857,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = declaringClass.findFieldByIdOrNull(this).toString()
+    override fun toString() = safeField.toString()
 }
 
 inline fun <T> withReflection(block: () -> T): T {

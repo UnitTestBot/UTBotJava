@@ -89,7 +89,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.findFieldById
+import org.utbot.framework.plugin.api.util.field
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.signature
@@ -582,7 +582,7 @@ class Traverser(
         declaringClass: SootClass,
         stmt: Stmt
     ): SymbolicStateUpdate {
-        val concreteValue = extractConcreteValue(field, declaringClass)
+        val concreteValue = extractConcreteValue(field)
         val (symbolicResult, symbolicStateUpdate) = toMethodResult(concreteValue, field.type)
         val symbolicValue = (symbolicResult as SymbolicSuccess).value
 
@@ -634,12 +634,12 @@ class Traverser(
     // Some fields are inaccessible with reflection, so we have to instantiate it by ourselves.
     // Otherwise, extract it from the class.
     // TODO JIRA:1593
-    private fun extractConcreteValue(field: SootField, declaringClass: SootClass): Any? =
+    private fun extractConcreteValue(field: SootField): Any? =
         when (field.signature) {
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
-            else -> declaringClass.id.findFieldById(field.fieldId).let { it.withAccessibility { it.get(null) } }
+            else -> field.fieldId.field.let { it.withAccessibility { it.get(null) } }
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =

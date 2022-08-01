@@ -1,23 +1,7 @@
 package org.utbot.framework.minimization
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 
 /**
  * Minimizes [executions] in each test suite independently. Test suite is computed with [executionToTestSuite] function.
@@ -33,9 +17,9 @@ import org.utbot.framework.plugin.api.UtVoidModel
  * @return flatten minimized executions in each test suite.
  */
 fun <T : Any> minimizeTestCase(
-    executions: List<UtSymbolicExecution>,
-    executionToTestSuite: (ex: UtSymbolicExecution) -> T
-): List<UtSymbolicExecution> {
+    executions: List<UtExecution>,
+    executionToTestSuite: (ex: UtExecution) -> T
+): List<UtExecution> {
     val groupedExecutionsByTestSuite = groupExecutionsByTestSuite(executions, executionToTestSuite)
     val groupedExecutionsByBranchInstructions = groupedExecutionsByTestSuite.flatMap { execution ->
         groupByBranchInstructions(
@@ -46,7 +30,7 @@ fun <T : Any> minimizeTestCase(
     return groupedExecutionsByBranchInstructions.map { minimizeExecutions(it) }.flatten()
 }
 
-fun minimizeExecutions(executions: List<UtSymbolicExecution>): List<UtSymbolicExecution> {
+fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
     val unknownCoverageExecutions =
         executions.indices.filter { executions[it].coverage?.coveredInstructions?.isEmpty() ?: true }.toSet()
     // ^^^ here we add executions with empty or null coverage, because it happens only if a concrete execution failed,
@@ -81,9 +65,9 @@ fun minimizeExecutions(executions: List<UtSymbolicExecution>): List<UtSymbolicEx
  */
 
 private fun groupByBranchInstructions(
-    executions: List<UtSymbolicExecution>,
+    executions: List<UtExecution>,
     branchInstructionsNumber: Int
-): Collection<List<UtSymbolicExecution>> {
+): Collection<List<UtExecution>> {
     val instructionToPossibleNextInstructions = mutableMapOf<Long, MutableSet<Long>>()
 
     for (execution in executions) {
@@ -134,15 +118,15 @@ private fun groupByBranchInstructions(
 }
 
 private fun <T : Any> groupExecutionsByTestSuite(
-    executions: List<UtSymbolicExecution>,
-    executionToTestSuite: (UtSymbolicExecution) -> T
-): Collection<List<UtSymbolicExecution>> =
+    executions: List<UtExecution>,
+    executionToTestSuite: (UtExecution) -> T
+): Collection<List<UtExecution>> =
     executions.groupBy { executionToTestSuite(it) }.values
 
 /**
  * Builds a mapping from execution id to edges id.
  */
-private fun buildMapping(executions: List<UtSymbolicExecution>): Map<Int, List<Int>> {
+private fun buildMapping(executions: List<UtExecution>): Map<Int, List<Int>> {
     // (inst1, instr2) -> edge id --- edge represents as a pair of instructions, which are connected by this edge
     val allCoveredEdges = mutableMapOf<Pair<Long, Long>, Int>()
     val thrownExceptions = mutableMapOf<String, Long>()
@@ -178,7 +162,7 @@ private fun buildMapping(executions: List<UtSymbolicExecution>): Map<Int, List<I
  * no more than one crash, and we want to achieve it with minimal statements. The possible way is choosing an execution
  * with minimal model, so here we are keeping non crash executions and trying to find minimal crash execution.
  */
-private fun List<UtSymbolicExecution>.filteredCrashExecutions(): List<UtSymbolicExecution> {
+private fun List<UtExecution>.filteredCrashExecutions(): List<UtExecution> {
     val crashExecutions = filter { it.result is UtConcreteExecutionFailure }.ifEmpty {
         return this
     }
@@ -192,7 +176,7 @@ private fun List<UtSymbolicExecution>.filteredCrashExecutions(): List<UtSymbolic
  * As for now crash execution can only be produced by Concrete Executor, it does not have [UtSymbolicExecution.stateAfter] and
  * [UtSymbolicExecution.result] is [UtExecutionFailure], so we check only [UtSymbolicExecution.stateBefore].
  */
-private fun List<UtSymbolicExecution>.chooseMinimalCrashExecution(): UtSymbolicExecution = minByOrNull {
+private fun List<UtExecution>.chooseMinimalCrashExecution(): UtExecution = minByOrNull {
    it.stateBefore.calculateSize()
 } ?: error("Cannot find minimal crash execution within empty executions")
 

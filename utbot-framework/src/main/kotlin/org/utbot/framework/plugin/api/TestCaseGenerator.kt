@@ -101,7 +101,7 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(executions: List<UtSymbolicExecution>): List<UtSymbolicExecution> =
+    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
         if (UtSettings.testMinimizationStrategyType == TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY) {
             executions
         } else {

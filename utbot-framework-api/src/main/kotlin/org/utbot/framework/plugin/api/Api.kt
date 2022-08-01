@@ -172,9 +172,7 @@ class UtSymbolicExecution(
     coverage: Coverage? = null,
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
-    displayName: String? = null,
-    val fuzzingValues: List<Any>? = null,
-    val fuzzedMethodDescription: Any? = null
+    displayName: String? = null
 ) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
@@ -218,9 +216,7 @@ class UtSymbolicExecution(
             coverage,
             summary,
             testMethodName,
-            displayName,
-            fuzzingValues,
-            fuzzedMethodDescription
+            displayName
         )
     }
 }

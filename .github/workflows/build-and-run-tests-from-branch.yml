@@ -13,7 +13,7 @@ jobs:
 
       - name: Build and run tests in UTBot Java
         run: |
-          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon --stacktrace --scan
+          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
 
       - name: Upload utbot-framework logs
         if: ${{ always() }}

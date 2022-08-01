@@ -16,7 +16,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
-import org.apache.commons.io.FileUtils
+import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.info
 import org.utbot.engine.EngineController
@@ -442,6 +442,7 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
         .filter { methodNameFilter?.equals(it.callable.name) ?: true }
         .filterNot { it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum) }
         .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+        .filterNot { it.callable.isAbstract }
         .toList()
 
     return if (kotlinClass.nestedClasses.isEmpty()) {
@@ -453,7 +454,7 @@ private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): Lis
 }
 
 fun writeTestClass(cut: ClassUnderTest, testSetsAsString: String) {
-    logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(testSetsAsString.length.toLong())}" }
+    logger.info { "File size for ${cut.testClassSimpleName}: ${FileUtil.byteCountToDisplaySize(testSetsAsString.length.toLong())}" }
     cut.generatedTestFile.parentFile.mkdirs()
     cut.generatedTestFile.writeText(testSetsAsString, charset)
 }

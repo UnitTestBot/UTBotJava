@@ -14,9 +14,9 @@ import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.utbot.common.PathUtil
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
+import org.utbot.intellij.plugin.ui.utils.isGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) : ComboboxWithBrowseButton() {
@@ -24,6 +24,10 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) : Combo
     private val SET_TEST_FOLDER = "set test folder"
 
     init {
+        if (model.project.isGradle()) {
+            setButtonEnabled(false)
+            button.toolTipText = "Please define custom test source root via Gradle"
+        }
         childComponent.isEditable = false
         childComponent.renderer = object : ColoredListCellRenderer<Any?>() {
             override fun customizeCellRenderer(
@@ -46,7 +50,7 @@ class TestFolderComboWithBrowseButton(private val model: BaseTestsModel) : Combo
             }
         }
 
-        val testRoots = model.testModule.suitableTestSourceRoots(CodegenLanguage.JAVA).toMutableList()
+        val testRoots = model.testModule.suitableTestSourceRoots().toMutableList()
         model.testModule.addDedicatedTestRoot(testRoots)
         if (testRoots.isNotEmpty()) {
             configureRootsCombo(testRoots)

@@ -314,6 +314,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
      * @see [org.utbot.instrumentation.instrumentation.coverage.CoverageInstrumentation].
      */
     fun <T : Protocol.Command, R> request(requestCmd: T, action: ((Protocol.Command) -> R)): R = runBlocking {
+        restartIfNeeded()
         awaitCommand(sendCommand(requestCmd), action)
     }
 

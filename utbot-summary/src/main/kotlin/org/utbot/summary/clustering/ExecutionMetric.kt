@@ -9,6 +9,9 @@ class ExecutionMetric : Metric<Iterable<Step>> {
      * Minimum Edit Distance
      */
     private fun compareTwoPaths(path1: Iterable<Step>, path2: Iterable<Step>): Double {
+        require(path1.count() > 0) { "Two paths can not be compared: path1 is empty!"}
+        require(path2.count() > 0) { "Two paths can not be compared: path2 is empty!"}
+
         val distances = Array(path1.count()) { i -> Array(path2.count()) { j -> i + j } }
 
         for (i in 1 until path1.count()) {
@@ -22,7 +25,17 @@ class ExecutionMetric : Metric<Iterable<Step>> {
                 distances[i][j] = minOf(d1, d2, d3)
             }
         }
-        return distances.last().last().toDouble()
+
+        if (distances.isNotEmpty()) {
+            val last = distances.last()
+            if (last.isNotEmpty()) {
+                return last.last().toDouble()
+            } else {
+                throw IllegalStateException("Last row in the distance matrix has 0 columns. It should contain more or equal 1 column.")
+            }
+        } else {
+            throw IllegalStateException("Distance matrix has 0 rows. It should contain more or equal 1 row.")
+        }
     }
 
     private fun distance(stmt1: Step, stmt2: Step): Int {

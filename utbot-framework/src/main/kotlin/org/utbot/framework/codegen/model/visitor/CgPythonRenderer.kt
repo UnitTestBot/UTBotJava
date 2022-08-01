@@ -71,12 +71,19 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
+        TODO("Not yet implemented")
+        /*
         val arrayModel = element.model
         val elementsInLine = arrayElementsInLine(arrayModel.constModel)
 
         print("[")
         arrayModel.renderElements(element.size, elementsInLine)
         print("]")
+         */
+    }
+
+    override fun visit(element: CgArrayInitializer) {
+        TODO("Not yet implemented")
     }
 
     override fun visit(element: CgSwitchCaseLabel) {

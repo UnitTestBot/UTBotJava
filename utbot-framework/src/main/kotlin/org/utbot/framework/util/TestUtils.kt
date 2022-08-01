@@ -151,8 +151,16 @@ enum class Conflict {
 }
 
 class ConflictTriggers(
-    private val triggers: MutableMap<Conflict, Boolean> = EnumMap<Conflict, Boolean>(Conflict::class.java).withDefault { false }
-): MutableMap<Conflict, Boolean> by triggers  {
+    private val triggers: MutableMap<Conflict, Boolean> = EnumMap<Conflict, Boolean>(Conflict::class.java).also { map ->
+        Conflict.values().forEach { conflict -> map[conflict] = false }
+    }
+) : MutableMap<Conflict, Boolean> by triggers {
     val triggered: Boolean
         get() = triggers.values.any { it }
+
+    fun reset(vararg conflicts: Conflict) {
+        for (conflict in conflicts) {
+            triggers[conflict] = false
+        }
+    }
 }

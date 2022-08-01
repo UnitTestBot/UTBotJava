@@ -6,19 +6,19 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
+import org.utbot.framework.codegen.model.constructor.util.MAX_ARRAY_INITIALIZER_SIZE
+import org.utbot.framework.codegen.model.constructor.util.arrayInitializer
 import org.utbot.framework.codegen.model.constructor.util.get
 import org.utbot.framework.codegen.model.constructor.util.isDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.isNotDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -208,10 +208,21 @@ internal class CgVariableConstructor(val context: CgContext) :
             arrayModel.stores.getOrDefault(it, arrayModel.constModel)
         }
 
-        val canInitWithValues = elementModels.all { it is UtPrimitiveModel } || elementModels.all { it is UtNullModel }
+        val allPrimitives = elementModels.all { it is UtPrimitiveModel }
+        val allNulls = elementModels.all { it is UtNullModel }
+        // we can use array initializer if all elements are primitives or all of them are null,
+        // and the size of an array is not greater than the fixed maximum size
+        val canInitWithValues = (allPrimitives || allNulls) && elementModels.size <= MAX_ARRAY_INITIALIZER_SIZE
 
         val initializer = if (canInitWithValues) {
-            CgAllocateInitializedArray(arrayModel)
+            val elements = elementModels.map { model ->
+                when (model) {
+                    is UtPrimitiveModel -> model.value.resolve()
+                    is UtNullModel -> null.resolve()
+                    else -> error("Non primitive or null model $model is unexpected in array initializer")
+                }
+            }
+            arrayInitializer(arrayModel.classId, elementType, elements)
         } else {
             CgAllocateArray(arrayModel.classId, elementType, arrayModel.length)
         }

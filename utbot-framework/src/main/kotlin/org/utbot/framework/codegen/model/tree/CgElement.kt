@@ -19,7 +19,6 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -83,6 +82,7 @@ interface CgElement {
             is CgNonStaticRunnable -> visit(element)
             is CgStaticRunnable -> visit(element)
             is CgAllocateInitializedArray -> visit(element)
+            is CgArrayInitializer -> visit(element)
             is CgAllocateArray -> visit(element)
             is CgEnumConstantAccess -> visit(element)
             is CgFieldAccess -> visit(element)
@@ -699,8 +699,19 @@ open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int) :
         }
 }
 
-class CgAllocateInitializedArray(val model: UtArrayModel) :
-    CgAllocateArray(model.classId, model.classId.elementClassId!!, model.length)
+/**
+ * Allocation of an array with initialization. For example: `new String[] {"a", "b", null}`.
+ */
+class CgAllocateInitializedArray(val initializer: CgArrayInitializer) :
+    CgAllocateArray(initializer.arrayType, initializer.elementType, initializer.size)
+
+class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val values: List<CgExpression>) : CgExpression {
+    val size: Int
+        get() = values.size
+
+    override val type: ClassId
+        get() = arrayType
+}
 
 
 // Spread operator (for Kotlin, empty for Java)

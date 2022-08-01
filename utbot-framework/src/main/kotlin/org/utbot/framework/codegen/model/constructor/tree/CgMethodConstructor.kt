@@ -1665,8 +1665,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun errorMethod(method: ExecutableId, errors: Map<String, Int>): CgRegion<CgMethod> {
-        val name = nameGenerator.errorMethodNameFor(method)
+    fun errorMethod(executable: ExecutableId, errors: Map<String, Int>): CgRegion<CgMethod> {
+        val name = nameGenerator.errorMethodNameFor(executable)
         val body = block {
             comment("Couldn't generate some tests. List of errors:")
             comment()
@@ -1694,7 +1694,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
         }
         val errorTestMethod = CgErrorTestMethod(name, body)
-        return CgSimpleRegion("Errors report for ${method.name}", listOf(errorTestMethod))
+        return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
     }
 
     private fun getJvmReportDocumentation(jvmReportPath: String): String {

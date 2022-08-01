@@ -48,7 +48,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
             pos += clusterSize
             it.clusterInfo to indices
         }
-        this.copy(executions = updatedExecutions, clustersInfo = clustersInfo)
+        this.copy(executions = updatedExecutions, clustersInfo = clustersInfo) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
         logger.info(e) { "Summary generation error" }
         this

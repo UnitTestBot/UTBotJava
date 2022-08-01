@@ -264,7 +264,8 @@ object CodeGenerationController {
 
         val classUnderTest = testSets.first().method.clazz
 
-        val params = findMethodParams(classUnderTest, selectedMethods)
+        val params = DumbService.getInstance(model.project)
+            .runReadActionInSmartMode(Computable { findMethodParams(classUnderTest, selectedMethods) })
 
         val codeGenerator = CodeGenerator(
                 classUnderTest = classUnderTest.java,

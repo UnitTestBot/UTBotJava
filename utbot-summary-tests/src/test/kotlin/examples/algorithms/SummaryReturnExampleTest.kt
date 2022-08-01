@@ -94,7 +94,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -160,7 +160,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -230,7 +230,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -304,7 +304,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -399,7 +399,7 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -501,6 +501,6 @@ class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 }

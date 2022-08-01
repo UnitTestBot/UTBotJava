@@ -99,7 +99,7 @@ internal interface CgContextOwner {
     val collectedExceptions: MutableSet<ClassId>
 
     // annotations required by the current method being built
-    val collectedTestMethodAnnotations: MutableSet<CgAnnotation>
+    val collectedMethodAnnotations: MutableSet<CgAnnotation>
 
     // imports required by the test class being built
     val collectedImports: MutableSet<Import>
@@ -259,7 +259,7 @@ internal interface CgContextOwner {
     }
 
     fun addAnnotation(annotation: CgAnnotation) {
-        if (collectedTestMethodAnnotations.add(annotation)) {
+        if (collectedMethodAnnotations.add(annotation)) {
             importIfNeeded(annotation.classId) // TODO: check how JUnit annotations are loaded
         }
     }
@@ -391,7 +391,7 @@ internal data class CgContext(
     override val collectedTestClassInterfaces: MutableSet<ClassId> = mutableSetOf(),
     override val collectedTestClassAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
-    override val collectedTestMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
+    override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
     override val importedStaticMethods: MutableSet<MethodId> = mutableSetOf(),
     override val importedClasses: MutableSet<ClassId> = mutableSetOf(),

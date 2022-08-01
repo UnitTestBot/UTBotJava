@@ -169,18 +169,7 @@ jobs:
           run: |
             cd utbot-junit-contest
             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
-            
-  utbot-maven:
-      runs-on: ubuntu-20.04
-      container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
-      steps:
-        - uses: actions/checkout@v2
-
-        - name: Build and run test
-          run: |
-            cd utbot-maven
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
-            
+                        
   utbot-sample:
       runs-on: ubuntu-20.04
       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0

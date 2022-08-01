@@ -1239,8 +1239,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
                 val argumentName = paramNames[executableUnderTest]?.get(index)
-                val paramIndex = if (executableUnderTest is MethodId && executableUnderTest.isStatic) index else index + 1
-                val paramType = executableUnderTestParameters[paramIndex].parameterizedType
+                val paramType = executableUnderTestParameters[index].parameterizedType
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id

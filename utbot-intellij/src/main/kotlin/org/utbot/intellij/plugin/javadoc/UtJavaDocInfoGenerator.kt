@@ -51,9 +51,11 @@ class UtJavaDocInfoGenerator {
         if (comment != null) {
             val tag = comment.findTagByName(utTag.name) ?: return
             startHeaderSection(builder, utTag.getMessage())?.append("<p>")
-            val tmp = StringBuilder()
-            generateValue(tmp, tag.dataElements)
-            builder.append(tmp.toString().trim { it <= ' ' })
+            val sectionContent = buildString {
+                generateValue(this, tag.dataElements)
+                this.trim { it <= ' ' }
+            }
+            builder.append(sectionContent)
             builder.append(DocumentationMarkup.SECTION_END)
         }
     }
@@ -120,19 +122,21 @@ class UtJavaDocInfoGenerator {
     }
 
     private fun generateLiteralValue(builder: StringBuilder, tag: PsiDocTag) {
-        val tmpBuilder = StringBuilder()
-        val children = tag.children
-        for (i in 2 until children.size - 1) { // process all children except tag opening/closing elements
-            val child = children[i]
-            if (child is PsiDocToken && child.tokenType === JavaDocTokenType.DOC_COMMENT_LEADING_ASTERISKS) continue
-            var elementText = child.text
-            if (child is PsiWhiteSpace) {
-                val pos = elementText.lastIndexOf('\n')
-                if (pos >= 0) elementText = elementText.substring(0, pos + 1) // skip whitespace before leading asterisk
+        val literalValue = buildString {
+            val children = tag.children
+            for (i in 2 until children.size - 1) { // process all children except tag opening/closing elements
+                val child = children[i]
+                if (child is PsiDocToken && child.tokenType === JavaDocTokenType.DOC_COMMENT_LEADING_ASTERISKS) continue
+                var elementText = child.text
+                if (child is PsiWhiteSpace) {
+                    val pos = elementText.lastIndexOf('\n')
+                    if (pos >= 0) elementText =
+                        elementText.substring(0, pos + 1) // skip whitespace before leading asterisk
+                }
+                appendPlainText(this, StringUtil.escapeXmlEntities(elementText))
             }
-            appendPlainText(tmpBuilder, StringUtil.escapeXmlEntities(elementText))
         }
-        builder.append(StringUtil.trimLeading(tmpBuilder))
+        builder.append(StringUtil.trimLeading(literalValue))
     }
 
     private fun generateLinkValue(tag: PsiInlineDocTag, builder: StringBuilder, plainLink: Boolean) {
@@ -153,17 +157,17 @@ class UtJavaDocInfoGenerator {
             0
         }
 
-        val builder = StringBuilder()
-        for (i in tagElements.indices) {
-            val tagElement = tagElements[i]
-            if (tagElement.textOffset > offset) builder.append(' ')
-            offset = tagElement.textOffset + tagElement.text.length
-            collectElementText(builder, tagElement)
-            if (i < tagElements.size - 1) {
-                builder.append(' ')
+        return buildString {
+            for (i in tagElements.indices) {
+                val tagElement = tagElements[i]
+                if (tagElement.textOffset > offset) this.append(' ')
+                offset = tagElement.textOffset + tagElement.text.length
+                collectElementText(this, tagElement)
+                if (i < tagElements.size - 1) {
+                    this.append(' ')
+                }
             }
-        }
-        return builder.toString().trim { it <= ' ' }
+        }.trim { it <= ' ' }
     }
 
     private fun generateLink(

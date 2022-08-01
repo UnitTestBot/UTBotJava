@@ -37,6 +37,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.PluginJdkPathProvider
 import org.utbot.intellij.plugin.util.signature
@@ -51,11 +52,9 @@ import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.isGradle
-import org.utbot.intellij.plugin.ui.utils.jdkVersion
-import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
-import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.intellij.plugin.util.isAbstract
+import org.utbot.intellij.plugin.ui.utils.testModules
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -79,18 +78,11 @@ object UtTestsDialogProcessor {
         focusedMethod: MemberInfo?,
     ): GenerateTestsDialogWindow? {
         val srcModule = findSrcModule(srcClasses)
-        val testModule = srcModule.testModule(project)
+        val testModules = srcModule.testModules(project)
 
-        JdkPathService.jdkPathProvider = PluginJdkPathProvider(project, testModule)
-        val jdkVersion = try {
-            testModule.jdkVersion()
-        } catch (e: IllegalStateException) {
-            // Just ignore it here, notification will be shown in
-            // org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
-            return null
-        }
+        JdkPathService.jdkPathProvider = PluginJdkPathProvider(project)
 
-        if (project.isGradle() && testModule.suitableTestSourceRoots().isEmpty()) {
+        if (project.isGradle() && testModules.flatMap { it.suitableTestSourceRoots() }.isEmpty()) {
             val errorMessage = """
                 <html>No test source roots found in the project.<br>
                 Please, <a href="https://www.jetbrains.com/help/idea/testing.html#add-test-root">create or configure</a> at least one test source root.
@@ -103,8 +95,7 @@ object UtTestsDialogProcessor {
             GenerateTestsModel(
                 project,
                 srcModule,
-                testModule,
-                jdkVersion,
+                testModules,
                 srcClasses,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
                 UtSettings.utBotGenerationTimeoutInMillis,
@@ -296,12 +287,6 @@ object UtTestsDialogProcessor {
         val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
 
         val (classpath, classpathList) = if (IntelliJApiHelper.isAndroidStudio()) {
-            // Add $JAVA_HOME/jre/lib/rt.jar to path.
-            // This allows Soot to analyze real java instead of stub version in Android SDK on local machine.
-            pathsList.add(
-                System.getenv("JAVA_HOME") + File.separator + Paths.get("jre", "lib", "rt.jar")
-            )
-
             // Filter out manifests from classpath.
             val filterPredicate = { it: String ->
                 !it.contains("manifest", ignoreCase = true)

@@ -16,4 +16,7 @@ object JdkPathService {
     // Kotlin delegates do not support changing in runtime, so use simple getter
     val jdkPath: Path
         get() = jdkPathProvider.jdkPath
+
+    val jdkVersion: String
+        get() = jdkPathProvider.jdkVersion
 }

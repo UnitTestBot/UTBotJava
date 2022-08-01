@@ -183,7 +183,7 @@ object PythonCodeGenerator {
     private fun generateImportFunctionCode(
         functionPath: String,
         directoriesForSysPath: List<String>,
-        additionalModules: List<StubFileStructures.PythonInfoType> = emptyList(),
+        additionalModules: List<String> = emptyList(),
     ): List<Statement> {
         val systemImport = Import(listOf(Alias("sys"), Alias("typing"), Alias("json")))
         val systemCalls = directoriesForSysPath.map { path ->
@@ -196,10 +196,13 @@ object PythonCodeGenerator {
                 )
             )
         }
-        val additionalImport = additionalModules.filter {
-            it.module != ""
-        }.map {
-            ImportFrom(it.module, listOf(Alias(it.name)))
+        val additionalImport = additionalModules.mapNotNull {
+            if (it.contains(".")) {
+                val module = it.split(".").dropLast(1).joinToString(".")
+                Import(listOf(Alias(module)))
+            } else {
+                null
+            }
         }
 
         val mathImport = ImportFrom("math", listOf(Alias("*")))
@@ -293,7 +296,7 @@ object PythonCodeGenerator {
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, StubFileStructures.PythonInfoType>,
+        methodAnnotations: Map<String, String>,
         codeFilename: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String
@@ -306,7 +309,7 @@ object PythonCodeGenerator {
 
         val parameters = Parameters(
             method.arguments.map { argument ->
-                Parameter("${argument.name}: ${methodAnnotations[argument.name]?.name ?: "typing.Any"}")
+                Parameter("${argument.name}: ${methodAnnotations[argument.name] ?: "Any"}")
             },
         )
 

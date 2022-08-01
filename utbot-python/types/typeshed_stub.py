@@ -352,7 +352,6 @@ def defaultdict_to_array(dataset):
     ]
 
 
-<<<<<<< Updated upstream
 def parse_submodule(module_name: str, collector_: StubFileCollector):
     collector_.create_module_table(module_name)
     try:
@@ -372,10 +371,6 @@ def parse_submodule(module_name: str, collector_: StubFileCollector):
     except AttributeError:
         pass
 
-=======
-def parse_submodule(prefix: str):
-    submodules = importlib.import_module(prefix)
->>>>>>> Stashed changes
 
 if __name__ == '__main__':
     # create_method_table(BUILTIN_TYPES, 'builtins')

@@ -11,7 +11,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -20,7 +20,7 @@ import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
 
-class ExecutionStateAnalyzer(val execution: UtExecution) {
+class ExecutionStateAnalyzer(val execution: UtSymbolicExecution) {
     fun findModifiedFields(): StateModificationInfo {
         return StateModificationInfo()
             .analyzeThisInstance()

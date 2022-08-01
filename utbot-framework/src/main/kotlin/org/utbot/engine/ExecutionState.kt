@@ -18,7 +18,7 @@ import soot.SootMethod
 import soot.jimple.Stmt
 import java.util.Objects
 import org.utbot.engine.symbolic.Assumption
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2
@@ -31,7 +31,7 @@ data class Edge(val src: Stmt, val dst: Stmt, val decisionNum: Int)
  * [INTERMEDIATE] is a label for an intermediate state which is suitable for further symbolic analysis.
  *
  * [TERMINAL] is a label for a terminal state from which we might (or might not) execute concretely and construct
- * [UtExecution]. This state represents the final state of the program execution, that is a throw or return from the outer
+ * [UtSymbolicExecution]. This state represents the final state of the program execution, that is a throw or return from the outer
  * method.
  *
  * [CONCRETE] is a label for a state which is not suitable for further symbolic analysis, and it is also not a terminal

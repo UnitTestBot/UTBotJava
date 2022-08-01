@@ -101,7 +101,7 @@ open class TestCaseGenerator(
         }
     }
 
-    fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> =
+    fun minimizeExecutions(executions: List<UtSymbolicExecution>): List<UtSymbolicExecution> =
         if (UtSettings.testMinimizationStrategyType == TestSelectionStrategyType.DO_NOT_MINIMIZE_STRATEGY) {
             executions
         } else {
@@ -137,7 +137,7 @@ open class TestCaseGenerator(
         val currentUtContext = utContext
 
         val method2controller = methods.associateWith { EngineController() }
-        val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
+        val method2executions = methods.associateWith { mutableListOf<UtSymbolicExecution>() }
         val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
         runIgnoringCancellationException {
@@ -161,7 +161,7 @@ open class TestCaseGenerator(
 
                         generate(engine).collect {
                             when (it) {
-                                is UtExecution -> method2executions.getValue(method) += it
+                                is UtSymbolicExecution -> method2executions.getValue(method) += it
                                 is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
                             }
                         }

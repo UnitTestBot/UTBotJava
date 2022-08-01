@@ -10,7 +10,7 @@ import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtModel
@@ -33,9 +33,9 @@ import org.utbot.framework.plugin.api.UtVoidModel
  * @return flatten minimized executions in each test suite.
  */
 fun <T : Any> minimizeTestCase(
-    executions: List<UtExecution>,
-    executionToTestSuite: (ex: UtExecution) -> T
-): List<UtExecution> {
+    executions: List<UtSymbolicExecution>,
+    executionToTestSuite: (ex: UtSymbolicExecution) -> T
+): List<UtSymbolicExecution> {
     val groupedExecutionsByTestSuite = groupExecutionsByTestSuite(executions, executionToTestSuite)
     val groupedExecutionsByBranchInstructions = groupedExecutionsByTestSuite.flatMap { execution ->
         groupByBranchInstructions(
@@ -46,7 +46,7 @@ fun <T : Any> minimizeTestCase(
     return groupedExecutionsByBranchInstructions.map { minimizeExecutions(it) }.flatten()
 }
 
-fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
+fun minimizeExecutions(executions: List<UtSymbolicExecution>): List<UtSymbolicExecution> {
     val unknownCoverageExecutions =
         executions.indices.filter { executions[it].coverage?.coveredInstructions?.isEmpty() ?: true }.toSet()
     // ^^^ here we add executions with empty or null coverage, because it happens only if a concrete execution failed,
@@ -81,9 +81,9 @@ fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
  */
 
 private fun groupByBranchInstructions(
-    executions: List<UtExecution>,
+    executions: List<UtSymbolicExecution>,
     branchInstructionsNumber: Int
-): Collection<List<UtExecution>> {
+): Collection<List<UtSymbolicExecution>> {
     val instructionToPossibleNextInstructions = mutableMapOf<Long, MutableSet<Long>>()
 
     for (execution in executions) {
@@ -134,15 +134,15 @@ private fun groupByBranchInstructions(
 }
 
 private fun <T : Any> groupExecutionsByTestSuite(
-    executions: List<UtExecution>,
-    executionToTestSuite: (UtExecution) -> T
-): Collection<List<UtExecution>> =
+    executions: List<UtSymbolicExecution>,
+    executionToTestSuite: (UtSymbolicExecution) -> T
+): Collection<List<UtSymbolicExecution>> =
     executions.groupBy { executionToTestSuite(it) }.values
 
 /**
  * Builds a mapping from execution id to edges id.
  */
-private fun buildMapping(executions: List<UtExecution>): Map<Int, List<Int>> {
+private fun buildMapping(executions: List<UtSymbolicExecution>): Map<Int, List<Int>> {
     // (inst1, instr2) -> edge id --- edge represents as a pair of instructions, which are connected by this edge
     val allCoveredEdges = mutableMapOf<Pair<Long, Long>, Int>()
     val thrownExceptions = mutableMapOf<String, Long>()
@@ -178,7 +178,7 @@ private fun buildMapping(executions: List<UtExecution>): Map<Int, List<Int>> {
  * no more than one crash, and we want to achieve it with minimal statements. The possible way is choosing an execution
  * with minimal model, so here we are keeping non crash executions and trying to find minimal crash execution.
  */
-private fun List<UtExecution>.filteredCrashExecutions(): List<UtExecution> {
+private fun List<UtSymbolicExecution>.filteredCrashExecutions(): List<UtSymbolicExecution> {
     val crashExecutions = filter { it.result is UtConcreteExecutionFailure }.ifEmpty {
         return this
     }
@@ -189,10 +189,10 @@ private fun List<UtExecution>.filteredCrashExecutions(): List<UtExecution> {
 }
 
 /**
- * As for now crash execution can only be produced by Concrete Executor, it does not have [UtExecution.stateAfter] and
- * [UtExecution.result] is [UtExecutionFailure], so we check only [UtExecution.stateBefore].
+ * As for now crash execution can only be produced by Concrete Executor, it does not have [UtSymbolicExecution.stateAfter] and
+ * [UtSymbolicExecution.result] is [UtExecutionFailure], so we check only [UtSymbolicExecution.stateBefore].
  */
-private fun List<UtExecution>.chooseMinimalCrashExecution(): UtExecution = minByOrNull {
+private fun List<UtSymbolicExecution>.chooseMinimalCrashExecution(): UtSymbolicExecution = minByOrNull {
    it.stateBefore.calculateSize()
 } ?: error("Cannot find minimal crash execution within empty executions")
 

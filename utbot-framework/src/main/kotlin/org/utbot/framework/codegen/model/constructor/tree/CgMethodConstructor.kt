@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
-import org.utbot.common.packageName
 import org.utbot.engine.isStatic
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -84,40 +83,7 @@ import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.onFailure
-import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
@@ -334,7 +300,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun processExecutionFailure(execution: UtExecution, exception: Throwable) {
+    private fun processExecutionFailure(execution: UtSymbolicExecution, exception: Throwable) {
         val methodInvocationBlock = {
             with(currentExecutable) {
                 when (this) {
@@ -377,7 +343,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         methodInvocationBlock()
     }
 
-    private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+    private fun shouldTestPassWithException(execution: UtSymbolicExecution, exception: Throwable): Boolean {
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
 
@@ -386,7 +352,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return exceptionRequiresAssert || exceptionIsExplicit
     }
 
-    private fun shouldTestPassWithTimeoutException(execution: UtExecution, exception: Throwable): Boolean {
+    private fun shouldTestPassWithTimeoutException(execution: UtSymbolicExecution, exception: Throwable): Boolean {
         return execution.result is UtTimeoutException || exception is TimeoutException
     }
 
@@ -1086,7 +1052,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun createTestMethod(utMethod: UtMethod<*>, execution: UtExecution): CgTestMethod =
+    fun createTestMethod(utMethod: UtMethod<*>, execution: UtSymbolicExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(utMethod, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
@@ -1169,8 +1135,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
+            .filterIsInstance<UtSymbolicExecution>()
             .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
-            ?: testSet.executions.first()
+            ?: testSet.executions.filterIsInstance<UtSymbolicExecution>().first()
 
         return withTestMethodScope(genericExecution) {
             val testName = nameGenerator.parameterizedTestMethodName(dataProviderMethodName)
@@ -1218,7 +1185,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun createParameterDeclarations(
         testSet: UtMethodTestSet,
-        genericExecution: UtExecution,
+        genericExecution: UtSymbolicExecution,
     ): List<CgParameterDeclaration> {
         val methodUnderTest = testSet.method
         val methodUnderTestParameters = testSet.method.callable.parameters
@@ -1320,7 +1287,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 emptyLine()
 
-                for ((execIndex, execution) in testSet.executions.withIndex()) {
+                for ((execIndex, execution) in testSet.executions.filterIsInstance<UtSymbolicExecution>().withIndex()) {
                     // create a block for current test case
                     innerBlock {
                         val arguments = createExecutionArguments(testSet, execution)
@@ -1335,7 +1302,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun createExecutionArguments(testSet: UtMethodTestSet, execution: UtExecution): List<CgExpression> {
+    private fun createExecutionArguments(testSet: UtMethodTestSet, execution: UtSymbolicExecution): List<CgExpression> {
         val arguments = mutableListOf<CgExpression>()
         execution.stateBefore.thisInstance?.let {
             arguments += variableConstructor.getOrCreateVariable(it)
@@ -1372,7 +1339,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return arguments
     }
 
-    private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
+    private fun <R> withTestMethodScope(execution: UtSymbolicExecution, block: () -> R): R {
         clearTestMethodScope()
         currentExecution = execution
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)

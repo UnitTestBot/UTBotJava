@@ -16,7 +16,7 @@ import org.utbot.framework.codegen.TestCodeGeneratorPipeline
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
@@ -44,7 +44,7 @@ class TestSpecificTestCaseGenerator(
 
         logger.trace { "UtSettings:${System.lineSeparator()}" + UtSettings.toString() }
 
-        val executions = mutableListOf<UtExecution>()
+        val executions = mutableListOf<UtSymbolicExecution>()
         val errors = mutableMapOf<String, Int>()
 
         val mockAlwaysDefaults = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id }
@@ -67,7 +67,7 @@ class TestSpecificTestCaseGenerator(
                         .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
                         .collect {
                             when (it) {
-                                is UtExecution -> executions += it
+                                is UtSymbolicExecution -> executions += it
                                 is UtError -> errors.merge(it.description, 1, Int::plus)
                             }
                         }

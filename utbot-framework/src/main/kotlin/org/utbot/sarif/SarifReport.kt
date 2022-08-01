@@ -6,7 +6,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
@@ -71,7 +71,7 @@ class SarifReport(
         val sarifRules = mutableSetOf<SarifRule>()
 
         for (testSet in testSets) {
-            for (execution in testSet.executions) {
+            for (execution in testSet.executions.filterIsInstance<UtSymbolicExecution>()) {
                 if (shouldProcessExecutionResult(execution.result)) {
                     val (sarifResult, sarifRule) = processUncheckedException(
                         method = testSet.method,
@@ -128,7 +128,7 @@ class SarifReport(
 
     private fun processUncheckedException(
         method: UtMethod<*>,
-        utExecution: UtExecution,
+        utExecution: UtSymbolicExecution,
         uncheckedException: UtExecutionFailure
     ): Pair<SarifResult, SarifRule> {
 
@@ -171,7 +171,7 @@ class SarifReport(
         return Pair(sarifResult, sarifRule)
     }
 
-    private fun getLocations(utExecution: UtExecution, classFqn: String?): List<SarifPhysicalLocationWrapper> {
+    private fun getLocations(utExecution: UtSymbolicExecution, classFqn: String?): List<SarifPhysicalLocationWrapper> {
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
@@ -185,7 +185,7 @@ class SarifReport(
         )
     }
 
-    private fun getRelatedLocations(utExecution: UtExecution): List<SarifRelatedPhysicalLocationWrapper> {
+    private fun getRelatedLocations(utExecution: UtSymbolicExecution): List<SarifRelatedPhysicalLocationWrapper> {
         val startLine = utExecution.testMethodName?.let { testMethodName ->
             val neededLine = generatedTestsCode.split('\n').indexOfFirst { line ->
                 line.contains("$testMethodName(")
@@ -203,7 +203,7 @@ class SarifReport(
 
     private fun getCodeFlows(
         method: UtMethod<*>,
-        utExecution: UtExecution,
+        utExecution: UtSymbolicExecution,
         uncheckedException: UtExecutionFailure
     ): List<SarifCodeFlow> {
         /* Example of a typical stack trace:
@@ -335,7 +335,7 @@ class SarifReport(
     /**
      * Returns the number of the last line in the execution path.
      */
-    private fun getLastLineNumber(utExecution: UtExecution): Int? {
+    private fun getLastLineNumber(utExecution: UtSymbolicExecution): Int? {
         val lastPathLine = try {
             utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
         } catch (t: Throwable) {

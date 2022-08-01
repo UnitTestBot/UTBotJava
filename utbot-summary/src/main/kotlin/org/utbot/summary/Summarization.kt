@@ -3,7 +3,7 @@ package org.utbot.summary
 import com.github.javaparser.ast.body.MethodDeclaration
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtClusterInfo
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionCluster
 import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -26,6 +26,7 @@ import java.nio.file.Paths
 import mu.KotlinLogging
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
 import soot.SootMethod
@@ -77,11 +78,11 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         // init
         val sootToAST = sootToAST(testSet)
         val jimpleBody = testSet.jimpleBody
-        val updatedExecutions = mutableListOf<UtExecution>()
+        val updatedExecutions = mutableListOf<UtSymbolicExecution>()
         val clustersToReturn = mutableListOf<UtExecutionCluster>()
 
         // handles tests produced by fuzzing
-        val executionsProducedByFuzzer = testSet.executions.filter { it.createdBy == UtExecutionCreator.FUZZER }
+        val executionsProducedByFuzzer = testSet.executions.filterIsInstance<UtFuzzedExecution>()
 
         if (executionsProducedByFuzzer.isNotEmpty()) {
             executionsProducedByFuzzer.forEach { utExecution ->
@@ -205,7 +206,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {
         val executions =
-            testSet.executions.filterNot { it.createdBy == UtExecutionCreator.FUZZER || (it.createdBy == UtExecutionCreator.SYMBOLIC_ENGINE && it.path.isEmpty()) }
+            testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isNotEmpty() }
 
         return UtMethodTestSet(
             method = testSet.method,
@@ -217,7 +218,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
     }
 
     private fun getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet: UtMethodTestSet) =
-        testSet.executions.filter { it.createdBy == UtExecutionCreator.SYMBOLIC_ENGINE && it.path.isEmpty() }
+        testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isEmpty() }
 
     /*
     * asts of invokes also included
@@ -249,14 +250,14 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 }
 
 private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
-    val maxDepth = testSet.executions.flatMap { it.path }.maxOfOrNull { it.depth } ?: 0
+    val maxDepth = testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path }.maxOfOrNull { it.depth } ?: 0
 
     if (maxDepth > 0) {
         logger.info { "Recursive function, max recursion: $maxDepth" }
         return
     }
 
-    var diversity = percentageDiverseExecutions(testSet.executions)
+    var diversity = percentageDiverseExecutions(testSet.executions.filterIsInstance<UtSymbolicExecution>())
     if (diversity >= 50) {
         logger.info { "Diversity execution path percentage: $diversity" }
         return
@@ -264,8 +265,8 @@ private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
 
     for (depth in 1..2) {
         logger.info { "Depth to add: $depth" }
-        stepsUpToDepth(testSet.executions, depth)
-        diversity = percentageDiverseExecutions(testSet.executions)
+        stepsUpToDepth(testSet.executions.filterIsInstance<UtSymbolicExecution>(), depth)
+        diversity = percentageDiverseExecutions(testSet.executions.filterIsInstance<UtSymbolicExecution>())
 
         if (diversity >= 50) {
             logger.info { "Diversity execution path percentage: $diversity" }
@@ -274,8 +275,8 @@ private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
     }
 }
 
-private fun invokeDescriptions(testSet: UtMethodTestSet, seachDirectory: Path): List<InvokeDescription> {
-    val sootInvokes = testSet.executions.flatMap { it.path.invokeJimpleMethods() }.toSet()
+private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path): List<InvokeDescription> {
+    val sootInvokes = testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path.invokeJimpleMethods() }.toSet()
     return sootInvokes
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }
@@ -283,7 +284,7 @@ private fun invokeDescriptions(testSet: UtMethodTestSet, seachDirectory: Path): 
             val methodFile = Instrumenter.computeSourceFileByClass(
                 sootMethod.declaringClass.name,
                 sootMethod.declaringClass.javaPackageName.replace(".", File.separator),
-                seachDirectory
+                searchDirectory
             )
             val ast = methodFile?.let {
                 SourceCodeParser(sootMethod, it).methodAST

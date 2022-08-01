@@ -17,7 +17,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -239,7 +239,7 @@ object UtBotJavaApi {
             testInfo.utResult
         }
 
-        val utExecution = UtExecution(
+        val utExecution = UtSymbolicExecution(
             stateBefore = testInfo.initialState,
             stateAfter = testInfo.initialState, // it seems ok for concrete execution
             result = utExecutionResult,

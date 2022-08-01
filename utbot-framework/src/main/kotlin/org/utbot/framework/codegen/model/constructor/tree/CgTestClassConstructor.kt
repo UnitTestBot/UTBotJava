@@ -26,6 +26,7 @@ import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.description
 import kotlin.reflect.KClass
 
@@ -82,6 +83,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
 
         val (methodUnderTest, executions, _, _, clustersInfo) = testSet
+        val symbolicExecutions = executions.filterIsInstance<UtSymbolicExecution>()
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
@@ -92,7 +94,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
                         runCatching {
-                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, executions[i])
+                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, symbolicExecutions[i])
                         }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header

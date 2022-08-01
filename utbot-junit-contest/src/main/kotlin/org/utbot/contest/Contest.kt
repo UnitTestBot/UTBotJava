@@ -31,7 +31,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
@@ -325,7 +325,7 @@ fun runGeneration(
                         testCaseGenerator.generateAsync(controller, method, mockStrategyApi)
                             .collect { result ->
                                 when (result) {
-                                    is UtExecution -> {
+                                    is UtSymbolicExecution -> {
                                         try {
                                             val testMethodName = testMethodName(method.toString(), ++testsCounter)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }

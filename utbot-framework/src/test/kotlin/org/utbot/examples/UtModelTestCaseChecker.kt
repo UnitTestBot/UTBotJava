@@ -10,20 +10,7 @@ import org.utbot.common.findField
 import org.utbot.common.workaround
 import org.utbot.engine.prettify
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.exceptionOrNull
-import org.utbot.framework.plugin.api.getOrThrow
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
@@ -39,6 +26,7 @@ import kotlin.reflect.KFunction3
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.framework.UtSettings.useFuzzing
 import org.utbot.framework.codegen.TestCodeGeneratorPipeline
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.Conflict
 
 internal abstract class UtModelTestCaseChecker(

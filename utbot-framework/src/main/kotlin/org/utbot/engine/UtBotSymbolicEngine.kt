@@ -67,8 +67,7 @@ import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionCreator
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
@@ -82,14 +81,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.FallbackModelProvider
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.Trie
-import org.utbot.fuzzer.collectConstantsForFuzzer
-import org.utbot.fuzzer.defaultModelProviders
-import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.*
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import soot.jimple.Stmt
@@ -296,15 +288,14 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
 
-                            val concreteUtExecution = UtExecution(
+                            val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,
                                 concreteExecutionResult.result,
                                 instrumentation,
                                 mutableListOf(),
                                 listOf(),
-                                concreteExecutionResult.coverage,
-                                UtExecutionCreator.SYMBOLIC_ENGINE
+                                concreteExecutionResult.coverage
                             )
                             emit(concreteUtExecution)
 
@@ -472,15 +463,11 @@ class UtBotSymbolicEngine(
                 coveredInstructionValues[count] = values
 
                 emit(
-                    UtExecution(
+                    UtFuzzedExecution(
                         stateBefore = initialEnvironmentModels,
                         stateAfter = concreteExecutionResult.stateAfter,
                         result = concreteExecutionResult.result,
-                        instrumentation = emptyList(),
-                        path = mutableListOf(),
-                        fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
-                        createdBy = UtExecutionCreator.FUZZER,
                         fuzzingValues = values,
                         fuzzedMethodDescription = methodUnderTestDescription
                     )
@@ -499,14 +486,13 @@ class UtBotSymbolicEngine(
         stateBefore: EnvironmentModels,
         e: ConcreteExecutionFailureException
     ) {
-        val failedConcreteExecution = UtExecution(
+        val failedConcreteExecution = UtSymbolicExecution(
             stateBefore = stateBefore,
             stateAfter = MissingState,
             result = UtConcreteExecutionFailure(e),
             instrumentation = emptyList(),
             path = mutableListOf(),
-            fullPath = listOf(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE
+            fullPath = listOf()
         )
 
         emit(failedConcreteExecution)
@@ -540,14 +526,13 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(methodUnderTest)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
-        val symbolicUtExecution = UtExecution(
+        val symbolicUtExecution = UtSymbolicExecution(
             stateBefore = stateBefore,
             stateAfter = stateAfter,
             result = symbolicExecutionResult,
             instrumentation = instrumentation,
             path = entryMethodPath(state),
-            fullPath = state.fullPath(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE
+            fullPath = state.fullPath()
         )
 
         globalGraph.traversed(state)

@@ -34,18 +34,6 @@ import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.createTestClassName
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -55,6 +43,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.tree.CgParameterKind
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
@@ -125,7 +114,7 @@ internal interface CgContextOwner {
 
     // UtExecution we currently generate a test method for.
     // It is null when no test method is being generated at the moment.
-    var currentExecution: UtExecution?
+    var currentExecution: UtSymbolicExecution?
 
     val testFramework: TestFramework
 
@@ -400,7 +389,7 @@ internal data class CgContext(
     override val existingMethodNames: MutableSet<String> = mutableSetOf(),
     override val prevStaticFieldValues: MutableMap<FieldId, CgVariable> = mutableMapOf(),
     override val paramNames: Map<UtMethod<*>, List<String>>,
-    override var currentExecution: UtExecution? = null,
+    override var currentExecution: UtSymbolicExecution? = null,
     override val testFramework: TestFramework,
     override val mockFramework: MockFramework,
     override val staticsMocking: StaticsMocking,

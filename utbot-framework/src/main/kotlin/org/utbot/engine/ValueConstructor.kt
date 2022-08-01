@@ -23,7 +23,7 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -119,7 +119,7 @@ class ValueConstructor {
     /**
      * Constructs value based execution from model based.
      */
-    fun construct(execution: UtExecution): UtValueExecution<*> {
+    fun construct(execution: UtSymbolicExecution): UtValueExecution<*> {
         val (stateBefore, mocks) = constructState(execution.stateBefore)
         val (stateAfter, _) = constructState(execution.stateAfter)
         val returnValue = execution.result.map { construct(listOf(it)).single().value }

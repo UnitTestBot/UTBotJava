@@ -4,8 +4,6 @@ import kotlinx.coroutines.runBlocking
 import org.utbot.common.packageName
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
-import org.utbot.engine.isPrivate
-import org.utbot.engine.isPublic
 import org.utbot.framework.UtSettings
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
@@ -18,7 +16,6 @@ import org.utbot.framework.util.nextModelName
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.isConstructor
-import java.lang.reflect.Constructor
 import java.util.*
 
 /**
@@ -341,8 +338,8 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         if (!classId.isVisible || classId.isInner) {
             null
         } else {
-            classId.methods().asSequence().filter { it.isConstructor() && it.isPublic }
-                .sortedByDescending { runBlocking { it.parameters().count() } }
+            classId.methods().asSequence().filter { it.isConstructor && it.isPublic }
+                .sortedByDescending { it.parameters.count() }
                 .map { it.asExecutable() }
                 .filterIsInstance<ConstructorExecutableId>()
                 .firstOrNull { constructorAnalyzer.isAppropriate(it) }
@@ -350,10 +347,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
     }
 
     private val ClassId.isVisible: Boolean
-        get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(methodPackageName)
-
-    private val Constructor<*>.isVisible: Boolean
-        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(methodPackageName)
+        get() = isPublic || !isPrivate && packageName.startsWith(methodPackageName)
 
     /**
      * Creates setter or direct setter call to set a field.

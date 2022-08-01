@@ -101,7 +101,7 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
             .apply {
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
-                    executable = constructorId(classId),
+                    executable = classId.findConstructor().asExecutable(),
                     params = emptyList(),
                     returnValue = this
                 )
@@ -202,11 +202,10 @@ class ListWrapper(private val utListClass: UtListClass) : BaseGenericStorageBase
         else -> classId // TODO: actually we have to find not abstract class with constructor, but it's another story
     }
 
-    override val modificationMethodId: MethodId = methodId(
-        classId = java.util.List::class.id,
+    override val modificationMethodId: MethodId get() = java.util.List::class.id.findMethod(
         name = "add",
         returnType = booleanClassId,
-        arguments = arrayOf(objectClassId),
+        arguments = listOf(objectClassId),
     )
 
     override val baseModelName = "list"
@@ -234,12 +233,11 @@ class SetWrapper : BaseGenericStorageBasedContainerWrapper(UtHashSet::class.qual
         else -> classId // TODO: actually we have to find not abstract class with constructor, but it's another story
     }
 
-    override val modificationMethodId: MethodId =
-        methodId(
-            classId = java.util.Set::class.id,
+    override val modificationMethodId: MethodId get() =
+        java.util.Set::class.id.findMethod(
             name = "add",
             returnType = booleanClassId,
-            arguments = arrayOf(objectClassId),
+            arguments = listOf(objectClassId),
         )
 
     override val baseModelName: String = "set"
@@ -309,12 +307,11 @@ class MapWrapper : BaseContainerWrapper(UtHashMap::class.qualifiedName!!) {
         else -> classId // TODO: actually we have to find not abstract class with constructor, but it's another story
     }
 
-    override val modificationMethodId: MethodId =
-        methodId(
-            classId = java.util.Map::class.id,
+    override val modificationMethodId: MethodId get() =
+        java.util.Map::class.id.findMethod(
             name = "put",
             returnType = objectClassId,
-            arguments = arrayOf(objectClassId, objectClassId),
+            arguments = listOf(objectClassId, objectClassId),
         )
 
     override val baseModelName: String = "map"

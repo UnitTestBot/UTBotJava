@@ -5,11 +5,7 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
-import org.utbot.jcdb.api.Accessible
-import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.FieldId
-import org.utbot.jcdb.api.MethodId
-import org.utbot.jcdb.api.isPrimitive
+import org.utbot.jcdb.api.*
 import java.util.function.IntSupplier
 
 /**
@@ -113,7 +109,12 @@ class ObjectModelProvider : ModelProvider {
                         )
                         field.setter != null -> UtExecutableCallModel(
                             fuzzedModel.model,
-                            methodId(constructorId.classId, field.setter.name, field.setter.returnType, field.classId).asExecutable(),
+                            constructorId.classId.findMethod(
+                                field.setter.name,
+                                field.setter.returnType,
+                                listOfNotNull(field.classId)
+                            )
+                                .asExecutable(),
                             listOf(value.model)
                         )
                         else -> null

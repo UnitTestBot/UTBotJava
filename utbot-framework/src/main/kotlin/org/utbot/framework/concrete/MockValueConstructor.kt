@@ -264,7 +264,7 @@ class MockValueConstructor(
             val elementClassId = classId.ifArrayGetElementClass() ?: error(
                 "Provided incorrect UtArrayModel without elementClassId. ClassId: ${model.classId}, model: $model"
             )
-            return when (elementClassId.jvmName) {
+            return when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray(length) { primitive(constModel) }.apply {
                     stores.forEach { (index, model) -> this[index] = primitive(model) }
                 }.also { constructedObjects[model] = it }
@@ -428,7 +428,7 @@ class MockValueConstructor(
         if (id is ArrayClassId) {
             arrayClassOf(id.elementClass)
         } else {
-            when (id.jvmName) {
+            when (id.name.jvmName()) {
                 "B" -> Byte::class
                 "S" -> Short::class
                 "C" -> Char::class
@@ -446,7 +446,7 @@ class MockValueConstructor(
             val elementClass = arrayClassOf(elementClassId.elementClass)
             java.lang.reflect.Array.newInstance(elementClass.java, 0)::class
         } else {
-            when (elementClassId.jvmName) {
+            when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray::class
                 "S" -> ShortArray::class
                 "C" -> CharArray::class

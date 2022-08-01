@@ -16,7 +16,6 @@ import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.nextModelName
@@ -223,10 +222,10 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
         return UtAssembleModel(addr, classId, modelName, instantiationChain)
             .apply {
                 instantiationChain += when (val message = throwable.message) {
-                    null -> UtExecutableCallModel(null, constructorId(classId), emptyList(), this)
+                    null -> UtExecutableCallModel(null, classId.findConstructor(), emptyList(), this)
                     else -> UtExecutableCallModel(
                         null,
-                        constructorId(classId, listOf(stringClassId)),
+                        classId.findConstructor(listOf(stringClassId)),
                         listOf(UtPrimitiveModel(message)),
                         this,
                     )

@@ -79,9 +79,13 @@ class CollectionModelProvider(
         )
     }
 
-    private fun Class<*>.asConstructor() = constructorId(id)
+    private fun Class<*>.asConstructor() = id.findConstructor().asExecutableConstructor()
 
-    private fun Class<*>.methodCall(methodName: String, returnType: Class<*>, params: List<Class<*>> = emptyList()) = methodId(id, methodName, returnType.id, *params.map { it.id }.toTypedArray()).asExecutable()
+    private fun Class<*>.methodCall(methodName: String, returnType: Class<*>, params: List<Class<*>> = emptyList()) = id.findMethod(
+        methodName,
+        returnType.id,
+        *params.map { it.id })
+        .asExecutable()
 
     private fun Class<*>.createdBy(init: ExecutableId, params: List<UtModel> = emptyList()): UtAssembleModel {
         val instantiationChain = mutableListOf<UtStatementModel>()

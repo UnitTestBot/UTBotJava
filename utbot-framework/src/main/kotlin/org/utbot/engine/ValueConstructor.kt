@@ -13,6 +13,7 @@ import org.utbot.framework.util.anyInstance
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.jvmName
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import kotlin.reflect.KClass
@@ -229,7 +230,7 @@ class ValueConstructor {
 
         with(model) {
             val elementClassId = classId.ifArrayGetElementClass()!!
-            return when (elementClassId.jvmName) {
+            return when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray(length) { primitive(constModel) }.apply {
                     constructedObjects[model] = this
                     stores.forEach { (index, model) -> this[index] = primitive(model) }
@@ -389,7 +390,7 @@ class ValueConstructor {
         return if (elementClassId != null) {
             arrayClassOf(elementClassId)
         } else {
-            when (id.jvmName) {
+            when (id.name.jvmName()) {
                 "B" -> Byte::class
                 "S" -> Short::class
                 "C" -> Char::class
@@ -409,7 +410,7 @@ class ValueConstructor {
             val elementClass = arrayClassOf(classId)
             java.lang.reflect.Array.newInstance(elementClass.java, 0)::class
         } else {
-            when (elementClassId.jvmName) {
+            when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray::class
                 "S" -> ShortArray::class
                 "C" -> CharArray::class

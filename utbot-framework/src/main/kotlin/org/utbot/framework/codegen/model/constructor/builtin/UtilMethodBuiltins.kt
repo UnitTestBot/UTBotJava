@@ -145,8 +145,7 @@ internal val ClassId.getArrayLengthMethodId: MethodId
 /**
  * [MethodId] for [AutoCloseable.close].
  */
-val closeMethodId get() = methodId(
-    classId = AutoCloseable::class.java.id,
+val closeMethodId get() = AutoCloseable::class.java.id.findMethod(
     name = "close",
     returnType = voidClassId
 )

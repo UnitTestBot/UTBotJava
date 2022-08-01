@@ -14,7 +14,7 @@ dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'org.ow2.asm', name: 'asm', version: asm_version
 
-    api group: 'com.github.UnitTestBot.jcdb', name: 'jcdb-core', version: '6269be7929'
+    api group: 'com.github.UnitTestBot.jcdb', name: 'jcdb-core', version: '69b1effdc8'
 }
 
 shadowJar {

@@ -15,11 +15,11 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
-import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.ifArrayGetElementClass
 import org.utbot.jcdb.api.isPrimitive
+import org.utbot.jcdb.api.jvmName
 
 //TODO rewrite using KtPsiFactory?
 internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
@@ -411,7 +411,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         if (id.isArray) {
             getKotlinArrayClassOfString(id)
         } else {
-            when (id.jvmName) {
+            when (id.name.jvmName()) {
                 "Ljava/lang/Object;" -> Any::class.simpleName!!
                 "B", "Ljava/lang/Byte;" -> Byte::class.simpleName!!
                 "S", "Ljava/lang/Short;" -> Short::class.simpleName!!
@@ -426,7 +426,8 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
                 else -> {
                     // we cannot access kClass for BuiltinClassId
                     // we cannot use simple name here because this class can be not imported
-                    if (id is BuiltinClassId) id.name else id.kClass.id.asString()
+                    // TODO: fixme
+                    if (id is BuiltinClassId) id.name else id.name
                 }
             }
         }
@@ -445,7 +446,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
                 "kotlin.Array<Any?>"
             }
         } else {
-            when (classId.jvmName) {
+            when (classId.name.jvmName()) {
                 "[B" -> ByteArray::class.simpleName!!
                 "[S" -> ShortArray::class.simpleName!!
                 "[C" -> CharArray::class.simpleName!!

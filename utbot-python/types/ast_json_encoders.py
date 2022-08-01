@@ -56,6 +56,7 @@ class AstClassEncoder(json.JSONEncoder):
                 'name': o.name,
                 'methods': [],
                 'attributes': [],
+                'module': o.__module__
             }
 
             def _function_statements_handler(_statement):

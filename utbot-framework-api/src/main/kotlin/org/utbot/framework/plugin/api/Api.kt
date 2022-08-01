@@ -280,6 +280,48 @@ class PythonInitObjectModel(
     }
 }
 
+data class PythonListModel(
+    override val classId: ClassId,
+    val length: Int = 0,
+    val stores: MutableMap<Int, PythonModel>
+) : PythonModel(classId) {
+    override fun toString() = withToStringThreadLocalReentrancyGuard {
+        (0 until length).map { stores[it] ?: "" }.joinToString(", ", "[", "]")
+    }
+
+    companion object {
+        val classId = ClassId("list")
+    }
+}
+
+data class PythonDictModel(
+    override val classId: ClassId,
+    val length: Int = 0,
+    val stores: MutableMap<PythonModel, PythonModel>
+) : PythonModel(classId) {
+    override fun toString() = withToStringThreadLocalReentrancyGuard {
+        stores.entries.joinToString(", ", "{", "}") { "${it.key}: ${it.value}" }
+    }
+
+    companion object {
+        val classId = ClassId("dict")
+    }
+}
+
+data class PythonSetModel(
+    override val classId: ClassId,
+    val length: Int = 0,
+    val stores: MutableSet<PythonModel>
+) : PythonModel(classId) {
+    override fun toString() = withToStringThreadLocalReentrancyGuard {
+        stores.joinToString(", ", "{", "}") { it.toString() }
+    }
+
+    companion object {
+        val classId = ClassId("set")
+    }
+}
+
 /**
  * Class representing models for values that might have an address.
  *

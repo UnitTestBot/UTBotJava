@@ -44,11 +44,6 @@ object MypyAnnotations {
             )
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
             if (mypyOutput == defaultOutput) {
-                /*
-                val goodTypes = listOf("str", "bool", "int", "float")
-                if (annotationMap.values.all {x ->  goodTypes.contains(x.name) } )
-                    yield(annotationMap)
-                 */
                 yield(annotationMap.mapValues { entry ->
                     ClassId(entry.value.fullName)
                 })

@@ -268,7 +268,11 @@ class StubFileCollector:
             elif isinstance(ast_, ast.ClassDef):
                 if not ast_.name.startswith('_'):
                     json_data = AstClassEncoder().default(ast_)
+<<<<<<< Updated upstream
                     self.classes_dataset[f'{module_name}.{ast_.name}'] = json_data
+=======
+                    self.classes_dataset[f'{json_data["module"]}.{ast_.name}'] = json_data
+>>>>>>> Stashed changes
                     for method in json_data['methods']:
                         self.methods_dataset[method['name']].append({
                             'className': ast_.name,
@@ -348,6 +352,7 @@ def defaultdict_to_array(dataset):
     ]
 
 
+<<<<<<< Updated upstream
 def parse_submodule(module_name: str, collector_: StubFileCollector):
     collector_.create_module_table(module_name)
     try:
@@ -367,6 +372,10 @@ def parse_submodule(module_name: str, collector_: StubFileCollector):
     except AttributeError:
         pass
 
+=======
+def parse_submodule(prefix: str):
+    submodules = importlib.import_module(prefix)
+>>>>>>> Stashed changes
 
 if __name__ == '__main__':
     # create_method_table(BUILTIN_TYPES, 'builtins')

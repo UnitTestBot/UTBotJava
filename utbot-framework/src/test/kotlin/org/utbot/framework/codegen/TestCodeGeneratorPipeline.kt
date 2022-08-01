@@ -7,7 +7,6 @@ import org.utbot.common.bracket
 import org.utbot.common.info
 import org.utbot.common.packageName
 import org.utbot.examples.TestFrameworkConfiguration
-import org.utbot.examples.conflictTriggers
 import org.utbot.framework.codegen.ExecutionStatus.SUCCESS
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -222,7 +221,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         val codeGenerator = with(testFrameworkConfiguration) {
             CodeGenerator(
                 classUnderTest.java,
-                params = params,
+                paramNames = params,
                 testFramework = testFramework,
                 staticsMocking = staticsMocking,
                 forceStaticMocking = forceStaticMocking,

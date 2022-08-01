@@ -21,7 +21,7 @@ import org.utbot.framework.plugin.api.util.id
 
 class CodeGenerator(
     private val classUnderTest: Class<*>,
-    params: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
+    paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     testFramework: TestFramework = TestFramework.defaultItem,
     mockFramework: MockFramework? = MockFramework.defaultItem,
     staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
@@ -36,7 +36,7 @@ class CodeGenerator(
 ) {
     private var context: CgContext = CgContext(
         classUnderTest = classUnderTest.id,
-        paramNames = params,
+        paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = mockFramework ?: MockFramework.MOCKITO,
         codegenLanguage = codegenLanguage,

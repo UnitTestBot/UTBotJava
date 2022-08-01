@@ -101,7 +101,7 @@ object CodeGenerationController {
                 val file = testClass.containingFile
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(testClass, file, testSets, model, latch, reports)
+                        generateCodeAndReport(srcClass, testClass, file, testSets, model, latch, reports)
                     } catch (e: IncorrectOperationException) {
                         showCreatingClassError(model.project, createTestClassName(srcClass))
                     }
@@ -251,6 +251,7 @@ object CodeGenerationController {
     }
 
     private fun generateCodeAndReport(
+        srcClass: PsiClass,
         testClass: PsiClass,
         file: PsiFile,
         testSets: List<UtMethodTestSet>,
@@ -258,24 +259,19 @@ object CodeGenerationController {
         reportsCountDown: CountDownLatch,
         reports: MutableList<TestsGenerationReport>,
     ) {
-        val selectedMethods = TestIntegrationUtils.extractClassMethods(testClass, false)
-        val testFramework = model.testFramework
-        val mockito = model.mockFramework
-        val staticsMocking = model.staticsMocking
-
         val classUnderTest = testSets.first().method.clazz
-
-        val params = DumbService.getInstance(model.project)
-            .runReadActionInSmartMode(Computable { findMethodParams(classUnderTest, selectedMethods) })
+        val classMethods = TestIntegrationUtils.extractClassMethods(srcClass, false)
+        val paramNames = DumbService.getInstance(model.project)
+            .runReadActionInSmartMode(Computable { findMethodParamNames(classUnderTest, classMethods) })
 
         val codeGenerator = CodeGenerator(
                 classUnderTest = classUnderTest.java,
-                params = params.toMutableMap(),
-                testFramework = testFramework,
-                mockFramework = mockito,
+                paramNames = paramNames.toMutableMap(),
+                testFramework = model.testFramework,
+                mockFramework = model.mockFramework,
                 codegenLanguage = model.codegenLanguage,
                 parameterizedTestSource = model.parametrizedTestSource,
-                staticsMocking = staticsMocking,
+                staticsMocking = model.staticsMocking,
                 forceStaticMocking = model.forceStaticMocking,
                 generateWarningsForStaticMocking = model.generateWarningsForStaticMocking,
                 runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
@@ -348,7 +344,7 @@ object CodeGenerationController {
         }
     }
 
-    private fun findMethodParams(clazz: KClass<*>, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
+    private fun findMethodParamNames(clazz: KClass<*>, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
         val bySignature = methods.associate { it.signature() to it.paramNames() }
         return clazz.functions
             .mapNotNull { method -> bySignature[method.signature()]?.let { params -> method.executableId to params } }

@@ -158,25 +158,5 @@ class AstConstantEncoder(json.JSONEncoder):
         # return json.JSONEncoder.default(self, o)
 
 
-def split_annotations(annotation: Optional[ast.expr]) -> list[str]:
-    def remove_braces(string: str) -> str:
-        string = string.strip()
-        if string[0] == '(' and string[-1] == ')':
-            return string[1:-1]
-        return string
-
-    # if isinstance(annotation, ast.Subscript):
-    #     if isinstance(annotation.value, ast.Attribute):
-    #         return [annotation.value.value.id]
-    #     return [annotation.value.id]
-    # elif isinstance(annotation, ast.Name):
-    #     return [annotation.id]
-    # elif isinstance(annotation, type(Ellipsis)):
-    #     return ['...']
-
-    return [] if annotation is None else [
-        ann.strip()
-        for ann in remove_braces(
-            astor.code_gen.to_source(annotation)
-        ).split('|')
-    ]
+def split_annotations(annotation: Optional[ast.expr]) -> str:
+    return 'null' if annotation is None else astor.code_gen.to_source(annotation).strip()

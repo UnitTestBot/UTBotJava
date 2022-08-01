@@ -12,7 +12,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionConstructor
 import soot.SootClass
 
-class ConstrainedSynthesisUnitChecker(
+class SynthesisUnitChecker(
     val declaringClass: SootClass,
 ) {
     private val logger = KotlinLogging.logger("ConstrainedSynthesisUnitChecker")
@@ -25,10 +25,6 @@ class ConstrainedSynthesisUnitChecker(
         val synthesisMethodContext = SynthesisMethodContext(synthesisUnitContext)
         val method = synthesisMethodContext.method("\$initializer_${id++}", declaringClass)
 
-        logger.error { "Generated constraint method" }
-        logger.error { method.activeBody }
-
-        System.err.println("Running engine...")
         val scoringStrategy = ScoringStrategyBuilder(
             emptyMap()
         )

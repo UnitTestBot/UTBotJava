@@ -45,7 +45,7 @@ import mu.KotlinLogging
 import org.utbot.engine.*
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.UtSettings.enableSynthesis
-import org.utbot.framework.synthesis.ConstrainedSynthesizer
+import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import soot.Scene
@@ -478,7 +478,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             val oldStateBefore = execution.stateBefore
 
             val constrainedExecution = execution.constrainedExecution ?: return@map execution
-            val aa = ConstrainedSynthesizer(constrainedExecution.modelsAfter)
+            val aa = Synthesizer(constrainedExecution.modelsAfter)
             val synthesizedModels = try {
                 aa.synthesize() ?: return@map execution
             } catch (e: Throwable) {

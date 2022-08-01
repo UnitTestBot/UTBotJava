@@ -1,10 +1,8 @@
 package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
-import org.utbot.engine.ResolvedModels
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -12,7 +10,7 @@ import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
-class ConstrainedSynthesizer(
+class Synthesizer(
     val parameters: List<UtModel>,
     val depth: Int = 4
 ) {
@@ -46,13 +44,15 @@ class ConstrainedSynthesizer(
     }
 
     private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
-    private val unitChecker = ConstrainedSynthesisUnitChecker(objectClassId.toSoot())
+    private val unitChecker = SynthesisUnitChecker(objectClassId.toSoot())
 
-    fun synthesize(): List<UtModel>? {
-        while (queueIterator.hasNext()) {
+    fun synthesize(timeLimit: Long = 10000): List<UtModel>? {
+        val currentTime = { System.currentTimeMillis() }
+        val startTime = currentTime()
+        val hasTime = { (currentTime() - startTime) < timeLimit }
+        while (queueIterator.hasNext() && hasTime()) {
             val units = queueIterator.next()
             if (!units.isFullyDefined) continue
-            logger.debug { "Visiting state: $units" }
 
             val assembleModel = unitChecker.tryGenerate(units, parameters)
             if (assembleModel != null) {

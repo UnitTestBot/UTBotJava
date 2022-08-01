@@ -59,9 +59,7 @@ class SynthesisMethodContext(
     fun method(name: String, declaringClass: SootClass): SootMethod {
         val parameterTypes = parameters.map { it.type }
 
-        return createSootMethod(name, parameterTypes, returnType, declaringClass, body, isStatic = true).also {
-            System.err.println("Done!")
-        }
+        return createSootMethod(name, parameterTypes, returnType, declaringClass, body, isStatic = true)
     }
 
     fun resolve(parameterModels: List<UtModel>): List<UtModel> {

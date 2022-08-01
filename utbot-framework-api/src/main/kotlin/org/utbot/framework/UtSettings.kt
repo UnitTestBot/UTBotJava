@@ -304,7 +304,7 @@ object UtSettings {
      *
      * False by default (for saving disk space).
      */
-    var logConcreteExecutionErrors by getBooleanProperty(true)
+    var logConcreteExecutionErrors by getBooleanProperty(false)
 
     /**
      * Number of branch instructions using for clustering executions in the test minimization phase.

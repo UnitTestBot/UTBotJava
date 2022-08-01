@@ -152,12 +152,12 @@ jobs:
             cd utbot-intellij
             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
             
-            - name: Upload utbot-intellij tests report artifacts if tests have failed
-            if: ${{ failure() }}
-            uses: actions/upload-artifact@v2
-            with:
-              name: utbot_intellij_tests_report
-              path: utbot-intellij/build/reports/tests/test/*
+        - name: Upload utbot-intellij tests report artifacts if tests have failed
+          if: ${{ failure() }}
+          uses: actions/upload-artifact@v2
+          with:
+            name: utbot_intellij_tests_report
+            path: utbot-intellij/build/reports/tests/test/*
             
   utbot-junit-contest:
       runs-on: ubuntu-20.04

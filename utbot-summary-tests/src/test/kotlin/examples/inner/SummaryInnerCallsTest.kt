@@ -88,7 +88,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -193,7 +193,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     // TODO: SAT-1211
@@ -240,7 +240,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -304,7 +304,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName4
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -357,7 +357,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -414,7 +414,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -495,7 +495,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName5
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -548,7 +548,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName4
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -601,7 +601,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName4
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -662,7 +662,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -757,7 +757,7 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName5
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 
     @Test
@@ -823,6 +823,6 @@ class SummaryInnerCallsTest : SummaryTestCaseGeneratorTest(
             methodName4
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 }

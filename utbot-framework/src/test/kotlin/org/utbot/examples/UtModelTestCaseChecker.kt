@@ -38,6 +38,8 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.utbot.framework.UtSettings.useFuzzing
+import org.utbot.framework.codegen.TestCodeGeneratorPipeline
+import org.utbot.framework.util.Conflict
 
 internal abstract class UtModelTestCaseChecker(
     testClass: KClass<*>,
@@ -97,6 +99,13 @@ internal abstract class UtModelTestCaseChecker(
 
             assertTrue(testSet.errors.isEmpty()) {
                 "We have errors: ${testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
+            }
+
+            // if force mocking took place in parametrized test generation,
+            // we do not need to process this [testSet]
+            if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+                conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
+                return
             }
 
             val executions = testSet.executions

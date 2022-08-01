@@ -58,6 +58,6 @@ class SummaryNestedCallsTest : SummaryTestCaseGeneratorTest(
             methodName3
         )
 
-        check(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 }

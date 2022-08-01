@@ -139,6 +139,8 @@ sealed class UtResult
  * - static fields changed during execution;
  * - required instrumentation details (such as randoms, time, static methods).
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
+ * - the engine type that created this execution.
+ * - comments, method names and display names created by utbot-summary module.
  */
 data class UtExecution(
     val stateBefore: EnvironmentModels,
@@ -148,6 +150,7 @@ data class UtExecution(
     val path: MutableList<Step>,
     val fullPath: List<Step>,
     val coverage: Coverage? = null,
+    val createdBy: UtExecutionCreator? = null,
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null,
@@ -750,6 +753,7 @@ open class ClassId @JvmOverloads constructor(
  */
 class BuiltinClassId(
     name: String,
+    elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
     // by default we assume that the class is not a member class
@@ -766,6 +770,7 @@ class BuiltinClassId(
     override val isInner: Boolean = false,
     override val isNested: Boolean = false,
     override val isSynthetic: Boolean = false,
+    override val typeParameters: TypeParameters = TypeParameters(),
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),
     override val outerClass: Class<*>? = null,
@@ -774,7 +779,7 @@ class BuiltinClassId(
             -1, 0 -> ""
             else -> canonicalName.substring(0, index)
         },
-) : ClassId(name = name, isNullable = isNullable) {
+) : ClassId(name = name, isNullable = isNullable, elementClassId = elementClassId) {
     init {
         BUILTIN_CLASSES_BY_NAMES[name] = this
     }
@@ -1172,7 +1177,14 @@ private fun StringBuilder.appendOptional(name: String, value: Map<*, *>) {
 }
 
 /**
- * Entity that represents cluster information that should appear in the comment
+ * Enum that represents different type of engines that produce tests.
+ */
+enum class UtExecutionCreator {
+    FUZZER, SYMBOLIC_ENGINE
+}
+
+/**
+ * Entity that represents cluster information that should appear in the comment.
  */
 data class UtClusterInfo(
     val header: String? = null,
@@ -1180,13 +1192,13 @@ data class UtClusterInfo(
 )
 
 /**
- * Entity that represents cluster of executions
+ * Entity that represents cluster of executions.
  */
 data class UtExecutionCluster(val clusterInfo: UtClusterInfo, val executions: List<UtExecution>)
 
 
 /**
- * Entity that represents various types of statements in comments
+ * Entity that represents various types of statements in comments.
  */
 sealed class DocStatement
 

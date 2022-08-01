@@ -67,6 +67,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
@@ -178,6 +179,8 @@ class UtBotSymbolicEngine(
     )
 
     fun attachMockListener(mockListener: MockListener) = mocker.mockListenerController?.attach(mockListener)
+
+    fun detachMockListener(mockListener: MockListener) = mocker.mockListenerController?.detach(mockListener)
 
     private val statesForConcreteExecution: MutableList<ExecutionState> = mutableListOf()
 
@@ -301,7 +304,8 @@ class UtBotSymbolicEngine(
                                 instrumentation,
                                 mutableListOf(),
                                 listOf(),
-                                concreteExecutionResult.coverage
+                                concreteExecutionResult.coverage,
+                                UtExecutionCreator.SYMBOLIC_ENGINE
                             )
                             emit(concreteUtExecution)
 
@@ -485,6 +489,7 @@ class UtBotSymbolicEngine(
                         path = mutableListOf(),
                         fullPath = emptyList(),
                         coverage = concreteExecutionResult.coverage,
+                        createdBy = UtExecutionCreator.FUZZER,
                         testMethodName = testMethodName?.testName,
                         displayName = testMethodName?.takeIf { hasMethodUnderTestParametersToFuzz }?.displayName
                     )
@@ -509,7 +514,8 @@ class UtBotSymbolicEngine(
             result = UtConcreteExecutionFailure(e),
             instrumentation = emptyList(),
             path = mutableListOf(),
-            fullPath = listOf()
+            fullPath = listOf(),
+            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
         )
 
         emit(failedConcreteExecution)
@@ -544,12 +550,13 @@ class UtBotSymbolicEngine(
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
         val symbolicUtExecution = UtExecution(
-            stateBefore,
-            stateAfter,
-            symbolicExecutionResult,
-            instrumentation,
-            entryMethodPath(state),
-            state.fullPath()
+            stateBefore = stateBefore,
+            stateAfter = stateAfter,
+            result = symbolicExecutionResult,
+            instrumentation = instrumentation,
+            path = entryMethodPath(state),
+            fullPath = state.fullPath(),
+            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
         )
 
         globalGraph.traversed(state)

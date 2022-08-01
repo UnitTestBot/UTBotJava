@@ -13,7 +13,7 @@ jobs:
       - name: Build and run test
         run: |
           cd utbot-analytics
-          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
           
   utbot-api:
       runs-on: ubuntu-20.04
@@ -24,7 +24,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-api
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-cli:
       runs-on: ubuntu-20.04
@@ -35,7 +35,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-cli
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-core:
       runs-on: ubuntu-20.04
@@ -46,7 +46,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-core
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-framework-api:
       runs-on: ubuntu-20.04
@@ -57,7 +57,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-framework-api
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-framework:
       runs-on: ubuntu-20.04
@@ -68,7 +68,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-framework
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
         - name: Upload utbot-framework logs
           if: ${{ always() }}
@@ -99,7 +99,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-fuzzers
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-gradle:
       runs-on: ubuntu-20.04
@@ -110,7 +110,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-gradle
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-instrumentation-tests:
       runs-on: ubuntu-20.04
@@ -121,7 +121,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-instrumentation-tests
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-instrumentation:
       runs-on: ubuntu-20.04
@@ -132,7 +132,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-instrumentation
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
         - name: Upload utbot-instrumentation tests report artifacts if tests have failed
           if: ${{ failure() }}
@@ -150,7 +150,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-intellij
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
         - name: Upload utbot-intellij tests report artifacts if tests have failed
           if: ${{ failure() }}
@@ -168,7 +168,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-junit-contest
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-maven:
       runs-on: ubuntu-20.04
@@ -179,7 +179,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-maven
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-sample:
       runs-on: ubuntu-20.04
@@ -190,7 +190,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-sample
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-summary-tests:
       runs-on: ubuntu-20.04
@@ -201,7 +201,7 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-summary-tests
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon
             
   utbot-summary:
       runs-on: ubuntu-20.04
@@ -212,4 +212,4 @@ jobs:
         - name: Build and run test
           run: |
             cd utbot-summary
-            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=in-process gradle clean build --no-daemon
+            GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle clean build --no-daemon

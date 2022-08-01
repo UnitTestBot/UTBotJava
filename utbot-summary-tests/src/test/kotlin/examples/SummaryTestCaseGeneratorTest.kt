@@ -113,7 +113,7 @@ open class SummaryTestCaseGeneratorTest(
     }
 
 
-    fun List<UtSymbolicExecution>.checkMatchersWithTextSummary(
+    fun List<UtExecution>.checkMatchersWithTextSummary(
         comments: List<String>,
     ) {
         if (comments.isEmpty()) {
@@ -160,7 +160,7 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    fun List<UtSymbolicExecution>.checkMatchersWithMethodNames(
+    fun List<UtExecution>.checkMatchersWithMethodNames(
         methodNames: List<String>,
     ) {
         if (methodNames.isEmpty()) {
@@ -201,7 +201,7 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    fun List<UtSymbolicExecution>.checkMatchersWithDisplayNames(
+    fun List<UtExecution>.checkMatchersWithDisplayNames(
         displayNames: List<String>,
     ) {
         if (displayNames.isEmpty()) {
@@ -242,7 +242,7 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    private fun commentsFromExecutions(executions: List<UtSymbolicExecution>): String {
+    private fun commentsFromExecutions(executions: List<UtExecution>): String {
         return buildString {
             append(COMMENT_SEPARATOR)
             executions.forEach {
@@ -271,7 +271,7 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    private fun displayNamesFromExecutions(executions: List<UtSymbolicExecution>): String {
+    private fun displayNamesFromExecutions(executions: List<UtExecution>): String {
         return buildString {
             executions.forEach {
                 append(POINT_IN_THE_LIST)
@@ -293,7 +293,7 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    private fun methodNamesFromExecutions(executions: List<UtSymbolicExecution>): String {
+    private fun methodNamesFromExecutions(executions: List<UtExecution>): String {
         return buildString {
             executions.forEach {
                 append(POINT_IN_THE_LIST)

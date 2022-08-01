@@ -63,8 +63,6 @@ object MypyAnnotations {
         testSourcePath: String,
     ): String {
         val command = "$pythonPath -m mypy.dmypy run $codeFilename -- --config-file $testSourcePath/mypy.ini"
-//        val command = "$pythonPath -m mypy.dmypy run $codeFilename"
-//        val command = "$pythonPath -m mypy.dmypy start"
         val process = Runtime.getRuntime().exec(
             command
         )

@@ -118,65 +118,6 @@ BUILTIN_FUNCTIONS = [
 ]
 
 
-def generate_json_builtins():
-    with open('stub_int.json', 'w') as fout:
-        data = generate_json_class('int', 'builtins')
-        print(data, file=fout)
-
-
-def generate_json_class(module: str, typename: str):
-    resolver = Resolver()
-    encoder = AstClassEncoder()
-    class_stub = resolver.get_fully_qualified_name(f'{module}.{typename}')
-    return encoder.encode(class_stub.ast)
-
-
-def create_method_table(types: list[str], module: str):
-    def get_only_types(methods) -> list[str]:
-        return [
-            type_['type'] for type_ in methods
-        ]
-
-    methods_dataset = defaultdict(list)
-    resolver = Resolver()
-    encoder = AstClassEncoder()
-    for t in types:
-        print(f'Type: {t}')
-        class_stub = resolver.get_fully_qualified_name(f'{module}.{t}')
-        json_data = encoder.default(class_stub.ast)
-        for method in json_data['methods']:
-            methods_dataset[method['name']].append({
-                'type': t,
-                'method': method,
-            })
-
-    pprint(get_only_types(methods_dataset['__len__']))
-
-    with open('method_annotations.json', 'w') as fout:
-        print(json.dumps(methods_dataset, sort_keys=True, indent=True), file=fout)
-
-
-def create_functions_table(functions: list[str], module: str):
-    functions_dataset: dict[str, list] = defaultdict(list)
-    resolver = Resolver()
-    encoder = AstFunctionDefEncoder()
-    for t in functions:
-        print(f'Function: {t}')
-        function_stub = resolver.get_fully_qualified_name(f'{module}.{t}')
-        if function_stub is None:
-            continue
-
-        function_ast = function_stub.ast
-        if function_ast is None:
-            continue
-
-        json_data = encoder.default(function_stub.ast)
-        functions_dataset[t] = json_data
-
-    with open('functions_annotations.json', 'w') as fout:
-        print(json.dumps(functions_dataset, sort_keys=True, indent=True), file=fout)
-
-
 def create_module_table(module_name: str, python_version: tuple[int, int] = (3, 10)):
     functions_dataset: dict[str, Any] = {}
     methods_dataset: dict[str, Any] = defaultdict(list)
@@ -198,6 +139,7 @@ def create_module_table(module_name: str, python_version: tuple[int, int] = (3, 
             if not ast_.name.startswith('_'):
                 json_data = AstClassEncoder().default(ast_)
                 classes_dataset[ast_.name] = json_data
+                classes_dataset[ast_.name]['module'] = module_name
                 for method in json_data['methods']:
                     methods_dataset[method['name']].append({
                         'type': ast_.name,
@@ -268,11 +210,6 @@ class StubFileCollector:
             elif isinstance(ast_, ast.ClassDef):
                 if not ast_.name.startswith('_'):
                     json_data = AstClassEncoder().default(ast_)
-<<<<<<< Updated upstream
-                    self.classes_dataset[f'{module_name}.{ast_.name}'] = json_data
-=======
-                    self.classes_dataset[f'{json_data["module"]}.{ast_.name}'] = json_data
->>>>>>> Stashed changes
                     for method in json_data['methods']:
                         self.methods_dataset[method['name']].append({
                             'className': ast_.name,

@@ -283,10 +283,10 @@ class PythonInitObjectModel(
 data class PythonListModel(
     override val classId: ClassId,
     val length: Int = 0,
-    val stores: MutableMap<Int, PythonModel>
+    val stores: List<UtModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
-        (0 until length).map { stores[it] ?: "" }.joinToString(", ", "[", "]")
+        (0 until length).map { stores[it] }.joinToString(", ", "[", "]")
     }
 
     companion object {
@@ -297,7 +297,7 @@ data class PythonListModel(
 data class PythonDictModel(
     override val classId: ClassId,
     val length: Int = 0,
-    val stores: MutableMap<PythonModel, PythonModel>
+    val stores: Map<PythonModel, PythonModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         stores.entries.joinToString(", ", "{", "}") { "${it.key}: ${it.value}" }
@@ -311,7 +311,7 @@ data class PythonDictModel(
 data class PythonSetModel(
     override val classId: ClassId,
     val length: Int = 0,
-    val stores: MutableSet<PythonModel>
+    val stores: Set<PythonModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         stores.joinToString(", ", "{", "}") { it.toString() }

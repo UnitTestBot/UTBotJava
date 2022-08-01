@@ -19,7 +19,7 @@ object StubFileStructures {
 
     data class ClassDatasetInfo(
         val name: String,
-        val typeInfos: List<ClassInfo>
+        val typeInfos: ClassInfo
     )
 
     data class FieldInfo(

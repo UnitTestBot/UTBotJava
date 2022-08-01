@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.appendHtmlLine
+import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
@@ -118,7 +119,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                         methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
 
                     regions += CgSimpleRegion(
-                        "Parameterized test for method ${methodUnderTest.name}",
+                        "Parameterized test for method ${methodUnderTest.displayName}",
                         listOf(parameterizedTestMethod),
                     )
                 }.onFailure { error -> processFailure(testSet, error) }

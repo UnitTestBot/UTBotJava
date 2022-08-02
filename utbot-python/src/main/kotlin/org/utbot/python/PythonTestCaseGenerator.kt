@@ -7,17 +7,23 @@ object PythonTestCaseGenerator {
     lateinit var directoriesForSysPath: List<String>
     lateinit var moduleToImport: String
     lateinit var pythonPath: String
+    lateinit var projectRoot: String
+    lateinit var fileOfMethod: String
 
     fun init(
         testSourceRoot: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String,
-        pythonPath: String
+        pythonPath: String,
+        projectRoot: String,
+        fileOfMethod: String
     ) {
         this.testSourceRoot = testSourceRoot
         this.directoriesForSysPath = directoriesForSysPath
         this.moduleToImport = moduleToImport
         this.pythonPath = pythonPath
+        this.projectRoot = projectRoot
+        this.fileOfMethod = fileOfMethod
     }
 
     fun generate(method: PythonMethod): PythonTestSet {
@@ -26,7 +32,9 @@ object PythonTestCaseGenerator {
             testSourceRoot,
             directoriesForSysPath,
             moduleToImport,
-            pythonPath
+            pythonPath,
+            projectRoot,
+            fileOfMethod
         )
         val executions = mutableListOf<PythonExecution>()
         val errors = mutableListOf<PythonError>()

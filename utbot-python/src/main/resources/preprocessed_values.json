@@ -1,20 +1,20 @@
 [
   {
-    "name": "BaseException",
+    "name": "builtins.BaseException",
     "useAsReturn": true,
     "instances": [
       "BaseException()"
     ]
   },
   {
-  "name": "NoneType",
+  "name": "types.NoneType",
   "useAsReturn": true,
   "instances": [
     "None"
   ]
 },
   {
-    "name": "bool",
+    "name": "builtins.bool",
     "useAsReturn": true,
     "instances": [
       "True",
@@ -22,7 +22,7 @@
     ]
   },
   {
-    "name": "bytearray",
+    "name": "builtins.bytearray",
     "useAsReturn": true,
     "instances": [
       "bytearray(b'a')",
@@ -146,7 +146,7 @@
     ]
   },
   {
-    "name": "bytes",
+    "name": "builtins.bytes",
     "useAsReturn": true,
     "instances": [
       "bytes(b'ab')",
@@ -161,7 +161,7 @@
     ]
   },
   {
-    "name": "complex",
+    "name": "builtins.complex",
     "useAsReturn": true,
     "instances": [
       "complex(1.0, float('inf'))",
@@ -250,14 +250,14 @@
     ]
   },
   {
-    "name": "dict",
+    "name": "builtins.dict",
     "useAsReturn": true,
     "instances": [
       "dict()"
     ]
   },
   {
-    "name": "enumerate",
+    "name": "builtins.enumerate",
     "useAsReturn": false,
     "instances": [
       "enumerate([])",
@@ -289,7 +289,7 @@
     ]
   },
   {
-    "name": "filter",
+    "name": "builtins.filter",
     "useAsReturn": false,
     "instances": [
       "filter(lambda x: x > 0, [1, -3, 9, 0, 2])",
@@ -301,7 +301,7 @@
     ]
   },
   {
-    "name": "float",
+    "name": "builtins.float",
     "useAsReturn": true,
     "instances": [
       "float(-1)",
@@ -352,7 +352,7 @@
     ]
   },
   {
-    "name": "frozenset",
+    "name": "builtins.frozenset",
     "useAsReturn": true,
     "instances": [
       "frozenset(range(7))",
@@ -383,7 +383,7 @@
     ]
   },
   {
-    "name": "int",
+    "name": "builtins.int",
     "useAsReturn": true,
     "instances": [
       "int('3723ai4h', 20)",
@@ -508,14 +508,14 @@
     ]
   },
   {
-    "name": "list",
+    "name": "builtins.list",
     "useAsReturn": true,
     "instances": [
       "list()"
     ]
   },
   {
-    "name": "map",
+    "name": "builtins.map",
     "useAsReturn": false,
     "instances": [
       "map(ord, 'Hello')",
@@ -548,7 +548,7 @@
     ]
   },
   {
-    "name": "memoryview",
+    "name": "builtins.memoryview",
     "useAsReturn": false,
     "instances": [
       "memoryview(b'a')",
@@ -595,14 +595,14 @@
     ]
   },
   {
-    "name": "object",
+    "name": "builtins.object",
     "useAsReturn": false,
     "instances": [
       "object()"
     ]
   },
   {
-    "name": "range",
+    "name": "builtins.range",
     "useAsReturn": true,
     "instances": [
       "range(127, 256)",
@@ -638,7 +638,7 @@
     ]
   },
   {
-    "name": "reversed",
+    "name": "builtins.reversed",
     "useAsReturn": false,
     "instances": [
       "reversed({None: []}.items())",
@@ -661,14 +661,14 @@
     ]
   },
   {
-    "name": "set",
+    "name": "builtins.set",
     "useAsReturn": true,
     "instances": [
       "set()"
     ]
   },
   {
-    "name": "slice",
+    "name": "builtins.slice",
     "useAsReturn": true,
     "instances": [
       "slice(0, 2, 1)",
@@ -760,7 +760,7 @@
     ]
   },
   {
-    "name": "str",
+    "name": "builtins.str",
     "useAsReturn": true,
     "instances": [
       "str(float('-infinity'))",
@@ -821,7 +821,7 @@
     ]
   },
   {
-    "name": "tuple",
+    "name": "builtins.tuple",
     "useAsReturn": true,
     "instances": [
       "tuple(range(5))",
@@ -849,7 +849,7 @@
     ]
   },
   {
-    "name": "type",
+    "name": "builtins.type",
     "useAsReturn": false,
     "instances": [
       "type(len)",
@@ -882,7 +882,7 @@
     ]
   },
   {
-    "name": "zip",
+    "name": "builtins.zip",
     "useAsReturn": false,
     "instances": [
       "zip(range(4), range(1, 5))",
@@ -910,6 +910,221 @@
       "zip('abc', range(6))",
       "zip('abcdef')",
       "zip(list('abc') + [None], 'defg')"
+    ]
+  },
+  {
+    "name": "collections.Counter",
+    "useAsReturn": true,
+    "instances": [
+      "collections.Counter('abcaba')",
+      "collections.Counter('a' * 50 + 'b' * 30)",
+      "collections.Counter(iterable=None)",
+      "collections.Counter(a=-5, b=0, c=5, d=10, e=15, g=40)",
+      "collections.Counter('xyzpdqqdpzyx')",
+      "collections.Counter(a=-6, b=-2, c=8, d=0, e=-5, f=-30, g=40, h=50)",
+      "collections.Counter('aaabbcd')",
+      "collections.Counter(a=3, b=2, c=1)",
+      "collections.Counter('abracadabra simsalabim')",
+      "collections.Counter('which witch had which witches wrist watch'.split())",
+      "collections.Counter(a=2, b=None)",
+      "collections.Counter(a=-1, b=0, c=-1, d=1, e=-1)",
+      "collections.Counter()",
+      "collections.Counter({'a': 3, 'b': 2, 'c': 1})",
+      "collections.Counter(iterable=42)",
+      "collections.Counter('abracadabra')",
+      "collections.Counter(self=42)",
+      "collections.Counter(a=1, b=2, c=-3, d=10, e=20, f=30, h=-50)",
+      "collections.Counter(a=10, b=-2, c=0)"
+    ]
+  },
+  {
+    "name": "collections.OrderedDict",
+    "useAsReturn": true,
+    "instances": [
+      "collections.OrderedDict([('a', 5), ('b', 2), ('r', 2), ('c', 1), ('d', 1)])",
+      "collections.OrderedDict([('fname', 'Graham'), ('lname', 'Chapman'), (None, ['Over1',    'Over2'])])",
+      "collections.OrderedDict([('FirstName', 'Eric'), ('LastName', 'Idle')])",
+      "collections.OrderedDict([('fname', 'Under1'), ('lname', None)])",
+      "collections.OrderedDict(j=0, h=88888)",
+      "collections.OrderedDict([('FirstName', 'Under1'), ('LastName', None)])",
+      "collections.OrderedDict(self=42)",
+      "collections.OrderedDict([('a', 1), ('b', 2), ('c', 3), ('d', 44), ('e', 55)])",
+      "collections.OrderedDict([('x', 1), ('y', 2)])",
+      "collections.OrderedDict(other=42)",
+      "collections.OrderedDict([('c', 1), ('b', 2), ('a', 3), ('d', 4), ('e', 5), ('f', 6)])",
+      "collections.OrderedDict(a=1, b=2, c=3, d=4, e=5)",
+      "collections.OrderedDict()",
+      "collections.OrderedDict([('d', 1), ('b', 2), ('c', 3), ('a', 4), ('e', 5)])",
+      "collections.OrderedDict([('FirstName', 'Graham'), ('LastName', 'Chapman'), ('OtherInfo',    ['Over1', 'Over2'])])",
+      "collections.OrderedDict([('a', 1), ('b', 2), ('c', 9), ('d', 4)], c=3, e=5)",
+      "collections.OrderedDict(x=[])",
+      "collections.OrderedDict(i=9999, d=4444, c=3333)",
+      "collections.OrderedDict([('x', 3), ('y', 4)])",
+      "collections.OrderedDict([('FirstName', 'John'), ('LastName', 'Cleese')])",
+      "collections.OrderedDict([('fname', 'Eric'), ('lname', 'Idle')])",
+      "collections.OrderedDict((('R', 2), ('W', 8), ('X', 32)))",
+      "collections.OrderedDict([('FirstName', 'Graham'), ('LastName', 'Chapman'), (None, [    'Over1', 'Over2'])])",
+      "collections.OrderedDict([('x', 42), ('y', 2)])",
+      "collections.OrderedDict(f=666, b=222, g=777, c=333, h=888)",
+      "collections.OrderedDict([('fname', 'John'), ('lname', 'Cleese')])",
+      "collections.OrderedDict((('june', 1), ('july', 2), ('august', 3)))",
+      "collections.OrderedDict(e=55, b=22)"
+    ]
+  },
+  {
+    "name": "collections.defaultdict",
+    "useAsReturn": true,
+    "instances": [
+      "collections.defaultdict(list, foo=1, bar=2)",
+      "collections.defaultdict(int)",
+      "collections.defaultdict()"
+    ]
+  },
+  {
+    "name": "collections.deque",
+    "useAsReturn": true,
+    "instances": [
+      "collections.deque()",
+      "collections.deque('efgh')",
+      "collections.deque('bcabc')",
+      "collections.deque('abcdef', 500)",
+      "collections.deque(range(-5125, -5000))",
+      "collections.deque(range(200))",
+      "collections.deque('ab')",
+      "collections.deque(range(10), maxlen=None)",
+      "collections.deque('abcdef', maxlen=4)",
+      "collections.deque('abdefghcij')",
+      "collections.deque([None] * 16)",
+      "collections.deque(maxlen=0)",
+      "collections.deque(range(0, 10000, 10))",
+      "collections.deque('xabc')",
+      "collections.deque('gallahad')",
+      "collections.deque('ABCDEFGHI')",
+      "collections.deque('abc', maxlen=2)",
+      "collections.deque('superman')",
+      "collections.deque('A' * 3)",
+      "collections.deque([1, 2, 3, 4, 5, 6, 7])",
+      "collections.deque('abcdef')",
+      "collections.deque(range(100))",
+      "collections.deque('abcabc')",
+      "collections.deque('gh')",
+      "collections.deque('abcdefghcij')",
+      "collections.deque('abcabcabc')",
+      "collections.deque('abc', 3)",
+      "collections.deque('abc', maxlen=5)",
+      "collections.deque(range(200), maxlen=10)",
+      "collections.deque('abc')",
+      "collections.deque([1, 2, 3])",
+      "collections.deque('abdefghij')",
+      "collections.deque(['ab'])",
+      "collections.deque('abcdefg')",
+      "collections.deque('a', 500)",
+      "collections.deque('abc', maxlen=0)",
+      "collections.deque('def')",
+      "collections.deque(range(200), 100)",
+      "collections.deque(range(10), 3)",
+      "collections.deque('a')",
+      "collections.deque('abc', maxlen=4)"
+    ]
+  },
+  {
+    "name": "datetime.date",
+    "useAsReturn": true,
+    "instances": [
+      "datetime.date(1, 1, 1)",
+      "datetime.date(1995, 4, 12)",
+      "datetime.date(2011, 1, 1)",
+      "datetime.date(2002, 3, 4)",
+      "datetime.date(1993, 8, 26)",
+      "datetime.date(2000, 1, 2)",
+      "datetime.date(1970, 1, 1)"
+    ]
+  },
+  {
+    "name": "datetime.datetime",
+    "useAsReturn": true,
+    "instances": [
+      "datetime.datetime(2011, 1, 1)",
+      "datetime.datetime(1970, 1, 1)",
+      "datetime.datetime(2015, 4, 5, 1, 45)",
+      "datetime.datetime(1, 1, 1)",
+      "datetime.datetime(2014, 11, 2, 1, 30)",
+      "datetime.datetime(1, 2, 3, 4, 5, 6, 7)",
+      "datetime.datetime(2002, 4, 7, 2)",
+      "datetime.datetime(1, 1, 1, fold=1)",
+      "datetime.datetime(2010, 1, 1)",
+      "datetime.datetime(2011, 1, 1, 12, 30)",
+      "datetime.datetime(1993, 8, 26, 22, 12, 55, 99999)",
+      "datetime.datetime(1, 4, 1, 2)",
+      "datetime.datetime(1995, 4, 12)",
+      "datetime.datetime(1, 10, 25, 1)",
+      "datetime.datetime(10, 10, 10, 10, 10, 10, 10)",
+      "datetime.datetime(2002, 10, 27, 1)"
+    ]
+  },
+  {
+    "name": "datetime.time",
+    "useAsReturn": true,
+    "instances": [
+      "datetime.time(fold=1)",
+      "datetime.time()",
+      "datetime.time(0, fold=1)",
+      "datetime.time(22, 12, 55, 99999)",
+      "datetime.time(0)",
+      "datetime.time(microsecond=40)",
+      "datetime.time(18, 45, 3, 1234)",
+      "datetime.time(12, 0)",
+      "datetime.time(12, 30)"
+    ]
+  },
+  {
+    "name": "datetime.timedelta",
+    "useAsReturn": true,
+    "instances": [
+      "datetime.timedelta(days=100, weeks=-7, hours=-24 * (100 - 49), minutes=-3, seconds=12, microseconds=(3 * 60 - 12) * 1000000)",
+      "datetime.timedelta(hours=24)",
+      "datetime.timedelta(hours=23, minutes=59)",
+      "datetime.timedelta(0, 4000, 1)",
+      "datetime.timedelta(days=999999999, hours=23, minutes=59, seconds=59, microseconds=999999)",
+      "datetime.timedelta(minutes=1440)",
+      "datetime.timedelta(microseconds=1)",
+      "datetime.timedelta(minutes=24)",
+      "datetime.timedelta(minutes=60)",
+      "datetime.timedelta(weeks=13)",
+      "datetime.timedelta(minutes=2, seconds=1, microseconds=3)",
+      "datetime.timedelta(26, 55, 99999)",
+      "datetime.timedelta(seconds=0.5)",
+      "datetime.timedelta(minutes=-200)",
+      "datetime.timedelta(seconds=30)",
+      "datetime.timedelta(days=-999999999)",
+      "datetime.timedelta(minutes=-2)",
+      "datetime.timedelta(minutes=2 * 1439)",
+      "datetime.timedelta(hours=12, minutes=32, seconds=30)",
+      "datetime.timedelta(hours=-5)",
+      "datetime.timedelta(hours=5)",
+      "datetime.timedelta(42)",
+      "datetime.timedelta(minutes=23)",
+      "datetime.timedelta(minutes=3)",
+      "datetime.timedelta(microseconds=-1)",
+      "datetime.timedelta(0, 0, 1000)",
+      "datetime.timedelta(minutes=1)",
+      "datetime.timedelta(days=365)",
+      "datetime.timedelta(minutes=0)",
+      "datetime.timedelta(microseconds=-81)",
+      "datetime.timedelta(hours=9.5)",
+      "datetime.timedelta(minutes=2, seconds=30)",
+      "datetime.timedelta(hours=-4)",
+      "datetime.timedelta(minutes=-300)",
+      "datetime.timedelta(days=1, seconds=2, microseconds=3)",
+      "datetime.timedelta(hours=2)",
+      "datetime.timedelta(0)"
+    ]
+  },
+  {
+    "name": "datetime.tzinfo",
+    "useAsReturn": true,
+    "instances": [
+      "datetime.tzinfo()"
     ]
   }
 ]

@@ -16,13 +16,14 @@ import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
-import org.utbot.python.PythonCodeCollector
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.code.PythonCodeGenerator.generateTestCode
 import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
+import org.utbot.python.normalizeAnnotation
+import org.utbot.python.typing.PythonTypesStorage
 
 
 object PythonDialogProcessor {
@@ -89,18 +90,29 @@ object PythonDialogProcessor {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
 
+                val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
+                val testSourceRoot = model.testSourceRoot!!.path
+                val filePath = model.file.virtualFile.path
+
                 // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
-                PythonCodeCollector.refreshProjectClassesList(model.file.virtualFile.path)
+                PythonTypesStorage.refreshProjectClassesList(
+                    filePath,
+                    pythonPath,
+                    model.project.basePath!!,
+                    model.directoriesForSysPath,
+                    testSourceRoot
+                )
 
                 val pythonMethods = findSelectedPythonMethods(model)
-                val testSourceRoot = model.testSourceRoot!!.path
 
                 val testCaseGenerator = PythonTestCaseGenerator.apply {
                     init(
                         testSourceRoot,
                         model.directoriesForSysPath,
                         model.moduleToImport,
-                        model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
+                        pythonPath,
+                        model.project.basePath!!,
+                        filePath
                     )
                 }
 

@@ -6,34 +6,44 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.ArgInfoCollector
-import org.utbot.python.providers.PythonTypesStorage
 import org.utbot.python.providers.concreteTypesModelProvider
 import org.utbot.python.providers.substituteTypesByIndex
 import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.typing.PythonTypesStorage
+import org.utbot.python.typing.ReturnRenderType
 import org.utbot.python.typing.StubFileFinder
-import org.utbot.python.typing.StubFileStructures
+import java.io.File
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
     private val testSourceRoot: String,
     private val directoriesForSysPath: List<String>,
     private val moduleToImport: String,
-    private val pythonPath: String
+    private val pythonPath: String,
+    private val projectRoot: String,
+    private val fileOfMethod: String
 ) {
     fun fuzzing(): Sequence<PythonResult> = sequence {
-        val returnType = methodUnderTest.returnType ?: ClassId("")
-        val argumentTypes = methodUnderTest.arguments.map { it.type }
-
-        val existingAnnotations = methodUnderTest.arguments.filter {
-            it.type.name != "Any"
-        }.associate {
-            it.name to it.type.name
+        val argumentTypes = methodUnderTest.arguments.map {
+            annotationToClassId(
+                it.annotation,
+                pythonPath,
+                projectRoot,
+                fileOfMethod,
+                directoriesForSysPath,
+                testSourceRoot
+            )
+        }
+        val existingAnnotations = mutableMapOf<String, String>()
+        argumentTypes.forEachIndexed { index, classId ->
+            if (classId != pythonAnyClassId)
+                existingAnnotations[methodUnderTest.arguments[index].name] = classId.name
         }
 
-        val argInfoCollector = ArgInfoCollector(methodUnderTest)
+        val argInfoCollector = ArgInfoCollector(methodUnderTest, argumentTypes)
         val methodUnderTestDescription = FuzzedMethodDescription(
             methodUnderTest.name,
-            returnType,
+            pythonAnyClassId,
             argumentTypes,
             argInfoCollector.getConstants()
         ).apply {
@@ -44,9 +54,7 @@ class PythonEngine(
         val annotations: Sequence<Map<String, ClassId>> =
             if (existingAnnotations.size == methodUnderTest.arguments.size)
                 sequenceOf(
-                    methodUnderTest.arguments.associate {
-                        it.name to it.type
-                    }
+                    existingAnnotations.mapValues { entry -> ClassId(entry.value) }
                 )
             else
                 joinAnnotations(
@@ -56,7 +64,8 @@ class PythonEngine(
                     testSourceRoot,
                     moduleToImport,
                     directoriesForSysPath,
-                    pythonPath
+                    pythonPath,
+                    fileOfMethod
                 )
 
         // model provider argwith fallback?
@@ -91,7 +100,9 @@ class PythonEngine(
                     yield(PythonError(UtError(resultJSON.output, Throwable()), modelList))
                 } else {
 
-                    if (PythonTypesStorage.typeNameMap[resultJSON.type]?.useAsReturn != true)
+                    // some types cannot be used as return types in tests (like socket or memoryview)
+                    val outputType = ClassId(resultJSON.type)
+                    if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
                         return@sequence
 
                     val resultAsModel = PythonDefaultModel(resultJSON.output, "")
@@ -136,6 +147,7 @@ class PythonEngine(
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,
+        fileOfMethod: String
     ): Sequence<Map<String, ClassId>> {
         val storageMap = argInfoCollector.getPriorityStorages()
         val userAnnotations = existingAnnotations.entries.associate {
@@ -145,8 +157,8 @@ class PythonEngine(
             name to storages.map { storage ->
                 when (storage) {
                     is ArgInfoCollector.TypeStorage -> setOf(storage.name)
-                    is ArgInfoCollector.MethodStorage -> StubFileFinder.findTypeWithMethod(storage.name)
-                    is ArgInfoCollector.FieldStorage -> StubFileFinder.findTypeWithField(storage.name)
+                    is ArgInfoCollector.MethodStorage -> PythonTypesStorage.findTypeWithMethod(storage.name)
+                    is ArgInfoCollector.FieldStorage -> PythonTypesStorage.findTypeWithField(storage.name)
                     is ArgInfoCollector.FunctionArgStorage -> StubFileFinder.findTypeByFunctionWithArgumentPosition(
                         storage.name,
                         argumentPosition = storage.index
@@ -163,7 +175,7 @@ class PythonEngine(
             userAnnotations + annotationCombinations,
             testSourceRoot,
             moduleToImport,
-            directoriesForSysPath,
+            directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
             pythonPath
         )
     }

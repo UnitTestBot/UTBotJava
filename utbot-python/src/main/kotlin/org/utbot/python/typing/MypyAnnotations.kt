@@ -3,6 +3,7 @@ package org.utbot.python.typing
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import java.io.File
 
 
 object MypyAnnotations {
@@ -23,15 +24,20 @@ object MypyAnnotations {
             directoriesForSysPath,
             moduleToImport.split(".").last(),
         )
-        startMypyDaemon(pythonPath)
+        startMypyDaemon(pythonPath, testSourcePath, directoriesForSysPath)
         val defaultOutput = runMypy(pythonPath, codeFilename, testSourcePath)
+        val defaultErrorNum = getErrorNumber(defaultOutput)
 
-        val annotations = PriorityCartesianProduct(
-            functionArgAnnotations.entries.map { (key, value) ->
-                value.map {
-                    Pair(key, it)
-                }
-            }).asSequence()
+        val candidates = functionArgAnnotations.entries.map { (key, value) ->
+            value.map {
+                Pair(key, it)
+            }
+        }
+
+        if (candidates.any { it.isEmpty() })
+            return@sequence
+
+        val annotations = PriorityCartesianProduct(candidates).asSequence()
 
         annotations.forEach {
             val annotationMap = it.toMap()
@@ -43,7 +49,8 @@ object MypyAnnotations {
                 moduleToImport.split(".").last(),
             )
             val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
-            if (mypyOutput == defaultOutput) {
+            val errorNum = getErrorNumber(mypyOutput)
+            if (errorNum <= defaultErrorNum) {
                 yield(annotationMap.mapValues { entry ->
                     ClassId(entry.value)
                 })
@@ -52,12 +59,14 @@ object MypyAnnotations {
         }
     }
 
+    fun getConfigFile(testSourcePath: String): File = File(testSourcePath, "mypy.ini")
+
     private fun runMypy(
         pythonPath: String,
         codeFilename: String,
         testSourcePath: String,
     ): String {
-        val command = "$pythonPath -m mypy.dmypy run $codeFilename -- --config-file $testSourcePath/mypy.ini"
+        val command = "$pythonPath -m mypy.dmypy run $codeFilename -- --config-file ${getConfigFile(testSourcePath).path}"
         val process = Runtime.getRuntime().exec(
             command
         )
@@ -67,13 +76,27 @@ object MypyAnnotations {
 
     private fun startMypyDaemon(
         pythonPath: String,
+        testSourcePath: String,
+        directoriesForSysPath: List<String>
     ): String {
+
+        val configContent = "[mypy]\nmypy_path = ${directoriesForSysPath.joinToString(separator = ":")}"
+        val configFile = getConfigFile(testSourcePath)
+        configFile.writeText(configContent)
+        configFile.createNewFile()
+
         val command = "$pythonPath -m mypy.dmypy start"
         val process = Runtime.getRuntime().exec(
             command
         )
         process.waitFor()
         return process.inputStream.readBytes().decodeToString()
+    }
+
+    private fun getErrorNumber(mypyOutput: String): Int {
+        val regex = Regex("Found ([0-9]*) error")
+        val match = regex.find(mypyOutput)
+        return match?.groupValues?.getOrNull(1)?.toInt() ?: 0
     }
 }
 

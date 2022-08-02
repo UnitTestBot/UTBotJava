@@ -237,26 +237,26 @@ class PythonDefaultModel(val repr: String, val type: String): PythonModel(ClassI
     override fun toString() = repr
 }
 
-val pythonAnyClassId = ClassId("Any")
+val pythonAnyClassId = ClassId("typing.Any")
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {
-        val classId = ClassId("int")
+        val classId = ClassId("builtins.int")
     }
 }
 
 class PythonFloatModel(val value: BigDecimal): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {
-        val classId = ClassId("float")
+        val classId = ClassId("builtins.float")
     }
 }
 
 class PythonStrModel(val value: String): PythonModel(classId) {
     override fun toString() = "\"\"\"" + value + "\"\"\""
     companion object {
-        val classId = ClassId("str")
+        val classId = ClassId("builtins.str")
     }
 }
 
@@ -264,7 +264,7 @@ class PythonBoolModel(val value: Boolean): PythonModel(classId) {
     override fun toString() =
         if (value) "True" else "False"
     companion object {
-        val classId = ClassId("bool")
+        val classId = ClassId("builtins.bool")
     }
 }
 

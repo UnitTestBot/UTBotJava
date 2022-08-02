@@ -70,11 +70,8 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     override val name: String
         get() = ast.name.name
 
-    private val returnTypeAsString: String?
+    override val returnAnnotation: String?
         get() = annotationToString(ast.returns)
-
-    override val returnType: ClassId?
-        get() = returnTypeAsString?.let { typeAsStringToClassId(it) }
 
     // TODO: consider cases of default and named arguments
     private val getParams: List<Parameter> =
@@ -84,7 +81,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         get() = getParams.map { param ->
             PythonArgument(
                 param.parameterName.name,
-                typeAsStringToClassId( annotationToString(param.annotation) ?: "Any" )
+                annotationToString(param.annotation)
             )
         }
 

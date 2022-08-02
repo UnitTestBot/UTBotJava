@@ -27,11 +27,11 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedOp
 import org.utbot.python.PythonMethod
-import org.utbot.python.providers.PythonTypesStorage
+import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class ArgInfoCollector(val method: PythonMethod) {
+class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId>) {
     interface BaseStorage { val name: String }
     data class TypeStorage(override val name: String): BaseStorage
     data class MethodStorage(override val name: String): BaseStorage
@@ -55,27 +55,26 @@ class ArgInfoCollector(val method: PythonMethod) {
         }
     }
 
-    private val constants = mutableSetOf<FuzzedConcreteValue>()
-    private val paramNames = method.arguments.mapNotNull { param ->
-        if (param.type == pythonAnyClassId) param.name else null
+    private val paramNames = method.arguments.mapIndexedNotNull { index, param ->
+        if (argumentTypes[index] == pythonAnyClassId) param.name else null
     }
     private val collectedValues = mutableMapOf<String, Storage>()
-    private val visitor = MatchVisitor(paramNames, constants)
+    private val visitor = MatchVisitor(paramNames, mutableSetOf())
 
     init {
         visitor.visitFunctionDef(method.ast(), collectedValues)
     }
 
     fun suggestBasedOnConstants(): List<Set<ClassId>> {
-        return method.arguments.map { param ->
-            if (param.type == pythonAnyClassId)
+        return method.arguments.mapIndexed { index, param ->
+            if (argumentTypes[index] == pythonAnyClassId)
                 collectedValues[param.name]?.typeStorages?.map { ClassId(it.name) }?.toSet() ?: emptySet()
             else
-                setOf(param.type)
+                setOf(argumentTypes[index])
         }
     }
 
-    fun getConstants(): List<FuzzedConcreteValue> = constants.toList()
+    fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()
 
     fun getPriorityStorages(): Map<String, List<BaseStorage>> {
        return collectedValues.entries.associate { (argName, storage) ->
@@ -111,7 +110,7 @@ class ArgInfoCollector(val method: PythonMethod) {
         val constStorage: MutableSet<FuzzedConcreteValue>
     ): ModifierVisitor<MutableMap<String, Storage>>() {
 
-        private val knownTypes = PythonTypesStorage.builtinTypes.map { it.name }
+        private val knownTypes = PythonTypesStorage.builtinTypes
         private fun <A, N> namePat(): Parser<(String) -> A, A, N> {
             val names: List<Parser<(String) -> A, A, N>> = paramNames.map { paramName ->
                 map0(refl(name(equal(paramName))), paramName)
@@ -133,15 +132,15 @@ class ArgInfoCollector(val method: PythonMethod) {
         private fun <A> typedExpressionPat(): Parser<(TypeStorage) -> A, A, Expression> {
             // map must preserve order
             val typeMap = linkedMapOf<String, Parser<A, A, Expression>>(
-                "int" to refl(num(int())),
-                "float" to refl(num(drop())),
-                "str" to refl(str(drop())),
-                "bool" to or(refl(true_()), refl(false_())),
-                "NoneType" to refl(none()),
-                "dict" to refl(dict(drop(), drop())),
-                "list" to refl(list(drop())),
-                "set" to refl(set(drop())),
-                "tuple" to refl(tuple(drop()))
+                "builtins.int" to refl(num(int())),
+                "builtins.float" to refl(num(drop())),
+                "builtins.str" to refl(str(drop())),
+                "builtins.bool" to or(refl(true_()), refl(false_())),
+                "types.NoneType" to refl(none()),
+                "builtins.dict" to refl(dict(drop(), drop())),
+                "builtins.list" to refl(list(drop())),
+                "builtins.set" to refl(set(drop())),
+                "builtins.tuple" to refl(tuple(drop()))
             )
             knownTypes.forEach { typeName ->
                 if (typeMap.containsKey(typeName))

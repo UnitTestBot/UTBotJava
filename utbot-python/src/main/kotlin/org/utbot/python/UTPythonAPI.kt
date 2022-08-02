@@ -5,11 +5,11 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.*
 
-data class PythonArgument(val name: String, val type: ClassId)
+data class PythonArgument(val name: String, val annotation: String?)
 
 interface PythonMethod {
     val name: String
-    val returnType: ClassId?
+    val returnAnnotation: String?
     val arguments: List<PythonArgument>
     fun asString(): String
     fun ast(): FunctionDef

@@ -190,7 +190,7 @@ sealed class CgMethod(open val isStatic: Boolean) : CgElement {
     abstract val statements: List<CgStatement>
     abstract val exceptions: Set<ClassId>
     abstract val annotations: List<CgAnnotation>
-    abstract val documentation: List<CgComment>
+    abstract val documentation: CgDocumentationComment
     abstract val requiredFields: List<CgParameterDeclaration>
 }
 
@@ -202,14 +202,14 @@ class CgTestMethod(
     override val exceptions: Set<ClassId>,
     override val annotations: List<CgAnnotation>,
     val type: CgTestMethodType,
-    override val documentation: List<CgComment> = emptyList(),
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList()),
     override val requiredFields: List<CgParameterDeclaration> = emptyList(),
 ) : CgMethod(false)
 
 class CgErrorTestMethod(
     override val name: String,
     override val statements: List<CgStatement>,
-    override val documentation: List<CgComment> = emptyList()
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
 ) : CgMethod(false) {
     override val exceptions: Set<ClassId> = emptySet()
     override val returnType: ClassId = voidClassId
@@ -226,7 +226,7 @@ class CgParameterizedTestDataProviderMethod(
     override val exceptions: Set<ClassId>,
 ) : CgMethod(isStatic = true) {
     override val parameters: List<CgParameterDeclaration> = emptyList()
-    override val documentation: List<CgDocumentationComment> = emptyList()
+    override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
     override val requiredFields: List<CgParameterDeclaration> = emptyList()
 }
 

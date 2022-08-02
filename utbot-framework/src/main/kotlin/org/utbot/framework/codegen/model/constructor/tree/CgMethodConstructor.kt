@@ -1601,7 +1601,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
 
         /* Add a short test's description depending on the test framework type:
-           DisplayName in case of JUni5, and description argument to Test annotation in case of TestNG.
+           DisplayName annotation in case of JUni5, and description argument to Test annotation in case of TestNG.
          */
         if (displayName != null) {
             when (testFramework) {
@@ -1661,18 +1661,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             }
 
-            val documentationComment = if (parameterized) {
+            documentation = CgDocumentationComment(docComment)
+            documentation = if (parameterized) {
                 CgDocumentationComment(text = null)
             } else {
                 CgDocumentationComment(docComment)
-            }
-            documentation.add(documentationComment)
-
-            /* JUnit4 doesn't have DisplayName annotation and any other suitable for putting short description,
-               that's why we add a single line comment below JavaDoc with a test's short description.
-             */
-            if (testFramework is Junit4 && displayName != null) {
-                documentation.add(CgSingleLineComment(displayName))
             }
         }
         testMethods += testMethod

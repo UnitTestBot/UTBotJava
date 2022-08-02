@@ -30,8 +30,11 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.underlyingType
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -45,6 +48,10 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.plugin.api.util.builtinStaticMethodId
+import org.utbot.framework.plugin.api.util.methodId
+import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.objectClassId
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -123,6 +130,40 @@ internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
 
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
+
+/**
+ * A [MethodId] to add an item into [ArrayList].
+ */
+internal val addToListMethodId: MethodId
+    get() = methodId(
+        classId = ArrayList::class.id,
+        name = "add",
+        returnType = booleanClassId,
+        arguments = arrayOf(Object::class.id),
+    )
+
+/**
+ * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
+ */
+internal val argumentsClassId: BuiltinClassId
+    get() = BuiltinClassId(
+        name = "org.junit.jupiter.params.provider.Arguments",
+        simpleName = "Arguments",
+        canonicalName = "org.junit.jupiter.params.provider.Arguments",
+        packageName = "org.junit.jupiter.params.provider"
+    )
+
+/**
+ * A [MethodId] to call JUnit Arguments method.
+ */
+internal val argumentsMethodId: BuiltinMethodId
+    get() = builtinStaticMethodId(
+        classId = argumentsClassId,
+        name = "arguments",
+        returnType = argumentsClassId,
+        // vararg of Objects
+        arguments = arrayOf(objectArrayClassId)
+    )
 
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()
@@ -221,6 +262,24 @@ internal fun CgContextOwner.typeCast(
     return CgTypeCast(targetType, expression, isSafetyCast)
 }
 
+/**
+ * Sets an element of arguments array in parameterized test,
+ * if test framework represents arguments as array.
+ */
+internal fun <T> T.setArgumentsArrayElement(
+    array: CgVariable,
+    index: Int,
+    value: CgExpression,
+    constructor: CgStatementConstructor
+) where T : CgContextOwner, T: CgCallableAccessManager {
+    when (array.type) {
+        objectClassId -> {
+            +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+        }
+        else -> with(constructor) { array.at(index) `=` value }
+    }
+}
+
 @Suppress("unused")
 internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAllocateInitializedArray {
     val arrayType = arrayTypeOf(elementType)
@@ -229,6 +288,7 @@ internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAll
 
 internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: List<CgExpression>): CgArrayInitializer =
     CgArrayInitializer(arrayType, elementType, values)
+
 
 /**
  * For a given [elementType] returns a [ClassId] of an array with elements of this type.

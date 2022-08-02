@@ -88,13 +88,4 @@ internal class CastExampleTest : UtValueTestCaseChecker(
             coverage = DoNotCalculate
         )
     }
-
-    @Test
-    fun testThisTypeChoice() {
-        check(
-            CastClass::castToInheritor,
-            eq(0),
-            coverage = DoNotCalculate
-        )
-    }
 }

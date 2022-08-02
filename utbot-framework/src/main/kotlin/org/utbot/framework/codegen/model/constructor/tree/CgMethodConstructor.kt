@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
-import org.utbot.common.packageName
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
@@ -379,7 +378,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
 
         val warningLine = mutableListOf(
-            "This test fails because method [$executableName] produces [$exception]"
+            "This test fails because method [$executableName] produces [$exception]".escapeControlChars()
         )
 
         val neededStackTraceLines = mutableListOf<String>()
@@ -395,6 +394,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
 
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
+    }
+
+    private fun String.escapeControlChars() : String {
+        return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
     }
 
     private fun writeWarningAboutCrash() {

@@ -3,43 +3,265 @@ name: "[M] UTBot Java: build and run tests"
 on:
   workflow_dispatch
   
+env:
+  GRADLE_BUILD_CMD: "gradle clean build --no-daemon"
+  GRADLE_RUN_FRAMEWORK_TESTS_CMD: "gradle --no-daemon :utbot-framework:test --tests"
+  KOTLIN_C_EXEC_STRATEGY: "-Dkotlin.compiler.execution.strategy=out-of-process"
+
 jobs:
-  build-and-run-tests:
-    runs-on: ubuntu-20.04
+#   utbot-analytics:
+#     runs-on: ubuntu-20.04
+#     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#     steps:
+#       - uses: actions/checkout@v2
+
+#       - name: Build and run test
+#         run: |
+#           cd utbot-analytics
+#           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+          
+#   utbot-api:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-api
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-cli:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-cli
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-core:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-core
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-framework-api:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-framework-api
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-framework-lightweight:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
+#               --tests "org.utbot.examples.assemble.*" \
+#               --tests "org.utbot.examples.manual.*" \
+#               --tests "org.utbot.examples.modificators.*" \
+#               --tests "org.utbot.engine.*" \
+#               --tests "org.utbot.framework.*" \
+#               --tests "org.utbot.sarif.*"
+              
+#         - name: Upload utbot-framework logs
+#           if: ${{ always() }}
+#           uses: actions/upload-artifact@v2
+#           with:
+#             name: framework_lightweight_logs
+#             path: utbot-framework/logs/*
+            
+#         - name: Upload utbot-framework tests report artifacts if tests have failed
+#           if: ${{ failure() }}
+#           uses: actions/upload-artifact@v2
+#           with:
+#             name: framework_lightweight_tests_report
+#             path: utbot-framework/build/reports/tests/test/*
+              
+  utbot-framework-collections:
+    runs-on: [self-hosted, blue]
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v2
-      with:
-        java-version: '11'
-        distribution: 'zulu'
-        java-package: jdk+fx
-        cache: gradle
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 7.4.2
+      - uses: actions/checkout@v2
+
+      - name: Build and run test
+        run: |
+          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
+            --tests "org.utbot.examples.collections.*"
+      - name: Upload utbot-framework logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: framework_collections_logs
+          path: utbot-framework/logs/*
+
+      - name: Upload utbot-framework tests report artifacts if tests have failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: framework_collections_tests_report
+          path: utbot-framework/build/reports/tests/test/*
+          
+#   utbot-framework-stream:
+#     runs-on: ubuntu-20.04
+#     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#     steps:
+#       - uses: actions/checkout@v2
+
+#       - name: Build and run test
+#         run: |
+#           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
+#             --tests "org.utbot.examples.stream.*"
+#       - name: Upload utbot-framework logs
+#         if: ${{ always() }}
+#         uses: actions/upload-artifact@v2
+#         with:
+#           name: framework_stream_logs
+#           path: utbot-framework/logs/*
+
+#       - name: Upload utbot-framework tests report artifacts if tests have failed
+#         if: ${{ failure() }}
+#         uses: actions/upload-artifact@v2
+#         with:
+#           name: framework_stream_tests_report
+#           path: utbot-framework/build/reports/tests/test/*
+          
+#   utbot-framework-examples:
+#     runs-on: [self-hosted, blue]
+#     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#     steps:
+#       - uses: actions/checkout@v2
+
+#       - name: Build and run test
+#         run: |
+#           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
+#             -PexcludeTests='org.utbot.examples.assemble.*,org.utbot.examples.manual.*,org.utbot.examples.modificators.*,org.utbot.examples.collections.*,org.utbot.examples.stream.*' \
+#             --tests "org.utbot.examples.*"
+#       - name: Upload utbot-framework logs
+#         if: ${{ always() }}
+#         uses: actions/upload-artifact@v2
+#         with:
+#           name: framework_examples_logs
+#           path: utbot-framework/logs/*
+
+#       - name: Upload utbot-framework tests report artifacts if tests have failed
+#         if: ${{ failure() }}
+#         uses: actions/upload-artifact@v2
+#         with:
+#           name: framework_examples_tests_report
+#           path: utbot-framework/build/reports/tests/test/*
+            
+#   utbot-fuzzers:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-fuzzers
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-gradle:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-gradle
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-instrumentation-with-tests:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2        
+
+#         - name: Build
+#           run: |
+#             cd utbot-instrumentation
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+#         - name: Run test
+#           run: |
+#             cd utbot-instrumentation-tests
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#         - name: Upload utbot-instrumentation tests report artifacts if tests have failed
+#           if: ${{ failure() }}
+#           uses: actions/upload-artifact@v2
+#           with:
+#             name: utbot_instrumentation_tests_report
+#             path: utbot-instrumentation/build/reports/tests/test/*         
+            
+#   utbot-intellij:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-intellij
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#         - name: Upload utbot-intellij tests report artifacts if tests have failed
+#           if: ${{ failure() }}
+#           uses: actions/upload-artifact@v2
+#           with:
+#             name: utbot_intellij_tests_report
+#             path: utbot-intellij/build/reports/tests/test/*
+            
+#   utbot-junit-contest:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-junit-contest
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+                        
+#   utbot-sample:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
+
+#         - name: Build and run test
+#           run: |
+#             cd utbot-sample
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+            
+#   utbot-summary-with-tests:
+#       runs-on: ubuntu-20.04
+#       container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+#       steps:
+#         - uses: actions/checkout@v2
         
-    - name: Build and run tests in UTBot Java
-      run: |
-        export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
-        
-    - name: Upload utbot-framework logs
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
-      
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_tests_report
-        path: utbot-framework/build/reports/tests/test/*
-        
-    - name: Upload utbot-intellij tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_intellij_tests_report
-        path: utbot-intellij/build/reports/tests/test/*
+#         - name: Build
+#           run: |
+#             cd utbot-summary
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon
+#         - name: Run test
+#           run: |
+#             cd utbot-summary-tests
+#             GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle build --no-daemon

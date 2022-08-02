@@ -1,37 +1,12 @@
 package org.utbot.framework.codegen.model.util
 
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgDecrement
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgGetClass
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
-import org.utbot.framework.codegen.model.tree.CgGetLength
-import org.utbot.framework.codegen.model.tree.CgGreaterThan
-import org.utbot.framework.codegen.model.tree.CgIncrement
-import org.utbot.framework.codegen.model.tree.CgLessThan
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
 
 fun CgExpression.at(index: Any?): CgArrayElementAccess =
     CgArrayElementAccess(this, index.resolve())

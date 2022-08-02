@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import kotlinx.coroutines.runBlocking
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
@@ -11,18 +12,9 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.MethodExecutableId
+import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.packageName
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 
@@ -718,11 +710,15 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     protected fun String.escapeNamePossibleKeyword(): String = escapeNamePossibleKeywordImpl(this)
 
-    protected fun ClassId.asString(): String {
-        if (!context.shouldOptimizeImports) return name
-
-        // use simpleNameWithEnclosings instead of simpleName to consider nested classes case
-        return if (isAccessibleBySimpleName()) simpleNameWithEnclosings else name
+    protected fun ClassId.asString(): String = runBlocking{
+        val outer = outerClass()
+        when {
+            !context.shouldOptimizeImports -> name
+            // use simpleNameWithEnclosings instead of simpleName to consider nested classes case
+            isAccessibleBySimpleName() && outer != null-> outer.simpleName + "." + simpleName
+            isAccessibleBySimpleName() && outer == null-> simpleName
+            else -> name
+        }
     }
 
     private fun renderClassPackage(element: CgTestClass) {

@@ -96,7 +96,7 @@ fun Class<*>.singleExecutableId(signature: String): ExecutableId =
 /**
  * Finds callable for class method by signature. Supports constructors, static and non-static methods.
  */
-fun Class<*>.singleExecutableIdOrNull(signature: String) = if (isConstructorSignature(signature)) {
+fun Class<*>.singleExecutableIdOrNull(signature: String): ExecutableId? = if (isConstructorSignature(signature)) {
     singleConstructorOrNull(signature)?.executableId
 } else {
     singleMethodOrNull(signature)?.executableId

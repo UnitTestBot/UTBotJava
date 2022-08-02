@@ -10,24 +10,15 @@ import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
+import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.*
-import org.utbot.framework.plugin.api.util.hasField
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.hasThisInstance
 import org.utbot.jcdb.api.ClassId
 import java.lang.reflect.Array
-import kotlin.collections.drop
-import kotlin.collections.filter
-import kotlin.collections.first
-import kotlin.collections.isNotEmpty
-import kotlin.collections.lastIndex
 import kotlin.collections.set
-import kotlin.collections.withIndex
 
 internal interface CgFieldStateManager {
     fun rememberInitialEnvironmentState(info: StateModificationInfo)
@@ -230,7 +221,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
 
     private fun variableForStaticFieldState(owner: ClassId, fieldPath: FieldPath, customName: String?): CgVariable {
         val firstField = (fieldPath.elements.first() as FieldAccess).field
-        val firstAccessor = if (owner.isAccessibleFrom(testClassPackageName) && firstField.isAccessibleFrom(testClassPackageName)) {
+        val firstAccessor: CgExpression = if (owner.isAccessibleFrom(testClassPackageName) && firstField.isAccessibleFrom(testClassPackageName)) {
             owner[firstField]
         } else {
             // TODO: there is a function getClassOf() for these purposes, but it is not accessible from here for now

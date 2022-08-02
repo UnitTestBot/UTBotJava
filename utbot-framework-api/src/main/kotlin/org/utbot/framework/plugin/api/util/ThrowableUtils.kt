@@ -9,9 +9,6 @@ val Throwable.description
 val Throwable.isCheckedException
     get() = !(this is RuntimeException || this is Error)
 
-val Class<*>.isCheckedException
-    get() = !(RuntimeException::class.java.isAssignableFrom(this) || Error::class.java.isAssignableFrom(this))
-
 suspend fun ClassId.allParents(): List<ClassId> {
     var clazz = this
     val list = arrayListOf<ClassId>()

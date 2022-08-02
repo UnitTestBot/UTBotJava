@@ -10,7 +10,6 @@ import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.createTestClassName
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.jcdb.api.ClassId
@@ -40,7 +39,7 @@ internal interface CgContextOwner {
     val classUnderTest: ClassId
 
     // test class currently being generated
-    val currentTestClass: ClassId
+    val currentTestClass: BuiltinClassId
 
     // current executable under test
     var currentExecutable: ExecutableId?
@@ -386,7 +385,7 @@ internal data class CgContext(
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
 
-    override val currentTestClass: ClassId get() {
+    override val currentTestClass: BuiltinClassId get() {
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
         val simpleName = testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
         val name = "$packagePrefix$simpleName"

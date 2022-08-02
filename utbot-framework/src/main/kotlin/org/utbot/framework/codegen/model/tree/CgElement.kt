@@ -363,8 +363,8 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
             CgDocPreTagStatement(content = stmts)
         }
         is DocRegularStmt -> CgDocRegularStmt(stmt = stmt.stmt)
-        is DocClassLinkStmt -> CgDocClassLinkStmt(className = stmt.className)
         is DocMethodLinkStmt -> CgDocMethodLinkStmt(methodName = stmt.methodName, stmt = stmt.className)
+        is DocClassLinkStmt -> CgDocClassLinkStmt(className = stmt.className)
         is DocCodeStmt -> CgDocCodeStmt(stmt = stmt.stmt)
     }
 }

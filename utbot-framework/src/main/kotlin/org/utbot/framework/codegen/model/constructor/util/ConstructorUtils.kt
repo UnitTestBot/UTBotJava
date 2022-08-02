@@ -304,9 +304,6 @@ internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !isDefa
 internal operator fun UtArrayModel.get(index: Int): UtModel = stores[index] ?: constModel
 
 
-internal fun ClassId.utilMethodId(name: String, returnType: ClassId, vararg arguments: ClassId): MethodId =
-    BuiltinMethodId(this, name, returnType, arguments.toList())
-
 fun ClassId.toImport(): RegularImport = runBlocking {
     val outerClass = outerClass()
     val name = when {

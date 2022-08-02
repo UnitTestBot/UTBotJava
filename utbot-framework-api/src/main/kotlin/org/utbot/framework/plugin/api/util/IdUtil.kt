@@ -450,7 +450,7 @@ fun MethodId.asExecutableConstructor(): ConstructorExecutableId {
 fun BuiltinClassId.newBuiltinMethod(
     name: String,
     returnType: ClassId,
-    arguments: List<ClassId>
+    arguments: List<ClassId> = emptyList()
 ): BuiltinMethodId {
     return BuiltinMethodId(this, name, returnType, arguments, false)
 }

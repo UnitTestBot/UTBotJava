@@ -10,8 +10,8 @@ import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.util.asExecutableMethod
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.jcdb.api.MethodId
 import kotlin.reflect.KClass
@@ -139,7 +139,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 utilMethods += CgUtilMethod(method)
                 importUtilMethodDependencies(method)
                 existingMethodNames += method.name
-                requiredUtilMethods += method.dependencies()
+                requiredUtilMethods += method.dependencies().map { it.asExecutableMethod() }
             }
         }
         return utilMethods

@@ -1,9 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
-import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.runBlocking
 import org.utbot.common.PathUtil
-import org.utbot.engine.isStatic
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
@@ -24,11 +22,11 @@ import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
-import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -162,10 +160,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Generates result assertions for unit tests.
      */
     private fun generateResultAssertions() {
-        when (currentExecutable) {
-            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
-            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
-            is MethodId -> {
+        when (val executable = currentExecutable) {
+            is ConstructorExecutableId -> generateConstructorCall(executable, currentExecution!!)
+            is MethodExecutableId -> {
+                val method = executable.methodId
+                if (method is BuiltinMethodId) {
+                    error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
+                }
                 emptyLineIfNeeded()
 
                 val currentExecution = currentExecution!!
@@ -290,8 +291,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         emptyLineIfNeeded()
 
         when (currentExecutable) {
-            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
-            is MethodId -> {
+            is ConstructorExecutableId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
+            is MethodExecutableId -> {
                 val method = currentExecutable as MethodId
                 currentExecution!!.result
                     .onSuccess { result ->
@@ -886,7 +887,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun generateConstructorCall(currentExecutableId: ExecutableId, currentExecution: UtExecution) {
         // we cannot generate any assertions for constructor testing
         // but we need to generate a constructor call
-        val constructorCall = currentExecutableId as ConstructorId
+        val constructorCall = currentExecutableId as ConstructorExecutableId
         currentExecution.result
             .onSuccess {
                 methodType = SUCCESSFUL
@@ -1173,13 +1174,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = BuiltinClassId(
-                            name = classClassId.name,
-                            simpleName = classClassId.simpleName,
-                            canonicalName = classClassId.canonicalName,
-                            packageName = classClassId.packageName,
-                            typeParameters = TypeParameters(listOf(Throwable::class.java.id))
-                        ),
+                        type = builtInClass(name = classClassId.name)
+//                            typeParameters = TypeParameters(listOf(Throwable::class.java.id))
+                        ,
                         name = nameGenerator.variableName(expectedErrorVarName)
                     ),
                     // exceptions are always reference type
@@ -1371,8 +1368,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return when (testFramework) {
             Junit5 ->
                 newVar(argListClassId, argListName) {
-                    val constructor = ConstructorId(argListClassId, emptyList())
-                    constructor.invoke()
+                    val constructor =
+                        DefaultReflectionProvider.provideReflectionExecutable(argListClassId.findConstructor()) as Constructor<*>
+                    constructor.resolve()
                 }
             TestNg ->
                 newVar(argListClassId, argListName) {
@@ -1387,36 +1385,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private val argListClassId: ClassId
         get() = when (testFramework) {
-            Junit5 -> {
-                val arrayListId = java.util.ArrayList::class.id
-                BuiltinClassId(
-                    name = arrayListId.name,
-                    simpleName = arrayListId.simpleName,
-                    canonicalName = arrayListId.canonicalName,
-                    packageName = arrayListId.packageName,
-                    typeParameters = TypeParameters(listOf(argumentsClassId))
-                )
-            }
-            TestNg -> {
-                val outerArrayId = Array<Array<Any?>?>::class.id
-                val innerArrayId = BuiltinClassId(
-                    name = objectArrayClassId.name,
-                    simpleName = objectArrayClassId.simpleName,
-                    canonicalName = objectArrayClassId.canonicalName,
-                    packageName = objectArrayClassId.packageName,
-                    elementClassId = objectClassId,
-                    typeParameters = TypeParameters(listOf(objectClassId))
-                )
-
-                BuiltinClassId(
-                    name = outerArrayId.name,
-                    simpleName = outerArrayId.simpleName,
-                    canonicalName = outerArrayId.canonicalName,
-                    packageName = outerArrayId.packageName,
-                    elementClassId = innerArrayId,
-                    typeParameters = TypeParameters(listOf(innerArrayId))
-                )
-            }
+            Junit5 -> java.util.ArrayList::class.id
+            TestNg -> Array<Array<Any?>?>::class.id
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
 
@@ -1435,19 +1405,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
      */
     private val argumentsClassId: BuiltinClassId
-        get() = BuiltinClassId(
-            name = "org.junit.jupiter.params.provider.Arguments",
-            simpleName = "Arguments",
-            canonicalName = "org.junit.jupiter.params.provider.Arguments",
-            packageName = "org.junit.jupiter.params.provider"
-        )
+        get() = builtInClass(name = "org.junit.jupiter.params.provider.Arguments")
 
     /**
      * A [MethodId] to call JUnit Arguments method.
      */
     private val argumentsMethodId: BuiltinMethodId
-        get() = builtinStaticMethodId(
-            classId = argumentsClassId,
+        get() = argumentsClassId.newBuiltinMethod(
             name = "arguments",
             returnType = argumentsClassId,
             // vararg of Objects
@@ -1543,7 +1507,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return testMethod
     }
 
-    private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
+    private fun dataProviderMethod(
+        dataProviderMethodName: String,
+        body: () -> Unit
+    ): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
             returnType = argListClassId

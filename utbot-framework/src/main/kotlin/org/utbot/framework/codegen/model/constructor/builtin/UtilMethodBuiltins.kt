@@ -2,7 +2,6 @@ package org.utbot.framework.codegen.model.constructor.builtin
 
 import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.util.*
@@ -16,7 +15,7 @@ import sun.misc.Unsafe
  * The class may actually not have some of these methods if they
  * are not required in the process of code generation
  */
-internal val ClassId.possibleUtilMethodIds: Set<MethodId>
+internal val BuiltinClassId.possibleUtilMethodIds: Set<MethodId>
     get() = setOf(
         getUnsafeInstanceMethodId,
         createInstanceMethodId,
@@ -35,8 +34,8 @@ internal val ClassId.possibleUtilMethodIds: Set<MethodId>
         getArrayLengthMethodId
     )
 
-internal val ClassId.getUnsafeInstanceMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.getUnsafeInstanceMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "getUnsafeInstance",
             returnType = Unsafe::class.id,
     )
@@ -44,102 +43,102 @@ internal val ClassId.getUnsafeInstanceMethodId: MethodId
 /**
  * Method that creates instance using Unsafe
  */
-internal val ClassId.createInstanceMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.createInstanceMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "createInstance",
             returnType = CgClassId(objectClassId, isNullable = true),
-            arguments = arrayOf(stringClassId)
+            arguments = listOf(stringClassId)
     )
 
-internal val ClassId.createArrayMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.createArrayMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "createArray",
             returnType = Array<Any>::class.id,
-            arguments = arrayOf(stringClassId, intClassId, Array<Any>::class.id)
+            arguments = listOf(stringClassId, intClassId, Array<Any>::class.id)
     )
 
-internal val ClassId.setFieldMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.setFieldMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "setField",
             returnType = voidClassId,
-            arguments = arrayOf(objectClassId, stringClassId, objectClassId)
+            arguments = listOf(objectClassId, stringClassId, objectClassId)
     )
 
-internal val ClassId.setStaticFieldMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.setStaticFieldMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "setStaticField",
             returnType = voidClassId,
-            arguments = arrayOf(Class::class.id, stringClassId, objectClassId)
+            arguments = listOf(Class::class.id, stringClassId, objectClassId)
     )
 
-internal val ClassId.getFieldValueMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.getFieldValueMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "getFieldValue",
             returnType = objectClassId,
-            arguments = arrayOf(objectClassId, stringClassId)
+            arguments = listOf(objectClassId, stringClassId)
     )
 
-internal val ClassId.getStaticFieldValueMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.getStaticFieldValueMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "getStaticFieldValue",
             returnType = objectClassId,
-            arguments = arrayOf(Class::class.id, stringClassId)
+            arguments = listOf(Class::class.id, stringClassId)
     )
 
-internal val ClassId.getEnumConstantByNameMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.getEnumConstantByNameMethodId: MethodId
+    get() = newBuiltinMethod(
             name = "getEnumConstantByName",
             returnType = objectClassId,
-            arguments = arrayOf(Class::class.id, stringClassId)
+            arguments = listOf(Class::class.id, stringClassId)
     )
 
-internal val ClassId.deepEqualsMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.deepEqualsMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "deepEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(objectClassId, objectClassId)
+        arguments = listOf(objectClassId, objectClassId)
     )
 
-internal val ClassId.arraysDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.arraysDeepEqualsMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "arraysDeepEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(objectClassId, objectClassId)
+        arguments = listOf(objectClassId, objectClassId)
     )
 
-internal val ClassId.iterablesDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.iterablesDeepEqualsMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "iterablesDeepEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
+        arguments = listOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
     )
 
-internal val ClassId.streamsDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.streamsDeepEqualsMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "streamsDeepEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
+        arguments = listOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
     )
 
-internal val ClassId.mapsDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.mapsDeepEqualsMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "mapsDeepEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(java.util.Map::class.id, java.util.Map::class.id)
+        arguments = listOf(java.util.Map::class.id, java.util.Map::class.id)
     )
 
-internal val ClassId.hasCustomEqualsMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.hasCustomEqualsMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "hasCustomEquals",
         returnType = booleanClassId,
-        arguments = arrayOf(Class::class.id)
+        arguments = listOf(Class::class.id)
     )
 
-internal val ClassId.getArrayLengthMethodId: MethodId
-    get() = utilMethodId(
+internal val BuiltinClassId.getArrayLengthMethodId: MethodId
+    get() = newBuiltinMethod(
         name = "getArrayLength",
         returnType = intClassId,
-        arguments = arrayOf(objectClassId)
+        arguments = listOf(objectClassId)
     )
 
 /**

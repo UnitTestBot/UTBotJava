@@ -4,22 +4,6 @@ import kotlinx.collections.immutable.PersistentList
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.*
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.invoke
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.*
@@ -30,7 +14,10 @@ import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.jcdb.api.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.isPrimitive
 
 typealias Block = PersistentList<CgStatement>
 
@@ -87,22 +74,22 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return methodCall
     }
 
-    private fun newMethodCall(methodId: MethodExecutableId) {
-        if (methodId.isUtil) requiredUtilMethods += methodId
-        importIfNeeded(methodId)
+    private fun newMethodCall(methodExecutable: MethodExecutableId) {
+        if (methodExecutable.isUtil) requiredUtilMethods += methodExecutable
+        importIfNeeded(methodExecutable)
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
-        if (methodId is BuiltinMethodId) {
-            methodId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
+        if (methodExecutable.methodId is BuiltinMethodId) {
+            methodExecutable.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
             return
         }
 
-        if (methodId.methodId == getTargetException) {
+        if (methodExecutable.methodId == getTargetException) {
             addExceptionIfNeeded(Throwable::class.id)
         }
 
-        val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
+        val methodIsUnderTestAndThrowsExplicitly = methodExecutable == currentExecutable
                 && currentExecution?.result is UtExplicitlyThrownException
         val frameworkSupportsAssertThrows = testFramework == Junit5 || testFramework == TestNg
 
@@ -112,7 +99,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return
         }
 
-        methodId.executable.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
+        methodExecutable.executable.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
     }
 
     private fun newConstructorCall(constructorId: ConstructorExecutableId) {
@@ -124,8 +111,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     //WARN: if you make changes in the following sets of exceptions,
     //don't forget to change them in hardcoded [UtilMethods] as well
-    private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
-        if (!this.isUtil) return emptySet()
+    private fun MethodExecutableId.findExceptionTypes(): Set<ClassId> {
+        if (!isUtil) return emptySet()
 
         with(currentTestClass) {
             return when (this@findExceptionTypes) {
@@ -159,7 +146,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
         // TODO: SAT-1210 support generics so that we wouldn't need to check specific cases such as this one
-        if (this is CgExecutableCall && (executableId == any || executableId == anyOfClass)) {
+        if (this is CgExecutableCall && (executableId.methodId == any || executableId.methodId == anyOfClass)) {
             return true
         }
         return this == nullLiteral() && type.isAccessibleFrom(testClassPackageName)

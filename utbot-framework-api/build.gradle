@@ -15,6 +15,7 @@ dependencies {
     implementation group: 'org.ow2.asm', name: 'asm', version: asm_version
 
     api group: 'com.github.UnitTestBot.jcdb', name: 'jcdb-core', version: '69b1effdc8'
+    api group: 'com.github.UnitTestBot.jcdb', name: 'jcdb-remote-rd', version: '69b1effdc8'
 }
 
 shadowJar {

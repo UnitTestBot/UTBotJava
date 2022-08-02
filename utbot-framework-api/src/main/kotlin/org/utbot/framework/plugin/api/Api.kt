@@ -748,6 +748,7 @@ val Type.classId: ClassId
  */
 class BuiltinClassId(
     override val name: String,
+    private val isNested: Boolean
     // by default we assume that the class is not a member class
 ) : VirtualClassId {
 
@@ -771,7 +772,12 @@ class BuiltinClassId(
 
     override suspend fun methods() = methods.toPersistentList()
 
-    override suspend fun outerClass() = null
+    override suspend fun outerClass(): ClassId? {
+        if (isNested) {
+            return objectClassId // not so accurate but still
+        }
+        return null
+    }
 
     override suspend fun outerMethod() = null
 
@@ -790,15 +796,14 @@ class BuiltinClassId(
 
 }
 
-fun builtInClass(name: String, action: BuiltinClassId.() -> Unit = {}): BuiltinClassId {
-    return BuiltinClassId(name).let {
+fun builtInClass(name: String, isNested: Boolean = false, action: BuiltinClassId.() -> Unit = {}): BuiltinClassId {
+    return BuiltinClassId(name, isNested).let {
         val classpath = utContext.classpath as VirtualClasspathSet
         classpath.bind(it).also {
             it.action()
         }
     }
 }
-
 
 
 enum class FieldIdStrategyValues {
@@ -1064,7 +1069,7 @@ class BuiltinMethodId(
     // by default we assume that the builtin method is non-static and public
 ) : MethodId {
 
-    override suspend fun access() = if(isStatic) Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC
+    override suspend fun access() = if (isStatic) Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC
 
     override suspend fun annotations() = emptyList<ClassId>()
 

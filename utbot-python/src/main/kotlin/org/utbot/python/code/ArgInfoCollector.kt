@@ -46,12 +46,13 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         val functionRetStorages: MutableSet<FunctionRetStorage> = mutableSetOf()
     ) {
         fun toList(): List<BaseStorage> {
-            return (listOf(typeStorages) + listOf(
+            return listOf(
+                typeStorages,
                 methodStorages,
                 functionRetStorages,
                 fieldStorages,
                 functionRetStorages
-            ).sortedBy { it.size }).flatten()
+            ).flatten()
         }
     }
 
@@ -65,18 +66,9 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         visitor.visitFunctionDef(method.ast(), collectedValues)
     }
 
-    fun suggestBasedOnConstants(): List<Set<ClassId>> {
-        return method.arguments.mapIndexed { index, param ->
-            if (argumentTypes[index] == pythonAnyClassId)
-                collectedValues[param.name]?.typeStorages?.map { ClassId(it.name) }?.toSet() ?: emptySet()
-            else
-                setOf(argumentTypes[index])
-        }
-    }
-
     fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()
 
-    fun getPriorityStorages(): Map<String, List<BaseStorage>> {
+    fun getAllStorages(): Map<String, List<BaseStorage>> {
        return collectedValues.entries.associate { (argName, storage) ->
            argName to storage.toList()
        }
@@ -110,7 +102,6 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         val constStorage: MutableSet<FuzzedConcreteValue>
     ): ModifierVisitor<MutableMap<String, Storage>>() {
 
-        private val knownTypes = PythonTypesStorage.builtinTypes
         private fun <A, N> namePat(): Parser<(String) -> A, A, N> {
             val names: List<Parser<(String) -> A, A, N>> = paramNames.map { paramName ->
                 map0(refl(name(equal(paramName))), paramName)
@@ -142,14 +133,15 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
                 "builtins.set" to refl(set(drop())),
                 "builtins.tuple" to refl(tuple(drop()))
             )
-            knownTypes.forEach { typeName ->
-                if (typeMap.containsKey(typeName))
-                    typeMap[typeName] = or(
-                        typeMap[typeName]!!,
-                        refl(functionCallWithoutPrefix(name(equal(typeName)), drop()))
+            PythonTypesStorage.builtinTypes.forEach { typeNameWithoutPrefix ->
+                val typeNameWithPrefix = "builtins.$typeNameWithoutPrefix"
+                if (typeMap.containsKey(typeNameWithPrefix))
+                    typeMap[typeNameWithPrefix] = or(
+                        typeMap[typeNameWithPrefix]!!,
+                        refl(functionCallWithoutPrefix(name(equal(typeNameWithoutPrefix)), drop()))
                     )
                 else
-                    typeMap[typeName] = refl(functionCallWithoutPrefix(name(equal(typeName)), drop()))
+                    typeMap[typeNameWithPrefix] = refl(functionCallWithoutPrefix(name(equal(typeNameWithoutPrefix)), drop()))
             }
             return typeMap.entries.fold(reject()) { acc, entry ->
                 or(acc, map0(typedExpr(entry.value), TypeStorage(entry.key)))

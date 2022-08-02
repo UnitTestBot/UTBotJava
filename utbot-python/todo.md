@@ -13,7 +13,7 @@
 - [x] обрабатывать вызов функции вида module.func()
 - [ ] учитывать AnnAssign
 - [ ] нормально парсить комплексные числа
-- [ ] config file в mypy
+- [ ] разобраться с `nan` (`nan == nan` -> `False`)
 
 Проблемы могут быть с: `__getitem__`/`__class_getitem__`,
 `__add__/__radd__/__iadd__`

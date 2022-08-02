@@ -91,7 +91,7 @@ object PythonTypesStorage {
 
     val builtinTypes: List<String>
         get() = TypesFromJSONStorage.preprocessedTypes.mapNotNull {
-            if (it.name.startsWith("builtins.")) it.name.removePrefix("builtins") else null
+            if (it.name.startsWith("builtins.")) it.name.removePrefix("builtins.") else null
         }
 
     private data class ProjectClass(

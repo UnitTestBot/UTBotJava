@@ -3,7 +3,6 @@ package org.utbot.engine
 import kotlinx.collections.immutable.*
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
-import org.utbot.common.findField
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -18,6 +17,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
+import org.utbot.framework.plugin.api.DefaultReflectionProvider
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
@@ -491,7 +491,12 @@ class Traverser(
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
-            else -> declaringClass.id.jClass.findField(field.name).let { it.withAccessibility { it.get(null) } }
+            else -> {
+                val classId = declaringClass.id
+                val fieldId = classId.findField(field.name)
+                val reflectionField = DefaultReflectionProvider.provideReflectionField(fieldId)
+                reflectionField.withAccessibility { reflectionField.get(null) }
+            }
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =

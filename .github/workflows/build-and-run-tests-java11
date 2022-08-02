@@ -1,0 +1,45 @@
+name: "[M] UTBot Java (11): build and run tests"
+
+on:
+  workflow_dispatch
+  
+jobs:
+  build-and-run-tests:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'zulu'
+        java-package: jdk+fx
+        cache: gradle
+    - uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 7.4.2
+        
+    - name: Build and run tests in UTBot Java
+      run: |
+        export KOTLIN_HOME="/usr"
+        gradle clean build --no-daemon
+        
+    - name: Upload utbot-framework logs
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: utbot_framework_logs
+        path: utbot-framework/logs/*
+      
+    - name: Upload utbot-framework tests report artifacts if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: utbot_framework_tests_report
+        path: utbot-framework/build/reports/tests/test/*
+        
+    - name: Upload utbot-intellij tests report artifacts if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v2
+      with:
+        name: utbot_intellij_tests_report
+        path: utbot-intellij/build/reports/tests/test/*

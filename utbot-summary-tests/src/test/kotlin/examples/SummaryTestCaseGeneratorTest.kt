@@ -11,6 +11,7 @@ import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.codegen.TestExecution
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
 import kotlin.reflect.KClass
@@ -56,6 +57,7 @@ open class SummaryTestCaseGeneratorTest(
             checkSolverTimeoutMillis = 0
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true
+            UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = false
         }
         val utMethod = UtMethod.from(method)
         val testSet = executionsModel(utMethod, mockStrategy)
@@ -65,6 +67,34 @@ open class SummaryTestCaseGeneratorTest(
         testSetWithSummarization.executions.checkMatchersWithMethodNames(methodNames)
         testSetWithSummarization.executions.checkMatchersWithDisplayNames(displayNames)
         testSetWithSummarization.checkClusterInfo(clusterInfo)
+    }
+
+    /**
+     * Checks summaries containing custom JavaDoc tags.
+     */
+    inline fun <reified R> checkSummariesWithCustomTags(
+        method: KFunction<R>,
+        mockStrategy: MockStrategyApi,
+        coverageMatcher: CoverageMatcher,
+        summaryKeys: List<String>,
+        methodNames: List<String>,
+        displayNames: List<String>
+    ) {
+        workaround(WorkaroundReason.HACK) {
+            // @todo change to the constructor parameter
+            checkSolverTimeoutMillis = 0
+            checkNpeInNestedMethods = true
+            checkNpeInNestedNotPrivateMethods = true
+            UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = true
+        }
+        val utMethod = UtMethod.from(method)
+        val testSet = executionsModel(utMethod, mockStrategy)
+        testSet.summarize(searchDirectory)
+        testSet.clustersInfo
+
+        testSet.executions.checkMatchersWithCustomTagsInSummary(summaryKeys)
+        testSet.executions.checkMatchersWithMethodNames(methodNames)
+        testSet.executions.checkMatchersWithDisplayNames(displayNames)
     }
 
     /**
@@ -158,6 +188,20 @@ open class SummaryTestCaseGeneratorTest(
                 }
             }
         }
+    }
+
+    fun List<UtExecution>.checkMatchersWithCustomTagsInSummary(
+        summaryTextKeys: List<String>,
+    ) {
+        if (summaryTextKeys.isEmpty()) {
+            return
+        }
+        val notMatchedExecutions = this.filter { execution ->
+            summaryTextKeys.none { summaryKey ->
+                execution.summary?.toString()?.contains(summaryKey) == true
+            }
+        }
+        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched comments ${summaries(notMatchedExecutions)}" }
     }
 
     fun List<UtExecution>.checkMatchersWithMethodNames(

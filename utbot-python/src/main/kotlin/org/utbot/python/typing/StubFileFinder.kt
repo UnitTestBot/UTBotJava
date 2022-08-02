@@ -4,10 +4,10 @@ import com.beust.klaxon.Klaxon
 
 object StubFileFinder {
 
-    private val builtinMethods: List<StubFileStructures.MethodDatasetInfo>
-    private val builtinFields: List<StubFileStructures.FieldDatasetInfo>
-    private val builtinFunctions: List<StubFileStructures.FunctionDatasetInfo>
-    private val builtinClasses: List<StubFileStructures.ClassDatasetInfo>
+    private val builtinMethods: List<StubFileStructures.MethodIndex>
+    private val builtinFields: List<StubFileStructures.FieldIndex>
+    private val builtinFunctions: List<StubFileStructures.FunctionIndex>
+    private val builtinClasses: List<StubFileStructures.ClassInfo>
 
     init {
         val methodResource = StubFileFinder::class.java.getResourceAsStream("/method_annotations.json")
@@ -25,20 +25,18 @@ object StubFileFinder {
         builtinClasses = Klaxon().parseArray(classResource) ?: emptyList()
     }
 
-    val methodToTypeMap: Map<String, List<StubFileStructures.ClassMethodInfo>> by lazy {
-        val result = mutableMapOf<String, List<StubFileStructures.ClassMethodInfo>>()
+    val methodToTypeMap: Map<String, List<StubFileStructures.FunctionInfo>> by lazy {
+        val result = mutableMapOf<String, List<StubFileStructures.FunctionInfo>>()
         builtinMethods.forEach { function ->
-            result[function.name] = function.typeInfos
+            result[function.name] = function.definitions
         }
         result
     }
 
-    val functionToAnnotationMap: Map<String, List<StubFileStructures.FunctionDefInfo>> by lazy {
-        val result = mutableMapOf<String, List<StubFileStructures.FunctionDefInfo>>()
+    val functionToTypeMap: Map<String, List<StubFileStructures.FunctionInfo>> by lazy {
+        val result = mutableMapOf<String, List<StubFileStructures.FunctionInfo>>()
         builtinFunctions.forEach { function ->
-            result[function.name] = function.typeInfos.map {
-                it.function
-            }
+            result[function.name] = function.definitions
         }
         result
     }
@@ -46,32 +44,32 @@ object StubFileFinder {
     val fieldToTypeMap: Map<String, List<StubFileStructures.FieldInfo>> by lazy {
         val result = mutableMapOf<String, List<StubFileStructures.FieldInfo>>()
         builtinFields.forEach { field ->
-            result[field.name] = field.typeInfos
+            result[field.name] = field.definitions
         }
         result
     }
 
-    val nameToClassMap: Map<String, List<StubFileStructures.ClassInfo>> by lazy {
-        val result = mutableMapOf<String, List<StubFileStructures.ClassInfo>>()
+    val nameToClassMap: Map<String, StubFileStructures.ClassInfo> by lazy {
+        val result = mutableMapOf<String, StubFileStructures.ClassInfo>()
         builtinClasses.forEach { pyClass ->
-            result[pyClass.name] = pyClass.typeInfos
+            result[pyClass.className] = pyClass
         }
         result
     }
 
     fun findTypeWithMethod(
         methodName: String
-    ): Set<StubFileStructures.PythonInfoType> {
-        return (methodToTypeMap[methodName] ?: emptyList()).map {
-            StubFileStructures.PythonInfoType(it.className, it.module)
+    ): Set<String> {
+        return (methodToTypeMap[methodName] ?: emptyList()).mapNotNull {
+            it.className
         }.toSet()
     }
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<StubFileStructures.PythonInfoType> {
+    ): Set<String> {
         return (fieldToTypeMap[fieldName] ?: emptyList()).map {
-            StubFileStructures.PythonInfoType(it.className, it.module)
+            it.className
         }.toSet()
     }
 
@@ -79,44 +77,39 @@ object StubFileFinder {
         functionName: String,
         argumentName: String? = null,
         argumentPosition: Int? = null,
-    ): Set<StubFileStructures.PythonInfoType> {
-        val annotations = functionToAnnotationMap[functionName] ?: emptyList()
-        val types = mutableSetOf<StubFileStructures.PythonInfoType>()
+    ): Set<String> {
+        val annotations = functionToTypeMap[functionName] ?: emptyList()
+        val types = mutableSetOf<String>()
         if (argumentName != null) {
             annotations.forEach { annotation ->
                 (annotation.args + annotation.kwonlyargs).forEach {
-                    it
-                    if (it.arg == argumentName)
-                        types += it.annotation.map {
-                                ann -> StubFileStructures.PythonInfoType(ann, "")
-                        }
+                    if (it.arg == argumentName && it.annotation != null)
+                        types.add(it.annotation)
                 }
             }
         } else if (argumentPosition != null) {
             annotations.forEach { annotation ->
                 val checkCountArgs = annotation.args.size > argumentPosition
-                if (checkCountArgs) {
-                    types += annotation.args[argumentPosition].annotation.map {
-                            ann -> StubFileStructures.PythonInfoType(ann, "")
-                    }
+                val ann = annotation.args[argumentPosition].annotation
+                if (checkCountArgs && ann != null) {
+                    types.add(ann)
                 }
             }
         } else {
             annotations.forEach { annotation ->
                 annotation.args.forEach {
-                    types.addAll(it.annotation.map {
-                            ann -> StubFileStructures.PythonInfoType(ann)
-                    })
+                    if (it.annotation != null)
+                        types.add(it.annotation)
                 }
             }
         }
         return types
     }
 
-    fun findTypeByFunctionReturnValue(functionName: String): Set<StubFileStructures.PythonInfoType> {
-        return functionToAnnotationMap[functionName]?.map {
-            it.returns.map {returnType -> StubFileStructures.PythonInfoType(returnType) }
-        }?.flatten()?.toSet() ?: emptySet()
+    fun findTypeByFunctionReturnValue(functionName: String): Set<String> {
+        return functionToTypeMap[functionName]?.map {
+            it.returns
+        }?.toSet() ?: emptySet()
     }
 }
 

@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
+import org.utbot.common.catch
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -217,8 +218,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                     childProcessRunner.errorLogFile,
                     try {
                         process.inputStream.bufferedReader().lines().toList()
-                    }
-                    catch (e: Exception) {
+                    } catch (e: Exception) {
                         emptyList()
                     }
                 )
@@ -238,8 +238,10 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         if (alive && def.isAlive) {
             alive = false
             def.executeIfAlive {
-                runBlocking {
-                    request(Protocol.StopProcessCommand())
+                runBlocking<Unit> {
+                    logger.catch {
+                        request(Protocol.StopProcessCommand())
+                    }
                 }
             }
             def.terminate()

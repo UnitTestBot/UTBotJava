@@ -270,10 +270,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             newSize = curSize;
         }
 
-        Long[] elements = new Long[newSize];
-        for (int i = 0; i < newSize; i++) {
-            elements[i] = elementData.get(i);
-        }
+        Long[] elements = elementData.toCastedArray(0, newSize);
 
         return new UtLongStream(elements, newSize);
     }
@@ -298,10 +295,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             return new UtLongStream();
         }
 
-        Long[] elements = new Long[newSize];
-        for (int i = (int) n; i < newSize; i++) {
-            elements[i] = elementData.get(i);
-        }
+        Long[] elements = elementData.toCastedArray((int) n, newSize);
 
         return new UtLongStream(elements, newSize);
     }

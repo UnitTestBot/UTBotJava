@@ -270,10 +270,7 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             newSize = curSize;
         }
 
-        Integer[] newData = new Integer[newSize];
-        for (int i = 0; i < newSize; i++) {
-            newData[i] = elementData.get(i);
-        }
+        Integer[] newData = elementData.toCastedArray(0, newSize);
 
         return new UtIntStream(newData, newSize);
     }
@@ -298,10 +295,7 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             return new UtIntStream();
         }
 
-        Integer[] newData = new Integer[newSize];
-        for (int i = (int) n; i < newSize; i++) {
-            newData[i] = elementData.get(i);
-        }
+        Integer[] newData = elementData.toCastedArray((int) n, newSize);
 
         return new UtIntStream(newData, newSize);
     }

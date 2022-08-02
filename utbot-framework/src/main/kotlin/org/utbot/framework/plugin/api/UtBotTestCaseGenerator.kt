@@ -166,6 +166,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
+        useSynthesis: Boolean = false,
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
         scoringStrategy: ScoringStrategyBuilder = ScoringStrategyBuilder()
     ): Flow<UtResult> {
@@ -175,6 +176,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             mockStrategy,
             chosenClassesToMockAlways,
             executionTimeEstimator,
+            useSynthesis,
             postConditionConstructor,
             scoringStrategy
         )
@@ -187,6 +189,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator,
+        useSynthesis: Boolean,
         postConditionConstructor: PostConditionConstructor,
         scoringStrategy: ScoringStrategyBuilder
     ): UtBotSymbolicEngine {
@@ -201,6 +204,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             mockStrategy = apiToModel(mockStrategy),
             chosenClassesToMockAlways = chosenClassesToMockAlways,
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
+            useSynthesis = useSynthesis,
             postConditionConstructor = postConditionConstructor,
             scoringStrategy = scoringStrategy
         )
@@ -281,6 +285,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                                 mockStrategy,
                                 chosenClassesToMockAlways,
                                 executionTimeEstimator,
+                                enableSynthesis,
                                 EmptyPostCondition,
                                 ScoringStrategyBuilder()
                             )
@@ -384,6 +389,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                     EngineController(),
                     method,
                     mockStrategy,
+                    useSynthesis = false,
                     postConditionConstructor = postConditionConstructor,
                     scoringStrategy = scoringStrategy
                 ).collect {

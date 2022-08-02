@@ -63,7 +63,7 @@ class ConstraintResolver(
         varBuilder = UtVarBuilder(holder, typeRegistry, typeResolver)
         val allAddresses = UtExprCollector { it is UtAddrExpression }.let {
             holder.constraints.hard.forEach { constraint -> constraint.accept(it) }
-            holder.constraints.soft.forEach { constraint -> constraint.accept(it) }
+//            holder.constraints.soft.forEach { constraint -> constraint.accept(it) }
             it.results
         }.groupBy { holder.concreteAddr(it as UtAddrExpression) }.mapValues { it.value.toSet() }
         val staticsBefore = memory.staticFields().map { (fieldId, states) -> fieldId to states.stateBefore }
@@ -117,9 +117,9 @@ class ConstraintResolver(
             holder.constraints.hard.forEach {
                 it.accept(this)
             }
-            holder.constraints.soft.forEach {
-                it.accept(this)
-            }
+//            holder.constraints.soft.forEach {
+//                it.accept(this)
+//            }
             result
         }.mapNotNull {
             it.accept(UtConstraintBuilder(varBuilder))

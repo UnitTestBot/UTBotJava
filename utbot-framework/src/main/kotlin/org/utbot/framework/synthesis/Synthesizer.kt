@@ -46,11 +46,10 @@ class Synthesizer(
     private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
     private val unitChecker = SynthesisUnitChecker(objectClassId.toSoot())
 
-    fun synthesize(timeLimit: Long = 10000): List<UtModel>? {
+    fun synthesize(timeLimit: Long = 10000L): List<UtModel>? {
         val currentTime = { System.currentTimeMillis() }
         val startTime = currentTime()
-        val hasTime = { (currentTime() - startTime) < timeLimit }
-        while (queueIterator.hasNext() && hasTime()) {
+        while (queueIterator.hasNext() && ((currentTime() - startTime) < timeLimit)) {
             val units = queueIterator.next()
             if (!units.isFullyDefined) continue
 
@@ -202,18 +201,27 @@ class SynthesisUnitContextQueue(
 
     private fun produce(state: SynthesisUnit): List<SynthesisUnit> =
         when (state) {
-            is MethodUnit -> state.params.run {
-                flatMapIndexed { idx, leaf ->
-                    val newLeafs = produce(leaf)
-                    newLeafs.map { newLeaf ->
-                        val newParams = toMutableList()
-                        newParams[idx] = newLeaf
-                        state.copy(params = newParams)
+            is MethodUnit -> {
+                val results = state.params.run {
+                    flatMapIndexed { idx, leaf ->
+                        val newLeafs = produce(leaf)
+                        newLeafs.map { newLeaf ->
+                            val newParams = toMutableList()
+                            newParams[idx] = newLeaf
+                            state.copy(params = newParams)
+                        }
                     }
                 }
+                results
             }
 
-            is ObjectUnit -> leafExpander.expand(state)
+            is ObjectUnit -> {
+                val leafs = leafExpander.expand(state)
+                when {
+                    state.isPrimitive() -> leafs
+                    else -> listOf(NullUnit(state.classId)) + leafs
+                }
+            }
             is NullUnit -> emptyList()
             is ReferenceToUnit -> emptyList()
             is ArrayUnit -> emptyList()

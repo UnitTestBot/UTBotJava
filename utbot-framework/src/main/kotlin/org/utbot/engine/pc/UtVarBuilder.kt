@@ -47,30 +47,38 @@ class UtVarBuilder(
                         val (type, field) = base.name.split("_")
                         UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
                     } catch (e: Throwable) {
-                        UtConstraintArrayAccess(base, instance, base.classId.elementClassId!!)
+                        arrayAccess(base, instance)
                     }
                 }
             }
             is UtConstraintFieldAccess -> {
                 val index = expr.index.accept(this)
-                when {
-                    base.classId.isArray && index.classId.isPrimitive -> {
-                        UtConstraintArrayAccess(base, index, base.classId.elementClassId!!)
-                    }
-                    base.classId.isMap -> {
-                        UtConstraintArrayAccess(base, index, objectClassId)
-                    }
-                    base.classId.isSet -> {
-                        UtConstraintArrayAccess(base, index, objectClassId)
-                    }
-                    else -> TODO()
-                }
+                arrayAccess(base, index)
             }
             is UtConstraintNull -> UtConstraintArrayAccess(base, expr.index.accept(this), objectClassId)
             else -> error("Unexpected: $base")
         }
         backMapping[res] = expr
         return res
+    }
+
+    private fun arrayAccess(base: UtConstraintVariable, index: UtConstraintVariable) = when {
+        base.classId.isArray && index.classId.isPrimitive -> {
+            UtConstraintArrayAccess(base, index, base.classId.elementClassId!!)
+        }
+        base.classId.isMap -> {
+            UtConstraintArrayAccess(base, index, objectClassId)
+        }
+        base.classId.isSet -> {
+            UtConstraintArrayAccess(base, index, objectClassId)
+        }
+        else -> {
+            System.err.println(base)
+            System.err.println(base.classId)
+            System.err.println(index)
+            System.err.println(index.classId)
+            TODO()
+        }
     }
 
     override fun visit(expr: UtConstArrayExpression): UtConstraintVariable {

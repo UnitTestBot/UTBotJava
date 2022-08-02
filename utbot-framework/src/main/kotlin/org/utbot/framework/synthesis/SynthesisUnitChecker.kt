@@ -4,7 +4,6 @@ import mu.KotlinLogging
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
-import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtBotTestCaseGenerator
 import org.utbot.framework.plugin.api.UtExecutionSuccess
@@ -28,9 +27,8 @@ class SynthesisUnitChecker(
         val scoringStrategy = ScoringStrategyBuilder(
             emptyMap()
         )
-        val execution = withPathSelector(PathSelectorType.INHERITORS_SELECTOR) {
-            enableSynthesis = false
-            UtBotTestCaseGenerator.generateWithPostCondition(
+        val execution = run {
+            val executions = UtBotTestCaseGenerator.generateWithPostCondition(
                 method,
                 MockStrategyApi.NO_MOCKS,
                 ConstraintBasedPostConditionConstructor(
@@ -39,9 +37,8 @@ class SynthesisUnitChecker(
                     synthesisMethodContext
                 ),
                 scoringStrategy
-            ).firstOrNull { it.result is UtExecutionSuccess }.also {
-                enableSynthesis = true
-            }
+            )
+            executions.firstOrNull { it.result is UtExecutionSuccess }
         } ?: return null
 
 

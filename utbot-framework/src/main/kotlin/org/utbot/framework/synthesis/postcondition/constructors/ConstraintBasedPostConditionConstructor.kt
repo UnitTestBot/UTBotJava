@@ -108,6 +108,7 @@ private class UtConstraintBuilder(
                 val newName = "post_condition_$name"
                 when (classId) {
                     voidClassId -> voidValue
+                    booleanClassId -> mkBoolConst(newName).toBoolValue()
                     byteClassId -> mkBVConst(newName, UtByteSort).toByteValue()
                     shortClassId -> mkBVConst(newName, UtShortSort).toShortValue()
                     charClassId -> mkBVConst(newName, UtCharSort).toCharValue()
@@ -144,21 +145,25 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintFieldAccess(expr: UtConstraintFieldAccess): SymbolicValue = with(expr) {
-        val type = instance.classId.toSoot().type
-        val instanceVal = instance.accept(this@UtConstraintBuilder)
         val sootField = fieldId.declaringClass.toSoot().getFieldByName(fieldId.name)
-        engine.createFieldOrMock(
-            type,
-            instanceVal.addr,
-            sootField,
-            mockInfoGenerator = null
-        )
+        val type = sootField.declaringClass.type
+        val instanceVal = instance.accept(this@UtConstraintBuilder)
+        try {
+            engine.createFieldOrMock(
+                type,
+                instanceVal.addr,
+                sootField,
+                mockInfoGenerator = null
+            )
+        } catch (e: Throwable) {
+            throw e
+        }
     }
 
     override fun visitUtConstraintArrayAccess(expr: UtConstraintArrayAccess): SymbolicValue = with(expr) {
         val arrayInstance = instance.accept(this@UtConstraintBuilder)
         val index = index.accept(this@UtConstraintBuilder)
-        val type = instance.classId.toSootType() as ArrayType
+        val type = instance.classId.toSootType() as? ArrayType ?: ArrayType.v(OBJECT_TYPE.sootClass.type, 1)
         val elementType = type.elementType
         val chunkId = engine.typeRegistry.arrayChunkId(type)
         val descriptor = MemoryChunkDescriptor(chunkId, type, elementType).also { engine.touchMemoryChunk(it) }

@@ -272,6 +272,7 @@ class UtBotSymbolicEngine(
     mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
+    private val useSynthesis: Boolean = enableSynthesis,
     private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
     scoringStrategy: ScoringStrategyBuilder = ScoringStrategyBuilder()
 ) : UtContextInitializer() {
@@ -3685,7 +3686,7 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(state.executionStack.first().method)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
-        val resolvedConstraints = if (enableSynthesis) {
+        val resolvedConstraints = if (useSynthesis) {
             ConstraintResolver(
                 updatedMemory,
                 holder,

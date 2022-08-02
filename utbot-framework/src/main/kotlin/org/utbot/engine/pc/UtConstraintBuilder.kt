@@ -8,6 +8,7 @@ import org.utbot.engine.Lt
 import org.utbot.engine.Ne
 import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.objectClassId
 
 class UtConstraintBuilder(
     val varBuilder: UtVarBuilder
@@ -135,13 +136,21 @@ class UtConstraintBuilder(
             }
             Eq -> when (lhv.isPrimitive && rhv.isPrimitive) {
                 true -> UtEqConstraint(lhv, rhv)
-                false -> UtRefEqConstraint(lhv, rhv)
+                false -> UtRefEqConstraint(lhv, rhv.wrapToRef())
             }
             Ne -> when (lhv.isPrimitive && rhv.isPrimitive) {
                 true -> UtNeqConstraint(lhv, rhv)
-                false -> UtRefNeqConstraint(lhv, rhv)
+                false -> UtRefNeqConstraint(lhv, rhv.wrapToRef())
             }
         }
+    }
+
+    fun UtConstraintVariable.wrapToRef(): UtConstraintVariable = when (this) {
+        is UtConstraintNumericConstant -> when (this.value) {
+            0 -> UtConstraintNull(objectClassId)
+            else -> error("Unexpected")
+        }
+        else -> this
     }
 
     override fun visit(expr: UtIsExpression): UtConstraint? {

@@ -31,7 +31,6 @@ import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
 import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgStatement
 import org.utbot.framework.codegen.model.tree.CgThrowStatement
 import org.utbot.framework.codegen.model.tree.CgTryCatch
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -40,7 +39,6 @@ import org.utbot.framework.codegen.model.tree.buildCgForEachLoop
 import org.utbot.framework.codegen.model.tree.buildDeclaration
 import org.utbot.framework.codegen.model.tree.buildDoWhileLoop
 import org.utbot.framework.codegen.model.tree.buildForLoop
-import org.utbot.framework.codegen.model.tree.buildSimpleBlock
 import org.utbot.framework.codegen.model.tree.buildTryCatch
 import org.utbot.framework.codegen.model.tree.buildWhileLoop
 import org.utbot.framework.codegen.model.util.buildExceptionHandler
@@ -59,6 +57,7 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import fj.data.Either
+import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -106,7 +105,7 @@ interface CgStatementConstructor {
     infix fun CgExpression.`=`(value: Any?)
     infix fun CgExpression.and(other: CgExpression): CgLogicalAnd
     infix fun CgExpression.or(other: CgExpression): CgLogicalOr
-    fun ifStatement(condition: CgExpression, trueBranch: () -> Unit): CgIfStatement
+    fun ifStatement(condition: CgExpression, trueBranch: () -> Unit, falseBranch: (() -> Unit)? = null): CgIfStatement
     fun forLoop(init: CgForLoopBuilder.() -> Unit)
     fun whileLoop(condition: CgExpression, statements: () -> Unit)
     fun doWhileLoop(condition: CgExpression, statements: () -> Unit)
@@ -117,7 +116,7 @@ interface CgStatementConstructor {
     fun CgTryCatch.catch(exception: ClassId, init: (CgVariable) -> Unit): CgTryCatch
     fun CgTryCatch.finally(init: () -> Unit): CgTryCatch
 
-    fun innerBlock(init: () -> Unit, additionalStatements: List<CgStatement>): CgInnerBlock
+    fun innerBlock(init: () -> Unit): CgInnerBlock
 
 //    fun CgTryCatchBuilder.statements(init: () -> Unit)
 //    fun CgTryCatchBuilder.handler(exception: ClassId, init: (CgVariable) -> Unit)
@@ -176,6 +175,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         val (type, expr) = when (baseExpr) {
             is CgEnumConstantAccess -> guardEnumConstantAccess(baseExpr)
             is CgAllocateArray -> guardArrayAllocation(baseExpr)
+            is CgArrayInitializer -> guardArrayInitializer(baseExpr)
             is CgExecutableCall -> guardExecutableCall(baseType, baseExpr)
             else -> guardExpression(baseType, baseExpr)
         }
@@ -250,8 +250,10 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     override fun CgExpression.or(other: CgExpression): CgLogicalOr =
         CgLogicalOr(this, other)
 
-    override fun ifStatement(condition: CgExpression, trueBranch: () -> Unit): CgIfStatement {
-        return CgIfStatement(condition, block(trueBranch)).also {
+    override fun ifStatement(condition: CgExpression, trueBranch: () -> Unit, falseBranch: (() -> Unit)?): CgIfStatement {
+        val trueBranchBlock = block(trueBranch)
+        val falseBranchBlock = falseBranch?.let { block(it) }
+        return CgIfStatement(condition, trueBranchBlock, falseBranchBlock).also {
             currentBlock += it
         }
     }
@@ -300,12 +302,10 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         return this.copy(finally = finallyBlock)
     }
 
-    override fun innerBlock(
-        init: () -> Unit,
-        additionalStatements: List<CgStatement>,
-    ): CgInnerBlock = buildSimpleBlock {
-        statements = mutableListOf<CgStatement>() + block(init) + additionalStatements
-    }
+    override fun innerBlock(init: () -> Unit): CgInnerBlock =
+        CgInnerBlock(block(init)).also {
+            currentBlock += it
+        }
 
     override fun comment(text: String): CgComment =
         CgSingleLineComment(text).also {
@@ -421,13 +421,21 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     }
 
     private fun guardArrayAllocation(allocation: CgAllocateArray): ExpressionWithType {
+        return guardArrayCreation(allocation.type, allocation.size, allocation)
+    }
+
+    private fun guardArrayInitializer(initializer: CgArrayInitializer): ExpressionWithType {
+        return guardArrayCreation(initializer.type, initializer.size, initializer)
+    }
+
+    private fun guardArrayCreation(arrayType: ClassId, arraySize: Int, initialization: CgExpression): ExpressionWithType {
         // TODO: check if this is the right way to check array type accessibility
-        return if (allocation.type.isAccessibleFrom(testClassPackageName)) {
-            ExpressionWithType(allocation.type, allocation)
+        return if (arrayType.isAccessibleFrom(testClassPackageName)) {
+            ExpressionWithType(arrayType, initialization)
         } else {
             ExpressionWithType(
                 objectArrayClassId,
-                testClassThisInstance[createArray](allocation.elementType.name, allocation.size)
+                testClassThisInstance[createArray](arrayType.elementClassId!!.name, arraySize)
             )
         }
     }

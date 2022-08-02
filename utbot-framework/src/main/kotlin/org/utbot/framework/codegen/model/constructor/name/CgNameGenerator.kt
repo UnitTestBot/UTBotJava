@@ -7,9 +7,8 @@ import org.utbot.framework.codegen.model.constructor.util.infiniteInts
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.isArray
 
 /**
@@ -45,7 +44,7 @@ internal interface CgNameGenerator {
     /**
      * Generate a new test method name.
      */
-    fun testMethodNameFor(method: UtMethod<*>, customName: String? = null): String
+    fun testMethodNameFor(executableId: ExecutableId, customName: String? = null): String
 
     /**
      * Generates a new parameterized test method name by data provider method name.
@@ -55,12 +54,12 @@ internal interface CgNameGenerator {
     /**
      * Generates a new data for parameterized test provider method name
      */
-    fun dataProviderMethodNameFor(method: UtMethod<*>): String
+    fun dataProviderMethodNameFor(executableId: ExecutableId): String
 
     /**
      * Generate a new error method name
      */
-    fun errorMethodNameFor(method: UtMethod<*>): String
+    fun errorMethodNameFor(executableId: ExecutableId): String
 }
 
 /**
@@ -86,11 +85,9 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         return variableName(baseName.decapitalize(), isMock)
     }
 
-    override fun testMethodNameFor(method: UtMethod<*>, customName: String?): String {
-        val executableName = when (val id = method.callable.executableId) {
-            is ConstructorId -> id.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
-            is MethodId -> id.name
-        }
+    override fun testMethodNameFor(executableId: ExecutableId, customName: String?): String {
+        val executableName = createExecutableName(executableId)
+
         // no index suffix allowed only when there's a vacant custom name
         val name = if (customName != null && customName !in existingMethodNames) {
             customName
@@ -107,18 +104,16 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
     override fun parameterizedTestMethodName(dataProviderMethodName: String) =
         dataProviderMethodName.replace(dataProviderMethodPrefix, "parameterizedTestsFor")
 
-    override fun dataProviderMethodNameFor(method: UtMethod<*>): String {
-        val indexedName = nextIndexedMethodName(method.callable.name.capitalize(), skipOne = true)
+    override fun dataProviderMethodNameFor(executableId: ExecutableId): String {
+        val executableName = createExecutableName(executableId)
+        val indexedName = nextIndexedMethodName(executableName.capitalize(), skipOne = true)
 
         existingMethodNames += indexedName
         return "$dataProviderMethodPrefix$indexedName"
     }
 
-    override fun errorMethodNameFor(method: UtMethod<*>): String {
-        val executableName = when (val id = method.callable.executableId) {
-            is ConstructorId -> id.classId.prettifiedName
-            is MethodId -> id.name
-        }
+    override fun errorMethodNameFor(executableId: ExecutableId): String {
+        val executableName = createExecutableName(executableId)
         val newName = when (val base = "test${executableName.capitalize()}_errors") {
             !in existingMethodNames -> base
             else -> nextIndexedMethodName(base)
@@ -150,6 +145,13 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         CodegenLanguage.KOTLIN -> {
             // use backticks for first variable with keyword name and use indexed names for all next such variables
             if (baseName !in existingVariableNames) "`$baseName`" else nextIndexedVarName(baseName)
+        }
+    }
+
+    private fun createExecutableName(executableId: ExecutableId): String {
+        return when (executableId) {
+            is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
+            is MethodId -> executableId.name
         }
     }
 }

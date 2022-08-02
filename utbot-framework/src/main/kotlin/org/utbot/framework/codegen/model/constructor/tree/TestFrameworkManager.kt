@@ -1,8 +1,10 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import org.junit.experimental.runners.Enclosed
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.model.constructor.TestClassInfo
 import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
@@ -15,10 +17,13 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
+import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
+import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
 import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
@@ -30,6 +35,7 @@ import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.byteArrayClassId
 import org.utbot.framework.plugin.api.util.charArrayClassId
@@ -66,7 +72,13 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     val assertFloatArrayEquals = context.testFramework.assertFloatArrayEquals
     val assertDoubleArrayEquals = context.testFramework.assertDoubleArrayEquals
 
+    protected abstract val dataProviderMethodsHolder: TestClassInfo
+
     protected val statementConstructor = CgComponents.getStatementConstructorBy(context)
+
+    abstract val annotationForNestedClasses: CgAnnotation?
+
+    abstract val annotationForOuterClasses: CgAnnotation?
 
     protected open val timeoutArgumentName: String = "timeout"
 
@@ -100,12 +112,12 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     }
 
     open fun getDeepEqualsAssertion(expected: CgExpression, actual: CgExpression): CgMethodCall {
-        requiredUtilMethods += currentTestClass.deepEqualsMethodId
-        requiredUtilMethods += currentTestClass.arraysDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.iterablesDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.streamsDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.mapsDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.hasCustomEqualsMethodId
+        requiredUtilMethods += outerMostTestClass.deepEqualsMethodId
+        requiredUtilMethods += outerMostTestClass.arraysDeepEqualsMethodId
+        requiredUtilMethods += outerMostTestClass.iterablesDeepEqualsMethodId
+        requiredUtilMethods += outerMostTestClass.streamsDeepEqualsMethodId
+        requiredUtilMethods += outerMostTestClass.mapsDeepEqualsMethodId
+        requiredUtilMethods += outerMostTestClass.hasCustomEqualsMethodId
 
         // TODO we cannot use common assertEquals because of using custom deepEquals
         //  For this reason we have to use assertTrue here
@@ -214,9 +226,22 @@ internal abstract class TestFrameworkManager(val context: CgContext)
             } else {
                 statementConstructor.newVar(classCgClassId) { Class::class.id[forName](name) }
             }
+
+    fun addDataProvider(dataProvider: CgMethod) {
+        dataProviderMethodsHolder.cgDataProviderMethods += dataProvider
+    }
 }
 
 internal class TestNgManager(context: CgContext) : TestFrameworkManager(context) {
+    override val dataProviderMethodsHolder
+        get() = currentTestClassInfo
+
+    override val annotationForNestedClasses
+        get() = null
+
+    override val annotationForOuterClasses
+        get() = null
+
     override val timeoutArgumentName: String = "timeOut"
 
     private val assertThrows: BuiltinMethodId
@@ -305,6 +330,23 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 }
 
 internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context) {
+    override val dataProviderMethodsHolder
+        get() = error("Parametrized tests are not supportd for JUnit4")
+
+    override val annotationForNestedClasses
+        get() = null
+
+    override val annotationForOuterClasses
+        get() = statementConstructor.annotation(
+            Junit4.runWithAnnotationClassId,
+            Enclosed::class.id.let {
+                when (codegenLanguage) {
+                    CodegenLanguage.JAVA   -> CgGetJavaClass(it)
+                    CodegenLanguage.KOTLIN -> CgGetKotlinClass(it)
+                }
+            }
+        )
+
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
@@ -341,6 +383,15 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
 }
 
 internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context) {
+    override val dataProviderMethodsHolder
+        get() = outerMostTestClassInfo
+
+    override val annotationForNestedClasses
+        get() = statementConstructor.annotation(Junit5.nestedTestClassAnnotationId)
+
+    override val annotationForOuterClasses
+        get() = null
+
     private val assertThrows: BuiltinMethodId
         get() {
             require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }

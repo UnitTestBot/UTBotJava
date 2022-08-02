@@ -183,6 +183,7 @@ sealed class TestFramework(
     abstract val methodSourceAnnotation: String
     abstract val methodSourceAnnotationId: ClassId
     abstract val methodSourceAnnotationFqn: String
+    abstract val nestedClassesShouldBeStatic: Boolean
 
     val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
@@ -301,6 +302,8 @@ object TestNg : TestFramework(displayName = "TestNG") {
         simpleName = "DataProvider"
     )
 
+    override val nestedClassesShouldBeStatic = true
+
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
@@ -385,6 +388,9 @@ object Junit4 : TestFramework("JUnit4") {
         )
     }
 
+
+    override val nestedClassesShouldBeStatic = true
+
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
@@ -438,6 +444,12 @@ object Junit5 : TestFramework("JUnit5") {
         name = "ofMillis",
         returnType = durationClassId,
         arguments = arrayOf(longClassId)
+    )
+
+    val nestedTestClassAnnotationId = BuiltinClassId(
+        name = "$JUNIT5_PACKAGE.Nested",
+        canonicalName = "$JUNIT5_PACKAGE.Nested",
+        simpleName = "Nested"
     )
 
     override val testAnnotationId = BuiltinClassId(
@@ -500,6 +512,8 @@ object Junit5 : TestFramework("JUnit5") {
             simpleName = "Disabled"
         )
     }
+
+    override val nestedClassesShouldBeStatic = false
 
     private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
     private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"

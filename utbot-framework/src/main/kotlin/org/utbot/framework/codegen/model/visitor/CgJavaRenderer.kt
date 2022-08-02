@@ -62,7 +62,11 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
-        print("public class ")
+        print("public ")
+        if (element.isStatic) {
+            print("static ")
+        }
+        print("class ")
         print(element.simpleName)
         if (element.superclass != null) {
             print(" extends ${element.superclass.asString()}")

@@ -2247,7 +2247,7 @@ abstract class UtValueTestCaseChecker(
 
     //endregion
 
-    fun checkAllCombinations(method: KFunction<*>) {
+    fun checkAllCombinations(method: KFunction<*>, classUnderTest: KClass<*>? = null) {
         val failed = mutableListOf<TestFrameworkConfiguration>()
         val succeeded = mutableListOf<TestFrameworkConfiguration>()
 
@@ -2255,7 +2255,7 @@ abstract class UtValueTestCaseChecker(
             .filterNot { it.isDisabled }
             .forEach { config ->
                 runCatching {
-                    internalCheckForCodeGeneration(method, config)
+                    internalCheckForCodeGeneration(method, config, classUnderTest)
                 }.onFailure {
                     failed += config
                 }.onSuccess {
@@ -2278,7 +2278,8 @@ abstract class UtValueTestCaseChecker(
     @Suppress("ControlFlowWithEmptyBody", "UNUSED_VARIABLE")
     private fun internalCheckForCodeGeneration(
         method: KFunction<*>,
-        testFrameworkConfiguration: TestFrameworkConfiguration
+        testFrameworkConfiguration: TestFrameworkConfiguration,
+        classUnderTest: KClass<*>? = null
     ) {
         withSettingsFromTestFrameworkConfiguration(testFrameworkConfiguration) {
             with(testFrameworkConfiguration) {
@@ -2308,7 +2309,7 @@ abstract class UtValueTestCaseChecker(
                         // TODO JIRA:1407
                     }
 
-                    val testClass = testSet.method.clazz
+                    val testClass = classUnderTest ?: testSet.method.clazz
                     val stageStatusCheck = StageStatusCheck(
                         firstStage = CodeGeneration,
                         lastStage = TestExecution,

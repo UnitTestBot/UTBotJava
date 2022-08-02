@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.codegen.model.constructor.UtTestClass
 
 class CodeGenerator(
     private val classUnderTest: ClassId,
@@ -62,15 +63,18 @@ class CodeGenerator(
         return generateAsStringWithTestReport(cgTestSets, testClassCustomName)
     }
 
-    fun generateAsStringWithTestReport(
+    private fun generateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
-    ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
-        context.withClassScope {
-            val testClassFile = CgTestClassConstructor(context).construct(cgTestSets)
-            TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
-        }
-    }
+    ): TestsCodeWithTestReport =
+            withCustomContext(testClassCustomName) {
+                context.withTestClassFileScope {
+                    val testClassFile = CgTestClassConstructor(context).construct(
+                        UtTestClass.fromTestSets(classUnderTest, cgTestSets)
+                    )
+                    TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+                }
+            }
 
     /**
      * Wrapper function that configures context as needed for utbot-online:

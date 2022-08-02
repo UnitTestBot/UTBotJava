@@ -1576,7 +1576,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         when (testFramework) {
             Junit5 -> setOf(
                 annotation(testFramework.parameterizedTestAnnotationId),
-                annotation(testFramework.methodSourceAnnotationId, dataProviderMethodName),
+                annotation(testFramework.methodSourceAnnotationId, "${outerMostTestClass.canonicalName}#$dataProviderMethodName"),
             )
             TestNg -> setOf(
                 annotation(

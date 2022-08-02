@@ -21,7 +21,7 @@ jobs:
     - name: Build and run tests in UTBot Java
       run: |
         export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
+        gradle clean build --no-daemon --stacktrace --debug
         
     - name: Upload utbot-framework logs
       if: ${{ always() }}

@@ -279,15 +279,28 @@ val <R> UtMethod<R>.signature: String
         return "${methodName}()"
     }
 
+val ExecutableId.displayName: String
+    get() {
+        val executableName = this.name
+        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        return "$executableName($parameters)"
+    }
+
+val Constructor<*>.displayName: String
+    get() = executableId.displayName
+
+val Method.displayName: String
+    get() = executableId.displayName
+
 val <R> UtMethod<R>.displayName: String
     get() {
-        val methodName = this.callable.name
-        val javaMethod = this.javaMethod ?: this.javaConstructor
-        if (javaMethod != null) {
-            val parameters = javaMethod.parameters.joinToString(separator = ", ") { "${it.type.canonicalName}" }
-            return "${methodName}($parameters)"
+        val executableId = this.javaMethod?.executableId ?: this.javaConstructor?.executableId
+        return if (executableId != null) {
+            executableId.displayName
+        } else {
+            val methodName = this.callable.name
+            return "${methodName}()"
         }
-        return "${methodName}()"
     }
 
 

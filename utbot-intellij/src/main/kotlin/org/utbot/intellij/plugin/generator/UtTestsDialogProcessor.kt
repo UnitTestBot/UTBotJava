@@ -19,6 +19,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiModifier
 import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
@@ -54,6 +55,7 @@ import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.util.isAbstract
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -152,6 +154,7 @@ object UtTestsDialogProcessor {
                                             .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
                                                 it.member !is SyntheticElement
                                             }
+                                            .filterNot { it.isAbstract }
                                     DumbService.getInstance(project).runReadActionInSmartMode(Computable {
                                         findMethodsInClassMatchingSelected(clazz, srcMethods)
                                     })
@@ -189,9 +192,10 @@ object UtTestsDialogProcessor {
                                         ForceStaticMockListener.create(testCaseGenerator, model.conflictTriggers)
                                     }
 
-                                    val notEmptyCases = withUtContext(context) {
-                                        testCaseGenerator
-                                            .generate(
+                                    val notEmptyCases = runCatching {
+                                        withUtContext(context) {
+                                            testCaseGenerator
+                                                .generate(
                                                 methods,
                                                 model.mockStrategy,
                                                 model.chosenClassesToMockAlways,
@@ -203,9 +207,10 @@ object UtTestsDialogProcessor {
                                                     fuzzingValue = project.service<Settings>().fuzzingValue
                                                 }
                                             )
-                                            .map { it.summarize(searchDirectory) }
-                                            .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
-                                    }
+                                                .map { it.summarize(searchDirectory) }
+                                                .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
+                                        }
+                                    }.getOrDefault(listOf())
 
                                     if (notEmptyCases.isEmpty()) {
                                         showErrorDialogLater(

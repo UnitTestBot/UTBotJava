@@ -213,18 +213,26 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
-        val arrayModel = element.model
-        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
+        print(getKotlinClassString(element.type))
+        print("(${element.size})")
+        print(" {")
+        element.initializer.accept(this)
+        print(" }")
+    }
 
-        if (arrayModel.constModel is UtPrimitiveModel) {
-            val prefix = arrayModel.constModel.classId.name.toLowerCase()
+    override fun visit(element: CgArrayInitializer) {
+        val elementType = element.elementType
+        val elementsInLine = arrayElementsInLine(elementType)
+
+        if (elementType.isPrimitive) {
+            val prefix = elementType.name.toLowerCase()
             print("${prefix}ArrayOf(")
-            arrayModel.renderElements(element.size, elementsInLine)
+            element.values.renderElements(elementsInLine)
             print(")")
         } else {
-            print(getKotlinClassString(element.type))
+            print(getKotlinClassString(element.arrayType))
             print("(${element.size})")
-            if (!element.elementType.isPrimitive) print(" { null }")
+            print(" { null }")
         }
     }
 
@@ -269,8 +277,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
-        val returnType =
-            if (element.returnType.simpleName == "Array<Array<Any?>?>") "Array<Array<Any?>?>" else "${element.returnType}"
+        val returnType = getKotlinClassString(element.returnType)
         println("fun ${element.name}(): $returnType")
     }
 

@@ -137,11 +137,21 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
-        val arrayModel = element.model
-        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
+        // TODO: same as in visit(CgAllocateArray): we should rewrite the typeName and otherDimensions variables declaration
+        // to avoid using substringBefore() and substringAfter() directly
+        val typeName = element.type.canonicalName.substringBefore("[")
+        val otherDimensions = element.type.canonicalName.substringAfter("]")
+        // we can't specify the size of the first dimension when using initializer,
+        // as opposed to CgAllocateArray where there is no initializer
+        print("new $typeName[]$otherDimensions")
+        element.initializer.accept(this)
+    }
+
+    override fun visit(element: CgArrayInitializer) {
+        val elementsInLine = arrayElementsInLine(element.elementType)
 
         print("{")
-        arrayModel.renderElements(element.size, elementsInLine)
+        element.values.renderElements(elementsInLine)
         print("}")
     }
 

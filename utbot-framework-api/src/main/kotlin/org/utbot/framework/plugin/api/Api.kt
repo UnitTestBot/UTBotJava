@@ -72,6 +72,22 @@ data class UtMethodTestSet(
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
 )
 
+data class CgMethodTestSet private constructor(
+    val executableId: ExecutableId,
+    val executions: List<UtExecution> = emptyList(),
+    val jimpleBody: JimpleBody? = null,
+    val errors: Map<String, Int> = emptyMap(),
+    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
+) {
+    constructor(from: UtMethodTestSet) : this(
+        from.method.callable.executableId,
+        from.executions,
+        from.jimpleBody,
+        from.errors,
+        from.clustersInfo
+    )
+}
+
 data class Step(
     val stmt: Stmt,
     val depth: Int,

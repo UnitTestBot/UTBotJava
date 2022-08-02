@@ -1,5 +1,6 @@
 package org.utbot.fuzzer.providers
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
@@ -7,6 +8,8 @@ import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import org.utbot.jcdb.api.*
 import java.util.function.IntSupplier
+
+private val logger by lazy { KotlinLogging.logger {} }
 
 /**
  * Creates [UtAssembleModel] for objects which have public constructors with primitives types and String as parameters.
@@ -150,7 +153,12 @@ class ObjectModelProvider : ModelProvider {
             ).apply {
                 this.packageName = this@fuzzParameters.packageName
             }
-            return fuzz(fuzzedMethod, *modelProviders)
+            return try {
+                fuzz(fuzzedMethod, *modelProviders)
+            } catch (t: TooManyCombinationsException) {
+                logger.warn(t) { "Number of combination of ${parameters.size} parameters is huge. Fuzzing is skipped for $name" }
+                emptySequence()
+            }
         }
 
         private fun assembleModel(id: Int, constructorId: ConstructorExecutableId, params: List<FuzzedValue>): FuzzedValue {

@@ -58,7 +58,7 @@ internal interface CgContextOwner {
     val collectedExceptions: MutableSet<ClassId>
 
     // annotations required by the current method being built
-    val collectedTestMethodAnnotations: MutableSet<CgAnnotation>
+    val collectedMethodAnnotations: MutableSet<CgAnnotation>
 
     // imports required by the test class being built
     val collectedImports: MutableSet<Import>
@@ -80,7 +80,7 @@ internal interface CgContextOwner {
     val prevStaticFieldValues: MutableMap<FieldId, CgVariable>
 
     // names of parameters of methods under test
-    val paramNames: Map<UtMethod<*>, List<String>>
+    val paramNames: Map<ExecutableId, List<String>>
 
     // UtExecution we currently generate a test method for.
     // It is null when no test method is being generated at the moment.
@@ -135,7 +135,7 @@ internal interface CgContextOwner {
     // map from a set of tests for a method to another map
     // which connects code generation error message
     // with the number of times it occurred
-    val codeGenerationErrors: MutableMap<UtMethodTestSet, MutableMap<String, Int>>
+    val codeGenerationErrors: MutableMap<CgMethodTestSet, MutableMap<String, Int>>
 
     // package for generated test class
     val testClassPackageName: String
@@ -192,8 +192,8 @@ internal interface CgContextOwner {
             currentBlock = currentBlock.add(it)
         }
 
-    fun updateCurrentExecutable(method: UtMethod<*>) {
-        currentExecutable = method.callable.executableId
+    fun updateCurrentExecutable(executableId: ExecutableId) {
+        currentExecutable = executableId
     }
 
         fun addExceptionIfNeeded(exception: ClassId) = runBlocking {
@@ -218,7 +218,7 @@ internal interface CgContextOwner {
     }
 
     fun addAnnotation(annotation: CgAnnotation) {
-        if (collectedTestMethodAnnotations.add(annotation)) {
+        if (collectedMethodAnnotations.add(annotation)) {
             importIfNeeded(annotation.classId) // TODO: check how JUnit annotations are loaded
         }
     }
@@ -350,7 +350,7 @@ internal data class CgContext(
     override val collectedTestClassInterfaces: MutableSet<ClassId> = mutableSetOf(),
     override val collectedTestClassAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
-    override val collectedTestMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
+    override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
     override val importedStaticMethods: MutableSet<MethodExecutableId> = mutableSetOf(),
     override val importedClasses: MutableSet<ClassId> = mutableSetOf(),
@@ -358,7 +358,7 @@ internal data class CgContext(
     override val testMethods: MutableList<CgTestMethod> = mutableListOf(),
     override val existingMethodNames: MutableSet<String> = mutableSetOf(),
     override val prevStaticFieldValues: MutableMap<FieldId, CgVariable> = mutableMapOf(),
-    override val paramNames: Map<UtMethod<*>, List<String>>,
+    override val paramNames: Map<ExecutableId, List<String>>,
     override var currentExecution: UtExecution? = null,
     override val testFramework: TestFramework,
     override val mockFramework: MockFramework,
@@ -374,7 +374,7 @@ internal data class CgContext(
     override var declaredExecutableRefs: PersistentMap<ExecutableId, CgVariable> = persistentMapOf(),
     override var thisInstance: CgValue? = null,
     override val methodArguments: MutableList<CgValue> = mutableListOf(),
-    override val codeGenerationErrors: MutableMap<UtMethodTestSet, MutableMap<String, Int>> = mutableMapOf(),
+    override val codeGenerationErrors: MutableMap<CgMethodTestSet, MutableMap<String, Int>> = mutableMapOf(),
     override val testClassPackageName: String = classUnderTest.packageName,
     override var shouldOptimizeImports: Boolean = false,
     override var testClassCustomName: String? = null,

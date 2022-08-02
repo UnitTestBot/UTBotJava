@@ -162,36 +162,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Generates result assertions for unit tests.
      */
     private fun generateResultAssertions() {
-        when (val executable = currentExecutable) {
-            is ConstructorExecutableId -> {
-                // we cannot generate any assertions for constructor testing
-                // but we need to generate a constructor call
-                val currentExecution = currentExecution!!
-                currentExecution.result
-                    .onSuccess {
-                        methodType = SUCCESSFUL
-
-                        // TODO engine returns UtCompositeModel sometimes (concrete execution?)
-
-                        // TODO support inner classes constructors testing JIRA:1461
-                        require(!executable.classId.isInner) {
-                            "Inner class ${executable.classId} constructor testing is not supported yet"
-                        }
-
-                        actual = newVar(executable.classId, "actual") {
-                            methodArguments.toTypedArray()
-                            executable(*methodArguments.toTypedArray())
-                        }
-                    }
-                    .onFailure { exception ->
-                        processExecutionFailure(currentExecution, exception)
-                    }
-            }
-            is MethodExecutableId -> {
-                val method = executable.methodId
-                if (method is BuiltinMethodId) {
-                    error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
-                }
+        when (currentExecutable) {
+            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
+            is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
+            is MethodId -> {
                 emptyLineIfNeeded()
 
                 val currentExecution = currentExecution!!
@@ -314,24 +288,30 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun generateAssertionsForParameterizedTest() {
         emptyLineIfNeeded()
-        val method = currentExecutable as MethodId
-        currentExecution!!.result
-            .onSuccess { result ->
-                if (result.isUnit()) {
-                    +thisInstance[method](*methodArguments.toTypedArray())
-                } else {
-                    //"generic" expected variable is represented with a wrapper if
-                    //actual result is primitive to support cases with exceptions.
-                    resultModel = if (result is UtPrimitiveModel) assemble(result) else result
 
-                    val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
-                    val expectedExpression = CgNotNullAssertion(expectedVariable)
+        when (currentExecutable) {
+            is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
+            is MethodId -> {
+                val method = currentExecutable as MethodId
+                currentExecution!!.result
+                    .onSuccess { result ->
+                        if (result.isUnit()) {
+                            +thisInstance[method](*methodArguments.toTypedArray())
+                        } else {
+                            //"generic" expected variable is represented with a wrapper if
+                            //actual result is primitive to support cases with exceptions.
+                            resultModel = if (result is UtPrimitiveModel) assemble(result) else result
 
-                    assertEquality(expectedExpression, actual)
-                    println()
-                }
+                            val expectedVariable = currentMethodParameters[CgParameterKind.ExpectedResult]!!
+                            val expectedExpression = CgNotNullAssertion(expectedVariable)
+
+                            assertEquality(expectedExpression, actual)
+                            println()
+                        }
+                    }
+                    .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
             }
-            .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
+        }
     }
 
     /**
@@ -381,7 +361,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expectedModel: UtModel,
         expected: CgVariable?,
         actual: CgVariable,
-        statements: MutableList<CgStatement>,
         depth: Int,
         visitedModels: MutableSet<UtModel>,
     ) {
@@ -397,14 +376,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         with(testFrameworkManager) {
             if (depth >= DEEP_EQUALS_MAX_DEPTH) {
-                statements += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
-                statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                currentBlock += CgSingleLineComment("Current deep equals depth exceeds max depth $DEEP_EQUALS_MAX_DEPTH")
+                currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
                 return
             }
 
             when (expectedModel) {
                 is UtPrimitiveModel -> {
-                    statements += when {
+                    currentBlock += when {
                         (expected.type == floatClassId || expected.type == floatWrapperClassId) ->
                             assertions[assertFloatEquals]( // cast have to be not safe here because of signature
                                 typeCast(floatClassId, expected, isSafetyCast = false),
@@ -439,7 +418,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }.toStatement()
                 }
                 is UtEnumConstantModel -> {
-                    statements += assertions[assertEquals](
+                    currentBlock += assertions[assertEquals](
                         expected,
                         actual
                     ).toStatement()
@@ -447,26 +426,22 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 is UtClassRefModel -> {
                     // TODO this stuff is needed because Kotlin has javaclass property instead of Java getClass method
                     //  probably it is better to change getClass method behaviour in the future
-                    val actualObject: CgVariable
-                    if (codegenLanguage == CodegenLanguage.KOTLIN) {
-                        val actualCastedToObject = CgDeclaration(
-                            objectClassId,
-                            variableConstructor.constructVarName("actualObject"),
-                            CgTypeCast(objectClassId, actual)
+                    val actualObject: CgVariable = when (codegenLanguage) {
+                        CodegenLanguage.KOTLIN -> newVar(
+                            baseType = objectClassId,
+                            baseName = variableConstructor.constructVarName("actualObject"),
+                            init = { CgTypeCast(objectClassId, actual) }
                         )
-                        statements += actualCastedToObject
-                        actualObject = actualCastedToObject.variable
-                    } else {
-                        actualObject = actual
+                        else -> actual
                     }
 
-                    statements += assertions[assertEquals](
+                    currentBlock += assertions[assertEquals](
                         CgGetJavaClass(expected.type),
                         actualObject[getClass]()
                     ).toStatement()
                 }
                 is UtNullModel -> {
-                    statements += assertions[assertNull](actual).toStatement()
+                    currentBlock += assertions[assertNull](actual).toStatement()
                 }
                 is UtArrayModel -> {
                     val arrayInfo = expectedModel.collectArrayInfo()
@@ -483,20 +458,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         // actual[1] instance of int[][][]
                         // actual[2] instance of Object[]
 
-                        addArraysLengthAssertion(expected, actual, statements)
-                        statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                        addArraysLengthAssertion(expected, actual)
+                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
                         return
                     }
 
                     // It does not work for Double and Float because JUnit does not have equals overloading with wrappers
                     if (nestedElementClassId == floatClassId || nestedElementClassId == doubleClassId) {
-                        floatingPointArraysDeepEquals(arrayInfo, expected, actual, statements)
+                        floatingPointArraysDeepEquals(arrayInfo, expected, actual)
                         return
                     }
 
                     // common primitive array, can use default array equals
-                    addArraysLengthAssertion(expected, actual, statements)
-                    statements += getArrayEqualsAssertion(
+                    addArraysLengthAssertion(expected, actual)
+                    currentBlock += getArrayEqualsAssertion(
                         expectedModel.classId,
                         typeCast(expectedModel.classId, expected, isSafetyCast = true),
                         typeCast(expectedModel.classId, actual, isSafetyCast = true)
@@ -504,19 +479,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 is UtAssembleModel -> {
                     if (expectedModel.classId.isPrimitiveWrapper) {
-                        statements += assertions[assertEquals](expected, actual).toStatement()
+                        currentBlock += assertions[assertEquals](expected, actual).toStatement()
                         return
                     }
 
                     // UtCompositeModel deep equals is much more easier and human friendly
                     expectedModel.origin?.let {
-                        assertDeepEquals(it, expected, actual, statements, depth, visitedModels)
+                        assertDeepEquals(it, expected, actual, depth, visitedModels)
                         return
                     }
 
                     // special case for strings as they are constructed from UtAssembleModel but can be compared with equals
                     if (expectedModel.classId == stringClassId) {
-                        statements += assertions[assertEquals](
+                        currentBlock += assertions[assertEquals](
                             expected,
                             actual
                         ).toStatement()
@@ -532,7 +507,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // We can add some heuristics to process standard assemble models like List, Set and Map.
                     // So, there is a space for improvements
                     if (expectedModel.modificationsChain.isEmpty() || expectedModel.modificationsChain.any { it !is UtDirectSetFieldModel }) {
-                        statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
                         return
                     }
 
@@ -550,7 +525,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             fieldModel,
                             expected,
                             actual,
-                            statements,
                             depth,
                             visitedModels
                         )
@@ -561,18 +535,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // But it leads to a lot of trash code in each test method, and it is more clear to use
                     // outer deep equals here
                     if (expected.isIterableOrMap()) {
-                        statements += CgSingleLineComment(
+                        currentBlock += CgSingleLineComment(
                             "${expected.type.name} is iterable or Map, use outer deep equals to iterate over"
                         )
-                        statements += getDeepEqualsAssertion(expected, actual).toStatement()
+                        currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
 
                         return
                     }
 
                     if (expected.hasNotParametrizedCustomEquals()) {
                         // We rely on already existing equals
-                        statements += CgSingleLineComment("${expected.type.name} has overridden equals method")
-                        statements += assertions[assertEquals](expected, actual).toStatement()
+                        currentBlock += CgSingleLineComment("${expected.type.name} has overridden equals method")
+                        currentBlock += assertions[assertEquals](expected, actual).toStatement()
 
                         return
                     }
@@ -587,7 +561,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             fieldModel,
                             expected,
                             actual,
-                            statements,
                             depth,
                             visitedModels
                         )
@@ -604,15 +577,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun TestFrameworkManager.addArraysLengthAssertion(
         expected: CgVariable,
         actual: CgVariable,
-        statements: MutableList<CgStatement>
     ): CgDeclaration {
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
             variableConstructor.constructVarName("${expected.name}Size"),
             expected.length(this, testClassThisInstance, getArrayLength)
         )
-        statements += cgGetLengthDeclaration
-        statements += assertions[assertEquals](
+        currentBlock += cgGetLengthDeclaration
+        currentBlock += assertions[assertEquals](
             cgGetLengthDeclaration.variable,
             actual.length(this, testClassThisInstance, getArrayLength)
         ).toStatement()
@@ -627,9 +599,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expectedArrayInfo: ClassIdArrayInfo,
         expected: CgVariable,
         actual: CgVariable,
-        statements: MutableList<CgStatement>,
     ) {
-        val cgGetLengthDeclaration = addArraysLengthAssertion(expected, actual, statements)
+        val cgGetLengthDeclaration = addArraysLengthAssertion(expected, actual)
 
         val nestedElementClassId = expectedArrayInfo.nestedElementClassId
             ?: error("Expected from floating point array ${expectedArrayInfo.classId} to contain elements but null found")
@@ -639,7 +610,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         if (expectedArrayInfo.isSingleDimensionalArray) {
             // we can use array equals for all single dimensional arrays
-            statements += when (nestedElementClassId) {
+            currentBlock += when (nestedElementClassId) {
                 floatClassId -> getFloatArrayEqualsAssertion(
                     typeCast(floatArrayClassId, expected, isSafetyCast = true),
                     typeCast(floatArrayClassId, actual, isSafetyCast = true),
@@ -654,51 +625,40 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         } else {
             // we can't use array equals for multidimensional double and float arrays
             // so we need to go deeper to single-dimensional array
-            val loop = buildForLoop {
+            forLoop {
                 val (i, init) = variableConstructor.loopInitialization(intClassId, "i", initializer = 0)
                 initialization = init
                 condition = i lessThan cgGetLengthDeclaration.variable.resolve()
                 update = i.inc()
 
-                val loopStatements = mutableListOf<CgStatement>()
-                val expectedNestedElement = CgDeclaration(
-                    expected.type.ifArrayGetElementClass()!!,
-                    variableConstructor.constructVarName("${expected.name}NestedElement"),
-                    CgArrayElementAccess(expected, i)
-                )
-                val actualNestedElement = CgDeclaration(
-                    actual.type.ifArrayGetElementClass()!!,
-                    variableConstructor.constructVarName("${actual.name}NestedElement"),
-                    CgArrayElementAccess(actual, i)
-                )
+                statements = block {
+                    val expectedNestedElement = newVar(
+                        baseType = expected.type.ifArrayGetElementClass()!!,
+                        baseName = variableConstructor.constructVarName("${expected.name}NestedElement"),
+                        init = { CgArrayElementAccess(expected, i) }
+                    )
 
-                loopStatements += expectedNestedElement
-                loopStatements += actualNestedElement
-                loopStatements += CgEmptyLine()
+                    val actualNestedElement = newVar(
+                        baseType = actual.type.ifArrayGetElementClass()!!,
+                        baseName = variableConstructor.constructVarName("${actual.name}NestedElement"),
+                        init = { CgArrayElementAccess(actual, i) }
+                    )
 
-                val nullBranchStatements = listOf<CgStatement>(
-                    assertions[assertNull](actualNestedElement.variable).toStatement()
-                )
+                    emptyLine()
 
-                val notNullBranchStatements = mutableListOf<CgStatement>()
-                floatingPointArraysDeepEquals(
-                    expectedArrayInfo.getNested(),
-                    expectedNestedElement.variable,
-                    actualNestedElement.variable,
-                    notNullBranchStatements
-                )
-
-                loopStatements += CgIfStatement(
-                    CgEqualTo(expectedNestedElement.variable, nullLiteral()),
-                    nullBranchStatements,
-                    notNullBranchStatements
-                )
-
-
-                this@buildForLoop.statements = loopStatements
+                    ifStatement(
+                        CgEqualTo(expectedNestedElement, nullLiteral()),
+                        trueBranch = { assertions[assertNull](actualNestedElement).toStatement() },
+                        falseBranch = {
+                            floatingPointArraysDeepEquals(
+                                expectedArrayInfo.getNested(),
+                                expectedNestedElement,
+                                actualNestedElement,
+                            )
+                        }
+                    )
+                }
             }
-
-            statements += loop
         }
     }
 
@@ -721,23 +681,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    /**
-     * We can't use [emptyLineIfNeeded] from here because it changes field [currentBlock].
-     * Also, we can't extract generic part because [currentBlock] is PersistentList (not mutable).
-     */
-    private fun MutableList<CgStatement>.addEmptyLineIfNeeded() {
-        val lastStatement = lastOrNull() ?: return
-        if (lastStatement is CgEmptyLine) return
-
-        this += CgEmptyLine()
-    }
-
     private fun traverseFieldRecursively(
         fieldId: FieldId,
         fieldModel: UtModel,
         expected: CgVariable,
         actual: CgVariable,
-        statements: MutableList<CgStatement>,
         depth: Int,
         visitedModels: MutableSet<UtModel>
     ) {
@@ -759,22 +707,21 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (needExpectedDeclaration(fieldModel)) {
             val expectedFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, expected, fieldName)
 
-            statements += expectedFieldDeclaration
+            currentBlock += expectedFieldDeclaration
             expectedVariable = expectedFieldDeclaration.variable
         }
 
         val actualFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, actual, fieldName)
-        statements += actualFieldDeclaration
+        currentBlock += actualFieldDeclaration
 
         assertDeepEquals(
             fieldModel,
             expectedVariable,
             actualFieldDeclaration.variable,
-            statements,
             depth + 1,
             visitedModels,
         )
-        statements.addEmptyLineIfNeeded()
+        emptyLineIfNeeded()
     }
 
     @Suppress("UNUSED_ANONYMOUS_PARAMETER")
@@ -936,6 +883,27 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         generateDeepEqualsOrNullAssertion(expected.expression, actual)
     }
 
+    private fun generateConstructorCall(currentExecutableId: ExecutableId, currentExecution: UtExecution) {
+        // we cannot generate any assertions for constructor testing
+        // but we need to generate a constructor call
+        val constructorCall = currentExecutableId as ConstructorId
+        currentExecution.result
+            .onSuccess {
+                methodType = SUCCESSFUL
+
+                require(!constructorCall.classId.isInner) {
+                    "Inner class ${constructorCall.classId} constructor testing is not supported yet"
+                }
+
+                actual = newVar(constructorCall.classId, "actual") {
+                    constructorCall(*methodArguments.toTypedArray())
+                }
+            }
+            .onFailure { exception ->
+                processExecutionFailure(currentExecution, exception)
+            }
+    }
+
     /**
      * We can't use standard deepEquals method in parametrized tests
      * because nullable objects require different asserts.
@@ -946,22 +914,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         actual: CgVariable,
     ) {
         when (parameterizedTestSource) {
-            ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
-                currentBlock = currentBlock.addAll(generateDeepEqualsAssertion(expected, actual))
-            ParametrizedTestSource.PARAMETRIZE -> {
-                currentBlock = if (actual.type.isPrimitive) {
-                    currentBlock.addAll(generateDeepEqualsAssertion(expected, actual))
-                } else {
-                    val assertNullStmt =
-                        listOf(testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement())
-                    currentBlock.add(
-                        CgIfStatement(
-                            CgEqualTo(expected, nullLiteral()),
-                            assertNullStmt,
-                            generateDeepEqualsAssertion(expected, actual)
-                        )
-                    )
-                }
+            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> generateDeepEqualsAssertion(expected, actual)
+            ParametrizedTestSource.PARAMETRIZE -> when {
+                actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
+                else -> ifStatement(
+                    CgEqualTo(expected, nullLiteral()),
+                    trueBranch = { testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
+                    falseBranch = { generateDeepEqualsAssertion(expected, actual) }
+                )
             }
         }
     }
@@ -969,22 +929,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun generateDeepEqualsAssertion(
         expected: CgValue,
         actual: CgVariable,
-    ): List<CgStatement> {
+    ) {
         require(expected is CgVariable) {
             "Expected value have to be Literal or Variable but `${expected::class}` found"
         }
 
-        val statements = mutableListOf<CgStatement>(CgEmptyLine())
         assertDeepEquals(
             resultModel,
             expected,
             actual,
-            statements,
             depth = 0,
             visitedModels = hashSetOf()
         )
-
-        return statements.dropLastWhile { it is CgEmptyLine }
     }
 
     private fun recordActualResult() {
@@ -1005,7 +961,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     emptyLineIfNeeded()
 
                     actual = newVar(
-                        CgClassId(executable.returnType, isNullable = result is UtNullModel),
+                        CgClassId(result.classId, isNullable = result is UtNullModel),
                         "actual"
                     ) {
                         thisInstance[executable](*methodArguments.toTypedArray())
@@ -1015,11 +971,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun createTestMethod(utMethod: UtMethod<*>, execution: UtExecution): CgTestMethod =
+    fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
-            val testMethodName = nameGenerator.testMethodNameFor(utMethod, execution.testMethodName)
+            val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
-            execution.displayName = execution.displayName?.let { "${utMethod.callable.name}: $it" }
+            execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
                 rememberInitialStaticFields()
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
@@ -1034,7 +990,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
-                        val name = paramNames[utMethod]?.get(index)
+                        val name = paramNames[executableId]?.get(index)
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     rememberInitialEnvironmentState(modificationInfo)
@@ -1098,7 +1054,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private val expectedResultVarName = "expectedResult"
     private val expectedErrorVarName = "expectedError"
 
-    fun createParameterizedTestMethod(testSet: UtMethodTestSet, dataProviderMethodName: String): CgTestMethod {
+    fun createParameterizedTestMethod(testSet: CgMethodTestSet, dataProviderMethodName: String): CgTestMethod {
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
@@ -1151,17 +1107,17 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun createParameterDeclarations(
-        testSet: UtMethodTestSet,
+        testSet: CgMethodTestSet,
         genericExecution: UtExecution,
     ): List<CgParameterDeclaration> {
-        val methodUnderTest = testSet.method
-        val methodUnderTestParameters = testSet.method.callable.parameters
+        val executableUnderTest = testSet.executableId
+        val executableUnderTestParameters = testSet.executableId.executable.parameters
 
         return mutableListOf<CgParameterDeclaration>().apply {
             // this instance
             val thisInstanceModel = genericExecution.stateBefore.thisInstance
             if (thisInstanceModel != null) {
-                val type = thisInstanceModel.classId
+                val type = wrapTypeIfRequired(thisInstanceModel.classId)
                 val thisInstance = CgParameterDeclaration(
                     parameter = declareParameter(
                         type = type,
@@ -1174,9 +1130,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             // arguments
             for (index in genericExecution.stateBefore.parameters.indices) {
-                val argumentName = paramNames[methodUnderTest]?.get(index)
-                val paramIndex = if (methodUnderTest.isStatic) index else index + 1
-                val paramType = methodUnderTestParameters[paramIndex].type.javaType
+                val argumentName = paramNames[executableUnderTest]?.get(index)
+                val paramType = executableUnderTestParameters[index].parameterizedType
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
@@ -1195,9 +1150,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
-            val method = currentExecutable as MethodId
-            val containsFailureExecution = containsFailureExecution(testSet)
-
+            val method = currentExecutable!!
             val expectedResultClassId = wrapTypeIfRequired(method.returnType)
 
             if (expectedResultClassId != voidClassId) {
@@ -1215,10 +1168,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.ExpectedResult] = expectedResult.parameter
             }
 
+            val containsFailureExecution = containsFailureExecution(testSet)
             if (containsFailureExecution) {
+                val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = throwableClassId(),
+                        type = BuiltinClassId(
+                            name = classClassId.name,
+                            simpleName = classClassId.simpleName,
+                            canonicalName = classClassId.canonicalName,
+                            packageName = classClassId.packageName,
+                            typeParameters = TypeParameters(listOf(Throwable::class.java.id))
+                        ),
                         name = nameGenerator.variableName(expectedErrorVarName)
                     ),
                     // exceptions are always reference type
@@ -1237,83 +1198,81 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Standard logic for generating each test case parameter code is used.
      */
     fun createParameterizedTestDataProvider(
-        testSet: UtMethodTestSet,
+        testSet: CgMethodTestSet,
         dataProviderMethodName: String
     ): CgParameterizedTestDataProviderMethod {
-        val dataProviderStatements = mutableListOf<CgStatement>()
-        val dataProviderExceptions = mutableSetOf<ClassId>()
+        return withDataProviderScope {
+            dataProviderMethod(dataProviderMethodName) {
+                val argListLength = testSet.executions.size
+                val argListVariable = createArgList(argListLength)
 
-        val argListLength = testSet.executions.size
-        val argListDeclaration = createArgList(argListLength)
-        val argListVariable = argListDeclaration.variable
+                emptyLine()
 
-        dataProviderStatements += argListDeclaration
-        dataProviderStatements += CgEmptyLine()
-
-        for ((execIndex, execution) in testSet.executions.withIndex()) {
-            withTestMethodScope(execution) {
-                //collect arguments
-                val arguments = mutableListOf<CgExpression>()
-                val executionArgumentsBody = {
-                    execution.stateBefore.thisInstance?.let {
-                        arguments += variableConstructor.getOrCreateVariable(it)
+                for ((execIndex, execution) in testSet.executions.withIndex()) {
+                    // create a block for current test case
+                    innerBlock {
+                        val arguments = createExecutionArguments(testSet, execution)
+                        createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
                     }
-
-                    for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
-                        val argumentName = paramNames[testSet.method]?.get(paramIndex)
-                        arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
-                    }
-
-                    val method = currentExecutable as MethodId
-                    val needsReturnValue = method.returnType != voidClassId
-                    val containsFailureExecution = containsFailureExecution(testSet)
-                    execution.result
-                        .onSuccess {
-                            if (needsReturnValue) {
-                                arguments += variableConstructor.getOrCreateVariable(it)
-                            }
-                            if (containsFailureExecution) {
-                                arguments += nullLiteral()
-                            }
-                        }
-                        .onFailure {
-                            if (needsReturnValue) {
-                                arguments += nullLiteral()
-                            }
-                            if (containsFailureExecution) {
-                                arguments += CgGetJavaClass(it::class.id)
-                            }
-                        }
-                    emptyLineIfNeeded()
                 }
 
-                //create a block for current test case
-                dataProviderStatements += innerBlock(
-                    {},
-                    block(executionArgumentsBody)
-                            + createArgumentsCallRepresentation(execIndex, argListVariable, arguments).toPersistentList()
-                )
+                emptyLineIfNeeded()
 
-                dataProviderExceptions += collectedExceptions
+                returnStatement { argListVariable }
             }
-        }
-
-        dataProviderStatements.addEmptyLineIfNeeded()
-        dataProviderStatements += CgReturnStatement(argListVariable)
-
-        return buildParameterizedTestDataProviderMethod {
-            name = dataProviderMethodName
-            returnType = argListClassId()
-            statements = dataProviderStatements
-            annotations = createDataProviderAnnotations(dataProviderMethodName)
-            exceptions = dataProviderExceptions
         }
     }
 
+    private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
+        val arguments = mutableListOf<CgExpression>()
+        execution.stateBefore.thisInstance?.let {
+            arguments += variableConstructor.getOrCreateVariable(it)
+        }
+
+        for ((paramIndex, paramModel) in execution.stateBefore.parameters.withIndex()) {
+            val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
+            arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
+        }
+
+        val method = currentExecutable!!
+        val needsReturnValue = method.returnType != voidClassId
+        val containsFailureExecution = containsFailureExecution(testSet)
+        execution.result
+            .onSuccess {
+                if (needsReturnValue) {
+                    arguments += variableConstructor.getOrCreateVariable(it)
+                }
+                if (containsFailureExecution) {
+                    arguments += nullLiteral()
+                }
+            }
+            .onFailure {
+                if (needsReturnValue) {
+                    arguments += nullLiteral()
+                }
+                if (containsFailureExecution) {
+                    arguments += CgGetJavaClass(it::class.id)
+                }
+            }
+
+        emptyLineIfNeeded()
+
+        return arguments
+    }
+
     private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
-        clearMethodScope()
+        clearTestMethodScope()
         currentExecution = execution
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)
+        return try {
+            block()
+        } finally {
+            clearTestMethodScope()
+        }
+    }
+
+    private fun <R> withDataProviderScope(block: () -> R): R {
+        clearMethodScope()
         return try {
             block()
         } finally {
@@ -1321,9 +1280,24 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
+    /**
+     * This function makes sure some information about the method currently being generated is empty.
+     * It clears only the information that is relevant to all kinds of methods:
+     * - test methods
+     * - data provider methods
+     * - and any other kinds of methods that may be added in the future
+     */
     private fun clearMethodScope() {
         collectedExceptions.clear()
-        collectedTestMethodAnnotations.clear()
+        collectedMethodAnnotations.clear()
+    }
+
+    /**
+     * This function makes sure some information about the **test method** currently being generated is empty.
+     * It is used at the start of test method generation and right after it.
+     */
+    private fun clearTestMethodScope() {
+        clearMethodScope()
         prevStaticFieldValues.clear()
         thisInstance = null
         methodArguments.clear()
@@ -1340,44 +1314,38 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         executionIndex: Int,
         argsVariable: CgVariable,
         arguments: List<CgExpression>,
-    ): List<CgStatement> = when (testFramework) {
-        Junit5 -> {
-            val argumentsMethodCall = CgMethodCall(caller = null, argumentsMethodId().asExecutableMethod(), arguments)
-            listOf(
-                CgStatementExecutableCall(
-                    CgMethodCall(
-                        argsVariable,
-                        addToListMethodId().asExecutableMethod(),
-                        listOf(argumentsMethodCall)
-                    )
+    ) {
+        val argsArray = newVar(objectArrayClassId, "testCaseObjects") {
+            CgAllocateArray(objectArrayClassId, objectClassId, arguments.size)
+        }
+        for ((i, argument) in arguments.withIndex()) {
+            setArgumentsArrayElement(argsArray, i, argument)
+        }
+        when (testFramework) {
+            Junit5 -> {
+                +argsVariable[addToListMethodId](
+                    argumentsClassId[argumentsMethodId](argsArray)
                 )
-            )
-        }
-        TestNg -> {
-            val statements = mutableListOf<CgStatement>()
-            val argsArrayAllocation = CgAllocateArray(Array<Any?>::class.java.id, objectClassId, arguments.size)
-            val argsArrayDeclaration = CgDeclaration(objectArrayClassId, "testCaseObjects", argsArrayAllocation)
-            statements += argsArrayDeclaration
-            for ((i, argument) in arguments.withIndex()) {
-                statements += setArgumentsArrayElement(argsArrayDeclaration.variable, i, argument)
             }
-            statements += setArgumentsArrayElement(argsVariable, executionIndex, argsArrayDeclaration.variable)
-
-            statements
+            TestNg -> {
+                setArgumentsArrayElement(argsVariable, executionIndex, argsArray)
+            }
+            Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
-        Junit4 -> error("Parameterized tests are not supported for JUnit4")
     }
 
     /**
      * Sets an element of arguments array in parameterized test,
      * if test framework represents arguments as array.
      */
-    private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression): CgStatement =
-        if (array.type == objectClassId) {
-            java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
-        } else {
-            CgAssignment(array.at(index), value)
+    private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression) {
+        when (array.type) {
+            objectClassId -> {
+                +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+            }
+            else -> array.at(index) `=` value
         }
+    }
 
     /**
      * Creates annotations for data provider method in parameterized tests
@@ -1398,66 +1366,97 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * Creates declaration of argList collection in parameterized tests.
      */
-    private fun createArgList(length: Int): CgDeclaration = when (testFramework) {
-        Junit5 -> {
-            val constructorCall = CgConstructorCall(argListClassId().findConstructor().asExecutableConstructor(), emptyList())
-            CgDeclaration(argListClassId(), "argList", constructorCall)
+    private fun createArgList(length: Int): CgVariable {
+        val argListName = "argList"
+        return when (testFramework) {
+            Junit5 ->
+                newVar(argListClassId, argListName) {
+                    val constructor = ConstructorId(argListClassId, emptyList())
+                    constructor.invoke()
+                }
+            TestNg ->
+                newVar(argListClassId, argListName) {
+                    CgAllocateArray(argListClassId, Array<Any>::class.java.id, length)
+                }
+            Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
-        TestNg -> {
-            val allocateArrayCall = CgAllocateArray(argListClassId(), Array<Any>::class.java.id, length)
-            CgDeclaration(argListClassId(), "argList", allocateArrayCall)
-        }
-        Junit4 -> error("Parameterized tests are not supported for JUnit4")
     }
 
     /**
      * Creates a [ClassId] for arguments collection.
      */
-    private fun argListClassId(): ClassId = when (testFramework) {
-        Junit5 -> builtInClass("java.util.ArrayList<${JUNIT5_PARAMETERIZED_PACKAGE}.provider.Arguments>")
-        TestNg -> builtInClass(Array<Array<Any?>?>::class.java.name)
-//            BuiltinClassId(
-//            name = Array<Array<Any?>?>::class.java.name,
-//            simpleName = when (codegenLanguage) {
-//                CodegenLanguage.JAVA -> "Object[][]"
-//                CodegenLanguage.KOTLIN -> "Array<Array<Any?>?>"
-//            },
-//            canonicalName = Array<Array<Any?>?>::class.java.canonicalName,
-//            packageName = Array<Array<Any?>?>::class.java.packageName,
-//        )
-        Junit4 -> error("Parameterized tests are not supported for JUnit4")
-    }
+    private val argListClassId: ClassId
+        get() = when (testFramework) {
+            Junit5 -> {
+                val arrayListId = java.util.ArrayList::class.id
+                BuiltinClassId(
+                    name = arrayListId.name,
+                    simpleName = arrayListId.simpleName,
+                    canonicalName = arrayListId.canonicalName,
+                    packageName = arrayListId.packageName,
+                    typeParameters = TypeParameters(listOf(argumentsClassId))
+                )
+            }
+            TestNg -> {
+                val outerArrayId = Array<Array<Any?>?>::class.id
+                val innerArrayId = BuiltinClassId(
+                    name = objectArrayClassId.name,
+                    simpleName = objectArrayClassId.simpleName,
+                    canonicalName = objectArrayClassId.canonicalName,
+                    packageName = objectArrayClassId.packageName,
+                    elementClassId = objectClassId,
+                    typeParameters = TypeParameters(listOf(objectClassId))
+                )
+
+                BuiltinClassId(
+                    name = outerArrayId.name,
+                    simpleName = outerArrayId.simpleName,
+                    canonicalName = outerArrayId.canonicalName,
+                    packageName = outerArrayId.packageName,
+                    elementClassId = innerArrayId,
+                    typeParameters = TypeParameters(listOf(innerArrayId))
+                )
+            }
+            Junit4 -> error("Parameterized tests are not supported for JUnit4")
+        }
 
 
     /**
      * A [MethodId] to add an item into [ArrayList].
      */
-    private fun addToListMethodId(): MethodId = ArrayList::class.id.findMethod(
-        name = "add",
-        returnType = booleanClassId,
-        arguments = listOf(Object::class.id),
-    )
+    private val addToListMethodId: MethodId
+        get() = ArrayList::class.id.findMethod(
+            name = "add",
+            returnType = booleanClassId,
+            arguments = listOf(Object::class.id),
+        )
+
+    /**
+     * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
+     */
+    private val argumentsClassId: BuiltinClassId
+        get() = BuiltinClassId(
+            name = "org.junit.jupiter.params.provider.Arguments",
+            simpleName = "Arguments",
+            canonicalName = "org.junit.jupiter.params.provider.Arguments",
+            packageName = "org.junit.jupiter.params.provider"
+        )
 
     /**
      * A [MethodId] to call JUnit Arguments method.
      */
-    private fun argumentsMethodId(): MethodId {
-        val argumentsClassId = builtInClass("org.junit.jupiter.params.provider.Arguments")
-
-        return argumentsClassId.newBuiltinMethod(
+    private val argumentsMethodId: BuiltinMethodId
+        get() = builtinStaticMethodId(
+            classId = argumentsClassId,
             name = "arguments",
             returnType = argumentsClassId,
-            arguments = listOf(Object::class.id),
+            // vararg of Objects
+            arguments = listOf(objectArrayClassId)
         )
-    }
 
-    private fun containsFailureExecution(testSet: UtMethodTestSet) =
+    private fun containsFailureExecution(testSet: CgMethodTestSet) =
         testSet.executions.any { it.result is UtExecutionFailure }
 
-    /**
-     * A [ClassId] for Class<Throwable>.
-     */
-    private fun throwableClassId(): ClassId = builtInClass("java.lang.Class<Throwable>")
 
     private fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> =
         when (testFramework) {
@@ -1482,7 +1481,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         dataProviderMethodName: String? = null,
         body: () -> Unit,
     ): CgTestMethod {
-        collectedTestMethodAnnotations += if (parameterized) {
+        collectedMethodAnnotations += if (parameterized) {
             collectParameterizedTestAnnotations(dataProviderMethodName)
         } else {
             setOf(annotation(testFramework.testAnnotationId))
@@ -1510,9 +1509,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             name = methodName
             parameters = params
             statements = block(body)
-            // Exceptions and annotations assignment must run after everything else is set up
+            // Exceptions and annotations assignment must run after the statements block is build,
+            // because we collect info about exceptions and required annotations while building the statements
             exceptions += collectedExceptions
-            annotations += collectedTestMethodAnnotations
+            annotations += collectedMethodAnnotations
             methodType = this@CgMethodConstructor.methodType
             val docComment = currentExecution?.summary?.map { convertDocToCg(it) }?.toMutableList() ?: mutableListOf()
 
@@ -1543,8 +1543,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return testMethod
     }
 
-    fun errorMethod(method: UtMethod<*>, errors: Map<String, Int>): CgRegion<CgMethod> {
-        val name = nameGenerator.errorMethodNameFor(method)
+    private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
+        return buildParameterizedTestDataProviderMethod {
+            name = dataProviderMethodName
+            returnType = argListClassId
+            statements = block(body)
+            // Exceptions and annotations assignment must run after the statements block is build,
+            // because we collect info about exceptions and required annotations while building the statements
+            exceptions += collectedExceptions
+            annotations += createDataProviderAnnotations(dataProviderMethodName)
+        }
+    }
+
+    fun errorMethod(executable: ExecutableId, errors: Map<String, Int>): CgRegion<CgMethod> {
+        val name = nameGenerator.errorMethodNameFor(executable)
         val body = block {
             comment("Couldn't generate some tests. List of errors:")
             comment()
@@ -1572,7 +1584,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
         }
         val errorTestMethod = CgErrorTestMethod(name, body)
-        return CgSimpleRegion("Errors report for ${method.callable.name}", listOf(errorTestMethod))
+        return CgSimpleRegion("Errors report for ${executable.name}", listOf(errorTestMethod))
     }
 
     private fun getJvmReportDocumentation(jvmReportPath: String): String {

@@ -78,6 +78,13 @@ internal abstract class UtModelTestCaseChecker(
                 "We have errors: ${testSet.errors.entries.map { "${it.value}: ${it.key}" }.prettify()}"
             }
 
+            // if force mocking took place in parametrized test generation,
+            // we do not need to process this [testSet]
+            if (TestCodeGeneratorPipeline.currentTestFrameworkConfiguration.isParametrizedAndMocked) {
+                conflictTriggers.reset(Conflict.ForceMockHappened, Conflict.ForceStaticMockHappened)
+                return
+            }
+
             val executions = testSet.executions
             assertTrue(branches(executions.size)) {
                 "Branch count matcher '$branches' fails for #executions=${executions.size}: ${executions.prettify()}"

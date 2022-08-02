@@ -30,7 +30,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
     /**
      * Given a list of test sets constructs CgTestClass
      */
-    fun construct(testSets: Collection<UtMethodTestSet>): CgTestClassFile {
+    fun construct(testSets: Collection<CgMethodTestSet>): CgTestClassFile {
         return buildTestClassFile {
             testClass = buildTestClass {
                 // TODO: obtain test class from plugin
@@ -38,7 +38,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 body = buildTestClassBody {
                     cgDataProviderMethods.clear()
                     for (testSet in testSets) {
-                        updateCurrentExecutable(testSet.method)
+                        updateCurrentExecutable(testSet.executableId)
                         val currentMethodUnderTestRegions = construct(testSet) ?: continue
                         val executableUnderTestCluster = CgExecutableUnderTestCluster(
                             "Test suites for executable $currentExecutable",
@@ -63,7 +63,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
     }
 
-    private fun construct(testSet: UtMethodTestSet): List<CgRegion<CgMethod>>? {
+    private fun construct(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }
@@ -93,7 +93,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
             }
             ParametrizedTestSource.PARAMETRIZE -> {
                 runCatching {
-                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.method)
+                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.executableId)
 
                     val parameterizedTestMethod =
                         methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
@@ -113,14 +113,14 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
         val errors = testSet.allErrors
         if (errors.isNotEmpty()) {
-            regions += methodConstructor.errorMethod(testSet.method, errors)
+            regions += methodConstructor.errorMethod(testSet.executableId, errors)
             testsGenerationReport.addMethodErrors(testSet, errors)
         }
 
         return regions
     }
 
-    private fun processFailure(testSet: UtMethodTestSet, failure: Throwable) {
+    private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
@@ -159,23 +159,23 @@ internal class CgTestClassConstructor(val context: CgContext) :
     /**
      * Engine errors + codegen errors for a given [UtMethodTestSet]
      */
-    private val UtMethodTestSet.allErrors: Map<String, Int>
+    private val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 }
 
-typealias MethodGeneratedTests = MutableMap<UtMethod<*>, MutableSet<CgTestMethod>>
+typealias MethodGeneratedTests = MutableMap<ExecutableId, MutableSet<CgTestMethod>>
 typealias ErrorsCount = Map<String, Int>
 
 data class TestsGenerationReport(
-    val executables: MutableSet<UtMethod<*>> = mutableSetOf(),
+    val executables: MutableSet<ExecutableId> = mutableSetOf(),
     var successfulExecutions: MethodGeneratedTests = mutableMapOf(),
     var timeoutExecutions: MethodGeneratedTests = mutableMapOf(),
     var failedExecutions: MethodGeneratedTests = mutableMapOf(),
     var crashExecutions: MethodGeneratedTests = mutableMapOf(),
-    var errors: MutableMap<UtMethod<*>, ErrorsCount> = mutableMapOf()
+    var errors: MutableMap<ExecutableId, ErrorsCount> = mutableMapOf()
 ) {
     val classUnderTest: KClass<*>
-        get() = executables.firstOrNull()?.clazz
+        get() = executables.firstOrNull()?.classId?.kClass
             ?: error("No executables found in test report")
 
     val initialWarnings: MutableList<() -> String> = mutableListOf()
@@ -202,12 +202,12 @@ data class TestsGenerationReport(
             appendHtmlLine("Not generated because of internal errors test methods: $overallErrors")
         }
 
-    fun addMethodErrors(testSet: UtMethodTestSet, errors: Map<String, Int>) {
-        this.errors[testSet.method] = errors
+    fun addMethodErrors(testSet: CgMethodTestSet, errors: Map<String, Int>) {
+        this.errors[testSet.executableId] = errors
     }
 
-    fun addTestsByType(testSet: UtMethodTestSet, testMethods: List<CgTestMethod>) {
-        with(testSet.method) {
+    fun addTestsByType(testSet: CgMethodTestSet, testMethods: List<CgTestMethod>) {
+        with(testSet.executableId) {
             executables += this
 
             testMethods.forEach {
@@ -244,19 +244,19 @@ data class TestsGenerationReport(
 
     override fun toString(): String = toString(false)
 
-    private fun UtMethod<*>.countTestMethods(): TestMethodStatistic = TestMethodStatistic(
+    private fun ExecutableId.countTestMethods(): TestMethodStatistic = TestMethodStatistic(
         testMethodsNumber(successfulExecutions),
         testMethodsNumber(failedExecutions),
         testMethodsNumber(timeoutExecutions),
         testMethodsNumber(crashExecutions)
     )
 
-    private fun UtMethod<*>.countErrors(): Int = errors.getOrDefault(this, emptyMap()).values.sum()
+    private fun ExecutableId.countErrors(): Int = errors.getOrDefault(this, emptyMap()).values.sum()
 
-    private fun UtMethod<*>.testMethodsNumber(executables: MethodGeneratedTests): Int =
+    private fun ExecutableId.testMethodsNumber(executables: MethodGeneratedTests): Int =
         executables.getOrDefault(this, emptySet()).size
 
-    private fun UtMethod<*>.updateExecutions(it: CgTestMethod, executions: MethodGeneratedTests) {
+    private fun ExecutableId.updateExecutions(it: CgTestMethod, executions: MethodGeneratedTests) {
         executions.getOrPut(this) { mutableSetOf() } += it
     }
 

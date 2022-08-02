@@ -1,3 +1,7 @@
+import com.sun.management.OperatingSystemMXBean
+
+import java.lang.management.ManagementFactory
+
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
@@ -59,7 +63,16 @@ test {
     }
 
     afterTest { descriptor, result ->
-        println "[$descriptor.classDisplayName] [$descriptor.displayName]: $result.resultType"
+        println "------------------------------------------------------------------------------------------------------"
+        println "[$descriptor.classDisplayName] [$descriptor.displayName]: $result.resultType, length - ${(result.endTime - result.startTime) / 1000.0} sec"
+        if (result.resultType == TestResult.ResultType.FAILURE) {
+            println "$result.exception"
+        }
+        def runtime = Runtime.runtime
+        println "maxMemory - ${runtime.maxMemory() / 1024.0 / 1024.0} MB, freeMemory - ${runtime.freeMemory() / 1024.0 / 1024.0} MB, totalMemory - ${runtime.totalMemory() / 1024.0 / 1024.0} MB"
+        def memoryBean = ManagementFactory.memoryMXBean
+        def osBean = (OperatingSystemMXBean) ManagementFactory.operatingSystemMXBean
+        println "bean total physical memory - ${osBean.totalPhysicalMemorySize / 1024.0 / 1024.0} MB, bean free physical memory - ${osBean.freePhysicalMemorySize / 1024.0 / 1024.0} MB, bean usage - ${memoryBean.heapMemoryUsage.toString()}"
     }
 
     testLogging {

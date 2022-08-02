@@ -31,7 +31,7 @@ import java.util.concurrent.CancellationException
  * Helpful class for working with the kryo.
  */
 class KryoHelper internal constructor(
-    private val parent: Lifetime,
+    private val lifetime: Lifetime,
     inputSignal: RdSignal<ByteArray>,
     private val outputSignal: RdSignal<ByteArray>,
     private val doLog: (() -> String) -> Unit = { _ -> }
@@ -41,8 +41,8 @@ class KryoHelper internal constructor(
     private var lastInputStream = ByteArrayInputStream(ByteArray(0))
     private val kryoInput: Input = object : Input(1024 * 1024) {
         override fun fill(buffer: ByteArray, offset: Int, count: Int): Int = runBlocking {
-            this.startChildAsync(parent) {
-                var readed = lastInputStream.read(buffer, offset, count)
+            this.startChildAsync(lifetime) {
+                val readed = lastInputStream.read(buffer, offset, count)
 
                 if (readed == -1) {
                     queue.receiveOrNull()?.let {
@@ -58,11 +58,11 @@ class KryoHelper internal constructor(
     }
 
     init {
-        inputSignal.advise(parent) { byteArray ->
+        inputSignal.advise(lifetime) { byteArray ->
             doLog { "received chunk: size - ${byteArray.size}, hash - ${byteArray.contentHashCode()}" }
             queue.offer(byteArray)
         }
-        parent.onTermination {
+        lifetime.onTermination {
             kryoInput.close()
             kryoOutput.close()
             queue.close()
@@ -106,7 +106,7 @@ class KryoHelper internal constructor(
      */
     fun <T : Protocol.Command> writeCommand(id: Long, cmd: T) {
         try {
-            parent.throwIfNotAlive()
+            lifetime.throwIfNotAlive()
 
             sendKryo.writeObject(kryoOutput, id)
             sendKryo.writeClassAndObject(kryoOutput, cmd)
@@ -114,7 +114,7 @@ class KryoHelper internal constructor(
 
             val toSend = outputBuffer.toByteArray()
 
-            parent.throwIfNotAlive()
+            lifetime.throwIfNotAlive()
             doLog { "sending chunk: size - ${toSend.size}, hash - ${toSend.contentHashCode()}" }
             outputSignal.fire(toSend)
         } catch (e: CancellationException) {
@@ -138,7 +138,7 @@ class KryoHelper internal constructor(
      */
     fun readCommand(): ReceivedCommand =
         try {
-            parent.throwIfNotAlive()
+            lifetime.throwIfNotAlive()
             ReceivedCommand(readLong(), receiveKryo.readClassAndObject(kryoInput) as Protocol.Command)
         } catch (e: CancellationException) {
             throw e

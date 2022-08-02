@@ -3,6 +3,7 @@ package org.utbot.instrumentation
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.isAlive
 import com.jetbrains.rd.util.lifetime.isNotAlive
+import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -130,13 +131,14 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     var classLoader: ClassLoader? = UtContext.currentContext()?.classLoader
 
     //property that signals to executors pool whether it can reuse this executor or not
-    var alive = true
-        private set
+    val alive: Boolean
+        get() = def.isAlive
 
     private val corMutex = Mutex()
     private var processInstance: UtInstrumentationProcess? = null
 
     private suspend fun regenerate() {
+        def.throwIfNotAlive()
         val proc = processInstance
 
         if (proc == null || proc.lifetime.isNotAlive) {
@@ -235,16 +237,17 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     }
 
     override fun close() {
-        if (alive && def.isAlive) {
-            alive = false
-            def.executeIfAlive {
-                runBlocking<Unit> {
-                    logger.catch {
-                        request(Protocol.StopProcessCommand())
+        runBlocking {
+            corMutex.withLock {
+                if (alive) {
+                    try {
+                        processInstance?.request(Protocol.StopProcessCommand())
+                    } catch (e: Throwable) {
+                        logger.trace { "exception in close: $e" }
                     }
                 }
+                def.terminate()
             }
-            def.terminate()
         }
     }
 }

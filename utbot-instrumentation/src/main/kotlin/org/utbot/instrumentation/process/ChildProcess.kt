@@ -1,7 +1,9 @@
 package org.utbot.instrumentation.process
 
 import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.plusAssign
+import kotlinx.coroutines.delay
 import org.utbot.common.getCurrentProcessId
 import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
@@ -11,6 +13,7 @@ import org.utbot.instrumentation.rd.*
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
+import org.utbot.rd.UtRdCoroutineScope
 import org.utbot.rd.UtRdUtil
 import org.utbot.rd.UtSingleThreadScheduler
 import java.io.File
@@ -19,6 +22,7 @@ import java.io.PrintStream
 import java.net.URLClassLoader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.system.measureTimeMillis
 
 /**
@@ -73,22 +77,41 @@ private fun logTrace(any: () -> Any?) {
     log(any, CUSTOM_LOG_LEVEL.TRACE)
 }
 
+private val counter = AtomicLong(0)
+
 /**
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
  * CHILD PROCESS INVARIANT:
  * Parent process should live longer than child
  * if parent dies before child does - child will be orphan
  */
-fun main(args: Array<String>): Unit = Lifetime.using { lifetime ->
+fun main(args: Array<String>): Unit {
     // 0 - auto port for server, should not be used here
     val port = args.find { it.startsWith(serverPortProcessArgumentTag) }
         ?.run { split("=").last().toInt().coerceIn(1..65535) }
         ?: throw IllegalArgumentException("No port provided")
 
     val pid = getCurrentProcessId()
+    val def = LifetimeDefinition()
 
-    lifetime += { logInfo { "terminating lifetime" } }
-    initiate(lifetime, port, pid.toInt())
+    counter.set(System.currentTimeMillis())
+
+    UtRdCoroutineScope.current.launch(Lifetime.Eternal) {
+        while(true) {
+            val now = System.currentTimeMillis()
+            if (now - counter.get() > 60 * 1000) {
+                def.terminate()
+                break
+            } else {
+                delay(1000)
+            }
+        }
+    }
+
+    def.usingNested { lifetime ->
+        lifetime += { logInfo { "terminating lifetime" } }
+        initiate(lifetime, port, pid.toInt())
+    }
 }
 
 private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({

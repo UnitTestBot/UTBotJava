@@ -3,6 +3,7 @@ package org.utbot.rd
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import com.jetbrains.rd.util.reactive.IScheduler
 import mu.KotlinLogging
 
@@ -46,10 +47,13 @@ object UtRdUtil {
         )
     }
 
+    // process will not be started if parent is not alive
     suspend fun startUtProcessWithRdServer(
         parent: Lifetime? = null,
         factory: (Int) -> Process
     ): ProcessWithRdServer {
+        parent?.throwIfNotAlive()
+
         val port = NetUtils.findFreePort(0)
 
         return factory(port).withRdServer(parent) {

@@ -42,6 +42,15 @@ private const val fileWaitTimeoutMillis = 10L
  * 3. child process operations are executed consequently and must always return exactly one answer command
  * 4. if process is dead - it always throws CancellationException on any operation
  * do not allow to obtain dead process, return newly restart instance it if terminated
+ *
+ * 3. optionally wait until child process starts client protocol and connects
+ *
+ * To achieve step 3:
+ * 1. child process should start client ASAP, preferably should be the first thing done when child starts
+ * 2. serverFactory must create protocol with provided child process lifetime
+ * 3. server and client protocol should choose same port,
+ *      preferable way is to find open port in advance, provide it to child process via process arguments and
+ *      have serverFactory use it
  */
 class UtInstrumentationProcess private constructor(
     private val classLoader: ClassLoader?,
@@ -53,7 +62,7 @@ class UtInstrumentationProcess private constructor(
     private val toProcess = RdSignal<ByteArray>().static(1).apply { async = true }
     private val fromProcess = RdSignal<ByteArray>().static(2).apply { async = true }
 
-    suspend fun init(): UtInstrumentationProcess {
+    private suspend fun init(): UtInstrumentationProcess {
         lifetime.usingNested { operation ->
             val bound = CompletableDeferred<Boolean>()
 
@@ -82,7 +91,7 @@ class UtInstrumentationProcess private constructor(
             }
         }
         kryoHelper = KryoHelper(
-            rdProcess.lifetime,
+            rdProcess.lifetime.createNested(),
             fromProcess,
             toProcess,
             logger::trace

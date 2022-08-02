@@ -311,7 +311,7 @@ fun runEstimator(
     projectFilter: List<String>?,
     processedClassesThreshold: Int,
     tools: List<Tool>
-) {
+): GlobalStats {
 
     val classesLists = File(args[0])
     val classpathDir = File(args[1])
@@ -424,8 +424,11 @@ fun runEstimator(
     logger.info { globalStats }
     ConcreteExecutor.defaultPool.close()
 
-    if (globalStats.statsForClasses.isNotEmpty())
-        exitProcess(1)
+//    For what?
+//    if (globalStats.statsForClasses.isNotEmpty())
+//        exitProcess(1)
+
+    return globalStats
 }
 
 private fun moveFolder(sourceFile: File, targetFile: File) {

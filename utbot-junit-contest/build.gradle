@@ -93,3 +93,32 @@ jar { dependsOn classes
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
 }
+
+task monitoringJar(type: Jar) { dependsOn classes
+
+    archiveName 'monitoring.jar'
+
+    manifest {
+        attributes 'Main-Class': 'org.utbot.contest.StatisticsMonitoringKt'
+        attributes 'Bundle-SymbolicName': 'org.utbot.contest'
+        attributes 'Bundle-Version': "${project.version}"
+        attributes 'Implementation-Title': 'UtBot Monitoring'
+        attributes 'JAR-Type': 'Fat JAR'
+    }
+
+    version '1.0'
+
+    from {
+        sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+task monitoringRun(type: JavaExec) { dependsOn monitoringJar
+    classpath = files(monitoringJar)
+    workingDir = project.parent.projectDir
+    if (project.hasProperty("outputStats")) {
+        args project.outputStats
+    }
+}

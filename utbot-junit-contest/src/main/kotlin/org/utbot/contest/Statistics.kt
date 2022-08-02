@@ -18,18 +18,56 @@ class GlobalStats {
 
     val statsForClasses = mutableListOf<StatsForClass>()
 
+    val classesForGeneration: Int
+        get() = statsForClasses.size
+
+    val testCasesGenerated: Int
+        get() = statsForClasses.sumBy { it.testcasesGenerated }
+
+    val classesWithoutProblems: Int
+        get() = statsForClasses.count { !it.canceledByTimeout && it.methodsWithAtLeastOneException == 0 }
+
+    val classesCanceledByTimeout: Int
+        get() = statsForClasses.count { it.canceledByTimeout }
+
+    val totalMethodsForGeneration: Int
+        get() = statsForClasses.sumBy { it.methodsCount }
+
+    val methodsWithAtLeastOneTestCaseGenerated: Int
+        get() = statsForClasses.sumBy { it.statsForMethods.count { it.testsGeneratedCount > 0 } }
+
+    val methodsWithExceptions: Int
+        get() = statsForClasses.sumBy { clazz -> clazz.statsForMethods.count { it.failReasons.isNotEmpty() } }
+
+    val suspiciousMethods: Int
+        get() = statsForClasses.sumBy { it.statsForMethods.count { it.isSuspicious } }
+
+    val testClassesFailedToCompile: Int
+        get() = statsForClasses.count { it.failedToCompile }
+
+    val coveredInstructionsCount: Int
+        get() = statsForClasses.sumBy { it.getCoverageInfo().first }
+
+    val totalInstructionsCount: Int
+        get() = statsForClasses.sumBy { it.coverage?.instructionsCount?.toInt() ?: 0 }
+
+    val avgCoverage: Double
+        get() = statsForClasses
+            .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
+            .map { it.getCoverageInfo().run { 100.0 * first / second } }.average()
+
     override fun toString(): String = "\n<Global statistics> :" +
-            "\n\t#classes for generation = ${statsForClasses.size}" +
-            "\n\t#tc generated = ${statsForClasses.sumBy { it.testcasesGenerated }}" +
-            "\n\t#classes without problems = ${statsForClasses.count { !it.canceledByTimeout && it.methodsWithAtLeastOneException == 0 }}" +
-            "\n\t#classes canceled by timeout = ${statsForClasses.count { it.canceledByTimeout }}" +
+            "\n\t#classes for generation = $classesForGeneration" +
+            "\n\t#tc generated = $testCasesGenerated" +
+            "\n\t#classes without problems = $classesWithoutProblems" +
+            "\n\t#classes canceled by timeout = $classesCanceledByTimeout" +
             "\n----------------------------------------" +
-            "\n\t#total methods for generation = ${statsForClasses.sumBy { it.methodsCount }}" +
-            "\n\t#methods with at least one testcase generated =  ${statsForClasses.sumBy { it.statsForMethods.count { it.testsGeneratedCount > 0 } }} " +
-            "\n\t#methods with exceptions = ${statsForClasses.sumBy { clazz -> clazz.statsForMethods.count { it.failReasons.isNotEmpty() } }}" +
-            "\n\t#suspicious methods WITH NO testcases AND NO exceptions =  ${statsForClasses.sumBy { it.statsForMethods.count { it.isSuspicious } }} " +
+            "\n\t#total methods for generation = $totalMethodsForGeneration" +
+            "\n\t#methods with at least one testcase generated = $methodsWithAtLeastOneTestCaseGenerated" +
+            "\n\t#methods with exceptions = $methodsWithExceptions" +
+            "\n\t#suspicious methods WITH NO testcases AND NO exceptions = $suspiciousMethods" +
             "\n----------------------------------------" +
-            "\n\t#Test classes failed to compile = ${statsForClasses.count { it.failedToCompile }} out of ${statsForClasses.size}:" +
+            "\n\t#Test classes failed to compile = $testClassesFailedToCompile out of $classesForGeneration:" +
             statsForClasses.filter { it.failedToCompile }.printMultiline { "\t >" + it.testClassFile?.name } +
             "\n----------------------------------------" +
             "\n\tMost common fail reasons in symbolic execution: \n\t\t" + // for each exception with count number of methods it was encountered (not TC!)
@@ -41,15 +79,13 @@ class GlobalStats {
                 .printMultiline { (reason, names) -> " ${names.joinToString()}\n-->> In ${names.size} method(s) :: $reason" } +
             "\n----------------------------------------" +
             "\n\tTotal coverage: \n\t\t" +
-                statsForClasses.sumBy { it.getCoverageInfo().first }.let { num ->
-                    statsForClasses.sumBy { it.coverage?.instructionsCount?.toInt() ?: 0 }.let { denum ->
-                        "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
-                    }
-                } +
+            coveredInstructionsCount.let { num ->
+                totalInstructionsCount.let { denum ->
+                    "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
+                }
+            } +
             "\n\tAvg coverage: \n\t\t" +
-                statsForClasses
-                    .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
-                    .map { it.getCoverageInfo().run { 100.0 * first / second } }.average().format(PRECISION) + " %"
+            avgCoverage.format(PRECISION) + " %"
 }
 
 class StatsForClass(val className: String) {

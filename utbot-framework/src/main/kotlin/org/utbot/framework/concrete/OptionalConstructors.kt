@@ -16,8 +16,8 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
     abstract val isPresent: KFunction1<*, Boolean>
     abstract val getter: KFunction1<*, Any>
 
-    private val emptyMethodId by lazy { methodId(classId, "empty", classId) }
-    private val ofMethodId by lazy { methodId(classId, "of", classId, elementClassId) }
+    private val emptyMethodId get() = classId.findMethod("empty", classId)
+    private val ofMethodId get() = classId.findMethod("of", classId, listOfNotNull(elementClassId))
 
     final override fun UtAssembleModel.modifyChains(
         internalConstructor: UtModelConstructorInterface,

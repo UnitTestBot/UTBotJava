@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.runBlocking
 import org.utbot.common.PathUtil
 import org.utbot.engine.isStatic
@@ -1290,7 +1291,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 dataProviderStatements += innerBlock(
                     {},
                     block(executionArgumentsBody)
-                            + createArgumentsCallRepresentation(execIndex, argListVariable, arguments)
+                            + createArgumentsCallRepresentation(execIndex, argListVariable, arguments).toPersistentList()
                 )
 
                 dataProviderExceptions += collectedExceptions
@@ -1399,7 +1400,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun createArgList(length: Int): CgDeclaration = when (testFramework) {
         Junit5 -> {
-            val constructorCall = CgConstructorCall(constructorId(argListClassId()), emptyList())
+            val constructorCall = CgConstructorCall(argListClassId().findConstructor().asExecutableConstructor(), emptyList())
             CgDeclaration(argListClassId(), "argList", constructorCall)
         }
         TestNg -> {
@@ -1431,11 +1432,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * A [MethodId] to add an item into [ArrayList].
      */
-    private fun addToListMethodId(): MethodId = methodId(
-        classId = ArrayList::class.id,
+    private fun addToListMethodId(): MethodId = ArrayList::class.id.findMethod(
         name = "add",
         returnType = booleanClassId,
-        arguments = arrayOf(Object::class.id),
+        arguments = listOf(Object::class.id),
     )
 
     /**
@@ -1444,11 +1444,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun argumentsMethodId(): MethodId {
         val argumentsClassId = builtInClass("org.junit.jupiter.params.provider.Arguments")
 
-        return builtinMethodId(
-            classId = argumentsClassId,
+        return argumentsClassId.newBuiltinMethod(
             name = "arguments",
             returnType = argumentsClassId,
-            arguments = arrayOf(Object::class.id),
+            arguments = listOf(Object::class.id),
         )
     }
 

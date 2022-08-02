@@ -176,7 +176,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         val mockClassCounter = CgDeclaration(
             atomicIntegerClassId,
             variableConstructor.constructVarName(MOCK_CLASS_COUNTER_NAME),
-            CgConstructorCall(constructorId(atomicIntegerClassId), emptyList())
+            CgConstructorCall(atomicIntegerClassId.findConstructor().asExecutableConstructor(), emptyList())
         )
         +mockClassCounter
 
@@ -323,7 +323,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         }
         return CgMethodCall(
             mockedStatic,
-            MockitoStaticMocking.mockedStaticWhen(nullable = mockedStatic.type.isNullable),
+            MockitoStaticMocking.mockedStaticWhen(nullable = mockedStatic.type.isNullable).asExecutableMethod(),
             listOf(runnable),
             TypeParameters(typeParams),
         )

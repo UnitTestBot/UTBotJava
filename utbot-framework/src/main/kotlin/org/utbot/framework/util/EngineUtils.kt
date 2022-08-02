@@ -45,15 +45,13 @@ val Class<*>.anyInstance: Any
  */
 val SootMethod.executableId: ExecutableId
     get() = when {
-        isConstructor -> constructorId(
-                classId = declaringClass.id,
-                arguments = parameterTypes.map { it.classId }.toTypedArray()
-        )
-        else -> methodId(
-                classId = declaringClass.id,
-                name = name,
-                returnType = returnType.classId,
-                arguments = parameterTypes.map { it.classId }.toTypedArray()
+        isConstructor -> declaringClass.id.findConstructor(
+            arguments = parameterTypes.map { it.classId }.toTypedArray()
+        ).asExecutable()
+        else -> declaringClass.id.findMethod(
+            name = name,
+            returnType = returnType.classId,
+            arguments = parameterTypes.map { it.classId }
         ).asExecutable()
     }
 

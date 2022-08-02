@@ -84,18 +84,16 @@ abstract class StreamWrapper(
         return collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as? UtArrayModel
     }
 
-    private val streamOfMethodId: MethodId = methodId(
+    private val streamOfMethodId: MethodId get() = utStreamClass.overriddenStreamClassId.findMethod(
         classId = utStreamClass.overriddenStreamClassId,
         name = "of",
         returnType = utStreamClass.overriddenStreamClassId,
-        arguments = arrayOf(objectArrayClassId) // vararg
+        arguments = listOf(objectArrayClassId) // vararg
     )
 
-    private val streamEmptyMethodId: MethodId = methodId(
-        classId = utStreamClass.overriddenStreamClassId,
+    private val streamEmptyMethodId: MethodId get() = utStreamClass.overriddenStreamClassId.findMethod(
         name = "empty",
-        returnType = utStreamClass.overriddenStreamClassId,
-        arguments = emptyArray()
+        returnType = utStreamClass.overriddenStreamClassId
     )
 }
 

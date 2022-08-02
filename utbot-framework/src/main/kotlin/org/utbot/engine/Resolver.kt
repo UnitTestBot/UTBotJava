@@ -13,7 +13,6 @@ import org.utbot.engine.z3.intValue
 import org.utbot.engine.z3.value
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.nextModelName
 import org.utbot.jcdb.api.ClassId
@@ -479,7 +478,7 @@ class Resolver(
             val primitiveClassId = primitiveByWrapper[classId]!!
             val fields = collectFieldModels(UtAddrExpression(mkInt(addr)), actualType)
             val baseModelName = primitiveClassId.name
-            val constructorId = constructorId(classId, primitiveClassId)
+            val constructorId = classId.findConstructor(primitiveClassId).asExecutable()
             val valueModel = fields[classId.findFieldOrNull("value")] ?: primitiveClassId.defaultValueModel()
             val instantiationChain = mutableListOf<UtExecutableCallModel>()
             UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationChain)

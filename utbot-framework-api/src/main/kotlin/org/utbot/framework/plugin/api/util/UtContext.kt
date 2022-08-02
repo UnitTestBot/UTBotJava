@@ -1,10 +1,15 @@
 package org.utbot.framework.plugin.api.util
 
 import kotlinx.coroutines.ThreadContextElement
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.StopWatch
 import org.utbot.common.currentThreadInfo
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.plugin.jcdb.DelegatingClasspathSet
 import org.utbot.jcdb.api.ClasspathSet
+import org.utbot.jcdb.jcdb
+import java.net.URLClassLoader
+import java.nio.file.Paths
 import kotlin.coroutines.CoroutineContext
 
 val utContext: UtContext
@@ -17,6 +22,8 @@ class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : Thr
     // This StopWatch is used to respect bytecode transforming time while invoking with timeout
     var stopWatch: StopWatch? = null
         private set
+
+    constructor(classLoader: ClassLoader) : this(classLoader, classLoader.asClasspath())
 
     constructor(classLoader: ClassLoader, stopWatch: StopWatch) : this(classLoader) {
         this.stopWatch = stopWatch
@@ -58,6 +65,17 @@ class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : Thr
                 threadLocalContextHolder.remove()
             }
         }
+
+        private fun ClassLoader.asClasspath(): ClasspathSet = runBlocking {
+            this@asClasspath as URLClassLoader
+            val files = urLs.map { Paths.get(it.toURI()).toFile() }
+            val jcdb = jcdb {
+                useProcessJavaRuntime()
+                predefinedDirOrJars = files
+            }
+            DelegatingClasspathSet(jcdb.classpathSet(files))
+        }
+
     }
 
     override val key: CoroutineContext.Key<UtContext> get() = Key
@@ -69,6 +87,8 @@ class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : Thr
         threadLocalContextHolder.set(this)
         return prevUtContext
     }
+
+
 }
 
 inline fun <T> withUtContext(context: UtContext, block: () -> T): T = setUtContext(context).use { block() }

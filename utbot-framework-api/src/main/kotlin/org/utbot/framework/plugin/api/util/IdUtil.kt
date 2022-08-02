@@ -282,7 +282,7 @@ suspend inline fun <reified T> asClass(): ClassId {
 
 val KClass<*>.id: ClassId
     get() = runBlocking {
-        utContext.classpath.findClass(jvmName)
+        utContext.classpath.findClass(jvmName.jcdbName())
     }
 
 suspend fun KClass<*>.asClassId(): ClassId {
@@ -412,54 +412,55 @@ fun ExecutableId.isConstructor(): Boolean {
 /**
  * Construct MethodId
  */
-fun methodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): MethodId = runBlocking {
-    classId.methods().first {
-        it.name == name && it.returnType == returnType && it.parameters().toTypedArray().contentEquals(arguments)
-    }
+fun ClassId.findMethod(name: String, returnType: ClassId, arguments: List<ClassId> = emptyList()): MethodId = runBlocking {
+    val args = arguments.toTypedArray()
+    methods().firstOrNull {
+        it.name == name && it.returnType == returnType && it.parameters().toTypedArray().contentEquals(args)
+    } ?: throw IllegalStateException("Can't find method: ${this@findMethod.name}#$name(${arguments.joinToString { it.name }}): $returnType.name")
 }
 
+fun ClassId.findConstructor(vararg arguments: ClassId): MethodId = runBlocking {
+    methods().firstOrNull {
+        it.name == "<init>" && it.parameters().toTypedArray().contentEquals(arguments)
+    } ?: throw IllegalStateException("Can't find constructor $name(${arguments.joinToString { it.name }})")
+}
+
+
 fun MethodId.asExecutable(): ExecutableId {
-    if (isConstructor()) {
+    if (isConstructor) {
         return ConstructorExecutableId(this)
     }
     return MethodExecutableId(this)
 }
 
 fun MethodId.asExecutableMethod(): MethodExecutableId {
-    if (isConstructor()) {
+    if (isConstructor) {
         throw IllegalStateException("Method $this is a constructor")
     }
     return MethodExecutableId(this)
 }
 
-/**
- * Construct ConstructorId
- */
-fun constructorId(classId: ClassId, arguments: List<ClassId> = emptyList()): ConstructorExecutableId = runBlocking {
-    val argsArray = arguments.toTypedArray()
-    ConstructorExecutableId(classId.methods().first {
-        it.name == "<init>" && it.parameters().toTypedArray().contentEquals(argsArray)
-    })
+fun MethodId.asExecutableConstructor(): ConstructorExecutableId {
+    if (!isConstructor) {
+        throw IllegalStateException("Method $this is a constructor")
+    }
+    return ConstructorExecutableId(this)
 }
 
-fun constructorId(classId: ClassId, vararg arguments: ClassId) = constructorId(classId, arguments.toList())
-
-fun builtinMethodId(
-    classId: BuiltinClassId,
+fun BuiltinClassId.newBuiltinMethod(
     name: String,
     returnType: ClassId,
-    vararg arguments: ClassId
+    arguments: List<ClassId>
 ): BuiltinMethodId {
-    return BuiltinMethodId(classId, name, returnType, arguments.toList(), false)
+    return BuiltinMethodId(this, name, returnType, arguments, false)
 }
 
-fun builtinStaticMethodId(
-    classId: BuiltinClassId,
+fun BuiltinClassId.newBuiltinStaticMethodId(
     name: String,
     returnType: ClassId,
-    vararg arguments: ClassId
+    arguments: List<ClassId> = emptyList()
 ): BuiltinMethodId {
-    return BuiltinMethodId(classId, name, returnType, arguments.toList(), true).also {
-        classId.withMethod(it)
+    return BuiltinMethodId(this, name, returnType, arguments, true).also {
+        withMethod(it)
     }
 }

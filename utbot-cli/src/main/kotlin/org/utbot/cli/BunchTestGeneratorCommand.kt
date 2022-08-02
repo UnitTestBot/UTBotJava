@@ -4,11 +4,13 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
+import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.utbot.cli.util.createClassLoader
 import org.utbot.engine.Mocker
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import java.io.File
 import java.net.URLClassLoader
@@ -16,7 +18,6 @@ import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
-import mu.KotlinLogging
 
 
 private val logger = KotlinLogging.logger {}
@@ -66,7 +67,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
         }
     }
 
-    override fun run() {
+    override fun run() = runBlocking {
         val classesFromPath = loadClassesFromPath(classLoader, classRootDirectory)
         classesFromPath.filterNot { it.java.isInterface }.filter { clazz ->
             clazz.qualifiedName != null
@@ -84,7 +85,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
         }
     }
 
-    private fun generateTestsForClass(targetClassFqn: String) {
+    private suspend fun generateTestsForClass(targetClassFqn: String) {
         val started = now()
         val workingDirectory = getWorkingDirectory(targetClassFqn)
             ?: throw IllegalStateException("Error: Cannot find the target class in the classpath")
@@ -109,7 +110,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
                     targetMethods,
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
-                        .mapTo(mutableSetOf()) { ClassId(it) }
+                        .mapNotNullTo(mutableSetOf()) { utContext.classpath.findClassOrNull(it) }
                 )
 
                 val testClassBody = generateTest(classUnderTest, testClassName, testSets)

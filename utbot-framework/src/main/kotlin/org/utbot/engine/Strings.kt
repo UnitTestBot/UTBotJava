@@ -1,57 +1,20 @@
 package org.utbot.engine
 
 import com.github.curiousoddman.rgxgen.RgxGen
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.common.unreachableBranch
 import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
-import org.utbot.engine.pc.RewritingVisitor
-import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.engine.pc.UtBoolExpression
-import org.utbot.engine.pc.UtConvertToString
-import org.utbot.engine.pc.UtFalse
-import org.utbot.engine.pc.UtIntSort
-import org.utbot.engine.pc.UtLongSort
-import org.utbot.engine.pc.UtStringCharAt
-import org.utbot.engine.pc.UtStringLength
-import org.utbot.engine.pc.UtStringToArray
-import org.utbot.engine.pc.UtStringToInt
-import org.utbot.engine.pc.UtTrue
-import org.utbot.engine.pc.cast
-import org.utbot.engine.pc.isConcrete
-import org.utbot.engine.pc.mkAnd
-import org.utbot.engine.pc.mkChar
-import org.utbot.engine.pc.mkEq
-import org.utbot.engine.pc.mkInt
-import org.utbot.engine.pc.mkNot
-import org.utbot.engine.pc.mkString
-import org.utbot.engine.pc.select
-import org.utbot.engine.pc.toConcrete
+import org.utbot.engine.pc.*
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.charArrayClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.constructorId
-import org.utbot.framework.plugin.api.util.defaultValueModel
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.nextModelName
+import soot.*
 import kotlin.math.max
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import soot.CharType
-import soot.IntType
-import soot.Scene
-import soot.SootClass
-import soot.SootField
-import soot.SootMethod
 
 val utStringClass: SootClass
     get() = Scene.v().getSootClass(UtString::class.qualifiedName)
@@ -185,7 +148,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
             .apply {
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
-                    constructorId(classId, STRING_TYPE.classId),
+                    classId.findConstructor(STRING_TYPE.classId).asExecutable(),
                     listOf(stringModel),
                     this
                 )
@@ -336,7 +299,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
 
         val instantiationChain = mutableListOf<UtStatementModel>()
         val modificationsChain = mutableListOf<UtStatementModel>()
-        val constructorId = constructorId(wrapper.type.classId, STRING_TYPE.classId)
+        val constructorId = wrapper.type.classId.findConstructor(STRING_TYPE.classId).asExecutable()
         return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationChain, modificationsChain)
             .apply {
                 instantiationChain += UtExecutableCallModel(

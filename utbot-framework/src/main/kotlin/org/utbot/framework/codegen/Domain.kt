@@ -108,35 +108,31 @@ object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocki
         return builtInClass(name = "org.mockito.MockedConstruction")
     }
 
-    val mockStaticMethodId get() = builtinStaticMethodId(
-        classId = mockitoClassId,
+    val mockStaticMethodId get() = mockitoClassId.newBuiltinStaticMethodId(
         name = "mockStatic",
         returnType = mockedStaticClassId,
-        arguments = arrayOf(objectClassId)
+        arguments = listOf(objectClassId)
     )
 
-    val mockConstructionMethodId get() = builtinStaticMethodId(
-        classId = mockitoClassId,
+    val mockConstructionMethodId get() = mockitoClassId.newBuiltinStaticMethodId(
         name = "mockConstruction",
         returnType = mockedConstructionClassId,
         // actually second argument is lambda
-        arguments = arrayOf(objectClassId, objectClassId)
+        arguments = listOf(objectClassId, objectClassId)
     )
 
-    val mockedStaticWhen get() = builtinMethodId(
-        classId = mockedStaticClassId,
+    val mockedStaticWhen get() = mockedStaticClassId.newBuiltinMethod(
         name = "when",
         returnType = ongoingStubbingClassId,
         // argument type is actually a functional interface
-        arguments = arrayOf(objectClassId)
+        arguments = listOf(objectClassId)
     )
 
-    fun mockedStaticWhen(nullable: Boolean): MethodId = builtinMethodId(
-        classId = mockedStaticClassId,
+    fun mockedStaticWhen(nullable: Boolean): MethodId = mockedStaticClassId.newBuiltinMethod(
         name = "when",
         returnType = CgClassId(ongoingStubbingClassId, isNullable = nullable),
         // argument type is actually a functional interface
-        arguments = arrayOf(objectClassId)
+        arguments = listOf(objectClassId)
     )
 }
 
@@ -191,9 +187,10 @@ sealed class TestFramework(
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
     protected fun assertionId(name: String, vararg params: ClassId): MethodId =
-        builtinStaticMethodId(assertionsClass as BuiltinClassId, name, voidClassId, *params)
+        (assertionsClass as BuiltinClassId).newBuiltinStaticMethodId(name, voidClassId, params.toList())
+
     private fun arrayAssertionId(name: String, vararg params: ClassId): MethodId =
-            builtinStaticMethodId(arraysAssertionsClass as BuiltinClassId, name, voidClassId, *params)
+        (arraysAssertionsClass as BuiltinClassId).newBuiltinStaticMethodId(name, voidClassId, params.toList())
 
     abstract fun getRunTestsCommand(
         executionInvoke: String,
@@ -234,12 +231,11 @@ object TestNg : TestFramework(displayName = "TestNG") {
 
     val throwingRunnableClassId get() = builtInClass("${assertionsClass.name}\$ThrowingRunnable")
 
-    val assertThrows get() = builtinStaticMethodId(
-        classId = assertionsClass,
+    val assertThrows get() = assertionsClass.newBuiltinStaticMethodId(
         name = "assertThrows",
         // TODO: actually the return type is 'T extends java.lang.Throwable'
         returnType = java.lang.Throwable::class.id,
-        arguments = arrayOf(
+        arguments = listOf(
             Class::class.id,
             throwingRunnableClassId
         )
@@ -349,11 +345,10 @@ object Junit5 : TestFramework("JUnit5") {
 
     val durationClassId get() = builtInClass("java.time.Duration")
 
-    val ofMillis get() = builtinStaticMethodId(
-        classId = durationClassId,
+    val ofMillis get() = durationClassId.newBuiltinStaticMethodId(
         name = "ofMillis",
         returnType = durationClassId,
-        arguments = arrayOf(longClassId)
+        arguments = listOf(longClassId)
     )
 
     override val testAnnotationId get() = builtInClass("$JUNIT5_PACKAGE.Test")
@@ -366,22 +361,20 @@ object Junit5 : TestFramework("JUnit5") {
 
     override val arraysAssertionsClass get() = assertionsClass
 
-    val assertThrows get() = builtinStaticMethodId(
-        classId = assertionsClass,
+    val assertThrows get() = assertionsClass.newBuiltinStaticMethodId(
         name = "assertThrows",
         // TODO: actually the return type is 'T extends java.lang.Throwable'
         returnType = java.lang.Throwable::class.id,
-        arguments = arrayOf(
+        arguments = listOf(
             Class::class.id,
             executableClassId
         )
     )
 
-    val assertTimeoutPreemptively get() = builtinStaticMethodId(
-        classId = assertionsClass,
+    val assertTimeoutPreemptively get() = assertionsClass.newBuiltinStaticMethodId(
         name = "assertTimeoutPreemptively",
         returnType = voidWrapperClassId,
-        arguments = arrayOf(
+        arguments = listOf(
             durationClassId,
             executableClassId
         )

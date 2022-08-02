@@ -1048,7 +1048,7 @@ class BuiltinMethodId(
     // by default we assume that the builtin method is non-static and public
 ) : MethodId {
 
-    override suspend fun access() = if(isStatic) Opcodes.ACC_PUBLIC else Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC
+    override suspend fun access() = if(isStatic) Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC
 
     override suspend fun annotations() = emptyList<ClassId>()
 

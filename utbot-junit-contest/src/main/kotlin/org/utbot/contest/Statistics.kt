@@ -54,7 +54,7 @@ class GlobalStats {
     val avgCoverage: Double
         get() = statsForClasses
             .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
-            .map { it.getCoverageInfo().run { 100.0 * first / second } }.average()
+            .map { it.getCoverageInfo().run { if (second == 0) 0.0 else 100.0 * first / second } }.average()
 
     override fun toString(): String = "\n<Global statistics> :" +
             "\n\t#classes for generation = $classesForGeneration" +

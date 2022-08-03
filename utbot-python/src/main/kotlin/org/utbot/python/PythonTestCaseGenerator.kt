@@ -6,6 +6,7 @@ import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
+import org.utbot.python.utils.annotationToClassId
 import java.io.File
 
 object PythonTestCaseGenerator {
@@ -42,8 +43,7 @@ object PythonTestCaseGenerator {
                 pythonPath,
                 projectRoot,
                 fileOfMethod,
-                directoriesForSysPath,
-                testSourceRoot
+                directoriesForSysPath
             )
         }
         val argInfoCollector = ArgInfoCollector(method, initialArgumentTypes)
@@ -172,7 +172,6 @@ object PythonTestCaseGenerator {
         return MypyAnnotations.getCheckedByMypyAnnotations(
             methodUnderTest,
             userAnnotations + annotationCombinations,
-            testSourceRoot,
             moduleToImport,
             directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
             pythonPath,

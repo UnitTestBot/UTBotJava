@@ -1,11 +1,9 @@
-package org.utbot.python
+package org.utbot.python.utils
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.typing.PythonTypesStorage
-import java.io.BufferedReader
-import java.io.InputStreamReader
 
 
 fun normalizeAnnotation(
@@ -13,30 +11,29 @@ fun normalizeAnnotation(
     pythonPath: String,
     projectRoot: String,
     fileOfAnnotation: String,
-    filesToAddToSysPath: List<String>,
-    testSourcePath: String
+    filesToAddToSysPath: List<String>
 ): String {
 
-    val codeFilename = "${testSourcePath}/__annotation_check.py"
     val scriptContent = PythonTypesStorage::class.java.getResource("/normalize_annotation.py")
         ?.readText()
         ?: error("Didn't find normalize_annotation.py")
-    saveToFile(codeFilename, scriptContent)
 
-    val process = ProcessBuilder(
+    val scriptFile = FileManager.createTemporaryFile(scriptContent, tag = "normalize_annotation")
+    val result = runCommand(
         listOf(
             pythonPath,
-            codeFilename,
+            scriptFile.path,
             annotation,
             projectRoot,
             fileOfAnnotation,
         ) + filesToAddToSysPath,
-    ).start()
-//    val command = "$pythonPath $codeFilename '$annotation' $projectRoot $fileOfAnnotation " +
-//            filesToAddToSysPath.joinToString(separator = " ")
-//    val process = Runtime.getRuntime().exec(command)
-    process.waitFor()
-    return process.inputStream.readBytes().decodeToString().trimIndent()
+    )
+    scriptFile.delete()
+
+    return if (result.exitValue == 0)
+        result.stdout
+    else
+        annotation
 }
 
 fun annotationToClassId(
@@ -44,8 +41,7 @@ fun annotationToClassId(
     pythonPath: String,
     projectRoot: String,
     fileOfAnnotation: String,
-    filesToAddToSysPath: List<String>,
-    testSourcePath: String
+    filesToAddToSysPath: List<String>
 ): ClassId =
     if (annotation == null)
         pythonAnyClassId
@@ -57,6 +53,5 @@ fun annotationToClassId(
                 projectRoot,
                 fileOfAnnotation,
                 filesToAddToSysPath,
-                testSourcePath
             )
         )

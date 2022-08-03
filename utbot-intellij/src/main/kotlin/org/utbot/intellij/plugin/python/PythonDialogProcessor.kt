@@ -22,9 +22,10 @@ import org.utbot.python.code.PythonCodeGenerator.generateTestCode
 import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
-import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
-import org.utbot.python.normalizeAnnotation
+import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
+import org.utbot.python.typing.StubFileFinder
+import org.utbot.python.utils.FileManager
 
 
 object PythonDialogProcessor {
@@ -94,15 +95,30 @@ object PythonDialogProcessor {
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
                 val filePath = model.file.virtualFile.path
+                FileManager.assignTestSourceRoot(testSourceRoot)
 
-                // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
-                PythonTypesStorage.refreshProjectClassesList(
-                    filePath,
-                    pythonPath,
-                    model.project.basePath!!,
-                    model.directoriesForSysPath,
-                    testSourceRoot
-                )
+                if (!MypyAnnotations.mypyInstalled(pythonPath) && !indicator.isCanceled) {
+                    indicator.text = "Installing mypy"
+                    MypyAnnotations.installMypy(pythonPath)
+                    if (!MypyAnnotations.mypyInstalled(pythonPath))
+                        error("Something wrong with mypy")
+                }
+
+                if (!indicator.isCanceled) {
+                    indicator.text = "Loading information about Python types"
+
+                    // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
+                    PythonTypesStorage.refreshProjectClassesList(
+                        filePath,
+                        pythonPath,
+                        model.project.basePath!!,
+                        model.directoriesForSysPath
+                    )
+
+                    while (!StubFileFinder.isInitialized);
+
+                    indicator.text = "Generating tests"
+                }
 
                 val pythonMethods = findSelectedPythonMethods(model)
 

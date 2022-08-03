@@ -16,6 +16,7 @@
 - [ ] разобраться с `nan` (`nan == nan` -> `False`)
 - [ ] добавить таймаут
 - [ ] учитывать в ArgInfoCollector ситуации вида `arg.field[0]`
+- [ ] добавить обработку dataclass'ов
 
 Проблемы могут быть с: `__getitem__`/`__class_getitem__`,
 `__add__/__radd__/__iadd__`

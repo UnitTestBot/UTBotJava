@@ -29,7 +29,6 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrin
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.*
-import org.utbot.python.typing.StubFileStructures
 import java.io.File
 
 
@@ -228,10 +227,9 @@ object PythonCodeGenerator {
         methodArguments: List<UtModel>,
         outputFilename: String,
         errorFilename: String,
-        codeFilename: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String
-    ): File {
+    ): String {
 
         val importStatements = generateImportFunctionCode(
             moduleToImport,
@@ -290,13 +288,11 @@ object PythonCodeGenerator {
             listOf(createArguments())
         )
 
-        val functionCode = toString(
+        return toString(
             Module(
                 importStatements + listOf(testFunction, runFunction)
             )
         )
-
-        return saveToFile(codeFilename, functionCode)
     }
 
     fun saveToFile(filePath: String, code: String): File {
@@ -309,10 +305,9 @@ object PythonCodeGenerator {
     fun generateMypyCheckCode(
         method: PythonMethod,
         methodAnnotations: Map<String, String>,
-        codeFilename: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String
-    ): File {
+    ): String {
         val importStatements = generateImportFunctionCode(
             moduleToImport,
             directoriesForSysPath,
@@ -321,7 +316,7 @@ object PythonCodeGenerator {
 
         val parameters = Parameters(
             method.arguments.map { argument ->
-                Parameter("${argument.name}: ${methodAnnotations[argument.name] ?: pythonAnyClassId.name }")
+                Parameter("${argument.name}: ${methodAnnotations[argument.name] ?: pythonAnyClassId.name}")
             },
         )
 
@@ -332,13 +327,11 @@ object PythonCodeGenerator {
             method.ast().body
         )
 
-        val functionCode = toString(
+        return toString(
             Module(
                 importStatements + listOf(testFunction)
             )
         )
-
-        return saveToFile(codeFilename, functionCode)
     }
 }
 

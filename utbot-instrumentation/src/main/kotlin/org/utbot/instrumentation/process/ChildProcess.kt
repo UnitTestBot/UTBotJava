@@ -3,6 +3,7 @@ package org.utbot.instrumentation.process
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.plusAssign
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import org.utbot.common.getCurrentProcessId
 import org.utbot.common.scanForClasses
@@ -196,7 +197,11 @@ private fun loop(kryoHelper: KryoHelper, instrumentation: Instrumentation<*>) {
     while (true) {
         val (id, cmd) = try {
             read(kryoHelper)
-        } catch (e: Exception) {
+        }
+        catch (e: CancellationException) {
+            return
+        }
+        catch (e: Exception) {
             logInfo { "error while trying read: $e" }
             kryoHelper.discard()
             continue

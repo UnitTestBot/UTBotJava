@@ -27,6 +27,7 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.As
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.*
 import org.utbot.python.typing.StubFileStructures
 import java.io.File
@@ -185,7 +186,12 @@ object PythonCodeGenerator {
         directoriesForSysPath: List<String>,
         additionalModules: List<String> = emptyList(),
     ): List<Statement> {
-        val systemImport = Import(listOf(Alias("sys"), Alias("typing"), Alias("json")))
+        val systemImport = Import(listOf(
+            Alias("sys"),
+            Alias("typing"),
+            Alias("json"),
+            Alias("builtins"),
+        ))
         val systemCalls = directoriesForSysPath.map { path ->
             Atom(
                 Name("sys.path.append"),
@@ -196,14 +202,20 @@ object PythonCodeGenerator {
                 )
             )
         }
-        val additionalImport = additionalModules.mapNotNull {
-            if (it.contains(".")) {
-                val module = it.split(".").dropLast(1).joinToString(".")
-                Import(listOf(Alias(module)))
-            } else {
-                null
+        val additionalImport = additionalModules
+            .asSequence()
+            .map { it.split("[", "]", ",", "|") }
+            .flatten()
+            .map { it.replace("\\s".toRegex(), "") }
+            .mapNotNull {
+                if (it.contains(".")) {
+                    val module = it.split(".").dropLast(1).joinToString(".")
+                    Import(listOf(Alias(module)))
+                } else {
+                    null
+                }
             }
-        }
+            .toSet().toList()
 
         val mathImport = ImportFrom("math", listOf(Alias("*")))
         val typingImport = ImportFrom("typing", listOf(Alias("*")))
@@ -309,7 +321,7 @@ object PythonCodeGenerator {
 
         val parameters = Parameters(
             method.arguments.map { argument ->
-                Parameter("${argument.name}: ${methodAnnotations[argument.name] ?: "Any"}")
+                Parameter("${argument.name}: ${methodAnnotations[argument.name] ?: pythonAnyClassId.name }")
             },
         )
 

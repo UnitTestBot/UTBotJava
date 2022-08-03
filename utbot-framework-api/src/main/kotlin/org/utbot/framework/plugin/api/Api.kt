@@ -293,35 +293,35 @@ data class PythonListModel(
     }
 
     companion object {
-        val classId = ClassId("list")
+        val classId = ClassId("builtins.list")
     }
 }
 
 data class PythonDictModel(
     override val classId: ClassId,
     val length: Int = 0,
-    val stores: Map<PythonModel, PythonModel>
+    val stores: Map<UtModel, UtModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         stores.entries.joinToString(", ", "{", "}") { "${it.key}: ${it.value}" }
     }
 
     companion object {
-        val classId = ClassId("dict")
+        val classId = ClassId("builtins.dict")
     }
 }
 
 data class PythonSetModel(
     override val classId: ClassId,
     val length: Int = 0,
-    val stores: Set<PythonModel>
+    val stores: Set<UtModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         stores.joinToString(", ", "{", "}") { it.toString() }
     }
 
     companion object {
-        val classId = ClassId("set")
+        val classId = ClassId("builtins.set")
     }
 }
 

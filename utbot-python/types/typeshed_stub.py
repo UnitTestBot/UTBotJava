@@ -2,43 +2,16 @@ import ast
 import importlib
 import json
 import tqdm
+import sys, os
 
+from contextlib import contextmanager
 from collections import defaultdict
-from pprint import pprint
 from typing import Any
-
-import astor.code_gen
-
 from typeshed_client import get_stub_names, get_search_context, OverloadedName, ImportedName
-from typeshed_client.resolver import Resolver
 
-from ast_json_encoders import AstClassEncoder, AstFunctionDefEncoder, AstAnnAssignEncoder
+from ast_json_encoders import AstClassEncoder, AstFunctionDefEncoder
 
 
-# MODULES = [
-#     'getpass', 'runpy', 'gettext', 'sched', 'glob', 'secrets', 'graphlib', 'select', 'grp', 'selectors', 'gzip',
-#     'setuptools', 'hashlib', 'shelve', 'heapq', 'shlex', 'hmac', 'shutil', 'html', 'signal', 'http', 'site', 'idlelib',
-#     'smtpd', 'abc', 'imaplib', 'smtplib', 'aifc', 'imghdr', 'sndhdr', 'antigravity', 'imp', 'socket', 'argparse',
-#     'importlib', 'socketserver', 'array', 'inspect', 'spwd', 'ast', 'io', 'sqlite3', 'asynchat', 'ipaddress',
-#     'sre_compile', 'asyncio', 'itertools', 'sre_constants', 'asyncore', 'json', 'sre_parse', 'atexit', 'keyword',
-#     'ssl', 'audioop', 'lib2to3', 'stat', 'base64', 'linecache', 'statistics', 'bdb', 'locale', 'string', 'binascii',
-#     'logging', 'stringprep', 'binhex', 'lzma', 'struct', 'bisect', 'mailbox', 'subprocess', 'builtins', 'mailcap',
-#     'sunau', 'bz2', 'marshal', 'symtable', 'cProfile', 'math', 'sys', 'calendar', 'mimetypes', 'sysconfig', 'cgi',
-#     'mmap', 'syslog', 'cgitb', 'modulefinder', 'tabnanny', 'chunk', 'multiprocessing', 'tarfile', 'cmath', 'netrc',
-#     'telnetlib', 'cmd', 'nis', 'tempfile', 'code', 'nntplib', 'termios', 'codecs', 'ntpath', 'test', 'codeop',
-#     'nturl2path', 'textwrap', 'collections', 'numbers', 'this', 'colorsys', 'opcode', 'threading', 'compileall',
-#     'operator', 'time', 'concurrent', 'optparse', 'timeit', 'configparser', 'os', 'tkinter', 'contextlib',
-#     'ossaudiodev', 'token', 'contextvars', 'pathlib', 'tokenize', 'copy', 'pdb', 'trace', 'copyreg', 'pickle',
-#     'traceback', 'crypt', 'pickletools', 'tracemalloc', 'csv', 'pip', 'tty', 'ctypes', 'pipes', 'turtle', 'curses',
-#     'pkg_resources', 'turtledemo', 'dataclasses', 'pkgutil', 'types', 'datetime', 'platform', 'typing', 'dbm',
-#     'plistlib', 'unicodedata', 'decimal', 'poplib', 'unittest', 'difflib', 'posix', 'urllib', 'dis', 'posixpath',
-#     'uu', 'distutils', 'pprint', 'uuid', 'doctest', 'profile', 'venv', 'email', 'pstats', 'warnings', 'encodings',
-#     'pty', 'wave', 'ensurepip', 'pwd', 'weakref', 'enum', 'py_compile', 'webbrowser', 'errno', 'pyclbr', 'wsgiref',
-#     'faulthandler', 'pydoc', 'xdrlib', 'fcntl', 'pydoc_data', 'xml', 'filecmp', 'pyexpat', 'xmlrpc', 'fileinput',
-#     'queue', 'xxlimited', 'fnmatch', 'quopri', 'xxlimited_35', 'fractions', 'random', 'xxsubtype', 'ftplib', 're',
-#     'zipapp', 'functools', 'readline', 'zipfile', 'gc', 'reprlib', 'zipimport', 'genericpath', 'resource', 'zlib',
-#     'getopt', 'rlcompleter', 'zoneinfo'
-# ]
 MODULES = [
     '__future__', '_testinternalcapi', 'getpass', 'runpy', '_abc', '_testmultiphase', 'gettext', 'sched',
     '_aix_support', '_thread', 'glob', 'secrets', '_ast', '_threading_local', 'graphlib', 'select', '_asyncio',
@@ -250,13 +223,25 @@ def parse_submodule(module_name: str, collector_: StubFileCollector):
         pass
 
 
+@contextmanager
+def suppress_stdout():
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+
 if __name__ == '__main__':
     # create_method_table(BUILTIN_TYPES, 'builtins')
     # create_functions_table(BUILTIN_FUNCTIONS, 'builtins')
     # create_module_table('builtins')
 
-    collector = StubFileCollector('stub_datasets')
-    for module in tqdm.tqdm(MODULES):
-        if not module.startswith('_'):
-            parse_submodule(module, collector)
-    collector.save_method_annotations()
+    with suppress_stdout():
+        collector = StubFileCollector('stub_datasets')
+        for module in tqdm.tqdm(MODULES):
+            if not module.startswith('_'):
+                parse_submodule(module, collector)
+        collector.save_method_annotations()

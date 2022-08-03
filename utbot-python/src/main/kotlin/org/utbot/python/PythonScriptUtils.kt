@@ -23,9 +23,18 @@ fun normalizeAnnotation(
         ?: error("Didn't find normalize_annotation.py")
     saveToFile(codeFilename, scriptContent)
 
-    val command = "$pythonPath $codeFilename $annotation $projectRoot $fileOfAnnotation " +
-            filesToAddToSysPath.joinToString(separator = " ")
-    val process = Runtime.getRuntime().exec(command)
+    val process = ProcessBuilder(
+        listOf(
+            pythonPath,
+            codeFilename,
+            annotation,
+            projectRoot,
+            fileOfAnnotation,
+        ) + filesToAddToSysPath,
+    ).start()
+//    val command = "$pythonPath $codeFilename '$annotation' $projectRoot $fileOfAnnotation " +
+//            filesToAddToSysPath.joinToString(separator = " ")
+//    val process = Runtime.getRuntime().exec(command)
     process.waitFor()
     return process.inputStream.readBytes().decodeToString().trimIndent()
 }

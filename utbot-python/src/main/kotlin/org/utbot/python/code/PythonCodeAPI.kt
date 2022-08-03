@@ -94,7 +94,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         fun typeAsStringToClassId(typeAsString: String): ClassId = ClassId(typeAsString)
 
         fun annotationToString(annotation: Optional<Expression>): String? =
-            if (annotation.isPresent) astToString(annotation.get()) else null
+            if (annotation.isPresent) astToString(annotation.get()).trim() else null
     }
 }
 

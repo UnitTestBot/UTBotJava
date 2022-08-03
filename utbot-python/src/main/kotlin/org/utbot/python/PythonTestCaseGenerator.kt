@@ -10,16 +10,16 @@ import org.utbot.python.utils.annotationToClassId
 import java.io.File
 
 object PythonTestCaseGenerator {
-    lateinit var testSourceRoot: String
-    lateinit var directoriesForSysPath: List<String>
-    lateinit var moduleToImport: String
-    lateinit var pythonPath: String
-    lateinit var projectRoot: String
-    lateinit var fileOfMethod: String
-    lateinit var isCancelled: () -> Boolean
+    private lateinit var directoriesForSysPath: List<String>
+    private lateinit var moduleToImport: String
+    private lateinit var pythonPath: String
+    private lateinit var projectRoot: String
+    private lateinit var fileOfMethod: String
+    private lateinit var isCancelled: () -> Boolean
+
+    private const val maxTestCount = 30
 
     fun init(
-        testSourceRoot: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String,
         pythonPath: String,
@@ -27,7 +27,6 @@ object PythonTestCaseGenerator {
         fileOfMethod: String,
         isCancelled: () -> Boolean
     ) {
-        this.testSourceRoot = testSourceRoot
         this.directoriesForSysPath = directoriesForSysPath
         this.moduleToImport = moduleToImport
         this.pythonPath = pythonPath
@@ -52,27 +51,36 @@ object PythonTestCaseGenerator {
         val executions = mutableListOf<PythonExecution>()
         val errors = mutableListOf<PythonError>()
 
-        annotationSequence.forEach typeSelection@{ annotations ->
-            if (isCancelled())
-                return@typeSelection
+        var testsGenerated = 0
 
-            val engine = PythonEngine(
-                method,
-                testSourceRoot,
-                directoriesForSysPath,
-                moduleToImport,
-                pythonPath,
-                argInfoCollector.getConstants(),
-                annotations
-            )
-
-            engine.fuzzing().forEach fuzzing@{
+        run breaking@ {
+            annotationSequence.forEach { annotations ->
                 if (isCancelled())
-                    return@fuzzing
-                when (it) {
-                    is PythonExecution -> executions += it
-                    is PythonError -> errors += it
+                    return@breaking
+
+                val engine = PythonEngine(
+                    method,
+                    directoriesForSysPath,
+                    moduleToImport,
+                    pythonPath,
+                    argInfoCollector.getConstants(),
+                    annotations
+                )
+
+                engine.fuzzing().forEach {
+                    if (isCancelled())
+                        return@breaking
+                    when (it) {
+                        is PythonExecution -> executions += it
+                        is PythonError -> errors += it
+                    }
+                    testsGenerated += 1
+                    if (testsGenerated >= maxTestCount)
+                        return@breaking
                 }
+
+                if (testsGenerated >= maxTestCount)
+                    return@breaking
             }
         }
 
@@ -100,7 +108,6 @@ object PythonTestCaseGenerator {
                 argInfoCollector,
                 method,
                 existingAnnotations,
-                testSourceRoot,
                 moduleToImport,
                 directoriesForSysPath,
                 pythonPath,
@@ -154,7 +161,6 @@ object PythonTestCaseGenerator {
         argInfoCollector: ArgInfoCollector,
         methodUnderTest: PythonMethod,
         existingAnnotations: Map<String, String>,
-        testSourceRoot: String,
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,

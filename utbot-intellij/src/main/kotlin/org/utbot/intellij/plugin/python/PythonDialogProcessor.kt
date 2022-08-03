@@ -124,7 +124,6 @@ object PythonDialogProcessor {
 
                 val testCaseGenerator = PythonTestCaseGenerator.apply {
                     init(
-                        testSourceRoot,
                         model.directoriesForSysPath,
                         model.moduleToImport,
                         pythonPath,

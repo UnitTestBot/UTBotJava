@@ -5,7 +5,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.code.PythonCodeGenerator
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.runCommand
-import java.io.File
 
 
 sealed class EvaluationResult
@@ -26,7 +25,6 @@ object PythonEvaluation {
     fun evaluate(
         method: PythonMethod,
         methodArguments: List<UtModel>,
-        testSourceRoot: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String,
         pythonPath: String

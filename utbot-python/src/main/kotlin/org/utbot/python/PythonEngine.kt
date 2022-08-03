@@ -17,7 +17,6 @@ import java.io.File
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
-    private val testSourceRoot: String,
     private val directoriesForSysPath: List<String>,
     private val moduleToImport: String,
     private val pythonPath: String,
@@ -39,13 +38,11 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        var testsGenerated = 0
         fuzz(methodUnderTestDescription, concreteTypesModelProvider).forEach { values ->
             val modelList = values.map { it.model }
             val evalResult = PythonEvaluation.evaluate(
                 methodUnderTest,
                 modelList,
-                testSourceRoot,
                 directoriesForSysPath,
                 moduleToImport,
                 pythonPath
@@ -90,10 +87,6 @@ class PythonEngine(
                     )
                 )
             }
-
-            testsGenerated += 1
-            if (testsGenerated == 100)
-                return@sequence
         }
     }
 }

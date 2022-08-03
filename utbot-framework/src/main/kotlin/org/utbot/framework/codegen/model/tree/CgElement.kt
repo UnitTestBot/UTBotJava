@@ -19,6 +19,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -630,6 +631,7 @@ data class CgParameterDeclaration(
 sealed class CgParameterKind {
     object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
+    data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()
     object ExpectedException : CgParameterKind()
 }

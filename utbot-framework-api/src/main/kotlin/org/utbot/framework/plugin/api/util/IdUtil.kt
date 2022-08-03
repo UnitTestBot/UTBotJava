@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.common.findFieldOrNull
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -286,9 +285,17 @@ val ClassId.isMap: Boolean
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
 
-fun ClassId.findFieldOrNull(fieldName: String): Field? = jClass.findFieldOrNull(fieldName)
+fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
+    if (isNotSubtypeOf(fieldId.declaringClass)) {
+        return null
+    }
 
-fun ClassId.hasField(fieldName: String): Boolean = findFieldOrNull(fieldName) != null
+    return fieldId.safeJField
+}
+
+fun ClassId.hasField(fieldId: FieldId): Boolean {
+    return findFieldByIdOrNull(fieldId) != null
+}
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
     intClassId -> UtPrimitiveModel(0)
@@ -303,11 +310,12 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
 }
 
 // FieldId utils
+val FieldId.safeJField: Field?
+    get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }
 
 // TODO: maybe cache it somehow in the future
-val FieldId.field: Field
-    get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }
-        ?: error("Field $name is not found in class ${declaringClass.jClass.name}")
+val FieldId.jField: Field
+    get() = safeJField ?: error("Field $name is not declared in class ${declaringClass.jClass.name}")
 
 // https://docstore.mik.ua/orelly/java-ent/jnut/ch03_13.htm
 val FieldId.isInnerClassEnclosingClassReference: Boolean

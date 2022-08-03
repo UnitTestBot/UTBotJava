@@ -8,7 +8,6 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
-import org.utbot.common.findField
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -90,8 +89,9 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
@@ -582,7 +582,7 @@ class Traverser(
         declaringClass: SootClass,
         stmt: Stmt
     ): SymbolicStateUpdate {
-        val concreteValue = extractConcreteValue(field, declaringClass)
+        val concreteValue = extractConcreteValue(field)
         val (symbolicResult, symbolicStateUpdate) = toMethodResult(concreteValue, field.type)
         val symbolicValue = (symbolicResult as SymbolicSuccess).value
 
@@ -634,12 +634,20 @@ class Traverser(
     // Some fields are inaccessible with reflection, so we have to instantiate it by ourselves.
     // Otherwise, extract it from the class.
     // TODO JIRA:1593
-    private fun extractConcreteValue(field: SootField, declaringClass: SootClass): Any? =
+    private fun extractConcreteValue(field: SootField): Any? =
         when (field.signature) {
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
-            else -> declaringClass.id.jClass.findField(field.name).let { it.withAccessibility { it.get(null) } }
+            else -> {
+                val fieldId = field.fieldId
+                val jField = fieldId.jField
+                jField.let {
+                    it.withAccessibility {
+                        it.get(null)
+                    }
+                }
+            }
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =

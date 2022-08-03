@@ -20,7 +20,6 @@ import org.utbot.framework.plugin.api.util.charClassId
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.findFieldOrNull
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -30,6 +29,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
+import org.utbot.framework.plugin.api.util.safeJField
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -366,7 +366,7 @@ data class UtCompositeModel(
             if (fields.isNotEmpty()) {
                 append(" ")
                 append(fields.entries.joinToString(", ", "{", "}") { (field, value) ->
-                    if (value.classId != classId || value.isNull()) "${field.name}: $value" else "${field.name}: not evaluated"
+                    if (value.classId != classId || value.isNull()) "(${field.declaringClass}) ${field.name}: $value" else "${field.name}: not evaluated"
                 }) // TODO: here we can get an infinite recursion if we have cyclic dependencies.
             }
             if (mocks.isNotEmpty()) {
@@ -876,7 +876,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = declaringClass.findFieldOrNull(name).toString()
+    override fun toString() = safeJField.toString()
 }
 
 inline fun <T> withReflection(block: () -> T): T {

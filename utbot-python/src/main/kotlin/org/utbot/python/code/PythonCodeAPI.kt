@@ -4,6 +4,7 @@ import io.github.danielnaczo.python3parser.Python3Lexer
 import io.github.danielnaczo.python3parser.Python3Parser
 import io.github.danielnaczo.python3parser.model.AST
 import io.github.danielnaczo.python3parser.model.expr.Expression
+import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
@@ -45,12 +46,7 @@ class PythonCode(private val body: Module, val filename: String? = null) {
 
     companion object {
         fun getFromString(code: String, filename: String? = null): PythonCode {
-            val lexer = Python3Lexer(fromString(code))
-            val tokens = CommonTokenStream(lexer)
-            val parser = Python3Parser(tokens)
-            val moduleVisitor = ModuleVisitor()
-            val ast = moduleVisitor.visit(parser.file_input()) as Module
-
+            val ast = textToModule(code)
             return PythonCode(ast, filename)
         }
     }
@@ -105,4 +101,37 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
 fun astToString(stmt: Statement): String {
     val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
     return modulePrettyPrintVisitor.visitModule(Module(listOf(stmt)), IndentationPrettyPrint(0))
+}
+
+fun textToModule(code: String): Module {
+    val lexer = Python3Lexer(fromString(code))
+    val tokens = CommonTokenStream(lexer)
+    val parser = Python3Parser(tokens)
+    val moduleVisitor = ModuleVisitor()
+    return moduleVisitor.visit(parser.file_input()) as Module
+}
+
+object AnnotationProcessor {
+    // get only types with modules in prefixes
+    fun getTypesFromAnnotation(annotation: String): Set<String> {
+        val annotationAST = textToModule(annotation)
+        val visitor = Visitor()
+        val result = mutableSetOf<String>()
+        visitor.visitModule(annotationAST, result)
+        return result
+    }
+
+    private class Visitor: ModifierVisitor<MutableSet<String>>() {
+        override fun visitAtom(atom: Atom, param: MutableSet<String>): AST {
+            parse(
+                nameWithPrefixFromAtom(apply()),
+                onError = null,
+                atom
+            ) { it } ?.let { typeName ->
+                param.add(typeName)
+            }
+
+            return super.visitAtom(atom, param)
+        }
+    }
 }

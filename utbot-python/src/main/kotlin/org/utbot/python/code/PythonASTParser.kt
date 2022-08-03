@@ -249,8 +249,23 @@ fun <A, B, C, D> classMethod(
     fname: Parser<A, B, Name>,
     fattributeId: Parser<B, C, String>,
     farguments: Parser<C, D, Arguments>
-):Parser<A, D, Atom> =
+): Parser<A, D, Atom> =
     atom(refl(fname), list2(refl(attribute(fattributeId)), refl(farguments)))
+
+fun <A, B> nameWithPrefixFromAtom(
+    fname: Parser<A, B, String>
+): Parser<A, B, Atom> =
+    Parser { node, x ->
+        if (node.atomElement !is Name)
+            return@Parser Error()
+        var res = (node.atomElement as Name).id.name
+        for (elem in node.trailers) {
+            if (elem !is Attribute)
+                break
+            res += "." + elem.attr.name
+        }
+        fname.go(res, x)
+    }
 
 fun <A, B, C> functionCallWithoutPrefix(
     fname: Parser<A, B, Name>,

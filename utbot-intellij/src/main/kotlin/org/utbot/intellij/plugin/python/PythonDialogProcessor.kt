@@ -22,6 +22,7 @@ import org.utbot.python.code.PythonCodeGenerator.generateTestCode
 import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
+import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
 import org.utbot.python.normalizeAnnotation
 import org.utbot.python.typing.PythonTypesStorage
 
@@ -93,7 +94,7 @@ object PythonDialogProcessor {
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
                 val filePath = model.file.virtualFile.path
-
+                
                 // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
                 PythonTypesStorage.refreshProjectClassesList(
                     filePath,

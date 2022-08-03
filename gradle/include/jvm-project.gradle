@@ -69,7 +69,7 @@ test {
             println "$result.exception"
         }
         def runtime = Runtime.runtime
-        println "maxMemory - ${runtime.maxMemory() / 1024.0 / 1024.0} MB, freeMemory - ${runtime.freeMemory() / 1024.0 / 1024.0} MB"//, totalMemory - ${runtime.totalMemory() / 1024.0 / 1024.0} MB"
+        println "maxMemory - ${runtime.maxMemory() / 1024.0 / 1024.0} MB, freeMemory - ${runtime.freeMemory() / 1024.0 / 1024.0} MB, totalMemory - ${runtime.totalMemory() / 1024.0 / 1024.0} MB"
     }
 
     testLogging {

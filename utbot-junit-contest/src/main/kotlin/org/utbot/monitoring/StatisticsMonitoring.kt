@@ -1,6 +1,12 @@
-package org.utbot.contest
+package org.utbot.monitoring
 
 import java.io.File
+import org.utbot.contest.ContestEstimatorJdkPathProvider
+import org.utbot.contest.GlobalStats
+import org.utbot.contest.Paths
+import org.utbot.contest.Tool
+import org.utbot.contest.runEstimator
+import org.utbot.contest.toText
 import org.utbot.framework.JdkPathService
 
 private val javaHome = System.getenv("JAVA_HOME")

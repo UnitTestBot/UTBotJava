@@ -1,0 +1,14 @@
+{
+	"classes_for_generation": 20,
+	"tc_generated": 344,
+	"classes_without_problems": 12,
+	"classes_canceled_by_timeout": 6,
+	"total_methods_for_generation": 519,
+	"methods_with_at_least_one_testcase_generated": 146,
+	"methods_with_exceptions": 21,
+	"suspicious_methods": 170,
+	"test_classes_failed_to_compile": 1,
+	"covered_instructions_count": 2190,
+	"total_instructions_count": 7045,
+	"avg_coverage": 43.963528963382856
+}

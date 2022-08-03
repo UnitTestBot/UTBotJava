@@ -295,13 +295,6 @@ object PythonCodeGenerator {
         )
     }
 
-    fun saveToFile(filePath: String, code: String): File {
-        val file = File(filePath)
-        file.writeText(code)
-        file.createNewFile()
-        return file
-    }
-
     fun generateMypyCheckCode(
         method: PythonMethod,
         methodAnnotations: Map<String, String>,

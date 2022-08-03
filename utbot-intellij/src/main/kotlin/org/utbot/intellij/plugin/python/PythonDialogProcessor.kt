@@ -1,11 +1,14 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.jetbrains.python.psi.PyFile
@@ -19,13 +22,13 @@ import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.code.PythonCodeGenerator.generateTestCode
-import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.FileManager
+import java.io.File
 
 
 object PythonDialogProcessor {
@@ -148,9 +151,21 @@ object PythonDialogProcessor {
                     )
                 }
 
+                val files = mutableListOf<File>()
                 notEmptyTests.forEach {
                     val testCode = generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
-                    saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
+                    val fileName = "test_${it.method.name}.py"
+                    val testFile = FileManager.createPermanentFile(fileName, testCode)
+                    files.add(testFile)
+                }
+
+                if (files.size == 1) {
+                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(files[0])
+                    if (virtualFile != null) {
+                        invokeLater {
+                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
+                        }
+                    }
                 }
             }
         })

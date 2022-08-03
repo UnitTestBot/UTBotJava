@@ -10,6 +10,9 @@ object FileManager {
 
     fun assignTestSourceRoot(testSourceRoot: String) {
         this.testSourceRoot = testSourceRoot
+        val testsFolder = File(testSourceRoot)
+        if (!testsFolder.exists())
+            testsFolder.mkdir()
         val tmpFolder = Paths.get(testSourceRoot, tmpFolderName).toFile()
         if (!tmpFolder.exists())
             tmpFolder.mkdir()
@@ -28,6 +31,17 @@ object FileManager {
 
     fun createTemporaryFile(content: String, fileName: String? = null, tag: String? = null): File {
         val file = assignTemporaryFile(fileName, tag)
+        writeToAssignedFile(file, content)
+        return file
+    }
+
+    fun assignPermanentFile(fileName: String): File {
+        val fullpath = Paths.get(testSourceRoot, fileName)
+        return fullpath.toFile()
+    }
+
+    fun createPermanentFile(fileName: String, content: String): File {
+        val file = assignPermanentFile(fileName)
         writeToAssignedFile(file, content)
         return file
     }

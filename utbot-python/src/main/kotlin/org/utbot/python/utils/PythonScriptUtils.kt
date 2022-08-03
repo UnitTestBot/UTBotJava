@@ -2,7 +2,6 @@ package org.utbot.python.utils
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
-import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.typing.PythonTypesStorage
 
 

@@ -8,6 +8,7 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.mods.Module
+import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
@@ -86,8 +87,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         }
 
     override fun asString(): String {
-        val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
-        return modulePrettyPrintVisitor.visitModule(Module(listOf(ast)), IndentationPrettyPrint(0))
+        return astToString(ast)
     }
 
     override fun ast(): FunctionDef {
@@ -98,6 +98,11 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
         fun typeAsStringToClassId(typeAsString: String): ClassId = ClassId(typeAsString)
 
         fun annotationToString(annotation: Optional<Expression>): String? =
-            if (annotation.isPresent) (annotation.get() as? Name)?.id?.name else null
+            if (annotation.isPresent) astToString(annotation.get()) else null
     }
+}
+
+fun astToString(stmt: Statement): String {
+    val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
+    return modulePrettyPrintVisitor.visitModule(Module(listOf(stmt)), IndentationPrettyPrint(0))
 }

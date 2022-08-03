@@ -65,7 +65,13 @@ processResources {
 }
 
 test {
+    jvmArgs '-Xmx8192m'
+
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }
+}
+
+tasks.withType(Test).configureEach {
+    maxParallelForks = 4
 }

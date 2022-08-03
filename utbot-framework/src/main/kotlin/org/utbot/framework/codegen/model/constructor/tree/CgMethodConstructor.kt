@@ -1602,7 +1602,23 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         } else {
             setOf(annotation(testFramework.testAnnotationId))
         }
-        displayName?.let { testFrameworkManager.addDisplayName(it) }
+
+        /* Add a short test's description depending on the test framework type:
+           DisplayName annotation in case of JUni5, and description argument to Test annotation in case of TestNG.
+         */
+        if (displayName != null) {
+            when (testFramework) {
+                is Junit5 -> {
+                    displayName.let { testFrameworkManager.addDisplayName(it) }
+                }
+                is TestNg -> {
+                    testFrameworkManager.addTestDescription(displayName)
+                }
+                else -> {
+                    // nothing
+                }
+            }
+        }
 
         val result = currentExecution!!.result
         if (result is UtTimeoutException) {

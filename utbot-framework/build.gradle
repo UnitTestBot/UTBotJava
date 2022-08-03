@@ -17,7 +17,7 @@ dependencies {
     api project(':utbot-core')
     api project(':utbot-instrumentation')
     api project(':utbot-summary')
-    implementation 'junit:junit:4.13.1'
+    //implementation 'junit:junit:4.13.1'
     api project(':utbot-framework-api')
 
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
@@ -37,6 +37,11 @@ dependencies {
     testImplementation project(':utbot-summary')
     testImplementation project(':utbot-sample')
     testImplementation project(':utbot-analytics')
+
+    // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
+//    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.7.0'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.7.0'
 
     // used for testing code generation
     testImplementation group: 'commons-io', name: 'commons-io', version: commons_io_version
@@ -65,6 +70,9 @@ processResources {
 }
 
 test {
+    // To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
+    //useJUnit()
+    useJUnitPlatform()
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }

@@ -82,6 +82,7 @@ import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
@@ -114,8 +115,7 @@ class EngineController {
 //for debugging purpose only
 private var stateSelectedCount = 0
 
-//all id values of synthetic default models must be greater that for real ones
-private var nextDefaultModelId = 1500_000_000
+private val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
 private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
     when (pathSelectorType) {
@@ -391,7 +391,7 @@ class UtBotSymbolicEngine(
             return@flow
         }
 
-        val fallbackModelProvider = FallbackModelProvider { nextDefaultModelId++ }
+        val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
         val thisInstance = when {
@@ -405,7 +405,7 @@ class UtBotSymbolicEngine(
                 null
             }
             else -> {
-                ObjectModelProvider { nextDefaultModelId++ }.withFallback(fallbackModelProvider).generate(
+                ObjectModelProvider(ReferencePreservingIntIdGenerator()).withFallback(fallbackModelProvider).generate(
                     FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues)
                 ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
@@ -427,14 +427,14 @@ class UtBotSymbolicEngine(
         var attempts = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
-            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders { nextDefaultModelId++ }))
+            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {
             // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
             val thisMethodDescription = FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues).apply {
                 className = executableId.classId.simpleName
                 packageName = executableId.classId.packageName
             }
-            fuzz(thisMethodDescription, ObjectModelProvider { nextDefaultModelId++ }.apply {
+            fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
                 limitValuesCreatedByFieldAccessors = 500
             })
         }

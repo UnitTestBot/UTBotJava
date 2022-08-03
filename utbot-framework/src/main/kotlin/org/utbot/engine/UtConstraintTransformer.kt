@@ -146,6 +146,19 @@ class UtConstraintTransformer(
         )
     }
 
+    override fun visitUtConstraintNeg(expr: UtConstraintNeg) = replace(expr) {
+        UtConstraintNeg(
+            operand.accept(this@UtConstraintTransformer)
+        )
+    }
+
+    override fun visitUtConstraintCast(expr: UtConstraintCast) = replace(expr) {
+        UtConstraintCast(
+            operand.accept(this@UtConstraintTransformer),
+            classId
+        )
+    }
+
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint) = with(expr) {
         UtRefEqConstraint(
             lhv.accept(this@UtConstraintTransformer),

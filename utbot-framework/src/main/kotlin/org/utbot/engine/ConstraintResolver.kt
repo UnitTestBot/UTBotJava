@@ -205,7 +205,7 @@ class ConstraintResolver(
         }.toSet()
         val lengthVariable = UtConstraintArrayLength(variable)
         val lengthModel = buildModel(atoms, lengthVariable, lengths)
-        val concreteLength = holder.eval(lengths.first().expr).value() as Int
+        val concreteLength = lengths.firstOrNull()?.let { holder.eval(it.expr).value() as Int } ?: 100
 
         val indexMap = atoms
             .flatMap {

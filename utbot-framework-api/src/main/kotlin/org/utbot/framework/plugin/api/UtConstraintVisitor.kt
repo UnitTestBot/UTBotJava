@@ -24,6 +24,10 @@ interface UtConstraintVariableVisitor<T> {
     fun visitUtConstraintUshr(expr: UtConstraintUshr): T
     fun visitUtConstraintXor(expr: UtConstraintXor): T
     fun visitUtConstraintNot(expr: UtConstraintNot): T
+
+    fun visitUtConstraintNeg(expr: UtConstraintNeg): T
+
+    fun visitUtConstraintCast(expr: UtConstraintCast): T
 }
 
 interface UtConstraintVisitor<T> {

@@ -120,7 +120,7 @@ private class UtConstraintBuilder(
                 }
             }
             isArray -> {
-                val sootType = classId.toSootType().arrayType
+                val sootType = classId.toSootType() as ArrayType
                 val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
                 engine.createArray(addr, sootType, useConcreteType = addr.isThisAddr)
             }
@@ -339,6 +339,20 @@ private class UtConstraintBuilder(
     override fun visitUtConstraintNot(expr: UtConstraintNot): SymbolicValue = with(expr) {
         val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
         PrimitiveValue(oper.type, mkNot(oper.expr as UtBoolExpression))
+    }
+
+    override fun visitUtConstraintNeg(expr: UtConstraintNeg): SymbolicValue = with(expr) {
+        val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            oper.type, UtNegExpression(oper)
+        )
+    }
+
+    override fun visitUtConstraintCast(expr: UtConstraintCast): SymbolicValue = with(expr) {
+        val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
+        PrimitiveValue(
+            oper.type, UtCastExpression(oper, classId.toSootType())
+        )
     }
 
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint): UtBoolExpression = with(expr) {

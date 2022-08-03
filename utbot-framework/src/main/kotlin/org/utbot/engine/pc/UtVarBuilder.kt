@@ -29,22 +29,19 @@ class UtVarBuilder(
                     val instance = expr.index.accept(this)
                     UtConstraintArrayLength(instance)
                 }
-                "RefValues_Arrays" -> {
-                    val instance = expr.index.accept(this)
-                    instance
-                }
-                "char_Arrays" -> {
-                    val instance = expr.index.accept(this)
-                    instance
-                }
-                "int_Arrays" -> {
-                    val instance = expr.index.accept(this)
-                    instance
-                }
+                "RefValues_Arrays" -> expr.index.accept(this)
+                "boolean_Arrays" -> expr.index.accept(this)
+                "char_Arrays" -> expr.index.accept(this)
+                "int_Arrays" -> expr.index.accept(this)
+                "long_Arrays" -> expr.index.accept(this)
+                "byte_Arrays" -> expr.index.accept(this)
+                "short_Arrays" -> expr.index.accept(this)
+                "float_Arrays" -> expr.index.accept(this)
+                "double_Arrays" -> expr.index.accept(this)
                 else -> {
                     val instance = expr.index.accept(this)
                     try {
-                        val (type, field) = base.name.split("_")
+                        val (type, field) = base.name.split("_", limit = 2)
                         UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
                     } catch (e: Throwable) {
                         arrayAccess(base, instance)
@@ -55,6 +52,7 @@ class UtVarBuilder(
                 val index = expr.index.accept(this)
                 arrayAccess(base, index)
             }
+            is UtConstraintNumericConstant -> expr.index.accept(this)
             is UtConstraintNull -> UtConstraintArrayAccess(base, expr.index.accept(this), objectClassId)
             else -> error("Unexpected: $base")
         }
@@ -77,7 +75,7 @@ class UtVarBuilder(
             System.err.println(base.classId)
             System.err.println(index)
             System.err.println(index.classId)
-            TODO()
+            index
         }
     }
 
@@ -217,11 +215,20 @@ class UtVarBuilder(
     }
 
     override fun visit(expr: UtNegExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        return UtConstraintNeg(
+            expr.variable.expr.accept(this)
+        ).also {
+            backMapping[it] = expr.variable.expr
+        }
     }
 
     override fun visit(expr: UtCastExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        return UtConstraintCast(
+            expr.variable.expr.accept(this),
+            expr.type.classId
+        ).also {
+            backMapping[it] = expr.variable.expr
+        }
     }
 
     override fun visit(expr: UtBoolOpExpression): UtConstraintVariable {

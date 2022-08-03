@@ -4,7 +4,11 @@ import org.utbot.framework.plugin.api.util.*
 
 sealed class UtConstraintVariable {
     abstract val classId: ClassId
-    val isPrimitive get() = classId.isPrimitive
+    val isPrimitive get() = try {
+        classId.isPrimitive
+    } catch (e: Throwable) {
+        throw e
+    }
     val isArray get() = classId.isArray
 
     abstract fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T
@@ -285,6 +289,26 @@ data class UtConstraintNot(
 
     override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
         return visitor.visitUtConstraintNot(this)
+    }
+}
+
+data class UtConstraintNeg(
+    val operand: UtConstraintVariable
+) : UtConstraintExpr() {
+    override val classId: ClassId
+        get() = operand.classId
+
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
+        return visitor.visitUtConstraintNeg(this)
+    }
+}
+
+data class UtConstraintCast(
+    val operand: UtConstraintVariable,
+    override val classId: ClassId
+) : UtConstraintExpr() {
+    override fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T {
+        return visitor.visitUtConstraintCast(this)
     }
 }
 

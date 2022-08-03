@@ -115,6 +115,14 @@ class UtConstraintVariableCollector(
         expr.operand.accept(this)
     }
 
+    override fun visitUtConstraintNeg(expr: UtConstraintNeg) = visitVar(expr) {
+        expr.operand.accept(this)
+    }
+
+    override fun visitUtConstraintCast(expr: UtConstraintCast) = visitVar(expr) {
+        expr.operand.accept(this)
+    }
+
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint) = visitConstraint(expr) {
         expr.lhv.accept(this)
         expr.rhv.accept(this)

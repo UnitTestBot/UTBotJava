@@ -7,13 +7,14 @@ import java.io.File
 
 
 object MypyAnnotations {
-    fun mypyCheckAnnotations(
+    fun getCheckedByMypyAnnotations(
         method: PythonMethod,
         functionArgAnnotations: Map<String, List<String>>,
         testSourcePath: String,
         moduleToImport: String,
         directoriesForSysPath: List<String>,
-        pythonPath: String
+        pythonPath: String,
+        isCancelled: () -> Boolean
     ) = sequence {
         val codeFilename = "${testSourcePath}/__${method.name}__mypy_types.py"
 
@@ -37,9 +38,13 @@ object MypyAnnotations {
         if (candidates.any { it.isEmpty() })
             return@sequence
 
-        val annotations = PriorityCartesianProduct(candidates).getSequence()
+        val annotationCandidates = PriorityCartesianProduct(candidates).getSequence()
 
-        annotations.forEach {
+        annotationCandidates.forEach checkAnnotations@{
+
+            if (isCancelled())
+                return@checkAnnotations
+
             val annotationMap = it.toMap()
             val functionFile = generateMypyCheckCode(
                 method,
@@ -59,7 +64,7 @@ object MypyAnnotations {
         }
     }
 
-    fun getConfigFile(testSourcePath: String): File = File(testSourcePath, "mypy.ini")
+    private fun getConfigFile(testSourcePath: String): File = File(testSourcePath, "mypy.ini")
 
     private fun runMypy(
         pythonPath: String,

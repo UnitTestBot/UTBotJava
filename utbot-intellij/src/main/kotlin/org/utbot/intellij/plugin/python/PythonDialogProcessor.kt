@@ -94,7 +94,7 @@ object PythonDialogProcessor {
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
                 val filePath = model.file.virtualFile.path
-                
+
                 // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
                 PythonTypesStorage.refreshProjectClassesList(
                     filePath,
@@ -114,7 +114,7 @@ object PythonDialogProcessor {
                         pythonPath,
                         model.project.basePath!!,
                         filePath
-                    )
+                    ) { indicator.isCanceled }
                 }
 
                 val tests = pythonMethods.map { method ->
@@ -125,7 +125,7 @@ object PythonDialogProcessor {
                     if (it.executions.isEmpty() && it.errors.isEmpty()) it.method.name else null
                 }
 
-                if (functionsWithoutTests.isNotEmpty()) {
+                if (functionsWithoutTests.isNotEmpty() && !indicator.isCanceled) {
                     showErrorDialogLater(
                         project,
                         message = "Cannot create tests for the following functions: " + functionsWithoutTests.joinToString { it },

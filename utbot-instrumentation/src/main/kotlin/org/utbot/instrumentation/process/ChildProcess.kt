@@ -78,7 +78,8 @@ private fun logTrace(any: () -> Any?) {
     log(any, CUSTOM_LOG_LEVEL.TRACE)
 }
 
-private val counter = AtomicLong(0)
+private val readStart = AtomicLong(0)
+private val readEnd = AtomicLong(0)
 
 /**
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
@@ -95,16 +96,22 @@ fun main(args: Array<String>): Unit {
     val pid = getCurrentProcessId()
     val def = LifetimeDefinition()
 
-    counter.set(System.currentTimeMillis())
-
     UtRdCoroutineScope.current.launch(Lifetime.Eternal) {
         while(true) {
             val now = System.currentTimeMillis()
-            if (now - counter.get() > 60 * 1000) {
-                def.terminate()
-                break
-            } else {
+            val start = readStart.get()
+            val end = readEnd.get()
+
+            if (start <= end) { // process is doing something
                 delay(1000)
+            } else { // process is waiting for answer
+                // todo
+                if (now - start > 60 * 1000) {
+                    def.terminate()
+                    break
+                } else {
+                    delay(1000)
+                }
             }
         }
     }
@@ -181,7 +188,9 @@ private fun send(kryoHelper: KryoHelper, cmdId: Long, cmd: Protocol.Command) {
 
 private fun read(kryoHelper: KryoHelper): KryoHelper.ReceivedCommand {
     try {
+        readStart.set(System.currentTimeMillis())
         val cmd = kryoHelper.readCommand()
+        readEnd.set(System.currentTimeMillis())
         logInfo { "Received :> $cmd" }
         return cmd
     } catch (e: Exception) {

@@ -1,42 +1,48 @@
 package org.utbot.python.typing
 
-import org.utbot.fuzzer.CartesianProduct
-import org.utbot.fuzzer.Combinations
-import org.utbot.fuzzer.PseudoShuffledIntProgression
-import kotlin.math.min
-import kotlin.random.Random
+import java.lang.Integer.min
 
 fun main() {
-    val x = PriorityCartesianProduct(listOf(listOf(1, 2, 3), listOf(4, 5), listOf(6, 7, 8, 9, 10)))
+    val x = PriorityCartesianProduct(listOf(listOf(1, 2, 3), listOf(4, 5), listOf(6, 7, 8, 9, 10))).getSequence()
     x.forEach {
         println("-- $it")
     }
 }
 
-class PriorityCartesianProduct<T>(
-    private val lists: List<List<T>>,
-): Iterable<List<T>> {
+class PriorityCartesianProduct<T>(private val lists: List<List<T>>){
 
-    fun asSequence(): Sequence<List<T>> = iterator().asSequence()
+    private fun generateFixedSumRepresentation(
+        sum: Int,
+        index: Int = 0,
+        curRepr: List<Int> = emptyList()
+    ): Sequence<List<Int>> {
+        val itemNumber = lists.size
+        var result = emptySequence<List<Int>>()
+        if (index == itemNumber && sum == 0) {
+            return sequenceOf(curRepr)
+        } else if (index < itemNumber && sum >= 0) {
+            for (i in 0..min(sum, lists[index].size - 1)) {
+                result += generateFixedSumRepresentation(
+                    sum - i,
+                    index + 1,
+                    curRepr + listOf(i)
+                )
+            }
+        }
+        return result
+    }
 
-    override fun iterator(): Iterator<List<T>> {
-        val sizes = lists.map {it.size}
-        val combinations = Combinations(*sizes.toIntArray())
-        val groupedCombinations = combinations.groupBy { combination ->
-            combination.sum()
+    fun getSequence(): Sequence<List<T>> {
+        var curSum = 0
+        val maxSum = lists.fold(0) { acc, elem -> acc + elem.size }
+        val combinations = generateSequence {
+            if (curSum > maxSum)
+                null
+            else
+                generateFixedSumRepresentation(curSum++)
         }
-        val sortedCombinations = (0..sizes.sumOf { it - 1 }).mapNotNull {
-            groupedCombinations[it]
+        return combinations.flatten().map { combination: List<Int> ->
+            combination.mapIndexed { element, value -> lists[element][value] }
         }
-//        val groupedCombinations = combinations.groupBy { combination ->
-//            combination.maxOf {it}
-//        }
-//        val sortedCombinations = (0..sizes.maxOf { it - 1 }).mapNotNull {
-//            groupedCombinations[it]
-//        }
-        val sequence = sortedCombinations.flatten().asSequence()
-        return sequence.map { combination ->
-            combination.mapIndexedTo(mutableListOf()) { element, value -> lists[element][value] }
-        }.iterator()
     }
 }

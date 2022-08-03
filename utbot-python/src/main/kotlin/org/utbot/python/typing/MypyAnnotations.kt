@@ -37,7 +37,7 @@ object MypyAnnotations {
         if (candidates.any { it.isEmpty() })
             return@sequence
 
-        val annotations = PriorityCartesianProduct(candidates).asSequence()
+        val annotations = PriorityCartesianProduct(candidates).getSequence()
 
         annotations.forEach {
             val annotationMap = it.toMap()

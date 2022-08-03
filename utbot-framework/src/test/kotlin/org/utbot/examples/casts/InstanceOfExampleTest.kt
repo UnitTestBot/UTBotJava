@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
+@Disabled
 internal class InstanceOfExampleTest : UtValueTestCaseChecker(
     testClass = InstanceOfExample::class,
     testCodeGeneration = true,

@@ -71,7 +71,7 @@ object GenericModelProvider: ModelProvider {
 
             Regex("builtins.dict\\[(.*), *(.*)]") to { matchResult -> parseDict(matchResult) },
             Regex("[Dd]ict\\[(.*), *(.*)]") to { matchResult -> parseDict(matchResult) },
-            Regex("typing.Dict\\[(.*)]") to { matchResult -> parseDict(matchResult) },
+            Regex("typing.Dict\\[(.*), *(.*)]") to { matchResult -> parseDict(matchResult) },
 
             Regex("builtins.set\\[(.*)]") to { matchResult -> parseSet(matchResult) },
             Regex("[Ss]et\\[(.*)]") to { matchResult -> parseSet(matchResult) },

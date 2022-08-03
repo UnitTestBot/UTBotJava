@@ -4,8 +4,8 @@ import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.infiniteInts
+import org.utbot.framework.codegen.model.tree.CgClassType
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.jcdb.api.ClassId
 
@@ -37,7 +37,7 @@ internal interface CgNameGenerator {
      * Otherwise, fall back to generating a name by [type]
      * @param isMock denotes whether a variable represents a mock object or not
      */
-    fun variableName(type: ClassId, base: String? = null, isMock: Boolean = false): String
+    fun variableName(type: CgClassType, base: String? = null, isMock: Boolean = false): String
 
     /**
      * Generate a new test method name.
@@ -78,8 +78,8 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         }
     }
 
-    override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
-        val baseName = base?.fromScreamingSnakeCaseToCamelCase() ?: nameFrom(type)
+    override fun variableName(type: CgClassType, base: String?, isMock: Boolean): String {
+        val baseName = base?.fromScreamingSnakeCaseToCamelCase() ?: nameFrom(type.classId)
         return variableName(baseName.decapitalize(), isMock)
     }
 
@@ -148,8 +148,8 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
 
     private fun createExecutableName(executableId: ExecutableId): String {
         return when (executableId) {
-            is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
-            is MethodId -> executableId.name
+            is ConstructorExecutableId -> executableId.classId.name // TODO: maybe we need some suffix e.g. "Ctor"?
+            is MethodExecutableId -> executableId.name
         }
     }
 }

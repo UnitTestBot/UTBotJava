@@ -13,7 +13,11 @@ import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.jcdb.api.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.allConstructors
+import org.utbot.jcdb.api.ext.findClass
+import org.utbot.jcdb.api.isConstructor
+import org.utbot.jcdb.api.isSubtypeOf
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -89,9 +93,9 @@ internal class FieldStateCache {
 
 internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
-data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
+data class ExpressionWithType(val type: CgClassType, val expression: CgExpression)
 
-val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
+val classClassId get() = Class::class.java.id
 
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()
@@ -134,6 +138,8 @@ internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
  */
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
     importedClasses.none { it.simpleName == type.simpleName }
+
+internal fun CgContextOwner.importIfNeeded(type: CgClassType) = importIfNeeded(type.classId)
 
 internal fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change
@@ -182,8 +188,14 @@ internal fun CgContextOwner.typeCast(
     targetType: ClassId,
     expression: CgExpression,
     isSafetyCast: Boolean = false
+) = typeCast(CgClassType(targetType), expression, isSafetyCast)
+
+internal fun CgContextOwner.typeCast(
+    targetType: CgClassType,
+    expression: CgExpression,
+    isSafetyCast: Boolean = false
 ): CgTypeCast {
-    if (targetType.simpleName.isEmpty()) {
+    if (targetType.classId.simpleName.isEmpty()) {
         error("Cannot cast an expression to the anonymous type $targetType")
     }
     importIfNeeded(targetType)
@@ -206,26 +218,13 @@ internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: 
  * @param elementType the element type of the returned array class id
  * @param isNullable a flag whether returned array is nullable or not
  */
-internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
-    val arrayIdName = "[${elementType.arrayLikeName}"
-    return when (elementType) {
-        is BuiltinClassId -> BuiltinClassId(
-            name = arrayIdName,
-            canonicalName = "${elementType.canonicalName}[]",
-            simpleName = "${elementType.simpleName}[]",
-            isNullable = isNullable
-        )
-        else -> ClassId(
-            name = arrayIdName,
-            elementClassId = elementType,
-            isNullable = isNullable
-        )
-    }
+internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId = runBlocking {
+    utContext.classpath.findClass(elementType.name + "[]")
 }
 
 @Suppress("unused")
 internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
-    importIfNeeded(classId)
+    importIfNeeded(CgClassType(classId))
     return CgGetJavaClass(classId)
 }
 

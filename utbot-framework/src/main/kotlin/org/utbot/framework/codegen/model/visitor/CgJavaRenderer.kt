@@ -9,7 +9,6 @@ import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.packageName
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.ifArrayGetElementClass
@@ -139,8 +138,8 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     override fun visit(element: CgAllocateInitializedArray) {
         // TODO: same as in visit(CgAllocateArray): we should rewrite the typeName and otherDimensions variables declaration
         // to avoid using substringBefore() and substringAfter() directly
-        val typeName = element.type.canonicalName.substringBefore("[")
-        val otherDimensions = element.type.canonicalName.substringAfter("]")
+        val typeName = element.type.name.substringBefore("[")
+        val otherDimensions = element.type.name.substringAfter("]")
         // we can't specify the size of the first dimension when using initializer,
         // as opposed to CgAllocateArray where there is no initializer
         print("new $typeName[]$otherDimensions")

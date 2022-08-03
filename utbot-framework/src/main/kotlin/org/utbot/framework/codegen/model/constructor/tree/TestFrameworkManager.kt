@@ -7,13 +7,14 @@ import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
+import org.utbot.framework.codegen.model.constructor.util.classClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import java.util.concurrent.TimeUnit
@@ -163,7 +164,7 @@ internal abstract class TestFrameworkManager(val context: CgContext)
             if (isAccessibleFrom(testClassPackageName)) {
                 CgGetJavaClass(this)
             } else {
-                statementConstructor.newVar(classCgClassId) { Class::class.id[forName](name) }
+                statementConstructor.newVar(classClassId) { Class::class.id[forName](name) }
             }
 }
 
@@ -309,7 +310,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
         importIfNeeded(testFramework.durationClassId)
-        val duration = CgMethodCall(null, testFramework.ofMillis, listOf(timeoutMs.resolve()))
+        val duration = CgMethodCall(null, testFramework.ofMillis.asExecutableMethod(), listOf(timeoutMs.resolve()))
         +assertions[testFramework.assertTimeoutPreemptively](duration, lambda)
     }
 

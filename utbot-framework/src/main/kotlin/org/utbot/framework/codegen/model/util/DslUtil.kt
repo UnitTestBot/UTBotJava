@@ -23,25 +23,25 @@ infix fun CgExpression.greaterThan(other: Any?): CgGreaterThan =
 // Literals
 
 // TODO: is it OK to use Object as a type of null literal?
-fun nullLiteral() = CgLiteral(objectClassId, null)
+fun nullLiteral() = CgLiteral(objectClassId.type(), null)
 
-fun intLiteral(num: Int) = CgLiteral(intClassId, num)
+fun intLiteral(num: Int) = CgLiteral(intClassId.type(false), num)
 
-fun longLiteral(num: Long) = CgLiteral(longClassId, num)
+fun longLiteral(num: Long) = CgLiteral(longClassId.type(false), num)
 
-fun byteLiteral(num: Byte) = CgLiteral(byteClassId, num)
+fun byteLiteral(num: Byte) = CgLiteral(byteClassId.type(false), num)
 
-fun shortLiteral(num: Short) = CgLiteral(shortClassId, num)
+fun shortLiteral(num: Short) = CgLiteral(shortClassId.type(false), num)
 
-fun floatLiteral(num: Float) = CgLiteral(floatClassId, num)
+fun floatLiteral(num: Float) = CgLiteral(floatClassId.type(false), num)
 
-fun doubleLiteral(num: Double) = CgLiteral(doubleClassId, num)
+fun doubleLiteral(num: Double) = CgLiteral(doubleClassId.type(false), num)
 
-fun booleanLiteral(b: Boolean) = CgLiteral(booleanClassId, b)
+fun booleanLiteral(b: Boolean) = CgLiteral(booleanClassId.type(false), b)
 
-fun charLiteral(c: Char) = CgLiteral(charClassId, c)
+fun charLiteral(c: Char) = CgLiteral(charClassId.type(false), c)
 
-fun stringLiteral(string: String) = CgLiteral(stringClassId, string)
+fun stringLiteral(string: String) = CgLiteral(stringClassId.type(false), string)
 
 // Field access
 
@@ -66,7 +66,7 @@ fun CgVariable.length(
 ): CgExpression {
     val thisVariable = this
 
-    return if (type.isArray) {
+    return if (type.classId.isArray) {
         CgGetLength(thisVariable)
     } else {
         with(cgCallableAccessManager) { thisInstance[getArrayLengthMethodId](thisVariable) }

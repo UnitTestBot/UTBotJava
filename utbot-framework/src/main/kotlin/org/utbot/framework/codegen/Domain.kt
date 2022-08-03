@@ -3,7 +3,6 @@ package org.utbot.framework.codegen
 import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
 import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
-import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
@@ -130,7 +129,7 @@ object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocki
 
     fun mockedStaticWhen(nullable: Boolean): MethodId = mockedStaticClassId.newBuiltinMethod(
         name = "when",
-        returnType = CgClassId(ongoingStubbingClassId, isNullable = nullable),
+        returnType = ongoingStubbingClassId,
         // argument type is actually a functional interface
         arguments = listOf(objectClassId)
     )

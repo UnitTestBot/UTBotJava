@@ -37,7 +37,7 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
     fun CgMethodCall.thenReturn(returnType: ClassId, vararg args: CgValue) {
         val castedArgs = args
             // guard args to reuse typecast creation logic
-            .map { if (it.type == returnType) it else guardExpression(returnType, it).expression }
+            .map { if (it.type.classId == returnType) it else guardExpression(returnType.type(), it).expression }
             .toTypedArray()
 
         +this[thenReturnMethodId](*castedArgs)
@@ -65,7 +65,7 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
             if (classId isAccessibleFrom testClassPackageName) {
                 CgGetJavaClass(classId)
             } else {
-                newVar(classCgClassId) { Class::class.id[forName](classId.name) }
+                newVar(classClassId.type(false)) { Class::class.id[forName](classId.name) }
             }
 
     private fun matchByClass(id: ClassId): CgMethodCall =
@@ -127,7 +127,7 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
     override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
         // create mock object
         val modelClass = getClassOf(model.classId)
-        val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
+        val mockObject = newVar(model.classId.type(false), baseName = baseName, isMock = true) { mock(modelClass) }
 
         for ((executable, values) in model.mocks) {
             // void method
@@ -174,7 +174,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         if (classId in mockedStaticConstructions) return
 
         val mockClassCounter = CgDeclaration(
-            atomicIntegerClassId,
+            atomicIntegerClassId.type(),
             variableConstructor.constructVarName(MOCK_CLASS_COUNTER_NAME),
             CgConstructorCall(atomicIntegerClassId.findConstructor().asExecutableConstructor(), emptyList())
         )
@@ -195,7 +195,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mockClassCounter.variable
         )
         val mockedConstructionDeclaration = CgDeclaration(
-            CgClassId(MockitoStaticMocking.mockedConstructionClassId),
+            MockitoStaticMocking.mockedConstructionClassId.type(),
             variableConstructor.constructVarName(MOCKED_CONSTRUCTION_NAME),
             mockConstructionInitializer
         )
@@ -218,7 +218,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 CgStaticRunnable(type = methodId.returnType, classId, methodId)
             } else {
                 CgAnonymousFunction(
-                    type = methodId.returnType,
+                    type = methodId.type(),
                     parameters = emptyList(),
                     listOf(CgStatementExecutableCall(CgMethodCall(
                         caller = null,
@@ -254,7 +254,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             val classMockStaticCall = mockStatic(modelClass)
             val mockedStaticVariableName = variableConstructor.constructVarName(MOCKED_STATIC_NAME)
             CgDeclaration(
-                CgClassId(MockitoStaticMocking.mockedStaticClassId),
+                MockitoStaticMocking.mockedStaticClassId.type(),
                 mockedStaticVariableName,
                 classMockStaticCall
             ).also {
@@ -270,11 +270,11 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         mockClassCounter: CgVariable
     ): CgMethodCall {
         val mockParameter = variableConstructor.declareParameter(
-            classId,
+            classId.type(),
             variableConstructor.constructVarName(classId.simpleName, isMock = true)
         )
         val contextParameter = variableConstructor.declareParameter(
-            mockedConstructionContextClassId,
+            mockedConstructionContextClassId.type(),
             variableConstructor.constructVarName("context")
         )
 
@@ -296,13 +296,13 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 }
             }
 
-            caseLabels += CgSwitchCaseLabel(CgLiteral(intClassId, index), statements)
+            caseLabels += CgSwitchCaseLabel(CgLiteral(intClassId.type(false), index), statements)
         }
 
         val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
 
         val answersBlock = CgAnonymousFunction(
-            voidClassId,
+            voidClassId.type(false),
             listOf(mockParameter, contextParameter).map { CgParameterDeclaration(it, isVararg = false) },
             listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
         )
@@ -323,7 +323,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         }
         return CgMethodCall(
             mockedStatic,
-            MockitoStaticMocking.mockedStaticWhen(nullable = mockedStatic.type.isNullable).asExecutableMethod(),
+            MockitoStaticMocking.mockedStaticWhen(nullable = mockedStatic.isNullable).asExecutableMethod(),
             listOf(runnable),
             TypeParameters(typeParams),
         )

@@ -114,7 +114,7 @@ fun buildParameterizedTestDataProviderMethod(
 // Variable declaration
 
 class CgDeclarationBuilder : CgBuilder<CgDeclaration> {
-    lateinit var variableType: ClassId
+    lateinit var variableType: CgClassType
     lateinit var variableName: String
     var initializer: CgExpression? = null
     var isMutable: Boolean = false

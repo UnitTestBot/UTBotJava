@@ -761,7 +761,7 @@ class BuiltinClassId(
 
     private var methods = arrayListOf<BuiltinMethodId>()
 
-    override suspend fun annotations() = emptyList<ClassId>()
+    override suspend fun annotations() = emptyList<AnnotationId>()
     override suspend fun byteCode() = null
     override suspend fun fields() = emptyList<FieldId>()
     override suspend fun innerClasses() = emptyList<ClassId>()
@@ -897,7 +897,7 @@ class BuiltinFieldId(
     override suspend fun type() = type
 
     override suspend fun access() = Opcodes.ACC_PUBLIC
-    override suspend fun annotations() = emptyList<ClassId>()
+    override suspend fun annotations() = emptyList<AnnotationId>()
 
     override suspend fun resolution() = Raw
 }
@@ -1060,6 +1060,17 @@ class MethodExecutableId(override val methodId: MethodId) : ExecutableId(), Meth
 //        get() = Modifier.isPrivate(constructor.modifiers)
 //}
 //
+class BuiltinParameterId(val parameterType: ClassId): MethodParameterId {
+
+    override suspend fun access() = Opcodes.ACC_PUBLIC
+
+    override val name: String? = null
+
+    override suspend fun annotations() = emptyList<AnnotationId>()
+
+    override suspend fun type() = parameterType
+}
+
 class BuiltinMethodId(
     override val classId: ClassId,
     override val name: String,
@@ -1071,7 +1082,8 @@ class BuiltinMethodId(
 
     override suspend fun access() = if (isStatic) Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC
 
-    override suspend fun annotations() = emptyList<ClassId>()
+    override suspend fun annotations() = emptyList<AnnotationId>()
+    override suspend fun parameterIds() = parameters.map { BuiltinParameterId(it) }
 
     override suspend fun description(): String {
         TODO("Not yet implemented")
@@ -1089,10 +1101,6 @@ class BuiltinMethodId(
         TODO("Not yet implemented")
     }
 }
-
-open class TypeParameters(val parameters: List<ClassId> = emptyList())
-
-class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface CodeGenerationSettingItem {
     val displayName: String

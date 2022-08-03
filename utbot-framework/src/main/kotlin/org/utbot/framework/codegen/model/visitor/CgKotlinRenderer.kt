@@ -11,7 +11,9 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.packageName
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
@@ -94,7 +96,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgArrayElementAccess) {
-        if (element.array.type.isNullable) {
+        if (element.array.isNullable) {
             element.array.accept(this)
             print("?.get(")
             element.index.accept(this)
@@ -105,7 +107,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderAccess(caller: CgExpression) {
-        if (caller.type.isNullable) print("?")
+        if (caller.isNullable) print("?")
         print(".")
     }
 
@@ -161,23 +163,23 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         // but cast from nullable to not nullable should be performed
         // TODO SAT-1445 actually this safetyCast check looks like hack workaround and possibly does not work
         //  so it should be carefully tested one day
-        if (!element.isSafetyCast || element.expression.type != element.targetType) {
+        val classId = element.expression.type.classId
+        val targetType = element.targetType
+        if (!element.isSafetyCast || classId != targetType.classId) {
             // except for the case when a wrapper is cast to its primitive or vice versa
 
-            val isCastFromPrimitiveToWrapper = element.targetType.isPrimitiveWrapper &&
-                    element.expression.type.isPrimitive
-            val isCastFromWrapperToPrimitive = element.targetType.isPrimitive &&
-                    element.expression.type.isPrimitiveWrapper
+            val isCastFromPrimitiveToWrapper = targetType.classId.isPrimitiveWrapper && classId.isPrimitive
+            val isCastFromWrapperToPrimitive = targetType.classId.isPrimitive && classId.isPrimitiveWrapper
             val isNullLiteral = element.expression == nullLiteral()
             if (!isNullLiteral && element.isSafetyCast && (isCastFromPrimitiveToWrapper || isCastFromWrapperToPrimitive)) {
                 return
             }
 
             if (element.isSafetyCast) print(" as? ") else print(" as ")
-            print(getKotlinClassString(element.targetType))
-            renderTypeParameters(element.targetType.typeParameters)
-            val initNullable = element.type.isNullable
-            if (element.targetType.isNullable || initNullable) print("?")
+            print(getKotlinClassString(element.type))
+            renderTypeParameters(element.type.typeParameters)
+            val initNullable = element.isNullable
+            if (element.isNullable || initNullable) print("?")
         }
     }
 
@@ -188,13 +190,13 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgGetJavaClass) {
         // TODO: check how it works on ref types, primitives, ref arrays, primitive arrays, etc.
-        print(getKotlinClassString(element.classId))
+        print(getKotlinClassString(element.type))
         print("::class.java")
     }
 
     override fun visit(element: CgGetKotlinClass) {
         // TODO: check how it works on ref types, primitives, ref arrays, primitive arrays, etc.
-        print(getKotlinClassString(element.classId))
+        print(getKotlinClassString(element.type))
         print("::class")
     }
 
@@ -230,7 +232,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
             element.values.renderElements(elementsInLine)
             print(")")
         } else {
-            print(getKotlinClassString(element.arrayType))
+            print(getKotlinClassString(element.type))
             print("(${element.size})")
             print(" { null }")
         }
@@ -242,7 +244,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgConstructorCall) {
-        print(getKotlinClassString(element.executableId.classId))
+        print(getKotlinClassString(element.type))
         print("(")
         element.arguments.renderSeparated()
         print(")")
@@ -282,7 +284,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     private fun renderMethodReturnType(method: CgMethod) {
-        if (method.returnType != voidClassId) {
+        if (method.returnType.classId != voidClassId) {
             print(": ")
             print(getKotlinClassString(method.returnType))
         }
@@ -315,7 +317,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         print(": ")
         print(getKotlinClassString(element.variableType))
         renderTypeParameters(element.variableType.typeParameters)
-        val initNullable = element.initializer?.run { type.isNullable } ?: false
+        val initNullable = element.initializer?.isNullable ?: false
         if (element.variableType.isNullable || initNullable) print("?")
     }
 
@@ -404,7 +406,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
-        print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type.name}")
+        print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type.classId.name}")
     }
 
     override fun isAccessibleBySimpleNameImpl(classId: ClassId): Boolean {
@@ -414,11 +416,12 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override fun escapeNamePossibleKeywordImpl(s: String): String =
         if (isLanguageKeyword(s, context.codegenLanguage)) "`$s`" else s
 
-    private fun getKotlinClassString(id: ClassId): String =
-        if (id.isArray) {
+    private fun getKotlinClassString(id: CgClassType): String {
+        val classId = id.classId
+        return if (classId.isArray) {
             getKotlinArrayClassOfString(id)
         } else {
-            when (id.name.jvmName()) {
+            when (classId.name.jvmName()) {
                 "Ljava/lang/Object;" -> Any::class.simpleName!!
                 "B", "Ljava/lang/Byte;" -> Byte::class.simpleName!!
                 "S", "Ljava/lang/Short;" -> Short::class.simpleName!!
@@ -434,26 +437,27 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
                     // we cannot access kClass for BuiltinClassId
                     // we cannot use simple name here because this class can be not imported
                     // TODO: fixme
-                    if (id is BuiltinClassId) id.name else id.name
+                    if (classId is BuiltinClassId) classId.name else classId.name
                 }
             }
         }
+    }
 
-    private fun getKotlinArrayClassOfString(classId: ClassId): String {
-        val elementClass = classId.ifArrayGetElementClass()
+    private fun getKotlinArrayClassOfString(classType: CgClassType): String {
+        val elementClass = classType.classId.ifArrayGetElementClass()
         return if (!elementClass!!.isPrimitive) {
             if (elementClass != java.lang.Object::class.id) {
                 workaround(WorkaroundReason.ARRAY_ELEMENT_TYPES_ALWAYS_NULLABLE) {
                     // for now all element types are nullable
                     // Use kotlin.Array, because Array becomes java.lang.reflect.Array
                     // when passed as a type parameter
-                    "kotlin.Array<${getKotlinClassString(elementClass)}?>"
+                    "kotlin.Array<${getKotlinClassString(elementClass.type())}?>"
                 }
             } else {
                 "kotlin.Array<Any?>"
             }
         } else {
-            when (classId.name.jvmName()) {
+            when (classType.classId.name.jvmName()) {
                 "[B" -> ByteArray::class.simpleName!!
                 "[S" -> ShortArray::class.simpleName!!
                 "[C" -> CharArray::class.simpleName!!
@@ -462,7 +466,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
                 "[F" -> FloatArray::class.simpleName!!
                 "[D" -> DoubleArray::class.simpleName!!
                 "[Z" -> BooleanArray::class.simpleName!!
-                else -> classId.kClass.id.asString()
+                else -> classType.classId.simpleName
             }
         }
     }

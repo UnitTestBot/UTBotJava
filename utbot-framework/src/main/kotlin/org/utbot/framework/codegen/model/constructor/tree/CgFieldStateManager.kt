@@ -5,10 +5,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.getArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.*
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
@@ -170,14 +167,14 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
                 }
                 is ArrayElementAccess -> {
                     // cannot use direct array access from not array type
-                    if (!curType.isArray) {
+                    if (!curType.classId.isArray) {
                         lastAccessibleIndex = index - 1
                         break
                     }
                 }
             }
 
-            curType = fieldPathElement.type
+            curType = CgClassType(fieldPathElement.type)
         }
 
         var index = 0
@@ -186,7 +183,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
         val lastPublicAccessor = generateSequence(this) { prev ->
             if (index > lastAccessibleIndex) return@generateSequence null
             val newElement = path[index++]
-            currentFieldType = newElement.type
+            currentFieldType = CgClassType(newElement.type)
             when (newElement) {
                 is FieldAccess -> prev[newElement.field]
                 is ArrayElementAccess -> prev.at(newElement.index)
@@ -211,7 +208,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
                     Array::class.id[getArrayElement](prev, newElement.index)
                 }
             }
-            newVar(objectClassId, name) { expression }
+            newVar(CgClassType(objectClassId), name) { expression }
         }.last()
     }
 
@@ -228,9 +225,9 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
             val ownerClass = if (owner isAccessibleFrom testClassPackageName) {
                 CgGetJavaClass(owner)
             } else {
-                newVar(classCgClassId) { Class::class.id[forName](owner.name) }
+                newVar(CgClassType(classClassId)) { Class::class.id[forName](owner.name) }
             }
-            newVar(objectClassId) { testClassThisInstance[getStaticFieldValue](ownerClass, stringLiteral(firstField.name)) }
+            newVar(CgClassType(objectClassId)) { testClassThisInstance[getStaticFieldValue](ownerClass, stringLiteral(firstField.name)) }
         }
         val path = fieldPath.elements
         val remainingPath = fieldPath.copy(elements = path.drop(1))

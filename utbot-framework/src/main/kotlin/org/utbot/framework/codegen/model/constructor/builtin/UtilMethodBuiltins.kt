@@ -2,7 +2,6 @@ package org.utbot.framework.codegen.model.constructor.builtin
 
 import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
@@ -46,7 +45,7 @@ internal val BuiltinClassId.getUnsafeInstanceMethodId: MethodId
 internal val BuiltinClassId.createInstanceMethodId: MethodId
     get() = newBuiltinMethod(
             name = "createInstance",
-            returnType = CgClassId(objectClassId, isNullable = true),
+            returnType = objectClassId,
             arguments = listOf(stringClassId)
     )
 

@@ -99,13 +99,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
             val prevValue = newVar(
-                CgClassId(field.type, isNullable = !fieldAccessible),
+                CgClassType(field.type, isNullable = !fieldAccessible),
                 "prev${field.name.capitalize()}"
             ) {
                 if (fieldAccessible) {
                     declaringClass[field]
                 } else {
-                    val declaringClassVar = newVar(classCgClassId) {
+                    val declaringClassVar = newVar(CgClassType(classClassId, isNullable = false)) {
                         Class::class.id[forName](declaringClass.name)
                     }
                     testClassThisInstance[getStaticFieldValue](declaringClassVar, field.name)
@@ -124,7 +124,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             if (fieldAccessible) {
                 declaringClass[field] `=` fieldValue
             } else {
-                val declaringClassVar = newVar(classCgClassId) {
+                val declaringClassVar = newVar(CgClassType(classClassId, isNullable = false)) {
                     Class::class.id[forName](declaringClass.name)
                 }
                 +testClassThisInstance[setStaticField](declaringClassVar, field.name, fieldValue)
@@ -153,7 +153,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (classId isAccessibleFrom testClassPackageName) {
             CgGetJavaClass(classId)
         } else {
-            newVar(classCgClassId) { Class::class.id[forName](classId.name) }
+            newVar(CgClassType(classClassId, isNullable = false)) { Class::class.id[forName](classId.name) }
         }
 
     /**
@@ -385,13 +385,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             when (expectedModel) {
                 is UtPrimitiveModel -> {
                     currentBlock += when {
-                        (expected.type == floatClassId || expected.type == floatWrapperClassId) ->
+                        (expected.typeClassId == floatClassId || expected.typeClassId == floatWrapperClassId) ->
                             assertions[assertFloatEquals]( // cast have to be not safe here because of signature
                                 typeCast(floatClassId, expected, isSafetyCast = false),
                                 typeCast(floatClassId, actual, isSafetyCast = false),
                                 floatDelta
                             )
-                        (expected.type == doubleClassId || expected.type == doubleWrapperClassId) ->
+                        (expected.typeClassId == doubleClassId || expected.typeClassId == doubleWrapperClassId) ->
                             assertions[assertDoubleEquals]( // cast have to be not safe here because of signature
                                 typeCast(doubleClassId, expected, isSafetyCast = false),
                                 typeCast(doubleClassId, actual, isSafetyCast = false),
@@ -411,7 +411,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         }
                         // other primitives and string
                         else -> {
-                            require(expected.type.isPrimitive || expected.type == stringClassId) {
+                            require(expected.typeClassId.isPrimitive || expected.typeClassId == stringClassId) {
                                 "Expected primitive or String but got ${expected.type}"
                             }
                             assertions[assertEquals](expected, actual)
@@ -429,15 +429,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     //  probably it is better to change getClass method behaviour in the future
                     val actualObject: CgVariable = when (codegenLanguage) {
                         CodegenLanguage.KOTLIN -> newVar(
-                            baseType = objectClassId,
+                            baseType = CgClassType(objectClassId),
                             baseName = variableConstructor.constructVarName("actualObject"),
-                            init = { CgTypeCast(objectClassId, actual) }
+                            init = { CgTypeCast(CgClassType(objectClassId), actual) }
                         )
                         else -> actual
                     }
 
                     currentBlock += assertions[assertEquals](
-                        CgGetJavaClass(expected.type),
+                        CgGetJavaClass(expected.type.classId),
                         actualObject[getClass]()
                     ).toStatement()
                 }
@@ -537,7 +537,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // outer deep equals here
                     if (expected.isIterableOrMap()) {
                         currentBlock += CgSingleLineComment(
-                            "${expected.type.name} is iterable or Map, use outer deep equals to iterate over"
+                            "${expected.type.classId.name} is iterable or Map, use outer deep equals to iterate over"
                         )
                         currentBlock += getDeepEqualsAssertion(expected, actual).toStatement()
 
@@ -546,7 +546,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                     if (expected.hasNotParametrizedCustomEquals()) {
                         // We rely on already existing equals
-                        currentBlock += CgSingleLineComment("${expected.type.name} has overridden equals method")
+                        currentBlock += CgSingleLineComment("${expected.type.classId.name} has overridden equals method")
                         currentBlock += assertions[assertEquals](expected, actual).toStatement()
 
                         return
@@ -580,7 +580,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         actual: CgVariable,
     ): CgDeclaration {
         val cgGetLengthDeclaration = CgDeclaration(
-            intClassId,
+            CgClassType(intClassId, isNullable = false),
             variableConstructor.constructVarName("${expected.name}Size"),
             expected.length(this, testClassThisInstance, getArrayLength)
         )
@@ -634,13 +634,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 statements = block {
                     val expectedNestedElement = newVar(
-                        baseType = expected.type.ifArrayGetElementClass()!!,
+                        baseType = expected.type.classId.ifArrayGetElementClass()!!.type(),
                         baseName = variableConstructor.constructVarName("${expected.name}NestedElement"),
                         init = { CgArrayElementAccess(expected, i) }
                     )
 
                     val actualNestedElement = newVar(
-                        baseType = actual.type.ifArrayGetElementClass()!!,
+                        baseType = actual.type.classId.ifArrayGetElementClass()!!.type(),
                         baseName = variableConstructor.constructVarName("${actual.name}NestedElement"),
                         init = { CgArrayElementAccess(actual, i) }
                     )
@@ -663,7 +663,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun CgVariable.isIterableOrMap(): Boolean = type.isIterableOrMap
+    private fun CgVariable.isIterableOrMap(): Boolean = type.classId.isIterableOrMap
 
     /**
      * Some classes have overridden equals method, but it doesn't work properly.
@@ -674,9 +674,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * overridden equals doesn't rely on type parameters equals.
      */
     private fun CgVariable.hasNotParametrizedCustomEquals(): Boolean = runBlocking {
-        if (type.overridesEquals()) {
+        if (type.classId.overridesEquals()) {
             // type parameters is list of class type parameters - empty if class is not generic
-            type.resolution() == Raw
+            type.classId.resolution() == Raw
         } else {
             false
         }
@@ -732,7 +732,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         fieldName: String
     ): CgDeclaration {
         val expectedFieldDeclaration = createDeclarationForNewVarAndUpdateVariableScopeOrGetExistingVariable(
-            baseType = fieldId.type,
+            baseType = fieldId.type.type(isNullable = fieldId.isNullable),
             baseName = "${variable.name}${fieldName.capitalize()}",
             init = { fieldId.getAccessExpression(variable) }
         ).either(
@@ -750,7 +750,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
     // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
+        if (variable.type.classId.hasField(name) && isAccessibleFrom(testClassPackageName)) {
             if (isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             testClassThisInstance[getFieldValue](variable, stringLiteral(name))
@@ -796,11 +796,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun assertEquality(expected: CgValue, actual: CgVariable) {
         when {
-            expected.type.isArray -> {
+            expected.type.classId.isArray -> {
                 // TODO: How to compare arrays of Float and Double wrappers?
                 // TODO: For example, JUnit5 does not have an assertEquals() overload for these wrappers.
                 // TODO: So for now we compare arrays of these wrappers as arrays of Objects, but that is probably wrong.
-                when (expected.type.ifArrayGetElementClass()!!) {
+                when (expected.type.classId.ifArrayGetElementClass()!!) {
                     floatClassId -> testFrameworkManager.assertFloatArrayEquals(
                         typeCast(floatArrayClassId, expected, isSafetyCast = true),
                         typeCast(floatArrayClassId, actual, isSafetyCast = true),
@@ -813,14 +813,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     )
                     else -> {
                         val targetType = when {
-                            expected.type.isPrimitiveArray -> expected.type
-                            actual.type.isPrimitiveArray -> actual.type
-                            else -> objectArrayClassId
+                            expected.type.classId.isPrimitiveArray -> expected.type
+                            actual.type.classId.isPrimitiveArray -> actual.type
+                            else -> CgClassType(objectArrayClassId)
                         }
-                        if (targetType.isPrimitiveArray) {
+                        if (targetType.classId.isPrimitiveArray) {
                             // we can use simple arrayEquals for primitive arrays
                             testFrameworkManager.assertArrayEquals(
-                                targetType,
+                                targetType.classId,
                                 typeCast(targetType, expected, isSafetyCast = true),
                                 typeCast(targetType, actual, isSafetyCast = true)
                             )
@@ -843,14 +843,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             }
             else -> when {
-                (expected.type == floatClassId || expected.type == floatWrapperClassId) -> {
+                (expected.typeClassId == floatClassId || expected.typeClassId == floatWrapperClassId) -> {
                     testFrameworkManager.assertFloatEquals(
                         typeCast(floatClassId, expected, isSafetyCast = true),
                         typeCast(floatClassId, actual, isSafetyCast = true),
                         floatDelta
                     )
                 }
-                (expected.type == doubleClassId || expected.type == doubleWrapperClassId) -> {
+                (expected.typeClassId == doubleClassId || expected.typeClassId == doubleWrapperClassId) -> {
                     testFrameworkManager.assertDoubleEquals(
                         typeCast(doubleClassId, expected, isSafetyCast = true),
                         typeCast(doubleClassId, actual, isSafetyCast = true),
@@ -896,7 +896,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     "Inner class ${constructorCall.classId} constructor testing is not supported yet"
                 }
 
-                actual = newVar(constructorCall.classId, "actual") {
+                actual = newVar(constructorCall.classId.type(false), "actual") {
                     constructorCall(*methodArguments.toTypedArray())
                 }
             }
@@ -917,7 +917,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         when (parameterizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> generateDeepEqualsAssertion(expected, actual)
             ParametrizedTestSource.PARAMETRIZE -> when {
-                actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
+                actual.type.classId.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
                 else -> ifStatement(
                     CgEqualTo(expected, nullLiteral()),
                     trueBranch = { testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
@@ -961,10 +961,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                     emptyLineIfNeeded()
 
-                    actual = newVar(
-                        CgClassId(result.classId, isNullable = result is UtNullModel),
-                        "actual"
-                    ) {
+                    actual = newVar(CgClassType(result.classId, isNullable = result is UtNullModel),"actual") {
                         thisInstance[executable](*methodArguments.toTypedArray())
                     }
                 }
@@ -1015,7 +1012,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 mockFrameworkManager.getAndClearMethodResources()?.let { resources ->
                     val closeFinallyBlock = resources.map {
                         val variable = it.variable
-                        variable.type.closeMethodIdOrNull?.let { closeMethod ->
+                        variable.typeClassId.closeMethodIdOrNull?.let { closeMethod ->
                             CgMethodCall(
                                 variable,
                                 closeMethod.asExecutableMethod(),
@@ -1030,12 +1027,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         // First argument for mocked resource declaration initializer is a target type.
                         // Pass this argument as a type parameter for the mocked resource
                         val typeParameter = when (val firstArg = (it.initializer as CgMethodCall).arguments.first()) {
-                            is CgGetJavaClass -> firstArg.classId
+                            is CgGetJavaClass -> CgClassType(firstArg.classId, isNullable = false)
                             is CgVariable -> firstArg.type
                             else -> error("Unexpected mocked resource declaration argument $firstArg")
                         }
-                        val varType = CgClassId(
-                            it.variableType,
+                        val varType = CgClassType(
+                            it.variableType.classId,
                             TypeParameters(listOf(typeParameter)),
                             isNullable = true,
                         )
@@ -1097,7 +1094,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                     CodegenLanguage.KOTLIN -> "${expectedErrorVarName}!!.isInstance(${e.name.decapitalize()})"
                                 }
 
-                                testFrameworkManager.assertBoolean(CgVariable(pseudoExceptionVarName, booleanClassId))
+                                testFrameworkManager.assertBoolean(CgVariable(pseudoExceptionVarName, CgClassType(booleanClassId, isNullable = false)))
                             }
                     } else {
                         mainBody()
@@ -1118,7 +1115,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             // this instance
             val thisInstanceModel = genericExecution.stateBefore.thisInstance
             if (thisInstanceModel != null) {
-                val type = wrapTypeIfRequired(thisInstanceModel.classId)
+                val type = wrapTypeIfRequired(thisInstanceModel.classId.type(false))
                 val thisInstance = CgParameterDeclaration(
                     parameter = declareParameter(
                         type = type,
@@ -1140,10 +1137,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     else -> runBlocking { utContext.classpath.findClass(paramType.typeName) }
                 }
 
+                val type = argumentType.type()
                 val argument = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = argumentType,
-                        name = nameGenerator.variableName(argumentType, argumentName),
+                        type = type,
+                        name = nameGenerator.variableName(type, argumentName),
                     ),
                     isReferenceType = argumentType.isRefType
                 )
@@ -1152,15 +1150,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
 
             val method = currentExecutable!!
-            val expectedResultClassId = wrapTypeIfRequired(method.returnType)
+            val expectedResultClassId = wrapTypeIfRequired(method.returnType.type())
 
-            if (expectedResultClassId != voidClassId) {
-                val wrappedType = wrapIfPrimitive(expectedResultClassId)
+            if (expectedResultClassId.classId != voidClassId) {
+                val wrappedType = wrapIfPrimitive(expectedResultClassId.classId)
                 //We are required to wrap the type of expected result if it is primitive
                 //to support nulls for throwing exceptions executions.
                 val expectedResult = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = wrappedType,
+                        type = wrappedType.type(),
                         name = nameGenerator.variableName(expectedResultVarName)
                     ),
                     isReferenceType = wrappedType.isRefType
@@ -1174,9 +1172,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = builtInClass(name = classClassId.name)
-//                            typeParameters = TypeParameters(listOf(Throwable::class.java.id))
-                        ,
+                        type = classClassId.type(isNullable = false, TypeParameters(listOf(type<Throwable>(false)))),
                         name = nameGenerator.variableName(expectedErrorVarName)
                     ),
                     // exceptions are always reference type
@@ -1312,8 +1308,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         argsVariable: CgVariable,
         arguments: List<CgExpression>,
     ) {
-        val argsArray = newVar(objectArrayClassId, "testCaseObjects") {
-            CgAllocateArray(objectArrayClassId, objectClassId, arguments.size)
+        val type = objectArrayClassId.type(false)
+        val argsArray = newVar(type, "testCaseObjects") {
+            CgAllocateArray(type, objectClassId, arguments.size)
         }
         for ((i, argument) in arguments.withIndex()) {
             setArgumentsArrayElement(argsArray, i, argument)
@@ -1336,7 +1333,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * if test framework represents arguments as array.
      */
     private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression) {
-        when (array.type) {
+        when (array.type.classId) {
             objectClassId -> {
                 +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
             }
@@ -1354,7 +1351,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             TestNg -> mutableListOf(
                 annotation(
                     testFramework.methodSourceAnnotationId,
-                    listOf("name" to CgLiteral(stringClassId, dataProviderMethodName))
+                    listOf("name" to CgLiteral(stringClassId.type(), dataProviderMethodName))
                 ),
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
@@ -1365,16 +1362,16 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      */
     private fun createArgList(length: Int): CgVariable {
         val argListName = "argList"
+        val type = argListClassId.type(false)
         return when (testFramework) {
             Junit5 ->
-                newVar(argListClassId, argListName) {
-                    val constructor =
-                        DefaultReflectionProvider.provideReflectionExecutable(argListClassId.findConstructor()) as Constructor<*>
+                newVar(type, argListName) {
+                    val constructor = DefaultReflectionProvider.provideReflectionExecutable(argListClassId.findConstructor()) as Constructor<*>
                     constructor.resolve()
                 }
             TestNg ->
-                newVar(argListClassId, argListName) {
-                    CgAllocateArray(argListClassId, Array<Any>::class.java.id, length)
+                newVar(type, argListName) {
+                    CgAllocateArray(type, Array<Any>::class.java.id, length)
                 }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
         }
@@ -1431,7 +1428,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             TestNg -> setOf(
                 annotation(
                     testFramework.parameterizedTestAnnotationId,
-                    listOf("dataProvider" to CgLiteral(stringClassId, dataProviderMethodName))
+                    listOf("dataProvider" to CgLiteral(stringClassId.type(), dataProviderMethodName))
                 ),
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")

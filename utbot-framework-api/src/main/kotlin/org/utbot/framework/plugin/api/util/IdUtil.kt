@@ -245,16 +245,8 @@ fun isPrimitiveWrapperOrString(type: ClassId): Boolean = (type in primitiveWrapp
 /**
  * Returns a wrapper of a given type if it is primitive or a type itself otherwise.
  */
-fun wrapIfPrimitive(type: ClassId): ClassId = when (type) {
-    booleanClassId -> booleanWrapperClassId
-    byteClassId -> byteWrapperClassId
-    charClassId -> charWrapperClassId
-    shortClassId -> shortWrapperClassId
-    intClassId -> intWrapperClassId
-    longClassId -> longWrapperClassId
-    floatClassId -> floatWrapperClassId
-    doubleClassId -> doubleWrapperClassId
-    else -> type
+fun wrapIfPrimitive(type: ClassId): ClassId = runBlocking {
+    type.autoboxIfNeeded()
 }
 
 /**
@@ -424,6 +416,10 @@ fun ClassId.findConstructor(vararg arguments: ClassId): MethodId = runBlocking {
         it.name == "<init>" && it.parameters().toTypedArray().contentEquals(arguments)
     } ?: throw IllegalStateException("Can't find constructor $name(${arguments.joinToString { it.name }})")
 }
+
+val FieldId.isNullable get() = runBlocking { isNullable() }
+val MethodId.isNullable get() = runBlocking { isNullable() }
+val MethodParameterId.isNullable get() = runBlocking { isNullable() }
 
 
 fun MethodId.asExecutable(): ExecutableId {

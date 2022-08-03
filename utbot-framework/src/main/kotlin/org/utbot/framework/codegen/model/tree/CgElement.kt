@@ -1,18 +1,13 @@
 package org.utbot.framework.codegen.model.tree
 
 import kotlinx.coroutines.runBlocking
-import org.utbot.common.WorkaroundReason
-import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.FieldId
-import org.utbot.jcdb.api.MethodId
-import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.*
 
 interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
@@ -41,8 +36,8 @@ interface CgElement {
             is CgDocPreTagStatement -> visit(element)
             is CgDocCodeStmt -> visit(element)
             is CgDocRegularStmt -> visit(element)
-            is CgDocClassLinkStmt -> visit(element)
             is CgDocMethodLinkStmt -> visit(element)
+            is CgDocClassLinkStmt -> visit(element)
             is CgAnonymousFunction -> visit(element)
             is CgReturnStatement -> visit(element)
             is CgArrayElementAccess -> visit(element)
@@ -173,7 +168,7 @@ data class CgUtilMethod(val id: MethodId) : CgElement
 
 sealed class CgMethod(open val isStatic: Boolean) : CgElement {
     abstract val name: String
-    abstract val returnType: ClassId
+    abstract val returnType: CgClassType
     abstract val parameters: List<CgParameterDeclaration>
     abstract val statements: List<CgStatement>
     abstract val exceptions: Set<ClassId>
@@ -184,7 +179,7 @@ sealed class CgMethod(open val isStatic: Boolean) : CgElement {
 
 class CgTestMethod(
     override val name: String,
-    override val returnType: ClassId,
+    override val returnType: CgClassType,
     override val parameters: List<CgParameterDeclaration>,
     override val statements: List<CgStatement>,
     override val exceptions: Set<ClassId>,
@@ -200,7 +195,7 @@ class CgErrorTestMethod(
     override val documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
 ) : CgMethod(false) {
     override val exceptions: Set<ClassId> = emptySet()
-    override val returnType: ClassId = voidClassId
+    override val returnType: CgClassType = voidClassId.type(false)
     override val parameters: List<CgParameterDeclaration> = emptyList()
     override val annotations: List<CgAnnotation> = emptyList()
     override val requiredFields: List<CgParameterDeclaration> = emptyList()
@@ -209,7 +204,7 @@ class CgErrorTestMethod(
 class CgParameterizedTestDataProviderMethod(
     override val name: String,
     override val statements: List<CgStatement>,
-    override val returnType: ClassId,
+    override val returnType: CgClassType,
     override val annotations: List<CgAnnotation>,
     override val exceptions: Set<ClassId>,
 ) : CgMethod(isStatic = true) {
@@ -251,7 +246,7 @@ class CgMultipleArgsAnnotation(
 class CgArrayAnnotationArgument(
     val values: List<CgExpression>
 ) : CgExpression {
-    override val type: ClassId = objectArrayClassId // TODO: is this type correct?
+    override val type = CgClassType(objectArrayClassId, isNullable = false) // TODO: is this type correct?
 }
 
 class CgNamedAnnotationArgument(
@@ -372,7 +367,7 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
 // Anonymous function (lambda)
 
 class CgAnonymousFunction(
-    override val type: ClassId,
+    override val type: CgClassType,
     val parameters: List<CgParameterDeclaration>,
     val body: List<CgStatement>
 ) : CgExpression
@@ -386,7 +381,8 @@ class CgReturnStatement(val expression: CgExpression) : CgStatement
 // TODO: check nested array element access expressions e.g. a[0][1][2]
 // TODO in general it is not CgReferenceExpression because array element can have a primitive type
 class CgArrayElementAccess(val array: CgExpression, val index: CgExpression) : CgReferenceExpression {
-    override val type: ClassId = array.type.ifArrayGetElementClass() ?: objectClassId
+    override val type: CgClassType =
+        CgClassType(array.type.classId.ifArrayGetElementClass() ?: objectClassId, isNullable = true)
 }
 
 // Loop conditions
@@ -394,7 +390,7 @@ sealed class CgComparison : CgExpression {
     abstract val left: CgExpression
     abstract val right: CgExpression
 
-    override val type: ClassId = booleanClassId
+    override val type: CgClassType = CgClassType(booleanClassId, isNullable = false)
 }
 
 class CgLessThan(
@@ -438,7 +434,7 @@ data class CgErrorWrapper(
     val message: String,
     val expression: CgExpression,
 ) : CgExpression {
-    override val type: ClassId
+    override val type: CgClassType
         get() = expression.type
 }
 
@@ -485,7 +481,7 @@ object CgContinueStatement : CgStatement
 // Variable declaration
 
 class CgDeclaration(
-    val variableType: ClassId,
+    val variableType: CgClassType,
     val variableName: String,
     val initializer: CgExpression?,
     val isMutable: Boolean = false,
@@ -504,7 +500,9 @@ class CgAssignment(
 // Expressions
 
 interface CgExpression : CgStatement {
-    val type: ClassId
+    val type: CgClassType
+    val isNullable get() = type.isNullable
+    val typeClassId get() = type.classId
 }
 
 // marker interface representing expressions returning reference
@@ -517,11 +515,11 @@ interface CgReferenceExpression : CgExpression
  * @property isSafetyCast shows if we should use "as?" instead of "as" in Kotlin code
  */
 class CgTypeCast(
-    val targetType: ClassId,
+    val targetType: CgClassType,
     val expression: CgExpression,
     val isSafetyCast: Boolean = false,
 ) : CgExpression {
-    override val type: ClassId = targetType
+    override val type: CgClassType = targetType
 }
 
 // Value
@@ -530,14 +528,19 @@ class CgTypeCast(
 interface CgValue : CgReferenceExpression
 
 // This instance
+class CgThisInstance(type: ClassId) : CgValue {
 
-class CgThisInstance(override val type: ClassId) : CgValue
+    override val type: CgClassType = CgClassType(type)
+
+    override val isNullable: Boolean
+        get() = false
+}
 
 // Variables
 
 open class CgVariable(
     val name: String,
-    override val type: ClassId,
+    override val type: CgClassType,
 ) : CgValue {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -558,7 +561,7 @@ open class CgVariable(
     }
 
     override fun toString(): String {
-        return "${type.simpleName} $name"
+        return "${type.classId.simpleName} $name"
     }
 }
 
@@ -570,21 +573,10 @@ open class CgVariable(
  * - in Kotlin the difference is in addition of "!!" to the name
  */
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
-    override val type: ClassId
-        get() = expression.type
-//            when (val expressionType = expression.type) {
-//            is BuiltinClassId -> BuiltinClassId(
-//                name = expressionType.name,
-//                canonicalName = expressionType.canonicalName,
-//                simpleName = expressionType.simpleName,
-//                isNullable = false,
-//            )
-//            else -> ClassId(
-//                expressionType.name,
-//                expressionType.elementClassId,
-//                isNullable = false,
-//            )
-//        }
+    override val type: CgClassType = CgClassType(expression.type.classId, expression.type.typeParameters, false)
+
+    override val isNullable: Boolean
+        get() = false
 }
 
 /**
@@ -598,14 +590,14 @@ data class CgParameterDeclaration(
     val isReferenceType: Boolean = false
 ) : CgElement {
     constructor(name: String, type: ClassId, isReferenceType: Boolean = false) : this(
-        CgVariable(name, type),
+        CgVariable(name, CgClassType(type)),
         isReferenceType = isReferenceType
     )
 
     val name: String
         get() = parameter.name
 
-    val type: ClassId
+    val type: CgClassType
         get() = parameter.type
 }
 
@@ -626,7 +618,7 @@ sealed class CgParameterKind {
 
 // Primitive and String literals
 
-class CgLiteral(override val type: ClassId, val value: Any?) : CgValue {
+class CgLiteral(override val type: CgClassType, val value: Any?) : CgValue {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -647,7 +639,7 @@ class CgLiteral(override val type: ClassId, val value: Any?) : CgValue {
 }
 
 // Runnable like this::toString or (new Object())::toString (non-static) or Random::nextRandomInt (static) etc
-abstract class CgRunnable(override val type: ClassId, val methodId: MethodId) : CgValue
+abstract class CgRunnable(override val type: CgClassType, val methodId: MethodId) : CgValue
 
 /**
  * [referenceExpression] is "this" in this::toString or (new Object()) in (new Object())::toString (non-static)
@@ -656,58 +648,38 @@ class CgNonStaticRunnable(
     type: ClassId,
     val referenceExpression: CgReferenceExpression,
     methodId: MethodId
-) : CgRunnable(type, methodId)
+) : CgRunnable(CgClassType(type, isNullable = false), methodId)
 
 /**
  * [classId] is Random is Random::nextRandomInt (static) etc
  */
-class CgStaticRunnable(type: ClassId, val classId: ClassId, methodId: MethodId) : CgRunnable(type, methodId)
+class CgStaticRunnable(type: ClassId, val classId: ClassId, methodId: MethodId) :
+    CgRunnable(CgClassType(type, isNullable = false), methodId)
 
 // Array allocation
 
-open class CgAllocateArray(type: ClassId, elementType: ClassId, val size: Int) : CgReferenceExpression {
-    override val type: ClassId by lazy {
-        CgClassId(
-            type.name,
-            updateElementType(elementType),
-            isNullable = type.isNullable
-        )
-    }
-    val elementType: ClassId by lazy {
-        workaround(WorkaroundReason.ARRAY_ELEMENT_TYPES_ALWAYS_NULLABLE) {
-            // for now all array element types are nullable
-            updateElementType(elementType)
-        }
-    }
-
-    private fun updateElementType(type: ClassId): ClassId {
-        val elementClassId = type.ifArrayGetElementClass()
-        return if (elementClassId != null) {
-            CgClassId(type.name, updateElementType(elementClassId), isNullable = true)
-        } else {
-            CgClassId(type, isNullable = true)
-        }
-    }
-}
+open class CgAllocateArray(override val type: CgClassType, val elementType: ClassId, val size: Int) :
+    CgReferenceExpression
 
 /**
  * Allocation of an array with initialization. For example: `new String[] {"a", "b", null}`.
  */
 class CgAllocateInitializedArray(val initializer: CgArrayInitializer) :
-    CgAllocateArray(initializer.arrayType, initializer.elementType, initializer.size)
+    CgAllocateArray(CgClassType(initializer.arrayType, isNullable = false), initializer.elementType, initializer.size)
 
-class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val values: List<CgExpression>) : CgExpression {
+class CgArrayInitializer(val arrayType: ClassId, val elementType: ClassId, val values: List<CgExpression>) :
+    CgExpression {
     val size: Int
         get() = values.size
 
-    override val type: ClassId
-        get() = arrayType
+    override val type: CgClassType
+        get() = CgClassType(arrayType, isNullable = false)
 }
 
 
 // Spread operator (for Kotlin, empty for Java)
 
-class CgSpread(override val type: ClassId, val array: CgExpression) : CgExpression
+class CgSpread(override val type: CgClassType, val array: CgExpression) : CgExpression
 
 // Enum constant
 
@@ -715,7 +687,7 @@ data class CgEnumConstantAccess(
     val enumClass: ClassId,
     val name: String
 ) : CgReferenceExpression {
-    override val type: ClassId = enumClass
+    override val type: CgClassType = CgClassType(enumClass, isNullable = false)
 }
 
 // Property access
@@ -724,8 +696,12 @@ data class CgEnumConstantAccess(
 abstract class CgAbstractFieldAccess : CgReferenceExpression {
     abstract val fieldId: FieldId
 
-    override val type: ClassId
-        get() = runBlocking{ fieldId.type() }
+    override val type: CgClassType by lazy {
+        runBlocking {
+            CgClassType(fieldId.type(), isNullable = fieldId.isNullable())
+        }
+    }
+
 }
 
 class CgFieldAccess(
@@ -765,14 +741,14 @@ class CgLogicalAnd(
     val left: CgExpression,
     val right: CgExpression
 ) : CgExpression {
-    override val type: ClassId = booleanClassId
+    override val type: CgClassType = CgClassType(booleanClassId, isNullable = false)
 }
 
 class CgLogicalOr(
     val left: CgExpression,
     val right: CgExpression
 ) : CgExpression {
-    override val type: ClassId = booleanClassId
+    override val type: CgClassType = CgClassType(booleanClassId, isNullable = false)
 }
 
 // Acquisition of array length, e.g. args.length
@@ -781,13 +757,17 @@ class CgLogicalOr(
  * @param variable represents an array variable
  */
 class CgGetLength(val variable: CgVariable) : CgExpression {
-    override val type: ClassId = intClassId
+    override val type: CgClassType = CgClassType(intClassId, isNullable = false)
+
 }
 
 // Acquisition of java or kotlin class, e.g. MyClass.class in Java, MyClass::class.java in Kotlin or MyClass::class for Kotlin classes
 
 sealed class CgGetClass(val classId: ClassId) : CgReferenceExpression {
-    override val type: ClassId = Class::class.id
+    override val type: CgClassType = CgClassType(Class::class.id, isNullable = false)
+    override val isNullable: Boolean
+        get() = false
+
 }
 
 class CgGetJavaClass(classId: ClassId) : CgGetClass(classId)
@@ -804,6 +784,9 @@ abstract class CgExecutableCall : CgReferenceExpression {
     abstract val executableId: ExecutableId
     abstract val arguments: List<CgExpression>
     abstract val typeParameters: TypeParameters
+
+    override val isNullable: Boolean get() = executableId.methodId.isNullable
+
 }
 
 class CgConstructorCall(
@@ -811,7 +794,9 @@ class CgConstructorCall(
     override val arguments: List<CgExpression>,
     override val typeParameters: TypeParameters = TypeParameters()
 ) : CgExecutableCall() {
-    override val type: ClassId = executableId.classId
+    override val type = CgClassType(executableId.classId, isNullable = false)
+    override val isNullable: Boolean
+        get() = false
 }
 
 class CgMethodCall(
@@ -820,7 +805,7 @@ class CgMethodCall(
     override val arguments: List<CgExpression>,
     override val typeParameters: TypeParameters = TypeParameters()
 ) : CgExecutableCall() {
-    override val type: ClassId = executableId.returnType
+    override val type = CgClassType(executableId.returnType, isNullable = executableId.methodId.isNullable)
 }
 
 fun CgExecutableCall.toStatement(): CgStatementExecutableCall = CgStatementExecutableCall(this)
@@ -835,15 +820,60 @@ class CgThrowStatement(
 
 class CgEmptyLine : CgStatement
 
-class CgClassId(
-    name: String,
-    elementClassId: ClassId? = null,
-    override val typeParameters: TypeParameters = TypeParameters(),
-    override val isNullable: Boolean = true,
-) : ClassId(name, elementClassId) {
-    constructor(
-        classId: ClassId,
-        typeParameters: TypeParameters = TypeParameters(),
-        isNullable: Boolean = true,
-    ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
+open class TypeParameters(val parameters: List<CgClassType> = emptyList()) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as TypeParameters
+
+        if (parameters != other.parameters) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return parameters.hashCode()
+    }
+}
+
+object WildcardTypeParameter : TypeParameters(emptyList())
+
+
+class CgClassType(
+    val classId: ClassId,
+    val typeParameters: TypeParameters = TypeParameters(),
+    val isNullable: Boolean = true
+) {
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as CgClassType
+
+        if (classId != other.classId) return false
+        if (typeParameters != other.typeParameters) return false
+        if (isNullable != other.isNullable) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = classId.hashCode()
+        result = 31 * result + typeParameters.hashCode()
+        result = 31 * result + isNullable.hashCode()
+        return result
+    }
+}
+
+
+fun ClassId.type(isNullable: Boolean = true, parameters: TypeParameters = TypeParameters()) =
+    CgClassType(this, parameters, isNullable)
+
+inline fun <reified T> type(isNullable: Boolean = true, parameters: TypeParameters = TypeParameters()) =
+    CgClassType(T::class.java.id, parameters, isNullable)
+
+fun MethodId.type() = runBlocking {
+    CgClassType(returnType(), isNullable = isNullable())
 }

@@ -6,7 +6,10 @@ import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.*
+import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
+import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
@@ -18,6 +21,8 @@ import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.MethodId
 import org.utbot.jcdb.api.ifArrayGetElementClass
 import org.utbot.jcdb.api.isPrimitive
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
 
 typealias Block = PersistentList<CgStatement>
 
@@ -141,7 +146,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             // TODO: rewrite by using CgMethodId, etc.
             currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
             executable.methodId.isStatic -> true
-            else -> this?.type?.blockingIsSubtypeOf(executable.classId) ?: false
+            else -> this?.type?.classId?.blockingIsSubtypeOf(executable.classId) ?: false
         }
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
@@ -150,11 +155,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return true
         }
         return this == nullLiteral() && type.isAccessibleFrom(testClassPackageName)
-                || this.type blockingIsSubtypeOf type
+                || this.type.classId blockingIsSubtypeOf type
     }
 
     private infix fun CgExpression?.isThisInstanceOf(classId: ClassId): Boolean =
-        this is CgThisInstance && this.type == classId
+        this is CgThisInstance && this.type.classId == classId
 
     /**
      * Check whether @receiver (list of expressions) is a valid list of arguments for [executableId]
@@ -252,24 +257,25 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             if (arg == nullLiteral()) return@map typeCast(targetType, arg)
 
             // in case arg type exactly equals target type, do nothing
-            if (arg.type == targetType) return@map arg
+            if (arg.type.classId == targetType) return@map arg
 
             // arg type is subtype of target type
             // check other overloads for ambiguous types
             val typesInOverloadings = ambiguousOverloads.map { it.parameters[i] }
-            val ancestors = typesInOverloadings.filter { arg.type.blockingIsSubtypeOf(it) }
+            val ancestors = typesInOverloadings.filter { arg.type.classId.blockingIsSubtypeOf(it) }
 
             if (ancestors.isNotEmpty()) typeCast(targetType, arg) else arg
         }
 
     private fun ExecutableId.toExecutableVariable(args: List<CgExpression>): CgVariable {
-        val declaringClass = statementConstructor.newVar(Class::class.id) { classId[forName](classId.name) }
+        val classType = type<Class<*>>(isNullable = false)
+        val declaringClass = statementConstructor.newVar(classType) { classId[forName](classId.name) }
         val argTypes = (args zip parameters).map { (arg, paramType) ->
             val baseName = when (arg) {
                 is CgVariable -> "${arg.name}Type"
                 else -> "${paramType.simpleName.decapitalize()}Type"
             }
-            statementConstructor.newVar(classCgClassId, baseName) {
+            statementConstructor.newVar(classType, baseName) {
                 if (paramType.isPrimitive) {
                     CgGetJavaClass(paramType)
                 } else {
@@ -281,13 +287,13 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return when (this) {
             is MethodExecutableId -> {
                 val name = this.name + "Method"
-                statementConstructor.newVar(java.lang.reflect.Method::class.id, name) {
+                statementConstructor.newVar(type<Method>(isNullable = false), name) {
                     declaringClass[getDeclaredMethod](this.name, *argTypes.toTypedArray())
                 }
             }
             is ConstructorExecutableId -> {
                 val name = this.classId.simpleName.decapitalize() + "Constructor"
-                statementConstructor.newVar(java.lang.reflect.Constructor::class.id, name) {
+                statementConstructor.newVar(type<Constructor<*>>(isNullable = false), name) {
                     declaringClass[getDeclaredConstructor](*argTypes.toTypedArray())
                 }
             }
@@ -306,7 +312,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private fun List<CgExpression>.guardedForReflectiveCall(): List<CgExpression> =
         map {
             when {
-                it is CgValue && it.type.isArray -> typeCast(objectClassId, it)
+                it is CgValue && it.type.classId.isArray -> typeCast(objectClassId, it)
                 it == nullLiteral() -> typeCast(objectClassId, it)
                 else -> it
             }
@@ -340,11 +346,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private fun convertVarargToArray(reflectionCallVariable: CgVariable, arguments: Array<CgExpression>): CgVariable {
         val argumentsArrayVariable = variableConstructor.newVar(
-            baseType = objectArrayClassId,
+            baseType = objectArrayClassId.type(false),
             baseName = "${reflectionCallVariable.name}Arguments"
         ) {
             CgAllocateArray(
-                type = objectArrayClassId,
+                type = CgClassType(objectArrayClassId),
                 elementType = objectClassId,
                 size = arguments.size
             )

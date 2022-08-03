@@ -51,9 +51,9 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.tree.CgParameterKind
-import org.utbot.framework.plugin.api.CgMethodTestSet
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.framework.plugin.api.util.isSubtypeOf

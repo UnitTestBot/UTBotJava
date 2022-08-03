@@ -130,10 +130,17 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
                     "Errors regions has been generated: $errorText"
                 }
 
-                require(generatedMethodsCount == expectedNumberOfGeneratedMethods) {
-                    "Something went wrong during the code generation for ${classUnderTest.simpleName}. " +
-                            "Expected to generate $expectedNumberOfGeneratedMethods test methods, " +
-                            "but got only $generatedMethodsCount"
+                // for now, we skip a comparing of generated and expected test methods
+                // in parametrized test generation mode
+                // because there are problems with determining expected number of methods,
+                // due to a feature that generates several separated parametrized tests
+                // when we have several executions with different result type
+                if (parametrizedTestSource != ParametrizedTestSource.PARAMETRIZE) {
+                    require(generatedMethodsCount == expectedNumberOfGeneratedMethods) {
+                        "Something went wrong during the code generation for ${classUnderTest.simpleName}. " +
+                                "Expected to generate $expectedNumberOfGeneratedMethods test methods, " +
+                                "but got only $generatedMethodsCount"
+                    }
                 }
             }.onFailure {
                 val classes = listOf(classPipeline).retrieveClasses()

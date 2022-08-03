@@ -8,6 +8,7 @@ import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
 import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.closeMethodIdOrNull
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.getClass
@@ -84,7 +85,6 @@ import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.CgMethodTestSet
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
@@ -1265,9 +1265,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
-            val method = currentExecutable!!
-            val expectedResultClassId = wrapTypeIfRequired(method.returnType)
-
+            val expectedResultClassId = wrapTypeIfRequired(testSet.resultType())
             if (expectedResultClassId != voidClassId) {
                 val wrappedType = wrapIfPrimitive(expectedResultClassId)
                 //We are required to wrap the type of expected result if it is primitive

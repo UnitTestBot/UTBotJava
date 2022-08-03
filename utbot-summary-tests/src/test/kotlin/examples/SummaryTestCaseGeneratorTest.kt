@@ -191,17 +191,49 @@ open class SummaryTestCaseGeneratorTest(
     }
 
     fun List<UtExecution>.checkMatchersWithCustomTagsInSummary(
-        summaryTextKeys: List<String>,
+        comments: List<String>
     ) {
-        if (summaryTextKeys.isEmpty()) {
+        if (comments.isEmpty()) {
             return
         }
+
         val notMatchedExecutions = this.filter { execution ->
-            summaryTextKeys.none { summaryKey ->
-                execution.summary?.toString()?.contains(summaryKey) == true
+            comments.none { comment ->
+                execution.summary?.toString()?.contains(comment) == true
             }
         }
-        Assertions.assertTrue(notMatchedExecutions.isEmpty()) { "Not matched comments ${summaries(notMatchedExecutions)}" }
+
+        val notMatchedComments = comments.filter { comment ->
+            this.none { execution ->
+                execution.summary?.toString()?.contains(comment) == true
+            }
+        }
+
+        Assertions.assertTrue(notMatchedExecutions.isEmpty() && notMatchedComments.isEmpty()) {
+            buildString {
+                if (notMatchedExecutions.isNotEmpty()) {
+                    append(
+                        "\nThe following comments were produced by the UTBot, " +
+                                "but were not found in the list of comments passed in the check() method:\n\n${
+                                    commentsFromExecutions(
+                                        notMatchedExecutions
+                                    )
+                                }"
+                    )
+                }
+
+                if (notMatchedComments.isNotEmpty()) {
+                    append(
+                        "\nThe following comments were passed in the check() method, " +
+                                "but were not found in the list of comments produced by the UTBot:\n\n${
+                                    comments(
+                                        notMatchedComments
+                                    )
+                                }"
+                    )
+                }
+            }
+        }
     }
 
     fun List<UtExecution>.checkMatchersWithMethodNames(

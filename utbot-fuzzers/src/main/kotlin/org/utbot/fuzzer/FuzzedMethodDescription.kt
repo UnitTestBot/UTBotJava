@@ -1,7 +1,7 @@
 package org.utbot.fuzzer
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.jcdb.api.ClassId
 
 /**
  * Method traverser is an object,

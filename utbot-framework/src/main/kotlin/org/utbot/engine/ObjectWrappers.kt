@@ -4,10 +4,7 @@ import org.utbot.common.WorkaroundReason.MAKE_SYMBOLIC
 import org.utbot.common.workaround
 import org.utbot.engine.UtListClass.UT_ARRAY_LIST
 import org.utbot.engine.UtListClass.UT_LINKED_LIST
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_DOUBLE
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_INT
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_LONG
+import org.utbot.engine.UtOptionalClass.*
 import org.utbot.engine.UtStreamClass.UT_STREAM
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
@@ -18,13 +15,7 @@ import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
 import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.constructorId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.nextModelName
@@ -32,10 +23,7 @@ import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
-import java.util.Optional
-import java.util.OptionalDouble
-import java.util.OptionalInt
-import java.util.OptionalLong
+import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
 
@@ -234,10 +222,10 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
         return UtAssembleModel(addr, classId, modelName, instantiationChain)
             .apply {
                 instantiationChain += when (val message = throwable.message) {
-                    null -> UtExecutableCallModel(null, constructorId(classId), emptyList(), this)
+                    null -> UtExecutableCallModel(null, classId.findConstructor(), emptyList(), this)
                     else -> UtExecutableCallModel(
                         null,
-                        constructorId(classId, stringClassId),
+                        classId.findConstructor(listOf(stringClassId)),
                         listOf(UtPrimitiveModel(message)),
                         this,
                     )

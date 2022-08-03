@@ -3,8 +3,8 @@ package org.utbot.framework.codegen.model.tree
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.jcdb.api.ClassId
 
 interface CgBuilder<T : CgElement> {
     fun build(): T
@@ -100,8 +100,8 @@ class CgParameterizedTestDataProviderBuilder : CgMethodBuilder<CgParameterizedTe
     override lateinit var returnType: ClassId
     override val parameters: List<CgParameterDeclaration> = mutableListOf()
     override lateinit var statements: List<CgStatement>
-    override lateinit var annotations: MutableList<CgAnnotation>
-    override lateinit var exceptions: MutableSet<ClassId>
+    override val annotations: MutableList<CgAnnotation> = mutableListOf()
+    override val exceptions: MutableSet<ClassId> = mutableSetOf()
     override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
 
     override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations, exceptions)
@@ -114,7 +114,7 @@ fun buildParameterizedTestDataProviderMethod(
 // Variable declaration
 
 class CgDeclarationBuilder : CgBuilder<CgDeclaration> {
-    lateinit var variableType: ClassId
+    lateinit var variableType: CgClassType
     lateinit var variableName: String
     var initializer: CgExpression? = null
     var isMutable: Boolean = false
@@ -144,14 +144,6 @@ class CgTryCatchBuilder : CgBuilder<CgTryCatch> {
 }
 
 fun buildTryCatch(init: CgTryCatchBuilder.() -> Unit): CgTryCatch = CgTryCatchBuilder().apply(init).build()
-
-class CgBlockBuilder : CgBuilder<CgInnerBlock> {
-    lateinit var statements: List<CgStatement>
-
-    override fun build() = CgInnerBlock(statements)
-}
-
-fun buildSimpleBlock(init: CgBlockBuilder.() -> Unit) = CgBlockBuilder().apply(init).build()
 
 // Loops
 interface CgLoopBuilder<T : CgLoop> : CgBuilder<T> {

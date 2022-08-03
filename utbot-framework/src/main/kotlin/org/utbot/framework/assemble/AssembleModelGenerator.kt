@@ -1,45 +1,22 @@
 package org.utbot.framework.assemble
 
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.packageName
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
-import org.utbot.engine.isPrivate
-import org.utbot.engine.isPublic
 import org.utbot.framework.UtSettings
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
 import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.DirectFieldAccessId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.StatementId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.hasDefaultValue
-import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.asExecutable
 import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
-import java.lang.reflect.Constructor
-import java.util.IdentityHashMap
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.isConstructor
+import java.util.*
 
 /**
  * Creates [UtAssembleModel] from any [UtModel] or it's inner models if possible
@@ -227,7 +204,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         }
 
         try {
-            val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
+            val modelName = nextModelName(compositeModel.classId.simpleName.decapitalize())
 
             val instantiationChain = mutableListOf<UtStatementModel>()
             val modificationsChain = mutableListOf<UtStatementModel>()
@@ -257,7 +234,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     }
                     //fill field value if it hasn't been filled by constructor, and it is not default
                     if (fieldId in constructorInfo.affectedFields ||
-                            (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
+                        (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
                     ) {
                         val modifierCall = modifierCall(this, fieldId, assembleModel(fieldModel))
                         callChain.add(modifierCall)
@@ -356,22 +333,21 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      *
      * Returns null if no one appropriate constructor is found.
      */
-    private fun findBestConstructorOrNull(compositeModel: UtCompositeModel): ConstructorId? {
+    private fun findBestConstructorOrNull(compositeModel: UtCompositeModel): ConstructorExecutableId? = runBlocking {
         val classId = compositeModel.classId
-        if (!classId.isVisible || classId.isInner) return null
-
-        return classId.jClass.declaredConstructors
-            .filter { it.isVisible }
-            .sortedByDescending { it.parameterCount }
-            .map { it.executableId }
-            .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+        if (!classId.isVisible || classId.isInner) {
+            null
+        } else {
+            classId.methods().asSequence().filter { it.isConstructor && it.isPublic }
+                .sortedByDescending { it.parameters.count() }
+                .map { it.asExecutable() }
+                .filterIsInstance<ConstructorExecutableId>()
+                .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+        }
     }
 
-    private val ClassId.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(methodPackageName)
-
-    private val Constructor<*>.isVisible : Boolean
-        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(methodPackageName)
+    private val ClassId.isVisible: Boolean
+        get() = isPublic || !isPrivate && packageName.startsWith(methodPackageName)
 
     /**
      * Creates setter or direct setter call to set a field.
@@ -383,7 +359,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         fieldId: FieldId,
         value: UtModel,
     ): UtStatementModel {
-        val declaringClassId = fieldId.declaringClass
+        val declaringClassId = fieldId.classId
 
         val modifiers = getOrFindSettersAndDirectAccessors(declaringClassId)
         val modifier = modifiers[fieldId]
@@ -410,7 +386,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      * Finds setters and direct accessors for fields of particular class.
      */
     private fun findSettersAndDirectAccessors(classId: ClassId): Map<FieldId, StatementId> {
-        val allModificatorsOfClass =  modificatorsSearcher
+        val allModificatorsOfClass = modificatorsSearcher
             .findModificators(SettersAndDirectAccessors, methodPackageName)
             .map { it.key to it.value.filter { st -> st.classId == classId } }
 

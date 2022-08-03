@@ -1,12 +1,8 @@
 package org.utbot.engine
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.id
-import soot.RefType
-import soot.Scene
-import soot.SootClass
-import soot.SootField
-import soot.Type
+import org.utbot.jcdb.api.ClassId
+import soot.*
 
 /**
  * Holds hierarchy knowledge for all loaded classes and provides array name for class field.

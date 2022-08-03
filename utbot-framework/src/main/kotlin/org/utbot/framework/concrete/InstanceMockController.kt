@@ -1,8 +1,8 @@
 package org.utbot.framework.concrete
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.util.jClass
 import org.objectweb.asm.Type
+import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.jcdb.api.ClassId
 
 class InstanceMockController(
     clazz: ClassId,

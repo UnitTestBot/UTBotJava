@@ -1,13 +1,9 @@
 package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
-import org.utbot.fuzzer.FuzzedParameter
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.jcdb.api.isPrimitive
 
 /**
  * Traverses through method constants and creates appropriate models for them.

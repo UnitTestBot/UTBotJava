@@ -1,11 +1,11 @@
 package org.utbot.framework.modifications
 
 import org.utbot.engine.fieldId
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.util.executableId
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 import soot.Scene
 import soot.SootMethod
 import soot.jimple.InvokeExpr

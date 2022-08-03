@@ -8,6 +8,7 @@ package org.utbot.framework.plugin.api
 
 import org.apache.commons.lang3.builder.RecursiveToStringStyle
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder
+import org.utbot.jcdb.api.FieldId
 
 data class UtMethodValueTestSet<R>(
     val method: UtMethod<out R>,

@@ -3,71 +3,30 @@ package org.utbot.framework.codegen.model.constructor.tree
 import kotlinx.collections.immutable.PersistentList
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.constructor.builtin.any
-import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
-import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.invoke
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.newInstance
-import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.typeCast
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAssignment
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgSpread
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.util.exceptions
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.objectArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
+import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.isPrimitive
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
 
 typealias Block = PersistentList<CgStatement>
 
-class CgIncompleteMethodCall(val method: MethodId, val caller: CgExpression?)
+class CgIncompleteMethodCall(val method: MethodExecutableId, val caller: CgExpression?)
 
 /**
  * Provides DSL methods for method and field access elements creation
@@ -80,7 +39,7 @@ interface CgCallableAccessManager {
 
     operator fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall
 
-    operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall
+    operator fun ConstructorExecutableId.invoke(vararg args: Any?): CgExecutableCall
 
     operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall
 }
@@ -93,12 +52,12 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private val variableConstructor by lazy { CgComponents.getVariableConstructorBy(context) }
 
     override operator fun CgExpression?.get(methodId: MethodId): CgIncompleteMethodCall =
-        CgIncompleteMethodCall(methodId, this)
+        CgIncompleteMethodCall(methodId.asExecutable() as MethodExecutableId, this)
 
     override operator fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall =
-        CgIncompleteMethodCall(staticMethodId, null)
+        CgIncompleteMethodCall(staticMethodId.asExecutable() as MethodExecutableId, null)
 
-    override operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
+    override operator fun ConstructorExecutableId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()
         val constructorCall = if (this canBeCalledWith resolvedArgs) {
             CgConstructorCall(this, resolvedArgs.guardedForDirectCallOf(this))
@@ -120,22 +79,22 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return methodCall
     }
 
-    private fun newMethodCall(methodId: MethodId) {
-        if (methodId.isUtil) requiredUtilMethods += methodId
-        importIfNeeded(methodId)
+    private fun newMethodCall(methodExecutable: MethodExecutableId) {
+        if (methodExecutable.isUtil) requiredUtilMethods += methodExecutable
+        importIfNeeded(methodExecutable)
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
-        if (methodId is BuiltinMethodId) {
-            methodId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
+        if (methodExecutable.methodId is BuiltinMethodId) {
+            methodExecutable.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
             return
         }
 
-        if (methodId == getTargetException) {
+        if (methodExecutable.methodId == getTargetException) {
             addExceptionIfNeeded(Throwable::class.id)
         }
 
-        val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
+        val methodIsUnderTestAndThrowsExplicitly = methodExecutable == currentExecutable
                 && currentExecution?.result is UtExplicitlyThrownException
         val frameworkSupportsAssertThrows = testFramework == Junit5 || testFramework == TestNg
 
@@ -145,10 +104,10 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return
         }
 
-        methodId.method.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
+        methodExecutable.executable.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
     }
 
-    private fun newConstructorCall(constructorId: ConstructorId) {
+    private fun newConstructorCall(constructorId: ConstructorExecutableId) {
         importIfNeeded(constructorId.classId)
         for (exception in constructorId.exceptions) {
             addExceptionIfNeeded(exception)
@@ -157,8 +116,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     //WARN: if you make changes in the following sets of exceptions,
     //don't forget to change them in hardcoded [UtilMethods] as well
-    private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
-        if (!this.isUtil) return emptySet()
+    private fun MethodExecutableId.findExceptionTypes(): Set<ClassId> {
+        if (!isUtil) return emptySet()
 
         with(currentTestClass) {
             return when (this@findExceptionTypes) {
@@ -182,25 +141,25 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
     }
 
-    private infix fun CgExpression?.canBeReceiverOf(executable: MethodId): Boolean =
+    private infix fun CgExpression?.canBeReceiverOf(executable: MethodExecutableId): Boolean =
         when {
             // TODO: rewrite by using CgMethodId, etc.
             currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
-            executable.isStatic -> true
-            else -> this?.type?.isSubtypeOf(executable.classId) ?: false
+            executable.methodId.isStatic -> true
+            else -> this?.type?.classId?.blockingIsSubtypeOf(executable.classId) ?: false
         }
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
         // TODO: SAT-1210 support generics so that we wouldn't need to check specific cases such as this one
-        if (this is CgExecutableCall && (executableId == any || executableId == anyOfClass)) {
+        if (this is CgExecutableCall && (executableId.methodId == any || executableId.methodId == anyOfClass)) {
             return true
         }
         return this == nullLiteral() && type.isAccessibleFrom(testClassPackageName)
-                || this.type isSubtypeOf type
+                || this.type.classId blockingIsSubtypeOf type
     }
 
     private infix fun CgExpression?.isThisInstanceOf(classId: ClassId): Boolean =
-        this is CgThisInstance && this.type == classId
+        this is CgThisInstance && this.type.classId == classId
 
     /**
      * Check whether @receiver (list of expressions) is a valid list of arguments for [executableId]
@@ -249,7 +208,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 // last argument matches last param type
                 lastArg canBeArgOf lastParamType -> true
                 // last argument is a single element of a vararg parameter
-                lastArg canBeArgOf lastParamType.elementClassId!! -> true
+                lastArg canBeArgOf lastParamType.ifArrayGetElementClass()!! -> true
                 else -> false
             }
         }
@@ -257,23 +216,23 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         // when arguments size is greater than the parameters size
         // meaning that the last parameter is vararg
         return subList(paramTypes.size - 1, size).all {
-            it canBeArgOf lastParamType.elementClassId!!
+            it canBeArgOf lastParamType.ifArrayGetElementClass()!!
         }
     }
 
     /**
      * @return true if a method can be called with the given arguments without reflection
      */
-    private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean =
-        (isUtil || isAccessibleFrom(testClassPackageName))
+    private fun MethodExecutableId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean =
+        (isUtil || methodId.isAccessibleFrom(testClassPackageName))
                 && caller canBeReceiverOf this
                 && args canBeArgsOf this
 
     /**
      * @return true if a constructor can be called with the given arguments without reflection
      */
-    private infix fun ConstructorId.canBeCalledWith(args: List<CgExpression>): Boolean =
-        isAccessibleFrom(testClassPackageName) && !classId.isAbstract && args canBeArgsOf this
+    private infix fun ConstructorExecutableId.canBeCalledWith(args: List<CgExpression>): Boolean =
+        methodId.isAccessibleFrom(testClassPackageName) && !classId.isAbstract && args canBeArgsOf this
 
     private fun List<CgExpression>.guardedForDirectCallOf(executable: ExecutableId): List<CgExpression> {
         val ambiguousOverloads = executable.classId
@@ -298,24 +257,25 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             if (arg == nullLiteral()) return@map typeCast(targetType, arg)
 
             // in case arg type exactly equals target type, do nothing
-            if (arg.type == targetType) return@map arg
+            if (arg.type.classId == targetType) return@map arg
 
             // arg type is subtype of target type
             // check other overloads for ambiguous types
             val typesInOverloadings = ambiguousOverloads.map { it.parameters[i] }
-            val ancestors = typesInOverloadings.filter { arg.type.isSubtypeOf(it) }
+            val ancestors = typesInOverloadings.filter { arg.type.classId.blockingIsSubtypeOf(it) }
 
             if (ancestors.isNotEmpty()) typeCast(targetType, arg) else arg
         }
 
     private fun ExecutableId.toExecutableVariable(args: List<CgExpression>): CgVariable {
-        val declaringClass = statementConstructor.newVar(Class::class.id) { classId[forName](classId.name) }
+        val classType = type<Class<*>>(isNullable = false)
+        val declaringClass = statementConstructor.newVar(classType) { classId[forName](classId.name) }
         val argTypes = (args zip parameters).map { (arg, paramType) ->
             val baseName = when (arg) {
                 is CgVariable -> "${arg.name}Type"
-                else -> "${paramType.prettifiedName.decapitalize()}Type"
+                else -> "${paramType.simpleName.decapitalize()}Type"
             }
-            statementConstructor.newVar(classCgClassId, baseName) {
+            statementConstructor.newVar(classType, baseName) {
                 if (paramType.isPrimitive) {
                     CgGetJavaClass(paramType)
                 } else {
@@ -325,15 +285,15 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
         return when (this) {
-            is MethodId -> {
+            is MethodExecutableId -> {
                 val name = this.name + "Method"
-                statementConstructor.newVar(java.lang.reflect.Method::class.id, name) {
+                statementConstructor.newVar(type<Method>(isNullable = false), name) {
                     declaringClass[getDeclaredMethod](this.name, *argTypes.toTypedArray())
                 }
             }
-            is ConstructorId -> {
-                val name = this.classId.prettifiedName.decapitalize() + "Constructor"
-                statementConstructor.newVar(java.lang.reflect.Constructor::class.id, name) {
+            is ConstructorExecutableId -> {
+                val name = this.classId.simpleName.decapitalize() + "Constructor"
+                statementConstructor.newVar(type<Constructor<*>>(isNullable = false), name) {
                     declaringClass[getDeclaredConstructor](*argTypes.toTypedArray())
                 }
             }
@@ -352,13 +312,13 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private fun List<CgExpression>.guardedForReflectiveCall(): List<CgExpression> =
         map {
             when {
-                it is CgValue && it.type.isArray -> typeCast(objectClassId, it)
+                it is CgValue && it.type.classId.isArray -> typeCast(objectClassId, it)
                 it == nullLiteral() -> typeCast(objectClassId, it)
                 else -> it
             }
         }
 
-    private fun MethodId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
+    private fun MethodExecutableId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
         val method = declaredExecutableRefs[this]
             ?: toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)
@@ -371,7 +331,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         return method[invoke](caller, CgSpread(argumentsArrayVariable.type, argumentsArrayVariable))
     }
 
-    private fun ConstructorId.callWithReflection(args: List<CgExpression>): CgExecutableCall {
+    private fun ConstructorExecutableId.callWithReflection(args: List<CgExpression>): CgExecutableCall {
         val constructor = declaredExecutableRefs[this]
             ?: this.toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)
@@ -386,11 +346,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private fun convertVarargToArray(reflectionCallVariable: CgVariable, arguments: Array<CgExpression>): CgVariable {
         val argumentsArrayVariable = variableConstructor.newVar(
-            baseType = objectArrayClassId,
+            baseType = objectArrayClassId.type(false),
             baseName = "${reflectionCallVariable.name}Arguments"
         ) {
             CgAllocateArray(
-                type = objectArrayClassId,
+                type = CgClassType(objectArrayClassId),
                 elementType = objectClassId,
                 size = arguments.size
             )

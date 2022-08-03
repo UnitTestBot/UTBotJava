@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.visitor
 
+import kotlinx.coroutines.runBlocking
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
@@ -7,93 +8,15 @@ import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
-import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgAssignment
-import org.utbot.framework.codegen.model.tree.CgBreakStatement
-import org.utbot.framework.codegen.model.tree.CgComment
-import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
-import org.utbot.framework.codegen.model.tree.CgComparison
-import org.utbot.framework.codegen.model.tree.CgContinueStatement
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgDecrement
-import org.utbot.framework.codegen.model.tree.CgDoWhileLoop
-import org.utbot.framework.codegen.model.tree.CgDocClassLinkStmt
-import org.utbot.framework.codegen.model.tree.CgDocCodeStmt
-import org.utbot.framework.codegen.model.tree.CgDocMethodLinkStmt
-import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
-import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
-import org.utbot.framework.codegen.model.tree.CgDocumentationComment
-import org.utbot.framework.codegen.model.tree.CgElement
-import org.utbot.framework.codegen.model.tree.CgEmptyLine
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
-import org.utbot.framework.codegen.model.tree.CgErrorWrapper
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgForLoop
-import org.utbot.framework.codegen.model.tree.CgGreaterThan
-import org.utbot.framework.codegen.model.tree.CgIfStatement
-import org.utbot.framework.codegen.model.tree.CgIncrement
-import org.utbot.framework.codegen.model.tree.CgInnerBlock
-import org.utbot.framework.codegen.model.tree.CgLessThan
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgLogicalAnd
-import org.utbot.framework.codegen.model.tree.CgLogicalOr
-import org.utbot.framework.codegen.model.tree.CgLoop
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultilineComment
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgRegion
-import org.utbot.framework.codegen.model.tree.CgReturnStatement
-import org.utbot.framework.codegen.model.tree.CgSimpleRegion
-import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
-import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgSpread
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassBody
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgThrowStatement
-import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
-import org.utbot.framework.codegen.model.tree.CgTryCatch
-import org.utbot.framework.codegen.model.tree.CgUtilMethod
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.tree.CgWhileLoop
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
-import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.MethodExecutableId
 import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {
@@ -110,18 +33,19 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     protected abstract val langPackage: String
 
-    //We may render array elements in initializer in one line or in separate lines:
-    //items count in one line depends on the value type.
-    protected fun arrayElementsInLine(constModel: UtModel): Int {
-        if (constModel is UtNullModel) return 10
-        return when (constModel.classId) {
+    // We may render array elements in initializer in one line or in separate lines:
+    // items count in one line depends on the element type.
+    protected fun arrayElementsInLine(elementType: ClassId): Int {
+        if (elementType.isRefType) return 10
+        if (elementType.isArray) return 1
+        return when (elementType) {
             intClassId, byteClassId, longClassId, charClassId -> 8
             booleanClassId, shortClassId, doubleClassId, floatClassId -> 6
-            else -> error("Non primitive value of type ${constModel.classId} is unexpected in array initializer")
+            else -> error("Non primitive value of type $elementType is unexpected in array initializer")
         }
     }
 
-    private val MethodId.accessibleByName: Boolean
+    private val MethodExecutableId.accessibleByName: Boolean
         get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
 
     override fun visit(element: CgElement) {
@@ -710,17 +634,6 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     protected abstract fun renderExceptionCatchVariable(exception: CgVariable)
 
-    protected fun UtArrayModel.getElementExpr(index: Int): CgExpression {
-        val itemModel = stores.getOrDefault(index, constModel)
-        val cgValue: CgExpression = when (itemModel) {
-            is UtPrimitiveModel -> itemModel.value.resolve()
-            is UtNullModel -> null.resolve()
-            else -> error("Non primitive or null model $itemModel is unexpected in array initializer")
-        }
-
-        return cgValue
-    }
-
     protected fun getEscapedImportRendering(import: Import): String =
         import.qualifiedName
             .split(".")
@@ -752,10 +665,11 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         }
     }
 
-    protected fun UtArrayModel.renderElements(length: Int, elementsInLine: Int) {
+    protected fun List<CgExpression>.renderElements(elementsInLine: Int) {
+        val length = this.size
         if (length <= elementsInLine) { // one-line array
             for (i in 0 until length) {
-                val expr = this.getElementExpr(i)
+                val expr = this[i]
                 expr.accept(this@CgAbstractRenderer)
                 if (i != length - 1) {
                     print(", ")
@@ -765,7 +679,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
             println() // line break after `int[] x = {`
             withIndent {
                 for (i in 0 until length) {
-                    val expr = this.getElementExpr(i)
+                    val expr = this[i]
                     expr.accept(this@CgAbstractRenderer)
 
                     if (i == length - 1) {
@@ -796,11 +710,15 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     protected fun String.escapeNamePossibleKeyword(): String = escapeNamePossibleKeywordImpl(this)
 
-    protected fun ClassId.asString(): String {
-        if (!context.shouldOptimizeImports) return canonicalName
-
-        // use simpleNameWithEnclosings instead of simpleName to consider nested classes case
-        return if (this.isAccessibleBySimpleName()) simpleNameWithEnclosings else canonicalName
+    protected fun ClassId.asString(): String = runBlocking{
+        val outer = outerClass()
+        when {
+            !context.shouldOptimizeImports -> name
+            // use simpleNameWithEnclosings instead of simpleName to consider nested classes case
+            isAccessibleBySimpleName() && outer != null-> outer.simpleName + "." + simpleName
+            isAccessibleBySimpleName() && outer == null-> simpleName
+            else -> name
+        }
     }
 
     private fun renderClassPackage(element: CgTestClass) {

@@ -1,39 +1,16 @@
 package org.utbot.framework.plugin.api
 
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.providers.ConstantsModelProvider
-import org.utbot.fuzzer.providers.ObjectModelProvider
-import org.utbot.fuzzer.providers.PrimitivesModelProvider
-import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
-import org.utbot.framework.plugin.api.util.primitiveByWrapper
-import org.utbot.framework.plugin.api.util.primitiveWrappers
-import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
-import org.utbot.fuzzer.defaultModelProviders
-import org.utbot.fuzzer.providers.EnumModelProvider
+import org.utbot.fuzzer.providers.*
 import org.utbot.fuzzer.providers.EnumModelProvider.fuzzed
-import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
-import java.util.Date
+import org.utbot.jcdb.api.ClassId
+import java.util.*
 
 class ModelProviderTest {
 
@@ -365,7 +342,7 @@ class ModelProviderTest {
                 assertEquals(1, innerAssembledModel.instantiationChain.size)
                 val objectCreation = innerAssembledModel.instantiationChain.first() as UtExecutableCallModel
                 assertEquals(0, objectCreation.params.size)
-                assertInstanceOf(ConstructorId::class.java, objectCreation.executable)
+                assertInstanceOf(ConstructorExecutableId::class.java, objectCreation.executable)
             }
         }
     }

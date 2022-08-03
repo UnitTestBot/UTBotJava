@@ -1,29 +1,26 @@
 package org.utbot.cli
 
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.options.check
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
+import kotlinx.coroutines.runBlocking
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.toPath
+import org.utbot.common.filterWhen
 import org.utbot.engine.Mocker
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.isKnownSyntheticMethod
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategyDefault
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
 import kotlin.reflect.KClass
-import mu.KotlinLogging
-import org.utbot.common.filterWhen
-import org.utbot.framework.UtSettings
-import org.utbot.framework.util.isKnownSyntheticMethod
 
 
 private val logger = KotlinLogging.logger {}
@@ -84,7 +81,7 @@ class GenerateTestsCommand :
     )
         .flag(default = false)
 
-    override fun run() {
+    override fun run(): Unit = runBlocking {
         val started = now()
         val workingDirectory = getWorkingDirectory(targetClassFqn)
             ?: throw Exception("Cannot find the target class in the classpath")
@@ -113,7 +110,7 @@ class GenerateTestsCommand :
                     Paths.get(sourceCodeFile),
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
-                        .mapTo(mutableSetOf()) { ClassId(it) }
+                        .mapNotNullTo (mutableSetOf()) { utContext.classpath.findClassOrNull(it) }
                 )
                 val testClassBody = generateTest(classUnderTest, testClassName, testSets)
 

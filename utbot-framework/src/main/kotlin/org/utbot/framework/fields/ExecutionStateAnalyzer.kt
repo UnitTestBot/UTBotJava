@@ -4,21 +4,11 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.workaround
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.ifArrayGetElementClass
 
 class ExecutionStateAnalyzer(val execution: UtExecution) {
     fun findModifiedFields(): StateModificationInfo {
@@ -57,7 +47,7 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
         val staticsBefore = execution.stateBefore.statics
         val staticsAfter = execution.stateAfter.statics
 
-        val staticFieldsByClass = execution.staticFields.groupBy { it.declaringClass }
+        val staticFieldsByClass = execution.staticFields.groupBy { it.classId }
         val modificationsByClass = mutableMapOf<ClassId, ModifiedFields>()
         for ((classId, fields) in staticFieldsByClass) {
             val staticFieldModifications = mutableListOf<ModifiedField>()
@@ -186,7 +176,7 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
             return
         }
         val items = List(element.length) { element.stores[it] ?: element.constModel }
-        val itemType = element.classId.elementClassId!!
+        val itemType = element.classId.ifArrayGetElementClass()!!
         for ((i, item) in items.withIndex()) {
             val path = data.path + ArrayElementAccess(itemType, i)
             val newData = data.copy(path = path)

@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
@@ -37,7 +38,24 @@ fun Constructor<*>.bytecodeSignature() = buildString {
 //}
 
 
-fun Class<*>.bytecodeSignature(): String = id.jvmName
+fun Class<*>.bytecodeSignature(): String = id.name
+
+/**
+ * Method [Class.getName] works differently for arrays than for other types.
+ * - When an element of an array is a reference type (e.g. `java.lang.Object`),
+ * the array of `java.lang.Object` will have name `[Ljava.lang.Object;`.
+ * - When an element of an array is a primitive type (e.g. `int`),
+ * the array of `int` will have name `[I`.
+ *
+ * So, this property returns the name of the given class in the format of an array element type name.
+ * Basically, it performs conversions for primitives and reference types (e.g. `int` -> `I`, `java.lang.Object` -> `Ljava.lang.Object;`.
+ */
+val ClassId.arrayLikeName: String
+    get() = when {
+        isPrimitive -> primitiveTypeJvmNameOrNull()!!
+        isRefType -> "L$name;"
+        else -> name
+    }
 
 fun String.toReferenceTypeBytecodeSignature(): String {
     val packageName = this
@@ -78,7 +96,7 @@ fun Class<*>.singleExecutableId(signature: String): ExecutableId =
 /**
  * Finds callable for class method by signature. Supports constructors, static and non-static methods.
  */
-fun Class<*>.singleExecutableIdOrNull(signature: String) = if (isConstructorSignature(signature)) {
+fun Class<*>.singleExecutableIdOrNull(signature: String): ExecutableId? = if (isConstructorSignature(signature)) {
     singleConstructorOrNull(signature)?.executableId
 } else {
     singleMethodOrNull(signature)?.executableId

@@ -3,43 +3,20 @@ package org.utbot.framework.codegen.model.constructor.tree
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
+import org.utbot.framework.codegen.model.constructor.util.classClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
-import org.utbot.framework.codegen.model.tree.CgValue
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.util.booleanArrayClassId
-import org.utbot.framework.plugin.api.util.byteArrayClassId
-import org.utbot.framework.plugin.api.util.charArrayClassId
-import org.utbot.framework.plugin.api.util.doubleArrayClassId
-import org.utbot.framework.plugin.api.util.floatArrayClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.longArrayClassId
-import org.utbot.framework.plugin.api.util.shortArrayClassId
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
 import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -101,12 +78,12 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     }
 
     open fun getDeepEqualsAssertion(expected: CgExpression, actual: CgExpression): CgMethodCall {
-        requiredUtilMethods += currentTestClass.deepEqualsMethodId
-        requiredUtilMethods += currentTestClass.arraysDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.iterablesDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.streamsDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.mapsDeepEqualsMethodId
-        requiredUtilMethods += currentTestClass.hasCustomEqualsMethodId
+        requiredUtilMethods += currentTestClass.deepEqualsMethodId.asExecutableMethod()
+        requiredUtilMethods += currentTestClass.arraysDeepEqualsMethodId.asExecutableMethod()
+        requiredUtilMethods += currentTestClass.iterablesDeepEqualsMethodId.asExecutableMethod()
+        requiredUtilMethods += currentTestClass.streamsDeepEqualsMethodId.asExecutableMethod()
+        requiredUtilMethods += currentTestClass.mapsDeepEqualsMethodId.asExecutableMethod()
+        requiredUtilMethods += currentTestClass.hasCustomEqualsMethodId.asExecutableMethod()
 
         // TODO we cannot use common assertEquals because of using custom deepEquals
         //  For this reason we have to use assertTrue here
@@ -162,12 +139,12 @@ internal abstract class TestFrameworkManager(val context: CgContext)
             name = timeoutArgumentName,
             value = timeoutMs.resolve()
         )
-        val testAnnotation = collectedTestMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
+        val testAnnotation = collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
 
         if (testAnnotation is CgMultipleArgsAnnotation) {
             testAnnotation.arguments += timeout
         } else {
-            collectedTestMethodAnnotations += CgMultipleArgsAnnotation(
+            collectedMethodAnnotations += CgMultipleArgsAnnotation(
                 testFramework.testAnnotationId,
                 mutableListOf(timeout)
             )
@@ -180,14 +157,14 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     // because other test frameworks do not support such feature.
     open fun addDisplayName(name: String) {
         val displayName = CgSingleArgAnnotation(Junit5.displayNameClassId, stringLiteral(name))
-        collectedTestMethodAnnotations += CgCommentedAnnotation(displayName)
+        collectedMethodAnnotations += CgCommentedAnnotation(displayName)
     }
 
     protected fun ClassId.toExceptionClass(): CgExpression =
             if (isAccessibleFrom(testClassPackageName)) {
                 CgGetJavaClass(this)
             } else {
-                statementConstructor.newVar(classCgClassId) { Class::class.id[forName](name) }
+                statementConstructor.newVar(classClassId) { Class::class.id[forName](name) }
             }
 }
 
@@ -241,7 +218,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
             value = reason.resolve()
         )
 
-        val testAnnotation = collectedTestMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
+        val testAnnotation = collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
         if (testAnnotation is CgMultipleArgsAnnotation) {
             testAnnotation.arguments += disabledAnnotationArgument
 
@@ -271,7 +248,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
                 testAnnotation.arguments += descriptionTestAnnotationArgument
             }
         } else {
-            collectedTestMethodAnnotations += CgMultipleArgsAnnotation(
+            collectedMethodAnnotations += CgMultipleArgsAnnotation(
                 testFramework.testAnnotationId,
                 mutableListOf(disabledAnnotationArgument, descriptionTestAnnotationArgument)
             )
@@ -291,11 +268,11 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
             name = "expected",
             value = classLiteralAnnotationArgument(exception, codegenLanguage)
         )
-        val testAnnotation = collectedTestMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
+        val testAnnotation = collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
         if (testAnnotation is CgMultipleArgsAnnotation) {
             testAnnotation.arguments += expected
         } else {
-            collectedTestMethodAnnotations += CgMultipleArgsAnnotation(testFramework.testAnnotationId, mutableListOf(expected))
+            collectedMethodAnnotations += CgMultipleArgsAnnotation(testFramework.testAnnotationId, mutableListOf(expected))
         }
         block()
     }
@@ -303,7 +280,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
     override fun disableTestMethod(reason: String) {
         require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
-        collectedTestMethodAnnotations += CgMultipleArgsAnnotation(
+        collectedMethodAnnotations += CgMultipleArgsAnnotation(
             testFramework.ignoreAnnotationClassId,
             mutableListOf(
                 CgNamedAnnotationArgument(
@@ -333,13 +310,13 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
         val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
         importIfNeeded(testFramework.durationClassId)
-        val duration = CgMethodCall(null, testFramework.ofMillis, listOf(timeoutMs.resolve()))
+        val duration = CgMethodCall(null, testFramework.ofMillis.asExecutableMethod(), listOf(timeoutMs.resolve()))
         +assertions[testFramework.assertTimeoutPreemptively](duration, lambda)
     }
 
     override fun addDisplayName(name: String) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
-        collectedTestMethodAnnotations += statementConstructor.annotation(testFramework.displayNameClassId, name)
+        collectedMethodAnnotations += statementConstructor.annotation(testFramework.displayNameClassId, name)
     }
 
     override fun setTestExecutionTimeout(timeoutMs: Long) {
@@ -358,7 +335,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         )
         importIfNeeded(testFramework.timeunitClassId)
 
-        collectedTestMethodAnnotations += CgMultipleArgsAnnotation(
+        collectedMethodAnnotations += CgMultipleArgsAnnotation(
             Junit5.timeoutClassId,
             timeoutAnnotationArguments
         )
@@ -367,7 +344,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override fun disableTestMethod(reason: String) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
 
-        collectedTestMethodAnnotations += CgMultipleArgsAnnotation(
+        collectedMethodAnnotations += CgMultipleArgsAnnotation(
             testFramework.disabledAnnotationClassId,
             mutableListOf(
                 CgNamedAnnotationArgument(

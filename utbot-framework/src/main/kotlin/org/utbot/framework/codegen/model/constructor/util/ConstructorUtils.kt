@@ -1,47 +1,23 @@
 package org.utbot.framework.codegen.model.constructor.util
 
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetClass
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.enclosingClass
-import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.isSubtypeOf
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.underlyingType
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.PersistentSet
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.allConstructors
+import org.utbot.jcdb.api.ext.findClass
+import org.utbot.jcdb.api.isConstructor
+import org.utbot.jcdb.api.isSubtypeOf
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -53,7 +29,7 @@ internal data class EnvironmentFieldStateCache(
             val argumentsCache = Array(execution.stateBefore.parameters.size) { FieldStateCache() }
 
             val staticFields = execution.stateBefore.statics.keys
-            val classesWithStaticFields = staticFields.groupBy { it.declaringClass }.keys
+            val classesWithStaticFields = staticFields.groupBy { it.classId }.keys
             val staticFieldsCache = mutableMapOf<ClassId, FieldStateCache>().apply {
                 for (classId in classesWithStaticFields) {
                     put(classId, FieldStateCache())
@@ -117,9 +93,9 @@ internal class FieldStateCache {
 
 internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
-data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
+data class ExpressionWithType(val type: CgClassType, val expression: CgExpression)
 
-val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
+val classClassId get() = Class::class.java.id
 
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()
@@ -153,6 +129,8 @@ private fun FieldPath.toStringList(): List<String> =
 internal fun infiniteInts(): Sequence<Int> =
     generateSequence(1) { it + 1 }
 
+internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
+
 /**
  * Checks if we have already imported a class with such simple name.
  * If so, we cannot import [type] (because it will be used with simple name and will be clashed with already imported)
@@ -160,6 +138,8 @@ internal fun infiniteInts(): Sequence<Int> =
  */
 private fun CgContextOwner.doesNotHaveSimpleNameClash(type: ClassId): Boolean =
     importedClasses.none { it.simpleName == type.simpleName }
+
+internal fun CgContextOwner.importIfNeeded(type: CgClassType) = importIfNeeded(type.classId)
 
 internal fun CgContextOwner.importIfNeeded(type: ClassId) {
     // TODO: for now we consider that tests are generated in the same package as CUT, but this may change
@@ -186,16 +166,16 @@ internal fun CgContextOwner.importIfNeeded(type: ClassId) {
     }
 }
 
-internal fun CgContextOwner.importIfNeeded(method: MethodId) {
+internal fun CgContextOwner.importIfNeeded(method: MethodExecutableId) {
     val name = method.name
     val packageName = method.classId.packageName
-    method.takeIf { it.isStatic && packageName != testClassPackageName && packageName != "java.lang" }
+    method.takeIf { it.methodId.isStatic && packageName != testClassPackageName && packageName != "java.lang" }
         .takeIf { importedStaticMethods.none { it.name == name } }
         // do not import method under test in order to specify the declaring class directly for its calls
         .takeIf { currentExecutable != method }
         ?.let {
             importedStaticMethods += method
-            collectedImports += StaticImport(method.classId.canonicalName, method.name)
+            collectedImports += StaticImport(method.classId.name, method.name)
         }
 }
 
@@ -208,8 +188,14 @@ internal fun CgContextOwner.typeCast(
     targetType: ClassId,
     expression: CgExpression,
     isSafetyCast: Boolean = false
+) = typeCast(CgClassType(targetType), expression, isSafetyCast)
+
+internal fun CgContextOwner.typeCast(
+    targetType: CgClassType,
+    expression: CgExpression,
+    isSafetyCast: Boolean = false
 ): CgTypeCast {
-    if (targetType.simpleName.isEmpty()) {
+    if (targetType.classId.simpleName.isEmpty()) {
         error("Cannot cast an expression to the anonymous type $targetType")
     }
     importIfNeeded(targetType)
@@ -217,30 +203,54 @@ internal fun CgContextOwner.typeCast(
 }
 
 @Suppress("unused")
+internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAllocateInitializedArray {
+    val arrayType = arrayTypeOf(elementType)
+    return CgAllocateInitializedArray(arrayInitializer(arrayType, elementType, values))
+}
+
+internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: List<CgExpression>): CgArrayInitializer =
+    CgArrayInitializer(arrayType, elementType, values)
+
+/**
+ * For a given [elementType] returns a [ClassId] of an array with elements of this type.
+ * For example, for an id of `int` the result will be an id of `int[]`.
+ *
+ * @param elementType the element type of the returned array class id
+ * @param isNullable a flag whether returned array is nullable or not
+ */
+internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId = runBlocking {
+    utContext.classpath.findClass(elementType.name + "[]")
+}
+
+@Suppress("unused")
 internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
-    importIfNeeded(classId)
+    importIfNeeded(CgClassType(classId))
     return CgGetJavaClass(classId)
 }
 
-internal fun Class<*>.overridesEquals(): Boolean =
+internal suspend fun ClassId.overridesEquals(): Boolean =
     when {
         // Object does not override equals
-        this == Any::class.java -> false
-        id isSubtypeOf Map::class.id -> true
-        id isSubtypeOf Collection::class.id -> true
-        else -> declaredMethods.any { it.name == "equals" && it.parameterTypes.contentEquals(arrayOf(Any::class.java)) }
+        name == Any::class.java.name -> false
+        this isSubtypeOf Map::class.id -> true
+        this isSubtypeOf Collection::class.id -> true
+        else -> methods().any {
+            it.name == "equals" && it.parameters().let {
+                it.size == 1 && it.first() == objectClassId
+            }
+        }
     }
 
 // NOTE: this function does not consider executable return type because it is not important in our case
-internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequence<ExecutableId> {
-    val allExecutables = when (executableId) {
-        is MethodId -> allMethods
-        is ConstructorId -> allConstructors
+internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequence<ExecutableId> = runBlocking {
+    val methodsOrConstructors = when (executableId) {
+        is MethodExecutableId -> methods().filter { !it.isConstructor }
+        is ConstructorExecutableId -> allConstructors()
     }
 
-    return allExecutables.filter {
+    methodsOrConstructors.filter {
         it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size && it.classId == executableId.classId
-    }
+    }.map { it.asExecutable() }.asSequence()
 }
 
 
@@ -284,7 +294,7 @@ internal infix fun UtModel.isDefaultValueOf(type: ClassId): Boolean =
         else -> false
     }
 
-internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !this.isDefaultValueOf(type)
+internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !isDefaultValueOf(type)
 
 /**
  * If the model contains a store for the given [index], return the model of this store.
@@ -293,10 +303,14 @@ internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !this.i
 internal operator fun UtArrayModel.get(index: Int): UtModel = stores[index] ?: constModel
 
 
-internal fun ClassId.utilMethodId(name: String, returnType: ClassId, vararg arguments: ClassId): MethodId =
-    BuiltinMethodId(this, name, returnType, arguments.toList())
-
-fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosings)
+fun ClassId.toImport(): RegularImport = runBlocking {
+    val outerClass = outerClass()
+    val name = when {
+        outerClass != null -> outerClass.simpleName + "." + simpleName
+        else -> simpleName
+    }
+    RegularImport(packageName, name)
+}
 
 // Immutable collections utils
 

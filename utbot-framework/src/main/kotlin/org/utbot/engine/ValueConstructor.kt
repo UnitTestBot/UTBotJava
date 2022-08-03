@@ -4,43 +4,16 @@ import org.utbot.common.findField
 import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.FieldMockTarget
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockId
-import org.utbot.framework.plugin.api.MockInfo
-import org.utbot.framework.plugin.api.MockTarget
-import org.utbot.framework.plugin.api.ObjectMockTarget
-import org.utbot.framework.plugin.api.ParameterMockTarget
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionResult
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtMockValue
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtValueExecution
-import org.utbot.framework.plugin.api.UtValueExecutionState
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isMockModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.jvmName
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import kotlin.reflect.KClass
@@ -150,7 +123,7 @@ class ValueConstructor {
             val staticValues = mutableMapOf<FieldId, UtConcreteValue<*>>()
 
             statics.forEach { (field, model) ->
-                val target = FieldMockTarget(model.classId.name, field.declaringClass.name, owner = null, field.name)
+                val target = FieldMockTarget(model.classId.name, field.classId.name, owner = null, field.name)
                 staticValues += field to construct(model, target)
             }
 
@@ -256,8 +229,8 @@ class ValueConstructor {
         }
 
         with(model) {
-            val elementClassId = classId.elementClassId!!
-            return when (elementClassId.jvmName) {
+            val elementClassId = classId.ifArrayGetElementClass()!!
+            return when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray(length) { primitive(constModel) }.apply {
                     constructedObjects[model] = this
                     stores.forEach { (index, model) -> this[index] = primitive(model) }
@@ -334,8 +307,8 @@ class ValueConstructor {
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {
-            is MethodId -> executable.call(params, instanceValue)
-            is ConstructorId -> executable.call(params)
+            is MethodExecutableId -> executable.call(params, instanceValue)
+            is ConstructorExecutableId -> executable.call(params)
         }
 
         // Ignore result if returnId is null. Otherwise add it to instance cache.
@@ -391,14 +364,14 @@ class ValueConstructor {
      */
     private fun value(model: UtModel) = construct(model, null).value
 
-    private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
+    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? =
         method.run {
             withAccessibility {
                 invokeCatching(obj = instance, args = args).getOrThrow()
             }
         }
 
-    private fun ConstructorId.call(args: List<Any?>): Any? =
+    private fun ConstructorExecutableId.call(args: List<Any?>): Any? =
         constructor.run {
             withAccessibility {
                 newInstance(*args.toTypedArray())
@@ -412,11 +385,12 @@ class ValueConstructor {
 
     private fun javaClass(id: ClassId) = kClass(id).java
 
-    private fun kClass(id: ClassId) =
-        if (id.elementClassId != null) {
-            arrayClassOf(id.elementClassId!!)
+    private fun kClass(id: ClassId): KClass<out Any> {
+        val elementClassId = id.ifArrayGetElementClass()
+        return if (elementClassId != null) {
+            arrayClassOf(elementClassId)
         } else {
-            when (id.jvmName) {
+            when (id.name.jvmName()) {
                 "B" -> Byte::class
                 "S" -> Short::class
                 "C" -> Char::class
@@ -428,13 +402,15 @@ class ValueConstructor {
                 else -> classLoader.loadClass(id.name).kotlin
             }
         }
+    }
 
-    private fun arrayClassOf(elementClassId: ClassId): KClass<*> =
-        if (elementClassId.elementClassId != null) {
-            val elementClass = arrayClassOf(elementClassId.elementClassId!!)
+    private fun arrayClassOf(elementClassId: ClassId): KClass<*> {
+        val classId = elementClassId.ifArrayGetElementClass()
+        return if (classId != null) {
+            val elementClass = arrayClassOf(classId)
             java.lang.reflect.Array.newInstance(elementClass.java, 0)::class
         } else {
-            when (elementClassId.jvmName) {
+            when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray::class
                 "S" -> ShortArray::class
                 "C" -> CharArray::class
@@ -449,6 +425,7 @@ class ValueConstructor {
                 }
             }
         }
+    }
 }
 
 private fun <R> UtExecutionResult.map(transform: (model: UtModel) -> R): Result<R> = when (this) {

@@ -4,43 +4,15 @@ import org.apache.commons.text.StringEscapeUtils
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
-import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
-import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgBreakStatement
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
-import org.utbot.framework.codegen.model.tree.CgErrorWrapper
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgForLoop
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
-import org.utbot.framework.codegen.model.tree.CgGetLength
-import org.utbot.framework.codegen.model.tree.CgInnerBlock
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgReturnStatement
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
-import org.utbot.framework.codegen.model.tree.CgSwitchCase
-import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.codegen.model.util.nullLiteral
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.unboxIfNeeded
 
 internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -106,7 +78,7 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgTypeCast) {
         val expr = element.expression
-        val wrappedTargetType = wrapperByPrimitive.getOrDefault(element.targetType, element.targetType)
+        val wrappedTargetType = element.targetType.unboxIfNeeded()
         val exprTypeIsSimilar = expr.type == element.targetType || expr.type == wrappedTargetType
 
         // cast for null is mandatory in case of ambiguity - for example, readObject(Object) and readObject(Map)
@@ -135,7 +107,7 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgParameterDeclaration) {
         if (element.isVararg) {
-            print(element.type.elementClassId!!.asString())
+            print(element.type.ifArrayGetElementClass()!!.asString())
             print("...")
         } else {
             print(element.type.asString())
@@ -158,17 +130,27 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgAllocateArray) {
         // TODO: Arsen strongly required to rewrite later
-        val typeName = element.type.canonicalName.substringBefore("[")
-        val otherDimensions = element.type.canonicalName.substringAfter("]")
+        val typeName = element.type.name //.substringBefore("[")
+        val otherDimensions = element.type.name //.substringAfter("]")
         print("new $typeName[${element.size}]$otherDimensions")
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
-        val arrayModel = element.model
-        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
+        // TODO: same as in visit(CgAllocateArray): we should rewrite the typeName and otherDimensions variables declaration
+        // to avoid using substringBefore() and substringAfter() directly
+        val typeName = element.type.name.substringBefore("[")
+        val otherDimensions = element.type.name.substringAfter("]")
+        // we can't specify the size of the first dimension when using initializer,
+        // as opposed to CgAllocateArray where there is no initializer
+        print("new $typeName[]$otherDimensions")
+        element.initializer.accept(this)
+    }
+
+    override fun visit(element: CgArrayInitializer) {
+        val elementsInLine = arrayElementsInLine(element.elementType)
 
         print("{")
-        arrayModel.renderElements(element.size, elementsInLine)
+        element.values.renderElements(elementsInLine)
         print("}")
     }
 

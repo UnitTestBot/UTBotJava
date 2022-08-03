@@ -1,33 +1,18 @@
 package org.utbot.framework.codegen.model.visitor
 
 import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
-import java.util.Arrays
-import java.util.Objects
+import java.util.*
 
 internal fun ClassId.utilMethodById(id: MethodId, context: CgContext): String =
     with(context) {
@@ -822,7 +807,7 @@ internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
         importIfNeeded(classId)
     }
     for (methodId in currentTestClass.staticImportsByUtilMethod(id)) {
-        collectedImports += StaticImport(methodId.classId.canonicalName, methodId.name)
+        collectedImports += StaticImport(methodId.classId.name, methodId.name)
     }
 }
 

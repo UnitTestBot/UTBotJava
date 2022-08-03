@@ -1,20 +1,8 @@
 package org.utbot.framework.codegen.model.constructor.builtin
 
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.builtinMethodId
-import org.utbot.framework.plugin.api.util.builtinStaticMethodId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.builtInClass
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.MethodId
 
 internal val mockitoBuiltins: Set<MethodId>
     get() = setOf(
@@ -23,136 +11,99 @@ internal val mockitoBuiltins: Set<MethodId>
         anyFloat, anyDouble, anyBoolean, anyString
     )
 
-internal val mockitoClassId = BuiltinClassId(
-    name = "org.mockito.Mockito",
-    canonicalName = "org.mockito.Mockito",
-    simpleName = "Mockito",
-)
+internal val mockitoClassId get() = builtInClass(name = "org.mockito.Mockito")
 
-internal val ongoingStubbingClassId = BuiltinClassId(
-    name = "org.mockito.stubbing.OngoingStubbing",
-    canonicalName = "org.mockito.stubbing.OngoingStubbing",
-    simpleName = "OngoingStubbing",
-)
+internal val ongoingStubbingClassId get() = builtInClass(name = "org.mockito.stubbing.OngoingStubbing")
 
-internal val answerClassId = BuiltinClassId(
-    name = "org.mockito.stubbing.Answer",
-    canonicalName = "org.mockito.stubbing.Answer",
-    simpleName = "Answer",
-)
+internal val answerClassId get() = builtInClass(name = "org.mockito.stubbing.Answer")
 
-internal val argumentMatchersClassId = BuiltinClassId(
-    name = "org.mockito.ArgumentMatchers",
-    canonicalName = "org.mockito.ArgumentMatchers",
-    simpleName = "ArgumentMatchers",
-)
+internal val argumentMatchersClassId get() = builtInClass(name = "org.mockito.ArgumentMatchers")
 
-internal val mockedConstructionContextClassId = BuiltinClassId(
-    name = "org.mockito.MockedConstruction.Context",
-    canonicalName = "org.mockito.MockedConstruction.Context", // TODO use $ as a delimiter of outer and nested classes?
-    simpleName = "Context",
-    isNested = true
-)
+internal val mockedConstructionContextClassId get() = builtInClass(name = "org.mockito.MockedConstruction.Context", isNested = true)
 
-internal val mockMethodId = builtinStaticMethodId(
-    classId = mockitoClassId,
+internal val mockMethodId get() = mockitoClassId.newBuiltinStaticMethodId(
     name = "mock",
     // actually this is an unbounded type parameter
     returnType = objectClassId,
-    arguments = arrayOf(Class::class.id)
+    arguments = listOf(Class::class.id)
 )
 
-internal val whenMethodId = builtinStaticMethodId(
-    classId = mockitoClassId,
+internal val whenMethodId get() = mockitoClassId.newBuiltinStaticMethodId(
     name = "when",
     returnType = ongoingStubbingClassId,
     // argument type is actually an unbounded type parameter
-    arguments = arrayOf(objectClassId)
+    arguments = listOf(objectClassId)
 )
 
 @Suppress("unused")
-internal val thenMethodId = builtinMethodId(
-    classId = ongoingStubbingClassId,
+internal val thenMethodId get() = ongoingStubbingClassId.newBuiltinMethod(
     name = "then",
     returnType = ongoingStubbingClassId,
-    arguments = arrayOf(answerClassId)
+    arguments = listOf(answerClassId)
 )
 
-internal val thenReturnMethodId = builtinMethodId(
-    classId = ongoingStubbingClassId,
+internal val thenReturnMethodId get() = ongoingStubbingClassId.newBuiltinMethod(
     name = "thenReturn",
     returnType = ongoingStubbingClassId,
-    arguments = arrayOf(objectClassId)
+    arguments = listOf(objectClassId)
 )
 
 // TODO: for this method and other static methods implement some utils that allow calling
 // TODO: these methods without explicit declaring class id specification, because right now such calls are too verbose
-internal val any = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val any get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "any",
     // return type is actually an unbounded type parameter
     returnType = objectClassId
 )
 
-internal val anyOfClass = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyOfClass get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "any",
     returnType = objectClassId,
-    arguments = arrayOf(Class::class.id)
+    arguments = listOf(Class::class.id)
 )
 
-internal val anyByte = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyByte get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyByte",
     returnType = byteClassId
 )
 
-internal val anyChar = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyChar get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyChar",
     returnType = charClassId
 )
 
-internal val anyShort = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyShort get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyShort",
     returnType = shortClassId
 )
 
-internal val anyInt = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyInt get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyInt",
     returnType = intClassId
 )
 
-internal val anyLong = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyLong get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyLong",
     returnType = longClassId
 )
 
-internal val anyFloat = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyFloat get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyFloat",
     returnType = floatClassId
 )
 
-internal val anyDouble = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyDouble get() =argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyDouble",
     returnType = doubleClassId
 )
 
-internal val anyBoolean = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyBoolean get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyBoolean",
     returnType = booleanClassId
 )
 
 @Suppress("unused")
-internal val anyString = builtinStaticMethodId(
-    classId = argumentMatchersClassId,
+internal val anyString get() = argumentMatchersClassId.newBuiltinStaticMethodId(
     name = "anyString",
     returnType = stringClassId
 )
-

@@ -2,9 +2,10 @@ package org.utbot.fuzzer.names
 
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import org.utbot.jcdb.api.ifArrayGetElementClass
+import org.utbot.jcdb.api.isPrimitive
 
 interface SingleModelNameSuggester {
     fun suggest(description: FuzzedMethodDescription, value: FuzzedValue): String?
@@ -43,7 +44,7 @@ object ArrayModelNameSuggester : SingleModelNameSuggester {
                     append("Non")
                 }
                 append("Empty")
-                append(if (model.classId.elementClassId?.isPrimitive == true ) "Primitive" else "Object")
+                append(if (model.classId.ifArrayGetElementClass()?.isPrimitive == true ) "Primitive" else "Object")
                 append("Array")
             }
         }

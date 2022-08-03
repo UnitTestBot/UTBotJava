@@ -1,14 +1,12 @@
 package org.utbot.framework.modifications
 
-import org.utbot.framework.modifications.AnalysisMode.AllModificators
-import org.utbot.framework.modifications.AnalysisMode.Constructors
-import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.modifications.AnalysisMode.*
+import org.utbot.framework.plugin.api.ConstructorExecutableId
 import org.utbot.framework.plugin.api.DirectFieldAccessId
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.StatementId
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 
 /**
  * Storage of invoked statements (executables or direct field accesses) with their information
@@ -96,7 +94,7 @@ class StatementsStorage {
         return when (analysisMode) {
             AllModificators -> fields
             SettersAndDirectAccessors -> if (isSetterOrDirectAccessor(statementId) && fields.size == 1) fields else emptySet()
-            Constructors -> if (statementId is ConstructorId) fields else emptySet()
+            Constructors -> if (statementId is ConstructorExecutableId) fields else emptySet()
         }
     }
 

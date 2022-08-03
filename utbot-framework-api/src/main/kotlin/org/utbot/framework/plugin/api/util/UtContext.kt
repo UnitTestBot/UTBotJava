@@ -1,21 +1,31 @@
 package org.utbot.framework.plugin.api.util
 
+import kotlinx.coroutines.ThreadContextElement
+import kotlinx.coroutines.runBlocking
 import org.utbot.common.StopWatch
 import org.utbot.common.currentThreadInfo
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.plugin.jcdb.DelegatingClasspathSet
+import org.utbot.jcdb.api.ClasspathSet
+import org.utbot.jcdb.jcdb
+import org.utbot.jcdb.remote.rd.remoteRdClient
+import java.net.URLClassLoader
+import java.nio.file.Paths
 import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.ThreadContextElement
 
 val utContext: UtContext
     get() = UtContext.currentContext()
         ?: error("No context is set. Please use `withUtContext() {...}` or `setUtContext().use {...}`. Thread: ${currentThreadInfo()}")
 
 
-class UtContext(val classLoader: ClassLoader) : ThreadContextElement<UtContext?> {
+class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : ThreadContextElement<UtContext?> {
 
     // This StopWatch is used to respect bytecode transforming time while invoking with timeout
     var stopWatch: StopWatch? = null
         private set
+
+    constructor(classLoader: ClassLoader) : this(classLoader, classLoader.asClasspath())
+    constructor(classLoader: ClassLoader, port: Int) : this(classLoader, classLoader.asClasspath(port))
 
     constructor(classLoader: ClassLoader, stopWatch: StopWatch) : this(classLoader) {
         this.stopWatch = stopWatch
@@ -57,6 +67,24 @@ class UtContext(val classLoader: ClassLoader) : ThreadContextElement<UtContext?>
                 threadLocalContextHolder.remove()
             }
         }
+
+        private fun ClassLoader.asClasspath(): ClasspathSet = runBlocking {
+            this@asClasspath as URLClassLoader
+            val files = urLs.map { Paths.get(it.toURI()).toFile() }
+            val jcdb = jcdb {
+                useProcessJavaRuntime()
+                predefinedDirOrJars = files
+            }
+            DelegatingClasspathSet(jcdb.classpathSet(files))
+        }
+
+        private fun ClassLoader.asClasspath(port: Int): ClasspathSet = runBlocking {
+            this@asClasspath as URLClassLoader
+            val files = urLs.map { Paths.get(it.toURI()).toFile() }
+            val jcdb = remoteRdClient(port)
+            DelegatingClasspathSet(jcdb.classpathSet(files))
+        }
+
     }
 
     override val key: CoroutineContext.Key<UtContext> get() = Key
@@ -68,6 +96,8 @@ class UtContext(val classLoader: ClassLoader) : ThreadContextElement<UtContext?>
         threadLocalContextHolder.set(this)
         return prevUtContext
     }
+
+
 }
 
 inline fun <T> withUtContext(context: UtContext, block: () -> T): T = setUtContext(context).use { block() }

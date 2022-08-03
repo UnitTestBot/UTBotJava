@@ -1,36 +1,12 @@
 package org.utbot.fuzzer.providers
 
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isPrimitive
-import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedParameter
-import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ModelProvider
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
-import org.utbot.fuzzer.TooManyCombinationsException
-import org.utbot.fuzzer.exceptIsInstance
-import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.objectModelProviders
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier.*
+import org.utbot.jcdb.api.*
 import java.util.function.IntSupplier
 
 private val logger by lazy { KotlinLogging.logger {} }
@@ -77,7 +53,7 @@ class ObjectModelProvider : ModelProvider {
                 .filterNot { it == stringClassId || it.isPrimitiveWrapper }
                 .flatMap { classId ->
                     collectConstructors(classId) { javaConstructor ->
-                        isAccessible(javaConstructor, description.packageName)
+                        isAccessible(javaConstructor, classId, description.packageName)
                     }.sortedWith(
                         primitiveParameterizedConstructorsFirstAndThenByParameterCount
                     ).take(limit)
@@ -108,7 +84,7 @@ class ObjectModelProvider : ModelProvider {
         }
     }
 
-    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
+    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorExecutableId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
         if (limitValuesCreatedByFieldAccessors == 0) return emptySequence()
         val fields = findSuitableFields(constructorId.classId, description)
         val syntheticClassFieldsSetterMethodDescription = FuzzedMethodDescription(
@@ -131,12 +107,17 @@ class ObjectModelProvider : ModelProvider {
                     when {
                         field.canBeSetDirectly -> UtDirectSetFieldModel(
                             fuzzedModel.model,
-                            FieldId(constructorId.classId, field.name),
+                            constructorId.classId.findField(field.name),
                             value.model
                         )
                         field.setter != null -> UtExecutableCallModel(
                             fuzzedModel.model,
-                            MethodId(constructorId.classId, field.setter.name, field.setter.returnType.id, listOf(field.classId)),
+                            constructorId.classId.findMethod(
+                                field.setter.name,
+                                field.setter.returnType,
+                                listOfNotNull(field.classId)
+                            )
+                                .asExecutable(),
                             listOf(value.model)
                         )
                         else -> null
@@ -147,27 +128,25 @@ class ObjectModelProvider : ModelProvider {
     }
 
     companion object {
-        private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorId> {
-            return classId.jClass.declaredConstructors.asSequence()
+        private fun collectConstructors(classId: ClassId, predicate: (ConstructorExecutableId) -> Boolean): Sequence<ConstructorExecutableId> {
+            return classId.allConstructors
+                .asSequence()
                 .filter(predicate)
-                .map { javaConstructor ->
-                    ConstructorId(classId, javaConstructor.parameters.map { it.type.id })
-                }
         }
 
-        private fun isAccessible(member: Member, packageName: String?): Boolean {
-            return isPublic(member.modifiers) ||
-                    (packageName != null && isPackagePrivate(member.modifiers) && member.declaringClass.`package`?.name == packageName)
+        private fun isAccessible(member: Accessible, declaringClass: ClassId, packageName: String?): Boolean {
+            return member.isPublic ||
+                    (packageName != null && isPackagePrivate(member) && declaringClass.packageName == packageName)
         }
 
-        private fun isPackagePrivate(modifiers: Int): Boolean {
-            val hasAnyAccessModifier = isPrivate(modifiers)
-                    || isProtected(modifiers)
-                    || isProtected(modifiers)
+        private fun isPackagePrivate(member: Accessible): Boolean {
+            val hasAnyAccessModifier = member.isPrivate
+                    || member.isProtected
+                    || member.isPublic
             return !hasAnyAccessModifier
         }
 
-        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
+        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorExecutableId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
             val fuzzedMethod = FuzzedMethodDescription(
                 executableId = constructorId,
                 concreteValues = this.concreteValues
@@ -182,7 +161,7 @@ class ObjectModelProvider : ModelProvider {
             }
         }
 
-        private fun assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
+        private fun assembleModel(id: Int, constructorId: ConstructorExecutableId, params: List<FuzzedValue>): FuzzedValue {
             val instantiationChain = mutableListOf<UtStatementModel>()
             return UtAssembleModel(
                 id,
@@ -198,28 +177,27 @@ class ObjectModelProvider : ModelProvider {
         }
 
         private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {
-            val jClass = classId.jClass
-            return jClass.declaredFields.map { field ->
+            return classId.fields.map { field ->
                 FieldDescription(
                     field.name,
-                    field.type.id,
-                    isAccessible(field, description.packageName) && !isFinal(field.modifiers) && !isStatic(field.modifiers),
-                    jClass.findPublicSetterIfHasPublicGetter(field, description)
+                    field.type,
+                    isAccessible(field, classId, description.packageName) && field.isFinal && field.isStatic,
+                    classId.findPublicSetterIfHasPublicGetter(field, description)
                 )
             }
         }
 
-        private fun Class<*>.findPublicSetterIfHasPublicGetter(field: Field, description: FuzzedMethodDescription): Method? {
+        private fun ClassId.findPublicSetterIfHasPublicGetter(field: FieldId, description: FuzzedMethodDescription): MethodId? {
             val postfixName = field.name.capitalize()
             val setterName = "set$postfixName"
             val getterName = "get$postfixName"
-            val getter = try { getDeclaredMethod(getterName) } catch (_: NoSuchMethodException) { return null }
-            return if (isAccessible(getter, description.packageName) && getter.returnType == field.type) {
-                declaredMethods.find {
-                    isAccessible(it, description.packageName) &&
+            val getter = methods.firstOrNull { it.name == getterName } ?: return null
+            return if (isAccessible(getter, this, description.packageName) && getter.returnType == field.type) {
+                methods.find {
+                    isAccessible(it, this, description.packageName) &&
                             it.name == setterName &&
-                            it.parameterCount == 1 &&
-                            it.parameterTypes[0] == field.type
+                            it.parameters.size == 1 &&
+                            it.parameters[0] == field.type
                 }
             } else {
                 null
@@ -227,7 +205,7 @@ class ObjectModelProvider : ModelProvider {
         }
 
         private val primitiveParameterizedConstructorsFirstAndThenByParameterCount =
-            compareByDescending<ConstructorId> { constructorId ->
+            compareByDescending<ConstructorExecutableId> { constructorId ->
                 constructorId.parameters.all { classId ->
                     classId.isPrimitive || classId == stringClassId
                 }
@@ -239,7 +217,7 @@ class ObjectModelProvider : ModelProvider {
             val name: String,
             val classId: ClassId,
             val canBeSetDirectly: Boolean,
-            val setter: Method?,
+            val setter: MethodId?,
         )
     }
 }

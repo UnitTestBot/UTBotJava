@@ -1,8 +1,7 @@
 package org.utbot.instrumentation
 
-import org.utbot.framework.plugin.api.ExecutableId
-import kotlin.reflect.KCallable
 import kotlinx.coroutines.runBlocking
+import kotlin.reflect.KCallable
 
 /**
  * Base interface for delegated execution logic.

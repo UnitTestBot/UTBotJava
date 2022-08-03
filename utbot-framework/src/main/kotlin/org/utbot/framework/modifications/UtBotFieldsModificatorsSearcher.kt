@@ -1,8 +1,9 @@
 package org.utbot.framework.modifications
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.StatementId
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 
 class UtBotFieldsModificatorsSearcher {
 

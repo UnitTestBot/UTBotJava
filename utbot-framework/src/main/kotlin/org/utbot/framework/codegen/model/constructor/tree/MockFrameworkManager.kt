@@ -2,72 +2,16 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.model.constructor.builtin.any
-import org.utbot.framework.codegen.model.constructor.builtin.anyBoolean
-import org.utbot.framework.codegen.model.constructor.builtin.anyByte
-import org.utbot.framework.codegen.model.constructor.builtin.anyChar
-import org.utbot.framework.codegen.model.constructor.builtin.anyDouble
-import org.utbot.framework.codegen.model.constructor.builtin.anyFloat
-import org.utbot.framework.codegen.model.constructor.builtin.anyInt
-import org.utbot.framework.codegen.model.constructor.builtin.anyLong
-import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
-import org.utbot.framework.codegen.model.constructor.builtin.anyShort
-import org.utbot.framework.codegen.model.constructor.builtin.argumentMatchersClassId
-import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.mockMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mockedConstructionContextClassId
-import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
-import org.utbot.framework.codegen.model.constructor.builtin.thenReturnMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.whenMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructorImpl
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
-import org.utbot.framework.codegen.model.constructor.util.hasAmbiguousOverloadsOf
-import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
-import org.utbot.framework.codegen.model.tree.CgAssignment
-import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgRunnable
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
-import org.utbot.framework.codegen.model.tree.CgStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgSwitchCase
-import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.constructor.util.*
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.util.atomicIntegerClassId
-import org.utbot.framework.plugin.api.util.atomicIntegerGet
-import org.utbot.framework.plugin.api.util.atomicIntegerGetAndIncrement
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.MethodId
 
 internal abstract class CgVariableConstructorComponent(val context: CgContext) :
         CgContextOwner by context,
@@ -93,7 +37,7 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
     fun CgMethodCall.thenReturn(returnType: ClassId, vararg args: CgValue) {
         val castedArgs = args
             // guard args to reuse typecast creation logic
-            .map { if (it.type == returnType) it else guardExpression(returnType, it).expression }
+            .map { if (it.type.classId == returnType) it else guardExpression(returnType.type(), it).expression }
             .toTypedArray()
 
         +this[thenReturnMethodId](*castedArgs)
@@ -121,7 +65,7 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
             if (classId isAccessibleFrom testClassPackageName) {
                 CgGetJavaClass(classId)
             } else {
-                newVar(classCgClassId) { Class::class.id[forName](classId.name) }
+                newVar(classClassId.type(false)) { Class::class.id[forName](classId.name) }
             }
 
     private fun matchByClass(id: ClassId): CgMethodCall =
@@ -183,7 +127,7 @@ private class MockitoMocker(context: CgContext) : ObjectMocker(context) {
     override fun createMock(model: UtCompositeModel, baseName: String): CgVariable {
         // create mock object
         val modelClass = getClassOf(model.classId)
-        val mockObject = newVar(model.classId, baseName = baseName, isMock = true) { mock(modelClass) }
+        val mockObject = newVar(model.classId.type(false), baseName = baseName, isMock = true) { mock(modelClass) }
 
         for ((executable, values) in model.mocks) {
             // void method
@@ -230,9 +174,9 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         if (classId in mockedStaticConstructions) return
 
         val mockClassCounter = CgDeclaration(
-            atomicIntegerClassId,
+            atomicIntegerClassId.type(),
             variableConstructor.constructVarName(MOCK_CLASS_COUNTER_NAME),
-            CgConstructorCall(ConstructorId(atomicIntegerClassId, emptyList()), emptyList())
+            CgConstructorCall(atomicIntegerClassId.findConstructor().asExecutableConstructor(), emptyList())
         )
         +mockClassCounter
 
@@ -251,7 +195,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             mockClassCounter.variable
         )
         val mockedConstructionDeclaration = CgDeclaration(
-            CgClassId(MockitoStaticMocking.mockedConstructionClassId),
+            MockitoStaticMocking.mockedConstructionClassId.type(),
             variableConstructor.constructVarName(MOCKED_CONSTRUCTION_NAME),
             mockConstructionInitializer
         )
@@ -266,18 +210,19 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 error("Cannot mock static method $methodId with not accessible parameters" )
             }
 
-            val matchers = mockitoArgumentMatchersFor(methodId)
+            val executable = methodId.asExecutable() as MethodExecutableId
+            val matchers = mockitoArgumentMatchersFor(executable)
             val mockedStaticDeclaration = getOrCreateMockStatic(classId)
             val mockedStaticVariable = mockedStaticDeclaration.variable
             val methodRunnable = if (matchers.isEmpty()) {
                 CgStaticRunnable(type = methodId.returnType, classId, methodId)
             } else {
                 CgAnonymousFunction(
-                    type = methodId.returnType,
+                    type = methodId.type(),
                     parameters = emptyList(),
                     listOf(CgStatementExecutableCall(CgMethodCall(
                         caller = null,
-                        methodId,
+                        executable,
                         matchers.toList()
                     )))
                 )
@@ -309,7 +254,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
             val classMockStaticCall = mockStatic(modelClass)
             val mockedStaticVariableName = variableConstructor.constructVarName(MOCKED_STATIC_NAME)
             CgDeclaration(
-                CgClassId(MockitoStaticMocking.mockedStaticClassId),
+                MockitoStaticMocking.mockedStaticClassId.type(),
                 mockedStaticVariableName,
                 classMockStaticCall
             ).also {
@@ -325,11 +270,11 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         mockClassCounter: CgVariable
     ): CgMethodCall {
         val mockParameter = variableConstructor.declareParameter(
-            classId,
+            classId.type(),
             variableConstructor.constructVarName(classId.simpleName, isMock = true)
         )
         val contextParameter = variableConstructor.declareParameter(
-            mockedConstructionContextClassId,
+            mockedConstructionContextClassId.type(),
             variableConstructor.constructVarName("context")
         )
 
@@ -351,13 +296,13 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
                 }
             }
 
-            caseLabels += CgSwitchCaseLabel(CgLiteral(intClassId, index), statements)
+            caseLabels += CgSwitchCaseLabel(CgLiteral(intClassId.type(false), index), statements)
         }
 
         val switchCase = CgSwitchCase(mockClassCounter[atomicIntegerGet](), caseLabels)
 
         val answersBlock = CgAnonymousFunction(
-            voidClassId,
+            voidClassId.type(false),
             listOf(mockParameter, contextParameter).map { CgParameterDeclaration(it, isVararg = false) },
             listOf(switchCase, CgStatementExecutableCall(mockClassCounter[atomicIntegerGetAndIncrement]()))
         )
@@ -378,7 +323,7 @@ private class MockitoStaticMocker(context: CgContext, private val mocker: Object
         }
         return CgMethodCall(
             mockedStatic,
-            MockitoStaticMocking.mockedStaticWhen(nullable = mockedStatic.type.isNullable),
+            MockitoStaticMocking.mockedStaticWhen(nullable = mockedStatic.isNullable).asExecutableMethod(),
             listOf(runnable),
             TypeParameters(typeParams),
         )

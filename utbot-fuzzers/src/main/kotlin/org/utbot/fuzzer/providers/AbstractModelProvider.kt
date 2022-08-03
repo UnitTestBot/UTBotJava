@@ -1,17 +1,18 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
+import org.utbot.jcdb.api.ClassId
 
 /**
  * Simple model implementation.
  */
 @Suppress("unused")
-abstract class AbstractModelProvider: ModelProvider {
-    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence{
+abstract class AbstractModelProvider : ModelProvider {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap.forEach { (classId, indices) ->
             toModel(classId)?.let { defaultModel ->
                 indices.forEach { index ->

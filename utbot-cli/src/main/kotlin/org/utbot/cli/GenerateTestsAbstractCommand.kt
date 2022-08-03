@@ -1,11 +1,7 @@
 package org.utbot.cli
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.check
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.multiple
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.unique
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
@@ -16,19 +12,11 @@ import org.utbot.common.PathUtil.toURL
 import org.utbot.common.toPath
 import org.utbot.engine.Mocker
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.MockitoStaticMocking
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.StaticsMocking
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.testFrameworkByName
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TreatOverflowAsError
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.jcdb.api.ClassId
 import org.utbot.summary.summarize
 import java.io.File
 import java.lang.reflect.Method
@@ -205,7 +193,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
         return CodeGenerator(
             testFramework = testFrameworkByName(testFramework),
-            classUnderTest = classUnderTest.java,
+            classUnderTest = classUnderTest.java.id,
             codegenLanguage = codegenLanguage,
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,

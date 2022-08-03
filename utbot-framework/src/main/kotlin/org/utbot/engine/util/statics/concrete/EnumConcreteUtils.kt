@@ -9,8 +9,8 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.DefaultReflectionProvider
+import org.utbot.jcdb.api.FieldId
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
@@ -43,7 +43,7 @@ fun associateEnumSootFieldsWithConcreteValues(
     enumConstants: List<Enum<*>>
 ): List<Pair<SootField, List<Any>>> =
     enumFields.map { enumSootField ->
-        val enumField = enumSootField.fieldId.field
+        val enumField = DefaultReflectionProvider.provideReflectionField(enumSootField.fieldId)
 
         val fieldValues = if (enumSootField.isStatic) {
             val staticFieldValue = enumField.withAccessibility { enumField.get(null) }

@@ -1,51 +1,21 @@
 package org.utbot.framework.concrete
 
-import org.utbot.common.findField
-import org.utbot.common.findFieldOrNull
-import org.utbot.common.invokeCatching
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.FieldMockTarget
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockId
-import org.utbot.framework.plugin.api.MockInfo
-import org.utbot.framework.plugin.api.MockTarget
-import org.utbot.framework.plugin.api.ObjectMockTarget
-import org.utbot.framework.plugin.api.ParameterMockTarget
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteValue
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtMockValue
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isMockModel
-import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.util.anyInstance
-import java.io.Closeable
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
+import org.utbot.common.findField
+import org.utbot.common.findFieldOrNull
+import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.util.anyInstance
+import org.utbot.jcdb.api.*
+import java.io.Closeable
+import java.lang.reflect.Field
+import java.lang.reflect.Modifier
+import java.util.*
+import kotlin.reflect.KClass
 
 /**
  * Constructs values (including mocks) from models.
@@ -106,7 +76,7 @@ class MockValueConstructor(
 
     fun constructStatics(staticsBefore: Map<FieldId, UtModel>): Map<FieldId, UtConcreteValue<*>> =
         staticsBefore.mapValues { (field, model) -> // TODO: refactor this
-            val target = FieldMockTarget(model.classId.name, field.declaringClass.name, owner = null, field.name)
+            val target = FieldMockTarget(model.classId.name, field.classId.name, owner = null, field.name)
             construct(model, target)
         }
 
@@ -241,7 +211,7 @@ class MockValueConstructor(
         methodToValues: Map<ExecutableId, List<UtModel>>,
     ) {
         controllers += computeConcreteValuesForMethods(methodToValues).map { (method, values) ->
-            if (method !is MethodId) {
+            if (method !is MethodExecutableId) {
                 throw IllegalArgumentException("Expected MethodId, but got: $method")
             }
             MethodMockController(
@@ -291,10 +261,10 @@ class MockValueConstructor(
         constructedObjects[model]?.let { return it }
 
         with(model) {
-            val elementClassId = classId.elementClassId ?: error(
+            val elementClassId = classId.ifArrayGetElementClass() ?: error(
                 "Provided incorrect UtArrayModel without elementClassId. ClassId: ${model.classId}, model: $model"
             )
-            return when (elementClassId.jvmName) {
+            return when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray(length) { primitive(constModel) }.apply {
                     stores.forEach { (index, model) -> this[index] = primitive(model) }
                 }.also { constructedObjects[model] = it }
@@ -368,8 +338,8 @@ class MockValueConstructor(
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {
-            is MethodId -> executable.call(params, instanceValue)
-            is ConstructorId -> executable.call(params)
+            is MethodExecutableId -> executable.call(params, instanceValue)
+            is ConstructorExecutableId -> executable.call(params)
         }
 
         // Ignore result if returnId is null. Otherwise add it to instance cache.
@@ -433,14 +403,14 @@ class MockValueConstructor(
         return construct(model, target).value
     }
 
-    private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
+    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? =
         method.run {
             withAccessibility {
                 invokeCatching(obj = instance, args = args).getOrThrow()
             }
         }
 
-    private fun ConstructorId.call(args: List<Any?>): Any? =
+    private fun ConstructorExecutableId.call(args: List<Any?>): Any? =
         constructor.run {
             withAccessibility {
                 newInstance(*args.toTypedArray())
@@ -455,10 +425,10 @@ class MockValueConstructor(
     private fun javaClass(id: ClassId) = kClass(id).java
 
     private fun kClass(id: ClassId) =
-        if (id.elementClassId != null) {
-            arrayClassOf(id.elementClassId!!)
+        if (id is ArrayClassId) {
+            arrayClassOf(id.elementClass)
         } else {
-            when (id.jvmName) {
+            when (id.name.jvmName()) {
                 "B" -> Byte::class
                 "S" -> Short::class
                 "C" -> Char::class
@@ -472,11 +442,11 @@ class MockValueConstructor(
         }
 
     private fun arrayClassOf(elementClassId: ClassId): KClass<*> =
-        if (elementClassId.elementClassId != null) {
-            val elementClass = arrayClassOf(elementClassId.elementClassId!!)
+        if (elementClassId is ArrayClassId) {
+            val elementClass = arrayClassOf(elementClassId.elementClass)
             java.lang.reflect.Array.newInstance(elementClass.java, 0)::class
         } else {
-            when (elementClassId.jvmName) {
+            when (elementClassId.name.jvmName()) {
                 "B" -> ByteArray::class
                 "S" -> ShortArray::class
                 "C" -> CharArray::class

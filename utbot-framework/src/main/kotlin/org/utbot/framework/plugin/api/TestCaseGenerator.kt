@@ -1,14 +1,7 @@
 package org.utbot.framework.plugin.api
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.yield
 import mu.KLogger
 import mu.KotlinLogging
 import org.utbot.common.bracket
@@ -29,16 +22,13 @@ import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.minimization.minimizeTestCase
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.utContext
-import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.runSoot
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.warmup.Warmup
+import org.utbot.jcdb.api.ClassId
 import java.io.File
 import java.nio.file.Path
 import java.util.*

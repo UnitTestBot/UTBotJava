@@ -1,30 +1,15 @@
 package org.utbot.engine
 
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_DOUBLE
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_INT
-import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_LONG
+import org.utbot.engine.UtOptionalClass.*
 import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtStatementModel
-import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.nextModelName
+import org.utbot.jcdb.api.ClassId
 import soot.Scene
 import soot.SootMethod
 
@@ -99,32 +84,29 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
     }
 
     private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue, model: UtAssembleModel) : UtExecutableCallModel {
-        val valueField = FieldId(overriddenClass.id, "value")
-        val isPresentFieldId = FieldId(overriddenClass.id, "isPresent")
+        val valueField = overriddenClass.id.findFieldOrNull("value")
+        val isPresentFieldId = overriddenClass.id.findFieldOrNull("isPresent")
         val values = collectFieldModels(wrapper.addr, overriddenClass.type)
         val valueModel = values[valueField] ?: utOptionalClass.elementClassId.defaultValueModel()
-        val isPresent = if (classId.canonicalName == java.util.Optional::class.java.canonicalName) {
+        val isPresent = if (classId.name == java.util.Optional::class.java.name) {
             valueModel !is UtNullModel
         } else {
             values[isPresentFieldId]?.let { (it as UtPrimitiveModel).value as Boolean } ?: false
         }
         return if (!isPresent) {
             UtExecutableCallModel(
-                null, MethodId(
-                    classId,
+                null, classId.findMethod(
                     "empty",
-                    classId,
-                    emptyList()
-                ), emptyList(), model
+                    classId
+                ).asExecutable(), emptyList(), model
             )
         } else {
             UtExecutableCallModel(
-                null, MethodId(
-                    classId,
+                null, classId.findMethod(
                     "of",
                     classId,
                     listOf(utOptionalClass.elementClassId)
-                ), listOf(valueModel), model
+                ).asExecutable(), listOf(valueModel), model
             )
         }
     }

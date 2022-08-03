@@ -1,29 +1,28 @@
 package org.utbot.engine
 
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.runBlocking
 import org.utbot.api.mock.UtMock
 import org.utbot.common.packageName
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock
 import org.utbot.engine.pc.UtAddrExpression
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
+import org.utbot.engine.util.mockListeners.MockListenerController
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.packageName
+import org.utbot.framework.plugin.api.signature
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.util.executableId
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import org.utbot.jcdb.api.MethodId
+import soot.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
-import kotlinx.collections.immutable.persistentListOf
-import org.utbot.engine.util.mockListeners.MockListenerController
-import soot.BooleanType
-import soot.RefType
-import soot.Scene
-import soot.SootClass
-import soot.SootMethod
 
 /**
  * Generates mock with address provided.
@@ -183,7 +182,7 @@ class Mocker(
         if (!isEngineClass(type) && type.sootClass.isPrivate) return false // could not mock private classes (even if it is in mock always list)
         if (mockAlways(type)) return true // always mock randoms and loggers
         if (mockInfo is UtFieldMockInfo) {
-            val declaringClass = mockInfo.fieldId.declaringClass
+            val declaringClass = mockInfo.fieldId.classId
             val sootDeclaringClass = Scene.v().getSootClass(declaringClass.name)
 
             if (sootDeclaringClass.isArtificialEntity || sootDeclaringClass.isOverridden) {
@@ -193,10 +192,11 @@ class Mocker(
                 return false
             }
 
+            val fieldType = runBlocking { mockInfo.fieldId.type() }
             return when {
                 declaringClass.packageName.startsWith("java.lang") -> false
-                !mockInfo.fieldId.type.isRefType -> false  // mocks are allowed for ref fields only
-                else -> return strategy.eligibleToMock(mockInfo.fieldId.type, classUnderTest) // if we have a field with Integer type, we should not mock it
+                !fieldType.isRefType -> false  // mocks are allowed for ref fields only
+                else -> return strategy.eligibleToMock(fieldType, classUnderTest) // if we have a field with Integer type, we should not mock it
             }
         }
         return strategy.eligibleToMock(type.id, classUnderTest) // strategy to decide

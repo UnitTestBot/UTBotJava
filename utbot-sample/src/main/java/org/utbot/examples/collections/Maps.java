@@ -1,5 +1,7 @@
 package org.utbot.examples.collections;
 
+import org.utbot.examples.enums.SizeEnum;
+
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -244,5 +246,21 @@ public class Maps {
         } else {
             return removed;
         }
+    }
+
+    Map<String, Integer> createStringMapWithRemove() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("monday", 254);
+        map.put("tuesday", 675);
+        map.remove("monday");
+        return map;
+    }
+
+    Map<SizeEnum, Integer> createEnumMapWithRemove() {
+        Map<SizeEnum, Integer> map = new HashMap<>();
+        map.put(SizeEnum.L, 1);
+        map.put(SizeEnum.M, 2);
+        map.remove(SizeEnum.M);
+        return map;
     }
 }

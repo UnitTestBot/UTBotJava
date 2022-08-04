@@ -13,6 +13,7 @@ import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.enums.SizeEnum
 
 // TODO failed Kotlin compilation SAT-1332
 internal class SetsTest : UtValueTestCaseChecker(
@@ -240,6 +241,24 @@ internal class SetsTest : UtValueTestCaseChecker(
             { set, _, _ -> set == null },
             { set, i, result -> i !in set && result == 0 },
             { set, i, result -> i in set && result == 1 },
+        )
+    }
+
+    @Test
+    fun testCreateStringSetWithRemove() {
+        check(
+            Sets::createStringSetWithRemove,
+            eq(1),
+            { result -> result != null && result.size == 1 && result.contains("tuesday") }
+        )
+    }
+
+    @Test
+    fun testCreateEnumSetWithRemove() {
+        check(
+            Sets::createEnumSetWithRemove,
+            eq(1),
+            { result -> result != null && result.size == 1 && result.contains(SizeEnum.S) }
         )
     }
 }

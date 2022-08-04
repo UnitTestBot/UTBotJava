@@ -1,6 +1,9 @@
 package org.utbot.examples.collections;
 
 import org.utbot.api.mock.UtMock;
+import org.utbot.examples.enums.ClassWithEnum;
+import org.utbot.examples.enums.SizeEnum;
+
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -194,6 +197,22 @@ public class Sets {
         } else {
             return 0;
         }
+    }
+
+    Set<String> createStringSetWithRemove() {
+        Set<String> set = new HashSet<>();
+        set.add("monday");
+        set.add("tuesday");
+        set.remove("monday");
+        return set;
+    }
+
+    Set<SizeEnum> createEnumSetWithRemove() {
+        Set<SizeEnum> set = new HashSet<>();
+        set.add(SizeEnum.XL);
+        set.add(SizeEnum.S);
+        set.remove(SizeEnum.XL);
+        return set;
     }
 }
 

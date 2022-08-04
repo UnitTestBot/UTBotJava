@@ -14,6 +14,7 @@ import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
+import org.utbot.examples.enums.SizeEnum
 
 // TODO failed Kotlin compilation ($ in names, generics) SAT-1220 SAT-1332
 internal class MapsTest : UtValueTestCaseChecker(
@@ -384,5 +385,21 @@ internal class MapsTest : UtValueTestCaseChecker(
         )
     }
 
+    @Test
+    fun testCreateStringMapWithRemove() {
+        check(
+            Maps::createStringMapWithRemove,
+            eq(1),
+            { result -> result != null && result.size == 1 && result["tuesday"] == 675 }
+        )
+    }
 
+    @Test
+    fun testCreateEnumMapWithRemove() {
+        check(
+            Maps::createEnumMapWithRemove,
+            eq(1),
+            { result -> result != null && result.size == 1 && result[SizeEnum.L] == 1 }
+        )
+    }
 }

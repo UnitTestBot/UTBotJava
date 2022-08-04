@@ -59,6 +59,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.*
@@ -268,7 +269,7 @@ object CodeGenerationController {
             .runReadActionInSmartMode(Computable { findMethodParamNames(classUnderTest, classMethods) })
 
         val codeGenerator = CodeGenerator(
-                classUnderTest = classUnderTest.java,
+                classUnderTest = classUnderTest.id,
                 paramNames = paramNames.toMutableMap(),
                 testFramework = model.testFramework,
                 mockFramework = model.mockFramework,

@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.PythonCodeGenerator
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.tree.buildTestClass
 import org.utbot.framework.codegen.model.tree.buildTestClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
@@ -179,6 +180,7 @@ object PythonDialogProcessor {
 //                        }
 //                    }
 
+                val context = UtContext(this::class.java.classLoader)
 
                 val classId = ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
                 val methods = notEmptyTests.map {
@@ -193,23 +195,25 @@ object PythonDialogProcessor {
                         }
                     )
                 }
-                val codegen = CodeGenerator(
-                    classId,
-                    paramNames = notEmptyTests.zip(methods)
-                        .associate { (testSet, method) ->
-                            method to testSet.method.arguments.map {it.name}
-                                   }
-                        .toMutableMap(),
-                    testClassPackageName = "",
-                )
-                codegen.generateAsStringWithTestReport(
-                    methods.zip(notEmptyTests).map {(method, testSet) ->
-                        CgMethodTestSet(
-                            method,
-                            testSet.executions.map { execution -> execution.utExecution }
-                        )
-                    }
-                )
+                withUtContext(context) {
+                    val codegen = CodeGenerator(
+                        classId,
+                        paramNames = notEmptyTests.zip(methods)
+                            .associate { (testSet, method) ->
+                                method to testSet.method.arguments.map { it.name }
+                            }
+                            .toMutableMap(),
+                        testClassPackageName = "",
+                    )
+                    codegen.generateAsStringWithTestReport(
+                        methods.zip(notEmptyTests).map { (method, testSet) ->
+                            CgMethodTestSet(
+                                method,
+                                testSet.executions.map { execution -> execution.utExecution }
+                            )
+                        }
+                    )
+                }
 
 //                val testCode = PythonCodeGenerator.generateAsString(
 //                    ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__"),

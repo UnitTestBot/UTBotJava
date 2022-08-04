@@ -5,6 +5,7 @@ import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategy
 import org.utbot.summary.summarize
@@ -70,7 +71,7 @@ class GenerateTestsAndSarifReportFacade(
         val isForceStaticMocking = sarifProperties.forceStaticMocking == ForceStaticMocking.FORCE
 
         return CodeGenerator(
-            classUnderTest = targetClass.classUnderTest.java,
+            classUnderTest = targetClass.classUnderTest.id,
             testFramework = sarifProperties.testFramework,
             mockFramework = sarifProperties.mockFramework,
             staticsMocking = sarifProperties.staticsMocking,

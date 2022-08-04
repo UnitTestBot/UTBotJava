@@ -1,10 +1,9 @@
 package org.utbot.framework.concrete
 
-import org.utbot.common.findField
-import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.framework.plugin.api.util.constructor
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
@@ -143,9 +142,8 @@ class MockValueConstructor(
             mockInstance
         }
 
-        model.fields.forEach { (field, fieldModel) ->
-            val declaredField =
-                javaClass.findFieldOrNull(field.name) ?: error("Can't find field: $field for $javaClass")
+        model.fields.forEach { (fieldId, fieldModel) ->
+            val declaredField = fieldId.jField
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 
@@ -153,7 +151,7 @@ class MockValueConstructor(
             modifiersField.isAccessible = true
 
             val target = mockTarget(fieldModel) {
-                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), field.name)
+                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), fieldId.name)
             }
             val value = construct(fieldModel, target).value
             val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
@@ -368,7 +366,7 @@ class MockValueConstructor(
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = instance::class.java.findField(directSetterModel.fieldId.name)
+        val field = directSetterModel.fieldId.jField
         val isAccessible = field.isAccessible
 
         try {

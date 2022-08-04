@@ -8,18 +8,19 @@ object PythonCodeGenerator {
         classUnderTest: ClassId,
         testSets: Collection<PythonTestSet>
     ): String {
-        val codegen = CodeGenerator(classUnderTest)
-        return codegen.generateAsStringWithTestReport(
-            testSets.map {
-                CgMethodTestSet(
-                    MethodId(
-                        classUnderTest,
-                        it.method.name,
-                        ClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
-                        it.method.arguments.map { arg -> ClassId(arg.name) }
-                    )
-                )
-            }
-        ).generatedCode
+//        val codegen = CodeGenerator(classUnderTest)
+//        return codegen.generateAsStringWithTestReport(
+//            testSets.map {
+//                CgMethodTestSet(
+//                    MethodId(
+//                        classUnderTest,
+//                        it.method.name,
+//                        ClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
+//                        it.method.arguments.map { arg -> ClassId(arg.name) }
+//                    )
+//                )
+//            }
+//        ).generatedCode
+        return ""
     }
 }

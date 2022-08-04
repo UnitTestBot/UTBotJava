@@ -70,8 +70,6 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         hierarchy
             .ancestors(type.sootClass.id)
             .flatMap { it.fields }
-            .asReversed() // to take fields of the farthest parent in the distinctBy
-            .distinctBy { it.name } // TODO we lose hidden fields here JIRA:315
     }
 
     /**

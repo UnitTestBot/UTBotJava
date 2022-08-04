@@ -4,6 +4,8 @@ import org.utbot.common.PathUtil
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
+import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.closeMethodIdOrNull
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.getClass
@@ -80,7 +82,6 @@ import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.CgMethodTestSet
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
@@ -117,7 +118,7 @@ import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
 import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.floatArrayClassId
 import org.utbot.framework.plugin.api.util.floatClassId
 import org.utbot.framework.plugin.api.util.floatWrapperClassId
@@ -869,8 +870,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
     // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(name) && isAccessibleFrom(testClassPackageName)) {
-            if (field.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
+        if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
+            if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             testClassThisInstance[getFieldValue](variable, stringLiteral(name))
         }
@@ -1262,9 +1263,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
-            val method = currentExecutable!!
-            val expectedResultClassId = wrapTypeIfRequired(method.returnType)
-
+            val expectedResultClassId = wrapTypeIfRequired(testSet.resultType())
             if (expectedResultClassId != voidClassId) {
                 val wrappedType = wrapIfPrimitive(expectedResultClassId)
                 //We are required to wrap the type of expected result if it is primitive

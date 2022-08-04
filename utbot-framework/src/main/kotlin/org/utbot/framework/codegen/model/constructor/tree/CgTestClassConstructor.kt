@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.constructor.tree
 import org.utbot.common.appendHtmlLine
 import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -23,7 +24,6 @@ import org.utbot.framework.codegen.model.tree.buildTestClass
 import org.utbot.framework.codegen.model.tree.buildTestClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
-import org.utbot.framework.plugin.api.CgMethodTestSet
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -83,7 +83,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
             return null
         }
 
-        val (methodUnderTest, executions, _, _, clustersInfo) = testSet
+        val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
@@ -94,7 +94,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
                         runCatching {
-                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, executions[i])
+                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
                         }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
@@ -107,22 +107,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
-                runCatching {
-                    val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.executableId)
-
-                    val parameterizedTestMethod =
-                        methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
-
-                    requiredFields += parameterizedTestMethod.requiredFields
-
-                    cgDataProviderMethods +=
-                        methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
-
-                    regions += CgSimpleRegion(
-                        "Parameterized test for method ${methodUnderTest.displayName}",
-                        listOf(parameterizedTestMethod),
-                    )
-                }.onFailure { error -> processFailure(testSet, error) }
+                for (currentTestSet in testSet.splitExecutionsByResult()) {
+                    createParametrizedTestAndDataProvider(currentTestSet, requiredFields, regions, methodUnderTest)
+                }
             }
         }
 
@@ -139,6 +126,30 @@ internal class CgTestClassConstructor(val context: CgContext) :
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
+    }
+
+    private fun createParametrizedTestAndDataProvider(
+        testSet: CgMethodTestSet,
+        requiredFields: MutableList<CgParameterDeclaration>,
+        regions: MutableList<CgRegion<CgMethod>>,
+        methodUnderTest: ExecutableId,
+    ) {
+        runCatching {
+            val dataProviderMethodName = nameGenerator.dataProviderMethodNameFor(testSet.executableId)
+
+            val parameterizedTestMethod =
+                methodConstructor.createParameterizedTestMethod(testSet, dataProviderMethodName)
+
+            requiredFields += parameterizedTestMethod.requiredFields
+
+            cgDataProviderMethods +=
+                methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+
+            regions += CgSimpleRegion(
+                "Parameterized test for method ${methodUnderTest.displayName}",
+                listOf(parameterizedTestMethod),
+            )
+        }.onFailure { error -> processFailure(testSet, error) }
     }
 
     // TODO: collect imports of util methods

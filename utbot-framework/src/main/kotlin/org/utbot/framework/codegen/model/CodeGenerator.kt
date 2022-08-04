@@ -1,19 +1,18 @@
 package org.utbot.framework.codegen.model
 
-import org.utbot.common.packageName
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.id
 
 class CodeGenerator(
     val classUnderTest: ClassId,
@@ -30,36 +29,6 @@ class CodeGenerator(
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName,
 ) {
-    constructor(
-        classUnderTest: Class<*>,
-        paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
-        testFramework: TestFramework = TestFramework.defaultItem,
-        mockFramework: MockFramework? = MockFramework.defaultItem,
-        staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
-        forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
-        generateWarningsForStaticMocking: Boolean = true,
-        codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-        parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
-        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
-        hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
-        enableTestsTimeout: Boolean = true,
-        testClassPackageName: String = classUnderTest.packageName,
-    ) : this(
-        classUnderTest = classUnderTest.id,
-        paramNames,
-        testFramework,
-        mockFramework,
-        staticsMocking,
-        forceStaticMocking,
-        generateWarningsForStaticMocking,
-        codegenLanguage,
-        parameterizedTestSource,
-        runtimeExceptionTestsBehaviour,
-        hangingTestsTimeout,
-        enableTestsTimeout,
-        testClassPackageName
-    )
-
     private var context: CgContext = CgContext(
         classUnderTest = classUnderTest,
         paramNames = paramNames,

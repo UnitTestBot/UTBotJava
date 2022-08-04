@@ -719,6 +719,163 @@
  {
   "definitions": [
    {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_count",
+    "returns": "int"
+   }
+  ],
+  "name": "_count"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Callable[..., Any]",
+      "arg": "function"
+     },
+     {
+      "annotation": "tuple[Any, ...]",
+      "arg": "args"
+     },
+     {
+      "annotation": "dict[str, Any]",
+      "arg": "kwargs"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "start_new_thread",
+    "returns": "int"
+   }
+  ],
+  "name": "start_new_thread"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "interrupt_main",
+    "returns": "None"
+   }
+  ],
+  "name": "interrupt_main"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "exit",
+    "returns": "NoReturn"
+   },
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "code"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "exit",
+    "returns": "NoReturn"
+   },
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__status"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "exit",
+    "returns": "NoReturn"
+   }
+  ],
+  "name": "exit"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "allocate_lock",
+    "returns": "LockType"
+   }
+  ],
+  "name": "allocate_lock"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_ident",
+    "returns": "int"
+   },
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_ident",
+    "returns": "int"
+   }
+  ],
+  "name": "get_ident"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "size"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "stack_size",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "size"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "stack_size",
+    "returns": "int"
+   }
+  ],
+  "name": "stack_size"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_native_id",
+    "returns": "int"
+   }
+  ],
+  "name": "get_native_id"
+ },
+ {
+  "definitions": [
+   {
     "args": [
      {
       "annotation": "AnyStr",
@@ -1014,6 +1171,136 @@
  {
   "definitions": [
    {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__obj"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_get_object_traceback",
+    "returns": "(Sequence[_FrameTupleT] | None)"
+   }
+  ],
+  "name": "_get_object_traceback"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_get_traces",
+    "returns": "Sequence[_TraceTupleT]"
+   }
+  ],
+  "name": "_get_traces"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "clear_traces",
+    "returns": "None"
+   }
+  ],
+  "name": "clear_traces"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_traceback_limit",
+    "returns": "int"
+   }
+  ],
+  "name": "get_traceback_limit"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_traced_memory",
+    "returns": "tuple[int, int]"
+   }
+  ],
+  "name": "get_traced_memory"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_tracemalloc_memory",
+    "returns": "int"
+   }
+  ],
+  "name": "get_tracemalloc_memory"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_tracing",
+    "returns": "bool"
+   }
+  ],
+  "name": "is_tracing"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "reset_peak",
+    "returns": "None"
+   }
+  ],
+  "name": "reset_peak"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__nframe"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "start",
+    "returns": "None"
+   }
+  ],
+  "name": "start"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "stop",
+    "returns": "None"
+   }
+  ],
+  "name": "stop"
+ },
+ {
+  "definitions": [
+   {
     "args": [],
     "className": null,
     "kwonlyargs": [],
@@ -1056,6 +1343,258 @@
    }
   ],
   "name": "getgrnam"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Sequence[SupportsRichComparisonT]",
+      "arg": "a"
+     },
+     {
+      "annotation": "SupportsRichComparisonT",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "None",
+      "arg": "key"
+     }
+    ],
+    "name": "bisect_left",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "a"
+     },
+     {
+      "annotation": "SupportsRichComparisonT",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "Callable[[_T], SupportsRichComparisonT]",
+      "arg": "key"
+     }
+    ],
+    "name": "bisect_left",
+    "returns": "int"
+   }
+  ],
+  "name": "bisect_left"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Sequence[SupportsRichComparisonT]",
+      "arg": "a"
+     },
+     {
+      "annotation": "SupportsRichComparisonT",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "None",
+      "arg": "key"
+     }
+    ],
+    "name": "bisect_right",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "a"
+     },
+     {
+      "annotation": "SupportsRichComparisonT",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "Callable[[_T], SupportsRichComparisonT]",
+      "arg": "key"
+     }
+    ],
+    "name": "bisect_right",
+    "returns": "int"
+   }
+  ],
+  "name": "bisect_right"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[SupportsRichComparisonT]",
+      "arg": "a"
+     },
+     {
+      "annotation": "SupportsRichComparisonT",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "None",
+      "arg": "key"
+     }
+    ],
+    "name": "insort_left",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[_T]",
+      "arg": "a"
+     },
+     {
+      "annotation": "_T",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "Callable[[_T], SupportsRichComparisonT]",
+      "arg": "key"
+     }
+    ],
+    "name": "insort_left",
+    "returns": "None"
+   }
+  ],
+  "name": "insort_left"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[SupportsRichComparisonT]",
+      "arg": "a"
+     },
+     {
+      "annotation": "SupportsRichComparisonT",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "None",
+      "arg": "key"
+     }
+    ],
+    "name": "insort_right",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[_T]",
+      "arg": "a"
+     },
+     {
+      "annotation": "_T",
+      "arg": "x"
+     },
+     {
+      "annotation": "int",
+      "arg": "lo"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "hi"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "Callable[[_T], SupportsRichComparisonT]",
+      "arg": "key"
+     }
+    ],
+    "name": "insort_right",
+    "returns": "None"
+   }
+  ],
+  "name": "insort_right"
  },
  {
   "definitions": [
@@ -2450,6 +2989,173 @@
     "args": [
      {
       "annotation": "str",
+      "arg": "message"
+     },
+     {
+      "annotation": "(type[Warning] | None)",
+      "arg": "category"
+     },
+     {
+      "annotation": "int",
+      "arg": "stacklevel"
+     },
+     {
+      "annotation": "(Any | None)",
+      "arg": "source"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "warn",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Warning",
+      "arg": "message"
+     },
+     {
+      "annotation": "Any",
+      "arg": "category"
+     },
+     {
+      "annotation": "int",
+      "arg": "stacklevel"
+     },
+     {
+      "annotation": "(Any | None)",
+      "arg": "source"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "warn",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "msg"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "_ExcInfoType",
+      "arg": "exc_info"
+     },
+     {
+      "annotation": "bool",
+      "arg": "stack_info"
+     },
+     {
+      "annotation": "int",
+      "arg": "stacklevel"
+     },
+     {
+      "annotation": "(Mapping[str, object] | None)",
+      "arg": "extra"
+     }
+    ],
+    "name": "warn",
+    "returns": "None"
+   }
+  ],
+  "name": "warn"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "message"
+     },
+     {
+      "annotation": "type[Warning]",
+      "arg": "category"
+     },
+     {
+      "annotation": "str",
+      "arg": "filename"
+     },
+     {
+      "annotation": "int",
+      "arg": "lineno"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "module"
+     },
+     {
+      "annotation": "(dict[str | tuple[str, type[Warning], int], int] | None)",
+      "arg": "registry"
+     },
+     {
+      "annotation": "(dict[str, Any] | None)",
+      "arg": "module_globals"
+     },
+     {
+      "annotation": "(Any | None)",
+      "arg": "source"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "warn_explicit",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Warning",
+      "arg": "message"
+     },
+     {
+      "annotation": "Any",
+      "arg": "category"
+     },
+     {
+      "annotation": "str",
+      "arg": "filename"
+     },
+     {
+      "annotation": "int",
+      "arg": "lineno"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "module"
+     },
+     {
+      "annotation": "(dict[str | tuple[str, type[Warning], int], int] | None)",
+      "arg": "registry"
+     },
+     {
+      "annotation": "(dict[str, Any] | None)",
+      "arg": "module_globals"
+     },
+     {
+      "annotation": "(Any | None)",
+      "arg": "source"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "warn_explicit",
+    "returns": "None"
+   }
+  ],
+  "name": "warn_explicit"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
       "arg": "name"
      },
      {
@@ -2720,6 +3426,77 @@
    }
   ],
   "name": "scrypt"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__object"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getweakrefcount",
+    "returns": "int"
+   }
+  ],
+  "name": "getweakrefcount"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__object"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getweakrefs",
+    "returns": "list[Any]"
+   }
+  ],
+  "name": "getweakrefs"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_C",
+      "arg": "__object"
+     },
+     {
+      "annotation": "(Callable[[_C], Any] | None)",
+      "arg": "__callback"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "proxy",
+    "returns": "CallableProxyType[_C]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "_T",
+      "arg": "__object"
+     },
+     {
+      "annotation": "(Callable[[_T], Any] | None)",
+      "arg": "__callback"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "proxy",
+    "returns": "Any"
+   }
+  ],
+  "name": "proxy"
  },
  {
   "definitions": [
@@ -3831,6 +4608,1318 @@
    {
     "args": [
      {
+      "annotation": "Callable[[str], Any]",
+      "arg": "__search_function"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Callable[_P, _T]",
+      "arg": "func"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register",
+    "returns": "Callable[_P, _T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Callable[[str], CodecInfo | None]",
+      "arg": "__search_function"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "name"
+     },
+     {
+      "annotation": "(Callable[[], BaseBrowser] | None)",
+      "arg": "klass"
+     },
+     {
+      "annotation": "(BaseBrowser | None)",
+      "arg": "instance"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "bool",
+      "arg": "preferred"
+     }
+    ],
+    "name": "register",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "signum"
+     },
+     {
+      "annotation": "FileDescriptorLike",
+      "arg": "file"
+     },
+     {
+      "annotation": "bool",
+      "arg": "all_threads"
+     },
+     {
+      "annotation": "bool",
+      "arg": "chain"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register",
+    "returns": "None"
+   }
+  ],
+  "name": "register"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "_Handler",
+      "arg": "__handler"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register_error",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "Callable[[UnicodeError], tuple[str | bytes, int]]",
+      "arg": "__handler"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register_error",
+    "returns": "None"
+   }
+  ],
+  "name": "register_error"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__encoding"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lookup",
+    "returns": "codecs.CodecInfo"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "name"
+     },
+     {
+      "annotation": "FrameType",
+      "arg": "frame"
+     },
+     {
+      "annotation": "dict[str, Any]",
+      "arg": "locals"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lookup",
+    "returns": "tuple[str | None, Any]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__encoding"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lookup",
+    "returns": "CodecInfo"
+   },
+   {
+    "args": [
+     {
+      "annotation": "(str | bytes)",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lookup",
+    "returns": "str"
+   }
+  ],
+  "name": "lookup"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lookup_error",
+    "returns": "_Handler"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lookup_error",
+    "returns": "Callable[[UnicodeError], tuple[str | bytes, int]]"
+   }
+  ],
+  "name": "lookup_error"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "obj"
+     },
+     {
+      "annotation": "str",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "Any"
+   },
+   {
+    "args": [
+     {
+      "annotation": "IO[bytes]",
+      "arg": "input"
+     },
+     {
+      "annotation": "IO[bytes]",
+      "arg": "output"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "obj"
+     },
+     {
+      "annotation": "_BytesToBytesEncoding",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "obj"
+     },
+     {
+      "annotation": "_StrToStrEncoding",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "obj"
+     },
+     {
+      "annotation": "Literal['hex', 'hex_codec']",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "obj"
+     },
+     {
+      "annotation": "str",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "_File",
+      "arg": "in_file"
+     },
+     {
+      "annotation": "(_File | None)",
+      "arg": "out_file"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "mode"
+     },
+     {
+      "annotation": "int",
+      "arg": "quiet"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "BinaryIO",
+      "arg": "input"
+     },
+     {
+      "annotation": "BinaryIO",
+      "arg": "output"
+     },
+     {
+      "annotation": "int",
+      "arg": "header"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "decode",
+    "returns": "None"
+   }
+  ],
+  "name": "decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "obj"
+     },
+     {
+      "annotation": "str",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "encode",
+    "returns": "Any"
+   },
+   {
+    "args": [
+     {
+      "annotation": "IO[bytes]",
+      "arg": "input"
+     },
+     {
+      "annotation": "IO[bytes]",
+      "arg": "output"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "encode",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "obj"
+     },
+     {
+      "annotation": "_BytesToBytesEncoding",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "encode",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "obj"
+     },
+     {
+      "annotation": "_StrToStrEncoding",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "encode",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "obj"
+     },
+     {
+      "annotation": "str",
+      "arg": "encoding"
+     },
+     {
+      "annotation": "str",
+      "arg": "errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "encode",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "_File",
+      "arg": "in_file"
+     },
+     {
+      "annotation": "_File",
+      "arg": "out_file"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "name"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [
+     {
+      "annotation": "bool",
+      "arg": "backtick"
+     }
+    ],
+    "name": "encode",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "BinaryIO",
+      "arg": "input"
+     },
+     {
+      "annotation": "BinaryIO",
+      "arg": "output"
+     },
+     {
+      "annotation": "int",
+      "arg": "quotetabs"
+     },
+     {
+      "annotation": "int",
+      "arg": "header"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "encode",
+    "returns": "None"
+   }
+  ],
+  "name": "encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__map"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "charmap_build",
+    "returns": "_MapT"
+   }
+  ],
+  "name": "charmap_build"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ascii_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "ascii_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ascii_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "ascii_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "(_MapT | None)",
+      "arg": "__mapping"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "charmap_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "charmap_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "(_MapT | None)",
+      "arg": "__mapping"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "charmap_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "charmap_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(str | bytes)",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "escape_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "escape_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "escape_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "escape_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "latin_1_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "latin_1_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "latin_1_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "latin_1_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(str | bytes)",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "bool",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "raw_unicode_escape_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "raw_unicode_escape_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "raw_unicode_escape_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "raw_unicode_escape_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(str | bytes)",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "readbuffer_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "readbuffer_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(str | bytes)",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "bool",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "unicode_escape_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "unicode_escape_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "unicode_escape_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "unicode_escape_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_be_decode",
+    "returns": "tuple[str, int]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "bool",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_be_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_16_be_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_be_encode",
+    "returns": "tuple[bytes, int]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_be_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_16_be_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_16_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__byteorder"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_16_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__byteorder"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_ex_decode",
+    "returns": "tuple[str, int, int]"
+   }
+  ],
+  "name": "utf_16_ex_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_le_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_16_le_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_16_le_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_16_le_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_be_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_32_be_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_be_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_32_be_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_32_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__byteorder"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_32_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__byteorder"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_ex_decode",
+    "returns": "tuple[str, int, int]"
+   }
+  ],
+  "name": "utf_32_ex_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_le_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_32_le_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_32_le_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_32_le_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_7_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_7_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_7_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_7_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__data"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     },
+     {
+      "annotation": "int",
+      "arg": "__final"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_8_decode",
+    "returns": "tuple[str, int]"
+   }
+  ],
+  "name": "utf_8_decode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__str"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "__errors"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "utf_8_encode",
+    "returns": "tuple[bytes, int]"
+   }
+  ],
+  "name": "utf_8_encode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
       "annotation": "AnyStr",
       "arg": "s"
      }
@@ -4542,6 +6631,13 @@
     "kwonlyargs": [],
     "name": "get_cache_token",
     "returns": "object"
+   },
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_cache_token",
+    "returns": "_CacheToken"
    }
   ],
   "name": "get_cache_token"
@@ -5151,6 +7247,26 @@
     "kwonlyargs": [],
     "name": "socketpair",
     "returns": "tuple[socket, socket]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__family"
+     },
+     {
+      "annotation": "int",
+      "arg": "__type"
+     },
+     {
+      "annotation": "int",
+      "arg": "__proto"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "socketpair",
+    "returns": "tuple[socket, socket]"
    }
   ],
   "name": "socketpair"
@@ -5276,6 +7392,38 @@
     "kwonlyargs": [],
     "name": "getaddrinfo",
     "returns": "list[tuple[AddressFamily, SocketKind, int, str, tuple[str, int] | tuple[str,\n    int, int, int]]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "(bytes | str | None)",
+      "arg": "host"
+     },
+     {
+      "annotation": "(bytes | str | int | None)",
+      "arg": "port"
+     },
+     {
+      "annotation": "int",
+      "arg": "family"
+     },
+     {
+      "annotation": "int",
+      "arg": "type"
+     },
+     {
+      "annotation": "int",
+      "arg": "proto"
+     },
+     {
+      "annotation": "int",
+      "arg": "flags"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getaddrinfo",
+    "returns": "list[tuple[int, int, int, str, tuple[str, int] | tuple[str, int, int, int]]]"
    }
   ],
   "name": "getaddrinfo"
@@ -8526,84 +10674,6 @@
    {
     "args": [
      {
-      "annotation": "Callable[_P, _T]",
-      "arg": "func"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "register",
-    "returns": "Callable[_P, _T]"
-   },
-   {
-    "args": [
-     {
-      "annotation": "Callable[[str], CodecInfo | None]",
-      "arg": "__search_function"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "register",
-    "returns": "None"
-   },
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "name"
-     },
-     {
-      "annotation": "(Callable[[], BaseBrowser] | None)",
-      "arg": "klass"
-     },
-     {
-      "annotation": "(BaseBrowser | None)",
-      "arg": "instance"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [
-     {
-      "annotation": "bool",
-      "arg": "preferred"
-     }
-    ],
-    "name": "register",
-    "returns": "None"
-   },
-   {
-    "args": [
-     {
-      "annotation": "int",
-      "arg": "signum"
-     },
-     {
-      "annotation": "FileDescriptorLike",
-      "arg": "file"
-     },
-     {
-      "annotation": "bool",
-      "arg": "all_threads"
-     },
-     {
-      "annotation": "bool",
-      "arg": "chain"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "register",
-    "returns": "None"
-   }
-  ],
-  "name": "register"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
       "annotation": "Callable[..., Any]",
       "arg": "func"
      }
@@ -9026,6 +11096,132 @@
    {
     "args": [
      {
+      "annotation": "_Writer",
+      "arg": "csvfile"
+     },
+     {
+      "annotation": "_DialectLike",
+      "arg": "dialect"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "writer",
+    "returns": "_writer"
+   }
+  ],
+  "name": "writer"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Iterable[str]",
+      "arg": "csvfile"
+     },
+     {
+      "annotation": "_DialectLike",
+      "arg": "dialect"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "reader",
+    "returns": "_reader"
+   }
+  ],
+  "name": "reader"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "name"
+     },
+     {
+      "annotation": "Any",
+      "arg": "dialect"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "register_dialect",
+    "returns": "None"
+   }
+  ],
+  "name": "register_dialect"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "unregister_dialect",
+    "returns": "None"
+   }
+  ],
+  "name": "unregister_dialect"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_dialect",
+    "returns": "Dialect"
+   }
+  ],
+  "name": "get_dialect"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "list_dialects",
+    "returns": "list[str]"
+   }
+  ],
+  "name": "list_dialects"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "new_limit"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "field_size_limit",
+    "returns": "int"
+   }
+  ],
+  "name": "field_size_limit"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
       "annotation": "bytes",
       "arg": "__fragment1"
      },
@@ -9042,6 +11238,22 @@
     "kwonlyargs": [],
     "name": "add",
     "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "add",
+    "returns": "Any"
    }
   ],
   "name": "add"
@@ -9583,6 +11795,22 @@
     "kwonlyargs": [],
     "name": "mul",
     "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "mul",
+    "returns": "Any"
    }
   ],
   "name": "mul"
@@ -10086,285 +12314,6 @@
    }
   ],
   "name": "b85decode"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "IO[bytes]",
-      "arg": "input"
-     },
-     {
-      "annotation": "IO[bytes]",
-      "arg": "output"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "None"
-   },
-   {
-    "args": [
-     {
-      "annotation": "bytes",
-      "arg": "obj"
-     },
-     {
-      "annotation": "_BytesToBytesEncoding",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "bytes"
-   },
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "obj"
-     },
-     {
-      "annotation": "_StrToStrEncoding",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "str"
-   },
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "obj"
-     },
-     {
-      "annotation": "Literal['hex', 'hex_codec']",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "bytes"
-   },
-   {
-    "args": [
-     {
-      "annotation": "bytes",
-      "arg": "obj"
-     },
-     {
-      "annotation": "str",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "str"
-   },
-   {
-    "args": [
-     {
-      "annotation": "_File",
-      "arg": "in_file"
-     },
-     {
-      "annotation": "(_File | None)",
-      "arg": "out_file"
-     },
-     {
-      "annotation": "(int | None)",
-      "arg": "mode"
-     },
-     {
-      "annotation": "int",
-      "arg": "quiet"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "None"
-   },
-   {
-    "args": [
-     {
-      "annotation": "BinaryIO",
-      "arg": "input"
-     },
-     {
-      "annotation": "BinaryIO",
-      "arg": "output"
-     },
-     {
-      "annotation": "int",
-      "arg": "header"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "None"
-   }
-  ],
-  "name": "decode"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "IO[bytes]",
-      "arg": "input"
-     },
-     {
-      "annotation": "IO[bytes]",
-      "arg": "output"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "encode",
-    "returns": "None"
-   },
-   {
-    "args": [
-     {
-      "annotation": "bytes",
-      "arg": "obj"
-     },
-     {
-      "annotation": "_BytesToBytesEncoding",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "encode",
-    "returns": "bytes"
-   },
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "obj"
-     },
-     {
-      "annotation": "_StrToStrEncoding",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "encode",
-    "returns": "str"
-   },
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "obj"
-     },
-     {
-      "annotation": "str",
-      "arg": "encoding"
-     },
-     {
-      "annotation": "str",
-      "arg": "errors"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "encode",
-    "returns": "bytes"
-   },
-   {
-    "args": [
-     {
-      "annotation": "_File",
-      "arg": "in_file"
-     },
-     {
-      "annotation": "_File",
-      "arg": "out_file"
-     },
-     {
-      "annotation": "(str | None)",
-      "arg": "name"
-     },
-     {
-      "annotation": "(int | None)",
-      "arg": "mode"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [
-     {
-      "annotation": "bool",
-      "arg": "backtick"
-     }
-    ],
-    "name": "encode",
-    "returns": "None"
-   },
-   {
-    "args": [
-     {
-      "annotation": "BinaryIO",
-      "arg": "input"
-     },
-     {
-      "annotation": "BinaryIO",
-      "arg": "output"
-     },
-     {
-      "annotation": "int",
-      "arg": "quotetabs"
-     },
-     {
-      "annotation": "int",
-      "arg": "header"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "encode",
-    "returns": "None"
-   }
-  ],
-  "name": "encode"
  },
  {
   "definitions": [
@@ -11395,6 +13344,1288 @@
  {
   "definitions": [
    {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "baudrate",
+    "returns": "int"
+   }
+  ],
+  "name": "baudrate"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "beep",
+    "returns": "None"
+   }
+  ],
+  "name": "beep"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "can_change_color",
+    "returns": "bool"
+   }
+  ],
+  "name": "can_change_color"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "cbreak",
+    "returns": "None"
+   }
+  ],
+  "name": "cbreak"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__color_number"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "color_content",
+    "returns": "tuple[int, int, int]"
+   }
+  ],
+  "name": "color_content"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "pair_number"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "color_pair",
+    "returns": "int"
+   }
+  ],
+  "name": "color_pair"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__visibility"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "curs_set",
+    "returns": "int"
+   }
+  ],
+  "name": "curs_set"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "def_prog_mode",
+    "returns": "None"
+   }
+  ],
+  "name": "def_prog_mode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "def_shell_mode",
+    "returns": "None"
+   }
+  ],
+  "name": "def_shell_mode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__ms"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "delay_output",
+    "returns": "None"
+   }
+  ],
+  "name": "delay_output"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "doupdate",
+    "returns": "None"
+   }
+  ],
+  "name": "doupdate"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "echo",
+    "returns": "None"
+   }
+  ],
+  "name": "echo"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "endwin",
+    "returns": "None"
+   }
+  ],
+  "name": "endwin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "erasechar",
+    "returns": "bytes"
+   }
+  ],
+  "name": "erasechar"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "filter",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Iterable[AnyStr]",
+      "arg": "names"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "pat"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "filter",
+    "returns": "list[AnyStr]"
+   }
+  ],
+  "name": "filter"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "flash",
+    "returns": "None"
+   }
+  ],
+  "name": "flash"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "flushinp",
+    "returns": "None"
+   }
+  ],
+  "name": "flushinp"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_escdelay",
+    "returns": "int"
+   }
+  ],
+  "name": "get_escdelay"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_tabsize",
+    "returns": "int"
+   }
+  ],
+  "name": "get_tabsize"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getmouse",
+    "returns": "tuple[int, int, int, int, int]"
+   }
+  ],
+  "name": "getmouse"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getsyx",
+    "returns": "tuple[int, int]"
+   }
+  ],
+  "name": "getsyx"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "SupportsRead[bytes]",
+      "arg": "__file"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getwin",
+    "returns": "_CursesWindow"
+   }
+  ],
+  "name": "getwin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__tenths"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "halfdelay",
+    "returns": "None"
+   }
+  ],
+  "name": "halfdelay"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "has_colors",
+    "returns": "bool"
+   }
+  ],
+  "name": "has_colors"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "has_extended_color_support",
+    "returns": "bool"
+   }
+  ],
+  "name": "has_extended_color_support"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "has_ic",
+    "returns": "bool"
+   }
+  ],
+  "name": "has_ic"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "has_il",
+    "returns": "bool"
+   }
+  ],
+  "name": "has_il"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__key"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "has_key",
+    "returns": "bool"
+   }
+  ],
+  "name": "has_key"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__color_number"
+     },
+     {
+      "annotation": "int",
+      "arg": "__r"
+     },
+     {
+      "annotation": "int",
+      "arg": "__g"
+     },
+     {
+      "annotation": "int",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "init_color",
+    "returns": "None"
+   }
+  ],
+  "name": "init_color"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__pair_number"
+     },
+     {
+      "annotation": "int",
+      "arg": "__fg"
+     },
+     {
+      "annotation": "int",
+      "arg": "__bg"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "init_pair",
+    "returns": "None"
+   }
+  ],
+  "name": "init_pair"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "initscr",
+    "returns": "_CursesWindow"
+   }
+  ],
+  "name": "initscr"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "intrflush",
+    "returns": "None"
+   }
+  ],
+  "name": "intrflush"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__nlines"
+     },
+     {
+      "annotation": "int",
+      "arg": "__ncols"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_term_resized",
+    "returns": "bool"
+   }
+  ],
+  "name": "is_term_resized"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "isendwin",
+    "returns": "bool"
+   }
+  ],
+  "name": "isendwin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__key"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "keyname",
+    "returns": "bytes"
+   }
+  ],
+  "name": "keyname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "killchar",
+    "returns": "bytes"
+   }
+  ],
+  "name": "killchar"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "longname",
+    "returns": "bytes"
+   }
+  ],
+  "name": "longname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__yes"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "meta",
+    "returns": "None"
+   }
+  ],
+  "name": "meta"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__interval"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "mouseinterval",
+    "returns": "None"
+   }
+  ],
+  "name": "mouseinterval"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__newmask"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "mousemask",
+    "returns": "tuple[int, int]"
+   }
+  ],
+  "name": "mousemask"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__ms"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "napms",
+    "returns": "int"
+   }
+  ],
+  "name": "napms"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__nlines"
+     },
+     {
+      "annotation": "int",
+      "arg": "__ncols"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "newpad",
+    "returns": "_CursesWindow"
+   }
+  ],
+  "name": "newpad"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__nlines"
+     },
+     {
+      "annotation": "int",
+      "arg": "__ncols"
+     },
+     {
+      "annotation": "int",
+      "arg": "__begin_y"
+     },
+     {
+      "annotation": "int",
+      "arg": "__begin_x"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "newwin",
+    "returns": "_CursesWindow"
+   }
+  ],
+  "name": "newwin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "nl",
+    "returns": "None"
+   }
+  ],
+  "name": "nl"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "nocbreak",
+    "returns": "None"
+   }
+  ],
+  "name": "nocbreak"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "noecho",
+    "returns": "None"
+   }
+  ],
+  "name": "noecho"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "nonl",
+    "returns": "None"
+   }
+  ],
+  "name": "nonl"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "noqiflush",
+    "returns": "None"
+   }
+  ],
+  "name": "noqiflush"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "noraw",
+    "returns": "None"
+   }
+  ],
+  "name": "noraw"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__pair_number"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "pair_content",
+    "returns": "tuple[int, int]"
+   }
+  ],
+  "name": "pair_content"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__attr"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "pair_number",
+    "returns": "int"
+   }
+  ],
+  "name": "pair_number"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__string"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "putp",
+    "returns": "None"
+   }
+  ],
+  "name": "putp"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "qiflush",
+    "returns": "None"
+   }
+  ],
+  "name": "qiflush"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "raw",
+    "returns": "None"
+   }
+  ],
+  "name": "raw"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "reset_prog_mode",
+    "returns": "None"
+   }
+  ],
+  "name": "reset_prog_mode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "reset_shell_mode",
+    "returns": "None"
+   }
+  ],
+  "name": "reset_shell_mode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "resetty",
+    "returns": "None"
+   }
+  ],
+  "name": "resetty"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__nlines"
+     },
+     {
+      "annotation": "int",
+      "arg": "__ncols"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "resize_term",
+    "returns": "None"
+   }
+  ],
+  "name": "resize_term"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__nlines"
+     },
+     {
+      "annotation": "int",
+      "arg": "__ncols"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "resizeterm",
+    "returns": "None"
+   }
+  ],
+  "name": "resizeterm"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "savetty",
+    "returns": "None"
+   }
+  ],
+  "name": "savetty"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__ms"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "set_escdelay",
+    "returns": "None"
+   }
+  ],
+  "name": "set_escdelay"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__size"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "set_tabsize",
+    "returns": "None"
+   }
+  ],
+  "name": "set_tabsize"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__y"
+     },
+     {
+      "annotation": "int",
+      "arg": "__x"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setsyx",
+    "returns": "None"
+   }
+  ],
+  "name": "setsyx"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(str | None)",
+      "arg": "term"
+     },
+     {
+      "annotation": "int",
+      "arg": "fd"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setupterm",
+    "returns": "None"
+   }
+  ],
+  "name": "setupterm"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "start_color",
+    "returns": "None"
+   }
+  ],
+  "name": "start_color"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "termattrs",
+    "returns": "int"
+   }
+  ],
+  "name": "termattrs"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "termname",
+    "returns": "bytes"
+   }
+  ],
+  "name": "termname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__capname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "tigetflag",
+    "returns": "int"
+   }
+  ],
+  "name": "tigetflag"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__capname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "tigetnum",
+    "returns": "int"
+   }
+  ],
+  "name": "tigetnum"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__capname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "tigetstr",
+    "returns": "(bytes | None)"
+   }
+  ],
+  "name": "tigetstr"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__str"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i1"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i2"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i3"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i4"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i5"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i6"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i7"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i8"
+     },
+     {
+      "annotation": "int",
+      "arg": "__i9"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "tparm",
+    "returns": "bytes"
+   }
+  ],
+  "name": "tparm"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__fd"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "typeahead",
+    "returns": "None"
+   }
+  ],
+  "name": "typeahead"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_chtype",
+      "arg": "__ch"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "unctrl",
+    "returns": "bytes"
+   }
+  ],
+  "name": "unctrl"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(int | str)",
+      "arg": "__ch"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "unget_wch",
+    "returns": "None"
+   }
+  ],
+  "name": "unget_wch"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_chtype",
+      "arg": "__ch"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ungetch",
+    "returns": "None"
+   }
+  ],
+  "name": "ungetch"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__id"
+     },
+     {
+      "annotation": "int",
+      "arg": "__x"
+     },
+     {
+      "annotation": "int",
+      "arg": "__y"
+     },
+     {
+      "annotation": "int",
+      "arg": "__z"
+     },
+     {
+      "annotation": "int",
+      "arg": "__bstate"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ungetmouse",
+    "returns": "None"
+   }
+  ],
+  "name": "ungetmouse"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "update_lines_cols",
+    "returns": "None"
+   }
+  ],
+  "name": "update_lines_cols"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "use_default_colors",
+    "returns": "None"
+   }
+  ],
+  "name": "use_default_colors"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "use_env",
+    "returns": "None"
+   }
+  ],
+  "name": "use_env"
+ },
+ {
+  "definitions": [
+   {
     "args": [
      {
       "annotation": "(str | bytes)",
@@ -11884,40 +15115,6 @@
    }
   ],
   "name": "warning"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "object",
-      "arg": "msg"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [
-     {
-      "annotation": "_ExcInfoType",
-      "arg": "exc_info"
-     },
-     {
-      "annotation": "bool",
-      "arg": "stack_info"
-     },
-     {
-      "annotation": "int",
-      "arg": "stacklevel"
-     },
-     {
-      "annotation": "(Mapping[str, object] | None)",
-      "arg": "extra"
-     }
-    ],
-    "name": "warn",
-    "returns": "None"
-   }
-  ],
-  "name": "warn"
  },
  {
   "definitions": [
@@ -14320,6 +17517,18 @@
     "kwonlyargs": [],
     "name": "abs",
     "returns": "_T"
+   },
+   {
+    "args": [
+     {
+      "annotation": "SupportsAbs[_T]",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "abs",
+    "returns": "_T"
    }
   ],
   "name": "abs"
@@ -14643,35 +17852,6 @@
    }
   ],
   "name": "exec"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "object",
-      "arg": "code"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "exit",
-    "returns": "NoReturn"
-   },
-   {
-    "args": [
-     {
-      "annotation": "object",
-      "arg": "__status"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "exit",
-    "returns": "NoReturn"
-   }
-  ],
-  "name": "exit"
  },
  {
   "definitions": [
@@ -15628,6 +18808,22 @@
     "kwonlyargs": [],
     "name": "pow",
     "returns": "float"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "pow",
+    "returns": "Any"
    }
   ],
   "name": "pow"
@@ -15919,6 +19115,52 @@
    }
   ],
   "name": "getcaps"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Context",
+      "arg": "__context"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setcontext",
+    "returns": "None"
+   }
+  ],
+  "name": "setcontext"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getcontext",
+    "returns": "Context"
+   }
+  ],
+  "name": "getcontext"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(Context | None)",
+      "arg": "ctx"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "localcontext",
+    "returns": "_ContextManager"
+   }
+  ],
+  "name": "localcontext"
  },
  {
   "definitions": [
@@ -18906,55 +22148,6 @@
    {
     "args": [
      {
-      "annotation": "str",
-      "arg": "name"
-     },
-     {
-      "annotation": "FrameType",
-      "arg": "frame"
-     },
-     {
-      "annotation": "dict[str, Any]",
-      "arg": "locals"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "lookup",
-    "returns": "tuple[str | None, Any]"
-   },
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "__encoding"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "lookup",
-    "returns": "CodecInfo"
-   },
-   {
-    "args": [
-     {
-      "annotation": "(str | bytes)",
-      "arg": "__name"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "lookup",
-    "returns": "str"
-   }
-  ],
-  "name": "lookup"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
       "annotation": "Callable[[], bytes]",
       "arg": "reader"
      },
@@ -19563,6 +22756,103 @@
    {
     "args": [
      {
+      "annotation": "list[Any]",
+      "arg": "__heap"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "heapify",
+    "returns": "None"
+   }
+  ],
+  "name": "heapify"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "list[_T]",
+      "arg": "__heap"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "heappop",
+    "returns": "_T"
+   }
+  ],
+  "name": "heappop"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "list[_T]",
+      "arg": "__heap"
+     },
+     {
+      "annotation": "_T",
+      "arg": "__item"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "heappush",
+    "returns": "None"
+   }
+  ],
+  "name": "heappush"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "list[_T]",
+      "arg": "__heap"
+     },
+     {
+      "annotation": "_T",
+      "arg": "__item"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "heappushpop",
+    "returns": "_T"
+   }
+  ],
+  "name": "heappushpop"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "list[_T]",
+      "arg": "__heap"
+     },
+     {
+      "annotation": "_T",
+      "arg": "__item"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "heapreplace",
+    "returns": "_T"
+   }
+  ],
+  "name": "heapreplace"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
       "annotation": "_C",
       "arg": "__z"
      }
@@ -19612,6 +22902,211 @@
    }
   ],
   "name": "rect"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "ModuleSpec",
+      "arg": "__spec"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "create_builtin",
+    "returns": "types.ModuleType"
+   }
+  ],
+  "name": "create_builtin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "ModuleSpec",
+      "arg": "__spec"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__file"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "create_dynamic",
+    "returns": "types.ModuleType"
+   }
+  ],
+  "name": "create_dynamic"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "acquire_lock",
+    "returns": "None"
+   }
+  ],
+  "name": "acquire_lock"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "types.ModuleType",
+      "arg": "__mod"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "exec_builtin",
+    "returns": "int"
+   }
+  ],
+  "name": "exec_builtin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "types.ModuleType",
+      "arg": "__mod"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "exec_dynamic",
+    "returns": "int"
+   }
+  ],
+  "name": "exec_dynamic"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "extension_suffixes",
+    "returns": "list[str]"
+   }
+  ],
+  "name": "extension_suffixes"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_frozen_object",
+    "returns": "types.CodeType"
+   }
+  ],
+  "name": "get_frozen_object"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "init_frozen",
+    "returns": "types.ModuleType"
+   }
+  ],
+  "name": "init_frozen"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_builtin",
+    "returns": "int"
+   }
+  ],
+  "name": "is_builtin"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_frozen",
+    "returns": "bool"
+   }
+  ],
+  "name": "is_frozen"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_frozen_package",
+    "returns": "bool"
+   }
+  ],
+  "name": "is_frozen_package"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lock_held",
+    "returns": "bool"
+   }
+  ],
+  "name": "lock_held"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "release_lock",
+    "returns": "None"
+   }
+  ],
+  "name": "release_lock"
  },
  {
   "definitions": [
@@ -20362,25 +23857,17 @@
    {
     "args": [
      {
-      "annotation": "bytes",
-      "arg": "__data"
-     },
-     {
-      "annotation": "(str | None)",
-      "arg": "__errors"
-     },
-     {
-      "annotation": "bool",
-      "arg": "__final"
+      "annotation": "str",
+      "arg": "s"
      }
     ],
     "className": null,
     "kwonlyargs": [],
-    "name": "utf_16_be_decode",
-    "returns": "tuple[str, int]"
+    "name": "encode_basestring_ascii",
+    "returns": "str"
    }
   ],
-  "name": "utf_16_be_decode"
+  "name": "encode_basestring_ascii"
  },
  {
   "definitions": [
@@ -20388,20 +23875,24 @@
     "args": [
      {
       "annotation": "str",
-      "arg": "__str"
+      "arg": "string"
      },
      {
-      "annotation": "(str | None)",
-      "arg": "__errors"
+      "annotation": "int",
+      "arg": "end"
+     },
+     {
+      "annotation": "bool",
+      "arg": "strict"
      }
     ],
     "className": null,
     "kwonlyargs": [],
-    "name": "utf_16_be_encode",
-    "returns": "tuple[bytes, int]"
+    "name": "scanstring",
+    "returns": "tuple[str, int]"
    }
   ],
-  "name": "utf_16_be_encode"
+  "name": "scanstring"
  },
  {
   "definitions": [
@@ -20583,44 +24074,6 @@
    }
   ],
   "name": "iterdecode"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "__errors"
-     },
-     {
-      "annotation": "Callable[[UnicodeError], tuple[str | bytes, int]]",
-      "arg": "__handler"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "register_error",
-    "returns": "None"
-   }
-  ],
-  "name": "register_error"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "str",
-      "arg": "__name"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "lookup_error",
-    "returns": "Callable[[UnicodeError], tuple[str | bytes, int]]"
-   }
-  ],
-  "name": "lookup_error"
  },
  {
   "definitions": [
@@ -21258,18 +24711,6 @@
     "args": [],
     "className": null,
     "kwonlyargs": [],
-    "name": "get_ident",
-    "returns": "int"
-   }
-  ],
-  "name": "get_ident"
- },
- {
-  "definitions": [
-   {
-    "args": [],
-    "className": null,
-    "kwonlyargs": [],
     "name": "enumerate",
     "returns": "list[Thread]"
    }
@@ -21287,23 +24728,6 @@
    }
   ],
   "name": "main_thread"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "int",
-      "arg": "size"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "stack_size",
-    "returns": "int"
-   }
-  ],
-  "name": "stack_size"
  },
  {
   "definitions": [
@@ -23079,6 +26503,18 @@
     "returns": "None"
    },
    {
+    "args": [
+     {
+      "annotation": "_FD",
+      "arg": "__fd"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "close",
+    "returns": "None"
+   },
+   {
     "args": [],
     "className": null,
     "kwonlyargs": [],
@@ -23132,6 +26568,18 @@
     "args": [
      {
       "annotation": "int",
+      "arg": "__fd"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "dup",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "_FD",
       "arg": "__fd"
      }
     ],
@@ -26447,6 +29895,1213 @@
    {
     "args": [
      {
+      "annotation": "_SupportsComparison",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lt",
+    "returns": "Any"
+   }
+  ],
+  "name": "lt"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "le",
+    "returns": "Any"
+   }
+  ],
+  "name": "le"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__a"
+     },
+     {
+      "annotation": "object",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "eq",
+    "returns": "Any"
+   }
+  ],
+  "name": "eq"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__a"
+     },
+     {
+      "annotation": "object",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ne",
+    "returns": "Any"
+   }
+  ],
+  "name": "ne"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ge",
+    "returns": "Any"
+   }
+  ],
+  "name": "ge"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_SupportsComparison",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "gt",
+    "returns": "Any"
+   }
+  ],
+  "name": "gt"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "not_",
+    "returns": "bool"
+   }
+  ],
+  "name": "not_"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "truth",
+    "returns": "bool"
+   }
+  ],
+  "name": "truth"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__a"
+     },
+     {
+      "annotation": "object",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_",
+    "returns": "bool"
+   }
+  ],
+  "name": "is_"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__a"
+     },
+     {
+      "annotation": "object",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "is_not",
+    "returns": "bool"
+   }
+  ],
+  "name": "is_not"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "and_",
+    "returns": "Any"
+   }
+  ],
+  "name": "and_"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "floordiv",
+    "returns": "Any"
+   }
+  ],
+  "name": "floordiv"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "SupportsIndex",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "index",
+    "returns": "int"
+   }
+  ],
+  "name": "index"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsInversion[_T_co]",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "inv",
+    "returns": "_T_co"
+   }
+  ],
+  "name": "inv"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsInversion[_T_co]",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "invert",
+    "returns": "_T_co"
+   }
+  ],
+  "name": "invert"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "lshift",
+    "returns": "Any"
+   }
+  ],
+  "name": "lshift"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "mod",
+    "returns": "Any"
+   }
+  ],
+  "name": "mod"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "matmul",
+    "returns": "Any"
+   }
+  ],
+  "name": "matmul"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsNeg[_T_co]",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "neg",
+    "returns": "_T_co"
+   }
+  ],
+  "name": "neg"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "or_",
+    "returns": "Any"
+   }
+  ],
+  "name": "or_"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "_SupportsPos[_T_co]",
+      "arg": "__a"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "pos",
+    "returns": "_T_co"
+   },
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "pos",
+    "returns": "Vec2D"
+   }
+  ],
+  "name": "pos"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "rshift",
+    "returns": "Any"
+   }
+  ],
+  "name": "rshift"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "sub",
+    "returns": "Any"
+   },
+   {
+    "args": [
+     {
+      "annotation": "AnyStr",
+      "arg": "pattern"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "repl"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "string"
+     },
+     {
+      "annotation": "int",
+      "arg": "count"
+     },
+     {
+      "annotation": "_FlagsType",
+      "arg": "flags"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "sub",
+    "returns": "AnyStr"
+   },
+   {
+    "args": [
+     {
+      "annotation": "AnyStr",
+      "arg": "pattern"
+     },
+     {
+      "annotation": "Callable[[Match[AnyStr]], AnyStr]",
+      "arg": "repl"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "string"
+     },
+     {
+      "annotation": "int",
+      "arg": "count"
+     },
+     {
+      "annotation": "_FlagsType",
+      "arg": "flags"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "sub",
+    "returns": "AnyStr"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Pattern[AnyStr]",
+      "arg": "pattern"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "repl"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "string"
+     },
+     {
+      "annotation": "int",
+      "arg": "count"
+     },
+     {
+      "annotation": "_FlagsType",
+      "arg": "flags"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "sub",
+    "returns": "AnyStr"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Pattern[AnyStr]",
+      "arg": "pattern"
+     },
+     {
+      "annotation": "Callable[[Match[AnyStr]], AnyStr]",
+      "arg": "repl"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "string"
+     },
+     {
+      "annotation": "int",
+      "arg": "count"
+     },
+     {
+      "annotation": "_FlagsType",
+      "arg": "flags"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "sub",
+    "returns": "AnyStr"
+   }
+  ],
+  "name": "sub"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "truediv",
+    "returns": "Any"
+   }
+  ],
+  "name": "truediv"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "xor",
+    "returns": "Any"
+   }
+  ],
+  "name": "xor"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "concat",
+    "returns": "Sequence[_T]"
+   }
+  ],
+  "name": "concat"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Container[object]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "object",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "contains",
+    "returns": "bool"
+   }
+  ],
+  "name": "contains"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Iterable[object]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "object",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "countOf",
+    "returns": "int"
+   }
+  ],
+  "name": "countOf"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[Any]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "SupportsIndex",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "delitem",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[Any]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "slice",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "delitem",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "MutableMapping[_K, Any]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_K",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "delitem",
+    "returns": "None"
+   }
+  ],
+  "name": "delitem"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "SupportsIndex",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getitem",
+    "returns": "_T"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "slice",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getitem",
+    "returns": "Sequence[_T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Mapping[_K, _V]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_K",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getitem",
+    "returns": "_V"
+   }
+  ],
+  "name": "getitem"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_T",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "indexOf",
+    "returns": "int"
+   }
+  ],
+  "name": "indexOf"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[_T]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "SupportsIndex",
+      "arg": "__b"
+     },
+     {
+      "annotation": "_T",
+      "arg": "__c"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setitem",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "MutableSequence[_T]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "slice",
+      "arg": "__b"
+     },
+     {
+      "annotation": "Sequence[_T]",
+      "arg": "__c"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setitem",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "MutableMapping[_K, _V]",
+      "arg": "__a"
+     },
+     {
+      "annotation": "_K",
+      "arg": "__b"
+     },
+     {
+      "annotation": "_V",
+      "arg": "__c"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setitem",
+    "returns": "None"
+   }
+  ],
+  "name": "setitem"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "object",
+      "arg": "__obj"
+     },
+     {
+      "annotation": "int",
+      "arg": "__default"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "length_hint",
+    "returns": "int"
+   }
+  ],
+  "name": "length_hint"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "iadd",
+    "returns": "Any"
+   }
+  ],
+  "name": "iadd"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "iand",
+    "returns": "Any"
+   }
+  ],
+  "name": "iand"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "iconcat",
+    "returns": "Any"
+   }
+  ],
+  "name": "iconcat"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ifloordiv",
+    "returns": "Any"
+   }
+  ],
+  "name": "ifloordiv"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ilshift",
+    "returns": "Any"
+   }
+  ],
+  "name": "ilshift"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "imod",
+    "returns": "Any"
+   }
+  ],
+  "name": "imod"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "imul",
+    "returns": "Any"
+   }
+  ],
+  "name": "imul"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "imatmul",
+    "returns": "Any"
+   }
+  ],
+  "name": "imatmul"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ior",
+    "returns": "Any"
+   }
+  ],
+  "name": "ior"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ipow",
+    "returns": "Any"
+   }
+  ],
+  "name": "ipow"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "irshift",
+    "returns": "Any"
+   }
+  ],
+  "name": "irshift"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "isub",
+    "returns": "Any"
+   }
+  ],
+  "name": "isub"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "itruediv",
+    "returns": "Any"
+   }
+  ],
+  "name": "itruediv"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Any",
+      "arg": "__a"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ixor",
+    "returns": "Any"
+   }
+  ],
+  "name": "ixor"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "AnyStr",
+      "arg": "__a"
+     },
+     {
+      "annotation": "AnyStr",
+      "arg": "__b"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_compare_digest",
+    "returns": "bool"
+   }
+  ],
+  "name": "_compare_digest"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
       "annotation": "_T",
       "arg": "x"
      },
@@ -26579,6 +31234,300 @@
    }
   ],
   "name": "lasti2lineno"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "executable"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "path"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_find_executable",
+    "returns": "(str | None)"
+   }
+  ],
+  "name": "_find_executable"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "commandstring"
+     },
+     {
+      "annotation": "bool",
+      "arg": "capture_stderr"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_read_output",
+    "returns": "(str | None)"
+   }
+  ],
+  "name": "_read_output"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "toolname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_find_build_tool",
+    "returns": "str"
+   }
+  ],
+  "name": "_find_build_tool"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_get_system_version",
+    "returns": "str"
+   }
+  ],
+  "name": "_get_system_version"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_remove_original_values",
+    "returns": "None"
+   }
+  ],
+  "name": "_remove_original_values"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     },
+     {
+      "annotation": "str",
+      "arg": "cv"
+     },
+     {
+      "annotation": "str",
+      "arg": "newvalue"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_save_modified_value",
+    "returns": "None"
+   }
+  ],
+  "name": "_save_modified_value"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_supports_universal_builds",
+    "returns": "bool"
+   }
+  ],
+  "name": "_supports_universal_builds"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_find_appropriate_compiler",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "_find_appropriate_compiler"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_remove_universal_flags",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "_remove_universal_flags"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_remove_unsupported_archs",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "_remove_unsupported_archs"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_override_all_archs",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "_override_all_archs"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "_check_for_unavailable_sdk",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "_check_for_unavailable_sdk"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Iterable[str]",
+      "arg": "compiler_so"
+     },
+     {
+      "annotation": "Sequence[str]",
+      "arg": "cc_args"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "compiler_fixup",
+    "returns": "list[str]"
+   }
+  ],
+  "name": "compiler_fixup"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "customize_config_vars",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "customize_config_vars"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "customize_compiler",
+    "returns": "dict[str, str]"
+   }
+  ],
+  "name": "customize_compiler"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "dict[str, str]",
+      "arg": "_config_vars"
+     },
+     {
+      "annotation": "_T",
+      "arg": "osname"
+     },
+     {
+      "annotation": "_K",
+      "arg": "release"
+     },
+     {
+      "annotation": "_V",
+      "arg": "machine"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "get_platform_osx",
+    "returns": "tuple[str | _T, str | _K, str | _V]"
+   }
+  ],
+  "name": "get_platform_osx"
  },
  {
   "definitions": [
@@ -27637,6 +32586,99 @@
  {
   "definitions": [
    {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "cloexec_pipe",
+    "returns": "tuple[int, int]"
+   }
+  ],
+  "name": "cloexec_pipe"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "Sequence[str]",
+      "arg": "args"
+     },
+     {
+      "annotation": "Sequence[bytes]",
+      "arg": "executable_list"
+     },
+     {
+      "annotation": "bool",
+      "arg": "close_fds"
+     },
+     {
+      "annotation": "Sequence[int]",
+      "arg": "fds_to_keep"
+     },
+     {
+      "annotation": "str",
+      "arg": "cwd"
+     },
+     {
+      "annotation": "Sequence[bytes]",
+      "arg": "env_list"
+     },
+     {
+      "annotation": "int",
+      "arg": "p2cread"
+     },
+     {
+      "annotation": "int",
+      "arg": "p2cwrite"
+     },
+     {
+      "annotation": "int",
+      "arg": "c2pred"
+     },
+     {
+      "annotation": "int",
+      "arg": "c2pwrite"
+     },
+     {
+      "annotation": "int",
+      "arg": "errread"
+     },
+     {
+      "annotation": "int",
+      "arg": "errwrite"
+     },
+     {
+      "annotation": "int",
+      "arg": "errpipe_read"
+     },
+     {
+      "annotation": "int",
+      "arg": "errpipe_write"
+     },
+     {
+      "annotation": "int",
+      "arg": "restore_signals"
+     },
+     {
+      "annotation": "int",
+      "arg": "start_new_session"
+     },
+     {
+      "annotation": "Callable[[], None]",
+      "arg": "preexec_fn"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "fork_exec",
+    "returns": "int"
+   }
+  ],
+  "name": "fork_exec"
+ },
+ {
+  "definitions": [
+   {
     "args": [
      {
       "annotation": "(type[_CData] | None)",
@@ -28691,18 +33733,6 @@
    }
   ],
   "name": "left"
- },
- {
-  "definitions": [
-   {
-    "args": [],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "pos",
-    "returns": "Vec2D"
-   }
-  ],
-  "name": "pos"
  },
  {
   "definitions": [
@@ -33139,6 +38169,419 @@
  {
   "definitions": [
    {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__hostname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "gethostbyname",
+    "returns": "str"
+   }
+  ],
+  "name": "gethostbyname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__hostname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "gethostbyname_ex",
+    "returns": "tuple[str, list[str], list[str]]"
+   }
+  ],
+  "name": "gethostbyname_ex"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "gethostname",
+    "returns": "str"
+   }
+  ],
+  "name": "gethostname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__ip_address"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "gethostbyaddr",
+    "returns": "tuple[str, list[str], list[str]]"
+   }
+  ],
+  "name": "gethostbyaddr"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(tuple[str, int] | tuple[str, int, int, int])",
+      "arg": "__sockaddr"
+     },
+     {
+      "annotation": "int",
+      "arg": "__flags"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getnameinfo",
+    "returns": "tuple[str, str]"
+   }
+  ],
+  "name": "getnameinfo"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__protocolname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getprotobyname",
+    "returns": "int"
+   }
+  ],
+  "name": "getprotobyname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__servicename"
+     },
+     {
+      "annotation": "str",
+      "arg": "__protocolname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getservbyname",
+    "returns": "int"
+   }
+  ],
+  "name": "getservbyname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__port"
+     },
+     {
+      "annotation": "str",
+      "arg": "__protocolname"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getservbyport",
+    "returns": "str"
+   }
+  ],
+  "name": "getservbyport"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__x"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ntohl",
+    "returns": "int"
+   }
+  ],
+  "name": "ntohl"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__x"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "ntohs",
+    "returns": "int"
+   }
+  ],
+  "name": "ntohs"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__x"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "htonl",
+    "returns": "int"
+   }
+  ],
+  "name": "htonl"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__x"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "htons",
+    "returns": "int"
+   }
+  ],
+  "name": "htons"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__ip_string"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "inet_aton",
+    "returns": "bytes"
+   }
+  ],
+  "name": "inet_aton"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "bytes",
+      "arg": "__packed_ip"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "inet_ntoa",
+    "returns": "str"
+   }
+  ],
+  "name": "inet_ntoa"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__address_family"
+     },
+     {
+      "annotation": "str",
+      "arg": "__ip_string"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "inet_pton",
+    "returns": "bytes"
+   }
+  ],
+  "name": "inet_pton"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__address_family"
+     },
+     {
+      "annotation": "bytes",
+      "arg": "__packed_ip"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "inet_ntop",
+    "returns": "str"
+   }
+  ],
+  "name": "inet_ntop"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__length"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "CMSG_LEN",
+    "returns": "int"
+   }
+  ],
+  "name": "CMSG_LEN"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__length"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "CMSG_SPACE",
+    "returns": "int"
+   }
+  ],
+  "name": "CMSG_SPACE"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "getdefaulttimeout",
+    "returns": "(float | None)"
+   }
+  ],
+  "name": "getdefaulttimeout"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "(float | None)",
+      "arg": "__timeout"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "setdefaulttimeout",
+    "returns": "None"
+   }
+  ],
+  "name": "setdefaulttimeout"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "sethostname",
+    "returns": "None"
+   }
+  ],
+  "name": "sethostname"
+ },
+ {
+  "definitions": [
+   {
+    "args": [],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "if_nameindex",
+    "returns": "list[tuple[int, str]]"
+   }
+  ],
+  "name": "if_nameindex"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "if_nametoindex",
+    "returns": "int"
+   }
+  ],
+  "name": "if_nametoindex"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "__index"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "if_indextoname",
+    "returns": "str"
+   }
+  ],
+  "name": "if_indextoname"
+ },
+ {
+  "definitions": [
+   {
     "args": [],
     "className": null,
     "kwonlyargs": [
@@ -33995,6 +39438,227 @@
    {
     "args": [
      {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_IMODE",
+    "returns": "int"
+   }
+  ],
+  "name": "S_IMODE"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_IFMT",
+    "returns": "int"
+   }
+  ],
+  "name": "S_IFMT"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISBLK",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISBLK"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISCHR",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISCHR"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISDIR",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISDIR"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISDOOR",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISDOOR"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISFIFO",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISFIFO"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISLNK",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISLNK"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISPORT",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISPORT"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISREG",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISREG"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISSOCK",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISSOCK"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "S_ISWHT",
+    "returns": "bool"
+   }
+  ],
+  "name": "S_ISWHT"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
+      "annotation": "int",
+      "arg": "mode"
+     }
+    ],
+    "className": null,
+    "kwonlyargs": [],
+    "name": "filemode",
+    "returns": "str"
+   }
+  ],
+  "name": "filemode"
+ },
+ {
+  "definitions": [
+   {
+    "args": [
+     {
       "annotation": "FileDescriptorLike",
       "arg": "__fd"
      },
@@ -34468,27 +40132,6 @@
    {
     "args": [
      {
-      "annotation": "Iterable[AnyStr]",
-      "arg": "names"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "pat"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "filter",
-    "returns": "list[AnyStr]"
-   }
-  ],
-  "name": "filter"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
       "annotation": "str",
       "arg": "pat"
      }
@@ -34831,123 +40474,6 @@
    }
   ],
   "name": "finditer"
- },
- {
-  "definitions": [
-   {
-    "args": [
-     {
-      "annotation": "AnyStr",
-      "arg": "pattern"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "repl"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "string"
-     },
-     {
-      "annotation": "int",
-      "arg": "count"
-     },
-     {
-      "annotation": "_FlagsType",
-      "arg": "flags"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "sub",
-    "returns": "AnyStr"
-   },
-   {
-    "args": [
-     {
-      "annotation": "AnyStr",
-      "arg": "pattern"
-     },
-     {
-      "annotation": "Callable[[Match[AnyStr]], AnyStr]",
-      "arg": "repl"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "string"
-     },
-     {
-      "annotation": "int",
-      "arg": "count"
-     },
-     {
-      "annotation": "_FlagsType",
-      "arg": "flags"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "sub",
-    "returns": "AnyStr"
-   },
-   {
-    "args": [
-     {
-      "annotation": "Pattern[AnyStr]",
-      "arg": "pattern"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "repl"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "string"
-     },
-     {
-      "annotation": "int",
-      "arg": "count"
-     },
-     {
-      "annotation": "_FlagsType",
-      "arg": "flags"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "sub",
-    "returns": "AnyStr"
-   },
-   {
-    "args": [
-     {
-      "annotation": "Pattern[AnyStr]",
-      "arg": "pattern"
-     },
-     {
-      "annotation": "Callable[[Match[AnyStr]], AnyStr]",
-      "arg": "repl"
-     },
-     {
-      "annotation": "AnyStr",
-      "arg": "string"
-     },
-     {
-      "annotation": "int",
-      "arg": "count"
-     },
-     {
-      "annotation": "_FlagsType",
-      "arg": "flags"
-     }
-    ],
-    "className": null,
-    "kwonlyargs": [],
-    "name": "sub",
-    "returns": "AnyStr"
-   }
-  ],
-  "name": "sub"
  },
  {
   "definitions": [

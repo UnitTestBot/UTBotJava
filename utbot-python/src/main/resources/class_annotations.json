@@ -398,6 +398,1670 @@
   ]
  },
  {
+  "className": "_thread.LockType",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "bool",
+      "arg": "blocking"
+     },
+     {
+      "annotation": "float",
+      "arg": "timeout"
+     }
+    ],
+    "className": "_thread.LockType",
+    "kwonlyargs": [],
+    "name": "acquire",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_thread.LockType",
+    "kwonlyargs": [],
+    "name": "release",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_thread.LockType",
+    "kwonlyargs": [],
+    "name": "locked",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_thread.LockType",
+    "kwonlyargs": [],
+    "name": "__enter__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(type[BaseException] | None)",
+      "arg": "type"
+     },
+     {
+      "annotation": "(BaseException | None)",
+      "arg": "value"
+     },
+     {
+      "annotation": "(TracebackType | None)",
+      "arg": "traceback"
+     }
+    ],
+    "className": "_thread.LockType",
+    "kwonlyargs": [],
+    "name": "__exit__",
+    "returns": "None"
+   }
+  ]
+ },
+ {
+  "className": "_ast.AST",
+  "fields": [
+   {
+    "annotation": "ClassVar[tuple[str, ...]]",
+    "className": "_ast.AST",
+    "name": "_attributes"
+   },
+   {
+    "annotation": "ClassVar[tuple[str, ...]]",
+    "className": "_ast.AST",
+    "name": "_fields"
+   },
+   {
+    "annotation": "int",
+    "className": "_ast.AST",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "_ast.AST",
+    "name": "col_offset"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_ast.AST",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   }
+  ]
+ },
+ {
+  "className": "_ast.mod",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.type_ignore",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.TypeIgnore",
+  "fields": [
+   {
+    "annotation": "str",
+    "className": "_ast.TypeIgnore",
+    "name": "tag"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.FunctionType",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.FunctionType",
+    "name": "argtypes"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.FunctionType",
+    "name": "returns"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Module",
+  "fields": [
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Module",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Interactive",
+  "fields": [
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Interactive",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Expression",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Expression",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.stmt",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.FunctionDef",
+  "fields": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.FunctionDef",
+    "name": "name"
+   },
+   {
+    "annotation": "arguments",
+    "className": "_ast.FunctionDef",
+    "name": "args"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.FunctionDef",
+    "name": "body"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.FunctionDef",
+    "name": "decorator_list"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.FunctionDef",
+    "name": "returns"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.AsyncFunctionDef",
+  "fields": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "name"
+   },
+   {
+    "annotation": "arguments",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "args"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "body"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "decorator_list"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "returns"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.ClassDef",
+  "fields": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.ClassDef",
+    "name": "name"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.ClassDef",
+    "name": "bases"
+   },
+   {
+    "annotation": "list[keyword]",
+    "className": "_ast.ClassDef",
+    "name": "keywords"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.ClassDef",
+    "name": "body"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.ClassDef",
+    "name": "decorator_list"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Return",
+  "fields": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Return",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Delete",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Delete",
+    "name": "targets"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Assign",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Assign",
+    "name": "targets"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Assign",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.AugAssign",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.AugAssign",
+    "name": "target"
+   },
+   {
+    "annotation": "operator",
+    "className": "_ast.AugAssign",
+    "name": "op"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AugAssign",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.AnnAssign",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.AnnAssign",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AnnAssign",
+    "name": "annotation"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.AnnAssign",
+    "name": "value"
+   },
+   {
+    "annotation": "int",
+    "className": "_ast.AnnAssign",
+    "name": "simple"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.For",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.For",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.For",
+    "name": "iter"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.For",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.For",
+    "name": "orelse"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.AsyncFor",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.AsyncFor",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AsyncFor",
+    "name": "iter"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncFor",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncFor",
+    "name": "orelse"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.While",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.While",
+    "name": "test"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.While",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.While",
+    "name": "orelse"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.If",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.If",
+    "name": "test"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.If",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.If",
+    "name": "orelse"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.With",
+  "fields": [
+   {
+    "annotation": "list[withitem]",
+    "className": "_ast.With",
+    "name": "items"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.With",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.AsyncWith",
+  "fields": [
+   {
+    "annotation": "list[withitem]",
+    "className": "_ast.AsyncWith",
+    "name": "items"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncWith",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Raise",
+  "fields": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Raise",
+    "name": "exc"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Raise",
+    "name": "cause"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Try",
+  "fields": [
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Try",
+    "name": "body"
+   },
+   {
+    "annotation": "list[ExceptHandler]",
+    "className": "_ast.Try",
+    "name": "handlers"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Try",
+    "name": "orelse"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Try",
+    "name": "finalbody"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Assert",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Assert",
+    "name": "test"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Assert",
+    "name": "msg"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Import",
+  "fields": [
+   {
+    "annotation": "list[alias]",
+    "className": "_ast.Import",
+    "name": "names"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.ImportFrom",
+  "fields": [
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.ImportFrom",
+    "name": "module"
+   },
+   {
+    "annotation": "list[alias]",
+    "className": "_ast.ImportFrom",
+    "name": "names"
+   },
+   {
+    "annotation": "int",
+    "className": "_ast.ImportFrom",
+    "name": "level"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Global",
+  "fields": [
+   {
+    "annotation": "list[_identifier]",
+    "className": "_ast.Global",
+    "name": "names"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Nonlocal",
+  "fields": [
+   {
+    "annotation": "list[_identifier]",
+    "className": "_ast.Nonlocal",
+    "name": "names"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Expr",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Expr",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Pass",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Break",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Continue",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.expr",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.BoolOp",
+  "fields": [
+   {
+    "annotation": "boolop",
+    "className": "_ast.BoolOp",
+    "name": "op"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.BoolOp",
+    "name": "values"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.BinOp",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.BinOp",
+    "name": "left"
+   },
+   {
+    "annotation": "operator",
+    "className": "_ast.BinOp",
+    "name": "op"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.BinOp",
+    "name": "right"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.UnaryOp",
+  "fields": [
+   {
+    "annotation": "unaryop",
+    "className": "_ast.UnaryOp",
+    "name": "op"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.UnaryOp",
+    "name": "operand"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Lambda",
+  "fields": [
+   {
+    "annotation": "arguments",
+    "className": "_ast.Lambda",
+    "name": "args"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Lambda",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.IfExp",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.IfExp",
+    "name": "test"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.IfExp",
+    "name": "body"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.IfExp",
+    "name": "orelse"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Dict",
+  "fields": [
+   {
+    "annotation": "list[expr | None]",
+    "className": "_ast.Dict",
+    "name": "keys"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Dict",
+    "name": "values"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Set",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Set",
+    "name": "elts"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.ListComp",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.ListComp",
+    "name": "elt"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.ListComp",
+    "name": "generators"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.SetComp",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.SetComp",
+    "name": "elt"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.SetComp",
+    "name": "generators"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.DictComp",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.DictComp",
+    "name": "key"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.DictComp",
+    "name": "value"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.DictComp",
+    "name": "generators"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.GeneratorExp",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.GeneratorExp",
+    "name": "elt"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.GeneratorExp",
+    "name": "generators"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Await",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Await",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Yield",
+  "fields": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Yield",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.YieldFrom",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.YieldFrom",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Compare",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Compare",
+    "name": "left"
+   },
+   {
+    "annotation": "list[cmpop]",
+    "className": "_ast.Compare",
+    "name": "ops"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Compare",
+    "name": "comparators"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Call",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Call",
+    "name": "func"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Call",
+    "name": "args"
+   },
+   {
+    "annotation": "list[keyword]",
+    "className": "_ast.Call",
+    "name": "keywords"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.FormattedValue",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.FormattedValue",
+    "name": "value"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "_ast.FormattedValue",
+    "name": "conversion"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.FormattedValue",
+    "name": "format_spec"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.JoinedStr",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.JoinedStr",
+    "name": "values"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Constant",
+  "fields": [
+   {
+    "annotation": "Any",
+    "className": "_ast.Constant",
+    "name": "value"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "_ast.Constant",
+    "name": "kind"
+   },
+   {
+    "annotation": "Any",
+    "className": "_ast.Constant",
+    "name": "s"
+   },
+   {
+    "annotation": "complex",
+    "className": "_ast.Constant",
+    "name": "n"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.NamedExpr",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.NamedExpr",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.NamedExpr",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Attribute",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Attribute",
+    "name": "value"
+   },
+   {
+    "annotation": "_identifier",
+    "className": "_ast.Attribute",
+    "name": "attr"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Attribute",
+    "name": "ctx"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Slice",
+  "fields": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Slice",
+    "name": "lower"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Slice",
+    "name": "upper"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Slice",
+    "name": "step"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Subscript",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Subscript",
+    "name": "value"
+   },
+   {
+    "annotation": "_SliceT",
+    "className": "_ast.Subscript",
+    "name": "slice"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Subscript",
+    "name": "ctx"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Starred",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Starred",
+    "name": "value"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Starred",
+    "name": "ctx"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Name",
+  "fields": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.Name",
+    "name": "id"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Name",
+    "name": "ctx"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.List",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.List",
+    "name": "elts"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.List",
+    "name": "ctx"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Tuple",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Tuple",
+    "name": "elts"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Tuple",
+    "name": "ctx"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.expr_context",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Del",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Load",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Store",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.boolop",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.And",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Or",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.operator",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Add",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.BitAnd",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.BitOr",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.BitXor",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Div",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.FloorDiv",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.LShift",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Mod",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Mult",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatMult",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Pow",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.RShift",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Sub",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.unaryop",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Invert",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Not",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.UAdd",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.USub",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.cmpop",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Eq",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Gt",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.GtE",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.In",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Is",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.IsNot",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.Lt",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.LtE",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.NotEq",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.NotIn",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.comprehension",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.comprehension",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.comprehension",
+    "name": "iter"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.comprehension",
+    "name": "ifs"
+   },
+   {
+    "annotation": "int",
+    "className": "_ast.comprehension",
+    "name": "is_async"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.excepthandler",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.ExceptHandler",
+  "fields": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.ExceptHandler",
+    "name": "type"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.ExceptHandler",
+    "name": "name"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.ExceptHandler",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.arguments",
+  "fields": [
+   {
+    "annotation": "list[arg]",
+    "className": "_ast.arguments",
+    "name": "args"
+   },
+   {
+    "annotation": "(arg | None)",
+    "className": "_ast.arguments",
+    "name": "vararg"
+   },
+   {
+    "annotation": "list[arg]",
+    "className": "_ast.arguments",
+    "name": "kwonlyargs"
+   },
+   {
+    "annotation": "list[expr | None]",
+    "className": "_ast.arguments",
+    "name": "kw_defaults"
+   },
+   {
+    "annotation": "(arg | None)",
+    "className": "_ast.arguments",
+    "name": "kwarg"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.arguments",
+    "name": "defaults"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.arg",
+  "fields": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.arg",
+    "name": "arg"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.arg",
+    "name": "annotation"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.keyword",
+  "fields": [
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.keyword",
+    "name": "arg"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.keyword",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.alias",
+  "fields": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.alias",
+    "name": "name"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.alias",
+    "name": "asname"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.withitem",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.withitem",
+    "name": "context_expr"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.withitem",
+    "name": "optional_vars"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.Match",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Match",
+    "name": "subject"
+   },
+   {
+    "annotation": "list[match_case]",
+    "className": "_ast.Match",
+    "name": "cases"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.pattern",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_ast.match_case",
+  "fields": [
+   {
+    "annotation": "_pattern",
+    "className": "_ast.match_case",
+    "name": "pattern"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.match_case",
+    "name": "guard"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.match_case",
+    "name": "body"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchValue",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.MatchValue",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchSingleton",
+  "fields": [
+   {
+    "annotation": "Literal[True, False, None]",
+    "className": "_ast.MatchSingleton",
+    "name": "value"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchSequence",
+  "fields": [
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchSequence",
+    "name": "patterns"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchStar",
+  "fields": [
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.MatchStar",
+    "name": "name"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchMapping",
+  "fields": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.MatchMapping",
+    "name": "keys"
+   },
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchMapping",
+    "name": "patterns"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.MatchMapping",
+    "name": "rest"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchClass",
+  "fields": [
+   {
+    "annotation": "expr",
+    "className": "_ast.MatchClass",
+    "name": "cls"
+   },
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchClass",
+    "name": "patterns"
+   },
+   {
+    "annotation": "list[_identifier]",
+    "className": "_ast.MatchClass",
+    "name": "kwd_attrs"
+   },
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchClass",
+    "name": "kwd_patterns"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchAs",
+  "fields": [
+   {
+    "annotation": "(_pattern | None)",
+    "className": "_ast.MatchAs",
+    "name": "pattern"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.MatchAs",
+    "name": "name"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_ast.MatchOr",
+  "fields": [
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchOr",
+    "name": "patterns"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_threading_local.local",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "name"
+     }
+    ],
+    "className": "_threading_local.local",
+    "kwonlyargs": [],
+    "name": "__getattribute__",
+    "returns": "Any"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "name"
+     },
+     {
+      "annotation": "Any",
+      "arg": "value"
+     }
+    ],
+    "className": "_threading_local.local",
+    "kwonlyargs": [],
+    "name": "__setattr__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "name"
+     }
+    ],
+    "className": "_threading_local.local",
+    "kwonlyargs": [],
+    "name": "__delattr__",
+    "returns": "None"
+   }
+  ]
+ },
+ {
   "className": "graphlib.TopologicalSorter",
   "fields": [],
   "methods": [
@@ -2243,6 +3907,112 @@
   ]
  },
  {
+  "className": "_weakref.CallableProxyType",
+  "fields": [
+   {
+    "annotation": "_C",
+    "className": "_weakref.CallableProxyType",
+    "name": "__call__"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     }
+    ],
+    "className": "_weakref.CallableProxyType",
+    "kwonlyargs": [],
+    "name": "__getattr__",
+    "returns": "Any"
+   }
+  ]
+ },
+ {
+  "className": "_weakref.ProxyType",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     }
+    ],
+    "className": "_weakref.ProxyType",
+    "kwonlyargs": [],
+    "name": "__getattr__",
+    "returns": "Any"
+   }
+  ]
+ },
+ {
+  "className": "_weakref.ReferenceType",
+  "fields": [
+   {
+    "annotation": "Callable[[ReferenceType[_T]], Any]",
+    "className": "_weakref.ReferenceType",
+    "name": "__callback__"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_T",
+      "arg": "o"
+     },
+     {
+      "annotation": "(Callable[[ReferenceType[_T]], Any] | None)",
+      "arg": "callback"
+     }
+    ],
+    "className": "_weakref.ReferenceType",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakref.ReferenceType",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "(_T | None)"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakref.ReferenceType",
+    "kwonlyargs": [],
+    "name": "__hash__",
+    "returns": "int"
+   }
+  ]
+ },
+ {
   "className": "shlex.shlex",
   "fields": [
    {
@@ -2476,6 +4246,536 @@
     "kwonlyargs": [],
     "name": "__next__",
     "returns": "str"
+   }
+  ]
+ },
+ {
+  "className": "_weakrefset.WeakSet",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Iterable[_T] | None)",
+      "arg": "data"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_T",
+      "arg": "item"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "add",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "clear",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_T",
+      "arg": "item"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "discard",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "copy",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "pop",
+    "returns": "_T"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_T",
+      "arg": "item"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "remove",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "update",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "object",
+      "arg": "item"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__contains__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__len__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__iter__",
+    "returns": "Iterator[_T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__ior__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "difference",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[Any]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__sub__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[Any]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "difference_update",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[Any]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__isub__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "intersection",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[Any]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__and__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[Any]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "intersection_update",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[Any]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__iand__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "issubset",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__le__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__lt__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "issuperset",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__ge__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__gt__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "object",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__eq__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_S]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "symmetric_difference",
+    "returns": "WeakSet[_S | _T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_S]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__xor__",
+    "returns": "WeakSet[_S | _T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "symmetric_difference_update",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__ixor__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_S]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "union",
+    "returns": "WeakSet[_S | _T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_S]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "__or__",
+    "returns": "WeakSet[_S | _T]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Iterable[_T]",
+      "arg": "other"
+     }
+    ],
+    "className": "_weakrefset.WeakSet",
+    "kwonlyargs": [],
+    "name": "isdisjoint",
+    "returns": "bool"
    }
   ]
  },
@@ -11081,6 +13381,21 @@
   ]
  },
  {
+  "className": "_collections_abc.dict_keys",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_collections_abc.dict_values",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_collections_abc.dict_items",
+  "fields": [],
+  "methods": []
+ },
+ {
   "className": "ast.Num",
   "fields": [
    {
@@ -14555,6 +16870,141 @@
   "className": "ipaddress.NetmaskValueError",
   "fields": [],
   "methods": []
+ },
+ {
+  "className": "_compression.BaseStream",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_compression.DecompressReader",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Reader",
+      "arg": "fp"
+     },
+     {
+      "annotation": "Callable[..., object]",
+      "arg": "decomp_factory"
+     },
+     {
+      "annotation": "(type[Exception] | tuple[type[Exception], ...])",
+      "arg": "trailing_error"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "readable",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "close",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "seekable",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "WriteableBuffer",
+      "arg": "b"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "readinto",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "size"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "read",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "offset"
+     },
+     {
+      "annotation": "int",
+      "arg": "whence"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "seek",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_compression.DecompressReader",
+    "kwonlyargs": [],
+    "name": "tell",
+    "returns": "int"
+   }
+  ]
  },
  {
   "className": "itertools.count",
@@ -18862,6 +21312,70 @@
   "methods": []
  },
  {
+  "className": "_csv.Error",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_csv.Dialect",
+  "fields": [
+   {
+    "annotation": "str",
+    "className": "_csv.Dialect",
+    "name": "delimiter"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "_csv.Dialect",
+    "name": "quotechar"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "_csv.Dialect",
+    "name": "escapechar"
+   },
+   {
+    "annotation": "bool",
+    "className": "_csv.Dialect",
+    "name": "doublequote"
+   },
+   {
+    "annotation": "bool",
+    "className": "_csv.Dialect",
+    "name": "skipinitialspace"
+   },
+   {
+    "annotation": "str",
+    "className": "_csv.Dialect",
+    "name": "lineterminator"
+   },
+   {
+    "annotation": "int",
+    "className": "_csv.Dialect",
+    "name": "quoting"
+   },
+   {
+    "annotation": "int",
+    "className": "_csv.Dialect",
+    "name": "strict"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_csv.Dialect",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   }
+  ]
+ },
+ {
   "className": "audioop.error",
   "fields": [],
   "methods": []
@@ -20422,6 +22936,11 @@
     "returns": "Any"
    }
   ]
+ },
+ {
+  "className": "_curses.error",
+  "fields": [],
+  "methods": []
  },
  {
   "className": "binascii.Error",
@@ -35084,6 +37603,2919 @@
   ]
  },
  {
+  "className": "_decimal.DecimalTuple",
+  "fields": [
+   {
+    "annotation": "int",
+    "className": "_decimal.DecimalTuple",
+    "name": "sign"
+   },
+   {
+    "annotation": "tuple[int, ...]",
+    "className": "_decimal.DecimalTuple",
+    "name": "digits"
+   },
+   {
+    "annotation": "int",
+    "className": "_decimal.DecimalTuple",
+    "name": "exponent"
+   }
+  ],
+  "methods": []
+ },
+ {
+  "className": "_decimal.DecimalException",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Clamped",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.InvalidOperation",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.ConversionSyntax",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.DivisionByZero",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.DivisionImpossible",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.DivisionUndefined",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Inexact",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.InvalidContext",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Rounded",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Subnormal",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Overflow",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Underflow",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.FloatOperation",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_decimal.Decimal",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "type[Self]",
+      "arg": "cls"
+     },
+     {
+      "annotation": "_DecimalNew",
+      "arg": "value"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "type[Self]",
+      "arg": "cls"
+     },
+     {
+      "annotation": "float",
+      "arg": "__f"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "from_float",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__bool__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "compare",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__hash__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "as_tuple",
+    "returns": "DecimalTuple"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "as_integer_ratio",
+    "returns": "tuple[int, int]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "to_eng_string",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__abs__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__add__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__divmod__",
+    "returns": "tuple[Decimal, Decimal]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "object",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__eq__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__floordiv__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_ComparableNum",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__ge__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_ComparableNum",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__gt__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_ComparableNum",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__le__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_ComparableNum",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__lt__",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__mod__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__mul__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__neg__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__pos__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     },
+     {
+      "annotation": "(_Decimal | None)",
+      "arg": "__modulo"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__pow__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__radd__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rdivmod__",
+    "returns": "tuple[Decimal, Decimal]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rfloordiv__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rmod__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rmul__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rsub__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rtruediv__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__sub__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__truediv__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "remainder_near",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__float__",
+    "returns": "float"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__int__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__trunc__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "real",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "imag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "conjugate",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__complex__",
+    "returns": "complex"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__round__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__ndigits"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__round__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__floor__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__ceil__",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "third"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "fma",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "__context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__rpow__",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "normalize",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "exp"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "rounding"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "quantize",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "same_quantum",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "rounding"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "to_integral_exact",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "rounding"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "to_integral_value",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "rounding"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "to_integral",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "sqrt",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "max",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "min",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "adjusted",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "canonical",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "compare_signal",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "compare_total",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "compare_total_mag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "copy_abs",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "copy_negate",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "copy_sign",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "exp",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_canonical",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_finite",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_infinite",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_nan",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_normal",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_qnan",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_signed",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_snan",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_subnormal",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "is_zero",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "ln",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "log10",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "logb",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "logical_and",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "logical_invert",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "logical_or",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "logical_xor",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "max_mag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "min_mag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "next_minus",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "next_plus",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "next_toward",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "number_class",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "radix",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "rotate",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "scaleb",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "other"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "shift",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__reduce__",
+    "returns": "tuple[type[Self], tuple[str]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__copy__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__memo"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__deepcopy__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "__specifier"
+     },
+     {
+      "annotation": "(Context | None)",
+      "arg": "__context"
+     }
+    ],
+    "className": "_decimal.Decimal",
+    "kwonlyargs": [],
+    "name": "__format__",
+    "returns": "str"
+   }
+  ]
+ },
+ {
+  "className": "_decimal.Context",
+  "fields": [
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "prec"
+   },
+   {
+    "annotation": "str",
+    "className": "_decimal.Context",
+    "name": "rounding"
+   },
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "Emin"
+   },
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "Emax"
+   },
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "capitals"
+   },
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "clamp"
+   },
+   {
+    "annotation": "dict[_TrapType, bool]",
+    "className": "_decimal.Context",
+    "name": "traps"
+   },
+   {
+    "annotation": "dict[_TrapType, bool]",
+    "className": "_decimal.Context",
+    "name": "flags"
+   },
+   {
+    "annotation": "Any",
+    "className": "_decimal.Context",
+    "name": "__hash__"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "prec"
+     },
+     {
+      "annotation": "(str | None)",
+      "arg": "rounding"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "Emin"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "Emax"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "capitals"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "clamp"
+     },
+     {
+      "annotation": "(None | dict[_TrapType, bool] | Container[_TrapType])",
+      "arg": "flags"
+     },
+     {
+      "annotation": "(None | dict[_TrapType, bool] | Container[_TrapType])",
+      "arg": "traps"
+     },
+     {
+      "annotation": "(list[_TrapType] | None)",
+      "arg": "_ignored_flags"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "__delattr__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "Self",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "__reduce__",
+    "returns": "tuple[type[Self], tuple[Any, ...]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "clear_flags",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "clear_traps",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "copy",
+    "returns": "Context"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "__copy__",
+    "returns": "Context"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "Etiny",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "Etop",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_DecimalNew",
+      "arg": "__num"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "create_decimal",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "float",
+      "arg": "__f"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "create_decimal_from_float",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "abs",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "add",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "canonical",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "compare",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "compare_signal",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "compare_total",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "compare_total_mag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "copy_abs",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "copy_decimal",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "copy_negate",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "copy_sign",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "divide",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "divide_int",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "divmod",
+    "returns": "tuple[Decimal, Decimal]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "exp",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__z"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "fma",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_canonical",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_finite",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_infinite",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_nan",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_normal",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_qnan",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_signed",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_snan",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_subnormal",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "is_zero",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "ln",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "log10",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "logb",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "logical_and",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "logical_invert",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "logical_or",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "logical_xor",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "max",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "max_mag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "min",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "min_mag",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "minus",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "multiply",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "next_minus",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "next_plus",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "next_toward",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "normalize",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "number_class",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "plus",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "a"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "b"
+     },
+     {
+      "annotation": "(_Decimal | None)",
+      "arg": "modulo"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "power",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "quantize",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "radix",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "remainder",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "remainder_near",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "rotate",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "same_quantum",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "scaleb",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "shift",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "sqrt",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__y"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "subtract",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "to_eng_string",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "to_sci_string",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "to_integral_exact",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "to_integral_value",
+    "returns": "Decimal"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_Decimal",
+      "arg": "__x"
+     }
+    ],
+    "className": "_decimal.Context",
+    "kwonlyargs": [],
+    "name": "to_integral",
+    "returns": "Decimal"
+   }
+  ]
+ },
+ {
   "className": "bz2.BZ2File",
   "fields": [],
   "methods": [
@@ -42406,6 +47838,249 @@
   "methods": []
  },
  {
+  "className": "_json.make_encoder",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "sort_keys",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "skipkeys",
+    "returns": "bool"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "key_separator",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "indent",
+    "returns": "(int | None)"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "markers",
+    "returns": "(dict[int, Any] | None)"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "default",
+    "returns": "Callable[[Any], Any]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "encoder",
+    "returns": "Callable[[str], str]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "item_separator",
+    "returns": "str"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(dict[int, Any] | None)",
+      "arg": "markers"
+     },
+     {
+      "annotation": "Callable[[Any], Any]",
+      "arg": "default"
+     },
+     {
+      "annotation": "Callable[[str], str]",
+      "arg": "encoder"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "indent"
+     },
+     {
+      "annotation": "str",
+      "arg": "key_separator"
+     },
+     {
+      "annotation": "str",
+      "arg": "item_separator"
+     },
+     {
+      "annotation": "bool",
+      "arg": "sort_keys"
+     },
+     {
+      "annotation": "bool",
+      "arg": "skipkeys"
+     },
+     {
+      "annotation": "bool",
+      "arg": "allow_nan"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "object",
+      "arg": "obj"
+     },
+     {
+      "annotation": "int",
+      "arg": "_current_indent_level"
+     }
+    ],
+    "className": "_json.make_encoder",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "Any"
+   }
+  ]
+ },
+ {
+  "className": "_json.make_scanner",
+  "fields": [
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "object_hook"
+   },
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "object_pairs_hook"
+   },
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "parse_int"
+   },
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "parse_constant"
+   },
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "parse_float"
+   },
+   {
+    "annotation": "bool",
+    "className": "_json.make_scanner",
+    "name": "strict"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "make_scanner",
+      "arg": "context"
+     }
+    ],
+    "className": "_json.make_scanner",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "string"
+     },
+     {
+      "annotation": "int",
+      "arg": "index"
+     }
+    ],
+    "className": "_json.make_scanner",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "tuple[Any, int]"
+   }
+  ]
+ },
+ {
   "className": "codecs.CodecInfo",
   "fields": [
    {
@@ -49239,6 +54914,151 @@
   "className": "threading.BrokenBarrierError",
   "fields": [],
   "methods": []
+ },
+ {
+  "className": "_markupbase.ParserBase",
+  "fields": [
+   {
+    "annotation": "int",
+    "className": "_markupbase.ParserBase",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "_markupbase.ParserBase",
+    "name": "offset"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "reset",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "getpos",
+    "returns": "tuple[int, int]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "data"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "unknown_decl",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "i"
+     },
+     {
+      "annotation": "int",
+      "arg": "report"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "parse_comment",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "i"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "parse_declaration",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "i"
+     },
+     {
+      "annotation": "int",
+      "arg": "report"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "parse_marked_section",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "i"
+     },
+     {
+      "annotation": "int",
+      "arg": "j"
+     }
+    ],
+    "className": "_markupbase.ParserBase",
+    "kwonlyargs": [],
+    "name": "updatepos",
+    "returns": "int"
+   }
+  ]
  },
  {
   "className": "time.struct_time",
@@ -73125,6 +78945,296 @@
   ]
  },
  {
+  "className": "_operator.attrgetter",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     }
+    ],
+    "className": "_operator.attrgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "attrgetter[Any]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     },
+     {
+      "annotation": "str",
+      "arg": "__attr2"
+     }
+    ],
+    "className": "_operator.attrgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "attrgetter[tuple[Any, Any]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     },
+     {
+      "annotation": "str",
+      "arg": "__attr2"
+     },
+     {
+      "annotation": "str",
+      "arg": "__attr3"
+     }
+    ],
+    "className": "_operator.attrgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "attrgetter[tuple[Any, Any, Any]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     },
+     {
+      "annotation": "str",
+      "arg": "__attr2"
+     },
+     {
+      "annotation": "str",
+      "arg": "__attr3"
+     },
+     {
+      "annotation": "str",
+      "arg": "__attr4"
+     }
+    ],
+    "className": "_operator.attrgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "attrgetter[tuple[Any, Any, Any, Any]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "str",
+      "arg": "attr"
+     }
+    ],
+    "className": "_operator.attrgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "attrgetter[tuple[Any, ...]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Any",
+      "arg": "obj"
+     }
+    ],
+    "className": "_operator.attrgetter",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "_T_co"
+   }
+  ]
+ },
+ {
+  "className": "_operator.itemgetter",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "Any",
+      "arg": "item"
+     }
+    ],
+    "className": "_operator.itemgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "itemgetter[Any]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "Any",
+      "arg": "item"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__item2"
+     }
+    ],
+    "className": "_operator.itemgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "itemgetter[tuple[Any, Any]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "Any",
+      "arg": "item"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__item2"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__item3"
+     }
+    ],
+    "className": "_operator.itemgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "itemgetter[tuple[Any, Any, Any]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "Any",
+      "arg": "item"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__item2"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__item3"
+     },
+     {
+      "annotation": "Any",
+      "arg": "__item4"
+     }
+    ],
+    "className": "_operator.itemgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "itemgetter[tuple[Any, Any, Any, Any]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "Any",
+      "arg": "item"
+     }
+    ],
+    "className": "_operator.itemgetter",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "itemgetter[tuple[Any, ...]]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Any",
+      "arg": "obj"
+     }
+    ],
+    "className": "_operator.itemgetter",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "_T_co"
+   }
+  ]
+ },
+ {
+  "className": "_operator.methodcaller",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "__name"
+     }
+    ],
+    "className": "_operator.methodcaller",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "Any",
+      "arg": "obj"
+     }
+    ],
+    "className": "_operator.methodcaller",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "Any"
+   }
+  ]
+ },
+ {
   "className": "copy.Error",
   "fields": [],
   "methods": []
@@ -79501,6 +85611,52 @@
     "kwonlyargs": [],
     "name": "__init__",
     "returns": "None"
+   }
+  ]
+ },
+ {
+  "className": "_py_abc.ABCMeta",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "type[Self]",
+      "arg": "__mcls"
+     },
+     {
+      "annotation": "str",
+      "arg": "__name"
+     },
+     {
+      "annotation": "tuple[type[Any], ...]",
+      "arg": "__bases"
+     },
+     {
+      "annotation": "dict[str, Any]",
+      "arg": "__namespace"
+     }
+    ],
+    "className": "_py_abc.ABCMeta",
+    "kwonlyargs": [],
+    "name": "__new__",
+    "returns": "Self"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "cls"
+     },
+     {
+      "annotation": "type[_T]",
+      "arg": "subclass"
+     }
+    ],
+    "className": "_py_abc.ABCMeta",
+    "kwonlyargs": [],
+    "name": "register",
+    "returns": "type[_T]"
    }
   ]
  },
@@ -87570,6 +93726,100 @@
   ]
  },
  {
+  "className": "_random.Random",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "object",
+      "arg": "seed"
+     }
+    ],
+    "className": "_random.Random",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "object",
+      "arg": "__n"
+     }
+    ],
+    "className": "_random.Random",
+    "kwonlyargs": [],
+    "name": "seed",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_random.Random",
+    "kwonlyargs": [],
+    "name": "getstate",
+    "returns": "_State"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "_State",
+      "arg": "__state"
+     }
+    ],
+    "className": "_random.Random",
+    "kwonlyargs": [],
+    "name": "setstate",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_random.Random",
+    "kwonlyargs": [],
+    "name": "random",
+    "returns": "float"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__k"
+     }
+    ],
+    "className": "_random.Random",
+    "kwonlyargs": [],
+    "name": "getrandbits",
+    "returns": "int"
+   }
+  ]
+ },
+ {
   "className": "poplib.error_proto",
   "fields": [],
   "methods": []
@@ -90926,6 +97176,59 @@
   ]
  },
  {
+  "className": "_sitebuiltins.Quitter",
+  "fields": [
+   {
+    "annotation": "str",
+    "className": "_sitebuiltins.Quitter",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "_sitebuiltins.Quitter",
+    "name": "eof"
+   }
+  ],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "str",
+      "arg": "name"
+     },
+     {
+      "annotation": "str",
+      "arg": "eof"
+     }
+    ],
+    "className": "_sitebuiltins.Quitter",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(int | None)",
+      "arg": "code"
+     }
+    ],
+    "className": "_sitebuiltins.Quitter",
+    "kwonlyargs": [],
+    "name": "__call__",
+    "returns": "NoReturn"
+   }
+  ]
+ },
+ {
   "className": "encodings.CodecRegistryError",
   "fields": [],
   "methods": []
@@ -91507,6 +97810,550 @@
     "className": "wave.Wave_write",
     "kwonlyargs": [],
     "name": "close",
+    "returns": "None"
+   }
+  ]
+ },
+ {
+  "className": "_socket.herror",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_socket.gaierror",
+  "fields": [],
+  "methods": []
+ },
+ {
+  "className": "_socket.socket",
+  "fields": [],
+  "methods": [
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "family",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "type",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "proto",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "timeout",
+    "returns": "(float | None)"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "family"
+     },
+     {
+      "annotation": "int",
+      "arg": "type"
+     },
+     {
+      "annotation": "int",
+      "arg": "proto"
+     },
+     {
+      "annotation": "(_FD | None)",
+      "arg": "fileno"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "__init__",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(_Address | bytes)",
+      "arg": "__address"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "bind",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "close",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(_Address | bytes)",
+      "arg": "__address"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "connect",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(_Address | bytes)",
+      "arg": "__address"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "connect_ex",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "detach",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "fileno",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "getpeername",
+    "returns": "_RetAddress"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "getsockname",
+    "returns": "_RetAddress"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__level"
+     },
+     {
+      "annotation": "int",
+      "arg": "__optname"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "getsockopt",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__level"
+     },
+     {
+      "annotation": "int",
+      "arg": "__optname"
+     },
+     {
+      "annotation": "int",
+      "arg": "__buflen"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "getsockopt",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "gettimeout",
+    "returns": "(float | None)"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__backlog"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "listen",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__bufsize"
+     },
+     {
+      "annotation": "int",
+      "arg": "__flags"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "recv",
+    "returns": "bytes"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__bufsize"
+     },
+     {
+      "annotation": "int",
+      "arg": "__flags"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "recvfrom",
+    "returns": "tuple[bytes, _RetAddress]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "WriteableBuffer",
+      "arg": "buffer"
+     },
+     {
+      "annotation": "int",
+      "arg": "nbytes"
+     },
+     {
+      "annotation": "int",
+      "arg": "flags"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "recvfrom_into",
+    "returns": "tuple[int, _RetAddress]"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "WriteableBuffer",
+      "arg": "buffer"
+     },
+     {
+      "annotation": "int",
+      "arg": "nbytes"
+     },
+     {
+      "annotation": "int",
+      "arg": "flags"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "recv_into",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "ReadableBuffer",
+      "arg": "__data"
+     },
+     {
+      "annotation": "int",
+      "arg": "__flags"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "send",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "ReadableBuffer",
+      "arg": "__data"
+     },
+     {
+      "annotation": "int",
+      "arg": "__flags"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "sendall",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "ReadableBuffer",
+      "arg": "__data"
+     },
+     {
+      "annotation": "_Address",
+      "arg": "__address"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "sendto",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "ReadableBuffer",
+      "arg": "__data"
+     },
+     {
+      "annotation": "int",
+      "arg": "__flags"
+     },
+     {
+      "annotation": "_Address",
+      "arg": "__address"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "sendto",
+    "returns": "int"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "bool",
+      "arg": "__flag"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "setblocking",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "(float | None)",
+      "arg": "__value"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "settimeout",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__level"
+     },
+     {
+      "annotation": "int",
+      "arg": "__optname"
+     },
+     {
+      "annotation": "(int | bytes)",
+      "arg": "__value"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "setsockopt",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__level"
+     },
+     {
+      "annotation": "int",
+      "arg": "__optname"
+     },
+     {
+      "annotation": "None",
+      "arg": "__value"
+     },
+     {
+      "annotation": "int",
+      "arg": "__optlen"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "setsockopt",
+    "returns": "None"
+   },
+   {
+    "args": [
+     {
+      "annotation": "",
+      "arg": "self"
+     },
+     {
+      "annotation": "int",
+      "arg": "__how"
+     }
+    ],
+    "className": "_socket.socket",
+    "kwonlyargs": [],
+    "name": "shutdown",
     "returns": "None"
    }
   ]

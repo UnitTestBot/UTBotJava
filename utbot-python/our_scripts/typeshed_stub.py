@@ -174,12 +174,6 @@ class StubFileCollector:
             _ast_handler(name_info.ast)
 
     def save_method_annotations(self):
-        with open(f'{self.dataset_directory}/assigns_annotations.json', 'w') as fout:
-            print(json.dumps(defaultdict_to_array(self.assigns_dataset), sort_keys=True, indent=True), file=fout)
-
-        with open(f'{self.dataset_directory}/ann_assigns_annotations.json', 'w') as fout:
-            print(json.dumps(defaultdict_to_array(self.ann_assigns_dataset), sort_keys=True, indent=True), file=fout)
-
         with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
             print(json.dumps(self.classes_dataset, sort_keys=True, indent=True), file=fout)
 
@@ -211,7 +205,7 @@ def parse_submodule(module_name: str, collector_: StubFileCollector):
             for submodule in importlib.import_module(module_name).__dir__()
         ]
         for submodule in submodules:
-            if not submodule.startswith('_') and type(eval(submodule)) == 'module':
+            if type(eval(submodule)) == 'module':
                 parse_submodule(submodule, collector_)
     except ModuleNotFoundError:
         pass
@@ -240,8 +234,7 @@ if __name__ == '__main__':
     # create_module_table('builtins')
 
     with suppress_stdout():
-        collector = StubFileCollector('stub_datasets')
+        collector = StubFileCollector('../src/main/resources')
         for module in tqdm.tqdm(MODULES):
-            if not module.startswith('_'):
-                parse_submodule(module, collector)
+            parse_submodule(module, collector)
         collector.save_method_annotations()

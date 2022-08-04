@@ -19,7 +19,6 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiModifier
 import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
@@ -42,7 +41,7 @@ import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
-import org.utbot.intellij.plugin.util.AndroidApiHelper
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.PluginJdkPathProvider
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.summary.summarize
@@ -213,11 +212,15 @@ object UtTestsDialogProcessor {
                                     }.getOrDefault(listOf())
 
                                     if (notEmptyCases.isEmpty()) {
-                                        showErrorDialogLater(
-                                            model.project,
-                                            errorMessage(className, secondsTimeout),
-                                            title = "Failed to generate unit tests for class $className"
-                                        )
+                                        if (model.srcClasses.size > 1) {
+                                            logger.error { "Failed to generate any tests cases for class $className" }
+                                        } else {
+                                            showErrorDialogLater(
+                                                model.project,
+                                                errorMessage(className, secondsTimeout),
+                                                title = "Failed to generate unit tests for class $className"
+                                            )
+                                        }
                                     } else {
                                         testSetsByClass[srcClass] = notEmptyCases
                                     }
@@ -285,7 +288,7 @@ object UtTestsDialogProcessor {
         val buildDir = CompilerPaths.getModuleOutputPath(srcModule, false) ?: return null
         val pathsList = OrderEnumerator.orderEntries(srcModule).recursively().pathsList
 
-        val (classpath, classpathList) = if (AndroidApiHelper.isAndroidStudio()) {
+        val (classpath, classpathList) = if (IntelliJApiHelper.isAndroidStudio()) {
             // Add $JAVA_HOME/jre/lib/rt.jar to path.
             // This allows Soot to analyze real java instead of stub version in Android SDK on local machine.
             pathsList.add(

@@ -27,9 +27,11 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.OptionAction
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.util.text.TextWithMnemonic
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -40,7 +42,6 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.SyntheticElement
-import com.intellij.psi.PsiModifier
 import com.intellij.refactoring.PackageWrapper
 import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
@@ -75,11 +76,28 @@ import com.intellij.util.ui.JBUI.scale
 import com.intellij.util.ui.JBUI.size
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.components.BorderLayoutPanel
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.event.ActionEvent
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.util.Objects
+import java.util.concurrent.TimeUnit
+import javax.swing.AbstractAction
+import javax.swing.Action
+import javax.swing.DefaultComboBoxModel
+import javax.swing.JButton
+import javax.swing.JComboBox
+import javax.swing.JComponent
+import javax.swing.JList
+import javax.swing.JPanel
+import kotlin.streams.toList
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
-import org.utbot.common.filterWhen
 import org.utbot.common.PathUtil.toPath
+import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
@@ -116,20 +134,7 @@ import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
-import org.utbot.intellij.plugin.util.AndroidApiHelper
-import java.awt.BorderLayout
-import java.awt.Color
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.util.*
-import java.util.concurrent.TimeUnit
-import javax.swing.DefaultComboBoxModel
-import javax.swing.JComboBox
-import javax.swing.JComponent
-import javax.swing.JList
-import javax.swing.JPanel
-import kotlin.streams.toList
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.isAbstract
 
 private const val RECENTS_KEY = "org.utbot.recents"
@@ -139,6 +144,9 @@ private const val SAME_PACKAGE_LABEL = "same as for sources"
 private const val WILL_BE_INSTALLED_LABEL = " (will be installed)"
 private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
+
+private const val ACTION_GENERATE = "Generate Tests"
+private const val ACTION_GENERATE_AND_RUN = "Generate && Run" //N
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {
@@ -212,6 +220,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             val twm = ToolWindowManager.getInstance(model.project)
             twm.getToolWindow("Event Log")?.activate(null)
         }
+
+        model.runGeneratedTestsWithCoverage = model.project.service<Settings>().runGeneratedTestsWithCoverage
 
         init()
     }
@@ -302,7 +312,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     override fun createTitlePane(): JComponent? {
         val sdkVersion = findSdkVersion()
         //TODO:SAT-1571 investigate Android Studio specific sdk issues
-        if (sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion || AndroidApiHelper.isAndroidStudio()) return null
+        if (sdkVersion?.feature in minSupportedSdkVersion..maxSupportedSdkVersion || IntelliJApiHelper.isAndroidStudio()) return null
         isOKActionEnabled = false
         return SdkNotificationPanel(model, sdkVersion)
     }
@@ -438,6 +448,45 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         return null
     }
 
+    class OKOptionAction(val testsModel: GenerateTestsModel, val okAction : Action) : AbstractAction(testsModel.getActionText()), OptionAction {
+        init {
+            putValue(DEFAULT_ACTION, java.lang.Boolean.TRUE)
+            putValue(FOCUSED_ACTION, java.lang.Boolean.TRUE)
+        }
+        private val generateAction = object : AbstractAction(ACTION_GENERATE) {
+            override fun actionPerformed(e: ActionEvent?) {
+                testsModel.runGeneratedTestsWithCoverage = false
+                updateButtonText(e)
+            }
+        }
+        private val generateAndRunAction = object : AbstractAction(ACTION_GENERATE_AND_RUN) {
+            override fun actionPerformed(e: ActionEvent?) {
+                testsModel.runGeneratedTestsWithCoverage = true
+                updateButtonText(e)
+            }
+        }
+
+        private fun updateButtonText(e: ActionEvent?) {
+            with(e?.source as JButton) {
+                text = TextWithMnemonic.parse(testsModel.getActionText()).dropMnemonic().text
+                testsModel.project.service<Settings>().runGeneratedTestsWithCoverage =
+                    testsModel.runGeneratedTestsWithCoverage
+                repaint()
+            }
+        }
+
+        override fun actionPerformed(e: ActionEvent?) {
+            okAction.actionPerformed(e)
+        }
+
+        override fun getOptions(): Array<Action> {
+            if (testsModel.runGeneratedTestsWithCoverage) return arrayOf(generateAndRunAction, generateAction)
+            return arrayOf(generateAction, generateAndRunAction)
+        }
+    }
+
+    private val okOptionAction: OKOptionAction get() = OKOptionAction(model, super.getOKAction())
+    override fun getOKAction() = okOptionAction
 
     override fun doOKAction() {
         model.testPackageName =
@@ -963,6 +1012,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 }
+
+fun GenerateTestsModel.getActionText() : String =
+    if (this.runGeneratedTestsWithCoverage) ACTION_GENERATE_AND_RUN else ACTION_GENERATE
 
 private fun ComboBox<CodeGenerationSettingItem>.setHelpTooltipTextChanger(helpLabel: JBLabel) {
     addActionListener { event ->

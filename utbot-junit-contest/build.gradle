@@ -115,10 +115,12 @@ task monitoringJar(type: Jar) { dependsOn classes
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-task monitoringRun(type: JavaExec) { dependsOn monitoringJar
-    classpath = files(monitoringJar)
-    workingDir = project.parent.projectDir
-    if (project.hasProperty("outputStats")) {
-        args project.outputStats
+task monitoringRun { dependsOn monitoringJar
+    doLast {
+        tasks.create('monitoringRunExec', JavaExec) {
+            classpath = files(monitoringJar)
+            workingDir = project.parent.projectDir
+            args [project.outputStats, project.runTries, project.runTimeout]
+        }.exec()
     }
 }

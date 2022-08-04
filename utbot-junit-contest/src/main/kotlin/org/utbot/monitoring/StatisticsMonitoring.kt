@@ -1,6 +1,11 @@
 package org.utbot.monitoring
 
 import java.io.File
+import java.util.concurrent.TimeUnit
+import mu.KotlinLogging
+import org.utbot.common.ThreadBasedExecutor
+import org.utbot.common.bracket
+import org.utbot.common.info
 import org.utbot.contest.ContestEstimatorJdkPathProvider
 import org.utbot.contest.GlobalStats
 import org.utbot.contest.Paths
@@ -8,8 +13,10 @@ import org.utbot.contest.Tool
 import org.utbot.contest.runEstimator
 import org.utbot.contest.toText
 import org.utbot.framework.JdkPathService
+import kotlin.system.exitProcess
 
 private val javaHome = System.getenv("JAVA_HOME")
+private val logger = KotlinLogging.logger {}
 
 fun main(args: Array<String>) {
     val methodFilter: String?
@@ -18,14 +25,16 @@ fun main(args: Array<String>) {
     val tools: List<Tool> = listOf(Tool.UtBot)
     val timeLimit = 20
 
-    require(args.size == 1) {
-        "Wrong arguments: <output json> expected, but got: ${args.toText()}"
+    require(args.size == 3) {
+        "Wrong arguments: <output json> <run tries> <run timeout min> expected, but got: ${args.toText()}"
     }
 
     projectFilter = listOf("guava")
     methodFilter = null
 
     val outputFile = File(args[0])
+    val runTries = args[1].toInt()
+    val runTimeout = TimeUnit.MINUTES.toMillis(args[2].toLong())
 
     val estimatorArgs: Array<String> = arrayOf(
         Paths.classesLists,
@@ -35,24 +44,48 @@ fun main(args: Array<String>) {
         Paths.moduleTestDir
     )
 
+    val statistics = mutableListOf<GlobalStats>()
+
     JdkPathService.jdkPathProvider = ContestEstimatorJdkPathProvider(javaHome)
-    val statistics = runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
-    statistics.dumpJson(outputFile)
+    val executor = ThreadBasedExecutor()
+
+    repeat(runTries) { idx ->
+        logger.info().bracket("Run UTBot try number $idx") {
+
+            executor.invokeWithTimeout(runTimeout) {
+                runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
+            }
+                ?.onSuccess { statistics.add(it as GlobalStats) }
+                ?.onFailure { logger.error(it) { "Run failure!" } }
+                ?: logger.info { "Run timeout!" }
+
+        }
+    }
+
+    if (statistics.isEmpty())
+        exitProcess(1)
+
+    outputFile.writeText(statistics.jsonString())
+}
+
+private fun StringBuilder.tab(tabs: Int) {
+    append("\t".repeat(tabs))
 }
 
 private fun StringBuilder.addValue(name: String, value: Any, tabs: Int = 0, needComma: Boolean = true) {
-    append("\t".repeat(tabs))
+    tab(tabs)
     append("\"$name\": $value")
     if (needComma)
         append(',')
     appendLine()
 }
 
-private fun GlobalStats.dumpJson(file: File) {
-    val jsonString = buildString {
+private fun GlobalStats.jsonString(baseTabs: Int = 0) =
+    buildString {
+        tab(baseTabs)
         appendLine("{")
 
-        val tabs = 1
+        val tabs = baseTabs + 1
         addValue("classes_for_generation", classesForGeneration, tabs)
         addValue("tc_generated", testCasesGenerated, tabs)
         addValue("classes_without_problems", classesWithoutProblems, tabs)
@@ -66,7 +99,15 @@ private fun GlobalStats.dumpJson(file: File) {
         addValue("total_instructions_count", totalInstructionsCount, tabs)
         addValue("avg_coverage", avgCoverage, tabs, needComma = false)
 
-        appendLine("}")
+        tab(baseTabs)
+        append("}")
     }
-    file.writeText(jsonString)
-}
+
+private fun List<GlobalStats>.jsonString() =
+    joinToString(
+        separator = ",\n",
+        prefix = "[\n",
+        postfix = "\n]"
+    ) {
+        it.jsonString(baseTabs = 1)
+    }

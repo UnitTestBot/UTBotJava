@@ -3,6 +3,7 @@ from datetime import datetime
 from os.path import exists
 from sys import argv
 from time import time
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 from matplotlib.dates import DayLocator, ConciseDateFormatter
@@ -26,9 +27,21 @@ def transform_stats(stats):
     del stats["covered_instructions_count"]
     del stats["total_instructions_count"]
 
-    stats["timestamp"] = time()
-
     return stats
+
+
+def transform_and_combine_stats(stats_list):
+    new_stats = defaultdict(lambda: 0.0)
+
+    # calculate average by all keys
+    for n, stats in enumerate(stats_list, start=1):
+        transformed = transform_stats(stats)
+        for key in transformed:
+            new_stats[key] = new_stats[key] + (transformed[key] - new_stats[key]) / n
+
+    new_stats["timestamp"] = time()
+
+    return new_stats
 
 
 def update_stats_history(history_file, new_stats_file):
@@ -36,7 +49,7 @@ def update_stats_history(history_file, new_stats_file):
     new_stats = load(new_stats_file)
     if new_stats is None:
         raise FileNotFoundError("File with new stats not exists!")
-    history.append(transform_stats(new_stats))
+    history.append(transform_and_combine_stats(new_stats))
     with open(history_file, "w") as f:
         json.dump(history, f, indent=4)
     return history

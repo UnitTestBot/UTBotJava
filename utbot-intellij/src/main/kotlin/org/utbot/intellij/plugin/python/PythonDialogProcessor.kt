@@ -138,23 +138,29 @@ object PythonDialogProcessor {
                 val tests = pythonMethods.map { method ->
                     testCaseGenerator.generate(method)
                 }
-                val notEmptyTests = tests.filter { it.executions.isNotEmpty() || it.errors.isNotEmpty() }
-                val functionsWithoutTests = tests.mapNotNull {
-                    if (it.executions.isEmpty() && it.errors.isEmpty()) it.method.name else null
-                }
 
-                if (functionsWithoutTests.isNotEmpty() && !indicator.isCanceled) {
+                val notEmptyTests = tests.filter { it.executions.isNotEmpty() || it.errors.isNotEmpty() }
+                val emptyTestSets = tests.filter { it.executions.isEmpty() && it.errors.isEmpty() }
+
+                if (emptyTestSets.isNotEmpty() && !indicator.isCanceled) {
+                    val functionNames = emptyTestSets.map { it.method.name }
                     showErrorDialogLater(
                         project,
-                        message = "Cannot create tests for the following functions: " + functionsWithoutTests.joinToString { it },
+                        message = "Cannot create tests for the following functions: " + functionNames.joinToString(),
                         title = "Python test generation error"
                     )
                 }
 
                 val files = mutableListOf<File>()
-                notEmptyTests.forEach {
-                    val testCode = generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
-                    val fileName = "test_${it.method.name}.py"
+                notEmptyTests.forEach { testSet ->
+                    val message =
+                        if (testSet.mypyReport.isNotEmpty())
+                            "mypy report:\n${testSet.mypyReport.joinToString(separator = "")}"
+                        else
+                            null
+
+                    val testCode = generateTestCode(testSet, model.directoriesForSysPath, model.moduleToImport, message)
+                    val fileName = "test_${testSet.method.name}.py"
                     val testFile = FileManager.createPermanentFile(fileName, testCode)
                     files.add(testFile)
                 }

@@ -32,5 +32,6 @@ class PythonExecution(
 data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<PythonExecution>,
-    val errors: List<PythonError>
+    val errors: List<PythonError>,
+    val mypyReport: List<String>
 )

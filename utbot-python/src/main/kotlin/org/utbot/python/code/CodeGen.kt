@@ -29,7 +29,6 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrin
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.*
-import java.io.File
 
 
 object PythonCodeGenerator {
@@ -41,7 +40,8 @@ object PythonCodeGenerator {
     fun generateTestCode(
         testCase: PythonTestSet,
         directoriesForSysPath: List<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        messageInBeginningOfFile: String? = null
     ): String {
         val importFunction = generateImportFunctionCode(
             moduleToImport,
@@ -51,7 +51,13 @@ object PythonCodeGenerator {
         val testCaseCodes = (testCase.executions + testCase.errors).mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
         }
-        return toString(Module(importFunction)) + testCaseCodes.joinToString("")
+
+        var code = toString(Module(importFunction))
+        if (messageInBeginningOfFile != null)
+            code += "\n\"\"\"\n$messageInBeginningOfFile\"\"\"\n"
+        code += testCaseCodes.joinToString("")
+
+        return code
     }
 
     fun generateTestCode(method: PythonMethod, result: PythonResult, number: Int) =

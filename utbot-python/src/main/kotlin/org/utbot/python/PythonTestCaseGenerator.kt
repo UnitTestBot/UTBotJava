@@ -35,7 +35,11 @@ object PythonTestCaseGenerator {
         this.isCancelled = isCancelled
     }
 
+    private val storageForMypyMessages: MutableList<String> = mutableListOf()
+
     fun generate(method: PythonMethod): PythonTestSet {
+        storageForMypyMessages.clear()
+
         val initialArgumentTypes = method.arguments.map {
             annotationToClassId(
                 it.annotation,
@@ -84,7 +88,7 @@ object PythonTestCaseGenerator {
             }
         }
 
-        return PythonTestSet(method, executions, errors)
+        return PythonTestSet(method, executions, errors, storageForMypyMessages)
     }
 
     fun getAnnotations(
@@ -185,7 +189,8 @@ object PythonTestCaseGenerator {
             moduleToImport,
             directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
             pythonPath,
-            isCancelled
+            isCancelled,
+            storageForMypyMessages
         )
     }
 }

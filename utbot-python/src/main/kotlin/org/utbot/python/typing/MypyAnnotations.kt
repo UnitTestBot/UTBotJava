@@ -17,7 +17,8 @@ object MypyAnnotations {
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,
-        isCancelled: () -> Boolean
+        isCancelled: () -> Boolean,
+        storageForMypyMessages: MutableList<String>? = null
     ) = sequence {
         val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy")
         val codeWithoutAnnotations = generateMypyCheckCode(
@@ -30,6 +31,11 @@ object MypyAnnotations {
 
         startMypyDaemon(pythonPath, directoriesForSysPath)
         val defaultOutput = runMypy(pythonPath, fileWithCode)
+
+        if (storageForMypyMessages != null) {
+            getErrorsAndNotes(defaultOutput).forEach { storageForMypyMessages.add(it) }
+        }
+
         val defaultErrorNum = getErrorNumber(defaultOutput)
 
         val candidates = functionArgAnnotations.entries.map { (key, value) ->
@@ -40,10 +46,9 @@ object MypyAnnotations {
         if (candidates.any { it.isEmpty() })
             return@sequence
 
-        val annotationCandidates = PriorityCartesianProduct(candidates).getSequence()
-        annotationCandidates.forEach checkAnnotations@{
+        PriorityCartesianProduct(candidates).getSequence().forEach {
             if (isCancelled())
-                return@checkAnnotations
+                return@sequence
 
             val annotationMap = it.toMap()
             val codeWithAnnotations = generateMypyCheckCode(
@@ -112,8 +117,15 @@ object MypyAnnotations {
     }
 
     fun installMypy(pythonPath: String): Int {
-        val result = runCommand(listOf(pythonPath, "-m", "pip", "install", "mypy==" + mypyVersion))
+        val result = runCommand(listOf(pythonPath, "-m", "pip", "install", "mypy==$mypyVersion"))
         return result.exitValue
+    }
+
+    fun getErrorsAndNotes(mypyOutput: String): List<String> {
+        val regex = Regex("(error|note): [^\n]*\n")
+        return regex.findAll(mypyOutput).toList().map { match ->
+            match.groupValues[0]
+        }
     }
 }
 

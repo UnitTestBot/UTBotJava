@@ -146,7 +146,7 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 private const val ACTION_GENERATE = "Generate Tests"
-private const val ACTION_GENERATE_AND_RUN = "Generate && Run" //N
+private const val ACTION_GENERATE_AND_RUN = "Generate && Run" //Note that ampersand has to be escaped (doubled)
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {

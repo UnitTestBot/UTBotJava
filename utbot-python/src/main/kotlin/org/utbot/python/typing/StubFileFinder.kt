@@ -85,7 +85,7 @@ object StubFileFinder {
         if (argumentName != null) {
             annotations.forEach { annotation ->
                 (annotation.args + annotation.kwonlyargs).forEach {
-                    if (it.arg == argumentName && it.annotation != null)
+                    if (it.arg == argumentName && it.annotation != "")
                         types.add(it.annotation)
                 }
             }
@@ -93,14 +93,14 @@ object StubFileFinder {
             annotations.forEach { annotation ->
                 val checkCountArgs = annotation.args.size > argumentPosition
                 val ann = annotation.args[argumentPosition].annotation
-                if (checkCountArgs && ann != null) {
+                if (checkCountArgs && ann != "") {
                     types.add(ann)
                 }
             }
         } else {
             annotations.forEach { annotation ->
                 annotation.args.forEach {
-                    if (it.annotation != null)
+                    if (it.annotation != "")
                         types.add(it.annotation)
                 }
             }

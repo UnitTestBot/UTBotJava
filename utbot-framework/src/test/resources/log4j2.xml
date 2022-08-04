@@ -11,11 +11,12 @@
         </File>
 
         <Console name="Console" target="SYSTEM_OUT">
-            <ThresholdFilter level="DEBUG"  onMatch="NEUTRAL"   onMismatch="DENY"/>
+            <ThresholdFilter level="TRACE"  onMatch="ACCEPT"   onMismatch="DENY"/>
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>
+        <Logger name="org.utbot.instrumentation.rd" level="trace"/>
         <!--        Uncomment this logger to see path -->
         <Logger name="org.utbot.engine.UtBotSymbolicEngine.path" level="debug"/>
 
@@ -28,7 +29,7 @@
 
         <Logger name="soot.PackManager" level="INFO"/>
 
-        <Root level="debug">
+        <Root level="trace">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="FrameworkAppender"/>
         </Root>

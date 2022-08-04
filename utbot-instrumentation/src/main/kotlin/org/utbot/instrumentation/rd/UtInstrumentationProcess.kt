@@ -4,11 +4,11 @@ import com.jetbrains.rd.framework.base.static
 import com.jetbrains.rd.framework.impl.RdSignal
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.isAlive
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
 import org.utbot.common.catch
-import org.utbot.common.info
-import org.utbot.common.trace
 import org.utbot.common.pid
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
@@ -22,12 +22,8 @@ import java.nio.file.Files
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListMap
 import kotlin.concurrent.thread
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
-private val logger = KotlinLogging.logger("UtInstrumentationProcess")
+val logger = KotlinLogging.logger{}
 private const val fileWaitTimeoutMillis = 10L
 
 /**

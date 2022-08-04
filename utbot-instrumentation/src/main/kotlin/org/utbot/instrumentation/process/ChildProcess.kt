@@ -55,7 +55,7 @@ private enum class CUSTOM_LOG_LEVEL(val value: Int) {
     TRACE(2)
 }
 
-private val logLevel = CUSTOM_LOG_LEVEL.ERROR
+private val logLevel = CUSTOM_LOG_LEVEL.INFO
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")

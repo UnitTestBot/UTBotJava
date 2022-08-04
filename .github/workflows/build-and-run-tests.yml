@@ -34,14 +34,13 @@ jobs:
         export KOTLIN_HOME="/usr"
         gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
         
-    - name: Publish Test Results
+    - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v1
       if: always()
       with:
         files: "**/build/test-results/**/*.xml"
         
     - name: Cache utbot-cli-${{ env.VERSION }}.jar
-      if: ${{ github.event_name != 'pull_request' }}
       uses: actions/cache@v3
       with:
         path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar

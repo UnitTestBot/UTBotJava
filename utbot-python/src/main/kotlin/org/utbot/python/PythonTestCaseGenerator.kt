@@ -133,7 +133,7 @@ object PythonTestCaseGenerator {
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
         val candidates = mutableMapOf<String, Int>() // key: type, value: priority
-        PythonTypesStorage.builtinTypes.associateByTo(destination = candidates, { it }, { 0 })
+        PythonTypesStorage.builtinTypes.associateByTo(destination = candidates, { "builtins.$it" }, { 0 })
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
                 is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = inf

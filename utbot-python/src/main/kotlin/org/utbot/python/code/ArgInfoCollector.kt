@@ -50,7 +50,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             return listOf(
                 typeStorages,
                 methodStorages,
-                functionRetStorages,
+                functionArgStorages,
                 fieldStorages,
                 functionRetStorages
             ).flatten()

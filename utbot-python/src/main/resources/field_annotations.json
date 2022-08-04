@@ -137,6 +137,1871 @@
  {
   "definitions": [
    {
+    "annotation": "ClassVar[tuple[str, ...]]",
+    "className": "_ast.AST",
+    "name": "_attributes"
+   }
+  ],
+  "name": "_attributes"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "ClassVar[tuple[str, ...]]",
+    "className": "_ast.AST",
+    "name": "_fields"
+   },
+   {
+    "annotation": "tuple[str, ...]",
+    "className": "typing.NamedTuple",
+    "name": "_fields"
+   }
+  ],
+  "name": "_fields"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_ast.AST",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "shlex.shlex",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "inspect.Traceback",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "inspect.FrameInfo",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "sre_constants.error",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "logging.LogRecord",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "builtins.SyntaxError",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "netrc.NetrcParseError",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "_markupbase.ParserBase",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "configparser.DuplicateSectionError",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "configparser.DuplicateOptionError",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "configparser.MissingSectionHeaderError",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "pdb.Pdb",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "traceback.TracebackException",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "traceback.FrameSummary",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "tracemalloc.Filter",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "doctest.Example",
+    "name": "lineno"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "doctest.DocTest",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "warnings.WarningMessage",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "pyclbr.Class",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "pyclbr.Function",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "pyexpat.ExpatError",
+    "name": "lineno"
+   }
+  ],
+  "name": "lineno"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_ast.AST",
+    "name": "col_offset"
+   }
+  ],
+  "name": "col_offset"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "_ast.TypeIgnore",
+    "name": "tag"
+   }
+  ],
+  "name": "tag"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.FunctionType",
+    "name": "argtypes"
+   }
+  ],
+  "name": "argtypes"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.FunctionType",
+    "name": "returns"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.FunctionDef",
+    "name": "returns"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "returns"
+   }
+  ],
+  "name": "returns"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Module",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Interactive",
+    "name": "body"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Expression",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.FunctionDef",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.ClassDef",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.For",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncFor",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.While",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.If",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.With",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncWith",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Try",
+    "name": "body"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Lambda",
+    "name": "body"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.IfExp",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.ExceptHandler",
+    "name": "body"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.match_case",
+    "name": "body"
+   }
+  ],
+  "name": "body"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.FunctionDef",
+    "name": "name"
+   },
+   {
+    "annotation": "_identifier",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "name"
+   },
+   {
+    "annotation": "_identifier",
+    "className": "_ast.ClassDef",
+    "name": "name"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.ExceptHandler",
+    "name": "name"
+   },
+   {
+    "annotation": "_identifier",
+    "className": "_ast.alias",
+    "name": "name"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.MatchStar",
+    "name": "name"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.MatchAs",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "gzip.GzipFile",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "inspect.Attribute",
+    "name": "name"
+   },
+   {
+    "annotation": "(StrOrBytesPath | int)",
+    "className": "io.FileIO",
+    "name": "name"
+   },
+   {
+    "annotation": "Any",
+    "className": "io.BytesIO",
+    "name": "name"
+   },
+   {
+    "annotation": "Any",
+    "className": "io.StringIO",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "logging.Logger",
+    "name": "name"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "logging.Handler",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "logging.Filter",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "logging.LogRecord",
+    "name": "name"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "builtins.ImportError",
+    "name": "name"
+   },
+   {
+    "annotation": "Any",
+    "className": "cgi.MiniFieldStorage",
+    "name": "name"
+   },
+   {
+    "annotation": "(StrOrBytesPath | None)",
+    "className": "tarfile.TarFile",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "tarfile.TarInfo",
+    "name": "name"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "tempfile.TemporaryDirectory",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "codecs.CodecInfo",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "threading.Thread",
+    "name": "name"
+   },
+   {
+    "annotation": "Any",
+    "className": "tkinter.Image",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "traceback.FrameSummary",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pickletools.ArgumentDescriptor",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pickletools.StackObject",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pickletools.OpcodeInfo",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "dataclasses.Field",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pkgutil.ModuleInfo",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "doctest.DocTest",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "_sitebuiltins.Quitter",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "webbrowser.BaseBrowser",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pyclbr.Class",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pyclbr.Function",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "zipfile.ZipExtFile",
+    "name": "name"
+   }
+  ],
+  "name": "name"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "arguments",
+    "className": "_ast.FunctionDef",
+    "name": "args"
+   },
+   {
+    "annotation": "arguments",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "args"
+   },
+   {
+    "annotation": "arguments",
+    "className": "_ast.Lambda",
+    "name": "args"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Call",
+    "name": "args"
+   },
+   {
+    "annotation": "list[arg]",
+    "className": "_ast.arguments",
+    "name": "args"
+   },
+   {
+    "annotation": "(tuple[int, bytes | str] | tuple[int, bytes, str])",
+    "className": "smtplib.SMTPResponseException",
+    "name": "args"
+   },
+   {
+    "annotation": "tuple[int, bytes, str]",
+    "className": "smtplib.SMTPSenderRefused",
+    "name": "args"
+   },
+   {
+    "annotation": "tuple[_SendErrs]",
+    "className": "smtplib.SMTPRecipientsRefused",
+    "name": "args"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "inspect.Arguments",
+    "name": "args"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "inspect.ArgSpec",
+    "name": "args"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "inspect.FullArgSpec",
+    "name": "args"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "inspect.ArgInfo",
+    "name": "args"
+   },
+   {
+    "annotation": "(_ArgsType | None)",
+    "className": "logging.LogRecord",
+    "name": "args"
+   },
+   {
+    "annotation": "Any",
+    "className": "subprocess.CompletedProcess",
+    "name": "args"
+   },
+   {
+    "annotation": "_CMD",
+    "className": "subprocess.Popen",
+    "name": "args"
+   },
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "builtins.BaseException",
+    "name": "args"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "webbrowser.BaseBrowser",
+    "name": "args"
+   },
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "functools.partialmethod",
+    "name": "args"
+   }
+  ],
+  "name": "args"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.FunctionDef",
+    "name": "decorator_list"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.AsyncFunctionDef",
+    "name": "decorator_list"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.ClassDef",
+    "name": "decorator_list"
+   }
+  ],
+  "name": "decorator_list"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.ClassDef",
+    "name": "bases"
+   }
+  ],
+  "name": "bases"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[keyword]",
+    "className": "_ast.ClassDef",
+    "name": "keywords"
+   },
+   {
+    "annotation": "list[keyword]",
+    "className": "_ast.Call",
+    "name": "keywords"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "inspect.ArgSpec",
+    "name": "keywords"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "inspect.ArgInfo",
+    "name": "keywords"
+   },
+   {
+    "annotation": "dict[str, str | tuple[str, str]]",
+    "className": "pydoc.Helper",
+    "name": "keywords"
+   },
+   {
+    "annotation": "dict[str, Any]",
+    "className": "functools.partialmethod",
+    "name": "keywords"
+   }
+  ],
+  "name": "keywords"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Return",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Assign",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AugAssign",
+    "name": "value"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.AnnAssign",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Expr",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.DictComp",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Await",
+    "name": "value"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Yield",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.YieldFrom",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.FormattedValue",
+    "name": "value"
+   },
+   {
+    "annotation": "Any",
+    "className": "_ast.Constant",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.NamedExpr",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Attribute",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Subscript",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Starred",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.keyword",
+    "name": "value"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.MatchValue",
+    "name": "value"
+   },
+   {
+    "annotation": "Literal[True, False, None]",
+    "className": "_ast.MatchSingleton",
+    "name": "value"
+   },
+   {
+    "annotation": "complex",
+    "className": "ast.Num",
+    "name": "value"
+   },
+   {
+    "annotation": "str",
+    "className": "ast.Str",
+    "name": "value"
+   },
+   {
+    "annotation": "bytes",
+    "className": "ast.Bytes",
+    "name": "value"
+   },
+   {
+    "annotation": "Any",
+    "className": "builtins.StopIteration",
+    "name": "value"
+   },
+   {
+    "annotation": "Any",
+    "className": "builtins.StopAsyncIteration",
+    "name": "value"
+   },
+   {
+    "annotation": "Any",
+    "className": "cgi.MiniFieldStorage",
+    "name": "value"
+   },
+   {
+    "annotation": "(None | bytes | _list[Any])",
+    "className": "cgi.FieldStorage",
+    "name": "value"
+   },
+   {
+    "annotation": "Any",
+    "className": "ctypes.Array",
+    "name": "value"
+   },
+   {
+    "annotation": "(BaseException | None)",
+    "className": "pydoc.ErrorDuringImport",
+    "name": "value"
+   }
+  ],
+  "name": "value"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Delete",
+    "name": "targets"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Assign",
+    "name": "targets"
+   }
+  ],
+  "name": "targets"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.AugAssign",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AnnAssign",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.For",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AsyncFor",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.NamedExpr",
+    "name": "target"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.comprehension",
+    "name": "target"
+   }
+  ],
+  "name": "target"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "operator",
+    "className": "_ast.AugAssign",
+    "name": "op"
+   },
+   {
+    "annotation": "boolop",
+    "className": "_ast.BoolOp",
+    "name": "op"
+   },
+   {
+    "annotation": "operator",
+    "className": "_ast.BinOp",
+    "name": "op"
+   },
+   {
+    "annotation": "unaryop",
+    "className": "_ast.UnaryOp",
+    "name": "op"
+   }
+  ],
+  "name": "op"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.AnnAssign",
+    "name": "annotation"
+   },
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.arg",
+    "name": "annotation"
+   }
+  ],
+  "name": "annotation"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_ast.AnnAssign",
+    "name": "simple"
+   }
+  ],
+  "name": "simple"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.For",
+    "name": "iter"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.AsyncFor",
+    "name": "iter"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.comprehension",
+    "name": "iter"
+   }
+  ],
+  "name": "iter"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.For",
+    "name": "orelse"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.AsyncFor",
+    "name": "orelse"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.While",
+    "name": "orelse"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.If",
+    "name": "orelse"
+   },
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Try",
+    "name": "orelse"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.IfExp",
+    "name": "orelse"
+   }
+  ],
+  "name": "orelse"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.While",
+    "name": "test"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.If",
+    "name": "test"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Assert",
+    "name": "test"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.IfExp",
+    "name": "test"
+   },
+   {
+    "annotation": "DocTest",
+    "className": "doctest.DocTestRunner",
+    "name": "test"
+   },
+   {
+    "annotation": "DocTest",
+    "className": "doctest.DocTestFailure",
+    "name": "test"
+   },
+   {
+    "annotation": "DocTest",
+    "className": "doctest.UnexpectedException",
+    "name": "test"
+   }
+  ],
+  "name": "test"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[withitem]",
+    "className": "_ast.With",
+    "name": "items"
+   },
+   {
+    "annotation": "list[withitem]",
+    "className": "_ast.AsyncWith",
+    "name": "items"
+   }
+  ],
+  "name": "items"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Raise",
+    "name": "exc"
+   },
+   {
+    "annotation": "(type[BaseException] | None)",
+    "className": "pydoc.ErrorDuringImport",
+    "name": "exc"
+   }
+  ],
+  "name": "exc"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Raise",
+    "name": "cause"
+   }
+  ],
+  "name": "cause"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[ExceptHandler]",
+    "className": "_ast.Try",
+    "name": "handlers"
+   },
+   {
+    "annotation": "list[Handler]",
+    "className": "logging.Logger",
+    "name": "handlers"
+   }
+  ],
+  "name": "handlers"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[stmt]",
+    "className": "_ast.Try",
+    "name": "finalbody"
+   }
+  ],
+  "name": "finalbody"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Assert",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "sre_constants.error",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "logging.LogRecord",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "builtins.ImportError",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "builtins.SyntaxError",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "netrc.NetrcParseError",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "optparse.OptParseError",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "optparse.OptionError",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "traceback.TracebackException",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "py_compile.PyCompileError",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "xdrlib.Error",
+    "name": "msg"
+   },
+   {
+    "annotation": "str",
+    "className": "getopt.GetoptError",
+    "name": "msg"
+   }
+  ],
+  "name": "msg"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[alias]",
+    "className": "_ast.Import",
+    "name": "names"
+   },
+   {
+    "annotation": "list[alias]",
+    "className": "_ast.ImportFrom",
+    "name": "names"
+   },
+   {
+    "annotation": "list[_identifier]",
+    "className": "_ast.Global",
+    "name": "names"
+   },
+   {
+    "annotation": "list[_identifier]",
+    "className": "_ast.Nonlocal",
+    "name": "names"
+   }
+  ],
+  "name": "names"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.ImportFrom",
+    "name": "module"
+   },
+   {
+    "annotation": "str",
+    "className": "logging.LogRecord",
+    "name": "module"
+   },
+   {
+    "annotation": "str",
+    "className": "pyclbr.Class",
+    "name": "module"
+   },
+   {
+    "annotation": "str",
+    "className": "pyclbr.Function",
+    "name": "module"
+   }
+  ],
+  "name": "module"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_ast.ImportFrom",
+    "name": "level"
+   },
+   {
+    "annotation": "int",
+    "className": "logging.Logger",
+    "name": "level"
+   },
+   {
+    "annotation": "int",
+    "className": "logging.Handler",
+    "name": "level"
+   },
+   {
+    "annotation": "int",
+    "className": "optparse.HelpFormatter",
+    "name": "level"
+   }
+  ],
+  "name": "level"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.BoolOp",
+    "name": "values"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Dict",
+    "name": "values"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.JoinedStr",
+    "name": "values"
+   },
+   {
+    "annotation": "(Values | None)",
+    "className": "optparse.OptionParser",
+    "name": "values"
+   }
+  ],
+  "name": "values"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.BinOp",
+    "name": "left"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.Compare",
+    "name": "left"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "filecmp.dircmp",
+    "name": "left"
+   }
+  ],
+  "name": "left"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.BinOp",
+    "name": "right"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "filecmp.dircmp",
+    "name": "right"
+   }
+  ],
+  "name": "right"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.UnaryOp",
+    "name": "operand"
+   }
+  ],
+  "name": "operand"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr | None]",
+    "className": "_ast.Dict",
+    "name": "keys"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.MatchMapping",
+    "name": "keys"
+   }
+  ],
+  "name": "keys"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Set",
+    "name": "elts"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.List",
+    "name": "elts"
+   },
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Tuple",
+    "name": "elts"
+   }
+  ],
+  "name": "elts"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.ListComp",
+    "name": "elt"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.SetComp",
+    "name": "elt"
+   },
+   {
+    "annotation": "expr",
+    "className": "_ast.GeneratorExp",
+    "name": "elt"
+   }
+  ],
+  "name": "elt"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.ListComp",
+    "name": "generators"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.SetComp",
+    "name": "generators"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.DictComp",
+    "name": "generators"
+   },
+   {
+    "annotation": "list[comprehension]",
+    "className": "_ast.GeneratorExp",
+    "name": "generators"
+   }
+  ],
+  "name": "generators"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.DictComp",
+    "name": "key"
+   },
+   {
+    "annotation": "_KT",
+    "className": "weakref.KeyedRef",
+    "name": "key"
+   }
+  ],
+  "name": "key"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[cmpop]",
+    "className": "_ast.Compare",
+    "name": "ops"
+   }
+  ],
+  "name": "ops"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.Compare",
+    "name": "comparators"
+   }
+  ],
+  "name": "comparators"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Call",
+    "name": "func"
+   },
+   {
+    "annotation": "Any",
+    "className": "tkinter.CallWrapper",
+    "name": "func"
+   },
+   {
+    "annotation": "(Callable[..., _T] | _Descriptor)",
+    "className": "functools.partialmethod",
+    "name": "func"
+   },
+   {
+    "annotation": "Callable[..., _T]",
+    "className": "functools.singledispatchmethod",
+    "name": "func"
+   },
+   {
+    "annotation": "Callable[[Any], _T]",
+    "className": "functools.cached_property",
+    "name": "func"
+   }
+  ],
+  "name": "func"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(int | None)",
+    "className": "_ast.FormattedValue",
+    "name": "conversion"
+   }
+  ],
+  "name": "conversion"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.FormattedValue",
+    "name": "format_spec"
+   }
+  ],
+  "name": "format_spec"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(str | None)",
+    "className": "_ast.Constant",
+    "name": "kind"
+   },
+   {
+    "annotation": "str",
+    "className": "inspect.Attribute",
+    "name": "kind"
+   }
+  ],
+  "name": "kind"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "_ast.Constant",
+    "name": "s"
+   },
+   {
+    "annotation": "str",
+    "className": "ast.Str",
+    "name": "s"
+   },
+   {
+    "annotation": "bytes",
+    "className": "ast.Bytes",
+    "name": "s"
+   }
+  ],
+  "name": "s"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "complex",
+    "className": "_ast.Constant",
+    "name": "n"
+   },
+   {
+    "annotation": "int",
+    "className": "pickletools.ArgumentDescriptor",
+    "name": "n"
+   }
+  ],
+  "name": "n"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.Attribute",
+    "name": "attr"
+   }
+  ],
+  "name": "attr"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Attribute",
+    "name": "ctx"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Subscript",
+    "name": "ctx"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Starred",
+    "name": "ctx"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Name",
+    "name": "ctx"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.List",
+    "name": "ctx"
+   },
+   {
+    "annotation": "expr_context",
+    "className": "_ast.Tuple",
+    "name": "ctx"
+   }
+  ],
+  "name": "ctx"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Slice",
+    "name": "lower"
+   }
+  ],
+  "name": "lower"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Slice",
+    "name": "upper"
+   }
+  ],
+  "name": "upper"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.Slice",
+    "name": "step"
+   }
+  ],
+  "name": "step"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_SliceT",
+    "className": "_ast.Subscript",
+    "name": "slice"
+   }
+  ],
+  "name": "slice"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.Name",
+    "name": "id"
+   },
+   {
+    "annotation": "bytes",
+    "className": "ssl.SSLSession",
+    "name": "id"
+   }
+  ],
+  "name": "id"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.comprehension",
+    "name": "ifs"
+   }
+  ],
+  "name": "ifs"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_ast.comprehension",
+    "name": "is_async"
+   }
+  ],
+  "name": "is_async"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.ExceptHandler",
+    "name": "type"
+   },
+   {
+    "annotation": "(Callable[[str], Any] | FileType | None)",
+    "className": "argparse.Action",
+    "name": "type"
+   },
+   {
+    "annotation": "Any",
+    "className": "cgi.MiniFieldStorage",
+    "name": "type"
+   },
+   {
+    "annotation": "str",
+    "className": "cgi.FieldStorage",
+    "name": "type"
+   },
+   {
+    "annotation": "bytes",
+    "className": "tarfile.TarInfo",
+    "name": "type"
+   },
+   {
+    "annotation": "Any",
+    "className": "optparse.Option",
+    "name": "type"
+   },
+   {
+    "annotation": "EventType",
+    "className": "tkinter.Event",
+    "name": "type"
+   },
+   {
+    "annotation": "Type[_T]",
+    "className": "dataclasses.Field",
+    "name": "type"
+   },
+   {
+    "annotation": "Type[_T]",
+    "className": "dataclasses.InitVar",
+    "name": "type"
+   }
+  ],
+  "name": "type"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(arg | None)",
+    "className": "_ast.arguments",
+    "name": "vararg"
+   }
+  ],
+  "name": "vararg"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[arg]",
+    "className": "_ast.arguments",
+    "name": "kwonlyargs"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "inspect.FullArgSpec",
+    "name": "kwonlyargs"
+   }
+  ],
+  "name": "kwonlyargs"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr | None]",
+    "className": "_ast.arguments",
+    "name": "kw_defaults"
+   }
+  ],
+  "name": "kw_defaults"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(arg | None)",
+    "className": "_ast.arguments",
+    "name": "kwarg"
+   }
+  ],
+  "name": "kwarg"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[expr]",
+    "className": "_ast.arguments",
+    "name": "defaults"
+   },
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "inspect.ArgSpec",
+    "name": "defaults"
+   },
+   {
+    "annotation": "(tuple[Any, ...] | None)",
+    "className": "inspect.FullArgSpec",
+    "name": "defaults"
+   },
+   {
+    "annotation": "dict[str, Any]",
+    "className": "optparse.OptionContainer",
+    "name": "defaults"
+   }
+  ],
+  "name": "defaults"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_identifier",
+    "className": "_ast.arg",
+    "name": "arg"
+   },
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.keyword",
+    "name": "arg"
+   },
+   {
+    "annotation": "(ArgumentDescriptor | None)",
+    "className": "pickletools.OpcodeInfo",
+    "name": "arg"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "dis.Instruction",
+    "name": "arg"
+   }
+  ],
+  "name": "arg"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.alias",
+    "name": "asname"
+   }
+  ],
+  "name": "asname"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.withitem",
+    "name": "context_expr"
+   }
+  ],
+  "name": "context_expr"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.withitem",
+    "name": "optional_vars"
+   }
+  ],
+  "name": "optional_vars"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.Match",
+    "name": "subject"
+   }
+  ],
+  "name": "subject"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[match_case]",
+    "className": "_ast.Match",
+    "name": "cases"
+   }
+  ],
+  "name": "cases"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_pattern",
+    "className": "_ast.match_case",
+    "name": "pattern"
+   },
+   {
+    "annotation": "(_pattern | None)",
+    "className": "_ast.MatchAs",
+    "name": "pattern"
+   },
+   {
+    "annotation": "(str | bytes | None)",
+    "className": "sre_constants.error",
+    "name": "pattern"
+   },
+   {
+    "annotation": "Pattern[str]",
+    "className": "string.Template",
+    "name": "pattern"
+   }
+  ],
+  "name": "pattern"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(expr | None)",
+    "className": "_ast.match_case",
+    "name": "guard"
+   }
+  ],
+  "name": "guard"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchSequence",
+    "name": "patterns"
+   },
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchMapping",
+    "name": "patterns"
+   },
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchClass",
+    "name": "patterns"
+   },
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchOr",
+    "name": "patterns"
+   }
+  ],
+  "name": "patterns"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(_identifier | None)",
+    "className": "_ast.MatchMapping",
+    "name": "rest"
+   }
+  ],
+  "name": "rest"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "expr",
+    "className": "_ast.MatchClass",
+    "name": "cls"
+   }
+  ],
+  "name": "cls"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[_identifier]",
+    "className": "_ast.MatchClass",
+    "name": "kwd_attrs"
+   }
+  ],
+  "name": "kwd_attrs"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[pattern]",
+    "className": "_ast.MatchClass",
+    "name": "kwd_patterns"
+   }
+  ],
+  "name": "kwd_patterns"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "bool",
     "className": "select.epoll",
     "name": "closed"
@@ -287,151 +2152,6 @@
  {
   "definitions": [
    {
-    "annotation": "str",
-    "className": "gzip.GzipFile",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "inspect.Attribute",
-    "name": "name"
-   },
-   {
-    "annotation": "(StrOrBytesPath | int)",
-    "className": "io.FileIO",
-    "name": "name"
-   },
-   {
-    "annotation": "Any",
-    "className": "io.BytesIO",
-    "name": "name"
-   },
-   {
-    "annotation": "Any",
-    "className": "io.StringIO",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "logging.Logger",
-    "name": "name"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "logging.Handler",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "logging.Filter",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "logging.LogRecord",
-    "name": "name"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "builtins.ImportError",
-    "name": "name"
-   },
-   {
-    "annotation": "Any",
-    "className": "cgi.MiniFieldStorage",
-    "name": "name"
-   },
-   {
-    "annotation": "(StrOrBytesPath | None)",
-    "className": "tarfile.TarFile",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "tarfile.TarInfo",
-    "name": "name"
-   },
-   {
-    "annotation": "AnyStr",
-    "className": "tempfile.TemporaryDirectory",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "codecs.CodecInfo",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "threading.Thread",
-    "name": "name"
-   },
-   {
-    "annotation": "Any",
-    "className": "tkinter.Image",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "traceback.FrameSummary",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "pickletools.ArgumentDescriptor",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "pickletools.StackObject",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "pickletools.OpcodeInfo",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "dataclasses.Field",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "pkgutil.ModuleInfo",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "doctest.DocTest",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "webbrowser.BaseBrowser",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "pyclbr.Class",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "pyclbr.Function",
-    "name": "name"
-   },
-   {
-    "annotation": "str",
-    "className": "zipfile.ZipExtFile",
-    "name": "name"
-   }
-  ],
-  "name": "name"
- },
- {
-  "definitions": [
-   {
     "annotation": "zlib._Compress",
     "className": "gzip.GzipFile",
     "name": "compress"
@@ -448,6 +2168,26 @@
    }
   ],
   "name": "crc"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_C",
+    "className": "_weakref.CallableProxyType",
+    "name": "__call__"
+   }
+  ],
+  "name": "__call__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Callable[[ReferenceType[_T]], Any]",
+    "className": "_weakref.ReferenceType",
+    "name": "__callback__"
+   }
+  ],
+  "name": "__callback__"
  },
  {
   "definitions": [
@@ -612,111 +2352,6 @@
  {
   "definitions": [
    {
-    "annotation": "int",
-    "className": "shlex.shlex",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "inspect.Traceback",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "inspect.FrameInfo",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "sre_constants.error",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "logging.LogRecord",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "builtins.SyntaxError",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "netrc.NetrcParseError",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "configparser.DuplicateSectionError",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "configparser.DuplicateOptionError",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "configparser.MissingSectionHeaderError",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "pdb.Pdb",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "traceback.TracebackException",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "traceback.FrameSummary",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "tracemalloc.Filter",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "doctest.Example",
-    "name": "lineno"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "doctest.DocTest",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "warnings.WarningMessage",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "pyclbr.Class",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "pyclbr.Function",
-    "name": "lineno"
-   },
-   {
-    "annotation": "int",
-    "className": "pyexpat.ExpatError",
-    "name": "lineno"
-   }
-  ],
-  "name": "lineno"
- },
- {
-  "definitions": [
-   {
     "annotation": "str",
     "className": "shlex.shlex",
     "name": "token"
@@ -734,6 +2369,11 @@
    {
     "annotation": "bool",
     "className": "ssl.MemoryBIO",
+    "name": "eof"
+   },
+   {
+    "annotation": "str",
+    "className": "_sitebuiltins.Quitter",
     "name": "eof"
    }
   ],
@@ -2192,76 +3832,6 @@
  {
   "definitions": [
    {
-    "annotation": "(tuple[int, bytes | str] | tuple[int, bytes, str])",
-    "className": "smtplib.SMTPResponseException",
-    "name": "args"
-   },
-   {
-    "annotation": "tuple[int, bytes, str]",
-    "className": "smtplib.SMTPSenderRefused",
-    "name": "args"
-   },
-   {
-    "annotation": "tuple[_SendErrs]",
-    "className": "smtplib.SMTPRecipientsRefused",
-    "name": "args"
-   },
-   {
-    "annotation": "list[str]",
-    "className": "inspect.Arguments",
-    "name": "args"
-   },
-   {
-    "annotation": "list[str]",
-    "className": "inspect.ArgSpec",
-    "name": "args"
-   },
-   {
-    "annotation": "list[str]",
-    "className": "inspect.FullArgSpec",
-    "name": "args"
-   },
-   {
-    "annotation": "list[str]",
-    "className": "inspect.ArgInfo",
-    "name": "args"
-   },
-   {
-    "annotation": "(_ArgsType | None)",
-    "className": "logging.LogRecord",
-    "name": "args"
-   },
-   {
-    "annotation": "Any",
-    "className": "subprocess.CompletedProcess",
-    "name": "args"
-   },
-   {
-    "annotation": "_CMD",
-    "className": "subprocess.Popen",
-    "name": "args"
-   },
-   {
-    "annotation": "tuple[Any, ...]",
-    "className": "builtins.BaseException",
-    "name": "args"
-   },
-   {
-    "annotation": "list[str]",
-    "className": "webbrowser.BaseBrowser",
-    "name": "args"
-   },
-   {
-    "annotation": "tuple[Any, ...]",
-    "className": "functools.partialmethod",
-    "name": "args"
-   }
-  ],
-  "name": "args"
- },
- {
-  "definitions": [
-   {
     "annotation": "str",
     "className": "smtplib.SMTPSenderRefused",
     "name": "sender"
@@ -3462,51 +5032,6 @@
  {
   "definitions": [
    {
-    "annotation": "(Callable[[str], Any] | FileType | None)",
-    "className": "argparse.Action",
-    "name": "type"
-   },
-   {
-    "annotation": "Any",
-    "className": "cgi.MiniFieldStorage",
-    "name": "type"
-   },
-   {
-    "annotation": "str",
-    "className": "cgi.FieldStorage",
-    "name": "type"
-   },
-   {
-    "annotation": "bytes",
-    "className": "tarfile.TarInfo",
-    "name": "type"
-   },
-   {
-    "annotation": "Any",
-    "className": "optparse.Option",
-    "name": "type"
-   },
-   {
-    "annotation": "EventType",
-    "className": "tkinter.Event",
-    "name": "type"
-   },
-   {
-    "annotation": "Type[_T]",
-    "className": "dataclasses.Field",
-    "name": "type"
-   },
-   {
-    "annotation": "Type[_T]",
-    "className": "dataclasses.InitVar",
-    "name": "type"
-   }
-  ],
-  "name": "type"
- },
- {
-  "definitions": [
-   {
     "annotation": "(Iterable[Any] | None)",
     "className": "argparse.Action",
     "name": "choices"
@@ -4017,61 +5542,6 @@
  {
   "definitions": [
    {
-    "annotation": "(str | None)",
-    "className": "inspect.ArgSpec",
-    "name": "keywords"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "inspect.ArgInfo",
-    "name": "keywords"
-   },
-   {
-    "annotation": "dict[str, str | tuple[str, str]]",
-    "className": "pydoc.Helper",
-    "name": "keywords"
-   },
-   {
-    "annotation": "dict[str, Any]",
-    "className": "functools.partialmethod",
-    "name": "keywords"
-   }
-  ],
-  "name": "keywords"
- },
- {
-  "definitions": [
-   {
-    "annotation": "tuple[Any, ...]",
-    "className": "inspect.ArgSpec",
-    "name": "defaults"
-   },
-   {
-    "annotation": "(tuple[Any, ...] | None)",
-    "className": "inspect.FullArgSpec",
-    "name": "defaults"
-   },
-   {
-    "annotation": "dict[str, Any]",
-    "className": "optparse.OptionContainer",
-    "name": "defaults"
-   }
-  ],
-  "name": "defaults"
- },
- {
-  "definitions": [
-   {
-    "annotation": "list[str]",
-    "className": "inspect.FullArgSpec",
-    "name": "kwonlyargs"
-   }
-  ],
-  "name": "kwonlyargs"
- },
- {
-  "definitions": [
-   {
     "annotation": "(dict[str, Any] | None)",
     "className": "inspect.FullArgSpec",
     "name": "kwonlydefaults"
@@ -4297,16 +5767,6 @@
  {
   "definitions": [
    {
-    "annotation": "str",
-    "className": "inspect.Attribute",
-    "name": "kind"
-   }
-  ],
-  "name": "kind"
- },
- {
-  "definitions": [
-   {
     "annotation": "type",
     "className": "inspect.Attribute",
     "name": "defining_class"
@@ -4343,71 +5803,6 @@
    }
   ],
   "name": "object"
- },
- {
-  "definitions": [
-   {
-    "annotation": "complex",
-    "className": "ast.Num",
-    "name": "value"
-   },
-   {
-    "annotation": "str",
-    "className": "ast.Str",
-    "name": "value"
-   },
-   {
-    "annotation": "bytes",
-    "className": "ast.Bytes",
-    "name": "value"
-   },
-   {
-    "annotation": "Any",
-    "className": "builtins.StopIteration",
-    "name": "value"
-   },
-   {
-    "annotation": "Any",
-    "className": "builtins.StopAsyncIteration",
-    "name": "value"
-   },
-   {
-    "annotation": "Any",
-    "className": "cgi.MiniFieldStorage",
-    "name": "value"
-   },
-   {
-    "annotation": "(None | bytes | _list[Any])",
-    "className": "cgi.FieldStorage",
-    "name": "value"
-   },
-   {
-    "annotation": "Any",
-    "className": "ctypes.Array",
-    "name": "value"
-   },
-   {
-    "annotation": "(BaseException | None)",
-    "className": "pydoc.ErrorDuringImport",
-    "name": "value"
-   }
-  ],
-  "name": "value"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "ast.Str",
-    "name": "s"
-   },
-   {
-    "annotation": "bytes",
-    "className": "ast.Bytes",
-    "name": "s"
-   }
-  ],
-  "name": "s"
  },
  {
   "definitions": [
@@ -4588,81 +5983,6 @@
    }
   ],
   "name": "ac_out_buffer_size"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "sre_constants.error",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "logging.LogRecord",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "builtins.ImportError",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "builtins.SyntaxError",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "netrc.NetrcParseError",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "optparse.OptParseError",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "optparse.OptionError",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "traceback.TracebackException",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "py_compile.PyCompileError",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "xdrlib.Error",
-    "name": "msg"
-   },
-   {
-    "annotation": "str",
-    "className": "getopt.GetoptError",
-    "name": "msg"
-   }
-  ],
-  "name": "msg"
- },
- {
-  "definitions": [
-   {
-    "annotation": "(str | bytes | None)",
-    "className": "sre_constants.error",
-    "name": "pattern"
-   },
-   {
-    "annotation": "Pattern[str]",
-    "className": "string.Template",
-    "name": "pattern"
-   }
-  ],
-  "name": "pattern"
  },
  {
   "definitions": [
@@ -5572,16 +6892,6 @@
  {
   "definitions": [
    {
-    "annotation": "bytes",
-    "className": "ssl.SSLSession",
-    "name": "id"
-   }
-  ],
-  "name": "id"
- },
- {
-  "definitions": [
-   {
     "annotation": "int",
     "className": "ssl.SSLSession",
     "name": "ticket_lifetime_hint"
@@ -5688,6 +6998,161 @@
    }
   ],
   "name": "SSL_ERROR_ZERO_RETURN"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "_csv.Dialect",
+    "name": "delimiter"
+   },
+   {
+    "annotation": "str",
+    "className": "string.Template",
+    "name": "delimiter"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.excel",
+    "name": "delimiter"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.excel_tab",
+    "name": "delimiter"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.unix_dialect",
+    "name": "delimiter"
+   }
+  ],
+  "name": "delimiter"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(str | None)",
+    "className": "_csv.Dialect",
+    "name": "quotechar"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.excel",
+    "name": "quotechar"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.unix_dialect",
+    "name": "quotechar"
+   }
+  ],
+  "name": "quotechar"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(str | None)",
+    "className": "_csv.Dialect",
+    "name": "escapechar"
+   }
+  ],
+  "name": "escapechar"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "_csv.Dialect",
+    "name": "doublequote"
+   },
+   {
+    "annotation": "bool",
+    "className": "csv.excel",
+    "name": "doublequote"
+   },
+   {
+    "annotation": "bool",
+    "className": "csv.unix_dialect",
+    "name": "doublequote"
+   }
+  ],
+  "name": "doublequote"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "_csv.Dialect",
+    "name": "skipinitialspace"
+   },
+   {
+    "annotation": "bool",
+    "className": "csv.excel",
+    "name": "skipinitialspace"
+   },
+   {
+    "annotation": "bool",
+    "className": "csv.unix_dialect",
+    "name": "skipinitialspace"
+   }
+  ],
+  "name": "skipinitialspace"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "_csv.Dialect",
+    "name": "lineterminator"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.excel",
+    "name": "lineterminator"
+   },
+   {
+    "annotation": "str",
+    "className": "csv.unix_dialect",
+    "name": "lineterminator"
+   }
+  ],
+  "name": "lineterminator"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_csv.Dialect",
+    "name": "quoting"
+   },
+   {
+    "annotation": "int",
+    "className": "csv.excel",
+    "name": "quoting"
+   },
+   {
+    "annotation": "int",
+    "className": "csv.unix_dialect",
+    "name": "quoting"
+   }
+  ],
+  "name": "quoting"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_csv.Dialect",
+    "name": "strict"
+   },
+   {
+    "annotation": "bool",
+    "className": "_json.make_scanner",
+    "name": "strict"
+   }
+  ],
+  "name": "strict"
  },
  {
   "definitions": [
@@ -5944,31 +7409,6 @@
    {
     "annotation": "str",
     "className": "string.Template",
-    "name": "delimiter"
-   },
-   {
-    "annotation": "str",
-    "className": "csv.excel",
-    "name": "delimiter"
-   },
-   {
-    "annotation": "str",
-    "className": "csv.excel_tab",
-    "name": "delimiter"
-   },
-   {
-    "annotation": "str",
-    "className": "csv.unix_dialect",
-    "name": "delimiter"
-   }
-  ],
-  "name": "delimiter"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "string.Template",
     "name": "idpattern"
    }
   ],
@@ -5989,6 +7429,11 @@
    {
     "annotation": "RegexFlag",
     "className": "string.Template",
+    "name": "flags"
+   },
+   {
+    "annotation": "dict[_TrapType, bool]",
+    "className": "_decimal.Context",
     "name": "flags"
    },
    {
@@ -6077,26 +7522,6 @@
  {
   "definitions": [
    {
-    "annotation": "int",
-    "className": "logging.Logger",
-    "name": "level"
-   },
-   {
-    "annotation": "int",
-    "className": "logging.Handler",
-    "name": "level"
-   },
-   {
-    "annotation": "int",
-    "className": "optparse.HelpFormatter",
-    "name": "level"
-   }
-  ],
-  "name": "level"
- },
- {
-  "definitions": [
-   {
     "annotation": "(Logger | None)",
     "className": "logging.Logger",
     "name": "parent"
@@ -6113,16 +7538,6 @@
    }
   ],
   "name": "propagate"
- },
- {
-  "definitions": [
-   {
-    "annotation": "list[Handler]",
-    "className": "logging.Logger",
-    "name": "handlers"
-   }
-  ],
-  "name": "handlers"
  },
  {
   "definitions": [
@@ -6323,26 +7738,6 @@
    }
   ],
   "name": "levelno"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "logging.LogRecord",
-    "name": "module"
-   },
-   {
-    "annotation": "str",
-    "className": "pyclbr.Class",
-    "name": "module"
-   },
-   {
-    "annotation": "str",
-    "className": "pyclbr.Function",
-    "name": "module"
-   }
-  ],
-  "name": "module"
  },
  {
   "definitions": [
@@ -6952,6 +8347,11 @@
     "name": "__hash__"
    },
    {
+    "annotation": "Any",
+    "className": "_decimal.Context",
+    "name": "__hash__"
+   },
+   {
     "annotation": "ClassVar[None]",
     "className": "types.MappingProxyType",
     "name": "__hash__"
@@ -7188,6 +8588,11 @@
    },
    {
     "annotation": "int",
+    "className": "_markupbase.ParserBase",
+    "name": "offset"
+   },
+   {
+    "annotation": "int",
     "className": "traceback.TracebackException",
     "name": "offset"
    },
@@ -7268,6 +8673,106 @@
    }
   ],
   "name": "end"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.DecimalTuple",
+    "name": "sign"
+   }
+  ],
+  "name": "sign"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[int, ...]",
+    "className": "_decimal.DecimalTuple",
+    "name": "digits"
+   }
+  ],
+  "name": "digits"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.DecimalTuple",
+    "name": "exponent"
+   }
+  ],
+  "name": "exponent"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "prec"
+   }
+  ],
+  "name": "prec"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "_decimal.Context",
+    "name": "rounding"
+   }
+  ],
+  "name": "rounding"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "Emin"
+   }
+  ],
+  "name": "Emin"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "Emax"
+   }
+  ],
+  "name": "Emax"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "capitals"
+   }
+  ],
+  "name": "capitals"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "_decimal.Context",
+    "name": "clamp"
+   }
+  ],
+  "name": "clamp"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "dict[_TrapType, bool]",
+    "className": "_decimal.Context",
+    "name": "traps"
+   }
+  ],
+  "name": "traps"
  },
  {
   "definitions": [
@@ -8212,6 +9717,56 @@
  {
   "definitions": [
    {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "object_hook"
+   }
+  ],
+  "name": "object_hook"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "object_pairs_hook"
+   }
+  ],
+  "name": "object_pairs_hook"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "parse_int"
+   }
+  ],
+  "name": "parse_int"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "parse_constant"
+   }
+  ],
+  "name": "parse_constant"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "_json.make_scanner",
+    "name": "parse_float"
+   }
+  ],
+  "name": "parse_float"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "Compile",
     "className": "codeop.CommandCompiler",
     "name": "compiler"
@@ -8858,16 +10413,6 @@
    }
   ],
   "name": "standard_option_list"
- },
- {
-  "definitions": [
-   {
-    "annotation": "(Values | None)",
-    "className": "optparse.OptionParser",
-    "name": "values"
-   }
-  ],
-  "name": "values"
  },
  {
   "definitions": [
@@ -9609,31 +11154,6 @@
    {
     "annotation": "Any",
     "className": "tkinter.CallWrapper",
-    "name": "func"
-   },
-   {
-    "annotation": "(Callable[..., _T] | _Descriptor)",
-    "className": "functools.partialmethod",
-    "name": "func"
-   },
-   {
-    "annotation": "Callable[..., _T]",
-    "className": "functools.singledispatchmethod",
-    "name": "func"
-   },
-   {
-    "annotation": "Callable[[Any], _T]",
-    "className": "functools.cached_property",
-    "name": "func"
-   }
-  ],
-  "name": "func"
- },
- {
-  "definitions": [
-   {
-    "annotation": "Any",
-    "className": "tkinter.CallWrapper",
     "name": "subst"
    }
   ],
@@ -10007,16 +11527,6 @@
  {
   "definitions": [
    {
-    "annotation": "int",
-    "className": "pickletools.ArgumentDescriptor",
-    "name": "n"
-   }
-  ],
-  "name": "n"
- },
- {
-  "definitions": [
-   {
     "annotation": "_Reader",
     "className": "pickletools.ArgumentDescriptor",
     "name": "reader"
@@ -10058,21 +11568,6 @@
    }
   ],
   "name": "obtype"
- },
- {
-  "definitions": [
-   {
-    "annotation": "(ArgumentDescriptor | None)",
-    "className": "pickletools.OpcodeInfo",
-    "name": "arg"
-   },
-   {
-    "annotation": "(int | None)",
-    "className": "dis.Instruction",
-    "name": "arg"
-   }
-  ],
-  "name": "arg"
  },
  {
   "definitions": [
@@ -10203,81 +11698,6 @@
    }
   ],
   "name": "traces"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "csv.excel",
-    "name": "quotechar"
-   },
-   {
-    "annotation": "str",
-    "className": "csv.unix_dialect",
-    "name": "quotechar"
-   }
-  ],
-  "name": "quotechar"
- },
- {
-  "definitions": [
-   {
-    "annotation": "bool",
-    "className": "csv.excel",
-    "name": "doublequote"
-   },
-   {
-    "annotation": "bool",
-    "className": "csv.unix_dialect",
-    "name": "doublequote"
-   }
-  ],
-  "name": "doublequote"
- },
- {
-  "definitions": [
-   {
-    "annotation": "bool",
-    "className": "csv.excel",
-    "name": "skipinitialspace"
-   },
-   {
-    "annotation": "bool",
-    "className": "csv.unix_dialect",
-    "name": "skipinitialspace"
-   }
-  ],
-  "name": "skipinitialspace"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "csv.excel",
-    "name": "lineterminator"
-   },
-   {
-    "annotation": "str",
-    "className": "csv.unix_dialect",
-    "name": "lineterminator"
-   }
-  ],
-  "name": "lineterminator"
- },
- {
-  "definitions": [
-   {
-    "annotation": "int",
-    "className": "csv.excel",
-    "name": "quoting"
-   },
-   {
-    "annotation": "int",
-    "className": "csv.unix_dialect",
-    "name": "quoting"
-   }
-  ],
-  "name": "quoting"
  },
  {
   "definitions": [
@@ -10957,16 +12377,6 @@
  {
   "definitions": [
    {
-    "annotation": "tuple[str, ...]",
-    "className": "typing.NamedTuple",
-    "name": "_fields"
-   }
-  ],
-  "name": "_fields"
- },
- {
-  "definitions": [
-   {
     "annotation": "str",
     "className": "typing.NamedTuple",
     "name": "_source"
@@ -11337,26 +12747,6 @@
  {
   "definitions": [
    {
-    "annotation": "DocTest",
-    "className": "doctest.DocTestRunner",
-    "name": "test"
-   },
-   {
-    "annotation": "DocTest",
-    "className": "doctest.DocTestFailure",
-    "name": "test"
-   },
-   {
-    "annotation": "DocTest",
-    "className": "doctest.UnexpectedException",
-    "name": "test"
-   }
-  ],
-  "name": "test"
- },
- {
-  "definitions": [
-   {
     "annotation": "Example",
     "className": "doctest.DocTestFailure",
     "name": "example"
@@ -11642,16 +13032,6 @@
  {
   "definitions": [
    {
-    "annotation": "_KT",
-    "className": "weakref.KeyedRef",
-    "name": "key"
-   }
-  ],
-  "name": "key"
- },
- {
-  "definitions": [
-   {
     "annotation": "bool",
     "className": "weakref.finalize",
     "name": "atexit"
@@ -11897,16 +13277,6 @@
  {
   "definitions": [
    {
-    "annotation": "(type[BaseException] | None)",
-    "className": "pydoc.ErrorDuringImport",
-    "name": "exc"
-   }
-  ],
-  "name": "exc"
- },
- {
-  "definitions": [
-   {
     "annotation": "(TracebackType | None)",
     "className": "pydoc.ErrorDuringImport",
     "name": "tb"
@@ -12068,26 +13438,6 @@
    }
   ],
   "name": "quit"
- },
- {
-  "definitions": [
-   {
-    "annotation": "AnyStr",
-    "className": "filecmp.dircmp",
-    "name": "left"
-   }
-  ],
-  "name": "left"
- },
- {
-  "definitions": [
-   {
-    "annotation": "AnyStr",
-    "className": "filecmp.dircmp",
-    "name": "right"
-   }
-  ],
-  "name": "right"
  },
  {
   "definitions": [

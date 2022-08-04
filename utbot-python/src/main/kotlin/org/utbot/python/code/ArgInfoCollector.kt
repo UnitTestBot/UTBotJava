@@ -13,6 +13,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
@@ -106,7 +107,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             val names: List<Parser<(String) -> A, A, N>> = paramNames.map { paramName ->
                 map0(refl(name(equal(paramName))), paramName)
             }
-            return names.reduce { acc, elem -> or(acc, elem) }
+            return names.fold(reject()) { acc, elem -> or(acc, elem) }
         }
 
         private fun getStr(str: String): String {
@@ -183,11 +184,13 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
                 paramNames.map { paramName ->
                     map0(anyIndexed(refl(name(equal(paramName)))), paramName)
                 }
+            val argPat: Parser<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>> =
+                argNamePatterns.fold(reject()) { acc, elem -> or(acc, elem) }
             val pat = functionCallWithPrefix(
                 fprefix = drop(),
                 fid = apply(),
                 farguments = arguments(
-                    fargs = argNamePatterns.reduce { acc, elem -> or(acc, elem) },
+                    fargs = argPat,
                     drop(), drop(), drop()
                 )
             )

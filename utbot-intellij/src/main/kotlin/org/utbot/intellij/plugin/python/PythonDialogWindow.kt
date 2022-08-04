@@ -60,12 +60,14 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             row("Test source root:") {
                 component(testSourceFolderField)
             }
+            /*
             row("Test framework:") {
                 makePanelWithHelpTooltip(
                     testFrameworks as ComboBox<CodeGenerationSettingItem>,
                     itemsToHelpTooltip[testFrameworks]
                 )
             }
+             */
             row("Generate test methods for:") {}
             row {
                 scrollPane(functionsTable)

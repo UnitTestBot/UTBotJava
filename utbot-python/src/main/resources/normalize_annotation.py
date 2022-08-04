@@ -29,19 +29,15 @@ def main(annotation: str, project_root: str, path: str):
             result += f"[{', '.join(arg_strs)}]"
         return result
 
-    try:
-        loader = importlib.machinery.SourceFileLoader('', path)
-        mod = types.ModuleType(loader.name)
-        loader.exec_module(mod)
+    loader = importlib.machinery.SourceFileLoader('', path)
+    mod = types.ModuleType(loader.name)
+    loader.exec_module(mod)
 
-        for name in dir(mod):
-            globals()[name] = getattr(mod, name)
+    for name in dir(mod):
+        globals()[name] = getattr(mod, name)
 
-        mypy_type_ = mypy.fastparse.parse_type_string(annotation, annotation, -1, -1)
-        print(walk_mypy_type(mypy_type_), end='')
-
-    except:
-        print(annotation, end='')
+    mypy_type_ = mypy.fastparse.parse_type_string(annotation, annotation, -1, -1)
+    print(walk_mypy_type(mypy_type_), end='')
 
 
 def get_args():

@@ -8,6 +8,7 @@ object StubFileFinder {
     private val builtinFields: List<StubFileStructures.FieldIndex>
     private val builtinFunctions: List<StubFileStructures.FunctionIndex>
     private val builtinClasses: List<StubFileStructures.ClassInfo>
+    var isInitialized = false
 
     init {
         val methodResource = StubFileFinder::class.java.getResourceAsStream("/method_annotations.json")
@@ -23,6 +24,7 @@ object StubFileFinder {
         builtinFunctions = Klaxon().parseArray(functionResource) ?: emptyList()
         builtinFields = Klaxon().parseArray(fieldResource) ?: emptyList()
         builtinClasses = Klaxon().parseArray(classResource) ?: emptyList()
+        isInitialized = true
     }
 
     val methodToTypeMap: Map<String, List<StubFileStructures.FunctionInfo>> by lazy {
@@ -83,7 +85,7 @@ object StubFileFinder {
         if (argumentName != null) {
             annotations.forEach { annotation ->
                 (annotation.args + annotation.kwonlyargs).forEach {
-                    if (it.arg == argumentName && it.annotation != null)
+                    if (it.arg == argumentName && it.annotation != "")
                         types.add(it.annotation)
                 }
             }
@@ -91,14 +93,14 @@ object StubFileFinder {
             annotations.forEach { annotation ->
                 val checkCountArgs = annotation.args.size > argumentPosition
                 val ann = annotation.args[argumentPosition].annotation
-                if (checkCountArgs && ann != null) {
+                if (checkCountArgs && ann != "") {
                     types.add(ann)
                 }
             }
         } else {
             annotations.forEach { annotation ->
                 annotation.args.forEach {
-                    if (it.annotation != null)
+                    if (it.annotation != "")
                         types.add(it.annotation)
                 }
             }

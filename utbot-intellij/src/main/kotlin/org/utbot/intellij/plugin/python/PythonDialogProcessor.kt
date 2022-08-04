@@ -1,12 +1,14 @@
 package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.jetbrains.python.psi.PyFile
@@ -32,12 +34,13 @@ import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.code.PythonCodeGenerator.generateTestCode
-import org.utbot.python.code.PythonCodeGenerator.saveToFile
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
-import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
-import org.utbot.python.normalizeAnnotation
+import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
+import org.utbot.python.typing.StubFileFinder
+import org.utbot.python.utils.FileManager
+import java.io.File
 
 
 object PythonDialogProcessor {
@@ -107,21 +110,35 @@ object PythonDialogProcessor {
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
                 val filePath = model.file.virtualFile.path
+                FileManager.assignTestSourceRoot(testSourceRoot)
 
-                // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
-                PythonTypesStorage.refreshProjectClassesList(
-                    filePath,
-                    pythonPath,
-                    model.project.basePath!!,
-                    model.directoriesForSysPath,
-                    testSourceRoot
-                )
+                if (!MypyAnnotations.mypyInstalled(pythonPath) && !indicator.isCanceled) {
+                    indicator.text = "Installing mypy"
+                    MypyAnnotations.installMypy(pythonPath)
+                    if (!MypyAnnotations.mypyInstalled(pythonPath))
+                        error("Something wrong with mypy")
+                }
+
+                if (!indicator.isCanceled) {
+                    indicator.text = "Loading information about Python types"
+
+                    // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
+                    PythonTypesStorage.refreshProjectClassesList(
+                        filePath,
+                        pythonPath,
+                        model.project.basePath!!,
+                        model.directoriesForSysPath
+                    )
+
+                    while (!StubFileFinder.isInitialized);
+
+                    indicator.text = "Generating tests"
+                }
 
                 val pythonMethods = findSelectedPythonMethods(model)
 
                 val testCaseGenerator = PythonTestCaseGenerator.apply {
                     init(
-                        testSourceRoot,
                         model.directoriesForSysPath,
                         model.moduleToImport,
                         pythonPath,
@@ -145,6 +162,24 @@ object PythonDialogProcessor {
                         title = "Python test generation error"
                     )
                 }
+
+//                val files = mutableListOf<File>()
+//                notEmptyTests.forEach {
+//                    val testCode = generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
+//                    val fileName = "test_${it.method.name}.py"
+//                    val testFile = FileManager.createPermanentFile(fileName, testCode)
+//                    files.add(testFile)
+//                }
+//
+//                if (files.size == 1) {
+//                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(files[0])
+//                    if (virtualFile != null) {
+//                        invokeLater {
+//                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
+//                        }
+//                    }
+
+
                 val classId = ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
                 val methods = notEmptyTests.map {
                     MethodId(

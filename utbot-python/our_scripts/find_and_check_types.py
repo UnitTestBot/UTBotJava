@@ -1,4 +1,4 @@
-import types
+import our_scripts
 from typing import Optional
 
 import astor.code_gen
@@ -15,7 +15,7 @@ def find_all_classes_in_file(filename: str, prefix: str = '') -> list[str]:
     ]
 
 
-def find_module_types(module_name: types.ModuleType) -> list[str]:
+def find_module_types(module_name: our_scripts.ModuleType) -> list[str]:
     def eval_name(name, module_name):
         return name if 'builtin' in module_name.__name__ else f'{module_name.__name__}.{name}'
 
@@ -29,7 +29,7 @@ def find_module_types(module_name: types.ModuleType) -> list[str]:
 def find_import_types():
     return [
         (name, val) for name, val in globals().items()
-        if isinstance(val, types.ModuleType)
+        if isinstance(val, our_scripts.ModuleType)
     ]
 
 

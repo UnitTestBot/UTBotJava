@@ -3,7 +3,8 @@ package org.utbot.python
 import com.beust.klaxon.Klaxon
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.code.PythonCodeGenerator
-import java.io.File
+import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.runCommand
 
 
 sealed class EvaluationResult
@@ -24,41 +25,32 @@ object PythonEvaluation {
     fun evaluate(
         method: PythonMethod,
         methodArguments: List<UtModel>,
-        testSourceRoot: String,
         directoriesForSysPath: List<String>,
         moduleToImport: String,
         pythonPath: String
     ): EvaluationResult {
-        createDirectory(testSourceRoot)
-
-        val outputFilename = "$testSourceRoot/__output_utbot_run_${method.name}.txt"
-        val errorFilename = "$testSourceRoot/__error_utbot_run_${method.name}.txt"
-        val codeFilename = "$testSourceRoot/__test_utbot_run_${method.name}.py"
-
-        val file = PythonCodeGenerator.generateRunFunctionCode(
+        val outputFile = FileManager.assignTemporaryFile(tag = "output_" + method.name)
+        val errorFile = FileManager.assignTemporaryFile(tag = "error_" + method.name)
+        val runCode = PythonCodeGenerator.generateRunFunctionCode(
             method,
             methodArguments,
-            outputFilename,
-            errorFilename,
-            codeFilename,
+            outputFile.path,
+            errorFile.path,
             directoriesForSysPath,
             moduleToImport
         )
-
-        val process = Runtime.getRuntime().exec("$pythonPath $codeFilename")
-        process.waitFor()
-        var failedEvaluation = process.exitValue() != 0
+        val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + method.name)
+        val result = runCommand(listOf(pythonPath, fileWithCode.path))
+        var failedEvaluation = result.exitValue != 0
 
         var outputAsString = ""
         var isSuccess = false
 
-        val resultFile = File(outputFilename)
-        if (resultFile.exists()) {
-            outputAsString = resultFile.readText()
-            resultFile.delete()
+        if (outputFile.exists()) {
+            outputAsString = outputFile.readText()
+            outputFile.delete()
             isSuccess = true
         } else {
-            val errorFile = File(errorFilename)
             if (errorFile.exists()) {
                 outputAsString = errorFile.readText()
                 errorFile.delete()
@@ -66,7 +58,7 @@ object PythonEvaluation {
                 failedEvaluation = true
             }
         }
-        file.delete()
+        fileWithCode.delete()
 
         if (failedEvaluation)
             return EvaluationError
@@ -75,9 +67,5 @@ object PythonEvaluation {
             Klaxon().parse(outputAsString) ?: error("Couldn't parse evaluation output"),
             !isSuccess
         )
-    }
-
-    private fun createDirectory(path: String) {
-        File(path).mkdir()
     }
 }

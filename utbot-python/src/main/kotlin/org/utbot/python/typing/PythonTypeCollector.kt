@@ -6,12 +6,10 @@ import org.apache.commons.io.IOUtils
 import org.apache.commons.io.filefilter.DirectoryFileFilter
 import org.apache.commons.io.filefilter.RegexFileFilter
 import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.pythonAnyClassId
-import org.utbot.python.annotationToClassId
+import org.utbot.python.utils.annotationToClassId
 import org.utbot.python.code.ClassInfoCollector
 import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
-import org.utbot.python.normalizeAnnotation
 import java.io.File
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
@@ -111,8 +109,7 @@ object PythonTypesStorage {
         path: String,
         pythonPath: String,
         projectRoot: String,
-        directoriesForSysPath: List<String>,
-        testSourcePath: String
+        directoriesForSysPath: List<String>
     ) {
         val pythonFiles = if (path.endsWith(".py")) listOf(File(path)) else getPythonFiles(path)
         projectClasses = pythonFiles.flatMap { file ->
@@ -129,8 +126,7 @@ object PythonTypesStorage {
                             pythonPath,
                             projectRoot,
                             pyClass.filename!!,
-                            directoriesForSysPath,
-                            testSourcePath
+                            directoriesForSysPath
                         )
                     }
                 ProjectClass(pyClass, collector.storage, initSignature)

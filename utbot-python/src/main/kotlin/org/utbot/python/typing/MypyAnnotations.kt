@@ -1,32 +1,35 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import org.utbot.python.utils.runCommand
 import java.io.File
 
 
 object MypyAnnotations {
+    private const val mypyVersion = "0.971"
+
     fun getCheckedByMypyAnnotations(
         method: PythonMethod,
         functionArgAnnotations: Map<String, List<String>>,
-        testSourcePath: String,
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,
         isCancelled: () -> Boolean
     ) = sequence {
-        val codeFilename = "${testSourcePath}/__${method.name}__mypy_types.py"
-
-        generateMypyCheckCode(
+        val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy")
+        val codeWithoutAnnotations = generateMypyCheckCode(
             method,
             emptyMap(),
-            codeFilename,
             directoriesForSysPath,
             moduleToImport.split(".").last(),
         )
-        startMypyDaemon(pythonPath, testSourcePath, directoriesForSysPath)
-        val defaultOutput = runMypy(pythonPath, codeFilename, testSourcePath)
+        FileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
+
+        startMypyDaemon(pythonPath, directoriesForSysPath)
+        val defaultOutput = runMypy(pythonPath, fileWithCode)
         val defaultErrorNum = getErrorNumber(defaultOutput)
 
         val candidates = functionArgAnnotations.entries.map { (key, value) ->
@@ -34,74 +37,83 @@ object MypyAnnotations {
                 Pair(key, it)
             }
         }
-
         if (candidates.any { it.isEmpty() })
             return@sequence
 
         val annotationCandidates = PriorityCartesianProduct(candidates).getSequence()
-
         annotationCandidates.forEach checkAnnotations@{
-
             if (isCancelled())
                 return@checkAnnotations
 
             val annotationMap = it.toMap()
-            val functionFile = generateMypyCheckCode(
+            val codeWithAnnotations = generateMypyCheckCode(
                 method,
                 annotationMap,
-                codeFilename,
                 directoriesForSysPath,
                 moduleToImport.split(".").last(),
             )
-            val mypyOutput = runMypy(pythonPath, codeFilename, testSourcePath)
+            FileManager.writeToAssignedFile(fileWithCode, codeWithAnnotations)
+            val mypyOutput = runMypy(pythonPath, fileWithCode)
             val errorNum = getErrorNumber(mypyOutput)
             if (errorNum <= defaultErrorNum) {
                 yield(annotationMap.mapValues { entry ->
                     ClassId(entry.value)
                 })
             }
-            functionFile.deleteOnExit()
         }
+
+        fileWithCode.delete()
     }
 
-    private fun getConfigFile(testSourcePath: String): File = File(testSourcePath, "mypy.ini")
+    private const val configFilename = "mypy.ini"
+    private val configFile = FileManager.assignTemporaryFile(configFilename)
 
     private fun runMypy(
         pythonPath: String,
-        codeFilename: String,
-        testSourcePath: String,
+        fileWithCode: File
     ): String {
-        val command = "$pythonPath -m mypy.dmypy run $codeFilename -- --config-file ${getConfigFile(testSourcePath).path}"
-        val process = Runtime.getRuntime().exec(
-            command
-        )
-        process.waitFor()
-        return process.inputStream.readBytes().decodeToString()
+        val result = runCommand(listOf(
+            pythonPath,
+            "-m",
+            "mypy.dmypy",
+            "run",
+            fileWithCode.path,
+            "--",
+            "--config-file",
+            configFile.path
+        ))
+        return result.stdout
     }
 
     private fun startMypyDaemon(
         pythonPath: String,
-        testSourcePath: String,
         directoriesForSysPath: List<String>
     ): String {
-
         val configContent = "[mypy]\nmypy_path = ${directoriesForSysPath.joinToString(separator = ":")}"
-        val configFile = getConfigFile(testSourcePath)
-        configFile.writeText(configContent)
-        configFile.createNewFile()
+        FileManager.writeToAssignedFile(configFile, configContent)
 
-        val command = "$pythonPath -m mypy.dmypy start"
-        val process = Runtime.getRuntime().exec(
-            command
-        )
-        process.waitFor()
-        return process.inputStream.readBytes().decodeToString()
+        val result = runCommand(listOf(pythonPath, "-m", "mypy.dmypy", "start"))
+        return result.stdout
     }
 
     private fun getErrorNumber(mypyOutput: String): Int {
         val regex = Regex("Found ([0-9]*) error")
         val match = regex.find(mypyOutput)
         return match?.groupValues?.getOrNull(1)?.toInt() ?: 0
+    }
+
+    fun mypyInstalled(pythonPath: String): Boolean {
+        val result = runCommand(listOf(pythonPath, "-m", "pip", "show", "mypy"))
+        if (result.exitValue != 0)
+            return false
+        val regex = Regex("Version: ([0-9.]*)")
+        val version = regex.find(result.stdout)?.groupValues?.getOrNull(1) ?: return false
+        return version == mypyVersion
+    }
+
+    fun installMypy(pythonPath: String): Int {
+        val result = runCommand(listOf(pythonPath, "-m", "pip", "install", "mypy==" + mypyVersion))
+        return result.exitValue
     }
 }
 

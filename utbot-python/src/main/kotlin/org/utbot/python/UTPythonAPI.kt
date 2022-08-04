@@ -4,6 +4,7 @@ import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStm
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.*
+import org.utbot.python.typing.MypyAnnotations
 
 data class PythonArgument(val name: String, val annotation: String?)
 
@@ -33,5 +34,5 @@ data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<PythonExecution>,
     val errors: List<PythonError>,
-    val mypyReport: List<String>
+    val mypyReport: List<MypyAnnotations.MypyReportLine>
 )

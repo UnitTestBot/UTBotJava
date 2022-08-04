@@ -28,6 +28,7 @@ import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 
 
@@ -152,10 +153,19 @@ object PythonDialogProcessor {
                 }
 
                 val files = mutableListOf<File>()
+                val codeAsString = getContentFromPyFile(model.file)
                 notEmptyTests.forEach { testSet ->
+                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
                     val message =
                         if (testSet.mypyReport.isNotEmpty())
-                            "mypy report:\n${testSet.mypyReport.joinToString(separator = "")}"
+                            "MYPY REPORT\n${
+                                testSet.mypyReport.joinToString(separator = "") { 
+                                    if (lineOfFunction != null && it.line >= 0)
+                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}" 
+                                    else
+                                        "${it.type}: ${it.message}"
+                                }
+                            }"
                         else
                             null
 
@@ -197,7 +207,9 @@ fun getDefaultModuleToImport(file: PyFile): String {
     return "${importPath}.${file.name}".dropLast(3).toPath().joinToString(".")
 }
 
+fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
+
 fun getPyCodeFromPyFile(file: PyFile): PythonCode {
-    val content = file.viewProvider.contents.toString()
+    val content = getContentFromPyFile(file)
     return getFromString(content)
 }

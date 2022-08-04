@@ -35,7 +35,7 @@ object PythonTestCaseGenerator {
         this.isCancelled = isCancelled
     }
 
-    private val storageForMypyMessages: MutableList<String> = mutableListOf()
+    private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
 
     fun generate(method: PythonMethod): PythonTestSet {
         storageForMypyMessages.clear()

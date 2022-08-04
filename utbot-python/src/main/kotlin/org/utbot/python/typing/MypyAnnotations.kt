@@ -4,12 +4,15 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import org.utbot.python.utils.getLineOfFunction
 import org.utbot.python.utils.runCommand
 import java.io.File
 
 
 object MypyAnnotations {
     private const val mypyVersion = "0.971"
+
+    data class MypyReportLine(val line: Int, val type: String, val message: String)
 
     fun getCheckedByMypyAnnotations(
         method: PythonMethod,
@@ -18,7 +21,7 @@ object MypyAnnotations {
         directoriesForSysPath: List<String>,
         pythonPath: String,
         isCancelled: () -> Boolean,
-        storageForMypyMessages: MutableList<String>? = null
+        storageForMypyMessages: MutableList<MypyReportLine>? = null
     ) = sequence {
         val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy")
         val codeWithoutAnnotations = generateMypyCheckCode(
@@ -33,7 +36,7 @@ object MypyAnnotations {
         val defaultOutput = runMypy(pythonPath, fileWithCode)
 
         if (storageForMypyMessages != null) {
-            getErrorsAndNotes(defaultOutput).forEach { storageForMypyMessages.add(it) }
+            getErrorsAndNotes(defaultOutput, codeWithoutAnnotations).forEach { storageForMypyMessages.add(it) }
         }
 
         val defaultErrorNum = getErrorNumber(defaultOutput)
@@ -121,10 +124,14 @@ object MypyAnnotations {
         return result.exitValue
     }
 
-    fun getErrorsAndNotes(mypyOutput: String): List<String> {
-        val regex = Regex("(error|note): [^\n]*\n")
+    fun getErrorsAndNotes(mypyOutput: String, mypyCode: String): List<MypyReportLine> {
+        val regex = Regex(":([0-9]*): (error|note): ([^\n]*\n)")
         return regex.findAll(mypyOutput).toList().map { match ->
-            match.groupValues[0]
+            MypyReportLine(
+                match.groupValues[1].toInt() - getLineOfFunction(mypyCode)!!,
+                match.groupValues[2],
+                match.groupValues[3]
+            )
         }
     }
 }

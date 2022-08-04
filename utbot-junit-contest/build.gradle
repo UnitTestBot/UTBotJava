@@ -99,8 +99,8 @@ task monitoringJar(type: Jar) { dependsOn classes
     archiveName 'monitoring.jar'
 
     manifest {
-        attributes 'Main-Class': 'org.utbot.contest.StatisticsMonitoringKt'
-        attributes 'Bundle-SymbolicName': 'org.utbot.contest'
+        attributes 'Main-Class': 'org.utbot.monitoring.StatisticsMonitoringKt'
+        attributes 'Bundle-SymbolicName': 'org.utbot.monitoring'
         attributes 'Bundle-Version': "${project.version}"
         attributes 'Implementation-Title': 'UtBot Monitoring'
         attributes 'JAR-Type': 'Fat JAR'

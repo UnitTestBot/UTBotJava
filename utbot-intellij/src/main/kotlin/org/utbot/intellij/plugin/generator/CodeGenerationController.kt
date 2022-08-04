@@ -71,6 +71,7 @@ import org.utbot.intellij.plugin.ui.SarifReportNotifier
 import org.utbot.intellij.plugin.ui.TestReportUrlOpeningListener
 import org.utbot.intellij.plugin.ui.TestsReportNotifier
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
+import org.utbot.intellij.plugin.models.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.util.signature

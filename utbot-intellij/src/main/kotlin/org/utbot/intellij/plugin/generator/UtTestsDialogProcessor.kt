@@ -268,7 +268,7 @@ object UtTestsDialogProcessor {
             .map { UtMethod(it, clazz) }
     }
 
-    private fun urlClassLoader(classpath: List<String>) =
+    fun urlClassLoader(classpath: List<String>) =
         URLClassLoader(classpath.map { File(it).toURI().toURL() }.toTypedArray())
 
     private fun findSrcModule(srcClasses: Set<PsiClass>): Module {

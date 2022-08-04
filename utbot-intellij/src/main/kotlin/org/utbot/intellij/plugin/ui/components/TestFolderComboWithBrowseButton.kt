@@ -14,7 +14,7 @@ import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
 import org.utbot.common.PathUtil
-import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
+import org.utbot.intellij.plugin.models.BaseTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
 import org.utbot.intellij.plugin.ui.utils.isGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots

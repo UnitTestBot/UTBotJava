@@ -18,7 +18,6 @@ import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.utbot.framework.util.ConflictTriggers
-import org.utbot.intellij.plugin.ui.utils.BaseTestsModel
 
 class GenerateTestsModel(
     project: Project,
@@ -36,13 +35,13 @@ class GenerateTestsModel(
     testModule
 ) {
     override var testSourceRoot: VirtualFile? = null
-    var testPackageName: String? = null
+    override var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     var mockFramework: MockFramework? = null
     lateinit var staticsMocking: StaticsMocking
     lateinit var parametrizedTestSource: ParametrizedTestSource
-    lateinit var codegenLanguage: CodegenLanguage
+    override lateinit var codegenLanguage: CodegenLanguage
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
     lateinit var forceStaticMocking: ForceStaticMocking

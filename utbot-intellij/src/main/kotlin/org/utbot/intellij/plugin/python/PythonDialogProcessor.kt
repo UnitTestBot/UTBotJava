@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -14,6 +15,15 @@ import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
+import org.utbot.framework.codegen.model.PythonCodeGenerator
+import org.utbot.framework.codegen.model.tree.buildTestClass
+import org.utbot.framework.codegen.model.tree.buildTestClassBody
+import org.utbot.framework.codegen.model.tree.buildTestClassFile
+import org.utbot.framework.codegen.model.tree.buildTestMethod
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.code.PythonCode
@@ -132,11 +142,29 @@ object PythonDialogProcessor {
                         title = "Python test generation error"
                     )
                 }
+//                buildTestClassFile {
+//                    testClass = buildTestClass {
+//                        id = ClassId("")
+//                        body = buildTestClassBody {
+//                            for (testSet in notEmptyTests) {
+//                                val testMethod = buildTestMethod {
+//                                    name = te
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
 
-                notEmptyTests.forEach {
-                    val testCode = generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
-                    saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
-                }
+//                val testCode = PythonCodeGenerator.generateAsString(
+//                    ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__"),
+//                    notEmptyTests,
+//                )
+//                saveToFile("$testSourceRoot/test_.py", testCode)
+
+//                notEmptyTests.forEach { pythonTestSet ->
+//                generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
+//                saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
+//                }
             }
         })
     }

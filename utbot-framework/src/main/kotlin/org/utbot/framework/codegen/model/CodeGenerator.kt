@@ -12,15 +12,11 @@ import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
-import org.utbot.framework.plugin.api.CgMethodTestSet
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.id
 
 class CodeGenerator(
-    private val classUnderTest: Class<*>,
+    val classUnderTest: ClassId,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     testFramework: TestFramework = TestFramework.defaultItem,
     mockFramework: MockFramework? = MockFramework.defaultItem,
@@ -34,8 +30,38 @@ class CodeGenerator(
     enableTestsTimeout: Boolean = true,
     testClassPackageName: String = classUnderTest.packageName,
 ) {
-    private var context: CgContext = CgContext(
+    constructor(
+        classUnderTest: Class<*>,
+        paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
+        testFramework: TestFramework = TestFramework.defaultItem,
+        mockFramework: MockFramework? = MockFramework.defaultItem,
+        staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
+        forceStaticMocking: ForceStaticMocking = ForceStaticMocking.defaultItem,
+        generateWarningsForStaticMocking: Boolean = true,
+        codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
+        parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
+        runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.defaultItem,
+        hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
+        enableTestsTimeout: Boolean = true,
+        testClassPackageName: String = classUnderTest.packageName,
+    ) : this(
         classUnderTest = classUnderTest.id,
+        paramNames,
+        testFramework,
+        mockFramework,
+        staticsMocking,
+        forceStaticMocking,
+        generateWarningsForStaticMocking,
+        codegenLanguage,
+        parameterizedTestSource,
+        runtimeExceptionTestsBehaviour,
+        hangingTestsTimeout,
+        enableTestsTimeout,
+        testClassPackageName
+    )
+
+    private var context: CgContext = CgContext(
+        classUnderTest = classUnderTest,
         paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = mockFramework ?: MockFramework.MOCKITO,
@@ -68,10 +94,22 @@ class CodeGenerator(
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
         context.withClassScope {
-            val testClassFile = CgTestClassConstructor(context).construct(cgTestSets)
+            val testClassFile =
+                CgTestClassConstructor(context)
+                    .construct(cgTestSets)
             TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
         }
     }
+
+    fun pythonGenerateAsStringWithTestReport(
+        cgTestSets: List<CgMethodTestSet>,
+    ): TestsCodeWithTestReport =
+        context.withClassScope {
+            val testClassFile =
+                CgTestClassConstructor(context)
+                    .construct(cgTestSets)
+            TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+        }
 
     /**
      * Wrapper function that configures context as needed for utbot-online:
@@ -82,8 +120,8 @@ class CodeGenerator(
         val prevContext = context
         return try {
             context = prevContext.copy(
-                    shouldOptimizeImports = true,
-                    testClassCustomName = testClassCustomName
+                shouldOptimizeImports = true,
+                testClassCustomName = testClassCustomName
             )
             block()
         } finally {

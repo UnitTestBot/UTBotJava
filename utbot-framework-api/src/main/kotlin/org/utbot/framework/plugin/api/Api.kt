@@ -114,6 +114,11 @@ data class CgMethodTestSet private constructor(
         from.errors,
         from.clustersInfo
     )
+
+    constructor(executableId: ExecutableId) : this(
+        executableId = executableId,
+        emptyList(),
+    )
 }
 
 data class Step(
@@ -254,6 +259,7 @@ class PythonDefaultModel(val repr: String, val type: String): PythonModel(ClassI
 }
 
 val pythonAnyClassId = ClassId("typing.Any")
+val pythonNoneClassId = ClassId("builtins.None")
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"

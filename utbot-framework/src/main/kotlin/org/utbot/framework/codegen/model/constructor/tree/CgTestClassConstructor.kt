@@ -69,11 +69,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
                 // It is important that annotations, superclass and interfaces assignment is run after
                 // all methods are generated so that all necessary info is already present in the context
-                annotations += context.collectedTestClassAnnotations
-                superclass = context.testClassSuperclass
-                interfaces += context.collectedTestClassInterfaces
+//                annotations += context.collectedTestClassAnnotations
+//                superclass = context.testClassSuperclass
+//                interfaces += context.collectedTestClassInterfaces
             }
-            imports += context.collectedImports
+//            imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }

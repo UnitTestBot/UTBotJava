@@ -85,7 +85,6 @@ abstract class StreamWrapper(
     }
 
     private val streamOfMethodId: MethodId get() = utStreamClass.overriddenStreamClassId.findMethod(
-        classId = utStreamClass.overriddenStreamClassId,
         name = "of",
         returnType = utStreamClass.overriddenStreamClassId,
         arguments = listOf(objectArrayClassId) // vararg

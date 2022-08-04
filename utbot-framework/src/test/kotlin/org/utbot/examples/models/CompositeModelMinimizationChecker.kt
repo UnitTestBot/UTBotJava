@@ -1,15 +1,11 @@
 package org.utbot.examples.models
 
+import org.junit.Test
 import org.utbot.examples.UtModelTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.framework.codegen.CodeGeneration
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.junit.Test
+import org.utbot.framework.plugin.api.*
+import org.utbot.jcdb.api.FieldId
 
 internal class CompositeModelMinimizationChecker : UtModelTestCaseChecker(
     testClass = CompositeModelMinimizationExample::class,

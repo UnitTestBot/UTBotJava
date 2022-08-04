@@ -36,7 +36,7 @@ dependencies {
 
     testImplementation project(':utbot-summary')
     testImplementation project(':utbot-sample')
-    testImplementation project(':utbot-analytics')
+//    testImplementation project(':utbot-analytics')
 
     // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
 //    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
@@ -76,4 +76,7 @@ test {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }
+    jvmArgs += ['--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED']
+    jvmArgs += ['-Xmx5g', '-XX:+HeapDumpOnOutOfMemoryError', '-XX:HeapDumpPath=heapdump3.hprof']
+
 }

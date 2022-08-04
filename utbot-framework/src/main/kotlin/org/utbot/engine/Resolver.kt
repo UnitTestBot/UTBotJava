@@ -19,7 +19,6 @@ import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.MethodId
 import soot.*
-import sun.java2d.cmm.lcms.LcmsServiceProvider
 import java.awt.color.ICC_ProfileRGB
 import java.io.PrintStream
 import java.security.AccessControlContext

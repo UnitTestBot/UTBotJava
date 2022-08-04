@@ -11,6 +11,7 @@ dependencies {
     api(project(":utbot-framework-api"))
     api(project(':utbot-instrumentation'))
     testImplementation project(':utbot-sample')
+    testImplementation project(':utbot-summary')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
     testImplementation project(':utbot-framework').sourceSets.test.output
 }

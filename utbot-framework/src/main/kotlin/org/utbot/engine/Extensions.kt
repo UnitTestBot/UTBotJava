@@ -7,8 +7,10 @@ import org.utbot.api.mock.UtMock
 import org.utbot.engine.pc.*
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.findFieldOrNull
 import org.utbot.jcdb.api.FieldId
 import soot.*
@@ -16,10 +18,10 @@ import soot.SootClass.BODIES
 import soot.jimple.*
 import soot.jimple.internal.*
 import soot.tagkit.ArtificialEntityTag
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
@@ -281,7 +283,7 @@ val <R> UtMethod<R>.signature: String
 val ExecutableId.displayName: String
     get() {
         val executableName = this.name
-        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        val parameters = this.parameters.joinToString(separator = ", ") { it.name }
         return "$executableName($parameters)"
     }
 

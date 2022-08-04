@@ -68,7 +68,7 @@ class CgTestMethodBuilder : CgMethodBuilder<CgTestMethod> {
 
     override fun build() = CgTestMethod(
         name,
-        returnType,
+        returnType.type(false),
         parameters,
         statements,
         exceptions,
@@ -104,7 +104,7 @@ class CgParameterizedTestDataProviderBuilder : CgMethodBuilder<CgParameterizedTe
     override val exceptions: MutableSet<ClassId> = mutableSetOf()
     override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
 
-    override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations, exceptions)
+    override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType.type(), annotations, exceptions)
 }
 
 fun buildParameterizedTestDataProviderMethod(

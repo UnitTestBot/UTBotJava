@@ -78,8 +78,8 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgTypeCast) {
         val expr = element.expression
-        val wrappedTargetType = element.targetType.unboxIfNeeded()
-        val exprTypeIsSimilar = expr.type == element.targetType || expr.type == wrappedTargetType
+        val wrappedTargetType = element.targetType.classId.unboxIfNeeded()
+        val exprTypeIsSimilar = expr.type == element.targetType || expr.type.classId == wrappedTargetType
 
         // cast for null is mandatory in case of ambiguity - for example, readObject(Object) and readObject(Map)
         if (exprTypeIsSimilar && expr != nullLiteral()) {
@@ -107,10 +107,10 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgParameterDeclaration) {
         if (element.isVararg) {
-            print(element.type.ifArrayGetElementClass()!!.asString())
+            print(element.type.classId.ifArrayGetElementClass()!!.asString())
             print("...")
         } else {
-            print(element.type.asString())
+            print(element.type.classId.asString())
         }
         print(" ")
         print(element.name.escapeNamePossibleKeyword())
@@ -130,16 +130,16 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
 
     override fun visit(element: CgAllocateArray) {
         // TODO: Arsen strongly required to rewrite later
-        val typeName = element.type.name //.substringBefore("[")
-        val otherDimensions = element.type.name //.substringAfter("]")
+        val typeName = element.type.classId.name //.substringBefore("[")
+        val otherDimensions = element.type.classId.name //.substringAfter("]")
         print("new $typeName[${element.size}]$otherDimensions")
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
         // TODO: same as in visit(CgAllocateArray): we should rewrite the typeName and otherDimensions variables declaration
         // to avoid using substringBefore() and substringAfter() directly
-        val typeName = element.type.name.substringBefore("[")
-        val otherDimensions = element.type.name.substringAfter("]")
+        val typeName = element.type.classId.name.substringBefore("[")
+        val otherDimensions = element.type.classId.name.substringAfter("]")
         // we can't specify the size of the first dimension when using initializer,
         // as opposed to CgAllocateArray where there is no initializer
         print("new $typeName[]$otherDimensions")
@@ -196,7 +196,7 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
         //we do not have a good string representation for two-dimensional array, so this strange if-else is required
         val returnType =
-            if (element.returnType.simpleName == "Object[][]") "java.lang.Object[][]" else "${element.returnType}"
+            if (element.returnType.classId.simpleName == "Object[][]") "java.lang.Object[][]" else "${element.returnType}"
         print("public static $returnType ${element.name}()")
         renderExceptions(element)
     }
@@ -215,7 +215,7 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         print("for (")
         // TODO: rewrite in the future
         with(element.initialization) {
-            print(variableType.asString())
+            print(variableType.classId.asString())
             print(" ")
             visit(variable)
             initializer?.let {
@@ -230,7 +230,7 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     }
 
     override fun renderDeclarationLeftPart(element: CgDeclaration) {
-        print(element.variableType.asString())
+        print(element.variableType.classId.asString())
         print(" ")
         visit(element.variable)
     }

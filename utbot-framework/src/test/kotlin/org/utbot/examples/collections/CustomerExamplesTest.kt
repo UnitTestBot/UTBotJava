@@ -1,14 +1,14 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.UtValueTestCaseChecker
+import org.junit.jupiter.api.Test
 import org.utbot.examples.DoNotCalculate
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtConcreteValue
-import org.junit.jupiter.api.Test
+import org.utbot.jcdb.api.FieldId
 
 internal class CustomerExamplesTest: UtValueTestCaseChecker(
     testClass = CustomerExamples::class,

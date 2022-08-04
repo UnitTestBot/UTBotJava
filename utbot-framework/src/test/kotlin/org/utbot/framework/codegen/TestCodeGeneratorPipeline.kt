@@ -9,13 +9,10 @@ import org.utbot.common.packageName
 import org.utbot.examples.TestFrameworkConfiguration
 import org.utbot.framework.codegen.ExecutionStatus.SUCCESS
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import kotlin.reflect.KClass
 
@@ -220,7 +217,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
 
         val codeGenerator = with(testFrameworkConfiguration) {
             CodeGenerator(
-                classUnderTest.java,
+                classUnderTest.id,
                 paramNames = params,
                 testFramework = testFramework,
                 staticsMocking = staticsMocking,

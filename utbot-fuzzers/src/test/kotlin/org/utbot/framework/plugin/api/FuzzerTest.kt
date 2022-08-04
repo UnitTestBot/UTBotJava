@@ -4,27 +4,13 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.api.assertThrows
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedParameter
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.fuzz
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.fuzzer.*
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.NullModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider.fuzzed
-import java.lang.IllegalArgumentException
+import org.utbot.jcdb.api.ClassId
 import java.util.concurrent.TimeUnit
 
 class FuzzerTest {
@@ -133,7 +119,7 @@ class FuzzerTest {
     }
 
     private fun defaultTypes(includeStringId: Boolean = false): List<ClassId> {
-        val result = mutableListOf(
+        val result = mutableListOf<ClassId>(
             booleanClassId,
             byteClassId,
             charClassId,

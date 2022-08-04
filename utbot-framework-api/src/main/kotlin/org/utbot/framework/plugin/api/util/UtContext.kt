@@ -7,8 +7,10 @@ import org.utbot.common.currentThreadInfo
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
 import org.utbot.framework.plugin.jcdb.DelegatingClasspathSet
 import org.utbot.jcdb.api.ClasspathSet
+import org.utbot.jcdb.api.JCDB
 import org.utbot.jcdb.jcdb
-import org.utbot.jcdb.remote.rd.remoteRdClient
+import java.io.Closeable
+import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Paths
 import kotlin.coroutines.CoroutineContext
@@ -17,15 +19,37 @@ val utContext: UtContext
     get() = UtContext.currentContext()
         ?: error("No context is set. Please use `withUtContext() {...}` or `setUtContext().use {...}`. Thread: ${currentThreadInfo()}")
 
+interface JCDBProvider {
+    val jcdb: JCDB
+}
 
-class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : ThreadContextElement<UtContext?> {
+open class PrototypeJCDB : JCDBProvider {
+    override val jcdb = runBlocking {
+        jcdb {
+            useProcessJavaRuntime()
+        }
+    }
+}
+
+object SingletonJCDB : JCDBProvider {
+
+    override val jcdb by lazy {
+        runBlocking {
+            jcdb {
+                useProcessJavaRuntime()
+            }
+        }
+    }
+}
+
+class UtContext(val classLoader: ClassLoader, val provider: JCDBProvider, val classpath: ClasspathSet) :
+    ThreadContextElement<UtContext?>, Closeable {
 
     // This StopWatch is used to respect bytecode transforming time while invoking with timeout
     var stopWatch: StopWatch? = null
         private set
 
-    constructor(classLoader: ClassLoader) : this(classLoader, classLoader.asClasspath())
-    constructor(classLoader: ClassLoader, port: Int) : this(classLoader, classLoader.asClasspath(port))
+    constructor(classLoader: ClassLoader) : this(classLoader, SingletonJCDB, classLoader.asClasspath(SingletonJCDB))
 
     constructor(classLoader: ClassLoader, stopWatch: StopWatch) : this(classLoader) {
         this.stopWatch = stopWatch
@@ -57,10 +81,29 @@ class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : Thr
         private val Key = object : CoroutineContext.Key<UtContext> {}
         private val threadLocalContextHolder = ThreadLocal<UtContext>()
 
+        private val ClassLoader.urls: List<URL>?
+            get() {
+                if (this is URLClassLoader) {
+                    return urLs.toList()
+                }
+                // jdk9+ need to use reflection
+                val clazz = javaClass
+
+                try {
+                    val field = clazz.getDeclaredField("ucp")
+                    field.isAccessible = true
+                    val classpath = field.get(this)
+                    val value = classpath.javaClass.getDeclaredMethod("getURLs").invoke(classpath) as Array<URL>
+                    return value.toList()
+                } catch (e: Exception) {
+                    return null
+                }
+            }
+
         fun currentContext(): UtContext? = threadLocalContextHolder.get()
         fun setUtContext(context: UtContext): AutoCloseable = Cookie(context)
 
-        private fun restore(contextToRestore : UtContext?) {
+        private fun restore(contextToRestore: UtContext?) {
             if (contextToRestore != null) {
                 threadLocalContextHolder.set(contextToRestore)
             } else {
@@ -68,21 +111,10 @@ class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : Thr
             }
         }
 
-        private fun ClassLoader.asClasspath(): ClasspathSet = runBlocking {
-            this@asClasspath as URLClassLoader
-            val files = urLs.map { Paths.get(it.toURI()).toFile() }
-            val jcdb = jcdb {
-                useProcessJavaRuntime()
-                predefinedDirOrJars = files
-            }
-            DelegatingClasspathSet(jcdb.classpathSet(files))
-        }
-
-        private fun ClassLoader.asClasspath(port: Int): ClasspathSet = runBlocking {
-            this@asClasspath as URLClassLoader
-            val files = urLs.map { Paths.get(it.toURI()).toFile() }
-            val jcdb = remoteRdClient(port)
-            DelegatingClasspathSet(jcdb.classpathSet(files))
+        private fun ClassLoader.asClasspath(provider: JCDBProvider): ClasspathSet = runBlocking {
+            val files = urls?.map { Paths.get(it.toURI()).toFile() }
+                ?: throw IllegalStateException("Can't grab classpath from $this")
+            DelegatingClasspathSet(provider.jcdb.classpathSet(files))
         }
 
     }
@@ -97,6 +129,9 @@ class UtContext(val classLoader: ClassLoader, val classpath: ClasspathSet) : Thr
         return prevUtContext
     }
 
+    override fun close() {
+        classpath.close()
+    }
 
 }
 

@@ -13,13 +13,13 @@ compileKotlin.dependsOn project(':utbot-instrumentation').tasks.jar
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
-    implementation(project(":utbot-api"))
-    implementation(project(":utbot-core"))
-    implementation(project(":utbot-summary"))
-    implementation(project(":utbot-framework-api"))
-    implementation(project(":utbot-fuzzers"))
-    implementation(project(":utbot-instrumentation"))
-    implementation(project(":utbot-framework"))
+    implementation project(":utbot-api")
+    implementation project(":utbot-core")
+    implementation project(":utbot-summary")
+    implementation project(":utbot-framework-api")
+    implementation project(":utbot-fuzzers")
+    implementation project(":utbot-instrumentation")
+    implementation project(":utbot-framework")
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
 

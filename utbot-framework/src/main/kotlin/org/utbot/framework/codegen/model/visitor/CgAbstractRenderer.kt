@@ -13,7 +13,6 @@ import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodExecutableId
-import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.packageName
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId

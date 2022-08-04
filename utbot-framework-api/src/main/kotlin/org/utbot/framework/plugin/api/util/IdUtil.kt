@@ -252,6 +252,8 @@ fun wrapIfPrimitive(type: ClassId): ClassId = runBlocking {
 @Suppress("MapGetWithNotNullAssertionOperator")
 val Class<*>.id: ClassId get() = runBlocking { asClassId() }
 
+fun findClass(name: String): ClassId = runBlocking { utContext.classpath.findClass(name) }
+
 @Suppress("MapGetWithNotNullAssertionOperator")
 suspend fun Class<*>.asClassId(): ClassId {
     fun nameOf(clazz: Class<*>): String {
@@ -269,11 +271,11 @@ suspend inline fun <reified T> asClass(): ClassId {
     return T::class.java.asClassId()
 }
 
-val Type.id: ClassId
+val java.lang.reflect.Type.id: ClassId
     get() = when {
-        javaClass.isArray -> ClassId(javaClass.name)
+        javaClass.isArray -> findClass(javaClass.name)
         javaClass.isPrimitive -> primitiveToId[this]!!
-        else -> ClassId(javaClass.name)
+        else -> findClass(javaClass.name)
     }
 
 val KClass<*>.id: ClassId

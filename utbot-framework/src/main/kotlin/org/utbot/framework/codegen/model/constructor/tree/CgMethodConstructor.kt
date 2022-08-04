@@ -21,7 +21,6 @@ import org.utbot.framework.util.isUnit
 import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import org.utbot.summary.SummarySentenceConstants.TAB
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
@@ -293,7 +292,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun generateAssertionsForParameterizedTest() {
         emptyLineIfNeeded()
 
-        when (currentExecutable) {
+        when (currentExecutable!!) {
             is ConstructorExecutableId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
             is MethodExecutableId -> {
                 val method = currentExecutable as MethodId

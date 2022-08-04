@@ -62,7 +62,7 @@ open class FallbackModelProvider(
 
     private suspend fun createSimpleModel(classId: ClassId): UtModel {
         val defaultConstructor = classId.methods().firstOrNull {
-            it.isPublic() && it.isConstructor() && it.parameters().isEmpty()
+            it.isPublic() && it.isConstructor && it.parameters().isEmpty()
         }
         return if (classId.isAbstract()) { // sealed class is abstract by itself
             UtNullModel(classId)

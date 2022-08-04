@@ -1,10 +1,11 @@
 package org.utbot.examples.manual
 
 import org.utbot.common.FileUtil
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.util.findField
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 import java.nio.file.Path
 
 object SootUtils {
@@ -28,7 +29,7 @@ fun fields(
 ): MutableMap<FieldId, UtModel> {
     return fields
         .associate {
-            val fieldId = FieldId(classId, it.first)
+            val fieldId = classId.findField(it.first)
             val fieldValue = when (val value = it.second) {
                 is UtModel -> value
                 else -> UtPrimitiveModel(value)

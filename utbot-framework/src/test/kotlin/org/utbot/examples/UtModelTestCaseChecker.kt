@@ -11,9 +11,11 @@ import org.utbot.common.workaround
 import org.utbot.engine.prettify
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.UtSettings.useFuzzing
+import org.utbot.framework.codegen.TestCodeGeneratorPipeline
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
 import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.util.Conflict
 import org.utbot.jcdb.api.FieldId
 import java.nio.file.Path
 import kotlin.reflect.*

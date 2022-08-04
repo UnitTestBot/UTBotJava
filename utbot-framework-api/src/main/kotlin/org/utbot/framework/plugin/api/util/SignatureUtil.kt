@@ -1,7 +1,8 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.isPrimitive
 import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Method

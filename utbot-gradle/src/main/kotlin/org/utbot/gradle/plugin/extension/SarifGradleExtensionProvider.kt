@@ -5,11 +5,11 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.sarif.SarifExtensionProvider
+import org.utbot.jcdb.api.ClassId
 import java.io.File
 
 /**

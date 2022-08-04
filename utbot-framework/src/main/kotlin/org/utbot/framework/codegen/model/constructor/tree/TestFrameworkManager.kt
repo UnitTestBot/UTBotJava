@@ -164,7 +164,7 @@ internal abstract class TestFrameworkManager(val context: CgContext)
             if (isAccessibleFrom(testClassPackageName)) {
                 CgGetJavaClass(this)
             } else {
-                statementConstructor.newVar(classClassId) { Class::class.id[forName](name) }
+                statementConstructor.newVar(classClassId.type(false)) { Class::class.id[forName](name) }
             }
 }
 

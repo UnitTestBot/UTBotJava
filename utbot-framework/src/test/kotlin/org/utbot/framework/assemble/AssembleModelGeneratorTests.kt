@@ -1,44 +1,5 @@
 package org.utbot.framework.assemble
 
-import org.utbot.examples.assemble.arrays.ArrayOfComplexArrays
-import org.utbot.examples.assemble.arrays.ArrayOfPrimitiveArrays
-import org.utbot.examples.assemble.arrays.AssignedArray
-import org.utbot.examples.assemble.arrays.ComplexArray
-import org.utbot.examples.assemble.arrays.PrimitiveArray
-import org.utbot.examples.assemble.constructors.ComplexConstructor
-import org.utbot.examples.assemble.constructors.ComplexConstructorWithSetter
-import org.utbot.examples.assemble.constructors.ConstructorModifyingStatic
-import org.utbot.examples.assemble.constructors.InheritComplexConstructor
-import org.utbot.examples.assemble.constructors.InheritPrimitiveConstructor
-import org.utbot.examples.assemble.constructors.PrimitiveConstructor
-import org.utbot.examples.assemble.constructors.PrimitiveConstructorWithDefaultField
-import org.utbot.examples.assemble.constructors.PseudoComplexConstructor
-import org.utbot.examples.assemble.defaults.DefaultField
-import org.utbot.examples.assemble.defaults.DefaultFieldModifiedInConstructor
-import org.utbot.examples.assemble.defaults.DefaultFieldWithDirectAccessor
-import org.utbot.examples.assemble.constructors.PrivateConstructor
-import org.utbot.examples.assemble.defaults.DefaultFieldWithSetter
-import org.utbot.examples.assemble.defaults.DefaultPackagePrivateField
-import org.utbot.examples.assemble.statics.StaticField
-import org.utbot.framework.SootUtils
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.util.instanceCounter
-import org.utbot.framework.util.modelIdCounter
-import kotlin.reflect.full.functions
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -46,11 +7,34 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.assemble.*
+import org.utbot.examples.assemble.arrays.*
+import org.utbot.examples.assemble.constructors.*
+import org.utbot.examples.assemble.defaults.*
+import org.utbot.examples.assemble.statics.StaticField
+import org.utbot.framework.SootUtils
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.util.instanceCounter
+import org.utbot.framework.util.modelIdCounter
+import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
+import kotlin.reflect.full.functions
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
  */
 class AssembleModelGeneratorTests {
+
+    companion object {
+        private val globalContext = UtContext(AssembleTestUtils::class.java.classLoader)
+
+        @JvmStatic
+        fun afterAll() {
+            globalContext.classpath.close()
+        }
+    }
+
 
     private lateinit var context: AutoCloseable
     private lateinit var statementsChain: MutableList<String>
@@ -61,7 +45,7 @@ class AssembleModelGeneratorTests {
         modelIdCounter.set(0)
         statementsChain = mutableListOf()
         SootUtils.runSoot(AssembleTestUtils::class)
-        context = setUtContext(UtContext(AssembleTestUtils::class.java.classLoader))
+        context = setUtContext(globalContext)
     }
 
     @AfterEach
@@ -170,7 +154,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(testClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${innerClassId.canonicalName}()")
+        statementsChain.add("val $v2 = ${innerClassId.name}()")
         statementsChain.add("$v2." + addExpectedSetter("a", 2))
         statementsChain.add("$v2." + ("b" `=` 4))
         val secondExpectedRepresentation = printExpectedModel(innerClassId.simpleName, v2, statementsChain.toList())
@@ -224,7 +208,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("val $v2 = ${listClassId.name}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain.toList())
 
@@ -254,13 +238,13 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("val $v2 = ${listClassId.name}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         statementsChain.add("$v2." + addExpectedSetter("next", v3))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v3 = ${listClassId.canonicalName}()")
+        statementsChain.add("val $v3 = ${listClassId.name}()")
         statementsChain.add("$v3." + addExpectedSetter("value", 3))
         statementsChain.add("$v3." + addExpectedSetter("next", v1))
         val thirdExpectedRepresentation = printExpectedModel(listClassId.simpleName, v3, statementsChain.toList())
@@ -479,7 +463,7 @@ class AssembleModelGeneratorTests {
             fields(modelClassId, "a" to 5, "b" to 3),
         )
 
-        val v1 = statementsChain.addExpectedVariableDecl<StaticField>(5,3)
+        val v1 = statementsChain.addExpectedVariableDecl<StaticField>(5, 3)
 
         val expectedRepresentation = printExpectedModel(modelClassId.simpleName, v1, statementsChain)
         createModelAndAssert(compositeModel, expectedRepresentation)
@@ -975,7 +959,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("val $v2 = ${listClassId.name}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain.toList())
 
@@ -1003,7 +987,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("val $v2 = ${listClassId.name}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         statementsChain.add("$v2." + addExpectedSetter("next", v1))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain)
@@ -1105,7 +1089,7 @@ class AssembleModelGeneratorTests {
             testClassId,
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
-                ClassId("[L${innerClassId.canonicalName}", innerClassId),
+                findClass("${innerClassId.name}[]"),
                 length = 3,
                 UtNullModel(innerClassId),
                 mutableMapOf(
@@ -1126,7 +1110,7 @@ class AssembleModelGeneratorTests {
         statementsChain.add(
             "$v1." + ("array" `=` "[" +
                     "null, " +
-                    "UtAssembleModel(${innerClassId.simpleName} $v2) val $v2 = ${innerClassId.canonicalName}() $v2.setA(5), " +
+                    "UtAssembleModel(${innerClassId.simpleName} $v2) val $v2 = ${innerClassId.name}() $v2.setA(5), " +
                     "null" +
                     "]")
         )
@@ -1175,11 +1159,11 @@ class AssembleModelGeneratorTests {
         val testClassId = ArrayOfComplexArrays::class.id
         val innerClassId = PrimitiveFields::class.id
 
-        val innerArrayClassId = ClassId("[L${innerClassId.canonicalName}", innerClassId)
+        val innerArrayClassId = findClass("${innerClassId.name}[]")
 
         val arrayOfArraysModel = UtArrayModel(
             modelIdCounter.incrementAndGet(),
-            ClassId("[Lorg.utbot.examples.assemble.ComplexArray", testClassId),
+            findClass("org.utbot.examples.assemble.arrays.ComplexArray[]"),
             length = 2,
             UtNullModel(innerArrayClassId),
             mutableMapOf(
@@ -1226,8 +1210,8 @@ class AssembleModelGeneratorTests {
         val v3 = createExpectedVariableName<PrimitiveFields>()
         statementsChain.add(
             "$v1." + ("array" `=` "[" +
-                    "[UtAssembleModel(${innerClassId.simpleName} $v2) val $v2 = ${innerClassId.canonicalName}() $v2.setA(5), ${null}], " +
-                    "[UtAssembleModel(${innerClassId.simpleName} $v3) val $v3 = ${innerClassId.canonicalName}() $v3.b = 4, ${null}]" +
+                    "[UtAssembleModel(${innerClassId.simpleName} $v2) val $v2 = ${innerClassId.name}() $v2.setA(5), ${null}], " +
+                    "[UtAssembleModel(${innerClassId.simpleName} $v3) val $v3 = ${innerClassId.name}() $v3.b = 4, ${null}]" +
                     "]")
         )
 
@@ -1245,7 +1229,7 @@ class AssembleModelGeneratorTests {
     fun testOnObjectWithPrimitiveModelInMock() {
         val testClassId = ComplexField::class.id
 
-        val executableId = MethodId(testClassId, "fake_method_name", intClassId, listOf())
+        val executableId = testClassId.findMethod("fake_method_name", intClassId, listOf()).asExecutableMethod()
 
         val compositeModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
@@ -1264,7 +1248,7 @@ class AssembleModelGeneratorTests {
         val testClassId = ComplexField::class.id
         val innerClassId = PrimitiveFields::class.id
 
-        val executableId = MethodId(testClassId, "fake_method_name", innerClassId, listOf())
+        val executableId = testClassId.findMethod("fake_method_name", innerClassId, listOf()).asExecutableMethod()
 
         val mockObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
@@ -1293,7 +1277,7 @@ class AssembleModelGeneratorTests {
         val testClassId = ComplexField::class.id
         val innerClassId = PrimitiveFields::class.id
 
-        val executableId = MethodId(testClassId, "fake_method_name", innerClassId, listOf())
+        val executableId = testClassId.findMethod("fake_method_name", innerClassId, listOf()).asExecutableMethod()
 
         val mockObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
@@ -1338,7 +1322,7 @@ class AssembleModelGeneratorTests {
         val mockObjectClassId = ComplexField::class.id
         val innerClassId = PrimitiveFields::class.id
 
-        val executableId = MethodId(testClassId, "fake_method_name", innerClassId, listOf())
+        val executableId = testClassId.findMethod("fake_method_name", innerClassId, listOf()).asExecutableMethod()
 
         val innerObjectModel = UtCompositeModel(
             modelIdCounter.incrementAndGet(),
@@ -1398,7 +1382,7 @@ class AssembleModelGeneratorTests {
     ): MutableMap<FieldId, UtModel> {
         return fields
             .associate {
-                val fieldId = FieldId(classId, it.first)
+                val fieldId = classId.findField(it.first)
                 val fieldValue = when (val value = it.second) {
                     is UtModel -> value
                     else -> UtPrimitiveModel(value)

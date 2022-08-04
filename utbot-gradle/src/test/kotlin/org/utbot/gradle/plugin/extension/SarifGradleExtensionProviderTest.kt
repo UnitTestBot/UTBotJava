@@ -9,10 +9,10 @@ import org.mockito.Mockito
 import org.utbot.common.PathUtil.toPath
 import org.utbot.engine.Mocker
 import org.utbot.framework.codegen.*
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.util.findClass
 import org.utbot.gradle.plugin.buildProject
 import java.io.File
 
@@ -611,8 +611,7 @@ class SarifGradleExtensionProviderTest {
     @DisplayName("classesToMockAlways")
     inner class ClassesToMockAlwaysTest {
 
-        private val defaultClasses =
-            Mocker.defaultSuperClassesToMockAlwaysNames.map(::ClassId).toSet()
+        private val defaultClasses get() = Mocker.defaultSuperClassesToMockAlwaysNames.map { findClass(it) }.toSet()
 
         @Test
         fun `should be defaultSuperClassesToMockAlwaysNames by default`() {
@@ -623,7 +622,7 @@ class SarifGradleExtensionProviderTest {
         @Test
         fun `should be provided from the extension`() {
             val classes = listOf("com.abc.Main")
-            val expectedClasses = classes.map(::ClassId).toSet() + defaultClasses
+            val expectedClasses = classes.map { findClass(it) }.toSet() + defaultClasses
             setClassesToMockAlwaysInExtension(classes)
             assertEquals(expectedClasses, extensionProvider.classesToMockAlways)
         }
@@ -631,7 +630,7 @@ class SarifGradleExtensionProviderTest {
         @Test
         fun `should be provided from the task parameters`() {
             val classes = listOf("com.abc.Main")
-            val expectedClasses = classes.map(::ClassId).toSet() + defaultClasses
+            val expectedClasses = classes.map { findClass(it) }.toSet() + defaultClasses
             setClassesToMockAlwaysInTaskParameters(classes)
             assertEquals(expectedClasses, extensionProvider.classesToMockAlways)
         }
@@ -640,7 +639,7 @@ class SarifGradleExtensionProviderTest {
         fun `should be provided from the task parameters, not from the extension`() {
             val classes = listOf("com.abc.Main")
             val anotherClasses = listOf("com.abc.Another")
-            val expectedClasses = classes.map(::ClassId).toSet() + defaultClasses
+            val expectedClasses = classes.map { findClass(it) }.toSet() + defaultClasses
             setClassesToMockAlwaysInTaskParameters(classes)
             setClassesToMockAlwaysInExtension(anotherClasses)
             assertEquals(expectedClasses, extensionProvider.classesToMockAlways)

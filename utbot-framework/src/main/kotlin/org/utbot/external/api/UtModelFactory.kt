@@ -64,3 +64,11 @@ class UtModelFactory(
         clazz.id, clazz
     )
 }
+
+/**
+ * This is just a wrapper function to call from Java code
+ * @param clazz a class that the id is supposed to be created
+ */
+fun classIdForType(clazz: Class<*>): ClassId {
+    return clazz.id
+}

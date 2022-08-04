@@ -2,10 +2,11 @@ package org.utbot.framework.plugin.sarif
 
 import org.utbot.engine.Mocker
 import org.utbot.framework.codegen.*
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.util.findClass
+import org.utbot.jcdb.api.ClassId
 import java.io.File
 
 /**
@@ -120,6 +121,6 @@ interface SarifExtensionProvider {
 
     fun classesToMockAlwaysParse(specifiedClasses: List<String>): Set<ClassId> =
         (Mocker.defaultSuperClassesToMockAlwaysNames + specifiedClasses).map { className ->
-            ClassId(className)
+            findClass(className)
         }.toSet()
 }

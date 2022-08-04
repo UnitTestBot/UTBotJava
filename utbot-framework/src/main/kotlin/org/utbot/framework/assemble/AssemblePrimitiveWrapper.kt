@@ -3,16 +3,7 @@ package org.utbot.framework.assemble
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.byteClassId
-import org.utbot.framework.plugin.api.util.charClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.intClassId
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.framework.plugin.api.util.wrapIfPrimitive
+import org.utbot.framework.plugin.api.util.*
 
 /**
  * Creates [UtAssembleModel] of the wrapper for a given [UtPrimitiveModel].
@@ -43,7 +34,7 @@ fun assemble(model: UtPrimitiveModel): UtAssembleModel {
     return UtAssembleModel(
         id = null,
         classId = assembledModelType,
-        modelName = modelType.canonicalName,
+        modelName = modelType.name,
         instantiationChain = listOf(constructorCallModel),
         modificationsChain = emptyList(),
     )

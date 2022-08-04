@@ -871,15 +871,15 @@ enum class FieldIdStrategyValues {
 //    override fun toString() = declaringClass.findFieldOrNull(name).toString()
 //}
 
-inline fun <T> withReflection(block: () -> T): T {
-    val prevStrategy = FieldId.Strategy.value
-    try {
-        FieldId.Strategy.value = FieldIdStrategyValues.Reflection
-        return block()
-    } finally {
-        FieldId.Strategy.value = prevStrategy
-    }
-}
+//inline fun <T> withReflection(block: () -> T): T {
+//    val prevStrategy = FieldId.Strategy.value
+//    try {
+//        FieldId.Strategy.value = FieldIdStrategyValues.Reflection
+//        return block()
+//    } finally {
+//        FieldId.Strategy.value = prevStrategy
+//    }
+//}
 
 /**
  * The same as [FieldId], except it represents the fields

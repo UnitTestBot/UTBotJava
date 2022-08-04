@@ -451,20 +451,31 @@ class UtBotSymbolicEngine(
                 EnvironmentModels(values.first().model, emptyList(), mapOf())
             }
 
-            try {
-                val concreteExecutionResult =
-                    concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+            val concreteExecutionResult: UtConcreteExecutionResult? = try {
+                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+            } catch (e: CancellationException) {
+                logger.debug { "Cancelled by timeout" }; null
+            } catch (e: ConcreteExecutionFailureException) {
+                emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
+            } catch (e: Throwable) {
+                emit(UtError("Default concrete execution failed", e)); null
+            }
 
-                workaround(REMOVE_ANONYMOUS_CLASSES) {
-                    concreteExecutionResult.result.onSuccess {
-                        if (it.classId.isAnonymous) {
-                            logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                            return@flow
-                        }
+            // in case an exception occurred from the concrete execution
+            concreteExecutionResult ?: return@forEach
+
+            workaround(REMOVE_ANONYMOUS_CLASSES) {
+                concreteExecutionResult.result.onSuccess {
+                    if (it.classId.isAnonymous) {
+                        logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
+                        return@flow
                     }
                 }
+            }
 
-                val count = coveredInstructionTracker.add(concreteExecutionResult.coverage.coveredInstructions)
+            val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
+            if (coveredInstructions.isNotEmpty()) {
+                val count = coveredInstructionTracker.add(coveredInstructions)
                 if (count.count > 1) {
                     if (--attempts < 0) {
                         return@flow
@@ -472,35 +483,37 @@ class UtBotSymbolicEngine(
                     return@forEach
                 }
                 coveredInstructionValues[count] = values
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                val testMethodName = try {
-                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, concreteExecutionResult.result) }.firstOrNull()
-                } catch (t: Throwable) {
-                    logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
-                    null
-                }
-
-                emit(
-                    UtExecution(
-                        stateBefore = initialEnvironmentModels,
-                        stateAfter = concreteExecutionResult.stateAfter,
-                        result = concreteExecutionResult.result,
-                        instrumentation = emptyList(),
-                        path = mutableListOf(),
-                        fullPath = emptyList(),
-                        coverage = concreteExecutionResult.coverage,
-                        createdBy = UtExecutionCreator.FUZZER,
-                        testMethodName = testMethodName?.testName,
-                        displayName = testMethodName?.takeIf { hasMethodUnderTestParametersToFuzz }?.displayName
-                    )
-                )
-            } catch (e: CancellationException) {
-                logger.debug { "Cancelled by timeout" }
-            } catch (e: ConcreteExecutionFailureException) {
-                emitFailedConcreteExecutionResult(initialEnvironmentModels, e)
-            } catch (e: Throwable) {
-                emit(UtError("Default concrete execution failed", e))
+            } else {
+                logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
             }
+            val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+            val testMethodName = try {
+                nameSuggester.flatMap {
+                    it.suggest(
+                        methodUnderTestDescription,
+                        values,
+                        concreteExecutionResult.result
+                    )
+                }.firstOrNull()
+            } catch (t: Throwable) {
+                logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
+                null
+            }
+
+            emit(
+                UtExecution(
+                    stateBefore = initialEnvironmentModels,
+                    stateAfter = concreteExecutionResult.stateAfter,
+                    result = concreteExecutionResult.result,
+                    instrumentation = emptyList(),
+                    path = mutableListOf(),
+                    fullPath = emptyList(),
+                    coverage = concreteExecutionResult.coverage,
+                    createdBy = UtExecutionCreator.FUZZER,
+                    testMethodName = testMethodName?.testName,
+                    displayName = testMethodName?.takeIf { hasMethodUnderTestParametersToFuzz }?.displayName
+                )
+            )
         }
     }
 

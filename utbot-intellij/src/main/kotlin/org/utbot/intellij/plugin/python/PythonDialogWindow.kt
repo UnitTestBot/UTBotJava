@@ -10,8 +10,10 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.ui.ContextHelpLabel
+import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.ScrollingUtil
 import com.intellij.ui.ToolbarDecorator
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.Panel
@@ -23,20 +25,30 @@ import com.jetbrains.python.psi.*
 import com.jetbrains.python.refactoring.classes.PyMemberInfoStorage
 import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
+import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import java.awt.BorderLayout
+import java.util.concurrent.TimeUnit
 import javax.swing.*
 
 
 private const val SAME_PACKAGE_LABEL = "same as for sources"
+private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
+    private val timeoutSpinner =
+        JBIntSpinner(
+            TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
+            MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
+            Int.MAX_VALUE,
+            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
+        )
     private val pathChooser = PathChooser(model)
     private val moduleToImportField = ModuleToImportField(model)
 
@@ -71,6 +83,9 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             row("Generate test methods for:") {}
             row {
                 scrollPane(functionsTable)
+            }
+            row("Timeout for all selected functions:") {
+                component(timeoutSpinner)
             }
             row("Add to sys.path:") {}
             row {
@@ -155,6 +170,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.directoriesForSysPath = PathChooser.model.elements().toList()
         model.moduleToImport = moduleToImportField.text
+        model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
 
         super.doOKAction()
     }

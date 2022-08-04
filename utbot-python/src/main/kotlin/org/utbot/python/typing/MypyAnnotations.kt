@@ -46,12 +46,16 @@ object MypyAnnotations {
                 Pair(key, it)
             }
         }
-        if (candidates.any { it.isEmpty() })
+        if (candidates.any { it.isEmpty() }) {
+            fileWithCode.delete()
             return@sequence
+        }
 
         PriorityCartesianProduct(candidates).getSequence().forEach {
-            if (isCancelled())
+            if (isCancelled()) {
+                fileWithCode.delete()
                 return@sequence
+            }
 
             val annotationMap = it.toMap()
             val codeWithAnnotations = generateMypyCheckCode(

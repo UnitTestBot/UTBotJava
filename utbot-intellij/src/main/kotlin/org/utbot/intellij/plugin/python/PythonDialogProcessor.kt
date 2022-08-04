@@ -17,6 +17,7 @@ import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
+import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.code.PythonCode
@@ -67,7 +68,8 @@ object PythonDialogProcessor {
                 containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
                 file,
-                getDefaultModuleToImport(file)
+                getDefaultModuleToImport(file),
+                UtSettings.utBotGenerationTimeoutInMillis
             )
         )
     }
@@ -95,6 +97,7 @@ object PythonDialogProcessor {
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
+                val startTime = System.currentTimeMillis()
 
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
@@ -133,7 +136,7 @@ object PythonDialogProcessor {
                         pythonPath,
                         model.project.basePath!!,
                         filePath
-                    ) { indicator.isCanceled }
+                    ) { indicator.isCanceled || (System.currentTimeMillis() - startTime) > model.timeout }
                 }
 
                 val tests = pythonMethods.map { method ->

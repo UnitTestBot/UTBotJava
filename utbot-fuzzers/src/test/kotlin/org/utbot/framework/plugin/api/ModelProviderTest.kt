@@ -24,7 +24,9 @@ import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.samples.FieldSetterClass
+import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
+import org.utbot.framework.plugin.api.samples.SampleEnum
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
@@ -520,6 +522,44 @@ class ModelProviderTest {
             assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
 
             assertEquals("pkgField", (modificationsChain[0] as UtDirectSetFieldModel).fieldId.name)
+        }
+    }
+
+    @Test
+    fun `test that enum models in a recursive object model are consistent`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val idGenerator = ReferencePreservingIntIdGenerator()
+            val expectedIds = SampleEnum.values().associateWith { idGenerator.getOrCreateIdForValue(it) }
+
+            val result = collect(
+                ObjectModelProvider(idGenerator),
+                parameters = listOf(OuterClassWithEnums::class.java.id)
+            )
+
+            assertEquals(1, result.size)
+            val models = result[0] ?: fail("Inconsistent result")
+
+            for (model in models) {
+                val outerModel = (model as? UtAssembleModel)
+                    ?.finalInstantiationModel as? UtExecutableCallModel
+                    ?: fail("No final instantiation model found for the outer class")
+                for (param in outerModel.params) {
+                    when (param) {
+                        is UtEnumConstantModel -> {
+                            assertEquals(expectedIds[param.value], param.id)
+                        }
+                        is UtAssembleModel -> {
+                            for (enumParam in (param.finalInstantiationModel as UtExecutableCallModel).params) {
+                                enumParam as UtEnumConstantModel
+                                assertEquals(expectedIds[enumParam.value], enumParam.id)
+                            }
+                        }
+                        else -> {
+                            fail("Unexpected parameter model: $param")
+                        }
+                    }
+                }
+            }
         }
     }
 

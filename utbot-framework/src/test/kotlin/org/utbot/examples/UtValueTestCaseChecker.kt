@@ -60,6 +60,7 @@ import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.toValueTestCase
+import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.summarize
 import java.io.File
 import java.nio.file.Path
@@ -96,6 +97,7 @@ abstract class UtValueTestCaseChecker(
         UtSettings.useAssembleModelGenerator = true
         UtSettings.saveRemainingStatesForConcreteExecution = false
         UtSettings.useFuzzing = false
+        UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = false
     }
 
     // checks paramsBefore and result

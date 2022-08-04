@@ -21,14 +21,31 @@ jobs:
         java-version: '8'
         distribution: 'zulu'
         java-package: jdk+fx
+        
     - uses: gradle/gradle-build-action@v2
       with:
         gradle-version: 6.8
+    
+    - name: Set project version
+      run: echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
         
     - name: Build and run tests in UTBot Java
       run: |
         export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
+        gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
+        
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v1
+      if: always()
+      with:
+        files: "**/build/test-results/**/*.xml"
+        
+    - name: Cache utbot-cli-${{ env.VERSION }}.jar
+      if: ${{ github.event_name != 'pull_request' }}
+      uses: actions/cache@v3
+      with:
+        path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar
+        key: utbot-cli
         
     - name: Upload utbot-framework logs
       if: ${{ always() }}
@@ -44,12 +61,13 @@ jobs:
         name: utbot_framework_tests_report
         path: utbot-framework/build/reports/tests/test/*
         
-    - name: Upload utbot-intellij tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_intellij_tests_report
-        path: utbot-intellij/build/reports/tests/test/*
+        
+  publish_cli_image:
+    needs: build_and_run_tests
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
         
     - name: Set timezone
       uses: szenius/set-timezone@v1.0
@@ -60,6 +78,12 @@ jobs:
       run: |
         echo "COMMIT_SHORT_SHA="$(git rev-parse --short HEAD)"" >> $GITHUB_ENV
         echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+        
+    - uses: actions/cache@v3
+      with:
+        path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar
+        key: utbot-cli
+        
     - name: Set docker tag
       run:
         echo "DOCKER_TAG="$(date +%Y).$(date +%-m).$(date +%-d)-${{ env.COMMIT_SHORT_SHA }}"" >> $GITHUB_ENV
@@ -81,6 +105,7 @@ jobs:
         key: ${{ runner.os }}-buildx-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-buildx-
+          
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v3
@@ -88,6 +113,7 @@ jobs:
         images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
         tags: |
           type=raw,value=${{ env.DOCKER_TAG }}
+          
     - name: Docker Buildx (build and push)
       run: |
         docker buildx build \
@@ -100,6 +126,7 @@ jobs:
       # Temp fix
       # https://github.com/docker/build-push-action/issues/252
       # https://github.com/moby/buildkit/issues/1896
+      
     - name: Move cache
       run: |
         rm -rf /tmp/.buildx-cache

@@ -38,10 +38,15 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    fun generateTestCode(testCase: PythonTestSet, directoriesForSysPath: List<String>, moduleToImport: String): String {
+    fun generateTestCode(
+        testCase: PythonTestSet,
+        directoriesForSysPath: List<String>,
+        moduleToImport: String
+    ): String {
         val importFunction = generateImportFunctionCode(
             moduleToImport,
-            directoriesForSysPath
+            directoriesForSysPath,
+            testCase.errors.flatMap { it.types } + testCase.executions.flatMap { it.types }
         )
         val testCaseCodes = (testCase.executions + testCase.errors).mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
@@ -201,6 +206,7 @@ object PythonCodeGenerator {
                 )
             )
         }
+
         val additionalImport = additionalModules
             .asSequence()
             .map { it.split("[", "]", ",", "|") }
@@ -228,12 +234,14 @@ object PythonCodeGenerator {
         outputFilename: String,
         errorFilename: String,
         directoriesForSysPath: List<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        additionalModules: List<String> = emptyList()
     ): String {
 
         val importStatements = generateImportFunctionCode(
             moduleToImport,
-            directoriesForSysPath
+            directoriesForSysPath,
+            additionalModules
         )
 
         val testFunctionName = "__run_${method.name}"

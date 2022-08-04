@@ -57,6 +57,10 @@ object PythonTypesStorage {
         return fromStubs union fromProject.toSet()
     }
 
+    fun isFromProject(typeName: String): Boolean {
+        return projectClasses.any { it.pythonClass.name == typeName }
+    }
+
     fun getTypeByName(classId: ClassId): PythonType? {
         val fromStub = StubFileFinder.nameToClassMap[classId.name]
         if (fromStub != null) {

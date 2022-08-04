@@ -9,10 +9,12 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.mods.Module
+import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
+import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AnnAssign
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
@@ -61,6 +63,9 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null) {
 
     val initFunction: PythonMethodBody?
         get() = ast.functionDefs.find { it.name.name == "__init__" } ?.let { PythonMethodBody(it) }
+
+    val topLevelFields: List<AnnAssign>
+        get() = (ast.body as? Body)?.statements?.mapNotNull { it as? AnnAssign } ?: emptyList()
 }
 
 class PythonMethodBody(private val ast: FunctionDef): PythonMethod {

@@ -15,10 +15,19 @@ interface PythonMethod {
     fun ast(): FunctionDef
 }
 
-sealed class PythonResult(val parameters: List<UtModel>)
+sealed class PythonResult(val parameters: List<UtModel>, val types: List<String>)
 
-class PythonError(val utError: UtError, parameters: List<UtModel>): PythonResult(parameters)
-class PythonExecution(val utExecution: UtExecution, parameters: List<UtModel>): PythonResult(parameters)
+class PythonError(
+    val utError: UtError,
+    parameters: List<UtModel>,
+    types: List<String>
+): PythonResult(parameters, types)
+
+class PythonExecution(
+    val utExecution: UtExecution,
+    parameters: List<UtModel>,
+    types: List<String>
+): PythonResult(parameters, types)
 
 data class PythonTestSet(
     val method: PythonMethod,

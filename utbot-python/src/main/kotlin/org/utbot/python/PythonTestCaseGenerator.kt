@@ -154,6 +154,10 @@ object PythonTestCaseGenerator {
                 }
             }
         }
+        candidates.keys.forEach { typeName ->
+            if (PythonTypesStorage.isFromProject(typeName))
+                increaseValue(candidates, typeName)
+        }
         return candidates.toList().sortedByDescending { it.second }.map { it.first }
     }
 

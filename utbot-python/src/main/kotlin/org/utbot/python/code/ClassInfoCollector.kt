@@ -2,6 +2,7 @@ package org.utbot.python.code
 
 import io.github.danielnaczo.python3parser.model.AST
 import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
+import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.utbot.python.PythonMethod
 
@@ -24,6 +25,9 @@ class ClassInfoCollector(val pyClass: PythonClass) {
                 val visitor = Visitor(selfName)
                 visitor.visitFunctionDef(method.ast(), storage)
             }
+        }
+        pyClass.topLevelFields.forEach { annAssign ->
+            (annAssign.target as? Name)?.let { storage.fields.add(it.id.name) }
         }
     }
 

@@ -27,7 +27,8 @@ object PythonEvaluation {
         methodArguments: List<UtModel>,
         directoriesForSysPath: List<String>,
         moduleToImport: String,
-        pythonPath: String
+        pythonPath: String,
+        additionalModulesToImport: List<String> = emptyList()
     ): EvaluationResult {
         val outputFile = FileManager.assignTemporaryFile(tag = "output_" + method.name)
         val errorFile = FileManager.assignTemporaryFile(tag = "error_" + method.name)
@@ -37,7 +38,8 @@ object PythonEvaluation {
             outputFile.path,
             errorFile.path,
             directoriesForSysPath,
-            moduleToImport
+            moduleToImport,
+            additionalModulesToImport
         )
         val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + method.name)
         val result = runCommand(listOf(pythonPath, fileWithCode.path))

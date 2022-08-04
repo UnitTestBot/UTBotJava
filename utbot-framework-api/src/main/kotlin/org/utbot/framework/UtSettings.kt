@@ -21,13 +21,27 @@ internal val utbotHomePath = "${System.getProperty("user.home")}/.utbot"
 private val defaultSettingsPath = "$utbotHomePath/settings.properties"
 private const val defaultKeyForSettingsPath = "utbot.settings.path"
 
-internal class SettingDelegate<T>(val initializer: () -> T) {
+/**
+ * Stores current values for each setting from [UtSettings].
+ */
+private val settingsValues: MutableMap<KProperty<*>, Any?> = mutableMapOf()
+
+internal class SettingDelegate<T>(val property: KProperty<*>, val initializer: () -> T) {
     private var value = initializer()
+
+    init {
+        updateSettingValue()
+    }
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
 
     operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
         this.value = value
+        updateSettingValue()
+    }
+
+    private fun updateSettingValue() {
+        settingsValues[property] = value
     }
 }
 
@@ -55,15 +69,13 @@ object UtSettings {
         defaultValue: T,
         converter: (String) -> T
     ): PropertyDelegateProvider<UtSettings, SettingDelegate<T>> {
-        return PropertyDelegateProvider { _, prop ->
-            SettingDelegate {
+        return PropertyDelegateProvider { _, property ->
+            SettingDelegate(property) {
                 try {
-                    properties.getProperty(prop.name)?.let(converter) ?: defaultValue
+                    properties.getProperty(property.name)?.let(converter) ?: defaultValue
                 } catch (e: Throwable) {
                     logger.info(e) { e.message }
                     defaultValue
-                } finally {
-                    properties.putIfAbsent(prop.name, defaultValue.toString())
                 }
             }
         }
@@ -75,7 +87,6 @@ object UtSettings {
     private fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
     private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
         getProperty(defaultValue) { enumValueOf(it) }
-
 
     /**
      * Setting to disable coroutines debug explicitly.
@@ -381,9 +392,10 @@ object UtSettings {
     var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
 
     override fun toString(): String =
-        properties
+        settingsValues
+            .mapKeys { it.key.name }
             .entries
-            .sortedBy { it.key.toString() }
+            .sortedBy { it.key }
             .joinToString(separator = System.lineSeparator()) { "\t${it.key}=${it.value}" }
 }
 

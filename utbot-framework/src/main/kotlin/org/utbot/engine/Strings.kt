@@ -313,7 +313,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
 
         val arrayValuesChunkId = typeRegistry.arrayChunkId(charArrayType)
 
-        val valuesFieldChunkId = hierarchy.chunkIdForField(utStringClass.type, overriddenClass.valueField)
+        val valuesFieldChunkId = hierarchy.chunkIdForField(overriddenClass.type, overriddenClass.valueField)
         val valuesArrayAddrDescriptor = MemoryChunkDescriptor(valuesFieldChunkId, wrapper.type, charType)
         val valuesArrayAddr = findArray(valuesArrayAddrDescriptor, MemoryState.CURRENT).select(wrapper.addr)
 

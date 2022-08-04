@@ -24,7 +24,8 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.getIdOrThrow
+import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -398,7 +399,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateTo(mutableMapOf()) { i ->
                 val model = touchedValues.stores[i]
-                val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id!!
+                val addr = model.getIdOrThrow()
                 addr to resolver.resolveModel(
                     ObjectValue(
                         TypeStorage(OBJECT_TYPE),

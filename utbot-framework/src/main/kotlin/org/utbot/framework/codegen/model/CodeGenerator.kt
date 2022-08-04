@@ -1,26 +1,25 @@
 package org.utbot.framework.codegen.model
 
-import org.utbot.common.packageName
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
-import org.utbot.framework.plugin.api.CgMethodTestSet
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.id
 
 class CodeGenerator(
-    private val classUnderTest: Class<*>,
+    private val classUnderTest: ClassId,
     paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     testFramework: TestFramework = TestFramework.defaultItem,
     mockFramework: MockFramework? = MockFramework.defaultItem,
@@ -35,7 +34,7 @@ class CodeGenerator(
     testClassPackageName: String = classUnderTest.packageName,
 ) {
     private var context: CgContext = CgContext(
-        classUnderTest = classUnderTest.id,
+        classUnderTest = classUnderTest,
         paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = mockFramework ?: MockFramework.MOCKITO,

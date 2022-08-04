@@ -14,6 +14,12 @@ dependencies {
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 }
 
+compileKotlin {
+    kotlinOptions {
+        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+    }
+}
+
 shadowJar {
     configurations = [project.configurations.compileClasspath]
     archiveClassifier.set('')

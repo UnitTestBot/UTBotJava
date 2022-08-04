@@ -210,7 +210,7 @@ fun runGeneration(
     val statsForClass = StatsForClass()
 
     val codeGenerator = CodeGenerator(
-            cut.classId.jClass,
+            cut.classId,
             testFramework = junitByVersion(junitVersion),
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,

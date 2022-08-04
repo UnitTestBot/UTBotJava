@@ -36,7 +36,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
-    private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
+    private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.pythonItems.toTypedArray()))
     private val pathChooser = PathChooser(model)
     private val moduleToImportField = ModuleToImportField(model)
 

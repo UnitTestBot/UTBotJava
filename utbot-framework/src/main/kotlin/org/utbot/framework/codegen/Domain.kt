@@ -91,6 +91,7 @@ fun testFrameworkByName(testFramework: String): TestFramework =
         "junit4" -> Junit4
         "junit5" -> Junit5
         "testng" -> TestNg
+        "pytest" -> Pytest
         else -> error("Unexpected test framework name: $testFramework")
     }
 
@@ -236,8 +237,47 @@ sealed class TestFramework(
     companion object : CodeGenerationSettingBox {
         override val defaultItem: TestFramework get() = Junit5
         override val allItems: List<TestFramework> get() = listOf(Junit4, Junit5, TestNg)
+        val pythonItems: List<TestFramework> get() = listOf(Pytest)
         val parametrizedDefaultItem: TestFramework get() = Junit5
     }
+}
+
+object Pytest : TestFramework(displayName = "Pytest") {
+    override val mainPackage: String
+        get() = TODO("Not yet implemented")
+    override val assertionsClass: ClassId
+        get() = TODO("Not yet implemented")
+    override val arraysAssertionsClass: ClassId
+        get() = TODO("Not yet implemented")
+    override val testAnnotation: String
+        get() = TODO("Not yet implemented")
+    override val testAnnotationId: ClassId
+        get() = TODO("Not yet implemented")
+    override val testAnnotationFqn: String
+        get() = TODO("Not yet implemented")
+    override val parameterizedTestAnnotation: String
+        get() = TODO("Not yet implemented")
+    override val parameterizedTestAnnotationId: ClassId
+        get() = TODO("Not yet implemented")
+    override val parameterizedTestAnnotationFqn: String
+        get() = TODO("Not yet implemented")
+    override val methodSourceAnnotation: String
+        get() = TODO("Not yet implemented")
+    override val methodSourceAnnotationId: ClassId
+        get() = TODO("Not yet implemented")
+    override val methodSourceAnnotationFqn: String
+        get() = TODO("Not yet implemented")
+
+    override fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> {
+        TODO("Not yet implemented")
+    }
+
 }
 
 object TestNg : TestFramework(displayName = "TestNG") {

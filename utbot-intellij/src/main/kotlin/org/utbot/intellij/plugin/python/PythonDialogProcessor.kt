@@ -15,13 +15,16 @@ import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
+import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.PythonCodeGenerator
 import org.utbot.framework.codegen.model.tree.buildTestClass
 import org.utbot.framework.codegen.model.tree.buildTestClassBody
 import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.tree.buildTestMethod
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -142,18 +145,36 @@ object PythonDialogProcessor {
                         title = "Python test generation error"
                     )
                 }
-//                buildTestClassFile {
-//                    testClass = buildTestClass {
-//                        id = ClassId("")
-//                        body = buildTestClassBody {
-//                            for (testSet in notEmptyTests) {
-//                                val testMethod = buildTestMethod {
-//                                    name = te
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
+                val classId = ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
+                val methods = notEmptyTests.map {
+                    MethodId(
+                        classId,
+                        it.method.name,
+                        ClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
+                        it.method.arguments.map { argument ->
+                            ClassId(
+                                argument.annotation ?: pythonAnyClassId.name
+                            )
+                        }
+                    )
+                }
+                val codegen = CodeGenerator(
+                    classId,
+                    paramNames = notEmptyTests.zip(methods)
+                        .associate { (testSet, method) ->
+                            method to testSet.method.arguments.map {it.name}
+                                   }
+                        .toMutableMap(),
+                    testClassPackageName = "",
+                )
+                codegen.generateAsStringWithTestReport(
+                    methods.zip(notEmptyTests).map {(method, testSet) ->
+                        CgMethodTestSet(
+                            method,
+                            testSet.executions.map { execution -> execution.utExecution }
+                        )
+                    }
+                )
 
 //                val testCode = PythonCodeGenerator.generateAsString(
 //                    ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__"),

@@ -216,6 +216,16 @@ internal abstract class TestFrameworkManager(val context: CgContext)
             }
 }
 
+internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
+    override fun expectException(exception: ClassId, block: () -> Unit) {
+        TODO("Not yet implemented")
+    }
+
+    override fun disableTestMethod(reason: String) {
+        TODO("Not yet implemented")
+    }
+}
+
 internal class TestNgManager(context: CgContext) : TestFrameworkManager(context) {
     override val timeoutArgumentName: String = "timeOut"
 

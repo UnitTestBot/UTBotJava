@@ -81,14 +81,7 @@ import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.utbot.common.filterWhen
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.NoStaticMocking
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_FILE_CONTENT
 import org.utbot.framework.codegen.model.util.MOCKITO_EXTENSIONS_STORAGE
 import org.utbot.framework.codegen.model.util.MOCKITO_MOCKMAKER_FILE_NAME
@@ -662,6 +655,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> jUnit4LibraryDescriptor(versionInProject)
             Junit5 -> jUnit5LibraryDescriptor(versionInProject)
             TestNg -> testNgLibraryDescriptor(versionInProject)
+            Pytest -> TODO("Not implemented yet")
         }
 
         selectedTestFramework.isInstalled = true

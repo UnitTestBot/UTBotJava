@@ -115,9 +115,14 @@ data class CgMethodTestSet private constructor(
         from.clustersInfo
     )
 
-    constructor(executableId: ExecutableId) : this(
-        executableId = executableId,
-        emptyList(),
+    constructor(
+        executableId: ExecutableId,
+        executions: List<UtExecution> = emptyList()
+    ) : this(
+        executableId,
+        executions,
+        null,
+        emptyMap(),
     )
 }
 

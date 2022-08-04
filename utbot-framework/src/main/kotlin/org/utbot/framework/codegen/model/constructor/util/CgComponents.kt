@@ -2,20 +2,22 @@ package org.utbot.framework.codegen.model.constructor.util
 
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
+import org.utbot.framework.codegen.Pytest
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
 import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
-import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
+import org.utbot.framework.codegen.model.constructor.tree.*
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl
+import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManager
+import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.CgVariableConstructor
-import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManager
-import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManagerImpl
 import org.utbot.framework.codegen.model.constructor.tree.Junit4Manager
 import org.utbot.framework.codegen.model.constructor.tree.Junit5Manager
 import org.utbot.framework.codegen.model.constructor.tree.MockFrameworkManager
+import org.utbot.framework.codegen.model.constructor.tree.PytestManager
 import org.utbot.framework.codegen.model.constructor.tree.TestFrameworkManager
 import org.utbot.framework.codegen.model.constructor.tree.TestNgManager
 
@@ -33,6 +35,7 @@ internal object CgComponents {
         is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }
         is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
         is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
+        is Pytest -> testFrameworkManagers.getOrPut(context) { PytestManager(context) }
     }
 
     fun getMockFrameworkManagerBy(context: CgContext) =

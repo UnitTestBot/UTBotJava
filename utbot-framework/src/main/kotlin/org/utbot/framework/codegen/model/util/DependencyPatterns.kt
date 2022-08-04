@@ -1,9 +1,6 @@
 package org.utbot.framework.codegen.model.util
 
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.*
 import org.utbot.framework.plugin.api.MockFramework
 
 data class Patterns(
@@ -16,11 +13,13 @@ fun TestFramework.patterns(): Patterns {
         Junit4 -> junit4ModulePatterns
         Junit5 -> junit5ModulePatterns
         TestNg -> testNgModulePatterns
+        Pytest -> emptyList()
     }
     val libraryPatterns = when (this) {
         Junit4 -> junit4Patterns
         Junit5 -> junit5Patterns
         TestNg -> testNgPatterns
+        Pytest -> emptyList()
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)

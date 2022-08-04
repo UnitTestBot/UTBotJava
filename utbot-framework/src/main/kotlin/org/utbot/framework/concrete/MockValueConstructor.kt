@@ -121,13 +121,22 @@ class MockValueConstructor(
         when (model) {
             is UtNullModel -> UtConcreteValue(null, model.classId.jClass)
             is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.jClass)
-            is UtEnumConstantModel -> UtConcreteValue(model.value)
+            is UtEnumConstantModel -> UtConcreteValue(constructEnum(model))
             is UtClassRefModel -> UtConcreteValue(model.value)
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtVoidModel -> UtConcreteValue(Unit)
         }
+    }
+
+    /**
+     * Constructs an Enum<*> instance by model, uses reference-equality cache.
+     */
+    private fun constructEnum(model: UtEnumConstantModel): Any {
+        constructedObjects[model]?.let { return it }
+        constructedObjects[model] = model.value
+        return model.value
     }
 
     /**

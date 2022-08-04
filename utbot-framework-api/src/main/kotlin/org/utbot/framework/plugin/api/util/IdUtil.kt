@@ -117,6 +117,9 @@ val ClassId.isFloatType: Boolean
 val ClassId.isDoubleType: Boolean
     get() = this == doubleClassId || this == doubleWrapperClassId
 
+val ClassId.isClassType: Boolean
+    get() = this == classClassId
+
 val voidClassId = ClassId("void")
 val booleanClassId = ClassId("boolean")
 val byteClassId = ClassId("byte")
@@ -137,6 +140,8 @@ val intWrapperClassId = java.lang.Integer::class.id
 val longWrapperClassId = java.lang.Long::class.id
 val floatWrapperClassId = java.lang.Float::class.id
 val doubleWrapperClassId = java.lang.Double::class.id
+
+val classClassId = java.lang.Class::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here
@@ -284,6 +289,9 @@ val ClassId.isMap: Boolean
 
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
+
+val ClassId.isEnum: Boolean
+    get() = jClass.isEnum
 
 fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
     if (isNotSubtypeOf(fieldId.declaringClass)) {

@@ -178,7 +178,16 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
                     val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
                         .associateWith { fieldId ->
-                            fieldId.jField.run { construct(withAccessibility { get(null) }, fieldId.type) }
+                            fieldId.jField.run {
+                                val computedValue = withAccessibility { get(null) }
+                                val knownModel = stateBefore.statics[fieldId]
+                                val knownValue = staticFields[fieldId]
+                                if (knownModel != null && knownValue != null && knownValue == computedValue) {
+                                    knownModel
+                                } else {
+                                    construct(computedValue, fieldId.type)
+                                }
+                            }
                         }
                     val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
                         null to stateAfterParametersWithThis

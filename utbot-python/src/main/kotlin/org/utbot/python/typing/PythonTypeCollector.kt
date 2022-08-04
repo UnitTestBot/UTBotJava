@@ -121,9 +121,7 @@ object PythonTypesStorage {
             val code = PythonCode.getFromString(content, file.path)
             code.getToplevelClasses().map { pyClass ->
                 val collector = ClassInfoCollector(pyClass)
-                val initSignature = pyClass.initFunction
-                    ?.arguments
-                    ?.drop(1) // drop 'self' parameter
+                val initSignature = pyClass.initSignature
                     ?.map {
                         annotationToClassId(
                             it.annotation,

@@ -54,10 +54,8 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
@@ -304,14 +302,14 @@ object CodeGenerationController {
 
                             // creating and saving reports
                             reports += testsCodeWithTestReportFormatted.testsGenerationReport
-
-                            saveSarifReport(
-                                testClassUpdated,
-                                testSets,
-                                model,
-                                testsCodeWithTestReportFormatted,
-                            )
-
+                            run(WRITE_ACTION) {
+                                saveSarifReport(
+                                    testClassUpdated,
+                                    testSets,
+                                    model,
+                                    testsCodeWithTestReportFormatted,
+                                )
+                            }
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             reportsCountDown.countDown()

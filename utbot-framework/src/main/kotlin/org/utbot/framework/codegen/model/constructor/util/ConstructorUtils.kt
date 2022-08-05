@@ -134,14 +134,14 @@ data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
  * Check if a method is an util method of the current class
  */
 internal fun CgContextOwner.isUtil(method: MethodId): Boolean {
-    return method in currentUtilMethodProvider.utilMethodIds
+    return method in utilMethodProvider.utilMethodIds
 }
 
 /**
  * Check if a method is an util method that is declared in the test class (not taken from the codegen utils library)
  */
 internal fun CgContextOwner.isTestClassUtil(method: MethodId): Boolean {
-    return currentUtilMethodProvider is TestClassUtilMethodProvider && isUtil(method)
+    return utilMethodProvider is TestClassUtilMethodProvider && isUtil(method)
 }
 
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)

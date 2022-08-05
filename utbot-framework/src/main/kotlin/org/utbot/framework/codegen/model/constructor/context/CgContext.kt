@@ -28,6 +28,7 @@ import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.LibraryUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.TestClassContext
 import org.utbot.framework.codegen.model.constructor.TestClassModel
@@ -73,14 +74,8 @@ internal interface CgContextOwner {
     // test class currently being generated (if series of nested classes is generated, it is the innermost one)
     var currentTestClass: ClassId
 
-    // Flag indicating if there is a dependency on UtBot codegen utils library in the user's project.
-    // The sources of this library can be found in the module utbot-codegen-utils.
-    // If the library is in the dependencies, code generation will use util methods from it.
-    // Otherwise, util methods will be generated in the test class directly.
-    val codegenUtilsLibraryUsed: Boolean
-
     // provider of util methods used for the test class currently being generated
-    val currentUtilMethodProvider: UtilMethodProvider
+    val utilMethodProvider: UtilMethodProvider
 
     // current executable under test
     var currentExecutable: ExecutableId?
@@ -106,6 +101,8 @@ internal interface CgContextOwner {
 
     // util methods required by the test class being built
     val requiredUtilMethods: MutableSet<MethodId>
+
+    val utilMethodsUsed: Boolean
 
     // test methods being generated
     val testMethods: MutableList<CgTestMethod>
@@ -138,7 +135,13 @@ internal interface CgContextOwner {
 
     val parametrizedTestSource: ParametrizedTestSource
 
-    // flag indicating whether a mock framework is used in the generated code
+    /**
+     * Flag indicating whether a mock framework is used in the generated code
+     * NOTE! This flag is not about whether a mock framework is present
+     * in the user's project dependencies or not.
+     * This flag is true if the generated test class contains at least one mock object,
+     * and false otherwise. See method [withMockFramework].
+     */
     var mockFrameworkUsed: Boolean
 
     // object that represents a set of information about JUnit of selected version
@@ -326,7 +329,7 @@ internal interface CgContextOwner {
      * The latter is used when our codegen utils library is included in the user's project dependencies.
      */
     val utilsClassId: ClassId
-        get() = currentUtilMethodProvider.utilClassId
+        get() = utilMethodProvider.utilClassId
 
     /**
      * Check whether a method is an util method of the current class
@@ -339,57 +342,57 @@ internal interface CgContextOwner {
      * When this method is used with type cast in Kotlin, this type cast have to be safety
      */
     val MethodId.isGetFieldUtilMethod: Boolean
-        get() = this == currentUtilMethodProvider.getFieldValueMethodId
-                || this == currentUtilMethodProvider.getStaticFieldValueMethodId
+        get() = this == utilMethodProvider.getFieldValueMethodId
+                || this == utilMethodProvider.getStaticFieldValueMethodId
 
     val testClassThisInstance: CgThisInstance
 
     // util methods of current test class
 
     val getUnsafeInstance: MethodId
-        get() = currentUtilMethodProvider.getUnsafeInstanceMethodId
+        get() = utilMethodProvider.getUnsafeInstanceMethodId
 
     val createInstance: MethodId
-        get() = currentUtilMethodProvider.createInstanceMethodId
+        get() = utilMethodProvider.createInstanceMethodId
 
     val createArray: MethodId
-        get() = currentUtilMethodProvider.createArrayMethodId
+        get() = utilMethodProvider.createArrayMethodId
 
     val setField: MethodId
-        get() = currentUtilMethodProvider.setFieldMethodId
+        get() = utilMethodProvider.setFieldMethodId
 
     val setStaticField: MethodId
-        get() = currentUtilMethodProvider.setStaticFieldMethodId
+        get() = utilMethodProvider.setStaticFieldMethodId
 
     val getFieldValue: MethodId
-        get() = currentUtilMethodProvider.getFieldValueMethodId
+        get() = utilMethodProvider.getFieldValueMethodId
 
     val getStaticFieldValue: MethodId
-        get() = currentUtilMethodProvider.getStaticFieldValueMethodId
+        get() = utilMethodProvider.getStaticFieldValueMethodId
 
     val getEnumConstantByName: MethodId
-        get() = currentUtilMethodProvider.getEnumConstantByNameMethodId
+        get() = utilMethodProvider.getEnumConstantByNameMethodId
 
     val deepEquals: MethodId
-        get() = currentUtilMethodProvider.deepEqualsMethodId
+        get() = utilMethodProvider.deepEqualsMethodId
 
     val arraysDeepEquals: MethodId
-        get() = currentUtilMethodProvider.arraysDeepEqualsMethodId
+        get() = utilMethodProvider.arraysDeepEqualsMethodId
 
     val iterablesDeepEquals: MethodId
-        get() = currentUtilMethodProvider.iterablesDeepEqualsMethodId
+        get() = utilMethodProvider.iterablesDeepEqualsMethodId
 
     val streamsDeepEquals: MethodId
-        get() = currentUtilMethodProvider.streamsDeepEqualsMethodId
+        get() = utilMethodProvider.streamsDeepEqualsMethodId
 
     val mapsDeepEquals: MethodId
-        get() = currentUtilMethodProvider.mapsDeepEqualsMethodId
+        get() = utilMethodProvider.mapsDeepEqualsMethodId
 
     val hasCustomEquals: MethodId
-        get() = currentUtilMethodProvider.hasCustomEqualsMethodId
+        get() = utilMethodProvider.hasCustomEqualsMethodId
 
     val getArrayLength: MethodId
-        get() = currentUtilMethodProvider.getArrayLengthMethodId
+        get() = utilMethodProvider.getArrayLengthMethodId
 }
 
 /**
@@ -397,7 +400,7 @@ internal interface CgContextOwner {
  */
 internal data class CgContext(
     override val classUnderTest: ClassId,
-    override val codegenUtilsLibraryUsed: Boolean,
+    val generateUtilClassFile: Boolean,
     override var currentExecutable: ExecutableId? = null,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
@@ -467,12 +470,23 @@ internal data class CgContext(
         )
     }
 
-    override val currentUtilMethodProvider: UtilMethodProvider by lazy {
-        when {
-            codegenUtilsLibraryUsed -> LibraryUtilMethodProvider
-            else -> TestClassUtilMethodProvider(currentTestClass)
+    // TODO: note that when nested test classes feature is implemented,
+    // we will have to use the outermost test class here instead of currentTestClass to construct the TestClassUtilMethodProvider
+    /**
+     * Determine where the util methods will come from.
+     * If we don't want to use a separately generated util class,
+     * util methods will be generated directly in the test class (see [TestClassUtilMethodProvider]).
+     * Otherwise, an util class will be generated separately and we will use util methods from it (see [UtilClassFileMethodProvider]).
+     *
+     * We may also use utils from a library in the future (see [LibraryUtilMethodProvider]),
+     * but it is not clear at this point. Perhaps, we will remove the library completely.
+     */
+    override val utilMethodProvider: UtilMethodProvider
+        get() = if (generateUtilClassFile) {
+            UtilClassFileMethodProvider
+        } else {
+            TestClassUtilMethodProvider(currentTestClass)
         }
-    }
 
     override lateinit var currentTestClass: ClassId
 
@@ -538,4 +552,7 @@ internal data class CgContext(
     override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 
     override val testClassThisInstance: CgThisInstance = CgThisInstance(outerMostTestClass)
+
+    override val utilMethodsUsed: Boolean
+        get() = requiredUtilMethods.isNotEmpty()
 }

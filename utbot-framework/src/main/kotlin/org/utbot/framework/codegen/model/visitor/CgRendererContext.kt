@@ -2,8 +2,8 @@ package org.utbot.framework.codegen.model.visitor
 
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_PACKAGE_NAME
-import org.utbot.framework.codegen.model.constructor.builtin.UtUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -47,7 +47,7 @@ internal class CgRendererContext(
                 importedClasses = emptySet(),
                 importedStaticMethods = emptySet(),
                 classPackageName = UT_UTILS_PACKAGE_NAME,
-                generatedClass = UtUtilMethodProvider.utUtilsClassId,
+                generatedClass = utUtilsClassId,
                 utilMethodProvider = utilClassKind.utilMethodProvider,
                 codegenLanguage = language,
                 mockFrameworkUsed = utilClassKind.mockFrameworkUsed,

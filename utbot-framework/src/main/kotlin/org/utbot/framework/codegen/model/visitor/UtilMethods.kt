@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.visitor
 
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.plugin.api.ClassId
@@ -14,7 +15,7 @@ import java.lang.reflect.Modifier
 import java.util.Arrays
 import java.util.Objects
 
-internal fun TestClassUtilMethodProvider.utilMethodTextById(
+internal fun UtilMethodProvider.utilMethodTextById(
     id: MethodId,
     mockFrameworkUsed: Boolean,
     mockFramework: MockFramework,
@@ -811,7 +812,7 @@ fun getArrayLength(codegenLanguage: CodegenLanguage) =
 internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
     // if util methods come from codegen utils library and not from the test class,
     // then we don't need to import any other methods, hence we return from method
-    val utilMethodProvider = currentUtilMethodProvider as? TestClassUtilMethodProvider ?: return
+    val utilMethodProvider = utilMethodProvider as? TestClassUtilMethodProvider ?: return
     for (classId in utilMethodProvider.regularImportsByUtilMethod(id, codegenLanguage)) {
         importIfNeeded(classId)
     }

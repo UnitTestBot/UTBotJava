@@ -122,14 +122,14 @@ internal abstract class TestFrameworkManager(val context: CgContext)
         // If an util method provider is not TestClassUtilMethodProvider, then we are using util methods from library.
         // In this case we don't need to add required util methods to the test class,
         // because they are all already in a library.
-        if (currentUtilMethodProvider is TestClassUtilMethodProvider) {
+        if (utilMethodProvider is TestClassUtilMethodProvider) {
             requiredUtilMethods += setOf(
-                currentUtilMethodProvider.deepEqualsMethodId,
-                currentUtilMethodProvider.arraysDeepEqualsMethodId,
-                currentUtilMethodProvider.iterablesDeepEqualsMethodId,
-                currentUtilMethodProvider.streamsDeepEqualsMethodId,
-                currentUtilMethodProvider.mapsDeepEqualsMethodId,
-                currentUtilMethodProvider.hasCustomEqualsMethodId
+                utilMethodProvider.deepEqualsMethodId,
+                utilMethodProvider.arraysDeepEqualsMethodId,
+                utilMethodProvider.iterablesDeepEqualsMethodId,
+                utilMethodProvider.streamsDeepEqualsMethodId,
+                utilMethodProvider.mapsDeepEqualsMethodId,
+                utilMethodProvider.hasCustomEqualsMethodId
             )
         }
         // TODO we cannot use common assertEquals because of using custom deepEquals
@@ -137,7 +137,7 @@ internal abstract class TestFrameworkManager(val context: CgContext)
         //  Unfortunately, if test with assertTrue fails, it gives non informative message false != true
         //  Thus, we need to provide custom message to assertTrue showing compared objects correctly
         //  SAT-1345
-        return assertions[assertTrue](utilsClassId[deepEquals](expected, actual, mockFrameworkUsed))
+        return assertions[assertTrue](utilsClassId[deepEquals](expected, actual))
     }
 
     @Suppress("unused")

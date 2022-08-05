@@ -2,7 +2,7 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.constructor.builtin.UtUtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildRegularClass
@@ -20,7 +20,7 @@ internal object CgUtilClassConstructor {
             // imports are empty, because we use fully qualified classes and static methods,
             // so they will be imported once IDEA reformatting action has worked
             declaredClass = buildRegularClass {
-                id = UtUtilMethodProvider.utUtilsClassId
+                id = utUtilsClassId
                 body = buildRegularClassBody {
                     content += utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) }
                 }

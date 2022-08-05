@@ -3,7 +3,6 @@ package org.utbot.framework.codegen.model.constructor.tree
 import kotlinx.collections.immutable.PersistentList
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
-import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.any
 import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
 import org.utbot.framework.codegen.model.constructor.builtin.forName
@@ -20,6 +19,7 @@ import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.isTestClassUtil
+import org.utbot.framework.codegen.model.constructor.util.isUtil
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAssignment
@@ -112,8 +112,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
-        if (isTestClassUtil(methodId)) {
-            (currentUtilMethodProvider as TestClassUtilMethodProvider)
+        if (isUtil(methodId)) {
+            utilMethodProvider
                 .findExceptionTypesOf(methodId)
                 .forEach { addExceptionIfNeeded(it) }
             return

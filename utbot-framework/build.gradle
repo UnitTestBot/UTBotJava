@@ -76,7 +76,7 @@ test {
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }
-    jvmArgs += ['--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED']
-    jvmArgs += ['-Xmx5g', '-XX:+HeapDumpOnOutOfMemoryError', '-XX:HeapDumpPath=heapdump3.hprof']
+    jvmArgs += ['--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED'] //todo remove me
+    jvmArgs += ['-XX:+HeapDumpOnOutOfMemoryError', '-XX:HeapDumpPath=heapdump.hprof']
 
 }

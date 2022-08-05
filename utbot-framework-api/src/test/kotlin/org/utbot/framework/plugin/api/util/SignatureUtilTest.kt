@@ -1,13 +1,12 @@
 package org.utbot.framework.plugin.api.util
 
 import NoPackageClassSample
-import java.lang.reflect.Method
-import java.util.ArrayList
-import kotlin.reflect.jvm.javaMethod
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments.arguments
 import org.junit.jupiter.params.provider.MethodSource
+import java.lang.reflect.Method
+import kotlin.reflect.jvm.javaMethod
 
 internal class SignatureUtilTest {
     @ParameterizedTest
@@ -19,7 +18,7 @@ internal class SignatureUtilTest {
     @ParameterizedTest
     @MethodSource("constructorSignatures")
     fun testConstructorJavaSignature(from: Class<*>, result: Set<String>) {
-        val signatures = from.constructors.map { it.bytecodeSignature() }.toSet()
+        val signatures = from.constructors.map { it.signature }.toSet()
         assertEquals(result, signatures) { "$from constructors to $result" }
     }
 

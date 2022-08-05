@@ -49,7 +49,7 @@ val ClassId.superclass: ClassId?
 
 val ClassId.isEnum: Boolean
     get() = runBlocking {
-        isEnum
+        isEnum()
     }
 
 val ClassId.fields: List<FieldId>

@@ -122,7 +122,7 @@ val longWrapperClassId get() = java.lang.Long::class.id
 val floatWrapperClassId get() = java.lang.Float::class.id
 val doubleWrapperClassId get() = java.lang.Double::class.id
 
-val classClassId = java.lang.Class::class.id
+val classClassId get() = java.lang.Class::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here
@@ -433,7 +433,9 @@ fun BuiltinClassId.newBuiltinMethod(
     returnType: ClassId,
     arguments: List<ClassId> = emptyList()
 ): BuiltinMethodId {
-    return BuiltinMethodId(this, name, returnType, arguments, false)
+    return BuiltinMethodId(this, name, returnType, arguments, false).also {
+        withMethod(it)
+    }
 }
 
 fun BuiltinClassId.newBuiltinStaticMethodId(

@@ -9,6 +9,7 @@ import org.apache.logging.log4j.core.appender.AppenderLoggingException
 import org.junit.jupiter.api.extension.AfterAllCallback
 import org.junit.jupiter.api.extension.BeforeAllCallback
 import org.junit.jupiter.api.extension.ExtensionContext
+import org.utbot.framework.plugin.api.util.UtContext
 
 class JUnitSetup : BeforeAllCallback, AfterAllCallback {
 
@@ -27,12 +28,24 @@ class JUnitSetup : BeforeAllCallback, AfterAllCallback {
             appender = null
         }
     }
-
 }
 
 class ThrowingAppender : AbstractAppender(ThrowingAppender::class.simpleName, null, null, false, null) {
     override fun append(event: LogEvent) {
         if (event.level.isMoreSpecificThan(Level.ERROR))
             throw event.thrown ?: AppenderLoggingException(event.message.formattedMessage)
+    }
+}
+
+
+open class WithGlobalContext {
+
+    private var _globalContext: UtContext? = UtContext(ClassLoader.getSystemClassLoader())
+
+    val globalContext get() = _globalContext!!
+
+    fun close() {
+        _globalContext?.close()
+        _globalContext = null
     }
 }

@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import org.utbot.jcdb.api.isPrimitive
+import org.utbot.jcdb.api.jvmName
 import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
@@ -16,7 +17,7 @@ class ReflectionContext {
         get() {
             return when {
                 isPrimitive -> idToPrimitive[this]!!
-                isArray -> Class.forName(name, true, utContext.classLoader) // TODO: probably rewrite
+                isArray -> Class.forName(name.jvmName(), true, utContext.classLoader) // TODO: probably rewrite
                 else -> utContext.classLoader.loadClass(name)
             }
         }

@@ -1,19 +1,17 @@
 package org.utbot.framework.modificators
 
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.utbot.common.packageName
-import org.utbot.examples.modificators.ConstructorsAndSetters
-import org.utbot.examples.modificators.DefaultField
-import org.utbot.examples.modificators.InvokeInAssignment
-import org.utbot.examples.modificators.NoFields
-import org.utbot.examples.modificators.NoMethods
-import org.utbot.examples.modificators.PrimitiveModifications
-import org.utbot.examples.modificators.RecursiveAndCrossCalls
-import org.utbot.examples.modificators.StronglyConnectedComponent
-import org.utbot.examples.modificators.StronglyConnectedComponents
+import org.utbot.examples.modificators.*
 import org.utbot.examples.modificators.coupling.ClassA
 import org.utbot.examples.modificators.coupling.ClassB
 import org.utbot.examples.modificators.hierarchy.InheritedModifications
 import org.utbot.framework.SootUtils
+import org.utbot.framework.WithGlobalContext
 import org.utbot.framework.modifications.AnalysisMode
 import org.utbot.framework.modifications.AnalysisMode.AllModificators
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
@@ -21,19 +19,17 @@ import org.utbot.framework.modifications.UtBotFieldsModificatorsSearcher
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import kotlin.reflect.KClass
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
 
 internal class UtBotFieldModificatorsTest {
+
+    companion object : WithGlobalContext()
+
     private lateinit var fieldsModificatorsSearcher: UtBotFieldsModificatorsSearcher
     private lateinit var context: AutoCloseable
 
     @BeforeEach
     fun setUp() {
-        context = UtContext.setUtContext(UtContext(PrimitiveModifications::class.java.classLoader))
+        context = UtContext.setUtContext(globalContext)
     }
 
     @AfterEach

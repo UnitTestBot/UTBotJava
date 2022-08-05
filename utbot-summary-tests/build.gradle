@@ -8,8 +8,8 @@ evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
-    api(project(":utbot-framework-api"))
-    api(project(':utbot-instrumentation'))
+    api project(":utbot-framework-api")
+    api project(':utbot-instrumentation')
     testImplementation project(':utbot-sample')
     testImplementation project(':utbot-summary')
     testImplementation group: 'junit', name: 'junit', version: junit4_version

@@ -947,10 +947,7 @@ sealed class ExecutableId : StatementId() {
 
     val signature: String
         get() = runBlocking {
-            methodId.signature(false)
-//            val args = parameters.joinToString(separator = "") { it.name }
-//            val retType = returnType.name
-//            return "$name($args)$retType"
+            methodId.signature(internalNames = true)
         }
 
     override fun equals(other: Any?): Boolean {

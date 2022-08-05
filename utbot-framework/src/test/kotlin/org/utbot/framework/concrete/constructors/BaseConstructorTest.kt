@@ -1,21 +1,32 @@
 package org.utbot.framework.concrete.constructors
 
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
 import org.utbot.engine.ValueConstructor
+import org.utbot.framework.WithGlobalContext
 import org.utbot.framework.concrete.UtModelConstructor
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
-import java.util.IdentityHashMap
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions
-import org.junit.jupiter.api.BeforeEach
+import java.util.*
 
 abstract class BaseConstructorTest {
+
+    companion object : WithGlobalContext() {
+        @JvmStatic
+        @AfterAll
+        fun cleanup() {
+            close()
+        }
+    }
+
     private lateinit var cookie: AutoCloseable
 
     @BeforeEach
     fun setup() {
-        cookie = UtContext.setUtContext(UtContext(ClassLoader.getSystemClassLoader()))
+        cookie = UtContext.setUtContext(globalContext)
     }
 
     @AfterEach

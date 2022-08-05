@@ -12,6 +12,7 @@ import org.utbot.examples.assemble.constructors.*
 import org.utbot.examples.assemble.defaults.*
 import org.utbot.examples.assemble.statics.StaticField
 import org.utbot.framework.SootUtils
+import org.utbot.framework.WithGlobalContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
@@ -26,15 +27,7 @@ import kotlin.reflect.full.functions
  */
 class AssembleModelGeneratorTests {
 
-    companion object {
-        private val globalContext = UtContext(AssembleTestUtils::class.java.classLoader)
-
-        @JvmStatic
-        fun afterAll() {
-            globalContext.classpath.close()
-        }
-    }
-
+    companion object : WithGlobalContext()
 
     private lateinit var context: AutoCloseable
     private lateinit var statementsChain: MutableList<String>

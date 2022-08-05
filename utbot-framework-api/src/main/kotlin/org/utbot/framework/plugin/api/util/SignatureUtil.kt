@@ -1,5 +1,6 @@
 package org.utbot.framework.plugin.api.util
 
+import org.objectweb.asm.Type
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.isPrimitive
@@ -14,32 +15,14 @@ val KCallable<*>.signature: String
 
 val Executable.signature: String
     get() = when (this) {
-        is Method -> executableId.signature
-        is Constructor<*> -> executableId.signature
+        is Method -> name + Type.getMethodDescriptor(this)
+        is Constructor<*> -> "<init>" + Type.getConstructorDescriptor(this)
         else -> error("Unknown Executable type: ${this::class}")
     }
 
-/**
- * Makes Java-like signature for constructor. "Like" because it uses "<init>" instead of class name.
- */
-fun Constructor<*>.bytecodeSignature() = buildString {
-    append("<init>(")
-    parameterTypes.forEach { append(it.bytecodeSignature()) }
-    append(")V")
+fun Class<*>.bytecodeSignature(): String {
+    return Type.getType(this).descriptor
 }
-
-/**
- * Makes Java signature for Java Class. Uses hack with [java.lang.reflect.Array.newInstance]
- */
-//fun Class<*>.bytecodeSignature(): String = when {
-//    this === Void.TYPE -> "V"
-//    else -> newInstance(this, 0).toString().let {
-//        it.substring(1, it.indexOf('@')).replace(".", "/")
-//    }
-//}
-
-
-fun Class<*>.bytecodeSignature(): String = id.name
 
 /**
  * Method [Class.getName] works differently for arrays than for other types.
@@ -85,7 +68,7 @@ fun Class<*>.singleMethodOrNull(signature: String): Method? =
  * @see Class.getDeclaredConstructors
  */
 fun Class<*>.singleConstructorOrNull(signature: String): Constructor<*>? =
-    declaredConstructors.firstOrNull { it.bytecodeSignature() == signature }
+    declaredConstructors.firstOrNull { it.signature == signature }
 
 
 /**

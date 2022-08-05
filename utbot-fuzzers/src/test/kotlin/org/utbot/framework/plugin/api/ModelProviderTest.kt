@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api
 
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
@@ -15,6 +16,15 @@ import org.utbot.jcdb.api.ClassId
 import java.util.*
 
 class ModelProviderTest {
+
+    companion object {
+        private val globalContext: UtContext = UtContext(ClassLoader.getSystemClassLoader())
+    }
+
+    @BeforeEach
+    fun setUp() {
+        UtContext.setUtContext(globalContext)
+    }
 
     @Test
     fun `test generate primitive models for boolean`() {
@@ -160,7 +170,7 @@ class ModelProviderTest {
     @Test
     @Suppress("unused", "UNUSED_PARAMETER", "RemoveEmptySecondaryConstructorBody")
     fun `test default object model creation for simple constructors`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             class A {
                 constructor(a: Int) {}
                 constructor(a: Int, b: String) {}
@@ -192,7 +202,7 @@ class ModelProviderTest {
 
     @Test
     fun `test no object model is created for empty constructor`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             class A
 
             val classId = A::class.java.id
@@ -209,7 +219,7 @@ class ModelProviderTest {
     @Test
     @Suppress("unused", "UNUSED_PARAMETER")
     fun `test that constructors with not primitive parameters are ignored`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             class A {
                 constructor(a: Int, b: Int)
                 constructor(a: Int, b: Date)
@@ -253,7 +263,7 @@ class ModelProviderTest {
 
     @Test
     fun `test collection model can produce basic values with assembled model`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(
                 defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(java.util.List::class.java.id)
@@ -265,7 +275,7 @@ class ModelProviderTest {
 
     @Test
     fun `test enum model provider`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(EnumModelProvider(ReferencePreservingIntIdGenerator(0)), parameters = listOf(OneTwoThree::class.java.id))
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
@@ -277,7 +287,7 @@ class ModelProviderTest {
 
     @Test
     fun `test string value generates only primitive models`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(
                 defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(stringClassId)
@@ -292,7 +302,7 @@ class ModelProviderTest {
 
     @Test
     fun `test wrapper primitives generate only primitive models`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             primitiveWrappers.asSequence().filterNot { it == voidWrapperClassId }.forEach { classId ->
                 val result = collect(
                     defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
@@ -310,7 +320,7 @@ class ModelProviderTest {
 
     @Test
     fun `test at least one string is created if characters exist as constants`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(
                 defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(stringClassId),
@@ -334,7 +344,7 @@ class ModelProviderTest {
             constructor(some: Any)
         }
 
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(A::class.java.id)
@@ -365,7 +375,7 @@ class ModelProviderTest {
             constructor(some: MyA?)
         }
 
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(MyA::class.java.id)
@@ -407,7 +417,7 @@ class ModelProviderTest {
             constructor(inner: Inner)
         }
 
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(Outer::class.java.id)
@@ -454,7 +464,7 @@ class ModelProviderTest {
             ).containsAll(j.declaredMethods.map { it.name })
         )
 
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
                 modelProvider = PrimitiveDefaultsModelProvider
             }, parameters = listOf(FieldSetterClass::class.java.id))
@@ -482,7 +492,7 @@ class ModelProviderTest {
             ).containsAll(j.declaredFields.map { it.name })
         )
 
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
                 modelProvider = PrimitiveDefaultsModelProvider
             }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
@@ -503,7 +513,7 @@ class ModelProviderTest {
 
     @Test
     fun `test that enum models in a recursive object model are consistent`() {
-        withUtContext(UtContext(this::class.java.classLoader)) {
+        withUtContext(globalContext) {
             val idGenerator = ReferencePreservingIntIdGenerator()
             val expectedIds = SampleEnum.values().associateWith { idGenerator.getOrCreateIdForValue(it) }
 

@@ -113,10 +113,9 @@ class UtContext(val classLoader: ClassLoader, val provider: JCDBProvider, val cl
 
         private fun ClassLoader.asClasspath(provider: JCDBProvider): ClasspathSet = runBlocking {
             val files = urls?.map { Paths.get(it.toURI()).toFile() }
-                ?: throw IllegalStateException("Can't grab classpath from $this")
+                ?: throw IllegalStateException("Can't grab classpath from ${this@asClasspath}")
             DelegatingClasspathSet(provider.jcdb.classpathSet(files))
         }
-
     }
 
     override val key: CoroutineContext.Key<UtContext> get() = Key

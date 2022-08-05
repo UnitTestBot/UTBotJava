@@ -304,14 +304,14 @@ object CodeGenerationController {
 
                             // creating and saving reports
                             reports += testsCodeWithTestReportFormatted.testsGenerationReport
-
-                            saveSarifReport(
-                                testClassUpdated,
-                                testSets,
-                                model,
-                                testsCodeWithTestReportFormatted,
-                            )
-
+                            run(WRITE_ACTION) {
+                                saveSarifReport(
+                                    testClassUpdated,
+                                    testSets,
+                                    model,
+                                    testsCodeWithTestReportFormatted,
+                                )
+                            }
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             reportsCountDown.countDown()

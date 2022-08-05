@@ -59,58 +59,62 @@ object StubFileFinder {
         result
     }
 
+    data class SearchResult(val typeName: String, val module: String)
+
     fun findTypeWithMethod(
         methodName: String
-    ): Set<String> {
-        return (methodToTypeMap[methodName] ?: emptyList()).mapNotNull {
-            it.className
+    ): Set<SearchResult> {
+        return (methodToTypeMap[methodName] ?: emptyList()).mapNotNull { methodInfo ->
+            methodInfo.className?.let { SearchResult(it, methodInfo.module) }
         }.toSet()
     }
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<String> {
+    ): Set<SearchResult> {
         return (fieldToTypeMap[fieldName] ?: emptyList()).map {
-            it.className
+            SearchResult(it.className, moduleOfType(it.className)!!)
         }.toSet()
     }
 
-    fun findTypeByFunctionWithArgumentPosition(
+    fun findAnnotationByFunctionWithArgumentPosition(
         functionName: String,
         argumentName: String? = null,
         argumentPosition: Int? = null,
-    ): Set<String> {
-        val annotations = functionToTypeMap[functionName] ?: emptyList()
-        val types = mutableSetOf<String>()
+    ): Set<SearchResult> {
+        val functionInfos = functionToTypeMap[functionName] ?: emptyList()
+        val types = mutableSetOf<SearchResult>()
         if (argumentName != null) {
-            annotations.forEach { annotation ->
-                (annotation.args + annotation.kwonlyargs).forEach {
+            functionInfos.forEach { functionInfo ->
+                val module = functionInfo.module
+                (functionInfo.args + functionInfo.kwonlyargs).forEach {
                     if (it.arg == argumentName && it.annotation != "")
-                        types.add(it.annotation)
+                        types.add(SearchResult(it.annotation, module))
                 }
             }
         } else if (argumentPosition != null) {
-            annotations.forEach { annotation ->
-                val checkCountArgs = annotation.args.size > argumentPosition
-                val ann = annotation.args[argumentPosition].annotation
+            functionInfos.forEach { functionInfo ->
+                val checkCountArgs = functionInfo.args.size > argumentPosition
+                val ann = functionInfo.args[argumentPosition].annotation
                 if (checkCountArgs && ann != "") {
-                    types.add(ann)
+                    types.add(SearchResult(ann, functionInfo.module))
                 }
             }
         } else {
-            annotations.forEach { annotation ->
-                annotation.args.forEach {
+            functionInfos.forEach { functionInfo ->
+                val module = functionInfo.module
+                functionInfo.args.forEach {
                     if (it.annotation != "")
-                        types.add(it.annotation)
+                        types.add(SearchResult(it.annotation, module))
                 }
             }
         }
         return types
     }
 
-    fun findTypeByFunctionReturnValue(functionName: String): Set<String> {
+    fun findAnnotationByFunctionReturnValue(functionName: String): Set<SearchResult> {
         return functionToTypeMap[functionName]?.map {
-            it.returns
+            SearchResult(it.returns, it.module)
         }?.toSet() ?: emptySet()
     }
 }
@@ -118,17 +122,17 @@ object StubFileFinder {
 fun main() {
     println(StubFileFinder.findTypeWithMethod("__add__"))
     println(
-        StubFileFinder.findTypeByFunctionWithArgumentPosition(
+        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(
             "print", "sep"
         )
     )
     println(
-        StubFileFinder.findTypeByFunctionWithArgumentPosition(
+        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(
             "heapify", argumentPosition = 0
         )
     )
     println(
-        StubFileFinder.findTypeByFunctionWithArgumentPosition(
+        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(
             "gt"
         )
     )

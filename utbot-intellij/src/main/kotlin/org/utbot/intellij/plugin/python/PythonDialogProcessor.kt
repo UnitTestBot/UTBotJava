@@ -128,9 +128,9 @@ object PythonDialogProcessor {
                     indicator.text = "Loading information about Python types"
 
                     // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
+                    PythonTypesStorage.pythonPath = pythonPath
                     PythonTypesStorage.refreshProjectClassesList(
                         filePath,
-                        pythonPath,
                         model.project.basePath!!,
                         model.directoriesForSysPath
                     )

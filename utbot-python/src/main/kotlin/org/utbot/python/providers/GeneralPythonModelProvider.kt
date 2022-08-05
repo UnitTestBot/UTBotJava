@@ -5,9 +5,26 @@ import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.ModelProvider
 
-val concreteTypesModelProvider = ModelProvider.of(ConstantModelProvider, DefaultValuesModelProvider, InitModelProvider, GenericModelProvider)
+val concreteTypesModelProvider = ModelProvider.of(
+    ConstantModelProvider,
+    DefaultValuesModelProvider,
+    InitModelProvider,
+    GenericModelProvider,
+    UnionModelProvider,
+    OptionalModelProvider
+)
 
-fun substituteType(description: FuzzedMethodDescription, typeMap: Map<ClassId, ClassId>): FuzzedMethodDescription {
+val nonRecursiveModelProvider = ModelProvider.of(
+    ConstantModelProvider,
+    DefaultValuesModelProvider,
+    UnionModelProvider,
+    OptionalModelProvider
+)
+
+fun substituteType(
+    description: FuzzedMethodDescription,
+    typeMap: Map<ClassId, ClassId>
+): FuzzedMethodDescription {
     val newReturnType = typeMap[description.returnType] ?: description.returnType
     val newParameters = description.parameters.map { typeMap[it] ?: it }
     val newConcreteValues = description.concreteValues.map { value ->

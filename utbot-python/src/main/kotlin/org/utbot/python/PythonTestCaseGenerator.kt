@@ -5,8 +5,8 @@ import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
-import org.utbot.python.typing.StubFileFinder
-import org.utbot.python.utils.annotationToClassId
+import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+import org.utbot.python.utils.AnnotationNormalizer.substituteTypes
 import java.io.File
 
 object PythonTestCaseGenerator {
@@ -41,7 +41,7 @@ object PythonTestCaseGenerator {
         storageForMypyMessages.clear()
 
         val initialArgumentTypes = method.arguments.map {
-            annotationToClassId(
+            annotationFromProjectToClassId(
                 it.annotation,
                 pythonPath,
                 projectRoot,
@@ -133,28 +133,32 @@ object PythonTestCaseGenerator {
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
         val candidates = mutableMapOf<String, Int>() // key: type, value: priority
-        PythonTypesStorage.builtinTypes.associateByTo(destination = candidates, { "builtins.$it" }, { 0 })
+        PythonTypesStorage.builtinTypes.associateByTo(
+            destination = candidates,
+            { substituteTypes("builtins.$it") },
+            { 0 }
+        )
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
                 is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = inf
                 is ArgInfoCollector.MethodStorage -> {
                     val typesWithMethod = PythonTypesStorage.findTypeWithMethod(argInfoStorage.name)
-                    typesWithMethod.forEach { increaseValue(candidates, it) }
+                    typesWithMethod.forEach { increaseValue(candidates, it.name) }
                 }
                 is ArgInfoCollector.FieldStorage -> {
                     val typesWithField = PythonTypesStorage.findTypeWithField(argInfoStorage.name)
-                    typesWithField.forEach { increaseValue(candidates, it) }
+                    typesWithField.forEach { increaseValue(candidates, it.name) }
                 }
                 is ArgInfoCollector.FunctionArgStorage -> {
-                    StubFileFinder.findTypeByFunctionWithArgumentPosition(
+                    PythonTypesStorage.findTypeByFunctionWithArgumentPosition(
                         argInfoStorage.name,
                         argumentPosition = argInfoStorage.index
-                    ).forEach { increaseValue(candidates, it) }
+                    ).forEach { increaseValue(candidates, it.name) }
                 }
                 is ArgInfoCollector.FunctionRetStorage -> {
-                    StubFileFinder.findTypeByFunctionReturnValue(
+                    PythonTypesStorage.findTypeByFunctionReturnValue(
                         argInfoStorage.name
-                    ).forEach { increaseValue(candidates, it) }
+                    ).forEach { increaseValue(candidates, it.name) }
                 }
             }
         }

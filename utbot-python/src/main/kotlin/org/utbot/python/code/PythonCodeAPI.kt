@@ -6,8 +6,6 @@ import io.github.danielnaczo.python3parser.model.AST
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
-import io.github.danielnaczo.python3parser.model.expr.atoms.Num
-import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
@@ -22,14 +20,8 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrin
 import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.python.*
-import org.utbot.python.utils.annotationToClassId
-import java.math.BigInteger
 import java.util.*
-import javax.xml.bind.DatatypeConverter.parseLong
 
 
 class PythonCode(private val body: Module, val filename: String? = null) {

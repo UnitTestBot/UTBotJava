@@ -6,7 +6,7 @@ import org.utbot.common.workaround
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
-import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.model.tree.AbstractCgClass
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
@@ -31,6 +31,7 @@ import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
+import org.utbot.framework.codegen.model.tree.CgRegularClass
 import org.utbot.framework.codegen.model.tree.CgSpread
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
 import org.utbot.framework.codegen.model.tree.CgSwitchCase
@@ -56,7 +57,7 @@ import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.voidClassId
 
 //TODO rewrite using KtPsiFactory?
-internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
+internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
     override val statementEnding: String = ""
 
     override val logicalAnd: String
@@ -69,36 +70,49 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override val langPackage: String = "kotlin"
 
-    override fun visit(element: CgTestClass) {
+    override fun visit(element: AbstractCgClass<*>) {
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
+
+        renderClassVisibility(element.id)
+        renderClassModality(element)
         if (!element.isStatic && element.isNested) {
             print("inner ")
         }
         print("class ")
         print(element.simpleName)
+
         if (element.superclass != null || element.interfaces.isNotEmpty()) {
             print(" :")
         }
         val supertypes = mutableListOf<String>()
-                .apply {
-                    // Here we do not consider constructors with arguments, but for now they are not needed.
-                    // Also, we do not yet support type parameters in code generation, so generic
-                    // superclasses or interfaces are not supported. Although, they are not needed for now.
-                    if (element.superclass != null) {
-                        add("${element.superclass.asString()}()")
-                    }
-                    element.interfaces.forEach {
-                        add(it.asString())
-                    }
-                }.joinToString()
+            .apply {
+                // Here we do not consider constructors with arguments, but for now they are not needed.
+                // Also, we do not yet support type parameters in code generation, so generic
+                // superclasses or interfaces are not supported. Although, they are not needed for now.
+                val superclass = element.superclass
+                if (superclass != null) {
+                    add("${superclass.asString()}()")
+                }
+                element.interfaces.forEach {
+                    add(it.asString())
+                }
+            }.joinToString()
         if (supertypes.isNotEmpty()) {
             print(" $supertypes")
         }
         println(" {")
         withIndent { element.body.accept(this) }
         println("}")
+    }
+
+    override fun visit(element: CgRegularClass) {
+        visit(element as AbstractCgClass<*>)
+    }
+
+    override fun visit(element: CgTestClass) {
+        visit(element as AbstractCgClass<*>)
     }
 
     override fun visit(element: CgTestClassBody) {
@@ -478,6 +492,23 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun escapeNamePossibleKeywordImpl(s: String): String =
         if (isLanguageKeyword(s, context.codegenLanguage)) "`$s`" else s
+
+    override fun renderClassVisibility(classId: ClassId) {
+        when {
+            // Kotlin classes are public by default
+            classId.isPublic -> Unit
+            classId.isProtected -> print("protected ")
+            classId.isPrivate -> print("private ")
+        }
+    }
+
+    override fun renderClassModality(aClass: AbstractCgClass<*>) {
+        when (aClass) {
+            is CgTestClass -> Unit
+            // Kotlin classes are final by default
+            is CgRegularClass -> if (!aClass.id.isFinal) print("open ")
+        }
+    }
 
     private fun getKotlinClassString(id: ClassId): String =
         if (id.isArray) {

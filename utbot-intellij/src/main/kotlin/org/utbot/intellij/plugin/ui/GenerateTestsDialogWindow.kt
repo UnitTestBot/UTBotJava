@@ -82,6 +82,7 @@ import java.awt.event.ActionEvent
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.text.ParseException
 import java.util.Objects
 import java.util.concurrent.TimeUnit
 import javax.swing.AbstractAction
@@ -507,6 +508,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.mockFramework = MOCKITO
         model.staticsMocking = staticsMocking.item
         model.codegenLanguage = codegenLanguages.item
+        try {
+            timeoutSpinner.commitEdit()
+        } catch (ignored: ParseException) {
+        }
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
 
         val settings = model.project.service<Settings>()

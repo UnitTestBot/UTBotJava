@@ -6,14 +6,12 @@ import org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.READY
 import org.utbot.examples.eq
 import org.utbot.examples.isException
-import org.utbot.examples.withPushingStateFromPathSelectorForConcrete
 import org.utbot.examples.withoutConcrete
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.examples.ignoreExecutionsNumber
-import org.utbot.framework.plugin.api.util.jField
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
     @Test
@@ -107,17 +105,22 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
 
     @Test
     fun testChangingStaticWithEnumInit() {
-        checkThisAndStaticsAfter(
+        checkAllMutationsWithThis(
             ClassWithEnum::changingStaticWithEnumInit,
             eq(1),
-            { t, staticsAfter, r ->
-                // for some reasons x is inaccessible
-                val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
+            { _, staticsBefore, _, staticsAfter ->
+                // Check that `x` is not a meaningful static field as it can take any value when MUT is called
+                val x = FieldId(ClassWithEnum::class.id, "x")
+                val xIsNotMeaningful = x !in staticsBefore && x !in staticsAfter
 
-                val y = staticsAfter[FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")]!!.value as Int
+                // Check that `y` is a meaningful field and its changes were correctly tracked
+                val y = FieldId(ClassWithEnum.ClassWithStaticField::class.id, "y")
+                val oldY = staticsBefore[y]!!.value as Int
+                val newY = staticsAfter[y]!!.value as Int
+                val yChangedCorrectly = (newY - oldY == 11)
 
-                val areStaticsCorrect = x == 1 && y == 11
-                areStaticsCorrect && r == true
+                // Matcher succeeds if both conditions hold
+                xIsNotMeaningful && yChangedCorrectly
             }
         )
     }

@@ -161,7 +161,6 @@ public class ClassWithEnum {
             ClassWithStaticField.increment();
             invokeIncrement();
             invokeIncrementStatic();
-
             // changes after all init sections:
             // y = y + 4 * 2 = y + 8
         }
@@ -171,7 +170,6 @@ public class ClassWithEnum {
             ClassWithStaticField.y++;
             ClassWithStaticField.increment();
             invokeIncrementStatic();
-
             // changes after clinit section:
             // y = y + 3
             // x = x + 1

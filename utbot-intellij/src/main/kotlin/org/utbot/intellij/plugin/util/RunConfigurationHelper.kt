@@ -8,6 +8,7 @@ import com.intellij.execution.RunManagerEx
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.runners.ExecutionUtil
+import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.application.ApplicationManager
@@ -76,16 +77,19 @@ class RunConfigurationHelper {
 
                         val settings = if (configurations.isNullOrEmpty()) null else configurations[0].configurationSettings
                         if (settings != null) {
-                            ExecutionUtil.runConfiguration(
-                                settings,
-                                ExecutorRegistry.getInstance().getExecutorById(CoverageExecutor.EXECUTOR_ID)
-                                    ?: DefaultRunExecutor.getRunExecutorInstance()
-                            )
+                            val executor = if (ProgramRunner.getRunner(CoverageExecutor.EXECUTOR_ID, settings.configuration) != null) {
+                                ExecutorRegistry.getInstance().getExecutorById(CoverageExecutor.EXECUTOR_ID) ?: DefaultRunExecutor.getRunExecutorInstance()
+                            } else {
+                                //Fallback in case 'Code Coverage for Java' plugin is not enabled
+                                DefaultRunExecutor.getRunExecutorInstance()
+                            }
+                            ExecutionUtil.runConfiguration(settings, executor)
                             with(RunManagerEx.getInstanceEx(model.project)) {
                                 if (findSettings(settings.configuration) == null) {
                                     settings.isTemporary = true
                                     addConfiguration(settings)
                                 }
+                                //TODO check shouldSetRunConfigurationFromContext in API 2021.3+
                                 selectedConfiguration = settings
                             }
                         }

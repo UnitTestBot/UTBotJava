@@ -84,8 +84,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
             return null
         }
 
-        val (methodUnderTest, executions, _, _, clustersInfo) = testSet
-        val symbolicExecutions = executions.filterIsInstance<UtSymbolicExecution>()
+        val (methodUnderTest, _, _, clustersInfo) = testSet
+        val symbolicExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 

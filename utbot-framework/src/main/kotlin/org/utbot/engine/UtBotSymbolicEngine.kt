@@ -58,24 +58,9 @@ import org.utbot.framework.UtSettings.useDebugVisualization
 import org.utbot.framework.concrete.UtConcreteExecutionData
 import org.utbot.framework.concrete.UtConcreteExecutionResult
 import org.utbot.framework.concrete.UtExecutionInstrumentation
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.MissingState
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionCreator
-import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.util.graph
-import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.utContext
@@ -83,8 +68,6 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.*
-import org.utbot.fuzzer.names.MethodBasedNameSuggester
-import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import soot.jimple.Stmt
@@ -290,15 +273,14 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
 
-                            val concreteUtExecution = UtExecution(
+                            val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,
                                 concreteExecutionResult.result,
                                 instrumentation,
                                 mutableListOf(),
                                 listOf(),
-                                concreteExecutionResult.coverage,
-                                UtExecutionCreator.SYMBOLIC_ENGINE
+                                concreteExecutionResult.coverage
                             )
                             emit(concreteUtExecution)
 
@@ -478,19 +460,6 @@ class UtBotSymbolicEngine(
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
             }
-            val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-            val testMethodName = try {
-                nameSuggester.flatMap {
-                    it.suggest(
-                        methodUnderTestDescription,
-                        values,
-                        concreteExecutionResult.result
-                    )
-                }.firstOrNull()
-            } catch (t: Throwable) {
-                logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
-                null
-            }
 
             emit(
                 UtFuzzedExecution(
@@ -510,11 +479,7 @@ class UtBotSymbolicEngine(
         val failedConcreteExecution = UtExecution(
             stateBefore = stateBefore,
             stateAfter = MissingState,
-            result = UtConcreteExecutionFailure(e),
-            instrumentation = emptyList(),
-            path = mutableListOf(),
-            fullPath = listOf(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
+            result = UtConcreteExecutionFailure(e)
         )
 
         emit(failedConcreteExecution)
@@ -548,14 +513,13 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(methodUnderTest)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
-        val symbolicUtExecution = UtExecution(
+        val symbolicUtExecution = UtSymbolicExecution(
             stateBefore = stateBefore,
             stateAfter = stateAfter,
             result = symbolicExecutionResult,
             instrumentation = instrumentation,
             path = entryMethodPath(state),
-            fullPath = state.fullPath(),
-            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
+            fullPath = state.fullPath()
         )
 
         globalGraph.traversed(state)

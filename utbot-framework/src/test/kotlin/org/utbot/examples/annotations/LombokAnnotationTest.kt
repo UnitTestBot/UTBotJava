@@ -22,6 +22,7 @@ class LombokAnnotationTest : UtValueTestCaseChecker(testClass = EnumWithAnnotati
         check(
             EnumWithAnnotations::getConstant,
             eq(1),
+            { result -> result != null && result == "Constant_1" },
             coverage = DoNotCalculate,
         )
     }
@@ -31,6 +32,7 @@ class LombokAnnotationTest : UtValueTestCaseChecker(testClass = EnumWithAnnotati
         check(
             EnumWithoutAnnotations::getConstant,
             eq(1),
+            { result -> result != null && result == "Constant_1" },
             coverage = DoNotCalculate,
         )
     }

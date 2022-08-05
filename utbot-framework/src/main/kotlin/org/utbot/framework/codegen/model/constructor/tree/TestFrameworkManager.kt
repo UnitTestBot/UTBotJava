@@ -15,8 +15,13 @@ import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMe
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
+import org.utbot.framework.codegen.model.constructor.util.addToListMethodId
+import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
+import org.utbot.framework.codegen.model.constructor.util.argumentsMethodId
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.framework.codegen.model.constructor.util.setArgumentsArrayElement
+import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
@@ -29,6 +34,7 @@ import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
 import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
 import org.utbot.framework.codegen.model.tree.CgValue
+import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
@@ -36,6 +42,7 @@ import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.byteArrayClassId
 import org.utbot.framework.plugin.api.util.charArrayClassId
@@ -45,6 +52,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.longArrayClassId
 import org.utbot.framework.plugin.api.util.shortArrayClassId
+import org.utbot.framework.plugin.api.util.stringClassId
 import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -169,6 +177,20 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     // TestNg allows both approaches, we use similar to JUnit5
     abstract fun expectException(exception: ClassId, block: () -> Unit)
 
+    /**
+     * Creates annotations for data provider method in parameterized tests
+     */
+    abstract fun createDataProviderAnnotations(dataProviderMethodName: String?): MutableList<CgAnnotation>
+
+    /**
+     * Creates declaration of argList collection in parameterized tests.
+     */
+    abstract fun createArgList(length: Int, argListName: String): CgVariable
+
+    abstract fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation>
+
+    abstract fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int)
+
     open fun expectTimeout(timeoutMs: Long, block: () -> Unit) {}
 
     open fun setTestExecutionTimeout(timeoutMs: Long) {
@@ -188,28 +210,26 @@ internal abstract class TestFrameworkManager(val context: CgContext)
         }
     }
 
-    /**
-     * Supplements TestNG @Test annotation with a description.
-     * It looks like @Test(description="...")
-     *
-     * Should be used only with TestNG.
-     * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/576">issue-576 on GitHub</a>
-     */
-    open fun addTestDescription(description: String?) {
-        if (description == null) return
-        val testAnnotation =
-            collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
 
-        val descriptionArgument = CgNamedAnnotationArgument("description", stringLiteral(description))
-        if (testAnnotation is CgMultipleArgsAnnotation) {
-            testAnnotation.arguments += descriptionArgument
-        } else {
-            collectedMethodAnnotations += CgMultipleArgsAnnotation(
-                testFramework.testAnnotationId,
-                mutableListOf(descriptionArgument)
-            )
-        }
-    }
+    /**
+     * Add a short test's description depending on the test framework type:
+     */
+    abstract fun addTestDescription(description: String)
+//    {
+//        if (description == null) return
+//        val testAnnotation =
+//            collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
+//
+//        val descriptionArgument = CgNamedAnnotationArgument("description", stringLiteral(description))
+//        if (testAnnotation is CgMultipleArgsAnnotation) {
+//            testAnnotation.arguments += descriptionArgument
+//        } else {
+//            collectedMethodAnnotations += CgMultipleArgsAnnotation(
+//                testFramework.testAnnotationId,
+//                mutableListOf(descriptionArgument)
+//            )
+//        }
+//    }
 
     abstract fun disableTestMethod(reason: String)
 
@@ -280,6 +300,52 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
 
+    override fun createDataProviderAnnotations(dataProviderMethodName: String?) =
+        mutableListOf(
+            statementConstructor.annotation(
+                testFramework.methodSourceAnnotationId,
+                listOf("name" to CgLiteral(stringClassId, dataProviderMethodName))
+            ),
+        )
+
+    override fun createArgList(length: Int, argListName: String) =
+        statementConstructor.newVar(testFramework.argListClassId, argListName) {
+            CgAllocateArray(testFramework.argListClassId, Array<Any>::class.java.id, length)
+        }
+
+    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) = setOf(
+        statementConstructor.annotation(
+            testFramework.parameterizedTestAnnotationId,
+            listOf("dataProvider" to CgLiteral(stringClassId, dataProviderMethodName))
+        )
+    )
+
+    override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) =
+        setArgumentsArrayElement(argsVariable, executionIndex, argsArray, statementConstructor)
+
+    /**
+     * Supplements TestNG @Test annotation with a description.
+     * It looks like @Test(description="...")
+     *
+     * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/576">issue-576 on GitHub</a>
+     */
+    private fun addDescriptionAnnotation(description: String) {
+        val testAnnotation =
+            collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
+
+        val descriptionArgument = CgNamedAnnotationArgument("description", stringLiteral(description))
+        if (testAnnotation is CgMultipleArgsAnnotation) {
+            testAnnotation.arguments += descriptionArgument
+        } else {
+            collectedMethodAnnotations += CgMultipleArgsAnnotation(
+                testFramework.testAnnotationId,
+                mutableListOf(descriptionArgument)
+            )
+        }
+    }
+
+    override fun addTestDescription(description: String) = addDescriptionAnnotation(description)
+
     override fun disableTestMethod(reason: String) {
         require(testFramework is TestNg) { "According to settings, TestNg was expected, but got: $testFramework" }
 
@@ -333,8 +399,10 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 }
 
 internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context) {
+    private val parametrizedTestsNotSupportedError: Nothing = error("Parametrized tests are not supported for JUnit4")
+
     override val dataProviderMethodsHolder
-        get() = error("Parametrized tests are not supportd for JUnit4")
+        get() = parametrizedTestsNotSupportedError
 
     override val annotationForNestedClasses
         get() = null
@@ -370,6 +438,20 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
         block()
     }
 
+    override fun createDataProviderAnnotations(dataProviderMethodName: String?) =
+        parametrizedTestsNotSupportedError
+
+    override fun createArgList(length: Int, argListName: String) =
+        parametrizedTestsNotSupportedError
+
+    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) =
+        parametrizedTestsNotSupportedError
+
+    override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) =
+        parametrizedTestsNotSupportedError
+
+    override fun addTestDescription(description: String) = Unit
+
     override fun disableTestMethod(reason: String) {
         require(testFramework is Junit4) { "According to settings, JUnit4 was expected, but got: $testFramework" }
 
@@ -389,8 +471,12 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
     override val dataProviderMethodsHolder
         get() = outerMostTestClassInfo
 
-    override val annotationForNestedClasses
-        get() = statementConstructor.annotation(Junit5.nestedTestClassAnnotationId)
+    override val annotationForNestedClasses: CgAnnotation
+        get() {
+            require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
+
+            return statementConstructor.annotation(testFramework.nestedTestClassAnnotationId)
+        }
 
     override val annotationForOuterClasses
         get() = null
@@ -407,6 +493,28 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         val lambda = statementConstructor.lambda(testFramework.executableClassId) { block() }
         +assertions[assertThrows](exception.toExceptionClass(), lambda)
     }
+
+    override fun createDataProviderAnnotations(dataProviderMethodName: String?) = mutableListOf<CgAnnotation>()
+    override fun createArgList(length: Int, argListName: String) =
+        statementConstructor.newVar(testFramework.argListClassId, argListName) {
+            val constructor = ConstructorId(testFramework.argListClassId, emptyList())
+            constructor.invoke()
+        }
+
+    override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) = setOf(
+        statementConstructor.annotation(testFramework.parameterizedTestAnnotationId),
+        statementConstructor.annotation(
+            testFramework.methodSourceAnnotationId,
+            "${outerMostTestClass.canonicalName}#$dataProviderMethodName"
+        )
+    )
+
+    override fun passArgumentsToArgsVariable(argsVariable: CgVariable, argsArray: CgVariable, executionIndex: Int) {
+        +argsVariable[addToListMethodId](
+            argumentsClassId[argumentsMethodId](argsArray)
+        )
+    }
+
 
     override fun expectTimeout(timeoutMs : Long, block: () -> Unit) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }
@@ -442,6 +550,8 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
             timeoutAnnotationArguments
         )
     }
+
+    override fun addTestDescription(description: String) = addDisplayName(description)
 
     override fun disableTestMethod(reason: String) {
         require(testFramework is Junit5) { "According to settings, JUnit5 was expected, but got: $testFramework" }

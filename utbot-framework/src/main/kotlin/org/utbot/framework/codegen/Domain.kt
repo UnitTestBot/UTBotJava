@@ -3,12 +3,14 @@ package org.utbot.framework.codegen
 import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
 import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
+import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -28,6 +30,7 @@ import org.utbot.framework.plugin.api.util.shortArrayClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
 import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
@@ -184,6 +187,7 @@ sealed class TestFramework(
     abstract val methodSourceAnnotationId: ClassId
     abstract val methodSourceAnnotationFqn: String
     abstract val nestedClassesShouldBeStatic: Boolean
+    abstract val argListClassId: ClassId
 
     val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
@@ -304,6 +308,28 @@ object TestNg : TestFramework(displayName = "TestNG") {
 
     override val nestedClassesShouldBeStatic = true
 
+    override val argListClassId: ClassId
+        get() {
+            val outerArrayId = Array<Array<Any?>?>::class.id
+            val innerArrayId = BuiltinClassId(
+                name = objectArrayClassId.name,
+                simpleName = objectArrayClassId.simpleName,
+                canonicalName = objectArrayClassId.canonicalName,
+                packageName = objectArrayClassId.packageName,
+                elementClassId = objectClassId,
+                typeParameters = TypeParameters(listOf(objectClassId))
+            )
+
+            return BuiltinClassId(
+                name = outerArrayId.name,
+                simpleName = outerArrayId.simpleName,
+                canonicalName = outerArrayId.canonicalName,
+                packageName = outerArrayId.packageName,
+                elementClassId = innerArrayId,
+                typeParameters = TypeParameters(listOf(innerArrayId))
+            )
+        }
+
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
@@ -349,14 +375,16 @@ object TestNg : TestFramework(displayName = "TestNG") {
 }
 
 object Junit4 : TestFramework("JUnit4") {
+    private val parametrizedTestsNotSupportedError: Nothing = error("Parametrized tests are not supported for JUnit4")
+
     override val mainPackage: String = JUNIT4_PACKAGE
     override val testAnnotation = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"
 
-    override val parameterizedTestAnnotation = "Parameterized tests are not supported for JUnit4"
-    override val parameterizedTestAnnotationFqn = "Parameterized tests are not supported for JUnit4"
-    override val methodSourceAnnotation = "Parameterized tests are not supported for JUnit4"
-    override val methodSourceAnnotationFqn = "Parameterized tests are not supported for JUnit4"
+    override val parameterizedTestAnnotation = parametrizedTestsNotSupportedError
+    override val parameterizedTestAnnotationFqn = parametrizedTestsNotSupportedError
+    override val methodSourceAnnotation = parametrizedTestsNotSupportedError
+    override val methodSourceAnnotationFqn = parametrizedTestsNotSupportedError
 
     override val testAnnotationId = BuiltinClassId(
         name = "$JUNIT4_PACKAGE.Test",
@@ -389,6 +417,9 @@ object Junit4 : TestFramework("JUnit4") {
     }
 
     override val nestedClassesShouldBeStatic = true
+
+    override val argListClassId: ClassId
+        get() = parametrizedTestsNotSupportedError
 
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
@@ -513,6 +544,18 @@ object Junit5 : TestFramework("JUnit5") {
     }
 
     override val nestedClassesShouldBeStatic = false
+
+    override val argListClassId: ClassId
+        get() {
+            val arrayListId = java.util.ArrayList::class.id
+            return BuiltinClassId(
+                name = arrayListId.name,
+                simpleName = arrayListId.simpleName,
+                canonicalName = arrayListId.canonicalName,
+                packageName = arrayListId.packageName,
+                typeParameters = TypeParameters(listOf(argumentsClassId))
+            )
+        }
 
     private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
     private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"

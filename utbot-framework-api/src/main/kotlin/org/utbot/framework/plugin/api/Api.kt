@@ -24,6 +24,8 @@ import soot.*
 import soot.jimple.JimpleBody
 import soot.jimple.Stmt
 import java.io.File
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
@@ -351,7 +353,7 @@ data class UtCompositeModel(
             if (fields.isNotEmpty()) {
                 append(" ")
                 append(fields.entries.joinToString(", ", "{", "}") { (field, value) ->
-                    if (value.classId != classId || value.isNull()) "(${field.declaringClass}) ${field.name}: $value" else "${field.name}: not evaluated"
+                    if (value.classId != classId || value.isNull()) "(${field.classId}) ${field.name}: $value" else "${field.name}: not evaluated"
                 }) // TODO: here we can get an infinite recursion if we have cyclic dependencies.
             }
             if (mocks.isNotEmpty()) {

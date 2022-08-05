@@ -7,7 +7,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.classClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument

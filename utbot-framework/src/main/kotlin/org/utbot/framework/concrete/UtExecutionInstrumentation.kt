@@ -147,38 +147,41 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 val cache = constructor.objectToModelCache
                 val utCompositeModelStrategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(pathsToUserClasses, cache)
                 val utModelConstructor = UtModelConstructor(cache, utCompositeModelStrategy)
-                utModelConstructor.run {
-                    val concreteUtModelResult = concreteResult.fold({
-                        UtExecutionSuccess(construct(it, returnClassId))
-                    }) {
-                        sortOutException(it)
-                    }
+                with(reflection) {
 
-                    val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
-                    val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
-                        .associateWith { fieldId ->
-                            fieldId.jField.run {
-                                val computedValue = withAccessibility { get(null) }
-                                val knownModel = stateBefore.statics[fieldId]
-                                val knownValue = staticFields[fieldId]
-                                if (knownModel != null && knownValue != null && knownValue == computedValue) {
-                                    knownModel
-                                } else {
-                                    construct(computedValue, fieldId.type)
+                    utModelConstructor.run {
+                        val concreteUtModelResult = concreteResult.fold({
+                            UtExecutionSuccess(construct(it, returnClassId))
+                        }) {
+                            sortOutException(it)
+                        }
+
+                        val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
+                        val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
+                            .associateWith { fieldId ->
+                                fieldId.javaField.run {
+                                    val computedValue = withAccessibility { get(null) }
+                                    val knownModel = stateBefore.statics[fieldId]
+                                    val knownValue = staticFields[fieldId]
+                                    if (knownModel != null && knownValue != null && knownValue == computedValue) {
+                                        knownModel
+                                    } else {
+                                        construct(computedValue, fieldId.type)
+                                    }
                                 }
                             }
+                        val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
+                            null to stateAfterParametersWithThis
+                        } else {
+                            stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
                         }
-                    val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
-                        null to stateAfterParametersWithThis
-                    } else {
-                        stateAfterParametersWithThis.first() to stateAfterParametersWithThis.drop(1)
+                        val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
+                        UtConcreteExecutionResult(
+                            stateAfter,
+                            concreteUtModelResult,
+                            traceList.toApiCoverage()
+                        )
                     }
-                    val stateAfter = EnvironmentModels(stateAfterThis, stateAfterParameters, stateAfterStatics)
-                    UtConcreteExecutionResult(
-                        stateAfter,
-                        concreteUtModelResult,
-                        traceList.toApiCoverage()
-                    )
                 }
             }
 
@@ -242,11 +245,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         return instrumenter.classByteCode
     }
 
-    private fun <T> withStaticFields(staticFields: Map<FieldId, Any?>, block: () -> T): T {
+    private fun <T> withStaticFields(staticFields: Map<FieldId, Any?>, block: () -> T): T = with(reflection) {
         val savedFields = mutableMapOf<FieldId, Any?>()
         try {
             staticFields.forEach { (fieldId, value) ->
-                val field = DefaultReflectionProvider.provideReflectionField(fieldId)
+                val field = fieldId.javaField
                 field.run {
                     withAccessibility {
                         savedFields[fieldId] = get(null)
@@ -257,7 +260,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             return block()
         } finally {
             savedFields.forEach { (fieldId, value) ->
-                val field = DefaultReflectionProvider.provideReflectionField(fieldId)
+                val field = fieldId.javaField
                 field.run {
                     withAccessibility {
                         set(null, value)

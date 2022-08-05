@@ -3,6 +3,7 @@ package org.utbot.framework.concrete
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import java.util.*
@@ -25,8 +26,10 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
         modificationChain: MutableList<UtStatementModel>,
         valueToConstructFrom: Any
     ) {
-        require(classId.jClass.isInstance(valueToConstructFrom)) {
-            "Can't cast $valueToConstructFrom to ${classId.jClass} in $this assemble constructor."
+        with(reflection) {
+            require(classId.javaClass.isInstance(valueToConstructFrom)) {
+                "Can't cast $valueToConstructFrom to ${classId.javaClass} in $this assemble constructor."
+            }
         }
 
         modificationChain += if (!isPresent.call(valueToConstructFrom)) {

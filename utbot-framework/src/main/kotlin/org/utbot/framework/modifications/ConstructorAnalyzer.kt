@@ -2,10 +2,10 @@ package org.utbot.framework.modifications
 
 import org.utbot.framework.plugin.api.ConstructorExecutableId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.framework.plugin.api.util.findField
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import soot.Scene
@@ -243,14 +243,15 @@ class ConstructorAnalyzer {
      * Note: we return null if restore process failed. Possibly we need to
      * enlarge a set of cases types we can deal with in the future.
      */
-    private fun getParameterType(type: ClassId): Type? =
+    private fun getParameterType(type: ClassId): Type? = with(reflection) {
         try {
             when {
                 type.isRefType -> scene.getRefType(type.name)
-                type.isArray -> scene.getType(type.jClass.canonicalName)
-                else ->  scene.getType(type.name)
+                type.isArray -> scene.getType(type.javaClass.canonicalName)
+                else -> scene.getType(type.name)
             }
         } catch (e: Exception) {
             null
         }
+    }
 }

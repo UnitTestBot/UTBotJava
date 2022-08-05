@@ -104,7 +104,9 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return
         }
 
-        methodExecutable.executable.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
+        with(reflection) {
+            methodExecutable.executable.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
+        }
     }
 
     private fun newConstructorCall(constructorId: ConstructorExecutableId) {

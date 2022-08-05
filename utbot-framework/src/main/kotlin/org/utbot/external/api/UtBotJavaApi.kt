@@ -136,7 +136,7 @@ object UtBotJavaApi {
         fun createPrimitiveModels(supplier: CustomFuzzerValueSupplier, classId: ClassId): Sequence<UtPrimitiveModel> =
             supplier
                 .takeIf { classId.isPrimitive || classId.isPrimitiveWrapper || classId == stringClassId }
-                ?.get(classId.jClass)
+                ?.get(with(reflection) { classId.javaClass })
                 ?.asSequence()
                 ?.filter {
                     val valueClassId = it.javaClass.id

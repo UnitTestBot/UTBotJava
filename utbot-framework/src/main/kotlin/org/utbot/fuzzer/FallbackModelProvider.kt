@@ -7,7 +7,6 @@ import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.providers.AbstractModelProvider
 import org.utbot.jcdb.api.*
 import java.util.*
-import java.util.function.IntSupplier
 
 /**
  * Provides some simple default models of any class.
@@ -38,7 +37,7 @@ open class FallbackModelProvider(
                     classId.ifArrayGetElementClass()!!.defaultValueModel(),
                     mutableMapOf()
                 )
-            classId.isIterable -> {
+            classId.isIterable -> with(reflection) {
                 @Suppress("RemoveRedundantQualifierName") // ArrayDeque must be taken from java, not from kotlin
                 val defaultInstance = when {
                     defaultConstructor != null -> (defaultConstructor.asExecutable() as ConstructorExecutableId).constructor.newInstance()
@@ -60,10 +59,11 @@ open class FallbackModelProvider(
         }
     }
 
-    private suspend fun createSimpleModel(classId: ClassId): UtModel {
+    private suspend fun createSimpleModel(classId: ClassId): UtModel = with(reflection) {
         val defaultConstructor = classId.methods().firstOrNull {
             it.isPublic() && it.isConstructor && it.parameters().isEmpty()
         }
+        val kclass = classId.kClass
         return when {
             kclass.isAbstract -> {
                 // sealed class is abstract by itself
@@ -83,7 +83,7 @@ open class FallbackModelProvider(
                     chain
                 )
                 chain.add(
-                    UtExecutableCallModel(model, defaultConstructor.executableId, listOf(), model)
+                    UtExecutableCallModel(model, defaultConstructor.asExecutableConstructor(), listOf(), model)
                 )
                 model
             }

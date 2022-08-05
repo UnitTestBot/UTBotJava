@@ -1,8 +1,8 @@
 package org.utbot.framework.modifications
 
 import org.utbot.framework.plugin.api.DirectFieldAccessId
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.framework.plugin.api.util.fieldId
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.FieldId
 import java.lang.reflect.Field
@@ -24,8 +24,8 @@ class DirectAccessorsAnalyzer {
     /**
      * Collect all fields with different non-private modifiers from class [classId].
      */
-    private fun collectFieldsInPackage(classId: ClassId): Set<FieldId> {
-        val clazz = classId.jClass
+    private fun collectFieldsInPackage(classId: ClassId): Set<FieldId> = with(reflection) {
+        val clazz = classId.javaClass
 
         val fieldIds = mutableSetOf<Field>()
         fieldIds += clazz.fields

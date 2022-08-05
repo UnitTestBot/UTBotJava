@@ -240,11 +240,11 @@ internal class UtModelConstructor(
      *
      * Uses runtime javaClass to collect ALL fields, except final static fields, and builds this model recursively.
      */
-    private fun constructCompositeModel(value: Any): UtModel {
+    private fun constructCompositeModel(value: Any): UtModel = with(reflection) {
         // value can be mock only if it was previously constructed from UtCompositeModel
         val isMock = objectToModelCache[value]?.isMockModel() ?: false
 
-        val javaClazz = if (isMock) objectToModelCache.getValue(value).classId.jClass else value::class.java
+        val javaClazz = if (isMock) objectToModelCache.getValue(value).classId.javaClass else value::class.java
         if (!compositeModelStrategy.shouldConstruct(value, javaClazz)) {
             return UtCompositeModel(
                 handleId(value),

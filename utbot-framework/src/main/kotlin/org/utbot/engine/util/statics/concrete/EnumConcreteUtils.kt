@@ -2,20 +2,15 @@ package org.utbot.engine.util.statics.concrete
 
 import org.utbot.common.withAccessibility
 import org.utbot.engine.*
-import org.utbot.engine.nullObjectAddr
 import org.utbot.engine.pc.addrEq
 import org.utbot.engine.pc.mkEq
 import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.framework.plugin.api.util.jField
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.jcdb.api.FieldId
-import soot.SootClass
-import soot.SootField
-import soot.SootMethod
-import soot.Type
-import soot.Value
+import soot.*
 import soot.jimple.StaticFieldRef
 import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
@@ -43,7 +38,7 @@ fun associateEnumSootFieldsWithConcreteValues(
     enumConstants: List<Enum<*>>
 ): List<Pair<SootField, List<Any>>> =
     enumFields.map { enumSootField ->
-        val enumField = DefaultReflectionProvider.provideReflectionField(enumSootField.fieldId)
+        val enumField = with(reflection) { enumSootField.fieldId.javaField }
 
         val fieldValues = if (enumSootField.isStatic) {
             val staticFieldValue = enumField.withAccessibility { enumField.get(null) }

@@ -22,7 +22,6 @@ import org.utbot.framework.util.isUnit
 import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import org.utbot.summary.SummarySentenceConstants.TAB
-import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.component1
@@ -757,7 +756,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
     // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.classId.hasField(name) && isAccessibleFrom(testClassPackageName)) {
+        if (variable.type.classId.hasField(this) && isAccessibleFrom(testClassPackageName)) {
             if (isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             testClassThisInstance[getFieldValue](variable, stringLiteral(name))
@@ -1117,7 +1116,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         genericExecution: UtExecution,
     ): List<CgParameterDeclaration> {
         val executableUnderTest = testSet.executableId
-        val executableUnderTestParameters = testSet.executableId.executable.parameters
+        val executableUnderTestParameters = with(reflection) { testSet.executableId.executable.parameters }
 
         return mutableListOf<CgParameterDeclaration>().apply {
             // this instance
@@ -1157,12 +1156,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
-            val expectedResultClassId = wrapTypeIfRequired(testSet.resultType())
-            if (expectedResultClassId != voidClassId) {
-                val wrappedType = wrapIfPrimitive(expectedResultClassId)
-            val method = currentExecutable!!
-            val expectedResultClassId = wrapTypeIfRequired(method.returnType.type())
-
+            val expectedResultClassId = wrapTypeIfRequired(testSet.resultType().type())
             if (expectedResultClassId.classId != voidClassId) {
                 val wrappedType = wrapIfPrimitive(expectedResultClassId.classId)
                 //We are required to wrap the type of expected result if it is primitive
@@ -1183,7 +1177,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val classClassId = Class::class.id
                 val expectedException = CgParameterDeclaration(
                     parameter = declareParameter(
-                        type = classClassId.type(isNullable = false, TypeParameters(listOf(type<Throwable>(false)))),
+                        type = classClassId.type(
+                            isNullable = false,
+                            TypeParameters(listOf(type<Throwable>(false)))
+                        ),
                         name = nameGenerator.variableName(expectedErrorVarName)
                     ),
                     // exceptions are always reference type
@@ -1377,8 +1374,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return when (testFramework) {
             Junit5 ->
                 newVar(type, argListName) {
-                    val constructor = DefaultReflectionProvider.provideReflectionExecutable(argListClassId.findConstructor()) as Constructor<*>
-                    constructor.resolve()
+                    val constructor = argListClassId.findConstructor().asExecutableConstructor()
+                    constructor.invoke()
                 }
             TestNg ->
                 newVar(type, argListName) {

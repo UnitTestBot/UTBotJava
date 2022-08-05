@@ -558,13 +558,13 @@ class Resolver(
         return model
     }
 
-    private fun classRefByName(type: Type, numDimensions: Int): Class<*> {
+    private fun classRefByName(type: Type, numDimensions: Int): Class<*> = with(reflection) {
         require(numDimensions >= 0) {
             "Number of dimensions for ClassRef should be non-negative, but $numDimensions found"
         }
 
         val constructedType = if (numDimensions == 0) type else type.makeArrayType(numDimensions)
-        return constructedType.classId.jClass
+        return constructedType.classId.javaClass
     }
 
     private fun constructEnum(addr: Address, type: RefType, clazz: Class<*>): UtEnumConstantModel {

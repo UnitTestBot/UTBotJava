@@ -92,6 +92,7 @@ class Traverser(
         val signedAddr = if (insideStaticInitializer) -newAddr else newAddr
         return UtAddrExpression(signedAddr)
     }
+
     internal fun findNewAddr() = findNewAddr(environment.state.isInsideStaticInitializer).also { touchAddress(it) }
 
     // Counter used for a creation symbolic results of "hashcode" and "equals" methods.
@@ -368,7 +369,7 @@ class Traverser(
         type: RefType,
         fieldId: FieldId? = null
     ): Pair<SymbolicStateUpdate, SymbolicValue?> {
-        val jClass = type.id.jClass
+        val jClass = with(reflection) { type.id.javaClass }
 
         // symbolic value for enum class itself
         val enumClassValue = findOrCreateStaticObject(type)
@@ -406,7 +407,8 @@ class Traverser(
         }
 
         val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
-            initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
+            initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }
+                .toPersistentMap(),
             meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet(),
             symbolicEnumValues = enumConstantSymbolicValues.toPersistentList()
         )
@@ -488,7 +490,7 @@ class Traverser(
     // Some fields are inaccessible with reflection, so we have to instantiate it by ourselves.
     // Otherwise, extract it from the class.
     // TODO JIRA:1593
-    private fun extractConcreteValue(field: SootField): Any? =
+    private fun extractConcreteValue(field: SootField): Any? = with(reflection) {
         when (field.signature) {
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             // todo change to class loading
@@ -496,7 +498,7 @@ class Traverser(
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
             else -> {
                 val fieldId = field.fieldId
-                val jField = fieldId.jField
+                val jField = fieldId.javaField
                 jField.let {
                     it.withAccessibility {
                         it.get(null)
@@ -504,6 +506,7 @@ class Traverser(
                 }
             }
         }
+    }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =
         methodResult != null && id in methodResult.memoryUpdates.staticInstanceStorage
@@ -612,75 +615,79 @@ class Traverser(
     /**
      * Traverses left part of assignment i.e. where to store resolved value.
      */
-    private fun TraversalContext.traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate = when (left) {
-        is ArrayRef -> {
-            val arrayInstance = resolve(left.base) as ArrayValue
-            val addr = arrayInstance.addr
-            nullPointerExceptionCheck(addr)
+    private fun TraversalContext.traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate =
+        when (left) {
+            is ArrayRef -> {
+                val arrayInstance = resolve(left.base) as ArrayValue
+                val addr = arrayInstance.addr
+                nullPointerExceptionCheck(addr)
 
-            val index = (resolve(left.index) as PrimitiveValue).align()
-            val length = memory.findArrayLength(addr)
-            indexOutOfBoundsChecks(index, length)
+                val index = (resolve(left.index) as PrimitiveValue).align()
+                val length = memory.findArrayLength(addr)
+                indexOutOfBoundsChecks(index, length)
 
-            queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length
+                queuedSymbolicStateUpdates += Le(
+                    length,
+                    softMaxArraySize
+                ).asHardConstraint() // TODO: fix big array length
 
-            // TODO array store exception
+                // TODO array store exception
 
-            // add constraint for possible array type
-            val valueType = value.type
-            val valueBaseType = valueType.baseType
+                // add constraint for possible array type
+                val valueType = value.type
+                val valueBaseType = valueType.baseType
 
-            if (valueBaseType is RefType) {
-                val valueTypeAncestors = typeResolver.findOrConstructAncestorsIncludingTypes(valueBaseType)
-                val valuePossibleBaseTypes = value.typeStorage.possibleConcreteTypes.map { it.baseType }
-                // Either one of the possible types or one of their ancestor (to add interfaces and abstract classes)
-                val arrayPossibleBaseTypes = valueTypeAncestors + valuePossibleBaseTypes
+                if (valueBaseType is RefType) {
+                    val valueTypeAncestors = typeResolver.findOrConstructAncestorsIncludingTypes(valueBaseType)
+                    val valuePossibleBaseTypes = value.typeStorage.possibleConcreteTypes.map { it.baseType }
+                    // Either one of the possible types or one of their ancestor (to add interfaces and abstract classes)
+                    val arrayPossibleBaseTypes = valueTypeAncestors + valuePossibleBaseTypes
 
-                val arrayPossibleTypes = arrayPossibleBaseTypes.map {
-                    it.makeArrayType(arrayInstance.type.numDimensions)
+                    val arrayPossibleTypes = arrayPossibleBaseTypes.map {
+                        it.makeArrayType(arrayInstance.type.numDimensions)
+                    }
+                    val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE, arrayPossibleTypes)
+
+                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(arrayInstance.addr, typeStorage)
+                        .isConstraint().asHardConstraint()
                 }
-                val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE, arrayPossibleTypes)
 
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(arrayInstance.addr, typeStorage)
-                    .isConstraint().asHardConstraint()
+                val elementType = arrayInstance.type.elementType
+                val valueExpression = valueToExpression(value, elementType)
+                SymbolicStateUpdate(memoryUpdates = arrayUpdate(arrayInstance, index, valueExpression))
             }
+            is FieldRef -> {
+                val instanceForField = resolveInstanceForField(left)
 
-            val elementType = arrayInstance.type.elementType
-            val valueExpression = valueToExpression(value, elementType)
-            SymbolicStateUpdate(memoryUpdates = arrayUpdate(arrayInstance, index, valueExpression))
+                val objectUpdate = objectUpdate(
+                    instance = instanceForField,
+                    field = left.field,
+                    value = valueToExpression(value, left.field.type)
+                )
+
+                // This hack solves the problem with static final fields, which are equal by reference with parameter
+                workaround(HACK) {
+                    if (left.field.isFinal) {
+                        addConstraintsForFinalAssign(resolve(left), value)
+                    }
+                }
+
+                if (left is StaticFieldRef) {
+                    val fieldId = left.field.fieldId
+                    val staticFieldMemoryUpdate = StaticFieldMemoryUpdateInfo(fieldId, value)
+                    val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
+                    queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
+                    if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+                        queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
+                    }
+                }
+
+                SymbolicStateUpdate(memoryUpdates = objectUpdate)
+            }
+            is JimpleLocal -> SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(left.variable to value))
+            is InvokeExpr -> TODO("Not implemented: $left")
+            else -> error("${left::class} is not implemented")
         }
-        is FieldRef -> {
-            val instanceForField = resolveInstanceForField(left)
-
-            val objectUpdate = objectUpdate(
-                instance = instanceForField,
-                field = left.field,
-                value = valueToExpression(value, left.field.type)
-            )
-
-            // This hack solves the problem with static final fields, which are equal by reference with parameter
-            workaround(HACK) {
-                if (left.field.isFinal) {
-                    addConstraintsForFinalAssign(resolve(left), value)
-                }
-            }
-
-            if (left is StaticFieldRef) {
-                val fieldId = left.field.fieldId
-                val staticFieldMemoryUpdate = StaticFieldMemoryUpdateInfo(fieldId, value)
-                val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
-                queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
-                if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
-                    queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
-                }
-            }
-
-            SymbolicStateUpdate(memoryUpdates = objectUpdate)
-        }
-        is JimpleLocal -> SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(left.variable to value))
-        is InvokeExpr -> TODO("Not implemented: $left")
-        else -> error("${left::class} is not implemented")
-    }
 
     /**
      * Resolves instance for field. For static field it's a special object represents static fields of particular class.
@@ -776,7 +783,12 @@ class Traverser(
                     ?: error("Exception wasn't caught, stmt: $current, line: ${current.lines}")
                 val nextState = environment.state.updateQueued(
                     globalGraph.succ(current),
-                    SymbolicStateUpdate(localMemoryUpdates = localMemoryUpdate(localVariable to value, CAUGHT_EXCEPTION to null))
+                    SymbolicStateUpdate(
+                        localMemoryUpdates = localMemoryUpdate(
+                            localVariable to value,
+                            CAUGHT_EXCEPTION to null
+                        )
+                    )
                 )
                 offerState(nextState)
             }
@@ -864,7 +876,8 @@ class Traverser(
                 }
             }
 
-            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages).asHardConstraint()
+            queuedSymbolicStateUpdates += typeRegistry.genericTypeParameterConstraint(value.addr, typeStorages)
+                .asHardConstraint()
             parameterAddrToGenericType += value.addr to type
 
             typeRegistry.saveObjectParameterTypeStorages(value.addr, typeStorages)
@@ -1026,7 +1039,8 @@ class Traverser(
                 queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
                 // add typeConstraint for mocked object. It's a declared type of the object.
-                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
+                queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+                    .asHardConstraint()
                 queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
 
                 return mockedObject
@@ -1064,7 +1078,8 @@ class Traverser(
             queuedSymbolicStateUpdates += MemoryUpdate(mockInfos = persistentListOf(MockInfoEnriched(mockInfo)))
 
             // add typeConstraint for mocked object. It's a declared type of the object.
-            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all().asHardConstraint()
+            queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, mockedObject.typeStorage).all()
+                .asHardConstraint()
             queuedSymbolicStateUpdates += mkEq(typeRegistry.isMock(mockedObject.addr), UtTrue).asHardConstraint()
 
             return mockedObject
@@ -1099,7 +1114,8 @@ class Traverser(
                         createObject(addr, refType, useConcreteType = true)
                     }
                 } else {
-                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all().asHardConstraint()
+                    queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, TypeStorage(refType)).all()
+                        .asHardConstraint()
 
                     objectValue(refType, addr, StringWrapper()).also {
                         initStringLiteral(it, constant.value)
@@ -1170,7 +1186,11 @@ class Traverser(
                 negativeArraySizeCheck(size)
                 createNewArray(size, type, type.elementType).also {
                     val defaultValue = type.defaultSymValue
-                    queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, type, defaultValue as UtArrayExpressionBase)
+                    queuedSymbolicStateUpdates += arrayUpdateWithValue(
+                        it.addr,
+                        type,
+                        defaultValue as UtArrayExpressionBase
+                    )
                 }
             }
             is JNewMultiArrayExpr -> {
@@ -1220,7 +1240,11 @@ class Traverser(
         val arrayType = type.arrayType
         val arrayValue = createNewArray(value.length.toPrimitiveValue(), arrayType, type).also {
             val defaultValue = arrayType.defaultSymValue
-            queuedSymbolicStateUpdates += arrayUpdateWithValue(it.addr, arrayType, defaultValue as UtArrayExpressionBase)
+            queuedSymbolicStateUpdates += arrayUpdateWithValue(
+                it.addr,
+                arrayType,
+                defaultValue as UtArrayExpressionBase
+            )
         }
         queuedSymbolicStateUpdates += objectUpdate(
             stringWrapper.copy(typeStorage = TypeStorage(utStringClass.type)),
@@ -1417,7 +1441,8 @@ class Traverser(
             return objectValue.copy(addr = nullObjectAddr)
         }
 
-        val typeConstraint = typeRegistry.typeConstraint(castedObject.addr, castedObject.typeStorage).isOrNullConstraint()
+        val typeConstraint =
+            typeRegistry.typeConstraint(castedObject.addr, castedObject.typeStorage).isOrNullConstraint()
 
         // When we do downCast, we should add possible equality to null
         // to avoid situation like this:
@@ -1584,7 +1609,8 @@ class Traverser(
                     )
 
                     if (objectValue.type.isJavaLangObject()) {
-                        queuedSymbolicStateUpdates += typeRegistry.zeroDimensionConstraint(objectValue.addr).asSoftConstraint()
+                        queuedSymbolicStateUpdates += typeRegistry.zeroDimensionConstraint(objectValue.addr)
+                            .asSoftConstraint()
                     }
 
                     objectValue
@@ -2076,7 +2102,8 @@ class Traverser(
 
         val method = environment.method
         val declaringClass = method.declaringClass
-        val isInternalMock = method.hasInternalMockAnnotation || declaringClass.allMethodsAreInternalMocks || declaringClass.isOverridden
+        val isInternalMock =
+            method.hasInternalMockAnnotation || declaringClass.allMethodsAreInternalMocks || declaringClass.isOverridden
         val parameters = resolveParameters(invokeExpr.args, invokeExpr.method.parameterTypes)
         val mockMethodResult = mockStaticMethod(invokeExpr.method, parameters)?.single()
             ?: error("Unsuccessful mock attempt of the `makeSymbolic` method call: $invokeExpr")
@@ -2411,7 +2438,10 @@ class Traverser(
         }
     }
 
-    private fun TraversalContext.utOverrideMockInvoke(target: InvocationTarget, parameters: List<SymbolicValue>): List<MethodResult> {
+    private fun TraversalContext.utOverrideMockInvoke(
+        target: InvocationTarget,
+        parameters: List<SymbolicValue>
+    ): List<MethodResult> {
         when (target.method.name) {
             utOverrideMockAlreadyVisitedMethodName -> {
                 return listOf(MethodResult(memory.isVisited(parameters[0].addr).toBoolValue()))
@@ -2518,7 +2548,11 @@ class Traverser(
                 return listOf(
                     MethodResult(
                         newArray,
-                        memoryUpdates = arrayUpdateWithValue(newArray.addr, arrayType, selectArrayExpressionFromMemory(src))
+                        memoryUpdates = arrayUpdateWithValue(
+                            newArray.addr,
+                            arrayType,
+                            selectArrayExpressionFromMemory(src)
+                        )
                     )
                 )
             }
@@ -3012,8 +3046,18 @@ class Traverser(
             is JMulExpr -> when (sort.type) {
                 is ByteType -> lowerIntMulOverflowCheck(left, right, Byte.MIN_VALUE.toInt(), Byte.MAX_VALUE.toInt())
                 is ShortType -> lowerIntMulOverflowCheck(left, right, Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
-                is IntType -> higherIntMulOverflowCheck(left, right, Int.SIZE_BITS, Int.MIN_VALUE.toLong()) { it: UtExpression -> it.toIntValue() }
-                is LongType -> higherIntMulOverflowCheck(left, right, Long.SIZE_BITS, Long.MIN_VALUE) { it: UtExpression -> it.toLongValue() }
+                is IntType -> higherIntMulOverflowCheck(
+                    left,
+                    right,
+                    Int.SIZE_BITS,
+                    Int.MIN_VALUE.toLong()
+                ) { it: UtExpression -> it.toIntValue() }
+                is LongType -> higherIntMulOverflowCheck(
+                    left,
+                    right,
+                    Long.SIZE_BITS,
+                    Long.MIN_VALUE
+                ) { it: UtExpression -> it.toLongValue() }
                 else -> null
             }
             else -> null
@@ -3076,7 +3120,8 @@ class Traverser(
         }
 
         val inheritorsTypeStorage = typeResolver.constructTypeStorage(typeAfterCast, useConcreteType = false)
-        val preferredTypesForCastException = valueToCast.possibleConcreteTypes.filterNot { it in inheritorsTypeStorage.possibleConcreteTypes }
+        val preferredTypesForCastException =
+            valueToCast.possibleConcreteTypes.filterNot { it in inheritorsTypeStorage.possibleConcreteTypes }
 
         val isExpression = typeRegistry.typeConstraint(addr, inheritorsTypeStorage).isConstraint()
         val notIsExpression = mkNot(isExpression)
@@ -3205,11 +3250,19 @@ class Traverser(
         //choose types that have biggest priority
         resolvedParameters
             .filterIsInstance<ReferenceValue>()
-            .forEach { queuedSymbolicStateUpdates += constructConstraintForType(it, it.possibleConcreteTypes).asSoftConstraint() }
+            .forEach {
+                queuedSymbolicStateUpdates += constructConstraintForType(
+                    it,
+                    it.possibleConcreteTypes
+                ).asSoftConstraint()
+            }
 
         val returnValue = (symbolicResult as? SymbolicSuccess)?.value as? ObjectValue
         if (returnValue != null) {
-            queuedSymbolicStateUpdates += constructConstraintForType(returnValue, returnValue.possibleConcreteTypes).asSoftConstraint()
+            queuedSymbolicStateUpdates += constructConstraintForType(
+                returnValue,
+                returnValue.possibleConcreteTypes
+            ).asSoftConstraint()
 
             workaround(REMOVE_ANONYMOUS_CLASSES) {
                 val sootClass = returnValue.type.sootClass
@@ -3291,7 +3344,7 @@ class Traverser(
                 queuedSymbolicStateUpdates
             )
         } finally {
-             queuedSymbolicStateUpdates = prevSymbolicStateUpdate
+            queuedSymbolicStateUpdates = prevSymbolicStateUpdate
         }
     }
 }

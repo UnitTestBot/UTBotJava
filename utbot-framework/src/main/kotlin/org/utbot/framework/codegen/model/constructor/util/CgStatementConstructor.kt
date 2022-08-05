@@ -12,10 +12,7 @@ import org.utbot.framework.codegen.model.util.buildExceptionHandler
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.blockingIsNotSubtypeOf
-import org.utbot.framework.plugin.api.blockingIsSubtypeOf
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.ext.findClass
@@ -404,8 +401,8 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     }
 
     private val ExecutableId.kotlinFunction: KFunction<*>?
-        get() {
-            return when (val executable = this.executable) {
+        get() = with(reflection) {
+            return when (val executable = executable) {
                 is Method -> executable.kotlinFunction
                 is Constructor<*> -> executable.kotlinFunction
                 else -> error("Unknown Executable type: ${this::class}")

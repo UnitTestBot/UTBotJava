@@ -1,7 +1,7 @@
 package org.utbot.instrumentation.instrumentation
 
 import org.utbot.common.withAccessibility
-import org.utbot.framework.plugin.api.DefaultReflectionProvider
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.instrumentation.util.StaticEnvironment
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -43,10 +43,10 @@ class InvokeWithStaticsInstrumentation : Instrumentation<Result<*>> {
         return invokeResult
     }
 
-    private fun setStaticFields(staticEnvironment: StaticEnvironment?) {
+    private fun setStaticFields(staticEnvironment: StaticEnvironment?) = with(reflection) {
         staticEnvironment?.run {
             listOfFields.forEach { (fieldId, value) ->
-                val field = DefaultReflectionProvider.provideReflectionField(fieldId)
+                val field = fieldId.javaField
                 field.run {
                     withAccessibility {
                         set(null, value)

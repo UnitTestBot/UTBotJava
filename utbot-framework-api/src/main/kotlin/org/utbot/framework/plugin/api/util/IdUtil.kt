@@ -5,6 +5,8 @@ import org.objectweb.asm.Type
 import org.utbot.framework.plugin.api.*
 import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
+import org.utbot.jcdb.impl.signature.GenericClassType
+import org.utbot.jcdb.impl.signature.MethodResolutionImpl
 import org.utbot.jcdb.impl.types.*
 import java.lang.reflect.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -53,18 +55,6 @@ fun ClassId.primitiveTypeJvmNameOrNull(): String? {
         else -> error("Primitive type expected here, but got: $this")
     }
 }
-
-// TODO: maybe cache it somehow in the future
-@Suppress("MapGetWithNotNullAssertionOperator")
-// TODO: Make jClass, method, constructor and field private for IdUtil and rewrite all the code depending on it.
-// TODO: This is needed to avoid accessing actual Class, Method, Constructor and Field instances for builtin ids.
-// TODO: All the properties of ids can be accessed via corresponding properties in the public API.
-val ClassId.jClass: Class<*>
-    get() = when {
-        isPrimitive -> idToPrimitive[this]!!
-        isArray -> Class.forName(name, true, utContext.classLoader) // TODO: probably rewrite
-        else -> utContext.classLoader.loadClass(name)
-    }
 
 /**
  * @return true if the given ids are equal or the first one is a subtype of the second one
@@ -318,19 +308,8 @@ fun ClassId.findField(fieldName: String): FieldId = runBlocking {
     fields().firstOrNull { it.name == fieldName } ?: error("Can't find field $name#$fieldName")
 }
 
-val ClassId.isEnum: Boolean
-    get() = jClass.isEnum
-
-fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
-    if (isNotSubtypeOf(fieldId.declaringClass)) {
-        return null
-    }
-
-    return fieldId.safeJField
-}
-
 fun ClassId.hasField(fieldId: FieldId): Boolean {
-    return findFieldByIdOrNull(fieldId) != null
+    return this == fieldId.classId || this blockingIsSubtypeOf fieldId.classId
 }
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
@@ -358,30 +337,12 @@ val Field.fieldId: FieldId
     get() = declaringClass.id.findFieldOrNull(name) ?: error("field not found $this but expected to be existed")
 
 // ExecutableId utils
-
-val ExecutableId.executable: Executable
-    get() = when (this) {
-        is MethodExecutableId -> method
-        is ConstructorExecutableId -> constructor
-    }
-
 val ExecutableId.exceptions: List<ClassId>
-    get() = executable.exceptionTypes.map { it.id }
-
-// TODO: maybe cache it somehow in the future
-val MethodExecutableId.method: Method
-    get() {
-        val declaringClass = classId.jClass
-        return declaringClass.singleMethodOrNull(signature)
-            ?: error("Can't find method $signature in ${declaringClass.name}")
-    }
-
-// TODO: maybe cache it somehow in the future
-val ConstructorExecutableId.constructor: Constructor<*>
-    get() {
-        val declaringClass = classId.jClass
-        return declaringClass.singleConstructorOrNull(signature)
-            ?: error("Can't find method $signature in ${declaringClass.name}")
+    get() = runBlocking {
+        when (val resolution = methodId.resolution()) {
+            is MethodResolutionImpl -> resolution.exceptionTypes.mapNotNull { (it as? GenericClassType)?.findClass() }
+            else -> emptyList()
+        }
     }
 
 val KCallable<*>.executableId: ExecutableId

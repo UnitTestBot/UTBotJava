@@ -3,10 +3,6 @@ package org.utbot.engine
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.jField
-import org.utbot.framework.plugin.api.util.jClass
-import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
 import org.utbot.jcdb.api.ClassId
@@ -137,16 +133,18 @@ class ValueConstructor {
      *
      * Takes mock creation context (possible mock target) to create mock if required.
      */
-    private fun construct(model: UtModel, target: MockTarget?): UtConcreteValue<*> = withMockTarget(target) {
-        when (model) {
-            is UtNullModel -> UtConcreteValue(null, model.classId.jClass)
-            is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.jClass)
-            is UtEnumConstantModel -> UtConcreteValue(model.value)
-            is UtClassRefModel -> UtConcreteValue(model.value)
-            is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
-            is UtArrayModel -> UtConcreteValue(constructArray(model))
-            is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
-            is UtVoidModel -> UtConcreteValue(Unit)
+    private fun construct(model: UtModel, target: MockTarget?): UtConcreteValue<*> = with(reflection) {
+        withMockTarget(target) {
+            when (model) {
+                is UtNullModel -> UtConcreteValue(null, model.classId.javaClass)
+                is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.javaClass)
+                is UtEnumConstantModel -> UtConcreteValue(model.value)
+                is UtClassRefModel -> UtConcreteValue(model.value)
+                is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.javaClass)
+                is UtArrayModel -> UtConcreteValue(constructArray(model))
+                is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model))
+                is UtVoidModel -> UtConcreteValue(Unit)
+            }
         }
     }
 
@@ -185,7 +183,7 @@ class ValueConstructor {
         constructedObjects[model] = classInstance
 
         model.fields.forEach { (fieldId, fieldModel) ->
-            val declaredField = fieldId.jField
+            val declaredField = with(reflection) {fieldId.javaField}
             val accessible = declaredField.isAccessible
 
             try {
@@ -331,7 +329,7 @@ class ValueConstructor {
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = directSetterModel.fieldId.jField
+        val field = with(reflection) { directSetterModel.fieldId.javaField }
         val isAccessible = field.isAccessible
 
         try {
@@ -362,19 +360,21 @@ class ValueConstructor {
      */
     private fun value(model: UtModel) = construct(model, null).value
 
-    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? =
+    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? = with(reflection) {
         method.run {
             withAccessibility {
                 invokeCatching(obj = instance, args = args).getOrThrow()
             }
         }
+    }
 
-    private fun ConstructorExecutableId.call(args: List<Any?>): Any? =
+    private fun ConstructorExecutableId.call(args: List<Any?>): Any? = with(reflection) {
         constructor.run {
             withAccessibility {
                 newInstance(*args.toTypedArray())
             }
         }
+    }
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

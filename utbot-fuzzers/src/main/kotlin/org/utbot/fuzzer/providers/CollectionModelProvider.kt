@@ -7,7 +7,6 @@ import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
-import java.util.function.IntSupplier
 
 /**
  * Provides different collection for concrete classes.
@@ -29,14 +28,16 @@ class CollectionModelProvider(
         java.util.Iterator::class.java to ::createIteratorModels,
     )
 
-    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        description.parametersMap
-            .asSequence()
-            .forEach { (classId, indices) ->
-                 generators[classId.jClass]?.let { createModels ->
-                     yieldAllValues(indices, createModels().map { it.fuzzed() })
-                 }
-            }
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = with(reflection) {
+        sequence {
+            description.parametersMap
+                .asSequence()
+                .forEach { (classId, indices) ->
+                    generators[classId.javaClass]?.let { createModels ->
+                        yieldAllValues(indices, createModels().map { it.fuzzed() })
+                    }
+                }
+        }
     }
 
     private fun createListModels(): List<UtAssembleModel> {

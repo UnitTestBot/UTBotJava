@@ -1,13 +1,9 @@
 package org.utbot.framework.codegen.model.constructor
 
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.UtClusterInfo
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.jcdb.api.ClassId
 import soot.jimple.JimpleBody
 
 data class CgMethodTestSet private constructor(

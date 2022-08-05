@@ -3,13 +3,11 @@ package org.utbot.framework.concrete
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
-import org.utbot.common.findField
-import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.jField
-import org.utbot.framework.plugin.api.util.*
+import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
 import org.utbot.jcdb.api.*
 import java.io.Closeable
@@ -89,16 +87,18 @@ class MockValueConstructor(
      *
      * Takes mock creation context (possible mock target) to create mock if required.
      */
-    private fun construct(model: UtModel, target: MockTarget?): UtConcreteValue<*> = withMockTarget(target) {
-        when (model) {
-            is UtNullModel -> UtConcreteValue(null, model.classId.jClass)
-            is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.jClass)
-            is UtEnumConstantModel -> UtConcreteValue(constructEnum(model))
-            is UtClassRefModel -> UtConcreteValue(model.value)
-            is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
-            is UtArrayModel -> UtConcreteValue(constructArray(model))
-            is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
-            is UtVoidModel -> UtConcreteValue(Unit)
+    private fun construct(model: UtModel, target: MockTarget?): UtConcreteValue<*> = with(reflection) {
+        withMockTarget(target) {
+            when (model) {
+                is UtNullModel -> UtConcreteValue(null, model.classId.javaClass)
+                is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.javaClass)
+                is UtEnumConstantModel -> UtConcreteValue(constructEnum(model))
+                is UtClassRefModel -> UtConcreteValue(model.value)
+                is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.javaClass)
+                is UtArrayModel -> UtConcreteValue(constructArray(model))
+                is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.javaClass)
+                is UtVoidModel -> UtConcreteValue(Unit)
+            }
         }
     }
 
@@ -150,7 +150,7 @@ class MockValueConstructor(
         }
 
         model.fields.forEach { (fieldId, fieldModel) ->
-            val declaredField = fieldId.jField
+            val declaredField = with(reflection) { fieldId.javaField }
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 
@@ -218,20 +218,19 @@ class MockValueConstructor(
     private fun mockMethods(
         instance: Any?,
         methodToValues: Map<ExecutableId, List<UtModel>>,
-    ) {
+    ) = with(reflection) {
         controllers += computeConcreteValuesForMethods(methodToValues).map { (method, values) ->
             if (method !is MethodExecutableId) {
                 throw IllegalArgumentException("Expected MethodId, but got: $method")
             }
             MethodMockController(
-                method.classId.jClass,
+                method.classId.javaClass,
                 method.method,
                 instance,
                 values,
                 instrumentationContext
             )
         }
-
     }
 
     /**
@@ -249,12 +248,12 @@ class MockValueConstructor(
      */
     fun mockNewInstances(
         instrumentations: List<UtNewInstanceInstrumentation>,
-    ) {
+    ) = with(reflection) {
         controllers += instrumentations.map { mock ->
             InstanceMockController(
                 mock.classId,
                 mock.instances.map { mockAndGet(it) },
-                mock.callSites.map { Type.getType(it.jClass).internalName }.toSet()
+                mock.callSites.map { Type.getType(it.javaClass).internalName }.toSet()
             )
         }
     }
@@ -373,7 +372,7 @@ class MockValueConstructor(
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = directSetterModel.fieldId.jField
+        val field = with(reflection) { directSetterModel.fieldId.javaField }
         val isAccessible = field.isAccessible
 
         try {
@@ -412,19 +411,21 @@ class MockValueConstructor(
         return construct(model, target).value
     }
 
-    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? =
+    private fun MethodExecutableId.call(args: List<Any?>, instance: Any?): Any? = with(reflection) {
         method.run {
             withAccessibility {
                 invokeCatching(obj = instance, args = args).getOrThrow()
             }
         }
+    }
 
-    private fun ConstructorExecutableId.call(args: List<Any?>): Any? =
+    private fun ConstructorExecutableId.call(args: List<Any?>): Any? = with(reflection) {
         constructor.run {
             withAccessibility {
                 newInstance(*args.toTypedArray())
             }
         }
+    }
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

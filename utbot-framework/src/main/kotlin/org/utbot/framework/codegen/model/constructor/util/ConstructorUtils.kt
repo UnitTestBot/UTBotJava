@@ -95,8 +95,6 @@ internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: CgClassType, val expression: CgExpression)
 
-val classClassId get() = Class::class.java.id
-
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()
     elements += owner.simpleName.decapitalize()
@@ -249,7 +247,7 @@ internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequen
     }
 
     methodsOrConstructors.filter {
-        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size && it.classId == executableId.classId
+        it.name == executableId.name && it.parameters.size == executableId.parameters.size && it.classId == executableId.classId
     }.map { it.asExecutable() }.asSequence()
 }
 

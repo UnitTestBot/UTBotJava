@@ -1,7 +1,5 @@
 package org.utbot.framework.concrete
 
-import org.objectweb.asm.Type
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.jcdb.api.ClassId
 
 class InstanceMockController(
@@ -9,7 +7,8 @@ class InstanceMockController(
     instances: List<Any?>,
     callSites: Set<String>,
 ) : MockController {
-    private val type = Type.getInternalName(clazz.jClass)
+
+    private val type = clazz.name.replace('.', '/');
 
     init {
         InstrumentationContext.MockGetter.updateCallSites(type, callSites)

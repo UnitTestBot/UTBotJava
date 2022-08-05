@@ -5,11 +5,12 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
+import org.utbot.framework.plugin.api.samples.SampleEnum
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.*
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.providers.*
-import org.utbot.fuzzer.providers.EnumModelProvider.fuzzed
+import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.jcdb.api.ClassId
 import java.util.*
 

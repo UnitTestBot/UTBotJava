@@ -13,9 +13,9 @@ import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.framework.plugin.api.util.asExecutableMethod
 import org.utbot.framework.plugin.api.util.description
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.jcdb.api.MethodId
 import kotlin.reflect.KClass
 
@@ -189,8 +189,9 @@ data class TestsGenerationReport(
     var errors: MutableMap<ExecutableId, ErrorsCount> = mutableMapOf()
 ) {
     val classUnderTest: KClass<*>
-        get() = executables.firstOrNull()?.classId?.jClass?.kotlin
-            ?: error("No executables found in test report")
+        get() = with(reflection) {
+            executables.firstOrNull()?.classId?.javaClass?.kotlin ?: error("No executables found in test report")
+        }
 
     val initialWarnings: MutableList<() -> String> = mutableListOf()
     val hasWarnings: Boolean

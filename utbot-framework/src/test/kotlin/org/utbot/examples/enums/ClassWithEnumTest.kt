@@ -2,10 +2,10 @@ package org.utbot.examples.enums
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.common.findField
 import org.utbot.examples.*
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.ERROR
 import org.utbot.examples.enums.ClassWithEnum.StatusEnum.READY
+import org.utbot.framework.plugin.api.reflection
 import org.utbot.framework.plugin.api.util.findField
 import org.utbot.framework.plugin.api.util.id
 
@@ -100,13 +100,13 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     }
 
     @Test
-    fun testChangingStaticWithEnumInit() {
+    fun testChangingStaticWithEnumInit() = with(reflection) {
         checkThisAndStaticsAfter(
             ClassWithEnum::changingStaticWithEnumInit,
             eq(1),
             { t, staticsAfter, r ->
                 // for some reasons x is inaccessible
-                val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
+                val x = t.javaClass.id.findField("x").javaField.get(t) as Int
 
                 val y = staticsAfter[ClassWithEnum.ClassWithStaticField::class.id.findField("y")]!!.value as Int
 

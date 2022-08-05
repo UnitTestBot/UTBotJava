@@ -254,6 +254,7 @@ class PythonDefaultModel(val repr: String, val type: String): PythonModel(ClassI
 }
 
 val pythonAnyClassId = ClassId("typing.Any")
+val pythonNoneClassId = ClassId("types.NoneType")
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"

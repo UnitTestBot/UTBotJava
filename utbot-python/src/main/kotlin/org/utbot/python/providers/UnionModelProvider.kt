@@ -15,13 +15,11 @@ object UnionModelProvider: ModelProvider {
             val match = regex.matchEntire(annotation) ?: return@forEach
             parameterIndices.forEach { index ->
                 for (newAnnotation in listOf(match.groupValues[1], match.groupValues[2])) {
-                    val newDescription = FuzzedMethodDescription(
-                        "${description.name}<generateUnion>",
-                        pythonAnyClassId,
-                        List(description.parameters.size) { paramIndex ->
-                            if (paramIndex == index) ClassId(newAnnotation) else pythonAnyClassId
-                        },
-                        description.concreteValues
+                    val newDescription = substituteTypesByIndex(
+                        description,
+                        (0 until description.parameters.size).map {
+                            if (it == index) ClassId(newAnnotation) else pythonAnyClassId
+                        }
                     )
                     result += concreteTypesModelProvider.generate(newDescription)
                 }

@@ -10,16 +10,21 @@ val concreteTypesModelProvider = ModelProvider.of(
     DefaultValuesModelProvider,
     InitModelProvider,
     GenericModelProvider,
-    UnionModelProvider
+    UnionModelProvider,
+    OptionalModelProvider
 )
 
 val nonRecursiveModelProvider = ModelProvider.of(
     ConstantModelProvider,
     DefaultValuesModelProvider,
-    UnionModelProvider
+    UnionModelProvider,
+    OptionalModelProvider
 )
 
-fun substituteType(description: FuzzedMethodDescription, typeMap: Map<ClassId, ClassId>): FuzzedMethodDescription {
+fun substituteType(
+    description: FuzzedMethodDescription,
+    typeMap: Map<ClassId, ClassId>
+): FuzzedMethodDescription {
     val newReturnType = typeMap[description.returnType] ?: description.returnType
     val newParameters = description.parameters.map { typeMap[it] ?: it }
     val newConcreteValues = description.concreteValues.map { value ->

@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.util.id
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.framework.plugin.api.util.jField
 
 class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::class) {
@@ -36,7 +37,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
     fun testDifficultIfBranch() {
         check(
             ClassWithEnum::useEnumInDifficultIf,
-            eq(2),
+            ignoreExecutionsNumber,
             { s, r -> s.equals("TRYIF", ignoreCase = true) && r == 1 },
             { s, r -> !s.equals("TRYIF", ignoreCase = true) && r == 2 },
         )
@@ -165,14 +166,12 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
 
     @Test
     fun testImplementingInterfaceEnumInDifficultBranch() {
-        withPushingStateFromPathSelectorForConcrete {
-            check(
-                ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
-                eq(2),
-                { s, r -> s.equals("SUCCESS", ignoreCase = true) && r == 0 },
-                { s, r -> !s.equals("SUCCESS", ignoreCase = true) && r == 2 },
-            )
-        }
+        check(
+            ClassWithEnum::implementingInterfaceEnumInDifficultBranch,
+            ignoreExecutionsNumber,
+            { s, r -> s.equals("SUCCESS", ignoreCase = true) && r == 0 },
+            { s, r -> !s.equals("SUCCESS", ignoreCase = true) && r == 2 },
+        )
     }
 
     @Test

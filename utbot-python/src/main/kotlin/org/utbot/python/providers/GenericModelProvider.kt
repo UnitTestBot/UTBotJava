@@ -3,6 +3,7 @@ package org.utbot.python.providers
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.*
+import java.lang.Integer.min
 import kotlin.random.Random
 
 object GenericModelProvider: ModelProvider {
@@ -95,12 +96,14 @@ object GenericModelProvider: ModelProvider {
 fun Sequence<List<FuzzedValue>>.randomChunked(): Sequence<List<List<FuzzedValue>>> {
     val seq = this
     val maxSize = 15
-    val listOfLists = (0 until maxSize).map { seq.take(10).toList() }
-
-    if (listOfLists.any { it.isEmpty() })
-        return emptySequence()
-
-    return CartesianProduct(listOfLists, Random(0)).asSequence().map {
-        it.take(Random.nextInt(maxSize))
+    val itemsToGenerateFrom = seq.take(20).toList()
+    return sequenceOf(emptyList<List<FuzzedValue>>()) + generateSequence {
+        if (itemsToGenerateFrom.isEmpty())
+            return@generateSequence null
+        val size = Random.nextInt(1, min(maxSize, itemsToGenerateFrom.size) + 1)
+        (0 until size).map {
+            val index = Random.nextInt(0, itemsToGenerateFrom.size)
+            itemsToGenerateFrom[index]
+        }
     }
 }

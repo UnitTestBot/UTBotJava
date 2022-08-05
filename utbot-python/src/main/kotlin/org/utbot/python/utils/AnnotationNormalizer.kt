@@ -77,14 +77,24 @@ object AnnotationNormalizer {
         )
     }
 
-    val substitutionMap = listOf(
+    val substitutionMapFirstStage = listOf(
         "builtins.list" to "typing.List",
         "builtins.dict" to "typing.Dict",
         "builtins.set" to "typing.Set"
     )
 
-    fun substituteTypes(annotation: String): String =
-        substitutionMap.fold(annotation) { acc, (old, new) ->
+    val substitutionMapSecondStage = listOf(
+        Regex("typing.List *([^\\[]|$)") to "typing.List[typing.Any]",
+        Regex("typing.Dict *([^\\[]|$)") to "typing.Dict[typing.Any, typing.Any]",
+        Regex("typing.Set *([^\\[]|$)") to "typing.Set[typing.Any]"
+    )
+
+    fun substituteTypes(annotation: String): String {
+        val firstStage = substitutionMapFirstStage.fold(annotation) { acc, (old, new) ->
             acc.replace(old, new)
         }
+        return substitutionMapSecondStage.fold(firstStage) { acc, (re, new) ->
+            acc.replace(re, new)
+        }
+    }
 }

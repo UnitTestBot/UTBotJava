@@ -160,14 +160,6 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
         )
     }
 
-    override fun visit(element: UtClassRefModel, data: FieldData) {
-        recordFieldState(data, element)
-    }
-
-    override fun visit(element: UtEnumConstantModel, data: FieldData) {
-        recordFieldState(data, element)
-    }
-
     override fun visit(element: UtNullModel, data: FieldData) {
         recordFieldState(data, element)
     }
@@ -177,6 +169,14 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
     }
 
     override fun visit(element: UtVoidModel, data: FieldData) {
+        recordFieldState(data, element)
+    }
+
+    override fun visit(element: UtClassRefModel, data: FieldData) {
+        recordFieldState(data, element)
+    }
+
+    override fun visit(element: UtEnumConstantModel, data: FieldData) {
         recordFieldState(data, element)
     }
 

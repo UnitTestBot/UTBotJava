@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -137,7 +138,7 @@ open class TestCaseGenerator(
         val currentUtContext = utContext
 
         val method2controller = methods.associateWith { EngineController() }
-        val method2executions = methods.associateWith { mutableListOf<UtSymbolicExecution>() }
+        val method2executions = methods.associateWith { mutableListOf<UtExecution>() }
         val method2errors = methods.associateWith { mutableMapOf<String, Int>() }
 
         runIgnoringCancellationException {
@@ -159,12 +160,16 @@ open class TestCaseGenerator(
 
                         engineActions.map { engine.apply(it) }
 
-                        generate(engine).collect {
-                            when (it) {
-                                is UtSymbolicExecution -> method2executions.getValue(method) += it
-                                is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                        generate(engine)
+                            .catch {
+                                logger.error(it) { "Error in flow" }
                             }
-                        }
+                            .collect {
+                                when (it) {
+                                    is UtExecution -> method2executions.getValue(method) += it
+                                    is UtError -> method2errors.getValue(method).merge(it.description, 1, Int::plus)
+                                }
+                            }
                     }
                     controller.paused = true
                 }

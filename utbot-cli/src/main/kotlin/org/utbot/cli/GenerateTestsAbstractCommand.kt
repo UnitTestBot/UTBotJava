@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.summary.summarize
 import java.io.File
 import java.lang.reflect.Method
@@ -205,7 +206,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
         return CodeGenerator(
             testFramework = testFrameworkByName(testFramework),
-            classUnderTest = classUnderTest.java,
+            classUnderTest = classUnderTest.id,
             codegenLanguage = codegenLanguage,
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,

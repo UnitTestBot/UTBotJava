@@ -8,7 +8,6 @@ import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
-import org.utbot.common.findField
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -90,8 +89,9 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
-import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
@@ -497,7 +497,7 @@ class Traverser(
         val declaringClass = field.declaringClass
 
         val updates = if (declaringClass.isEnum) {
-            makeConcreteUpdatesForEnums(fieldId, declaringClass, stmt)
+            makeConcreteUpdatesForEnumsWithStmt(fieldId, declaringClass, stmt)
         } else {
             makeConcreteUpdatesForNonEnumStaticField(field, fieldId, declaringClass, stmt)
         }
@@ -518,13 +518,10 @@ class Traverser(
         return true
     }
 
-    @Suppress("UnnecessaryVariable")
-    private fun makeConcreteUpdatesForEnums(
-        fieldId: FieldId,
-        declaringClass: SootClass,
-        stmt: Stmt
-    ): SymbolicStateUpdate {
-        val type = declaringClass.type
+    private fun makeConcreteUpdatesForEnum(
+        type: RefType,
+        fieldId: FieldId? = null
+    ): Pair<SymbolicStateUpdate, SymbolicValue?> {
         val jClass = type.id.jClass
 
         // symbolic value for enum class itself
@@ -545,7 +542,7 @@ class Traverser(
 
         val (staticFieldUpdates, curFieldSymbolicValueForLocalVariable) = makeEnumStaticFieldsUpdates(
             staticFields,
-            declaringClass,
+            type.sootClass,
             enumConstantSymbolicResultsByName,
             enumConstantSymbolicValues,
             enumClassValue,
@@ -564,14 +561,25 @@ class Traverser(
 
         val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
             initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
-            meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet()
+            meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet(),
+            symbolicEnumValues = enumConstantSymbolicValues.toPersistentList()
         )
 
-        val allUpdates = staticFieldUpdates +
-                nonStaticFieldsUpdates +
-                initializedStaticFieldsMemoryUpdate +
-                createConcreteLocalValueUpdate(stmt, curFieldSymbolicValueForLocalVariable)
+        return Pair(
+            staticFieldUpdates + nonStaticFieldsUpdates + initializedStaticFieldsMemoryUpdate,
+            curFieldSymbolicValueForLocalVariable
+        )
+    }
 
+    @Suppress("UnnecessaryVariable")
+    private fun makeConcreteUpdatesForEnumsWithStmt(
+        fieldId: FieldId,
+        declaringClass: SootClass,
+        stmt: Stmt
+    ): SymbolicStateUpdate {
+        val (enumUpdates, curFieldSymbolicValueForLocalVariable) =
+            makeConcreteUpdatesForEnum(declaringClass.type, fieldId)
+        val allUpdates = enumUpdates + createConcreteLocalValueUpdate(stmt, curFieldSymbolicValueForLocalVariable)
         return allUpdates
     }
 
@@ -582,7 +590,7 @@ class Traverser(
         declaringClass: SootClass,
         stmt: Stmt
     ): SymbolicStateUpdate {
-        val concreteValue = extractConcreteValue(field, declaringClass)
+        val concreteValue = extractConcreteValue(field)
         val (symbolicResult, symbolicStateUpdate) = toMethodResult(concreteValue, field.type)
         val symbolicValue = (symbolicResult as SymbolicSuccess).value
 
@@ -634,12 +642,20 @@ class Traverser(
     // Some fields are inaccessible with reflection, so we have to instantiate it by ourselves.
     // Otherwise, extract it from the class.
     // TODO JIRA:1593
-    private fun extractConcreteValue(field: SootField, declaringClass: SootClass): Any? =
+    private fun extractConcreteValue(field: SootField): Any? =
         when (field.signature) {
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
             FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
-            else -> declaringClass.id.jClass.findField(field.name).let { it.withAccessibility { it.get(null) } }
+            else -> {
+                val fieldId = field.fieldId
+                val jField = fieldId.jField
+                jField.let {
+                    it.withAccessibility {
+                        it.get(null)
+                    }
+                }
+            }
         }
 
     private fun isStaticInstanceInMethodResult(id: ClassId, methodResult: MethodResult?) =
@@ -1373,6 +1389,39 @@ class Traverser(
         queuedSymbolicStateUpdates = queuedSymbolicStateUpdates.copy(memoryUpdates = MemoryUpdate())
     }
 
+    /**
+     * Return a symbolic value of the ordinal corresponding to the enum value with the given address.
+     */
+    private fun findEnumOrdinal(type: RefType, addr: UtAddrExpression): PrimitiveValue {
+        val array = memory.findArray(MemoryChunkDescriptor(ENUM_ORDINAL, type, IntType.v()))
+        return array.select(addr).toIntValue()
+    }
+
+    /**
+     * Initialize enum class: create symbolic values for static enum values and generate constraints
+     * that restrict the new instance to match one of enum values.
+     */
+    private fun initEnum(type: RefType, addr: UtAddrExpression, ordinal: PrimitiveValue) {
+        val classId = type.id
+        var predefinedEnumValues = memory.getSymbolicEnumValues(classId)
+        if (predefinedEnumValues.isEmpty()) {
+            val (enumValuesUpdate, _) = makeConcreteUpdatesForEnum(type)
+            queuedSymbolicStateUpdates += enumValuesUpdate
+            predefinedEnumValues = enumValuesUpdate.memoryUpdates.getSymbolicEnumValues(classId)
+        }
+
+        val enumValueConstraints = mkOr(
+            listOf(addrEq(addr, nullObjectAddr)) + predefinedEnumValues.map {
+                mkAnd(
+                    addrEq(addr, it.addr),
+                    mkEq(ordinal, findEnumOrdinal(it.type, it.addr))
+                )
+            }
+        )
+
+        queuedSymbolicStateUpdates += enumValueConstraints.asHardConstraint()
+    }
+
     private fun arrayInstanceOf(value: ArrayValue, checkType: Type): PrimitiveValue {
         val notNullConstraint = mkNot(addrEq(value.addr, nullObjectAddr))
 
@@ -1529,6 +1578,11 @@ class Traverser(
         // void foo(a A) { (B) a; (C) a; } -> a is null
         queuedSymbolicStateUpdates += typeConstraint.asHardConstraint()
         queuedSymbolicStateUpdates += typeRegistry.zeroDimensionConstraint(objectValue.addr).asHardConstraint()
+
+        // If we are casting to an enum class, we should initialize enum values and add value equality constraints
+        if (typeAfterCast.sootClass?.isEnum == true) {
+            initEnum(typeAfterCast, castedObject.addr, findEnumOrdinal(typeAfterCast, castedObject.addr))
+        }
 
         // TODO add memory constraints JIRA:1523
         return castedObject
@@ -1978,13 +2032,13 @@ class Traverser(
 
         queuedSymbolicStateUpdates += typeRegistry.typeConstraint(addr, typeStorage).all().asHardConstraint()
 
-        val array = memory.findArray(MemoryChunkDescriptor(ENUM_ORDINAL, type, IntType.v()))
-        val ordinal = array.select(addr).toIntValue()
+        val ordinal = findEnumOrdinal(type, addr)
         val enumSize = classLoader.loadClass(type.sootClass.name).enumConstants.size
 
         queuedSymbolicStateUpdates += mkOr(Ge(ordinal, 0), addrEq(addr, nullObjectAddr)).asHardConstraint()
         queuedSymbolicStateUpdates += mkOr(Lt(ordinal, enumSize), addrEq(addr, nullObjectAddr)).asHardConstraint()
 
+        initEnum(type, addr, ordinal)
         touchAddress(addr)
 
         return ObjectValue(typeStorage, addr)

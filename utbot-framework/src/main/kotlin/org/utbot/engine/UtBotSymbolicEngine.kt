@@ -67,7 +67,8 @@ import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
@@ -82,6 +83,8 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.*
+import org.utbot.fuzzer.names.MethodBasedNameSuggester
+import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
 import soot.jimple.Stmt
@@ -104,8 +107,7 @@ class EngineController {
 //for debugging purpose only
 private var stateSelectedCount = 0
 
-//all id values of synthetic default models must be greater that for real ones
-private var nextDefaultModelId = 1500_000_000
+private val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
 private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry) =
     when (pathSelectorType) {
@@ -288,14 +290,15 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
 
-                            val concreteUtExecution = UtSymbolicExecution(
+                            val concreteUtExecution = UtExecution(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,
                                 concreteExecutionResult.result,
                                 instrumentation,
                                 mutableListOf(),
                                 listOf(),
-                                concreteExecutionResult.coverage
+                                concreteExecutionResult.coverage,
+                                UtExecutionCreator.SYMBOLIC_ENGINE
                             )
                             emit(concreteUtExecution)
 
@@ -380,7 +383,7 @@ class UtBotSymbolicEngine(
             return@flow
         }
 
-        val fallbackModelProvider = FallbackModelProvider { nextDefaultModelId++ }
+        val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
         val thisInstance = when {
@@ -394,7 +397,7 @@ class UtBotSymbolicEngine(
                 null
             }
             else -> {
-                ObjectModelProvider { nextDefaultModelId++ }.withFallback(fallbackModelProvider).generate(
+                ObjectModelProvider(ReferencePreservingIntIdGenerator()).withFallback(fallbackModelProvider).generate(
                     FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues)
                 ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
@@ -416,14 +419,14 @@ class UtBotSymbolicEngine(
         var attempts = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
-            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders { nextDefaultModelId++ }))
+            fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {
             // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
             val thisMethodDescription = FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues).apply {
                 className = executableId.classId.simpleName
                 packageName = executableId.classId.packageName
             }
-            fuzz(thisMethodDescription, ObjectModelProvider { nextDefaultModelId++ }.apply {
+            fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
                 limitValuesCreatedByFieldAccessors = 500
             })
         }
@@ -440,20 +443,31 @@ class UtBotSymbolicEngine(
                 EnvironmentModels(values.first().model, emptyList(), mapOf())
             }
 
-            try {
-                val concreteExecutionResult =
-                    concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+            val concreteExecutionResult: UtConcreteExecutionResult? = try {
+                concreteExecutor.executeConcretely(methodUnderTest, initialEnvironmentModels, listOf())
+            } catch (e: CancellationException) {
+                logger.debug { "Cancelled by timeout" }; null
+            } catch (e: ConcreteExecutionFailureException) {
+                emitFailedConcreteExecutionResult(initialEnvironmentModels, e); null
+            } catch (e: Throwable) {
+                emit(UtError("Default concrete execution failed", e)); null
+            }
 
-                workaround(REMOVE_ANONYMOUS_CLASSES) {
-                    concreteExecutionResult.result.onSuccess {
-                        if (it.classId.isAnonymous) {
-                            logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
-                            return@flow
-                        }
+            // in case an exception occurred from the concrete execution
+            concreteExecutionResult ?: return@forEach
+
+            workaround(REMOVE_ANONYMOUS_CLASSES) {
+                concreteExecutionResult.result.onSuccess {
+                    if (it.classId.isAnonymous) {
+                        logger.debug("Anonymous class found as a concrete result, symbolic one will be returned")
+                        return@flow
                     }
                 }
+            }
 
-                val count = coveredInstructionTracker.add(concreteExecutionResult.coverage.coveredInstructions)
+            val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
+            if (coveredInstructions.isNotEmpty()) {
+                val count = coveredInstructionTracker.add(coveredInstructions)
                 if (count.count > 1) {
                     if (--attempts < 0) {
                         return@flow
@@ -461,24 +475,31 @@ class UtBotSymbolicEngine(
                     return@forEach
                 }
                 coveredInstructionValues[count] = values
-
-                emit(
-                    UtFuzzedExecution(
-                        stateBefore = initialEnvironmentModels,
-                        stateAfter = concreteExecutionResult.stateAfter,
-                        result = concreteExecutionResult.result,
-                        coverage = concreteExecutionResult.coverage,
-                        fuzzingValues = values,
-                        fuzzedMethodDescription = methodUnderTestDescription
-                    )
-                )
-            } catch (e: CancellationException) {
-                logger.debug { "Cancelled by timeout" }
-            } catch (e: ConcreteExecutionFailureException) {
-                emitFailedConcreteExecutionResult(initialEnvironmentModels, e)
-            } catch (e: Throwable) {
-                emit(UtError("Default concrete execution failed", e))
+            } else {
+                logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
             }
+            val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+            val testMethodName = try {
+                nameSuggester.flatMap {
+                    it.suggest(
+                        methodUnderTestDescription,
+                        values,
+                        concreteExecutionResult.result
+                    )
+                }.firstOrNull()
+            } catch (t: Throwable) {
+                logger.error(t) { "Cannot create suggested test name for ${methodUnderTest.displayName}" }
+                null
+            }
+
+            emit(
+                UtFuzzedExecution(
+                    stateBefore = initialEnvironmentModels,
+                    stateAfter = concreteExecutionResult.stateAfter,
+                    result = concreteExecutionResult.result,
+                    coverage = concreteExecutionResult.coverage
+                )
+            )
         }
     }
 
@@ -486,13 +507,14 @@ class UtBotSymbolicEngine(
         stateBefore: EnvironmentModels,
         e: ConcreteExecutionFailureException
     ) {
-        val failedConcreteExecution = UtSymbolicExecution(
+        val failedConcreteExecution = UtExecution(
             stateBefore = stateBefore,
             stateAfter = MissingState,
             result = UtConcreteExecutionFailure(e),
             instrumentation = emptyList(),
             path = mutableListOf(),
-            fullPath = listOf()
+            fullPath = listOf(),
+            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
         )
 
         emit(failedConcreteExecution)
@@ -526,13 +548,14 @@ class UtBotSymbolicEngine(
         val stateAfter = modelsAfter.constructStateForMethod(methodUnderTest)
         require(stateBefore.parameters.size == stateAfter.parameters.size)
 
-        val symbolicUtExecution = UtSymbolicExecution(
+        val symbolicUtExecution = UtExecution(
             stateBefore = stateBefore,
             stateAfter = stateAfter,
             result = symbolicExecutionResult,
             instrumentation = instrumentation,
             path = entryMethodPath(state),
-            fullPath = state.fullPath()
+            fullPath = state.fullPath(),
+            createdBy = UtExecutionCreator.SYMBOLIC_ENGINE,
         )
 
         globalGraph.traversed(state)

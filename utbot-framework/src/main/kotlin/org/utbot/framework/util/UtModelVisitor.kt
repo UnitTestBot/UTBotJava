@@ -21,8 +21,6 @@ abstract class UtModelVisitor<D> {
 
     abstract fun visit(element: UtModel, data: D)
 
-    abstract fun visit(element: UtClassRefModel, data: D)
-    abstract fun visit(element: UtEnumConstantModel, data: D)
     abstract fun visit(element: UtNullModel, data: D)
     abstract fun visit(element: UtPrimitiveModel, data: D)
     abstract fun visit(element: UtVoidModel, data: D)
@@ -30,12 +28,16 @@ abstract class UtModelVisitor<D> {
     open fun visit(element: UtReferenceModel, data: D) {
         if (!canTraverseReferenceModel(element)) return
         when (element) {
+            is UtClassRefModel -> visit(element, data)
+            is UtEnumConstantModel -> visit(element, data)
             is UtArrayModel -> visit(element, data)
             is UtAssembleModel -> visit(element, data)
             is UtCompositeModel -> visit(element, data)
         }
     }
 
+    abstract fun visit(element: UtClassRefModel, data: D)
+    abstract fun visit(element: UtEnumConstantModel, data: D)
     protected abstract fun visit(element: UtArrayModel, data: D)
     protected abstract fun visit(element: UtAssembleModel, data: D)
     protected abstract fun visit(element: UtCompositeModel, data: D)

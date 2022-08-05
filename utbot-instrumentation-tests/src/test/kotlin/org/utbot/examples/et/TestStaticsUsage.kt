@@ -3,7 +3,7 @@ package org.utbot.examples.et
 import org.utbot.examples.objects.ObjectWithStaticFieldsClass
 import org.utbot.examples.objects.ObjectWithStaticFieldsExample
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.instrumentation.execute
 import org.utbot.instrumentation.instrumentation.et.ExecutionTraceInstrumentation
 import org.utbot.instrumentation.withInstrumentation
@@ -39,7 +39,7 @@ class StaticsUsageDetectionTest {
             classInstance.x = 200
             classInstance.y = 200
             val result = it.execute(ObjectWithStaticFieldsExample::setStaticField, arrayOf(instance, classInstance))
-            assertEquals(ObjectWithStaticFieldsClass::staticValue.javaField, result.usedStatics.single().field)
+            assertEquals(ObjectWithStaticFieldsClass::staticValue.javaField, result.usedStatics.single().jField)
         }
     }
 

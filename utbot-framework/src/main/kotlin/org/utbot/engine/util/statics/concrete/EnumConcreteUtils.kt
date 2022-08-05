@@ -9,7 +9,7 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.framework.plugin.api.DefaultReflectionProvider
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.jcdb.api.FieldId
 import soot.SootClass
 import soot.SootField
@@ -68,7 +68,7 @@ fun Traverser.makeEnumStaticFieldsUpdates(
     enumConstantSymbolicResultsByName: Map<String, MethodResult>,
     enumConstantSymbolicValues: List<ObjectValue>,
     enumClassValue: ObjectValue,
-    fieldId: FieldId
+    fieldId: FieldId?
 ): Pair<SymbolicStateUpdate, SymbolicValue?> {
     var staticFieldsUpdates = SymbolicStateUpdate()
     var symbolicValueForLocal: SymbolicValue? = null
@@ -101,7 +101,7 @@ fun Traverser.makeEnumStaticFieldsUpdates(
         }
 
         // save value to associate it with local if required
-        if (sootStaticField.name == fieldId.name) {
+        if (fieldId != null && sootStaticField.name == fieldId.name) {
             symbolicValueForLocal = fieldSymbolicValue
         }
     }

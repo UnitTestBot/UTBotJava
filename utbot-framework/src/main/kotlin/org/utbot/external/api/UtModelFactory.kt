@@ -60,8 +60,10 @@ class UtModelFactory(
         elements.toMutableMap()
     )
 
-    fun produceClassRefModel(clazz: Class<String>): UtModel = UtClassRefModel(
-        clazz.id, clazz
+    fun produceClassRefModel(clazz: Class<*>) = UtClassRefModel(
+        modelIdCounter.incrementAndGet(),
+        clazz.id,
+        clazz
     )
 }
 

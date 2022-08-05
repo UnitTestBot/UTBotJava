@@ -108,6 +108,9 @@ val ClassId.jClass: Class<*>
 //val ClassId.isDoubleType: Boolean
 //    get() = this == doubleClassId || this == doubleWrapperClassId
 
+val ClassId.isClassType: Boolean
+    get() = this == classClassId
+
 val voidClassId get() = utContext.classpath.void
 val booleanClassId get() = utContext.classpath.boolean
 val byteClassId get() = utContext.classpath.byte
@@ -128,6 +131,8 @@ val intWrapperClassId get() = java.lang.Integer::class.id
 val longWrapperClassId get() = java.lang.Long::class.id
 val floatWrapperClassId get() = java.lang.Float::class.id
 val doubleWrapperClassId get() = java.lang.Double::class.id
+
+val classClassId = java.lang.Class::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here
@@ -313,7 +318,20 @@ fun ClassId.findField(fieldName: String): FieldId = runBlocking {
     fields().firstOrNull { it.name == fieldName } ?: error("Can't find field $name#$fieldName")
 }
 
-fun ClassId.hasField(fieldName: String): Boolean = findFieldOrNull(fieldName) != null
+val ClassId.isEnum: Boolean
+    get() = jClass.isEnum
+
+fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
+    if (isNotSubtypeOf(fieldId.declaringClass)) {
+        return null
+    }
+
+    return fieldId.safeJField
+}
+
+fun ClassId.hasField(fieldId: FieldId): Boolean {
+    return findFieldByIdOrNull(fieldId) != null
+}
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
     intClassId -> UtPrimitiveModel(0)

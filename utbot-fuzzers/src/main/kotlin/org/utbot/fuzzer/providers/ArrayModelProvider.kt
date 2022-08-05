@@ -5,13 +5,14 @@ import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import org.utbot.jcdb.api.ifArrayGetElementClass
 import java.util.function.IntSupplier
 
 class ArrayModelProvider(
-    private val idGenerator: IntSupplier
+    private val idGenerator: IdGenerator<Int>
 ) : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.parametersMap
@@ -20,7 +21,7 @@ class ArrayModelProvider(
             .forEach { (arrayClassId, indices) ->
                 yieldAllValues(indices, listOf(0, 10).map { arraySize ->
                     UtArrayModel(
-                        id = idGenerator.asInt,
+                        id = idGenerator.createId(),
                         arrayClassId,
                         length = arraySize,
                         arrayClassId.ifArrayGetElementClass()!!.defaultValueModel(),

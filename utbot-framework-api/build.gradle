@@ -17,6 +17,12 @@ dependencies {
     api group: 'com.github.UnitTestBot.jcdb', name: 'jcdb-core', version: '6762e02f47'
 }
 
+compileKotlin {
+    kotlinOptions {
+        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+    }
+}
+
 shadowJar {
     configurations = [project.configurations.compileClasspath]
     archiveClassifier.set('')

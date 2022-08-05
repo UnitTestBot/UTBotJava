@@ -32,6 +32,8 @@ import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaType
 
+const val SYMBOLIC_NULL_ADDR: Int = 0
+
 data class UtMethod<R>(
     val callable: KCallable<R>,
     val clazz: KClass<*>
@@ -71,22 +73,6 @@ data class UtMethodTestSet(
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
 )
-
-data class CgMethodTestSet private constructor(
-    val executableId: ExecutableId,
-    val executions: List<UtExecution> = emptyList(),
-    val jimpleBody: JimpleBody? = null,
-    val errors: Map<String, Int> = emptyMap(),
-    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
-) {
-    constructor(from: UtMethodTestSet) : this(
-        from.method.callable.executableId,
-        from.executions,
-        from.jimpleBody,
-        from.errors,
-        from.clustersInfo
-    )
-}
 
 data class Step(
     val stmt: Stmt,
@@ -257,6 +243,27 @@ fun UtModel.hasDefaultValue() =
 fun UtModel.isMockModel() = this is UtCompositeModel && isMock
 
 /**
+ * Get model id (symbolic null value for UtNullModel)
+ * or null if model has no id (e.g., a primitive model) or the id is null.
+ */
+fun UtModel.idOrNull(): Int? = when (this) {
+    is UtNullModel -> SYMBOLIC_NULL_ADDR
+    is UtReferenceModel -> id
+    else -> null
+}
+
+/**
+ * Returns the model id if it is available, or throws an [IllegalStateException].
+ */
+@OptIn(ExperimentalContracts::class)
+fun UtModel?.getIdOrThrow(): Int {
+    contract {
+        returns() implies (this@getIdOrThrow != null)
+    }
+    return this?.idOrNull() ?: throw IllegalStateException("Model id must not be null: $this")
+}
+
+/**
  * Model for nulls.
  */
 data class UtNullModel(
@@ -297,20 +304,24 @@ object UtVoidModel : UtModel(voidClassId)
  * Model for enum constant
  */
 data class UtEnumConstantModel(
+    override val id: Int?,
     override val classId: ClassId,
     val value: Enum<*>
-) : UtModel(classId) {
-    override fun toString(): String = "$value"
+) : UtReferenceModel(id, classId) {
+    // Model id is included for debugging purposes
+    override fun toString(): String = "$value@$id"
 }
 
 /**
  * Model for class reference
  */
 data class UtClassRefModel(
+    override val id: Int?,
     override val classId: ClassId,
     val value: Class<*>
-) : UtModel(classId) {
-    override fun toString(): String = "$value"
+) : UtReferenceModel(id, classId) {
+    // Model id is included for debugging purposes
+    override fun toString(): String = "$value@$id"
 }
 
 /**
@@ -340,7 +351,7 @@ data class UtCompositeModel(
             if (fields.isNotEmpty()) {
                 append(" ")
                 append(fields.entries.joinToString(", ", "{", "}") { (field, value) ->
-                    if (value.classId != classId || value.isNull()) "${field.name}: $value" else "${field.name}: not evaluated"
+                    if (value.classId != classId || value.isNull()) "(${field.declaringClass}) ${field.name}: $value" else "${field.name}: not evaluated"
                 }) // TODO: here we can get an infinite recursion if we have cyclic dependencies.
             }
             if (mocks.isNotEmpty()) {

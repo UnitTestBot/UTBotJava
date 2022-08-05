@@ -8,6 +8,7 @@ import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.anyInstance
 import org.utbot.jcdb.api.*
@@ -92,13 +93,22 @@ class MockValueConstructor(
         when (model) {
             is UtNullModel -> UtConcreteValue(null, model.classId.jClass)
             is UtPrimitiveModel -> UtConcreteValue(model.value, model.classId.jClass)
-            is UtEnumConstantModel -> UtConcreteValue(model.value)
+            is UtEnumConstantModel -> UtConcreteValue(constructEnum(model))
             is UtClassRefModel -> UtConcreteValue(model.value)
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
             is UtVoidModel -> UtConcreteValue(Unit)
         }
+    }
+
+    /**
+     * Constructs an Enum<*> instance by model, uses reference-equality cache.
+     */
+    private fun constructEnum(model: UtEnumConstantModel): Any {
+        constructedObjects[model]?.let { return it }
+        constructedObjects[model] = model.value
+        return model.value
     }
 
     /**
@@ -139,9 +149,8 @@ class MockValueConstructor(
             mockInstance
         }
 
-        model.fields.forEach { (field, fieldModel) ->
-            val declaredField =
-                javaClass.findFieldOrNull(field.name) ?: error("Can't find field: $field for $javaClass")
+        model.fields.forEach { (fieldId, fieldModel) ->
+            val declaredField = fieldId.jField
             val accessible = declaredField.isAccessible
             declaredField.isAccessible = true
 
@@ -149,7 +158,7 @@ class MockValueConstructor(
             modifiersField.isAccessible = true
 
             val target = mockTarget(fieldModel) {
-                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), field.name)
+                FieldMockTarget(fieldModel.classId.name, model.classId.name, UtConcreteValue(classInstance), fieldId.name)
             }
             val value = construct(fieldModel, target).value
             val instance = if (Modifier.isStatic(declaredField.modifiers)) null else classInstance
@@ -364,7 +373,7 @@ class MockValueConstructor(
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = instance::class.java.findField(directSetterModel.fieldId.name)
+        val field = directSetterModel.fieldId.jField
         val isAccessible = field.isAccessible
 
         try {

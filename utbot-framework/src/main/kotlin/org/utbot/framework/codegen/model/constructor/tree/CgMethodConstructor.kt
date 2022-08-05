@@ -5,6 +5,7 @@ import org.utbot.common.PathUtil
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -263,7 +264,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val executableName = "${currentExecutable!!.classId.name}.${currentExecutable!!.name}"
 
         val warningLine = mutableListOf(
-            "This test fails because method [$executableName] produces [$exception]"
+            "This test fails because method [$executableName] produces [$exception]".escapeControlChars()
         )
 
         val neededStackTraceLines = mutableListOf<String>()
@@ -279,6 +280,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
 
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
+    }
+
+    private fun String.escapeControlChars() : String {
+        return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
     }
 
     private fun writeWarningAboutCrash() {
@@ -1152,6 +1157,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
             }
 
+            val expectedResultClassId = wrapTypeIfRequired(testSet.resultType())
+            if (expectedResultClassId != voidClassId) {
+                val wrappedType = wrapIfPrimitive(expectedResultClassId)
             val method = currentExecutable!!
             val expectedResultClassId = wrapTypeIfRequired(method.returnType.type())
 
@@ -1450,7 +1458,23 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         } else {
             setOf(annotation(testFramework.testAnnotationId))
         }
-        displayName?.let { testFrameworkManager.addDisplayName(it) }
+
+        /* Add a short test's description depending on the test framework type:
+           DisplayName annotation in case of JUni5, and description argument to Test annotation in case of TestNG.
+         */
+        if (displayName != null) {
+            when (testFramework) {
+                is Junit5 -> {
+                    displayName.let { testFrameworkManager.addDisplayName(it) }
+                }
+                is TestNg -> {
+                    testFrameworkManager.addTestDescription(displayName)
+                }
+                else -> {
+                    // nothing
+                }
+            }
+        }
 
         val result = currentExecution!!.result
         if (result is UtTimeoutException) {

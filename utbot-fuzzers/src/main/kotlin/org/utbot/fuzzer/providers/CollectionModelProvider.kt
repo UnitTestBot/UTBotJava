@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
+import org.utbot.fuzzer.IdGenerator
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 import java.util.function.IntSupplier
@@ -16,7 +17,7 @@ import java.util.function.IntSupplier
  * a non-modifiable collection and tries to add values.
  */
 class CollectionModelProvider(
-    private val idGenerator: IntSupplier
+    private val idGenerator: IdGenerator<Int>
 ) : ModelProvider {
 
     private val generators = mapOf(
@@ -89,7 +90,7 @@ class CollectionModelProvider(
 
     private fun Class<*>.createdBy(init: ExecutableId, params: List<UtModel> = emptyList()): UtAssembleModel {
         val instantiationChain = mutableListOf<UtStatementModel>()
-        val genId = idGenerator.asInt
+        val genId = idGenerator.createId()
         return UtAssembleModel(
             genId,
             id,

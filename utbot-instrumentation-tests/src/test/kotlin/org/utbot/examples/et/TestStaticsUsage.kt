@@ -37,7 +37,7 @@ class StaticsUsageDetectionTest {
             classInstance.x = 200
             classInstance.y = 200
             val result = it.execute(ObjectWithStaticFieldsExample::setStaticField, arrayOf(instance, classInstance))
-            assertEquals(ObjectWithStaticFieldsClass::staticValue.name, result.usedStatics.single().name)
+            assertEquals(ObjectWithStaticFieldsClass::staticValue.javaField, result.usedStatics.single().jField)
         }
     }
 

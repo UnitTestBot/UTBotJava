@@ -291,28 +291,33 @@ object CodeGenerationController {
 
                     // reformatting before creating reports due to
                     // SarifReport requires the final version of the generated tests code
-                    runWriteCommandAction(testClassUpdated.project, "UtBot tests reformatting", null, {
-                        reformat(model, file, testClassUpdated)
-                    })
-                    unblockDocument(testClassUpdated.project, editor.document)
+                    run(THREAD_POOL) {
+                        IntentionHelper(model.project, editor, file).applyIntentions()
+                        run(EDT_LATER) {
+                            runWriteCommandAction(testClassUpdated.project, "UtBot tests reformatting", null, {
+                                reformat(model, file, testClassUpdated)
+                            })
+                            unblockDocument(testClassUpdated.project, editor.document)
 
-                    // uploading formatted code
-                    val testsCodeWithTestReportFormatted =
-                        testsCodeWithTestReport.copy(generatedCode = file.text)
+                            // uploading formatted code
+                            val testsCodeWithTestReportFormatted =
+                                testsCodeWithTestReport.copy(generatedCode = file.text)
 
-                    // creating and saving reports
-                    reports += testsCodeWithTestReportFormatted.testsGenerationReport
+                            // creating and saving reports
+                            reports += testsCodeWithTestReportFormatted.testsGenerationReport
 
-                    saveSarifReport(
-                        testClassUpdated,
-                        testSets,
-                        model,
-                        testsCodeWithTestReportFormatted,
-                    )
+                            saveSarifReport(
+                                testClassUpdated,
+                                testSets,
+                                model,
+                                testsCodeWithTestReportFormatted,
+                            )
 
-                    reportsCountDown.countDown()
+                            reportsCountDown.countDown()
 
-                    unblockDocument(testClassUpdated.project, editor.document)
+                            unblockDocument(testClassUpdated.project, editor.document)
+                        }
+                    }
                 }
             }
         }

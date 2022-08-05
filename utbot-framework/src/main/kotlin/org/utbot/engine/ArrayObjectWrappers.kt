@@ -376,7 +376,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateTo(mutableMapOf()) { i ->
                 val model = touchedValues.stores[i]
-                val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id!!
+                val addr = model.getIdOrThrow()
                 addr to resolver.resolveModel(
                     ObjectValue(
                         TypeStorage(OBJECT_TYPE),

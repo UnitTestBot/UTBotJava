@@ -15,7 +15,7 @@ import java.util.function.IntSupplier
  * Used as a fallback implementation until other providers cover every type.
  */
 open class FallbackModelProvider(
-    private val idGenerator: IntSupplier
+    private val idGenerator: IdGenerator<Int>
 ): AbstractModelProvider() {
 
     override fun toModel(classId: ClassId): UtModel {
@@ -28,11 +28,11 @@ open class FallbackModelProvider(
             it.parameters().isEmpty() && it.isPublic()
         }
         when {
-            classId.isPrimitive ->
+            classId.isPrimitive || classId.isEnum || classId.isClassType ->
                 classId.defaultValueModel()
             classId.isArray ->
                 UtArrayModel(
-                    id = idGenerator.asInt,
+                    id = idGenerator.createId(),
                     classId,
                     length = 0,
                     classId.ifArrayGetElementClass()!!.defaultValueModel(),
@@ -64,26 +64,36 @@ open class FallbackModelProvider(
         val defaultConstructor = classId.methods().firstOrNull {
             it.isPublic() && it.isConstructor && it.parameters().isEmpty()
         }
-        return if (classId.isAbstract()) { // sealed class is abstract by itself
-            UtNullModel(classId)
-        } else if (defaultConstructor != null) {
-            val chain = mutableListOf<UtStatementModel>()
-            val model = UtAssembleModel(
-                id = idGenerator.asInt,
-                classId,
-                classId.name,
-                chain
-            )
-            chain.add(
-                UtExecutableCallModel(model, defaultConstructor.asExecutable(), listOf(), model)
-            )
-            model
-        } else {
-            UtCompositeModel(
-                id = idGenerator.asInt,
-                classId,
-                isMock = false
-            )
+        return when {
+            kclass.isAbstract -> {
+                // sealed class is abstract by itself
+                UtNullModel(kclass.java.id)
+
+            }
+            kclass.java.isEnum || kclass == java.lang.Class::class -> {
+                // No sensible fallback solution for these classes except returning default `null` value
+                UtNullModel(kclass.java.id)
+            }
+            defaultConstructor != null -> {
+                val chain = mutableListOf<UtStatementModel>()
+                val model = UtAssembleModel(
+                    id = idGenerator.createId(),
+                    kclass.id,
+                    kclass.id.toString(),
+                    chain
+                )
+                chain.add(
+                    UtExecutableCallModel(model, defaultConstructor.executableId, listOf(), model)
+                )
+                model
+            }
+            else -> {
+                UtCompositeModel(
+                    id = idGenerator.createId(),
+                    kclass.id,
+                    isMock = false
+                )
+            }
         }
     }
 }

@@ -106,7 +106,7 @@ class ClassWithEnumTest : UtValueTestCaseChecker(testClass = ClassWithEnum::clas
             eq(1),
             { t, staticsAfter, r ->
                 // for some reasons x is inaccessible
-                val x = t.javaClass.findField("x").get(t) as Int
+                val x = FieldId(t.javaClass.id, "x").jField.get(t) as Int
 
                 val y = staticsAfter[ClassWithEnum.ClassWithStaticField::class.id.findField("y")]!!.value as Int
 

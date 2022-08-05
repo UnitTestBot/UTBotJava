@@ -35,7 +35,13 @@ object StubFileStructures {
         val kwonlyargs: List<ArgInfo> = emptyList(),
         val name: String,
         val returns: String,
-    )
+    ) {
+        val module: String
+            get() = name.split('.').last()
+
+        val defName: String
+            get() = name.split('.').dropLast(1).joinToString(".")
+    }
 
     data class ArgInfo(
         val arg: String,

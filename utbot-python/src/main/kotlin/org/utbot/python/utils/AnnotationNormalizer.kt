@@ -46,12 +46,14 @@ object AnnotationNormalizer {
             pythonAnyClassId
         else
             ClassId(
-                normalizeAnnotationFromProject(
-                    annotation,
-                    pythonPath,
-                    projectRoot,
-                    fileOfAnnotation,
-                    filesToAddToSysPath
+                substituteTypes(
+                    normalizeAnnotationFromProject(
+                        annotation,
+                        pythonPath,
+                        projectRoot,
+                        fileOfAnnotation,
+                        filesToAddToSysPath
+                    )
                 )
             )
 
@@ -69,7 +71,20 @@ object AnnotationNormalizer {
         ))
         scriptFile.delete()
         return ClassId(
-            if (result.exitValue == 0) result.stdout else annotation
+            substituteTypes(
+                if (result.exitValue == 0) result.stdout else annotation
+            )
         )
     }
+
+    val substitutionMap = listOf(
+        "builtins.list" to "typing.List",
+        "builtins.dict" to "typing.Dict",
+        "builtins.set" to "typing.Set"
+    )
+
+    fun substituteTypes(annotation: String): String =
+        substitutionMap.fold(annotation) { acc, (old, new) ->
+            acc.replace(old, new)
+        }
 }

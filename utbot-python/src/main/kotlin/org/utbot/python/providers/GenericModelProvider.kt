@@ -96,6 +96,10 @@ fun Sequence<List<FuzzedValue>>.randomChunked(): Sequence<List<List<FuzzedValue>
     val seq = this
     val maxSize = 15
     val listOfLists = (0 until maxSize).map { seq.take(10).toList() }
+
+    if (listOfLists.any { it.isEmpty() })
+        return emptySequence()
+
     return CartesianProduct(listOfLists, Random(0)).asSequence().map {
         it.take(Random.nextInt(maxSize))
     }

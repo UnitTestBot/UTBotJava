@@ -5,8 +5,8 @@ import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
-import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+import org.utbot.python.utils.AnnotationNormalizer.substituteTypes
 import java.io.File
 
 object PythonTestCaseGenerator {
@@ -133,7 +133,11 @@ object PythonTestCaseGenerator {
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
         val candidates = mutableMapOf<String, Int>() // key: type, value: priority
-        PythonTypesStorage.builtinTypes.associateByTo(destination = candidates, { "builtins.$it" }, { 0 })
+        PythonTypesStorage.builtinTypes.associateByTo(
+            destination = candidates,
+            { substituteTypes("builtins.$it") },
+            { 0 }
+        )
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
                 is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = inf

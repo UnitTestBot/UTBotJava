@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
+import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.code.PythonCode
@@ -41,6 +42,7 @@ import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 
 
@@ -79,7 +81,8 @@ object PythonDialogProcessor {
                 containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
                 file,
-                getDefaultModuleToImport(file)
+                getDefaultModuleToImport(file),
+                UtSettings.utBotGenerationTimeoutInMillis
             )
         )
     }
@@ -107,6 +110,7 @@ object PythonDialogProcessor {
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
+                val startTime = System.currentTimeMillis()
 
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
@@ -145,29 +149,44 @@ object PythonDialogProcessor {
                         pythonPath,
                         model.project.basePath!!,
                         filePath
-                    ) { indicator.isCanceled }
+                    ) { indicator.isCanceled || (System.currentTimeMillis() - startTime) > model.timeout }
                 }
 
                 val tests = pythonMethods.map { method ->
                     testCaseGenerator.generate(method)
                 }
-                val notEmptyTests = tests.filter { it.executions.isNotEmpty() || it.errors.isNotEmpty() }
-                val functionsWithoutTests = tests.mapNotNull {
-                    if (it.executions.isEmpty() && it.errors.isEmpty()) it.method.name else null
-                }
 
-                if (functionsWithoutTests.isNotEmpty() && !indicator.isCanceled) {
+                val notEmptyTests = tests.filter { it.executions.isNotEmpty() || it.errors.isNotEmpty() }
+                val emptyTestSets = tests.filter { it.executions.isEmpty() && it.errors.isEmpty() }
+
+                if (emptyTestSets.isNotEmpty() && !indicator.isCanceled) {
+                    val functionNames = emptyTestSets.map { it.method.name }
                     showErrorDialogLater(
                         project,
-                        message = "Cannot create tests for the following functions: " + functionsWithoutTests.joinToString { it },
+                        message = "Cannot create tests for the following functions: " + functionNames.joinToString(),
                         title = "Python test generation error"
                     )
                 }
 
 //                val files = mutableListOf<File>()
-//                notEmptyTests.forEach {
-//                    val testCode = generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
-//                    val fileName = "test_${it.method.name}.py"
+//                val codeAsString = getContentFromPyFile(model.file)
+//                notEmptyTests.forEach { testSet ->
+//                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
+//                    val message =
+//                        if (testSet.mypyReport.isNotEmpty())
+//                            "MYPY REPORT\n${
+//                                testSet.mypyReport.joinToString(separator = "") {
+//                                    if (lineOfFunction != null && it.line >= 0)
+//                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+//                                    else
+//                                        "${it.type}: ${it.message}"
+//                                }
+//                            }"
+//                        else
+//                            null
+//
+//                    val testCode = generateTestCode(testSet, model.directoriesForSysPath, model.moduleToImport, message)
+//                    val fileName = "test_${testSet.method.name}.py"
 //                    val testFile = FileManager.createPermanentFile(fileName, testCode)
 //                    files.add(testFile)
 //                }
@@ -179,7 +198,7 @@ object PythonDialogProcessor {
 //                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
 //                        }
 //                    }
-
+//                }
                 val context = UtContext(this::class.java.classLoader)
 
                 val classId = ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
@@ -217,17 +236,6 @@ object PythonDialogProcessor {
                     )
                     println(x.generatedCode)
                 }
-
-//                val testCode = PythonCodeGenerator.generateAsString(
-//                    ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__"),
-//                    notEmptyTests,
-//                )
-//                saveToFile("$testSourceRoot/test_.py", testCode)
-
-//                notEmptyTests.forEach { pythonTestSet ->
-//                generateTestCode(it, model.directoriesForSysPath, model.moduleToImport)
-//                saveToFile("$testSourceRoot/test_${it.method.name}.py", testCode)
-//                }
             }
         })
     }
@@ -252,7 +260,9 @@ fun getDefaultModuleToImport(file: PyFile): String {
     return "${importPath}.${file.name}".dropLast(3).toPath().joinToString(".")
 }
 
+fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
+
 fun getPyCodeFromPyFile(file: PyFile): PythonCode {
-    val content = file.viewProvider.contents.toString()
+    val content = getContentFromPyFile(file)
     return getFromString(content)
 }

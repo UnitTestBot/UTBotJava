@@ -35,7 +35,11 @@ object PythonTestCaseGenerator {
         this.isCancelled = isCancelled
     }
 
+    private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
+
     fun generate(method: PythonMethod): PythonTestSet {
+        storageForMypyMessages.clear()
+
         val initialArgumentTypes = method.arguments.map {
             annotationToClassId(
                 it.annotation,
@@ -84,7 +88,7 @@ object PythonTestCaseGenerator {
             }
         }
 
-        return PythonTestSet(method, executions, errors)
+        return PythonTestSet(method, executions, errors, storageForMypyMessages)
     }
 
     fun getAnnotations(
@@ -129,7 +133,7 @@ object PythonTestCaseGenerator {
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
         val candidates = mutableMapOf<String, Int>() // key: type, value: priority
-        PythonTypesStorage.builtinTypes.associateByTo(destination = candidates, { it }, { 0 })
+        PythonTypesStorage.builtinTypes.associateByTo(destination = candidates, { "builtins.$it" }, { 0 })
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
                 is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = inf
@@ -153,6 +157,10 @@ object PythonTestCaseGenerator {
                     ).forEach { increaseValue(candidates, it) }
                 }
             }
+        }
+        candidates.keys.forEach { typeName ->
+            if (PythonTypesStorage.isFromProject(typeName))
+                increaseValue(candidates, typeName)
         }
         return candidates.toList().sortedByDescending { it.second }.map { it.first }
     }
@@ -181,7 +189,8 @@ object PythonTestCaseGenerator {
             moduleToImport,
             directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
             pythonPath,
-            isCancelled
+            isCancelled,
+            storageForMypyMessages
         )
     }
 }

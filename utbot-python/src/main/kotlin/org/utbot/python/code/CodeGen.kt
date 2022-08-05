@@ -31,7 +31,6 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrin
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.*
-import java.io.File
 
 
 object PythonCodeGenerator {
@@ -40,15 +39,27 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    fun generateTestCode(testCase: PythonTestSet, directoriesForSysPath: List<String>, moduleToImport: String): String {
+    fun generateTestCode(
+        testCase: PythonTestSet,
+        directoriesForSysPath: List<String>,
+        moduleToImport: String,
+        messageInBeginningOfFile: String? = null
+    ): String {
         val importFunction = generateImportFunctionCode(
             moduleToImport,
-            directoriesForSysPath
+            directoriesForSysPath,
+            testCase.errors.flatMap { it.types } + testCase.executions.flatMap { it.types }
         )
         val testCaseCodes = (testCase.executions + testCase.errors).mapIndexed { index, utExecution ->
             generateTestCode(testCase.method, utExecution, index)
         }
-        return toString(Module(importFunction)) + testCaseCodes.joinToString("")
+
+        var code = toString(Module(importFunction))
+        if (messageInBeginningOfFile != null)
+            code += "\n\"\"\"\n$messageInBeginningOfFile\"\"\"\n"
+        code += testCaseCodes.joinToString("")
+
+        return code
     }
 
     fun generateTestCode(method: PythonMethod, result: PythonResult, number: Int) =
@@ -221,6 +232,7 @@ object PythonCodeGenerator {
                 )
             )
         }
+
         val additionalImport = additionalModules
             .asSequence()
             .map { it.split("[", "]", ",", "|") }
@@ -248,12 +260,14 @@ object PythonCodeGenerator {
         outputFilename: String,
         errorFilename: String,
         directoriesForSysPath: List<String>,
-        moduleToImport: String
+        moduleToImport: String,
+        additionalModules: List<String> = emptyList()
     ): String {
 
         val importStatements = generateImportFunctionCode(
             moduleToImport,
-            directoriesForSysPath
+            directoriesForSysPath,
+            additionalModules
         )
 
         val testFunctionName = "__run_${method.name}"

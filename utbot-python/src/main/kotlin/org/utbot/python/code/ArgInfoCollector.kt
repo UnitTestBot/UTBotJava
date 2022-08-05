@@ -50,7 +50,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             return listOf(
                 typeStorages,
                 methodStorages,
-                functionRetStorages,
+                functionArgStorages,
                 fieldStorages,
                 functionRetStorages
             ).flatten()
@@ -234,10 +234,42 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             }
         }
 
+        private val magicMethodOfFunctionCall: Map<String, String> =
+            mapOf(
+                "len" to "__len__",
+                "str" to "__str__",
+                "repr" to "__repr__",
+                "bytes" to "__bytes__",
+                "format" to "__format__",
+                "hash" to "__hash__",
+                "bool" to "__bool__",
+                "dir" to "__dir__"
+            )
+
+        private fun collectMagicMethodsFromCalls(atom: Atom, param: MutableMap<String, Storage>) {
+            val callNamePat: Parser<(String) -> (String) -> ResMethod, (String) -> ResMethod, Name> =
+                magicMethodOfFunctionCall.entries.fold(reject()) { acc, entry ->
+                    or(acc, map0(name(equal(entry.key)), entry.value))
+                }
+            val pat = functionCallWithoutPrefix(
+                fname = callNamePat,
+                farguments = arguments(
+                    fargs = any(namePat()),
+                    drop(), drop(), drop()
+                )
+            )
+            parse(pat, onError = null, atom) { methodName -> { paramName ->
+                Pair(paramName, MethodStorage(methodName))
+            } } ?.let {
+                addToStorage(it.first, param) { storage -> storage.methodStorages.add(it.second) }
+            }
+        }
+
         override fun visitAtom(atom: Atom, param: MutableMap<String, Storage>): AST {
             collectFunctionArg(atom, param)
             collectField(atom, param)
             collectAtomMethod(atom, param)
+            collectMagicMethodsFromCalls(atom, param)
             return super.visitAtom(atom, param)
         }
 

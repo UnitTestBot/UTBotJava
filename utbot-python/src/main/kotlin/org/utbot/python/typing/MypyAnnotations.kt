@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import org.utbot.python.utils.getLineOfFunction
 import org.utbot.python.utils.runCommand
 import java.io.File
 
@@ -11,13 +12,16 @@ import java.io.File
 object MypyAnnotations {
     private const val mypyVersion = "0.971"
 
+    data class MypyReportLine(val line: Int, val type: String, val message: String)
+
     fun getCheckedByMypyAnnotations(
         method: PythonMethod,
         functionArgAnnotations: Map<String, List<String>>,
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,
-        isCancelled: () -> Boolean
+        isCancelled: () -> Boolean,
+        storageForMypyMessages: MutableList<MypyReportLine>? = null
     ) = sequence {
         val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy")
         val codeWithoutAnnotations = generateMypyCheckCode(
@@ -30,6 +34,11 @@ object MypyAnnotations {
 
         startMypyDaemon(pythonPath, directoriesForSysPath)
         val defaultOutput = runMypy(pythonPath, fileWithCode)
+
+        if (storageForMypyMessages != null) {
+            getErrorsAndNotes(defaultOutput, codeWithoutAnnotations).forEach { storageForMypyMessages.add(it) }
+        }
+
         val defaultErrorNum = getErrorNumber(defaultOutput)
 
         val candidates = functionArgAnnotations.entries.map { (key, value) ->
@@ -37,13 +46,16 @@ object MypyAnnotations {
                 Pair(key, it)
             }
         }
-        if (candidates.any { it.isEmpty() })
+        if (candidates.any { it.isEmpty() }) {
+            fileWithCode.delete()
             return@sequence
+        }
 
-        val annotationCandidates = PriorityCartesianProduct(candidates).getSequence()
-        annotationCandidates.forEach checkAnnotations@{
-            if (isCancelled())
-                return@checkAnnotations
+        PriorityCartesianProduct(candidates).getSequence().forEach {
+            if (isCancelled()) {
+                fileWithCode.delete()
+                return@sequence
+            }
 
             val annotationMap = it.toMap()
             val codeWithAnnotations = generateMypyCheckCode(
@@ -112,8 +124,19 @@ object MypyAnnotations {
     }
 
     fun installMypy(pythonPath: String): Int {
-        val result = runCommand(listOf(pythonPath, "-m", "pip", "install", "mypy==" + mypyVersion))
+        val result = runCommand(listOf(pythonPath, "-m", "pip", "install", "mypy==$mypyVersion"))
         return result.exitValue
+    }
+
+    fun getErrorsAndNotes(mypyOutput: String, mypyCode: String): List<MypyReportLine> {
+        val regex = Regex(":([0-9]*): (error|note): ([^\n]*\n)")
+        return regex.findAll(mypyOutput).toList().map { match ->
+            MypyReportLine(
+                match.groupValues[1].toInt() - getLineOfFunction(mypyCode)!!,
+                match.groupValues[2],
+                match.groupValues[3]
+            )
+        }
     }
 }
 

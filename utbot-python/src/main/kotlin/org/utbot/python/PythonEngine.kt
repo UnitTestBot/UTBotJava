@@ -33,6 +33,8 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
+        val pythonTypes = selectedTypeMap.values.mapNotNull { PythonTypesStorage.getTypeByName(it)?.name }
+
         fuzz(methodUnderTestDescription, concreteTypesModelProvider).forEach { values ->
             val modelList = values.map { it.model }
             val evalResult = PythonEvaluation.evaluate(
@@ -40,7 +42,8 @@ class PythonEngine(
                 modelList,
                 directoriesForSysPath,
                 moduleToImport,
-                pythonPath
+                pythonPath,
+                pythonTypes
             )
             if (evalResult is EvaluationError)
                 return@sequence
@@ -48,7 +51,7 @@ class PythonEngine(
             val (resultJSON, isException) = evalResult as EvaluationSuccess
 
             if (isException) {
-                yield(PythonError(UtError(resultJSON.output, Throwable()), modelList))
+                yield(PythonError(UtError(resultJSON.output, Throwable()), modelList, pythonTypes))
             } else {
 
                 // some types cannot be used as return types in tests (like socket or memoryview)
@@ -81,7 +84,8 @@ class PythonEngine(
                             testMethodName = testMethodName?.testName,
                             displayName = testMethodName?.displayName
                         ),
-                        modelList
+                        modelList,
+                        pythonTypes
                     )
                 )
             }

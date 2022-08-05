@@ -9,10 +9,12 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.mods.Module
+import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
+import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AnnAssign
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
@@ -24,6 +26,7 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.python.*
+import org.utbot.python.utils.annotationToClassId
 import java.math.BigInteger
 import java.util.*
 import javax.xml.bind.DatatypeConverter.parseLong
@@ -59,8 +62,25 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null) {
     val methods: List<PythonMethodBody>
         get() = ast.functionDefs.map { PythonMethodBody(it) }
 
-    val initFunction: PythonMethodBody?
-        get() = ast.functionDefs.find { it.name.name == "__init__" } ?.let { PythonMethodBody(it) }
+    val initSignature: List<PythonArgument>?
+        get() {
+            val ordinary = ast.functionDefs.find { it.name.name == "__init__" } ?.let { PythonMethodBody(it) }
+            if (ordinary != null) {
+                return ordinary.arguments.drop(1) // drop 'self' parameter
+            }
+            if (ast.decorators.any { it.name.name == "dataclass" }) {
+                return topLevelFields.map {
+                    PythonArgument(
+                        (it.target as? Name)?.id?.name ?: return null,
+                        astToString(it.annotation).trim()
+                    )
+                }
+            }
+            return null
+        }
+
+    val topLevelFields: List<AnnAssign>
+        get() = (ast.body as? Body)?.statements?.mapNotNull { it as? AnnAssign } ?: emptyList()
 }
 
 class PythonMethodBody(private val ast: FunctionDef): PythonMethod {

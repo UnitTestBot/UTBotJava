@@ -57,6 +57,10 @@ object PythonTypesStorage {
         return fromStubs union fromProject.toSet()
     }
 
+    fun isFromProject(typeName: String): Boolean {
+        return projectClasses.any { it.pythonClass.name == typeName }
+    }
+
     fun getTypeByName(classId: ClassId): PythonType? {
         val fromStub = StubFileFinder.nameToClassMap[classId.name]
         if (fromStub != null) {
@@ -117,9 +121,7 @@ object PythonTypesStorage {
             val code = PythonCode.getFromString(content, file.path)
             code.getToplevelClasses().map { pyClass ->
                 val collector = ClassInfoCollector(pyClass)
-                val initSignature = pyClass.initFunction
-                    ?.arguments
-                    ?.drop(1) // drop 'self' parameter
+                val initSignature = pyClass.initSignature
                     ?.map {
                         annotationToClassId(
                             it.annotation,

@@ -16,7 +16,8 @@ class PythonTestsModel(
     val containingClass: PyClass?,
     val focusedMethod: Set<PyFunction>?,
     val file: PyFile,
-    var moduleToImport: String
+    var moduleToImport: String,
+    var timeout: Long
 ): BaseTestsModel(
     project,
     srcModule,

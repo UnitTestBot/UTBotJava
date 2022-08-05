@@ -136,6 +136,8 @@ class StubFileCollector:
 
             elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 json_data = AstFunctionDefEncoder().default(ast_)
+                function_name = f'{module_name}.{ast_.name}'
+                json_data['name'] = function_name
                 self.functions_dataset[ast_.name].append(
                     json_data | {'className': None}
                 )
@@ -174,14 +176,14 @@ class StubFileCollector:
             _ast_handler(name_info.ast)
 
     def save_method_annotations(self):
-        with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
-            print(json.dumps(self.classes_dataset, sort_keys=True, indent=True), file=fout)
-
-        with open(f'{self.dataset_directory}/field_annotations.json', 'w') as fout:
-            print(json.dumps(defaultdict_to_array(self.fields_dataset), sort_keys=True, indent=True), file=fout)
-
-        with open(f'{self.dataset_directory}/method_annotations.json', 'w') as fout:
-            print(json.dumps(defaultdict_to_array(self.methods_dataset), sort_keys=True, indent=True), file=fout)
+        # with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
+        #     print(json.dumps(self.classes_dataset, sort_keys=True, indent=True), file=fout)
+        #
+        # with open(f'{self.dataset_directory}/field_annotations.json', 'w') as fout:
+        #     print(json.dumps(defaultdict_to_array(self.fields_dataset), sort_keys=True, indent=True), file=fout)
+        #
+        # with open(f'{self.dataset_directory}/method_annotations.json', 'w') as fout:
+        #     print(json.dumps(defaultdict_to_array(self.methods_dataset), sort_keys=True, indent=True), file=fout)
 
         with open(f'{self.dataset_directory}/function_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.functions_dataset), sort_keys=True, indent=True), file=fout)

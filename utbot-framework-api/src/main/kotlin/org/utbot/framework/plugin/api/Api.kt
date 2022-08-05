@@ -306,7 +306,7 @@ class PythonInitObjectModel(
     val initValues: List<UtModel>
 ): PythonModel(ClassId(type)) {
     override fun toString(): String {
-        val params = initValues.map { it.toString() }.reduce { acc, value -> "$acc, $value" }
+        val params = initValues.joinToString(separator = ", ") { it.toString() }
         return "$type($params)"
     }
 }

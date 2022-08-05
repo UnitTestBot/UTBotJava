@@ -215,21 +215,6 @@ internal abstract class TestFrameworkManager(val context: CgContext)
      * Add a short test's description depending on the test framework type:
      */
     abstract fun addTestDescription(description: String)
-//    {
-//        if (description == null) return
-//        val testAnnotation =
-//            collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
-//
-//        val descriptionArgument = CgNamedAnnotationArgument("description", stringLiteral(description))
-//        if (testAnnotation is CgMultipleArgsAnnotation) {
-//            testAnnotation.arguments += descriptionArgument
-//        } else {
-//            collectedMethodAnnotations += CgMultipleArgsAnnotation(
-//                testFramework.testAnnotationId,
-//                mutableListOf(descriptionArgument)
-//            )
-//        }
-//    }
 
     abstract fun disableTestMethod(reason: String)
 
@@ -399,7 +384,8 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
 }
 
 internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context) {
-    private val parametrizedTestsNotSupportedError: Nothing = error("Parametrized tests are not supported for JUnit4")
+    private val parametrizedTestsNotSupportedError: Nothing
+        get() = error("Parametrized tests are not supported for JUnit4")
 
     override val dataProviderMethodsHolder
         get() = parametrizedTestsNotSupportedError

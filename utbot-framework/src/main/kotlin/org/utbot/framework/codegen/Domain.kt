@@ -375,16 +375,21 @@ object TestNg : TestFramework(displayName = "TestNG") {
 }
 
 object Junit4 : TestFramework("JUnit4") {
-    private val parametrizedTestsNotSupportedError: Nothing = error("Parametrized tests are not supported for JUnit4")
+    private val parametrizedTestsNotSupportedError: Nothing
+        get() = error("Parametrized tests are not supported for JUnit4")
 
     override val mainPackage: String = JUNIT4_PACKAGE
     override val testAnnotation = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"
 
-    override val parameterizedTestAnnotation = parametrizedTestsNotSupportedError
-    override val parameterizedTestAnnotationFqn = parametrizedTestsNotSupportedError
-    override val methodSourceAnnotation = parametrizedTestsNotSupportedError
-    override val methodSourceAnnotationFqn = parametrizedTestsNotSupportedError
+    override val parameterizedTestAnnotation
+        get() = parametrizedTestsNotSupportedError
+    override val parameterizedTestAnnotationFqn
+        get() = parametrizedTestsNotSupportedError
+    override val methodSourceAnnotation
+        get() = parametrizedTestsNotSupportedError
+    override val methodSourceAnnotationFqn
+        get() = parametrizedTestsNotSupportedError
 
     override val testAnnotationId = BuiltinClassId(
         name = "$JUNIT4_PACKAGE.Test",

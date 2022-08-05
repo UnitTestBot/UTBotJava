@@ -28,7 +28,6 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
 import org.utbot.framework.plugin.api.util.safeJField
 import org.utbot.framework.plugin.api.util.shortClassId
@@ -100,32 +99,6 @@ data class UtMethodTestSet(
     val errors: Map<String, Int> = emptyMap(),
     val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
 )
-
-data class CgMethodTestSet private constructor(
-    val executableId: ExecutableId,
-    val executions: List<UtExecution> = emptyList(),
-    val jimpleBody: JimpleBody? = null,
-    val errors: Map<String, Int> = emptyMap(),
-    val clustersInfo: List<Pair<UtClusterInfo?, IntRange>> = listOf(null to executions.indices)
-) {
-    constructor(from: UtMethodTestSet) : this(
-        from.method.callable.executableId,
-        from.executions,
-        from.jimpleBody,
-        from.errors,
-        from.clustersInfo
-    )
-
-    constructor(
-        executableId: ExecutableId,
-        executions: List<UtExecution> = emptyList()
-    ) : this(
-        executableId,
-        executions,
-        null,
-        emptyMap(),
-    )
-}
 
 data class Step(
     val stmt: Stmt,

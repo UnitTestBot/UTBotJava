@@ -1061,7 +1061,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    fun createTestMethod(executableId: ExecutableId, execution: UtSymbolicExecution): CgTestMethod =
+    fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed

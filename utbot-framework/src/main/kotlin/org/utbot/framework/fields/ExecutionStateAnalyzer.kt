@@ -4,23 +4,11 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.workaround
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
 
-class ExecutionStateAnalyzer(val execution: UtSymbolicExecution) {
+class ExecutionStateAnalyzer(val execution: UtExecution) {
     fun findModifiedFields(): StateModificationInfo {
         return StateModificationInfo()
             .analyzeThisInstance()

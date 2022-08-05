@@ -85,7 +85,6 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }
 
         val (methodUnderTest, _, _, clustersInfo) = testSet
-        val symbolicExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
@@ -96,7 +95,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
                         runCatching {
-                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, symbolicExecutions[i])
+                            currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
                         }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header

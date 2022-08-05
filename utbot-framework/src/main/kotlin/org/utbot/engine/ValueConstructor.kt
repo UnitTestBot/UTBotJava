@@ -1,7 +1,5 @@
 package org.utbot.engine
 
-import org.utbot.common.findField
-import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
 import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
@@ -37,6 +35,7 @@ import org.utbot.framework.plugin.api.UtValueExecutionState
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
@@ -212,9 +211,8 @@ class ValueConstructor {
         val classInstance = javaClass.anyInstance
         constructedObjects[model] = classInstance
 
-        model.fields.forEach { (field, fieldModel) ->
-            val declaredField =
-                javaClass.findFieldOrNull(field.name) ?: error("Can't find field: $field for $javaClass")
+        model.fields.forEach { (fieldId, fieldModel) ->
+            val declaredField = fieldId.jField
             val accessible = declaredField.isAccessible
 
             try {
@@ -228,7 +226,7 @@ class ValueConstructor {
                         fieldModel.classId.name,
                         model.classId.name,
                         UtConcreteValue(classInstance),
-                        field.name
+                        fieldId.name
                     )
                 }
                 val value = construct(fieldModel, target).value
@@ -360,7 +358,7 @@ class ValueConstructor {
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = instance::class.java.findField(directSetterModel.fieldId.name)
+        val field = directSetterModel.fieldId.jField
         val isAccessible = field.isAccessible
 
         try {

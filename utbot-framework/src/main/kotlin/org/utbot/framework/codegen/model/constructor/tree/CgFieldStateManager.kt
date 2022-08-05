@@ -177,7 +177,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
                     }
 
                     // if previous field has type that does not have current field, this field is inaccessible
-                    if (index > 0 && !path[index - 1].type.hasField(fieldPathElement.field.name)) {
+                    if (index > 0 && !path[index - 1].type.hasField(fieldPathElement.field)) {
                         lastAccessibleIndex = index - 1
                         break
                     }

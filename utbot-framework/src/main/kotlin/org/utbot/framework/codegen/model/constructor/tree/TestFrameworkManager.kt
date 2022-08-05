@@ -15,7 +15,6 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
@@ -174,13 +173,39 @@ internal abstract class TestFrameworkManager(val context: CgContext)
         }
     }
 
+    /**
+     * Supplements TestNG @Test annotation with a description.
+     * It looks like @Test(description="...")
+     *
+     * Should be used only with TestNG.
+     * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/576">issue-576 on GitHub</a>
+     */
+    open fun addTestDescription(description: String?) {
+        if (description == null) return
+        val testAnnotation =
+            collectedMethodAnnotations.singleOrNull { it.classId == testFramework.testAnnotationId }
+
+        val descriptionArgument = CgNamedAnnotationArgument("description", stringLiteral(description))
+        if (testAnnotation is CgMultipleArgsAnnotation) {
+            testAnnotation.arguments += descriptionArgument
+        } else {
+            collectedMethodAnnotations += CgMultipleArgsAnnotation(
+                testFramework.testAnnotationId,
+                mutableListOf(descriptionArgument)
+            )
+        }
+    }
+
     abstract fun disableTestMethod(reason: String)
 
-    // We add a commented JUnit5 DisplayName annotation here by default,
-    // because other test frameworks do not support such feature.
+    /**
+     * Adds @DisplayName annotation.
+     *
+     * Should be used only with JUnit 5.
+     * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/576">issue-576 on GitHub</a>
+     */
     open fun addDisplayName(name: String) {
-        val displayName = CgSingleArgAnnotation(Junit5.displayNameClassId, stringLiteral(name))
-        collectedMethodAnnotations += CgCommentedAnnotation(displayName)
+        collectedMethodAnnotations += CgSingleArgAnnotation(Junit5.displayNameClassId, stringLiteral(name))
     }
 
     protected fun ClassId.toExceptionClass(): CgExpression =

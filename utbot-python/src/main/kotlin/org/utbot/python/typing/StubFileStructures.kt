@@ -36,10 +36,10 @@ object StubFileStructures {
         val name: String,
         val returns: String,
     ) {
-        val module: String
+        val defName: String
             get() = name.split('.').last()
 
-        val defName: String
+        val module: String
             get() = name.split('.').dropLast(1).joinToString(".")
     }
 

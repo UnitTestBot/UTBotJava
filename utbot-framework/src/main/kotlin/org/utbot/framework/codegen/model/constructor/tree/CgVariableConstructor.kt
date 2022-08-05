@@ -95,7 +95,17 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtClassRefModel -> constructClassRef(model, baseName)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
-                is PythonModel -> CgLiteral(model.classId, model.toString())
+                is PythonDefaultModel -> CgLiteral(model.classId, model.type)
+//                is PythonBoolModel -> TODO()
+//                is PythonComplexObjectModel -> TODO()
+                is PythonDictModel -> CgLiteral(model.classId, model.stores)
+//                is PythonFloatModel -> TODO()
+//                is PythonInitObjectModel -> TODO()
+//                is PythonIntModel -> TODO()
+//                is PythonListModel -> TODO()
+//                is PythonSetModel -> TODO()
+//                is PythonStrModel -> TODO()
+                is PythonModel -> error("Unexpected PythonModel: ${model::class}")
             }
         }
     }

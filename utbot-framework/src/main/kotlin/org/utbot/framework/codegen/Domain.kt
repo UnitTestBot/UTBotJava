@@ -242,19 +242,23 @@ sealed class TestFramework(
     }
 }
 
-object Pytest : TestFramework(displayName = "Pytest") {
+object Pytest : TestFramework(displayName = "pytest") {
     override val mainPackage: String
         get() = TODO("Not yet implemented")
-    override val assertionsClass: ClassId
-        get() = TODO("Not yet implemented")
-    override val arraysAssertionsClass: ClassId
-        get() = TODO("Not yet implemented")
+    override val assertionsClass: ClassId = BuiltinClassId(
+        name = "Asserts",
+        canonicalName = "Asserts",
+        simpleName = "Asserts"
+    )
+    override val arraysAssertionsClass: ClassId = assertionsClass
     override val testAnnotation: String
         get() = TODO("Not yet implemented")
-    override val testAnnotationId: ClassId
-        get() = TODO("Not yet implemented")
-    override val testAnnotationFqn: String
-        get() = TODO("Not yet implemented")
+    override val testAnnotationId: ClassId = BuiltinClassId(
+        name = "Test",
+        canonicalName = "Test",
+        simpleName = "Test"
+    )
+    override val testAnnotationFqn: String = "Test"
     override val parameterizedTestAnnotation: String
         get() = TODO("Not yet implemented")
     override val parameterizedTestAnnotationId: ClassId

@@ -100,8 +100,8 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     protected abstract val logicalAnd: String
     protected abstract val logicalOr: String
 
-    protected val regionStart: String = "///region"
-    protected val regionEnd: String = "///endregion"
+    protected open val regionStart: String = "///region"
+    protected open val regionEnd: String = "///endregion"
 
     protected abstract val language: CodegenLanguage
 

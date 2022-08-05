@@ -25,6 +25,7 @@ import com.jetbrains.python.refactoring.classes.membersManager.PyMemberInfo
 import com.jetbrains.python.refactoring.classes.ui.PyMemberSelectionTable
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import java.awt.BorderLayout
 import javax.swing.*
@@ -60,14 +61,12 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             row("Test source root:") {
                 component(testSourceFolderField)
             }
-            /*
             row("Test framework:") {
                 makePanelWithHelpTooltip(
                     testFrameworks as ComboBox<CodeGenerationSettingItem>,
                     itemsToHelpTooltip[testFrameworks]
                 )
             }
-             */
             row("Generate test methods for:") {}
             row {
                 scrollPane(functionsTable)
@@ -155,6 +154,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.directoriesForSysPath = PathChooser.model.elements().toList()
         model.moduleToImport = moduleToImportField.text
+        model.testFramework = testFrameworks.item
+        model.codegenLanguage = CodegenLanguage.PYTHON
 
         super.doOKAction()
     }

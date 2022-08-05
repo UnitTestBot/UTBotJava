@@ -20,16 +20,27 @@ import org.utbot.framework.codegen.model.constructor.tree.MockFrameworkManager
 import org.utbot.framework.codegen.model.constructor.tree.PytestManager
 import org.utbot.framework.codegen.model.constructor.tree.TestFrameworkManager
 import org.utbot.framework.codegen.model.constructor.tree.TestNgManager
+import org.utbot.framework.plugin.api.CodegenLanguage
 
 // TODO: probably rewrite it to delegates so that we could write 'val testFrameworkManager by CgComponents' etc.
 internal object CgComponents {
     fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) { CgNameGeneratorImpl(context) }
 
     fun getCallableAccessManagerBy(context: CgContext) =
-            callableAccessManagers.getOrPut(context) { CgCallableAccessManagerImpl(context) }
+        callableAccessManagers.getOrPut(context) {
+            when (context.testFramework) {
+                is Pytest -> PythonCgCallableAccessManagerImpl(context)
+                else -> CgCallableAccessManagerImpl(context)
+            }
+        }
 
     fun getStatementConstructorBy(context: CgContext) =
-            statementConstructors.getOrPut(context) { CgStatementConstructorImpl(context) }
+        statementConstructors.getOrPut(context) {
+            when (context.testFramework) {
+                is Pytest -> PythonCgStatementConstructorImpl(context)
+                else -> CgStatementConstructorImpl(context)
+            }
+        }
 
     fun getTestFrameworkManagerBy(context: CgContext) = when (context.testFramework) {
         is Junit4 -> testFrameworkManagers.getOrPut(context) { Junit4Manager(context) }

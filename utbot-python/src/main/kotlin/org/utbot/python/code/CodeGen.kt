@@ -8,6 +8,8 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.Add
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
@@ -147,12 +149,29 @@ object PythonCodeGenerator {
                 ),
                 Assign(
                     listOf(Name("out['type']")),
-                    Atom(
+                    Add(
                         Atom(
-                            Name("type"),
-                            listOf(createArguments(listOf(Name(outputName))))
+                            Atom(
+                                Name("inspect.getmodule"),
+                                listOf(createArguments(listOf(
+                                    Atom(
+                                        Name("type"),
+                                        listOf(createArguments(listOf(Name(outputName))))
+                                    )
+                                )))
+                            ),
+                            listOf(Attribute(Identifier("__name__")))
                         ),
-                        listOf(Attribute(Identifier("__name__")))
+                        Add(
+                            Str("."),
+                            Atom(
+                                Atom(
+                                    Name("type"),
+                                    listOf(createArguments(listOf(Name(outputName))))
+                                ),
+                                listOf(Attribute(Identifier("__name__")))
+                            ),
+                        )
                     )
                 ),
                 Atom(
@@ -190,6 +209,7 @@ object PythonCodeGenerator {
             Alias("typing"),
             Alias("json"),
             Alias("builtins"),
+            Alias("inspect"),
         ))
         val systemCalls = directoriesForSysPath.map { path ->
             Atom(
@@ -205,7 +225,7 @@ object PythonCodeGenerator {
             .asSequence()
             .map { it.split("[", "]", ",", "|") }
             .flatten()
-            .map { it.replace("\\s".toRegex(), "") }
+            .map { it.trim() }
             .mapNotNull {
                 if (it.contains(".")) {
                     val module = it.split(".").dropLast(1).joinToString(".")

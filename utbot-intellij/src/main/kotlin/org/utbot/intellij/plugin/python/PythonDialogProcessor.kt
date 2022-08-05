@@ -203,9 +203,11 @@ object PythonDialogProcessor {
                                 method to testSet.method.arguments.map { it.name }
                             }
                             .toMutableMap(),
+                        testFramework = model.testFramework,
+                        codegenLanguage = model.codegenLanguage,
                         testClassPackageName = "",
                     )
-                    codegen.generateAsStringWithTestReport(
+                    val x = codegen.generateAsStringWithTestReport(
                         methods.zip(notEmptyTests).map { (method, testSet) ->
                             CgMethodTestSet(
                                 method,
@@ -213,6 +215,7 @@ object PythonDialogProcessor {
                             )
                         }
                     )
+                    println(x.generatedCode)
                 }
 
 //                val testCode = PythonCodeGenerator.generateAsString(

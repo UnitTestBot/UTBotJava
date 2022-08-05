@@ -1,6 +1,8 @@
 package org.utbot.framework.codegen.model.visitor
 
 import org.apache.commons.text.StringEscapeUtils
+import org.utbot.common.WorkaroundReason
+import org.utbot.common.workaround
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
@@ -10,9 +12,14 @@ import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.util.kClass
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
+    override val regionStart: String = "# region"
+    override val regionEnd: String = "# endregion"
+
     override val statementEnding: String = ""
 
     override val logicalAnd: String
@@ -24,6 +31,58 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override val language: CodegenLanguage = CodegenLanguage.PYTHON
 
     override val langPackage: String = "python"
+
+    override fun visit(element: CgCommentedAnnotation) {
+        print("#")
+        element.annotation.accept(this)
+    }
+
+    override fun visit(element: CgSingleArgAnnotation) {
+        print("")
+    }
+
+    override fun visit(element: CgMultipleArgsAnnotation) {
+        print("")
+    }
+
+    override fun visit(element: CgSingleLineComment) {
+        println("# ${element.comment}")
+    }
+
+    override fun visit(element: CgAbstractMultilineComment) {
+        visit(element as CgElement)
+    }
+
+    override fun visit(element: CgTripleSlashMultilineComment) {
+        for (line in element.lines) {
+            println("# $line")
+        }
+    }
+
+    override fun visit(element: CgMultilineComment) {
+        val lines = element.lines
+        if (lines.isEmpty()) return
+
+        if (lines.size == 1) {
+            print("# ${lines.first()}")
+            return
+        }
+
+        // print lines saving indentation
+        print("\"\"\"")
+        println(lines.first())
+        lines.subList(1, lines.lastIndex).forEach { println(it) }
+        print(lines.last())
+        println("\"\"\"")
+    }
+
+    override fun visit(element: CgDocumentationComment) {
+        if (element.lines.all { it.isEmpty() }) return
+
+        println("\"\"\"")
+        for (line in element.lines) line.accept(this)
+        println("\"\"\"")
+    }
 
     override fun visit(element: CgErrorWrapper) {
         element.expression.accept(this)
@@ -38,6 +97,24 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         println(":")
         withIndent { element.body.accept(this) }
         println("")
+    }
+
+    override fun visit(element: CgTryCatch) {
+        println("try")
+        // TODO introduce CgBlock
+        visit(element.statements)
+        for ((exception, statements) in element.handlers) {
+            print("except")
+            renderExceptionCatchVariable(exception)
+            println("")
+            // TODO introduce CgBlock
+            visit(statements, printNextLine = element.finally == null)
+        }
+        element.finally?.let {
+            print("finally")
+            // TODO introduce CgBlock
+            visit(element.finally, printNextLine = true)
+        }
     }
 
     override fun visit(element: CgArrayAnnotationArgument) {
@@ -160,8 +237,8 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun renderDeclarationLeftPart(element: CgDeclaration) {
         visit(element.variable)
-        print(": ")
-        print(element.variableType.asString())
+//        print(": ")
+//        print(element.variableType.asString())
     }
 
     override fun toStringConstantImpl(byte: Byte): String {
@@ -189,7 +266,15 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderTypeParameters(typeParameters: TypeParameters) {
-        TODO("Not yet implemented")
+        if (typeParameters.parameters.isNotEmpty()) {
+            print("[")
+            if (typeParameters is WildcardTypeParameter) {
+                print("typing.Any")
+            } else {
+                print(typeParameters.parameters.joinToString { it.name })
+            }
+            print("]")
+        }
     }
 
     override fun renderExecutableCallArguments(executableCall: CgExecutableCall) {
@@ -199,11 +284,33 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
-        TODO("Not yet implemented")
+        print(exception.name.escapeNamePossibleKeyword())
     }
 
-    override fun escapeNamePossibleKeywordImpl(s: String): String =
-        if (isLanguageKeyword(s, context.codegenLanguage)) "`$s`" else s
+    override fun escapeNamePossibleKeywordImpl(s: String): String = s
+
+    override fun visit(block: List<CgStatement>, printNextLine: Boolean) {
+        println(":")
+
+        val isBlockTooLarge = workaround(WorkaroundReason.LONG_CODE_FRAGMENTS) { block.size > 120 }
+
+        if (isBlockTooLarge) {
+            print("\"\"\"")
+            println(" This block of code is ${block.size} lines long and could lead to compilation error")
+        }
+
+        withIndent {
+            for (statement in block) {
+                statement.accept(this)
+            }
+        }
+
+        if (isBlockTooLarge) println("\"\"\"")
+
+//        print("}")
+
+        if (printNextLine) println()
+    }
 
     override fun String.escapeCharacters(): String =
         StringEscapeUtils.escapeJava(this)

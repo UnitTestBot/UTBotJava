@@ -6,14 +6,9 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.providers.concreteTypesModelProvider
-import org.utbot.python.providers.substituteTypesByIndex
-import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.ReturnRenderType
-import org.utbot.python.typing.StubFileFinder
-import java.io.File
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -61,7 +56,10 @@ class PythonEngine(
                 if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
                     return@sequence
 
-                val resultAsModel = PythonDefaultModel(resultJSON.output, "")
+                val resultAsModel = PythonDefaultModel(
+                    resultJSON.output,
+                    resultJSON.type
+                )
                 val result = UtExecutionSuccess(resultAsModel)
 
                 val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())

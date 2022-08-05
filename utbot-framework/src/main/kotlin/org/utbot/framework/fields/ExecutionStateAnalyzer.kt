@@ -7,6 +7,7 @@ import org.utbot.common.workaround
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
+import org.utbot.fuzzer.UtFuzzedExecution
 
 class ExecutionStateAnalyzer(val execution: UtExecution) {
     fun findModifiedFields(): StateModificationInfo {
@@ -17,14 +18,24 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
     }
 
     private fun StateModificationInfo.analyzeThisInstance(): StateModificationInfo {
-        if (!execution.hasThisInstance()) {
-            return this
+        when (execution) {
+            is UtSymbolicExecution -> {
+                if (!execution.hasThisInstance()) {
+                    return this
+                }
+                val thisInstanceBefore = execution.stateBefore.thisInstance!!
+                val thisInstanceAfter = execution.stateAfter.thisInstance!!
+                val info = analyzeModelStates(thisInstanceBefore, thisInstanceAfter)
+                val modifiedFields = getModifiedFields(info)
+                return this.copy(thisInstance = modifiedFields)
+            }
+            is UtFuzzedExecution -> {
+                return this
+            }
+            else -> {
+                return this
+            }
         }
-        val thisInstanceBefore = execution.stateBefore.thisInstance!!
-        val thisInstanceAfter = execution.stateAfter.thisInstance!!
-        val info = analyzeModelStates(thisInstanceBefore, thisInstanceAfter)
-        val modifiedFields = getModifiedFields(info)
-        return this.copy(thisInstance = modifiedFields)
     }
 
     private fun StateModificationInfo.analyzeParameters(): StateModificationInfo {
@@ -40,25 +51,35 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
     }
 
     private fun StateModificationInfo.analyzeStatics(): StateModificationInfo {
-        if (execution.stateAfter == MissingState) return this
+        when (execution) {
+            is UtSymbolicExecution -> {
+                if (execution.stateAfter == MissingState) return this
 
-        val staticsBefore = execution.stateBefore.statics
-        val staticsAfter = execution.stateAfter.statics
+                val staticsBefore = execution.stateBefore.statics
+                val staticsAfter = execution.stateAfter.statics
 
-        val staticFieldsByClass = execution.staticFields.groupBy { it.declaringClass }
-        val modificationsByClass = mutableMapOf<ClassId, ModifiedFields>()
-        for ((classId, fields) in staticFieldsByClass) {
-            val staticFieldModifications = mutableListOf<ModifiedField>()
-            for (field in fields) {
-                val before = staticsBefore[field]!!
-                val after = staticsAfter[field]!!
-                val path = FieldPath() + FieldAccess(field)
-                val info = analyzeModelStates(before, after, path)
-                staticFieldModifications += getModifiedFields(info)
+                val staticFieldsByClass = execution.staticFields.groupBy { it.declaringClass }
+                val modificationsByClass = mutableMapOf<ClassId, ModifiedFields>()
+                for ((classId, fields) in staticFieldsByClass) {
+                    val staticFieldModifications = mutableListOf<ModifiedField>()
+                    for (field in fields) {
+                        val before = staticsBefore[field]!!
+                        val after = staticsAfter[field]!!
+                        val path = FieldPath() + FieldAccess(field)
+                        val info = analyzeModelStates(before, after, path)
+                        staticFieldModifications += getModifiedFields(info)
+                    }
+                    modificationsByClass[classId] = staticFieldModifications
+                }
+                return this.copy(staticFields = modificationsByClass)
             }
-            modificationsByClass[classId] = staticFieldModifications
+            is UtFuzzedExecution -> {
+                return this
+            }
+            else -> {
+                return this
+            }
         }
-        return this.copy(staticFields = modificationsByClass)
     }
 
     private fun analyzeModelStates(
@@ -78,11 +99,11 @@ class ExecutionStateAnalyzer(val execution: UtExecution) {
                     // therefore, AssembleModelGenerator won't be able to transform the given composite model
 
                     val reason = if (before is UtAssembleModel && after is UtCompositeModel) {
-                            "ModelBefore is an AssembleModel and ModelAfter " +
-                                    "is a CompositeModel, but modelBefore doesn't have an origin model."
+                        "ModelBefore is an AssembleModel and ModelAfter " +
+                                "is a CompositeModel, but modelBefore doesn't have an origin model."
                     } else {
-                            "The model before and the model after have different types: " +
-                                    "model before is ${before::class}, but model after is ${after::class}."
+                        "The model before and the model after have different types: " +
+                                "model before is ${before::class}, but model after is ${after::class}."
                     }
 
                     error("Cannot analyze fields modification. $reason")

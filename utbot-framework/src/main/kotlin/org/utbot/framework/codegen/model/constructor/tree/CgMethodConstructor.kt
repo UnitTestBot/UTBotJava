@@ -141,26 +141,29 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private lateinit var methodType: CgTestMethodType
 
     private fun setupInstrumentation() {
-        val instrumentation = currentExecution!!.instrumentation
-        if (instrumentation.isEmpty()) return
+        if (currentExecution is UtSymbolicExecution) {
+            val execution = currentExecution as UtSymbolicExecution
+            val instrumentation = execution.instrumentation
+            if (instrumentation.isEmpty()) return
 
-        if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.DO_NOT_FORCE) {
-            // warn user about possible flaky tests
-            multilineComment(forceStaticMocking.warningMessage)
-            return
-        }
+            if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.DO_NOT_FORCE) {
+                // warn user about possible flaky tests
+                multilineComment(forceStaticMocking.warningMessage)
+                return
+            }
 
-        instrumentation
-            .filterIsInstance<UtNewInstanceInstrumentation>()
-            .forEach { mockFrameworkManager.mockNewInstance(it) }
-        instrumentation
-            .filterIsInstance<UtStaticMethodInstrumentation>()
-            .groupBy { it.methodId.classId }
-            .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
+            instrumentation
+                .filterIsInstance<UtNewInstanceInstrumentation>()
+                .forEach { mockFrameworkManager.mockNewInstance(it) }
+            instrumentation
+                .filterIsInstance<UtStaticMethodInstrumentation>()
+                .groupBy { it.methodId.classId }
+                .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
 
-        if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
-            // warn user about forced using static mocks
-            multilineComment(forceStaticMocking.warningMessage)
+            if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
+                // warn user about forced using static mocks
+                multilineComment(forceStaticMocking.warningMessage)
+            }
         }
     }
 
@@ -1344,7 +1347,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return arguments
     }
 
-    private fun <R> withTestMethodScope(execution: UtSymbolicExecution, block: () -> R): R {
+    private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
         clearTestMethodScope()
         currentExecution = execution
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)

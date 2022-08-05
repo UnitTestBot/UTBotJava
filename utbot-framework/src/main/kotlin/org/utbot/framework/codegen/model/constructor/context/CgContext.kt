@@ -114,7 +114,7 @@ internal interface CgContextOwner {
 
     // UtExecution we currently generate a test method for.
     // It is null when no test method is being generated at the moment.
-    var currentExecution: UtSymbolicExecution?
+    var currentExecution: UtExecution?
 
     val testFramework: TestFramework
 
@@ -389,7 +389,7 @@ internal data class CgContext(
     override val existingMethodNames: MutableSet<String> = mutableSetOf(),
     override val prevStaticFieldValues: MutableMap<FieldId, CgVariable> = mutableMapOf(),
     override val paramNames: Map<ExecutableId, List<String>>,
-    override var currentExecution: UtSymbolicExecution? = null,
+    override var currentExecution: UtExecution? = null,
     override val testFramework: TestFramework,
     override val mockFramework: MockFramework,
     override val staticsMocking: StaticsMocking,

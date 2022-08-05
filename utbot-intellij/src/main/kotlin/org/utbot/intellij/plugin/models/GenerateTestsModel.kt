@@ -48,6 +48,7 @@ data class GenerateTestsModel(
     val isMultiPackage: Boolean by lazy {
         srcClasses.map { it.packageName }.distinct().size != 1
     }
+    var runGeneratedTestsWithCoverage : Boolean = false
 }
 
 val PsiClass.packageName: String get() = this.containingFile.containingDirectory.getPackage()?.qualifiedName ?: ""

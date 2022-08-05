@@ -20,6 +20,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.MapDataContext
+import mu.KotlinLogging
 import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
@@ -41,6 +42,8 @@ class RunConfigurationHelper {
     }
 
     companion object {
+        private val logger = KotlinLogging.logger {}
+
         fun runTestsWithCoverage(
             model: GenerateTestsModel,
             testFiles: MutableList<PsiFile>,
@@ -59,7 +62,7 @@ class RunConfigurationHelper {
                     val myConfigurationContext = try {
                         MyConfigurationContext(mapDataContext, testClasses[0])
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        logger.error { e }
                         return@commitAndRunReadAction
                     }
                     mapDataContext.putUserData(

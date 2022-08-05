@@ -5,7 +5,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtMethod

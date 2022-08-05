@@ -13,7 +13,6 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
@@ -32,7 +31,7 @@ import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId>) {
+class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonClassId>) {
     interface BaseStorage { val name: String }
     data class TypeStorage(override val name: String): BaseStorage
     data class MethodStorage(override val name: String): BaseStorage

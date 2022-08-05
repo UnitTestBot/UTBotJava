@@ -2,13 +2,6 @@ package org.utbot.python.typing
 
 import java.lang.Integer.min
 
-fun main() {
-    val x = PriorityCartesianProduct(listOf(listOf(1, 2, 3), listOf(4, 5), listOf(6, 7, 8, 9, 10))).getSequence()
-    x.forEach {
-        println("-- $it")
-    }
-}
-
 class PriorityCartesianProduct<T>(private val lists: List<List<T>>){
 
     private fun generateFixedSumRepresentation(

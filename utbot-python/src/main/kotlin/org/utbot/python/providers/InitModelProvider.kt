@@ -1,5 +1,6 @@
 package org.utbot.python.providers
 
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.PythonInitObjectModel
 import org.utbot.framework.plugin.api.PythonModel
 import org.utbot.fuzzer.*
@@ -7,7 +8,8 @@ import org.utbot.python.typing.PythonTypesStorage
 
 object InitModelProvider: ModelProvider {
     override fun generate(description: FuzzedMethodDescription) = sequence {
-        description.parametersMap.forEach { (classId, parameterIndices) ->
+        description.parametersMap.forEach { (classId_, parameterIndices) ->
+            val classId = classId_ as PythonClassId
 
             val type = PythonTypesStorage.getTypeByName(classId) ?: return@forEach
             val initSignature = type.initSignature ?: return@forEach

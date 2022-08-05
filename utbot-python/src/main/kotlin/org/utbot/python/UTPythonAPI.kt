@@ -1,7 +1,6 @@
 package org.utbot.python
 
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.typing.MypyAnnotations

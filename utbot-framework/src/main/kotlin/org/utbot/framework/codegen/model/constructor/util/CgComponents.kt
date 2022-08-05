@@ -29,7 +29,7 @@ internal object CgComponents {
     fun getCallableAccessManagerBy(context: CgContext) =
         callableAccessManagers.getOrPut(context) {
             when (context.testFramework) {
-                is Pytest -> PythonCgCallableAccessManagerImpl(context)
+//                is Pytest -> PythonCgCallableAccessManagerImpl(context)
                 else -> CgCallableAccessManagerImpl(context)
             }
         }

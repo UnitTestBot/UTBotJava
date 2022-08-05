@@ -1,6 +1,6 @@
 package org.utbot.python.utils
 
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import java.io.File
 
@@ -41,11 +41,11 @@ object AnnotationNormalizer {
         projectRoot: String,
         fileOfAnnotation: String,
         filesToAddToSysPath: List<String>
-    ): ClassId =
+    ): PythonClassId =
         if (annotation == null)
             pythonAnyClassId
         else
-            ClassId(
+            PythonClassId(
                 substituteTypes(
                     normalizeAnnotationFromProject(
                         annotation,
@@ -61,7 +61,7 @@ object AnnotationNormalizer {
         annotation: String,
         pythonPath: String,
         moduleOfAnnotation: String
-    ): ClassId {
+    ): PythonClassId {
         val scriptFile = getFileWithScript("/normalize_annotation_from_stub.py")
         val result = runCommand(listOf(
             pythonPath,
@@ -70,7 +70,7 @@ object AnnotationNormalizer {
             moduleOfAnnotation
         ))
         scriptFile.delete()
-        return ClassId(
+        return PythonClassId(
             substituteTypes(
                 if (result.exitValue == 0) result.stdout else annotation
             )

@@ -16,7 +16,7 @@ class PythonEngine(
     private val moduleToImport: String,
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
-    private val selectedTypeMap: Map<String, ClassId>
+    private val selectedTypeMap: Map<String, PythonClassId>
 ) {
     fun fuzzing(): Sequence<PythonResult> = sequence {
         val types = methodUnderTest.arguments.map {
@@ -55,7 +55,7 @@ class PythonEngine(
             } else {
 
                 // some types cannot be used as return types in tests (like socket or memoryview)
-                val outputType = ClassId(resultJSON.type)
+                val outputType = PythonClassId(resultJSON.type)
                 if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
                     return@sequence
 

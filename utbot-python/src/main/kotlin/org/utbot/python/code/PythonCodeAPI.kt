@@ -103,7 +103,7 @@ class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
     }
 
     companion object {
-        fun typeAsStringToClassId(typeAsString: String): ClassId = ClassId(typeAsString)
+        fun typeAsStringToClassId(typeAsString: String): PythonClassId = PythonClassId(typeAsString)
 
         fun annotationToString(annotation: Optional<Expression>): String? =
             if (annotation.isPresent) astToString(annotation.get()).trim() else null

@@ -1,6 +1,6 @@
 package org.utbot.python
 
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.MypyAnnotations
@@ -93,10 +93,10 @@ object PythonTestCaseGenerator {
 
     fun getAnnotations(
         method: PythonMethod,
-        initialArgumentTypes: List<ClassId>,
+        initialArgumentTypes: List<PythonClassId>,
         argInfoCollector: ArgInfoCollector,
         isCancelled: () -> Boolean
-    ): Sequence<Map<String, ClassId>> {
+    ): Sequence<Map<String, PythonClassId>> {
         val existingAnnotations = mutableMapOf<String, String>()
         initialArgumentTypes.forEachIndexed { index, classId ->
             if (classId != pythonAnyClassId)
@@ -105,7 +105,7 @@ object PythonTestCaseGenerator {
 
         return if (existingAnnotations.size == method.arguments.size)
             sequenceOf(
-                existingAnnotations.mapValues { entry -> ClassId(entry.value) }
+                existingAnnotations.mapValues { entry -> PythonClassId(entry.value) }
             )
         else
             findAnnotations(
@@ -178,7 +178,7 @@ object PythonTestCaseGenerator {
         pythonPath: String,
         fileOfMethod: String,
         isCancelled: () -> Boolean
-    ): Sequence<Map<String, ClassId>> {
+    ): Sequence<Map<String, PythonClassId>> {
         val storageMap = argInfoCollector.getAllStorages()
         val userAnnotations = existingAnnotations.entries.associate {
             it.key to listOf(it.value)

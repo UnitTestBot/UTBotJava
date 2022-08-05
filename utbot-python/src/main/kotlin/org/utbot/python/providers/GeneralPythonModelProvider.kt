@@ -1,6 +1,7 @@
 package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.ModelProvider
@@ -23,7 +24,7 @@ val nonRecursiveModelProvider = ModelProvider.of(
 
 fun substituteType(
     description: FuzzedMethodDescription,
-    typeMap: Map<ClassId, ClassId>
+    typeMap: Map<PythonClassId, ClassId>
 ): FuzzedMethodDescription {
     val newReturnType = typeMap[description.returnType] ?: description.returnType
     val newParameters = description.parameters.map { typeMap[it] ?: it }
@@ -39,7 +40,7 @@ fun substituteType(
     return FuzzedMethodDescription(description.name, newReturnType, newParameters, newConcreteValues)
 }
 
-fun substituteTypesByIndex(description: FuzzedMethodDescription, newTypes: List<ClassId>): FuzzedMethodDescription {
+fun substituteTypesByIndex(description: FuzzedMethodDescription, newTypes: List<PythonClassId>): FuzzedMethodDescription {
     return FuzzedMethodDescription(
         description.name,
         description.returnType,

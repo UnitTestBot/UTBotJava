@@ -1,6 +1,7 @@
 package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
@@ -18,7 +19,7 @@ object UnionModelProvider: ModelProvider {
                     val newDescription = substituteTypesByIndex(
                         description,
                         (0 until description.parameters.size).map {
-                            if (it == index) ClassId(newAnnotation) else pythonAnyClassId
+                            if (it == index) PythonClassId(newAnnotation) else pythonAnyClassId
                         }
                     )
                     result += concreteTypesModelProvider.generate(newDescription)

@@ -1,7 +1,6 @@
 package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.*
 import java.lang.Integer.min
 import kotlin.random.Random
@@ -14,10 +13,10 @@ object GenericModelProvider: ModelProvider {
     )
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        fun <T: UtModel> fuzzGeneric(parameters: List<ClassId>, modelConstructor: (List<List<FuzzedValue>>) -> T) = sequence {
+        fun <T: UtModel> fuzzGeneric(parameters: List<PythonClassId>, modelConstructor: (List<List<FuzzedValue>>) -> T) = sequence {
             val syntheticGenericType = FuzzedMethodDescription(
                 "${description.name}<syntheticGenericList>",
-                voidClassId,
+                pythonNoneClassId,
                 parameters,
                 description.concreteValues
             )
@@ -30,10 +29,9 @@ object GenericModelProvider: ModelProvider {
         }
 
         fun parseList(matchResult: MatchResult): Sequence<FuzzedParameter> {
-            val genericType = if (matchResult.groupValues.size >= 2) ClassId(matchResult.groupValues[1]) else pythonAnyClassId
+            val genericType = if (matchResult.groupValues.size >= 2) PythonClassId(matchResult.groupValues[1]) else pythonAnyClassId
             return fuzzGeneric(listOf(genericType)) { list ->
                 PythonListModel(
-                    PythonListModel.classId,
                     list.size,
                     list.flatten().map { it.model }
                 )
@@ -41,11 +39,10 @@ object GenericModelProvider: ModelProvider {
         }
 
         fun parseDict(matchResult: MatchResult): Sequence<FuzzedParameter> {
-            val genericKeyType = if (matchResult.groupValues.size >= 2) ClassId(matchResult.groupValues[1]) else pythonAnyClassId
-            val genericValueType = if (matchResult.groupValues.size >= 3) ClassId(matchResult.groupValues[2]) else pythonAnyClassId
+            val genericKeyType = if (matchResult.groupValues.size >= 2) PythonClassId(matchResult.groupValues[1]) else pythonAnyClassId
+            val genericValueType = if (matchResult.groupValues.size >= 3) PythonClassId(matchResult.groupValues[2]) else pythonAnyClassId
             return fuzzGeneric(listOf(genericKeyType, genericValueType)) { list ->
                     PythonDictModel(
-                        PythonDictModel.classId,
                         list.size,
                         list.associate { pair ->
                             pair[0].model to pair[1].model
@@ -55,10 +52,9 @@ object GenericModelProvider: ModelProvider {
         }
 
         fun parseSet(matchResult: MatchResult): Sequence<FuzzedParameter> {
-            val genericType = if (matchResult.groupValues.size >= 2) ClassId(matchResult.groupValues[1]) else pythonAnyClassId
+            val genericType = if (matchResult.groupValues.size >= 2) PythonClassId(matchResult.groupValues[1]) else pythonAnyClassId
             return fuzzGeneric(listOf(genericType)) { list ->
                     PythonSetModel(
-                        PythonSetModel.classId,
                         list.size,
                         list.flatten().map { it.model }.toSet(),
                     )

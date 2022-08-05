@@ -231,33 +231,50 @@ sealed class UtModel(
     open val classId: ClassId
 )
 
-sealed class PythonModel(classId: ClassId): UtModel(classId)
+class PythonClassId(
+    pyName: String,
+    private val initMethod: PythonInitObjectModel? = null,
+) : ClassId(pyName) {
+    constructor(pyName: String): this(pyName, null)
+}
 
-class PythonDefaultModel(val repr: String, val type: String): PythonModel(ClassId(type)) {
+class PythonMethodId(
+    override val classId: PythonClassId,
+    override val name: String,
+    override val returnType: PythonClassId,
+    override val parameters: List<PythonClassId>
+) : MethodId(classId, name, returnType, parameters)
+
+sealed class PythonModel(classId: PythonClassId): UtModel(classId)
+
+class PythonDefaultModel(
+    val repr: String,
+    val type: String
+): PythonModel(PythonClassId(type)) {
     override fun toString() = repr
 }
 
-val pythonAnyClassId = ClassId("typing.Any")
-val pythonNoneClassId = ClassId("types.NoneType")
+val pythonAnyClassId = PythonClassId("typing.Any")
+val pythonNoneClassId = PythonClassId("types.NoneType")
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {
-        val classId = ClassId("builtins.int")
+        val classId = PythonClassId("builtins.int")
     }
 }
 
 class PythonFloatModel(val value: BigDecimal): PythonModel(classId) {
     override fun toString() = "$value"
     companion object {
-        val classId = ClassId("builtins.float")
+        val classId = PythonClassId("builtins.float")
     }
 }
 
 class PythonStrModel(val value: String): PythonModel(classId) {
     override fun toString() = "\"\"\"" + value + "\"\"\""
     companion object {
-        val classId = ClassId("builtins.str")
+        val classId = PythonClassId("builtins.str")
     }
 }
 
@@ -265,27 +282,26 @@ class PythonBoolModel(val value: Boolean): PythonModel(classId) {
     override fun toString() =
         if (value) "True" else "False"
     companion object {
-        val classId = ClassId("builtins.bool")
+        val classId = PythonClassId("builtins.bool")
     }
 }
 
 class PythonComplexObjectModel(
     val type: String,
     val fields: Map<String, PythonModel>
-): PythonModel(ClassId(type))
+): PythonModel(PythonClassId(type))
 
 class PythonInitObjectModel(
     val type: String,
     val initValues: List<UtModel>
-): PythonModel(ClassId(type)) {
+): PythonModel(PythonClassId(type)) {
     override fun toString(): String {
         val params = initValues.joinToString(separator = ", ") { it.toString() }
         return "$type($params)"
     }
 }
 
-data class PythonListModel(
-    override val classId: ClassId,
+class PythonListModel(
     val length: Int = 0,
     val stores: List<UtModel>
 ) : PythonModel(classId) {
@@ -294,12 +310,11 @@ data class PythonListModel(
     }
 
     companion object {
-        val classId = ClassId("builtins.list")
+        val classId = PythonClassId("builtins.list")
     }
 }
 
-data class PythonDictModel(
-    override val classId: ClassId,
+class PythonDictModel(
     val length: Int = 0,
     val stores: Map<UtModel, UtModel>
 ) : PythonModel(classId) {
@@ -308,12 +323,11 @@ data class PythonDictModel(
     }
 
     companion object {
-        val classId = ClassId("builtins.dict")
+        val classId = PythonClassId("builtins.dict")
     }
 }
 
-data class PythonSetModel(
-    override val classId: ClassId,
+class PythonSetModel(
     val length: Int = 0,
     val stores: Set<UtModel>
 ) : PythonModel(classId) {
@@ -322,7 +336,7 @@ data class PythonSetModel(
     }
 
     companion object {
-        val classId = ClassId("builtins.set")
+        val classId = PythonClassId("builtins.set")
     }
 }
 
@@ -1070,7 +1084,7 @@ open class MethodId(
         get() = Modifier.isPrivate(method.modifiers)
 }
 
-class ConstructorId(
+open class ConstructorId(
     override val classId: ClassId,
     override val parameters: List<ClassId>
 ) : ExecutableId() {
@@ -1209,7 +1223,7 @@ enum class CodegenLanguage(
         get() = when (this) {
             JAVA -> listOf(System.getenv("JAVA_HOME"), "bin", "javac")
             KOTLIN -> listOf(System.getenv("KOTLIN_HOME"), "bin", kotlinCompiler)
-            PYTHON -> listOf(System.getenv("PYTHON_HOME"), "bin", "python")
+            PYTHON -> throw UnsupportedOperationException()
         }.joinToString(File.separator)
 
     val extension: String

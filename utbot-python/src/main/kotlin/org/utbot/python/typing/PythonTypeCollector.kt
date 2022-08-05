@@ -5,7 +5,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.filefilter.DirectoryFileFilter
 import org.apache.commons.io.filefilter.RegexFileFilter
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.code.ClassInfoCollector
 import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets
 
 class PythonType(
     val name: String, // include module name (like 'ast.Assign')
-    val initSignature: List<ClassId>?,
+    val initSignature: List<PythonClassId>?,
     val sourceFile: String?,
     val preprocessedInstances: List<String>?,
     val methods: List<String>,
@@ -42,27 +42,27 @@ object PythonTypesStorage {
     var pythonPath: String? = null
     private const val noPythonMsg = "PythonPath in PythonTypeCollector not specified"
 
-    private fun mapToClassId(typesFromStubs: Collection<StubFileFinder.SearchResult>): List<ClassId> =
+    private fun mapToClassId(typesFromStubs: Collection<StubFileFinder.SearchResult>): List<PythonClassId> =
         typesFromStubs.map {
             annotationFromStubToClassId(it.typeName, pythonPath ?: error(noPythonMsg), it.module)
         }
 
     fun findTypeWithMethod(
         methodName: String
-    ): Set<ClassId> {
+    ): Set<PythonClassId> {
         val fromStubs = mapToClassId(StubFileFinder.findTypeWithMethod(methodName))
         val fromProject = projectClasses.mapNotNull {
-            if (it.info.methods.contains(methodName)) ClassId(it.pythonClass.name) else null
+            if (it.info.methods.contains(methodName)) PythonClassId(it.pythonClass.name) else null
         }
         return (fromStubs union fromProject).toSet()
     }
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<ClassId> {
+    ): Set<PythonClassId> {
         val fromStubs = mapToClassId(StubFileFinder.findTypeWithField(fieldName))
         val fromProject = projectClasses.mapNotNull {
-            if (it.info.fields.contains(fieldName)) ClassId(it.pythonClass.name) else null
+            if (it.info.fields.contains(fieldName)) PythonClassId(it.pythonClass.name) else null
         }
         return (fromStubs union fromProject).toSet()
     }
@@ -71,19 +71,19 @@ object PythonTypesStorage {
         functionName: String,
         argumentName: String? = null,
         argumentPosition: Int? = null,
-    ): Set<ClassId> =
+    ): Set<PythonClassId> =
         mapToClassId(
             StubFileFinder.findAnnotationByFunctionWithArgumentPosition(functionName, argumentName, argumentPosition)
         ).toSet()
 
-    fun findTypeByFunctionReturnValue(functionName: String): Set<ClassId> =
+    fun findTypeByFunctionReturnValue(functionName: String): Set<PythonClassId> =
         mapToClassId(StubFileFinder.findAnnotationByFunctionReturnValue(functionName)).toSet()
 
     fun isFromProject(typeName: String): Boolean {
         return projectClasses.any { it.pythonClass.name == typeName }
     }
 
-    fun getTypeByName(classId: ClassId): PythonType? {
+    fun getTypeByName(classId: PythonClassId): PythonType? {
         val fromStub = StubFileFinder.nameToClassMap[classId.name]
         if (fromStub != null) {
             val fromPreprocessed = TypesFromJSONStorage.typeNameMap[classId.name]
@@ -125,7 +125,7 @@ object PythonTypesStorage {
     private data class ProjectClass(
         val pythonClass: PythonClass,
         val info: ClassInfoCollector.Storage,
-        val initAnnotation: List<ClassId>?
+        val initAnnotation: List<PythonClassId>?
     )
 
     private fun getPythonFiles(dirPath: String): Collection<File> =

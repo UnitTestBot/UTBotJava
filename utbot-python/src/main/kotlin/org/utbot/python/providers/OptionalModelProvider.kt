@@ -1,6 +1,6 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.framework.plugin.api.pythonNoneClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
@@ -25,7 +25,7 @@ object OptionalModelProvider: ModelProvider {
                 val descriptionWithNonNoneType = substituteTypesByIndex(
                     description,
                     (0 until description.parameters.size).map {
-                        if (it == index) ClassId(match.groupValues[1]) else pythonAnyClassId
+                        if (it == index) PythonClassId(match.groupValues[1]) else pythonAnyClassId
                     }
                 )
                 result += concreteTypesModelProvider.generate(descriptionWithNonNoneType)

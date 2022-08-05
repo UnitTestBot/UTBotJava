@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
@@ -69,7 +70,7 @@ object MypyAnnotations {
             val errorNum = getErrorNumber(mypyOutput)
             if (errorNum <= defaultErrorNum) {
                 yield(annotationMap.mapValues { entry ->
-                    ClassId(entry.value)
+                    PythonClassId(entry.value)
                 })
             }
         }

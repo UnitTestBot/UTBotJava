@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
@@ -18,32 +17,25 @@ import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.PythonCodeGenerator
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.codegen.model.tree.buildTestClass
-import org.utbot.framework.codegen.model.tree.buildTestClassBody
-import org.utbot.framework.codegen.model.tree.buildTestClassFile
-import org.utbot.framework.codegen.model.tree.buildTestMethod
-import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
 import org.utbot.framework.plugin.api.util.withUtContext
-import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
-import org.utbot.python.code.PythonCodeGenerator.generateTestCode
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
+import org.utbot.python.code.PythonCodeGenerator.generateTestCode
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
+import javax.swing.SwingUtilities.invokeLater
 
 
 object PythonDialogProcessor {
@@ -168,74 +160,74 @@ object PythonDialogProcessor {
                     )
                 }
 
-//                val files = mutableListOf<File>()
-//                val codeAsString = getContentFromPyFile(model.file)
-//                notEmptyTests.forEach { testSet ->
-//                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
-//                    val message =
-//                        if (testSet.mypyReport.isNotEmpty())
-//                            "MYPY REPORT\n${
-//                                testSet.mypyReport.joinToString(separator = "") {
-//                                    if (lineOfFunction != null && it.line >= 0)
-//                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-//                                    else
-//                                        "${it.type}: ${it.message}"
-//                                }
-//                            }"
-//                        else
-//                            null
-//
-//                    val testCode = generateTestCode(testSet, model.directoriesForSysPath, model.moduleToImport, message)
-//                    val fileName = "test_${testSet.method.name}.py"
-//                    val testFile = FileManager.createPermanentFile(fileName, testCode)
-//                    files.add(testFile)
-//                }
-//
-//                if (files.size == 1) {
-//                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(files[0])
-//                    if (virtualFile != null) {
-//                        invokeLater {
-//                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
-//                        }
-//                    }
-//                }
-                val context = UtContext(this::class.java.classLoader)
+                val files = mutableListOf<File>()
+                val codeAsString = getContentFromPyFile(model.file)
+                notEmptyTests.forEach { testSet ->
+                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
+                    val message =
+                        if (testSet.mypyReport.isNotEmpty())
+                            "MYPY REPORT\n${
+                                testSet.mypyReport.joinToString(separator = "") {
+                                    if (lineOfFunction != null && it.line >= 0)
+                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                                    else
+                                        "${it.type}: ${it.message}"
+                                }
+                            }"
+                        else
+                            null
 
-                val classId = ClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
-                val methods = notEmptyTests.map {
-                    MethodId(
-                        classId,
-                        it.method.name,
-                        ClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
-                        it.method.arguments.map { argument ->
-                            ClassId(
-                                argument.annotation ?: pythonAnyClassId.name
-                            )
-                        }
-                    )
+                    val testCode = generateTestCode(testSet, model.directoriesForSysPath, model.moduleToImport, message)
+                    val fileName = "test_${testSet.method.name}.py"
+                    val testFile = FileManager.createPermanentFile(fileName, testCode)
+                    files.add(testFile)
                 }
-                withUtContext(context) {
-                    val codegen = CodeGenerator(
-                        classId,
-                        paramNames = notEmptyTests.zip(methods)
-                            .associate { (testSet, method) ->
-                                method to testSet.method.arguments.map { it.name }
-                            }
-                            .toMutableMap(),
-                        testFramework = model.testFramework,
-                        codegenLanguage = model.codegenLanguage,
-                        testClassPackageName = "",
-                    )
-                    val x = codegen.generateAsStringWithTestReport(
-                        methods.zip(notEmptyTests).map { (method, testSet) ->
-                            CgMethodTestSet(
-                                method,
-                                testSet.executions.map { execution -> execution.utExecution }
-                            )
+
+                if (files.size == 1) {
+                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(files[0])
+                    if (virtualFile != null) {
+                        invokeLater {
+                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
                         }
-                    )
-                    println(x.generatedCode)
+                    }
                 }
+//                val context = UtContext(this::class.java.classLoader)
+//
+//                val classId = PythonClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
+//                val methods = notEmptyTests.map {
+//                    PythonMethodId(
+//                        classId,
+//                        it.method.name,
+//                        PythonClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
+//                        it.method.arguments.map { argument ->
+//                            PythonClassId(
+//                                argument.annotation ?: pythonAnyClassId.name
+//                            )
+//                        }
+//                    )
+//                }
+//                withUtContext(context) {
+//                    val codegen = CodeGenerator(
+//                        classId,
+//                        paramNames = notEmptyTests.zip(methods)
+//                            .associate { (testSet, method) ->
+//                                method to testSet.method.arguments.map { it.name }
+//                            }
+//                            .toMutableMap(),
+//                        testFramework = model.testFramework,
+//                        codegenLanguage = model.codegenLanguage,
+//                        testClassPackageName = "",
+//                    )
+//                    val x = codegen.generateAsStringWithTestReport(
+//                        methods.zip(notEmptyTests).map { (method, testSet) ->
+//                            CgMethodTestSet(
+//                                method,
+//                                testSet.executions.map { execution -> execution.utExecution }
+//                            )
+//                        }
+//                    )
+//                    println(x.generatedCode)
+//                }
             }
         })
     }

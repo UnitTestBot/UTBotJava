@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.model.visitor
 
-import org.mockito.internal.matchers.Not
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId

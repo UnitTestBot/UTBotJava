@@ -50,7 +50,7 @@ object PythonTypesStorage {
     fun findTypeWithMethod(
         methodName: String
     ): Set<ClassId> {
-        val fromStubs = mapToClassId(StubFileFinder.findTypeWithMethod(methodName))
+        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithMethod(methodName).map { ClassId(it.typeName) }
         val fromProject = projectClasses.mapNotNull {
             if (it.info.methods.contains(methodName)) ClassId(it.pythonClass.name) else null
         }
@@ -60,7 +60,7 @@ object PythonTypesStorage {
     fun findTypeWithField(
         fieldName: String
     ): Set<ClassId> {
-        val fromStubs = mapToClassId(StubFileFinder.findTypeWithField(fieldName))
+        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithField(fieldName).map { ClassId(it.typeName) }
         val fromProject = projectClasses.mapNotNull {
             if (it.info.fields.contains(fieldName)) ClassId(it.pythonClass.name) else null
         }
@@ -83,38 +83,49 @@ object PythonTypesStorage {
         return projectClasses.any { it.pythonClass.name == typeName }
     }
 
-    fun getTypeByName(classId: ClassId): PythonType? {
-        val fromStub = StubFileFinder.nameToClassMap[classId.name]
-        if (fromStub != null) {
-            val fromPreprocessed = TypesFromJSONStorage.typeNameMap[classId.name]
-            return PythonType(
-                classId.name,
-                fromStub.methods.find { it.name == "__init__" }
-                    ?.args
-                    ?.drop(1) // drop 'self' parameter
-                    ?.map { annotationFromStubToClassId(
-                        it.annotation,
-                        pythonPath ?: error(noPythonMsg),
-                        moduleOfType(classId.name) ?: "builtins"
-                    ) },
-                null,
-                fromPreprocessed?.instances,
-                fromStub.methods.map { it.name },
-                fromStub.fields.map { it.name },
-                if (fromPreprocessed?.useAsReturn == false) ReturnRenderType.NONE else ReturnRenderType.REPR
-            )
-        }
+    val typeCache = mutableMapOf<String, PythonType>()
 
-        return projectClasses.find { it.pythonClass.name == classId.name } ?.let { projectClass ->
-            PythonType(
-                classId.name,
-                projectClass.initAnnotation,
-                projectClass.pythonClass.filename,
-                null,
-                projectClass.info.methods,
-                projectClass.info.fields
-            )
-        }
+    fun getTypeByName(classId: ClassId): PythonType? {
+        if (typeCache[classId.name] != null)
+            return typeCache[classId.name]
+
+        val fromStub = StubFileFinder.nameToClassMap[classId.name]
+        val result =
+            if (fromStub != null) {
+                val fromPreprocessed = TypesFromJSONStorage.typeNameMap[classId.name]
+                return PythonType(
+                    classId.name,
+                    fromStub.methods.find { it.name == "__init__" }
+                        ?.args
+                        ?.drop(1) // drop 'self' parameter
+                        ?.map { annotationFromStubToClassId(
+                            it.annotation,
+                            pythonPath ?: error(noPythonMsg),
+                            moduleOfType(classId.name) ?: "builtins"
+                        ) },
+                    null,
+                    fromPreprocessed?.instances,
+                    fromStub.methods.map { it.name },
+                    fromStub.fields.map { it.name },
+                    if (fromPreprocessed?.useAsReturn == false) ReturnRenderType.NONE else ReturnRenderType.REPR
+                )
+            } else {
+                projectClasses.find { it.pythonClass.name == classId.name } ?.let { projectClass ->
+                    PythonType(
+                        classId.name,
+                        projectClass.initAnnotation,
+                        projectClass.pythonClass.filename,
+                        null,
+                        projectClass.info.methods,
+                        projectClass.info.fields
+                    )
+                }
+            }
+
+        if (result != null)
+            typeCache[classId.name] = result
+
+        return result
     }
 
     val builtinTypes: List<String>

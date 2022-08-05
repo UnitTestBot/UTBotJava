@@ -466,7 +466,9 @@ class UtBotSymbolicEngine(
                     stateBefore = initialEnvironmentModels,
                     stateAfter = concreteExecutionResult.stateAfter,
                     result = concreteExecutionResult.result,
-                    coverage = concreteExecutionResult.coverage
+                    coverage = concreteExecutionResult.coverage,
+                    fuzzingValues = values,
+                    fuzzedMethodDescription = methodUnderTestDescription
                 )
             )
         }

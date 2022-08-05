@@ -97,11 +97,6 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
                 utExecution.testMethodName = testMethodName?.testName
                 utExecution.displayName =  testMethodName?.displayName
-
-                /*logger.info {
-                    "Test is created by Fuzzing. The path for test ${it.testMethodName} " +
-                            "for method ${testSet.method.clazz.qualifiedName} is empty and summaries could not be generated."
-                }*/
             }
 
             clustersToReturn.add(

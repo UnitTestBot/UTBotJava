@@ -6,8 +6,6 @@ import org.utbot.fuzzer.*
 import org.utbot.python.typing.PythonTypesStorage
 
 object InitModelProvider: ModelProvider {
-    private val nonRecursiveModelProvider = ModelProvider.of(DefaultValuesModelProvider, ConstantModelProvider)
-
     override fun generate(description: FuzzedMethodDescription) = sequence {
         description.parametersMap.forEach { (classId, parameterIndices) ->
 

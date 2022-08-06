@@ -6,30 +6,20 @@ import com.intellij.psi.PsiReference
 import com.intellij.psi.javadoc.CustomJavadocTagProvider
 import com.intellij.psi.javadoc.JavadocTagInfo
 import com.intellij.psi.javadoc.PsiDocTagValue
+import org.utbot.summary.comment.CustomJavaDocTag
+import org.utbot.summary.comment.CustomJavaDocTagProvider
 
 /**
  * Provides plugin's custom JavaDoc tags to make test summaries structured.
  */
 class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
-    // The tags' order is important.
-    override fun getSupportedTags(): List<UtCustomTag> =
-        listOf(
-            UtCustomTag.ClassUnderTest,
-            UtCustomTag.MethodUnderTest,
-            UtCustomTag.ExpectedResult,
-            UtCustomTag.ActualResult,
-            UtCustomTag.Executes,
-            UtCustomTag.Invokes,
-            UtCustomTag.Iterates,
-            UtCustomTag.ReturnsFrom,
-            UtCustomTag.ThrowsException,
-        )
+    override fun getSupportedTags(): List<UtCustomTagInfo> =
+        CustomJavaDocTagProvider().getPluginCustomTags().map { t -> UtCustomTagInfo(t) }
 
-    //TODO: move it to another module to avoid duplication
-    sealed class UtCustomTag(private val name: String, private val message: String) : JavadocTagInfo {
-        override fun getName(): String = name
+    class UtCustomTagInfo(private val tag: CustomJavaDocTag) : JavadocTagInfo {
+        override fun getName(): String = tag.name
 
-        fun getMessage(): String = message
+        fun getMessage(): String = tag.message
 
         override fun isInline() = false
 
@@ -40,15 +30,5 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
         override fun isValidInContext(element: PsiElement?): Boolean {
             return element is PsiMethod
         }
-
-        object ClassUnderTest : UtCustomTag("utbot.classUnderTest", "Class under test")
-        object MethodUnderTest : UtCustomTag("utbot.methodUnderTest", "Method under test")
-        object ExpectedResult : UtCustomTag("utbot.expectedResult", "Expected result")
-        object ActualResult : UtCustomTag("utbot.actualResult", "Actual result")
-        object Executes : UtCustomTag("utbot.executesCondition", "Executes condition")
-        object Invokes : UtCustomTag("utbot.invokes", "Invokes")
-        object Iterates : UtCustomTag("utbot.iterates", "Iterates")
-        object ReturnsFrom : UtCustomTag("utbot.returnsFrom", "Returns from")
-        object ThrowsException : UtCustomTag("utbot.throwsException", "Throws exception")
     }
 }

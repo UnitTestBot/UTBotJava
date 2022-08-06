@@ -41,7 +41,7 @@ class UtJavaDocInfoGenerator {
     private fun generateUtTagSection(
         builder: StringBuilder,
         comment: PsiDocComment?,
-        utTag: UtCustomJavaDocTagProvider.UtCustomTag
+        utTag: UtCustomJavaDocTagProvider.UtCustomTagInfo
     ) {
         if (comment != null) {
             val tag = comment.findTagByName(utTag.name) ?: return

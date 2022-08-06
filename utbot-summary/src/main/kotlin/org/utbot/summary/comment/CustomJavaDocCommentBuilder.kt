@@ -72,7 +72,7 @@ class CustomJavaDocCommentBuilder(
         val exceptionThrow: String? = if (thrownException == null) {
             traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
         } else {
-            val exceptionName = thrownException.javaClass.simpleName
+            val exceptionName = thrownException.javaClass.name
             val reason = findExceptionReason(currentMethod, thrownException)
             "{@link $exceptionName} $reason"
         }

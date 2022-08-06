@@ -41,10 +41,17 @@ class B:
     def __init__(self, val: complex):
         self.description = val
 
+    def sqrt(self):
+        return self.description ** 0.5
+
 
 def a(x):
     x.description += 1
     return x.description
+
+
+def sqrt(x):
+    return x.sqrt()
 
 
 @dataclass

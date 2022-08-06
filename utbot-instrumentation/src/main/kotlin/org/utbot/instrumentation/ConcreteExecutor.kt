@@ -248,6 +248,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 }
                 def.terminate()
             }
+            processInstance?.process?.waitFor()
         }
     }
 }

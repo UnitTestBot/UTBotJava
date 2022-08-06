@@ -1,6 +1,8 @@
 package org.utbot.instrumentation.process
 
 import com.jetbrains.rd.framework.getPlatformIndependentHash
+import com.jetbrains.rd.util.lifetime.Lifetime
+import kotlinx.coroutines.delay
 import mu.KotlinLogging
 import org.utbot.common.*
 import org.utbot.common.pid
@@ -8,9 +10,12 @@ import org.utbot.framework.JdkPathService
 import org.utbot.framework.UtSettings
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
+import org.utbot.rd.UtRdCoroutineScope
+import org.utbot.rd.toLifetimedProcess
 import java.io.File
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
@@ -49,6 +54,14 @@ class ChildProcessRunner {
 
             if (UtSettings.logConcreteExecutionErrors) {
                 logger.debug { "Child process error log: ${errorLogFile.absolutePath}" }
+
+//                Runtime.getRuntime().addShutdownHook(thread(start = false) {
+                it.toLifetimedProcess().lifetime.onTermination {
+                    logger.trace {"ERROR FILE ${errorLogFile.canonicalPath} START:\n" +
+                            errorLogFile.readLines().joinToString("\n") +
+                            "\nERROR FILE ${errorLogFile.canonicalPath} END"}
+                }
+                //)
             }
         }
     }

@@ -1,10 +1,10 @@
 package org.utbot.instrumentation.process
 
+import com.jetbrains.rd.framework.util.launchChild
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.plusAssign
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import org.utbot.common.getCurrentProcessId
 import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
@@ -96,7 +96,7 @@ fun main(args: Array<String>): Unit {
     val pid = getCurrentProcessId()
     val def = LifetimeDefinition()
 
-    UtRdCoroutineScope.current.launch(Lifetime.Eternal) {
+    GlobalScope.launchChild(Lifetime.Eternal, Dispatchers.Unconfined) {
         while(true) {
             val now = System.currentTimeMillis()
             val start = readStart.get()

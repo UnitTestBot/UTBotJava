@@ -45,7 +45,7 @@ class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
 
     override fun onException(throwable: Throwable) {
         if (throwable !is CancellationException) {
-            logger.error("Unhandled coroutine throwable", throwable)
+            logger.error("Unhandled coroutine throwable: $throwable\n stacktrace: ${throwable.stackTraceToString()}")
         }
     }
 }

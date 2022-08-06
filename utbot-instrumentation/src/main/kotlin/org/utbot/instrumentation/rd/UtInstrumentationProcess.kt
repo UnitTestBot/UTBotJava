@@ -142,8 +142,6 @@ class UtInstrumentationProcess private constructor(
     }
 
     private fun sendCommand(id: Long, cmd: Protocol.Command) {
-        logger.trace { "Writing $id, $cmd to channel" }
-
         kryoHelper.writeCommand(id, cmd)
     }
 
@@ -168,6 +166,10 @@ class UtInstrumentationProcess private constructor(
 
     private suspend fun doCommand(cmd: Protocol.Command, awaitAnswer: Boolean = true): Protocol.Command? =
         lifetime.usingNested { operationLifetime ->
+            // because some models use utcontext in toString method
+            // utcontext is thread local, and so UtRdCoroutineScope does error
+            // and not to pollute memory on no trace
+            val cmdString: String? = null//if (logger.isTraceEnabled) cmd.toString() else null
             // if utbot cancels this job by timeout - await will throw cancellationException
             // also if process lifetime terminated - deferred from async call also cancelled and await throws cancellationException
             // if await succeeded - then process lifetime is ok and no timeout happened
@@ -182,14 +184,17 @@ class UtInstrumentationProcess private constructor(
                     callbacks[cmdId] = deferred
                     operationLifetime.onTermination {
                         callbacks.remove(cmdId)?.run {
-                            logger.trace { "operation $cmdId for $cmd ended by timeout" }
-                            deferred.cancel(CancellationException())
+                            if (awaitAnswer) {
+                                logger.trace { "operation $cmdId for $cmdString ended by timeout" }
+                                deferred.cancel(CancellationException())
+                            }
                         }
                     }
+                    logger.trace { "Writing $cmdId, $cmdString to channel" }
                     sendCommand(cmdId, cmd)
                 } catch (e: Throwable) { // means not sent
                     callbacks.remove(cmdId)?.let {
-                        logger.trace { "operation $cmdId for cmd - $cmd completed with exception: $e" }
+                        logger.trace { "operation $cmdId for cmd - $cmdString completed with exception: $e\nstacktrace - ${e.stackTraceToString()}" }
                         deferred.completeExceptionally(e)
                     }
                 }
@@ -198,7 +203,7 @@ class UtInstrumentationProcess private constructor(
                     deferred.await()
                 } else {
                     null
-                }.apply { logger.trace { "operation $cmdId ended successfully for cmd - $cmd, result - $this" } }
+                }.apply { logger.trace { "operation $cmdId ended successfully for cmd - $cmdString, result - $this" } }
             }
         }
 

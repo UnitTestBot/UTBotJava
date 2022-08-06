@@ -22,6 +22,7 @@ import org.utbot.framework.codegen.model.tree.CgDocClassLinkStmt
 import org.utbot.framework.codegen.model.tree.CgDocCodeStmt
 import org.utbot.framework.codegen.model.tree.CgDocMethodLinkStmt
 import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
+import org.utbot.framework.codegen.model.tree.CgCustomTagStatement
 import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
 import org.utbot.framework.codegen.model.tree.CgDocumentationComment
 import org.utbot.framework.codegen.model.tree.CgElement
@@ -122,6 +123,7 @@ interface CgVisitor<R> {
 
     // Comment statements
     fun visit(element: CgDocPreTagStatement): R
+    fun visit(element: CgCustomTagStatement): R
     fun visit(element: CgDocCodeStmt): R
     fun visit(element: CgDocRegularStmt): R
     fun visit(element: CgDocClassLinkStmt): R

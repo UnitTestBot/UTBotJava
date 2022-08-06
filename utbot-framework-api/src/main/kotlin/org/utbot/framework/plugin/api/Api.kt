@@ -1276,6 +1276,14 @@ class DocPreTagStatement(content: List<DocStatement>) : DocTagStatement(content)
     override fun hashCode(): Int = content.hashCode()
 }
 
+class DocCustomTagStatement(content: List<DocStatement>) : DocTagStatement(content) {
+    override fun toString(): String = content.joinToString(separator = "")
+
+    override fun equals(other: Any?): Boolean =
+        if (other is DocCustomTagStatement) this.hashCode() == other.hashCode() else false
+
+    override fun hashCode(): Int = content.hashCode()
+}
 
 open class DocClassLinkStmt(val className: String) : DocStatement() {
     override fun toString(): String = className

@@ -16,6 +16,7 @@ import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
 import org.utbot.framework.codegen.model.tree.CgComparison
 import org.utbot.framework.codegen.model.tree.CgContinueStatement
+import org.utbot.framework.codegen.model.tree.CgCustomTagStatement
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgDecrement
 import org.utbot.framework.codegen.model.tree.CgDoWhileLoop
@@ -92,7 +93,6 @@ import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
-import org.utbot.summary.UtSummarySettings
 
 internal abstract class CgAbstractRenderer(val context: CgContext, val printer: CgPrinter = CgPrinterImpl()) : CgVisitor<Unit>,
     CgPrinter by printer {
@@ -310,12 +310,16 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
     override fun visit(element: CgDocPreTagStatement) {
         if (element.content.all { it.isEmpty() }) return
-        // Don't add <pre> tag if custom javadoc tags are used.
-        val shouldAddPreTag = !UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS
-        if (shouldAddPreTag) println("<pre>")
+        println("<pre>")
         for (stmt in element.content) stmt.accept(this)
-        if (shouldAddPreTag) println("</pre>")
+        println("</pre>")
     }
+
+    override fun visit(element: CgCustomTagStatement) {
+        if (element.content.all { it.isEmpty() }) return
+        for (stmt in element.content) stmt.accept(this)
+    }
+
     override fun visit(element: CgDocCodeStmt) {
         if (element.isEmpty()) return
 

@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DocClassLinkStmt
 import org.utbot.framework.plugin.api.DocCodeStmt
+import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocMethodLinkStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -52,6 +53,7 @@ interface CgElement {
             is CgMultilineComment -> visit(element)
             is CgDocumentationComment -> visit(element)
             is CgDocPreTagStatement -> visit(element)
+            is CgCustomTagStatement -> visit(element)
             is CgDocCodeStmt -> visit(element)
             is CgDocRegularStmt -> visit(element)
             is CgDocClassLinkStmt -> visit(element)
@@ -335,6 +337,15 @@ class CgDocPreTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(co
     override fun hashCode(): Int = content.hashCode()
 }
 
+class CgCustomTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(content) {
+    override fun equals(other: Any?): Boolean =
+        if (other is CgCustomTagStatement) {
+            this.hashCode() == other.hashCode()
+        } else false
+
+    override fun hashCode(): Int = content.hashCode()
+}
+
 class CgDocCodeStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
 
@@ -378,6 +389,10 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
         is DocPreTagStatement -> {
             val stmts = stmt.content.map { convertDocToCg(it) }
             CgDocPreTagStatement(content = stmts)
+        }
+        is DocCustomTagStatement -> {
+            val stmts = stmt.content.map { convertDocToCg(it) }
+            CgCustomTagStatement(content = stmts)
         }
         is DocRegularStmt -> CgDocRegularStmt(stmt = stmt.stmt)
         is DocClassLinkStmt -> CgDocClassLinkStmt(className = stmt.className)

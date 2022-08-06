@@ -1,6 +1,6 @@
 package org.utbot.summary.comment
 
-import org.utbot.framework.plugin.api.DocPreTagStatement
+import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.utbot.framework.plugin.api.exceptionOrNull
@@ -46,7 +46,7 @@ class CustomJavaDocCommentBuilder(
         if (comment.throwsException.isNotEmpty())
             docStatementList += DocRegularStmt("@utbot.throwsException ${comment.throwsException}")
 
-        return listOf<DocStatement>(DocPreTagStatement(docStatementList))
+        return listOf<DocStatement>(DocCustomTagStatement(docStatementList))
     }
 
     private fun buildCustomJavaDocComment(currentMethod: SootMethod): CustomJavaDocComment {

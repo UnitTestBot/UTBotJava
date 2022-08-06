@@ -50,14 +50,15 @@ open class SummaryTestCaseGeneratorTest(
         summaryKeys: List<String>,
         methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf(),
-        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf()
+        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf(),
+        useCustomTags: Boolean = false
     ) {
         workaround(WorkaroundReason.HACK) {
             // @todo change to the constructor parameter
             checkSolverTimeoutMillis = 0
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true
-            UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = false
+            UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = useCustomTags
         }
         val utMethod = UtMethod.from(method)
         val testSet = executionsModel(utMethod, mockStrategy)
@@ -67,34 +68,6 @@ open class SummaryTestCaseGeneratorTest(
         testSetWithSummarization.executions.checkMatchersWithMethodNames(methodNames)
         testSetWithSummarization.executions.checkMatchersWithDisplayNames(displayNames)
         testSetWithSummarization.checkClusterInfo(clusterInfo)
-    }
-
-    /**
-     * Checks summaries containing custom JavaDoc tags.
-     */
-    inline fun <reified R> checkSummariesWithCustomTags(
-        method: KFunction<R>,
-        mockStrategy: MockStrategyApi,
-        coverageMatcher: CoverageMatcher,
-        summaryKeys: List<String>,
-        methodNames: List<String>,
-        displayNames: List<String>
-    ) {
-        workaround(WorkaroundReason.HACK) {
-            // @todo change to the constructor parameter
-            checkSolverTimeoutMillis = 0
-            checkNpeInNestedMethods = true
-            checkNpeInNestedNotPrivateMethods = true
-            UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = true
-        }
-        val utMethod = UtMethod.from(method)
-        val testSet = executionsModel(utMethod, mockStrategy)
-        testSet.summarize(searchDirectory)
-        testSet.clustersInfo
-
-        testSet.executions.checkMatchersWithCustomTagsInSummary(summaryKeys)
-        testSet.executions.checkMatchersWithMethodNames(methodNames)
-        testSet.executions.checkMatchersWithDisplayNames(displayNames)
     }
 
     /**

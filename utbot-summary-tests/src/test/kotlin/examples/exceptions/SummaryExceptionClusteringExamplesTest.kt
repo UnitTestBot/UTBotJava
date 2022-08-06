@@ -69,6 +69,6 @@ class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        checkSummariesWithCustomTags(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, useCustomTags = true)
     }
 }

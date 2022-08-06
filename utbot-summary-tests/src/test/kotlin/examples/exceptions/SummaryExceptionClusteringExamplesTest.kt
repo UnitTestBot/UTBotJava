@@ -1,11 +1,14 @@
 package examples.exceptions
 
+import examples.CustomJavaDocTagsEnabler
 import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.exceptions.ExceptionClusteringExamples
 import org.utbot.framework.plugin.api.MockStrategyApi
 
+@ExtendWith(CustomJavaDocTagsEnabler::class)
 class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
     ExceptionClusteringExamples::class
 ) {
@@ -69,6 +72,6 @@ class SummaryExceptionClusteringExamplesTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, useCustomTags = true)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 }

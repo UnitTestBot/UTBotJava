@@ -1,11 +1,14 @@
 package examples.controlflow
 
+import examples.CustomJavaDocTagsEnabler
 import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.controlflow.Conditions
 import org.utbot.framework.plugin.api.MockStrategyApi
 
+@ExtendWith(CustomJavaDocTagsEnabler::class)
 class SummaryConditionsTest : SummaryTestCaseGeneratorTest(
     Conditions::class
 ) {
@@ -46,6 +49,6 @@ class SummaryConditionsTest : SummaryTestCaseGeneratorTest(
         val mockStrategy = MockStrategyApi.NO_MOCKS
         val coverage = DoNotCalculate
 
-        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames, useCustomTags = true)
+        summaryCheck(method, mockStrategy, coverage, summaryKeys, methodNames, displayNames)
     }
 }

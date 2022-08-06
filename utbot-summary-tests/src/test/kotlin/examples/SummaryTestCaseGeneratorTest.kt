@@ -50,15 +50,13 @@ open class SummaryTestCaseGeneratorTest(
         summaryKeys: List<String>,
         methodNames: List<String> = listOf(),
         displayNames: List<String> = listOf(),
-        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf(),
-        useCustomTags: Boolean = false
+        clusterInfo: List<Pair<UtClusterInfo, Int>> = listOf()
     ) {
         workaround(WorkaroundReason.HACK) {
             // @todo change to the constructor parameter
             checkSolverTimeoutMillis = 0
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true
-            UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = useCustomTags
         }
         val utMethod = UtMethod.from(method)
         val testSet = executionsModel(utMethod, mockStrategy)

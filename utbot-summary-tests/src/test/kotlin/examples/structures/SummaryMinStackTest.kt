@@ -13,11 +13,11 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
     fun testGetMin() {
         val summary1 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#getMin()}\n" +
-                "@utbot.throwsException {@link ArrayIndexOutOfBoundsException} in: return minStack[size - 1];"
+                "@utbot.throwsException {@link java.lang.ArrayIndexOutOfBoundsException} in: return minStack[size - 1];"
 
         val summary2 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#getMin()}\n" +
-                "@utbot.throwsException {@link NullPointerException} in: return minStack[size - 1];"
+                "@utbot.throwsException {@link java.lang.NullPointerException} in: return minStack[size - 1];"
 
         val summary3 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#getMin()}\n" +
@@ -61,7 +61,7 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
         val summary1 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#removeValue()}\n" +
                 "@utbot.executesCondition {@code (size <= 0): True}\n" +
-                "@utbot.throwsException {@link RuntimeException} after condition: {@code size <= 0}"
+                "@utbot.throwsException {@link java.lang.RuntimeException} after condition: {@code size <= 0}"
 
         val summary2 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#removeValue()}\n" +
@@ -99,36 +99,36 @@ class SummaryMinStackTest : SummaryTestCaseGeneratorTest(
     fun testAddValue() {
         val summary1 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
-                "@utbot.throwsException {@link ArrayIndexOutOfBoundsException} in: stack[size] = value;"
+                "@utbot.throwsException {@link java.lang.ArrayIndexOutOfBoundsException} in: stack[size] = value;"
 
         val summary2 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
-                "@utbot.throwsException {@link NullPointerException} in: stack[size] = value;"
+                "@utbot.throwsException {@link java.lang.NullPointerException} in: stack[size] = value;"
 
         val summary3 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): True}\n" +
-                "@utbot.throwsException {@link ArrayIndexOutOfBoundsException} in: minStack[size] = value;"
+                "@utbot.throwsException {@link java.lang.ArrayIndexOutOfBoundsException} in: minStack[size] = value;"
 
         val summary4 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): True}\n" +
-                "@utbot.throwsException {@link NullPointerException} in: minStack[size] = value;"
+                "@utbot.throwsException {@link java.lang.NullPointerException} in: minStack[size] = value;"
 
         val summary5 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): False}\n" +
-                "@utbot.throwsException {@link NullPointerException} in: minStack[size] = Math.min(minStack[size - 1], value);"
+                "@utbot.throwsException {@link java.lang.NullPointerException} in: minStack[size] = Math.min(minStack[size - 1], value);"
 
         val summary6 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): False}\n" +
-                "@utbot.throwsException {@link ArrayIndexOutOfBoundsException} in: minStack[size] = Math.min(minStack[size - 1], value);"
+                "@utbot.throwsException {@link java.lang.ArrayIndexOutOfBoundsException} in: minStack[size] = Math.min(minStack[size - 1], value);"
         val summary7 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): False}\n" +
                 "@utbot.invokes {@code {@link java.lang.Math#min(long,long)}}\n" +
-                "@utbot.throwsException {@link ArrayIndexOutOfBoundsException} in: minStack[size] = Math.min(minStack[size - 1], value);"
+                "@utbot.throwsException {@link java.lang.ArrayIndexOutOfBoundsException} in: minStack[size] = Math.min(minStack[size - 1], value);"
         val summary8 = "@utbot.classUnderTest {@link MinStack}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.structures.MinStack#addValue(long)}\n" +
                 "@utbot.executesCondition {@code (size == 0): True}\n"

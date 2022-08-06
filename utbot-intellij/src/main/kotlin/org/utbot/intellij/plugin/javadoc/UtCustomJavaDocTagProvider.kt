@@ -11,7 +11,8 @@ import com.intellij.psi.javadoc.PsiDocTagValue
  * Provides plugin's custom JavaDoc tags to make test summaries structured.
  */
 class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
-    override fun getSupportedTags(): List<JavadocTagInfo> =
+    // The tags' order is important.
+    override fun getSupportedTags(): List<UtCustomTag> =
         listOf(
             UtCustomTag.ClassUnderTest,
             UtCustomTag.MethodUnderTest,
@@ -24,6 +25,7 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
             UtCustomTag.ThrowsException,
         )
 
+    //TODO: move it to another module to avoid duplication
     sealed class UtCustomTag(private val name: String, private val message: String) : JavadocTagInfo {
         override fun getName(): String = name
 

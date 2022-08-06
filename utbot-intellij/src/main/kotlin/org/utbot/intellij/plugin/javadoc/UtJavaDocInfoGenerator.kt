@@ -28,15 +28,10 @@ class UtJavaDocInfoGenerator {
      */
     fun addUtBotSpecificSectionsToJavaDoc(javadoc: String?, comment: PsiDocComment): String {
         val builder: StringBuilder = StringBuilder(javadoc)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ClassUnderTest)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.MethodUnderTest)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.Invokes)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.Executes)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.Iterates)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ExpectedResult)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ActualResult)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ReturnsFrom)
-        generateUtTagSection(builder, comment, UtCustomJavaDocTagProvider.UtCustomTag.ThrowsException)
+        val docTagProvider = UtCustomJavaDocTagProvider()
+        docTagProvider.supportedTags.forEach {
+            generateUtTagSection(builder, comment, it)
+        }
         return builder.toString()
     }
 
@@ -50,7 +45,7 @@ class UtJavaDocInfoGenerator {
     ) {
         if (comment != null) {
             val tag = comment.findTagByName(utTag.name) ?: return
-            startHeaderSection(builder, utTag.getMessage())?.append("<p>")
+            startHeaderSection(builder, utTag.getMessage()).append("<p>")
             val sectionContent = buildString {
                 generateValue(this, tag.dataElements)
                 this.trim { it <= ' ' }
@@ -60,7 +55,7 @@ class UtJavaDocInfoGenerator {
         }
     }
 
-    private fun startHeaderSection(builder: StringBuilder, message: String): StringBuilder? {
+    private fun startHeaderSection(builder: StringBuilder, message: String): StringBuilder {
         return builder.append(DocumentationMarkup.SECTION_HEADER_START)
             .append(message)
             .append(MESSAGE_SEPARATOR)

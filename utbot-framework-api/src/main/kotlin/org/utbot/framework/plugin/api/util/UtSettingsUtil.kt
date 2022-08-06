@@ -6,7 +6,7 @@ import org.utbot.framework.UtSettings
  * Runs [block] with [UtSettings.substituteStaticsWithSymbolicVariable] value
  * modified in accordance with given [condition].
  */
-inline fun <T> withSubstitutionCondition(condition: Boolean, block: () -> T) {
+inline fun <T> withStaticsSubstitutionRequired(condition: Boolean, block: () -> T) {
     val standardSubstitutionSetting = UtSettings.substituteStaticsWithSymbolicVariable
     UtSettings.substituteStaticsWithSymbolicVariable = standardSubstitutionSetting && condition
     try {

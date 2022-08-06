@@ -212,8 +212,6 @@ object UtSettings {
     /**
      * Activate or deactivate substituting static fields values set in static initializer
      * with symbolic variable to try to set them another value than in initializer.
-     *
-     * We should not try to substitute in parametrized tests, for example
      */
     var substituteStaticsWithSymbolicVariable by getBooleanProperty(true)
 

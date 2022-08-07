@@ -157,7 +157,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 }
 
                 for (traceTags in clusterTraceTags.traceTags) {
-                    if (GENERATE_COMMENTS && USE_CUSTOM_JAVADOC_TAGS) {
+                    if (GENERATE_COMMENTS && UtSettings.useCustomJavaDocTags) {
                         traceTags.execution.summary =
                             CustomJavaDocCommentBuilder(traceTags, sootToAST).buildDocStatements(methodUnderTest)
                     } else if (GENERATE_COMMENTS) {

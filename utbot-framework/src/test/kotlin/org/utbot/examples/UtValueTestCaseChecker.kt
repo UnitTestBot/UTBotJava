@@ -97,7 +97,6 @@ abstract class UtValueTestCaseChecker(
         UtSettings.useAssembleModelGenerator = true
         UtSettings.saveRemainingStatesForConcreteExecution = false
         UtSettings.useFuzzing = false
-        UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS = false
     }
 
     // checks paramsBefore and result

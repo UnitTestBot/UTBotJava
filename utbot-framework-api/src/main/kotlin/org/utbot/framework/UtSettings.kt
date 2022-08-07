@@ -184,6 +184,11 @@ object UtSettings {
     var testDisplayName by getBooleanProperty(true)
 
     /**
+     * Generate summaries using plugin's custom JavaDoc tags.
+     */
+    var useCustomJavaDocTags by getBooleanProperty(false)
+
+    /**
      * Enable the machine learning module to generate summaries for methods under test.
      * True by default.
      *
@@ -269,7 +274,7 @@ object UtSettings {
     /**
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */
-    var useFuzzing: Boolean by getBooleanProperty(false)
+    var useFuzzing: Boolean by getBooleanProperty(true)
 
     /**
      * Set the total attempts to improve coverage by fuzzer.

@@ -11,7 +11,6 @@ import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.codegen.TestExecution
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
 import kotlin.reflect.KClass

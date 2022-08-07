@@ -8,15 +8,15 @@ import java.io.File
 
 object AnnotationFinder {
 
-    private const val inf = 1000
+    private const val INF = 1000
 
     private fun increaseValue(map: MutableMap<String, Int>, key: String) {
-        if (map[key] == inf)
+        if (map[key] == INF)
             return
         map[key] = (map[key] ?: 0) + 1
     }
 
-    private fun findTypeCandidates(
+    private fun firstLevelCandidates(
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
         val candidates = mutableMapOf<String, Int>() // key: type, value: priority
@@ -27,7 +27,7 @@ object AnnotationFinder {
         )
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
-                is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = inf
+                is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = INF
                 is ArgInfoCollector.MethodStorage -> {
                     val typesWithMethod = PythonTypesStorage.findTypeWithMethod(argInfoStorage.name)
                     typesWithMethod.forEach { increaseValue(candidates, it.name) }
@@ -54,6 +54,12 @@ object AnnotationFinder {
                 increaseValue(candidates, typeName)
         }
         return candidates.toList().sortedByDescending { it.second }.map { it.first }
+    }
+
+    private fun findTypeCandidates(
+        storages: List<ArgInfoCollector.BaseStorage>?
+    ): List<String> {
+        return firstLevelCandidates(storages)
     }
 
     fun findAnnotations(

@@ -13,7 +13,6 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
@@ -103,8 +102,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         val constStorage: MutableSet<FuzzedConcreteValue>
     ): ModifierVisitor<MutableMap<String, Storage>>() {
 
-        private fun <A, N> namePat(): Parser<(String) -> A, A, N> {
-            val names: List<Parser<(String) -> A, A, N>> = paramNames.map { paramName ->
+        private fun <A, N> namePat(): Pattern<(String) -> A, A, N> {
+            val names: List<Pattern<(String) -> A, A, N>> = paramNames.map { paramName ->
                 map0(refl(name(equal(paramName))), paramName)
             }
             return names.fold(reject()) { acc, elem -> or(acc, elem) }
@@ -118,12 +117,12 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
                 res
         }
 
-        private fun <A> typedExpr(atom: Parser<A, A, Expression>): Parser<A, A, Expression> =
+        private fun <A> typedExpr(atom: Pattern<A, A, Expression>): Pattern<A, A, Expression> =
             opExpr(refl(atom), refl(name(drop())))
 
-        private fun <A> typedExpressionPat(): Parser<(TypeStorage) -> A, A, Expression> {
+        private fun <A> typedExpressionPat(): Pattern<(TypeStorage) -> A, A, Expression> {
             // map must preserve order
-            val typeMap = linkedMapOf<String, Parser<A, A, Expression>>(
+            val typeMap = linkedMapOf<String, Pattern<A, A, Expression>>(
                 "builtins.int" to refl(num(int())),
                 "builtins.float" to refl(num(drop())),
                 "builtins.str" to refl(str(drop())),
@@ -161,7 +160,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
         private fun <N> parseAndPutType(
             collection: MutableMap<String, Storage>,
-            pat: Parser<(String) -> (TypeStorage) -> Pair<String, TypeStorage>?, Pair<String, TypeStorage>?, N>,
+            pat: Pattern<(String) -> (TypeStorage) -> Pair<String, TypeStorage>?, Pair<String, TypeStorage>?, N>,
             ast: N
         ) {
             parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
@@ -171,7 +170,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
         private fun <N> parseAndPutFunctionRet(
             collection: MutableMap<String, Storage>,
-            pat: Parser<(String) -> (FunctionRetStorage) -> ResFuncRet, ResFuncRet, N>,
+            pat: Pattern<(String) -> (FunctionRetStorage) -> ResFuncRet, ResFuncRet, N>,
             ast: N
         ) {
             parse(pat, onError = null, ast) { paramName -> { storage -> Pair(paramName, storage) } } ?.let {
@@ -180,11 +179,11 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         }
 
         private fun collectFunctionArg(atom: Atom, param: MutableMap<String, Storage>) {
-            val argNamePatterns: List<Parser<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>>> =
+            val argNamePatterns: List<Pattern<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>>> =
                 paramNames.map { paramName ->
                     map0(anyIndexed(refl(name(equal(paramName)))), paramName)
                 }
-            val argPat: Parser<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>> =
+            val argPat: Pattern<(String) -> (Int) -> ResFuncArg, ResFuncArg, List<Expression>> =
                 argNamePatterns.fold(reject()) { acc, elem -> or(acc, elem) }
             val pat = functionCallWithPrefix(
                 fprefix = drop(),
@@ -213,7 +212,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             }
         }
 
-        private fun <A> subscriptPat(): Parser<(String) -> A, A, Atom> =
+        private fun <A> subscriptPat(): Pattern<(String) -> A, A, Atom> =
             atom(
                 fatomElement = namePat(),
                 ftrailers = first(refl(index(drop())))
@@ -247,7 +246,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             )
 
         private fun collectMagicMethodsFromCalls(atom: Atom, param: MutableMap<String, Storage>) {
-            val callNamePat: Parser<(String) -> (String) -> ResMethod, (String) -> ResMethod, Name> =
+            val callNamePat: Pattern<(String) -> (String) -> ResMethod, (String) -> ResMethod, Name> =
                 magicMethodOfFunctionCall.entries.fold(reject()) { acc, entry ->
                     or(acc, map0(name(equal(entry.key)), entry.value))
                 }
@@ -274,7 +273,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         }
 
         private fun collectTypes(assign: Assign, param: MutableMap<String, Storage>) {
-            val pat: Parser<(String) -> (TypeStorage) -> ResAssign, List<ResAssign>, Assign> = assignAll(
+            val pat: Pattern<(String) -> (TypeStorage) -> ResAssign, List<ResAssign>, Assign> = assignAll(
                 ftargets = allMatches(namePat()), fvalue = typedExpressionPat()
             )
             parse(
@@ -287,7 +286,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         }
 
         private fun collectSetItem(assign: Assign, param: MutableMap<String, Storage>) {
-            val setItemPat: Parser<(String) -> String, List<String>, Assign> = assignAll(
+            val setItemPat: Pattern<(String) -> String, List<String>, Assign> = assignAll(
                 ftargets = allMatches(refl(subscriptPat())),
                 fvalue = drop()
             )
@@ -299,7 +298,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             }
         }
 
-        private fun <A, N> funcCallNamePat(): Parser<(FunctionRetStorage) -> A, A, N> =
+        private fun <A, N> funcCallNamePat(): Pattern<(FunctionRetStorage) -> A, A, N> =
             map1(refl(functionCallWithPrefix(
                 fprefix = drop(),
                 fid = apply(),
@@ -307,7 +306,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             ))) { x -> FunctionRetStorage(x) }
 
         private fun collectFuncRet(assign: Assign, param: MutableMap<String, Storage>) {
-            val pat: Parser<(String) -> (FunctionRetStorage) -> ResFuncRet, List<ResFuncRet>, Assign> = assignAll(
+            val pat: Pattern<(String) -> (FunctionRetStorage) -> ResFuncRet, List<ResFuncRet>, Assign> = assignAll(
                 ftargets = allMatches(namePat()),
                 fvalue = funcCallNamePat()
             )
@@ -385,8 +384,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
                 null
             }
 
-        private fun <A, N> constPat(op: FuzzedOp): Parser<(FuzzedConcreteValue?) -> A, A, N> {
-            val pats = listOf<Parser<(FuzzedConcreteValue?) -> A, A, N>>(
+        private fun <A, N> constPat(op: FuzzedOp): Pattern<(FuzzedConcreteValue?) -> A, A, N> {
+            val pats = listOf<Pattern<(FuzzedConcreteValue?) -> A, A, N>>(
                 map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
                 map1(refl(str(apply()))) { x ->
                     FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)

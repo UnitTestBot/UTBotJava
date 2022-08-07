@@ -18,7 +18,7 @@ def f(x, y, z, a, b, c, d, e, g, h):
     return x + y
 
 
-def g(x: List[int], y: List[str]):
+def g(x: List[int], y: List[Any]):
     return x, y
 
 
@@ -59,8 +59,12 @@ class InventoryItem:
     name: str
 
 
+def inv(x):
+    return x.name + "aba"  # interesting case with io.BytesIO
+
+
 def b(x, y):
-    y = len(x) # for now we don't consider that len returns int
+    y = len(x)  # for now we don't consider that len returns int
     return bytes(x, 'utf-8')
 
 

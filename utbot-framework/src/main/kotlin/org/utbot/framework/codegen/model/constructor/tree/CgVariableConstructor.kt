@@ -47,8 +47,8 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.util.defaultValueModel
-import org.utbot.framework.plugin.api.util.field
-import org.utbot.framework.plugin.api.util.findFieldOrNull
+import org.utbot.framework.plugin.api.util.jField
+import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
@@ -101,13 +101,13 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtCompositeModel -> constructComposite(model, baseName)
                 is UtAssembleModel -> constructAssemble(model, baseName)
                 is UtArrayModel -> constructArray(model, baseName)
+                is UtEnumConstantModel -> constructEnumConstant(model, baseName)
+                is UtClassRefModel -> constructClassRef(model, baseName)
             }
         } else valueByModel.getOrPut(model) {
             when (model) {
                 is UtNullModel -> nullLiteral()
                 is UtPrimitiveModel -> CgLiteral(model.classId, model.value)
-                is UtEnumConstantModel -> constructEnumConstant(model, baseName)
-                is UtClassRefModel -> constructClassRef(model, baseName)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
             }
@@ -128,9 +128,9 @@ internal class CgVariableConstructor(val context: CgContext) :
         }
 
         for ((fieldId, fieldModel) in model.fields) {
-            val field = fieldId.field
+            val field = fieldId.jField
             val variableForField = getOrCreateVariable(fieldModel)
-            val fieldFromVariableSpecifiedType = obj.type.findFieldOrNull(field.name)
+            val fieldFromVariableSpecifiedType = obj.type.findFieldByIdOrNull(fieldId)
 
             // we cannot set field directly if variable declared type does not have such field
             // or we cannot directly create variable for field with the specified type (it is private, for example)

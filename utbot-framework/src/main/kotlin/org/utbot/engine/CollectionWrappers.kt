@@ -22,9 +22,9 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.getIdOrThrow
 import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -373,7 +373,7 @@ private fun constructKeysAndValues(keysModel: UtModel, valuesModel: UtModel, siz
         keysModel is UtArrayModel && valuesModel is UtArrayModel -> {
             List(size) {
                 keysModel.stores[it].let { model ->
-                    val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id
+                    val addr = model.getIdOrThrow()
                     // as we do not support generics for now, valuesModel.classId.elementClassId is unknown,
                     // but it can be known with generics support
                     val defaultValue = UtNullModel(valuesModel.classId.elementClassId ?: objectClassId)

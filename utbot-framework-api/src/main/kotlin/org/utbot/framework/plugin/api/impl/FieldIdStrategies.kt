@@ -3,7 +3,7 @@ package org.utbot.framework.plugin.api.impl
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.classId
-import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.id
 import java.lang.reflect.Modifier
 import soot.Scene
@@ -32,25 +32,25 @@ interface FieldIdStrategy {
 class FieldIdReflectionStrategy(val fieldId: FieldId) : FieldIdStrategy {
 
     override val isPublic: Boolean
-        get() = Modifier.isPublic(fieldId.field.modifiers)
+        get() = Modifier.isPublic(fieldId.jField.modifiers)
 
     override val isProtected: Boolean
-        get() = Modifier.isProtected(fieldId.field.modifiers)
+        get() = Modifier.isProtected(fieldId.jField.modifiers)
 
     override val isPrivate: Boolean
-        get() = Modifier.isPrivate(fieldId.field.modifiers)
+        get() = Modifier.isPrivate(fieldId.jField.modifiers)
 
     override val isFinal: Boolean
-        get() = Modifier.isFinal(fieldId.field.modifiers)
+        get() = Modifier.isFinal(fieldId.jField.modifiers)
 
     override val isStatic: Boolean
-        get() = Modifier.isStatic(fieldId.field.modifiers)
+        get() = Modifier.isStatic(fieldId.jField.modifiers)
 
     override val isSynthetic: Boolean
-        get() = fieldId.field.isSynthetic
+        get() = fieldId.jField.isSynthetic
 
     override val type: ClassId
-        get() = fieldId.field.type.id
+        get() = fieldId.jField.type.id
 }
 
 class FieldIdSootStrategy(val declaringClass: ClassId, val fieldId: FieldId) : FieldIdStrategy {

@@ -1,26 +1,26 @@
 package org.utbot.framework.codegen.model
 
-import org.utbot.common.packageName
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.id
 
 class CodeGenerator(
-    private val classUnderTest: Class<*>,
-    params: MutableMap<UtMethod<*>, List<String>> = mutableMapOf(),
+    private val classUnderTest: ClassId,
+    paramNames: MutableMap<ExecutableId, List<String>> = mutableMapOf(),
     testFramework: TestFramework = TestFramework.defaultItem,
     mockFramework: MockFramework? = MockFramework.defaultItem,
     staticsMocking: StaticsMocking = StaticsMocking.defaultItem,
@@ -34,8 +34,8 @@ class CodeGenerator(
     testClassPackageName: String = classUnderTest.packageName,
 ) {
     private var context: CgContext = CgContext(
-        classUnderTest = classUnderTest.id,
-        paramNames = params,
+        classUnderTest = classUnderTest,
+        paramNames = paramNames,
         testFramework = testFramework,
         mockFramework = mockFramework ?: MockFramework.MOCKITO,
         codegenLanguage = codegenLanguage,
@@ -57,13 +57,20 @@ class CodeGenerator(
     fun generateAsStringWithTestReport(
         testSets: Collection<UtMethodTestSet>,
         testClassCustomName: String? = null,
-    ): TestsCodeWithTestReport =
-            withCustomContext(testClassCustomName) {
-                context.withClassScope {
-                    val testClassFile = CgTestClassConstructor(context).construct(testSets)
-                    TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
-                }
-            }
+    ): TestsCodeWithTestReport {
+        val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
+        return generateAsStringWithTestReport(cgTestSets, testClassCustomName)
+    }
+
+    fun generateAsStringWithTestReport(
+        cgTestSets: List<CgMethodTestSet>,
+        testClassCustomName: String? = null,
+    ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
+        context.withClassScope {
+            val testClassFile = CgTestClassConstructor(context).construct(cgTestSets)
+            TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+        }
+    }
 
     /**
      * Wrapper function that configures context as needed for utbot-online:

@@ -10,19 +10,19 @@ import org.utbot.common.scanForClasses
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
-import org.utbot.instrumentation.rd.*
+import org.utbot.instrumentation.rd.childCreatedFileName
+import org.utbot.instrumentation.rd.obtainClientIO
+import org.utbot.instrumentation.rd.processSyncDirectory
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
 import org.utbot.instrumentation.util.UnexpectedCommand
-import org.utbot.rd.UtRdCoroutineScope
 import org.utbot.rd.UtRdUtil
 import org.utbot.rd.UtSingleThreadScheduler
 import java.io.File
-import java.io.OutputStream
-import java.io.PrintStream
 import java.net.URLClassLoader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.system.measureTimeMillis
 
@@ -55,7 +55,7 @@ private enum class CUSTOM_LOG_LEVEL(val value: Int) {
     TRACE(2)
 }
 
-private val logLevel = CUSTOM_LOG_LEVEL.INFO
+private val logLevel = CUSTOM_LOG_LEVEL.TRACE
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
@@ -106,7 +106,8 @@ fun main(args: Array<String>): Unit {
                 delay(1000)
             } else { // process is waiting for answer
                 // todo
-                if (now - start > 60 * 1000) {
+                if (now - start > 120 * 1000) {
+                    logInfo {"terminating lifetime"}
                     def.terminate()
                     break
                 } else {
@@ -117,7 +118,7 @@ fun main(args: Array<String>): Unit {
     }
 
     def.usingNested { lifetime ->
-        lifetime += { logInfo { "terminating lifetime" } }
+        lifetime += { logInfo { "lifetime terminated" } }
         initiate(lifetime, port, pid.toInt())
     }
 }
@@ -125,17 +126,31 @@ fun main(args: Array<String>): Unit {
 private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({
     // We don't want user code to litter the standard output, so we redirect it.
     // it is import to set output before creating protocol because rd has its own logging to stdout
-    val tmpStream = PrintStream(object : OutputStream() {
-        override fun write(b: Int) {}
-    })
-    System.setOut(tmpStream)
+//    val tmpStream = PrintStream(object : OutputStream() {
+//        override fun write(b: Int) {}
+//    })
+    System.setOut(System.err)
 
     val clientProtocol = UtRdUtil.createUtClientProtocol(lifetime, port, UtSingleThreadScheduler { logInfo(it) })
-    val (mainToProcess, processToMain) = obtainClientIO(lifetime, clientProtocol, pid)
+    logInfo { "hearthbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${
+        clientProtocol.wire.connected.value}"}
+    val (mainToProcess, processToMain, sync) = obtainClientIO(lifetime, clientProtocol, pid)
+    logInfo { "IO obtained" }
+    logInfo { "hearthbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${
+        clientProtocol.wire.connected.value}"}
+    val latch = CountDownLatch(1)
+    sync.advise(lifetime) {
+        if (it == "main") {
+            sync.fire("child")
+            latch.countDown()
+        }
+    }
+    latch.await()
     val kryoHelper =
         KryoHelper(lifetime, mainToProcess, processToMain)
         { logTrace(it) } // this generates a lot of logs - comment if needed
-
+    logInfo { "hearthbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${
+        clientProtocol.wire.connected.value}"}
 
     logInfo { "starting instrumenting" }
     startInstrumenting(kryoHelper)
@@ -143,6 +158,7 @@ private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracket
     val syncFile = File(processSyncDirectory, childCreatedFileName(pid))
 
     if (syncFile.exists()) {
+        logInfo { "sync file existed" }
         syncFile.delete()
     }
 }
@@ -203,6 +219,7 @@ private fun read(kryoHelper: KryoHelper): KryoHelper.ReceivedCommand {
  * Main loop. Processes incoming commands.
  */
 private fun loop(kryoHelper: KryoHelper, instrumentation: Instrumentation<*>) {
+    logInfo { "starting looping" }
     while (true) {
         val (id, cmd) = try {
             read(kryoHelper)
@@ -267,7 +284,8 @@ private fun loop(kryoHelper: KryoHelper, instrumentation: Instrumentation<*>) {
  * [org.utbot.instrumentation.ConcreteExecutor] instantiation.
  */
 private fun getInstrumentation(kryoHelper: KryoHelper): Instrumentation<*>? {
-    val (id, cmd) = kryoHelper.readCommand()
+    logInfo { "reading instrumentation" }
+    val (id, cmd) = read(kryoHelper)
     return when (cmd) {
         is Protocol.SetInstrumentationCommand<*> -> {
             cmd.instrumentation
@@ -283,7 +301,8 @@ private fun getInstrumentation(kryoHelper: KryoHelper): Instrumentation<*>? {
 }
 
 private fun readClasspath(kryoHelper: KryoHelper): Protocol.AddPathsCommand? {
-    val (id, cmd) = kryoHelper.readCommand()
+    logInfo { "reading classpath" }
+    val (id, cmd) = read(kryoHelper)
     return when (cmd) {
         is Protocol.AddPathsCommand -> {
             cmd

@@ -1,7 +1,3 @@
-import com.sun.management.OperatingSystemMXBean
-
-import java.lang.management.ManagementFactory
-
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 repositories {

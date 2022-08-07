@@ -1,5 +1,6 @@
 package org.utbot.instrumentation.rd
 
+import com.jetbrains.rd.framework.base.bind
 import com.jetbrains.rd.framework.base.static
 import com.jetbrains.rd.framework.impl.RdSignal
 import com.jetbrains.rd.util.lifetime.Lifetime
@@ -14,6 +15,7 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.util.KryoHelper
 import org.utbot.instrumentation.util.Protocol
+import org.utbot.instrumentation.util.ReadingFromKryoException
 import org.utbot.rd.ProcessWithRdServer
 import org.utbot.rd.UtRdCoroutineScope
 import org.utbot.rd.UtRdUtil
@@ -21,6 +23,7 @@ import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.ConcurrentSkipListMap
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 val logger = KotlinLogging.logger{}
@@ -57,14 +60,16 @@ class UtInstrumentationProcess private constructor(
     private val callbacks: ConcurrentMap<Long, CompletableDeferred<Protocol.Command>> = ConcurrentSkipListMap()
     private val toProcess = RdSignal<ByteArray>().static(1).apply { async = true }
     private val fromProcess = RdSignal<ByteArray>().static(2).apply { async = true }
+    private val sync = RdSignal<String>().static(3).apply { async = true }
 
     private suspend fun init(): UtInstrumentationProcess {
         lifetime.usingNested { operation ->
             val bound = CompletableDeferred<Boolean>()
 
             protocol.scheduler.invokeOrQueue {
-                toProcess.bind(lifetime, protocol, "mainInputSignal")
-                fromProcess.bind(lifetime, protocol, "mainOutputSignal")
+                toProcess.bind(lifetime, protocol, toProcess.rdid.toString())
+                fromProcess.bind(lifetime, protocol, fromProcess.rdid.toString())
+                sync.bind(lifetime, protocol, sync.rdid.toString())
                 bound.complete(true)
             }
             operation.onTermination { bound.cancel() }
@@ -75,17 +80,35 @@ class UtInstrumentationProcess private constructor(
         val syncFile = File(processSyncDirectory, childCreatedFileName(process.pid.toInt()))
 
         while (lifetime.isAlive) {
-            if (Files.deleteIfExists(syncFile.toPath()))
+            if (Files.deleteIfExists(syncFile.toPath())) {
+                logger.trace { "process ${process.pid}: signal file deleted connecting" }
                 break
+            }
 
             delay(fileWaitTimeoutMillis)
         }
 
+        lifetime.usingNested { syncLifetime ->
+            val childReady = AtomicBoolean(false)
+            sync.advise(syncLifetime) {
+                if (it == "child") {
+                    childReady.set(true)
+                }
+            }
+
+            while (!childReady.get()) {
+                sync.fire("main")
+                delay(10)
+            }
+        }
+
         lifetime.onTermination {
             if (syncFile.exists()) {
+                logger.trace{ "process ${process.pid}: on terminating syncFile existed" }
                 syncFile.delete()
             }
         }
+
         kryoHelper = KryoHelper(
             rdProcess.lifetime.createNested(),
             fromProcess,
@@ -117,10 +140,15 @@ class UtInstrumentationProcess private constructor(
             ) {
                 childProcessRunner.start(it)
             }
+            logger.trace("rd process started")
             val proc = UtInstrumentationProcess(
                 classLoader,
                 rdProcess
             ).init()
+//            Thread.sleep(300)
+            logger.trace {"hearthbeatAlive - ${proc.protocol.wire.heartbeatAlive.value}, connected - ${
+                proc.protocol.wire.connected.value
+            }"}
             proc.lifetime.onTermination {
                 logger.trace { "process is terminating" }
             }
@@ -169,7 +197,7 @@ class UtInstrumentationProcess private constructor(
             // because some models use utcontext in toString method
             // utcontext is thread local, and so UtRdCoroutineScope does error
             // and not to pollute memory on no trace
-            val cmdString: String? = null//if (logger.isTraceEnabled) cmd.toString() else null
+            val cmdString: String? = if (logger.isTraceEnabled) cmd.toString() else null
             // if utbot cancels this job by timeout - await will throw cancellationException
             // also if process lifetime terminated - deferred from async call also cancelled and await throws cancellationException
             // if await succeeded - then process lifetime is ok and no timeout happened
@@ -241,6 +269,8 @@ class UtInstrumentationProcess private constructor(
                         // new operations will not be accepted by lifetime
                         break
                     } catch (e: Throwable) {
+                        if (e is ReadingFromKryoException && e.cause is InterruptedException)
+                            break
                         // means we can't read somewhy
                         // kryo input buffer might be corrupted and any subsequent reads might fail or return incorrect data
                         // example of incorrect data might be incomplete strings

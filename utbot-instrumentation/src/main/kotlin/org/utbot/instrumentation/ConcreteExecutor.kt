@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.common.catch
+import org.utbot.common.pid
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -199,6 +200,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 
     suspend fun <T : Protocol.Command> execute(cmd: T): Protocol.Command = withProcess {
         try {
+            logger.info { "executing on pid - ${process.pid}, alive - ${process.isAlive}"}
             sendTimestamp.set(System.currentTimeMillis())
             return when (val result = execute(cmd)) {
                 is Protocol.ExceptionInChildProcess -> {
@@ -242,13 +244,13 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 if (alive) {
                     try {
                         processInstance?.request(Protocol.StopProcessCommand())
+                        processInstance = null
                     } catch (e: Throwable) {
                         logger.trace { "exception in close: $e" }
                     }
                 }
                 def.terminate()
             }
-            processInstance?.process?.waitFor()
         }
     }
 }

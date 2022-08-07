@@ -12,14 +12,15 @@ const val rdProcessDirName = "rdProcessSync"
 val processSyncDirectory = File(utBotTempDirectory.toFile(), rdProcessDirName)
 
 internal fun obtainClientIO(lifetime: Lifetime, protocol: Protocol, pid: Int): InstrumentationIO {
-    val latch = CountDownLatch(2)
+    val latch = CountDownLatch(3)
     val mainToProcess = RdSignal<ByteArray>().static(1).init(lifetime, protocol, latch)
     val processToMain = RdSignal<ByteArray>().static(2).init(lifetime, protocol, latch)
+    val sync = RdSignal<String>().static(3).init(lifetime, protocol, latch)
 
     latch.await()
     signalChildReady(pid)
 
-    return InstrumentationIO(mainToProcess, processToMain)
+    return InstrumentationIO(mainToProcess, processToMain, sync)
 }
 
 internal fun childCreatedFileName(pid: Int): String {
@@ -54,5 +55,6 @@ private fun <T> RdSignal<T>.init(lifetime: Lifetime, protocol: Protocol, latch: 
 
 internal data class InstrumentationIO(
     val mainToChild: RdSignal<ByteArray>,
-    val childToMain: RdSignal<ByteArray>
+    val childToMain: RdSignal<ByteArray>,
+    val sync: RdSignal<String>
 )

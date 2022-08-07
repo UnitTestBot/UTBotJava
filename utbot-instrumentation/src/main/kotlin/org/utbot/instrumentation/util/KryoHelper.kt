@@ -59,6 +59,7 @@ class KryoHelper internal constructor(
 
     init {
         inputSignal.advise(lifetime) { byteArray ->
+            doLog {"received something"}
             doLog { "received chunk: size - ${byteArray.size}, hash - ${byteArray.contentHashCode()}" }
             queue.offer(byteArray)
         }
@@ -76,6 +77,7 @@ class KryoHelper internal constructor(
     private val receiveKryo: Kryo = TunedKryo()
 
     fun discard() {
+        doLog { "doing discard" }
         kryoInput.reset()
 
         val curAvailable = lastInputStream.available()

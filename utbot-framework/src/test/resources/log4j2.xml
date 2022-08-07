@@ -11,12 +11,19 @@
         </File>
 
         <Console name="Console" target="SYSTEM_OUT">
+            <ThresholdFilter level="DEBUG"  onMatch="ACCEPT"   onMismatch="DENY"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
+        </Console>
+
+        <Console name="Console2" target="SYSTEM_OUT">
             <ThresholdFilter level="TRACE"  onMatch="ACCEPT"   onMismatch="DENY"/>
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="org.utbot.instrumentation.rd" level="trace"/>
+        <Logger name="org.utbot.instrumentation.rd" level="trace">
+            <AppenderRef ref="Console2"/>
+        </Logger>
         <!--        Uncomment this logger to see path -->
         <Logger name="org.utbot.engine.UtBotSymbolicEngine.path" level="debug"/>
 

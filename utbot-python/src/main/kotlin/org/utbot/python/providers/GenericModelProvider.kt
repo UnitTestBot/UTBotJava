@@ -3,18 +3,26 @@ package org.utbot.python.providers
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.*
+import org.utbot.python.code.dict
+import org.utbot.python.utils.*
 import java.lang.Integer.min
 import kotlin.random.Random
 
 object GenericModelProvider: ModelProvider {
-    val concreteTypesModelProvider = ModelProvider.of(
+    private val concreteTypesModelProvider = ModelProvider.of(
         ConstantModelProvider,
         DefaultValuesModelProvider,
         GenericModelProvider
     )
 
+    private const val maxGenNum = 10
+
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        fun <T: UtModel> fuzzGeneric(parameters: List<ClassId>, modelConstructor: (List<List<FuzzedValue>>) -> T) = sequence {
+        fun <T: UtModel> fuzzGeneric(
+            parameters: List<ClassId>,
+            index: Int,
+            modelConstructor: (List<List<FuzzedValue>>) -> T
+        ) = sequence {
             val syntheticGenericType = FuzzedMethodDescription(
                 "${description.name}<syntheticGenericList>",
                 voidClassId,
@@ -25,13 +33,13 @@ object GenericModelProvider: ModelProvider {
                 .randomChunked()
                 .map(modelConstructor)
                 .forEach {
-                    yield(FuzzedParameter(0, it.fuzzed()))
+                    yield(FuzzedParameter(index, it.fuzzed()))
                 }
         }
 
-        fun parseList(matchResult: MatchResult): Sequence<FuzzedParameter> {
-            val genericType = if (matchResult.groupValues.size >= 2) ClassId(matchResult.groupValues[1]) else pythonAnyClassId
-            return fuzzGeneric(listOf(genericType)) { list ->
+        fun genList(listAnnotation: ListAnnotation, index: Int): Sequence<FuzzedParameter> {
+            val genericType = ClassId(listAnnotation.elemAnnotation)
+            return fuzzGeneric(listOf(genericType), index) { list ->
                 PythonListModel(
                     PythonListModel.classId,
                     list.size,
@@ -40,10 +48,10 @@ object GenericModelProvider: ModelProvider {
             }
         }
 
-        fun parseDict(matchResult: MatchResult): Sequence<FuzzedParameter> {
-            val genericKeyType = if (matchResult.groupValues.size >= 2) ClassId(matchResult.groupValues[1]) else pythonAnyClassId
-            val genericValueType = if (matchResult.groupValues.size >= 3) ClassId(matchResult.groupValues[2]) else pythonAnyClassId
-            return fuzzGeneric(listOf(genericKeyType, genericValueType)) { list ->
+        fun genDict(dictAnnotation: DictAnnotation, index: Int): Sequence<FuzzedParameter> {
+            val genericKeyType = ClassId(dictAnnotation.keyAnnotation)
+            val genericValueType = ClassId(dictAnnotation.valueAnnotation)
+            return fuzzGeneric(listOf(genericKeyType, genericValueType), index) { list ->
                     PythonDictModel(
                         PythonDictModel.classId,
                         list.size,
@@ -54,9 +62,9 @@ object GenericModelProvider: ModelProvider {
                 }
         }
 
-        fun parseSet(matchResult: MatchResult): Sequence<FuzzedParameter> {
-            val genericType = if (matchResult.groupValues.size >= 2) ClassId(matchResult.groupValues[1]) else pythonAnyClassId
-            return fuzzGeneric(listOf(genericType)) { list ->
+        fun genSet(setAnnotation: SetAnnotation, index: Int): Sequence<FuzzedParameter> {
+            val genericType = ClassId(setAnnotation.elemAnnotation)
+            return fuzzGeneric(listOf(genericType), index) { list ->
                     PythonSetModel(
                         PythonSetModel.classId,
                         list.size,
@@ -65,29 +73,16 @@ object GenericModelProvider: ModelProvider {
                 }
         }
 
-        val modelRegexMap = mapOf<Regex, (MatchResult) -> Sequence<FuzzedParameter>>(
-            Regex("builtins.list\\[(.*)]") to { matchResult -> parseList(matchResult) },
-            Regex("[Ll]ist\\[(.*)]") to { matchResult -> parseList(matchResult) },
-            Regex("typing.List\\[(.*)]") to { matchResult -> parseList(matchResult) },
-
-            Regex("builtins.dict\\[(.*), *(.*)]") to { matchResult -> parseDict(matchResult) },
-            Regex("[Dd]ict\\[(.*), *(.*)]") to { matchResult -> parseDict(matchResult) },
-            Regex("typing.Dict\\[(.*), *(.*)]") to { matchResult -> parseDict(matchResult) },
-
-            Regex("builtins.set\\[(.*)]") to { matchResult -> parseSet(matchResult) },
-            Regex("[Ss]et\\[(.*)]") to { matchResult -> parseSet(matchResult) },
-            Regex("typing.Set\\[(.*)]") to { matchResult -> parseSet(matchResult) },
-        )
-
         description.parametersMap.forEach { (classId, parameterIndices) ->
             val annotation = classId.name
-            parameterIndices.forEach { _ ->
-                modelRegexMap.entries.forEach { (regex, action) ->
-                    val result = regex.matchEntire(annotation)
-                    if (result != null) {
-                        yieldAll(action(result).take(10))
-                    }
+            val parsedAnnotation = parseGeneric(annotation) ?: return@forEach
+            parameterIndices.forEach { index ->
+                val generatedModels = when (parsedAnnotation) {
+                    is ListAnnotation -> genList(parsedAnnotation, index)
+                    is DictAnnotation -> genDict(parsedAnnotation, index)
+                    is SetAnnotation -> genSet(parsedAnnotation, index)
                 }
+                yieldAll(generatedModels.take(maxGenNum))
             }
         }
     }

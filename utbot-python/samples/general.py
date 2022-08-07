@@ -18,8 +18,8 @@ def f(x, y, z, a, b, c, d, e, g, h):
     return x + y
 
 
-def g(x: List[int]):
-    return 1024
+def g(x: List[int], y: List[str]):
+    return x, y
 
 
 def i(x: Dict[int, int]):

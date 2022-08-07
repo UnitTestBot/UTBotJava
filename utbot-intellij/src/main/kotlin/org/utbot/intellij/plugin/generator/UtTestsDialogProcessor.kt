@@ -33,7 +33,7 @@ import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.withSubstitutionCondition
+import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
@@ -170,9 +170,6 @@ object UtTestsDialogProcessor {
                                     indicator.fraction = indicator.fraction.coerceAtLeast(0.9 * processedClasses / totalClasses)
                                 }
 
-                                //we should not substitute statics for parametrized tests
-                                val shouldSubstituteStatics =
-                                    model.parametrizedTestSource != ParametrizedTestSource.PARAMETRIZE
                                 // set timeout for concrete execution and for generated tests
                                 UtSettings.concreteExecutionTimeoutInChildProcess = model.hangingTestsTimeout.timeoutMs
 
@@ -180,7 +177,7 @@ object UtTestsDialogProcessor {
                                     .nonBlocking<Path> { project.basePath?.let { Paths.get(it) } ?: Paths.get(srcClass.containingFile.virtualFile.parent.path) }
                                     .executeSynchronously()
 
-                                withSubstitutionCondition(shouldSubstituteStatics) {
+                                withStaticsSubstitutionRequired(true) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
 
                                     if (!mockFrameworkInstalled) {

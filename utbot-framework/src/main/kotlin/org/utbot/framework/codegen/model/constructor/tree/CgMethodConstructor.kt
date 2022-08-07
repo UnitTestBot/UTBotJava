@@ -1081,7 +1081,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         CgClassId(result.classId, isNullable = result is UtNullModel),
                         "actual"
                     ) {
-                        thisInstance[executable](*methodArguments.toTypedArray())
+                        val a = thisInstance[executable]
+                        val b = methodArguments.toTypedArray()
+                        val c = a(*b)
+                        c
+//                        thisInstance[executable](*methodArguments.toTypedArray())
                     }
                 }
             }
@@ -1442,6 +1446,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 setArgumentsArrayElement(argsVariable, executionIndex, argsArray)
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
+            Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
         }
     }
 
@@ -1472,7 +1477,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 ),
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
-            Pytest -> TODO("Not yet implemented")
+            Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
         }
 
     /**
@@ -1491,7 +1496,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     CgAllocateArray(argListClassId, Array<Any>::class.java.id, length)
                 }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
-            Pytest -> TODO("Not yet implemented")
+            Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
         }
     }
 
@@ -1531,7 +1536,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 )
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
-            Pytest -> TODO("Not yet implemented")
+            Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
         }
 
 
@@ -1586,7 +1591,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 ),
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
-            Pytest -> TODO("Not yet implemented")
+            Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
         }
 
     private fun testMethod(

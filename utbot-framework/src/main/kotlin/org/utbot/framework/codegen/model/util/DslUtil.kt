@@ -1,22 +1,7 @@
 package org.utbot.framework.codegen.model.util
 
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgDecrement
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgGetClass
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
-import org.utbot.framework.codegen.model.tree.CgGetLength
-import org.utbot.framework.codegen.model.tree.CgGreaterThan
-import org.utbot.framework.codegen.model.tree.CgIncrement
-import org.utbot.framework.codegen.model.tree.CgLessThan
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
@@ -124,5 +109,5 @@ fun Array<*>.resolve(): List<CgExpression> = map { it.resolve() }
 fun classLiteralAnnotationArgument(id: ClassId, codegenLanguage: CodegenLanguage): CgGetClass = when (codegenLanguage) {
     CodegenLanguage.JAVA -> CgGetJavaClass(id)
     CodegenLanguage.KOTLIN -> CgGetKotlinClass(id)
-    CodegenLanguage.PYTHON -> CgGetKotlinClass(id)
+    CodegenLanguage.PYTHON -> CgGetPythonClass(id)
 }

@@ -29,7 +29,7 @@ internal object CgComponents {
     fun getCallableAccessManagerBy(context: CgContext) =
         callableAccessManagers.getOrPut(context) {
             when (context.testFramework) {
-//                is Pytest -> PythonCgCallableAccessManagerImpl(context)
+                is Pytest -> PythonCgCallableAccessManagerImpl(context)
                 else -> CgCallableAccessManagerImpl(context)
             }
         }
@@ -55,7 +55,12 @@ internal object CgComponents {
     fun getFieldStateManagerBy(context: CgContext) =
             fieldStateManagers.getOrPut(context) { CgFieldStateManagerImpl(context) }
 
-    fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) { CgVariableConstructor(context) }
+    fun getVariableConstructorBy(context: CgContext) = variableConstructors.getOrPut(context) {
+        when (context.codegenLanguage) {
+            CodegenLanguage.PYTHON -> PythonCgVariableConstructor(context)
+            else -> CgVariableConstructor(context)
+        }
+    }
 
     fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) { CgMethodConstructor(context) }
     fun getTestClassConstructorBy(context: CgContext) = testClassConstructors.getOrPut(context) { CgTestClassConstructor(context) }

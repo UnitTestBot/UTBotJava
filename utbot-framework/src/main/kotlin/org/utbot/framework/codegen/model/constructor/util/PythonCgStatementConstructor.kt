@@ -7,10 +7,12 @@ import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManage
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.buildExceptionHandler
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
+import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.*
 
 internal class PythonCgStatementConstructorImpl(context: CgContext) :
     CgStatementConstructor,
@@ -55,15 +57,15 @@ internal class PythonCgStatementConstructorImpl(context: CgContext) :
         isMutableVar: Boolean,
         init: () -> CgExpression
     ): Either<CgDeclaration, CgVariable> {
+        val baseExpr = init()
 
         val name = nameGenerator.variableName(baseType, baseName)
-        val type = baseType
+        val (type, expr) = guardExpression(baseType, baseExpr)
 
         val declaration = buildDeclaration {
             variableType = type
             variableName = name
-            initializer = CgVariable(name, type)
-            isMutable = isMutableVar
+            initializer = expr
         }
         updateVariableScope(declaration.variable, model)
         return Either.left(declaration)
@@ -218,7 +220,7 @@ internal class PythonCgStatementConstructorImpl(context: CgContext) :
         }
 
     override fun guardExpression(baseType: ClassId, expression: CgExpression): ExpressionWithType {
-        TODO("Not yet implemented")
+        return ExpressionWithType(baseType, expression)
     }
 
     override fun wrapTypeIfRequired(baseType: ClassId): ClassId =

@@ -47,7 +47,7 @@ import java.lang.reflect.Modifier
  * Constructs CgValue or CgVariable given a UtModel
  */
 @Suppress("unused")
-internal class CgVariableConstructor(val context: CgContext) :
+open class CgVariableConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context),
     CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
@@ -78,7 +78,7 @@ internal class CgVariableConstructor(val context: CgContext) :
      * We use [valueByModelId] for [UtReferenceModel] by id to not create new variable in case state before
      * was not transformed.
      */
-    fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
+    open fun getOrCreateVariable(model: UtModel, name: String? = null): CgValue {
         // name could be taken from existing names, or be specified manually, or be created from generator
         val baseName = name ?: nameGenerator.nameFrom(model.classId)
         return if (model is UtReferenceModel) valueByModelId.getOrPut(model.id) {
@@ -95,17 +95,7 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtClassRefModel -> constructClassRef(model, baseName)
                 is UtReferenceModel -> error("Unexpected UtReferenceModel: ${model::class}")
                 is UtVoidModel -> error("Unexpected UtVoidModel: ${model::class}")
-                is PythonDefaultModel -> CgLiteral(model.classId, model.type)
-//                is PythonBoolModel -> TODO()
-//                is PythonComplexObjectModel -> TODO()
-                is PythonDictModel -> CgLiteral(model.classId, model.stores)
-//                is PythonFloatModel -> TODO()
-//                is PythonInitObjectModel -> TODO()
-//                is PythonIntModel -> TODO()
-//                is PythonListModel -> TODO()
-//                is PythonSetModel -> TODO()
-//                is PythonStrModel -> TODO()
-                is PythonModel -> error("Unexpected PythonModel: ${model::class}")
+                else -> error("Unexpected UtModel: ${model::class}")
             }
         }
     }

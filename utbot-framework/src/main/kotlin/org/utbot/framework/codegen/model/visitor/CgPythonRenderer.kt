@@ -307,9 +307,30 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
         if (isBlockTooLarge) println("\"\"\"")
 
-//        print("}")
-
         if (printNextLine) println()
+    }
+
+
+    override fun visit(element: CgMethodCall) {
+//        val caller = element.caller
+//        if (caller != null) {
+//            // 'this' can be omitted, otherwise render caller
+//            if (caller !is CgThisInstance) {
+//                caller.accept(this)
+//                renderAccess(caller)
+//            }
+//        } else {
+//            // for static methods render declaring class only if required
+//            if (!element.executableId.accessibleByName) {
+//                val method = element.executableId
+//                print(method.classId.asString())
+//                print(".")
+//            }
+//        }
+        print(element.executableId.name)
+
+        renderTypeParameters(element.typeParameters)
+        renderExecutableCallArguments(element)
     }
 
     override fun String.escapeCharacters(): String =

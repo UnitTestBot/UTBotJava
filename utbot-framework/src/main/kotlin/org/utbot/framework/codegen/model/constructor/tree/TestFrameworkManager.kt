@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
+import org.utbot.framework.codegen.Pytest
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
@@ -217,12 +218,17 @@ internal abstract class TestFrameworkManager(val context: CgContext)
 }
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
+    val assert = Pytest.assert
     override fun expectException(exception: ClassId, block: () -> Unit) {
-        TODO("Not yet implemented")
+        require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
+        block()
     }
 
     override fun disableTestMethod(reason: String) {
-        TODO("Not yet implemented")
+    }
+
+    override fun assertEquals(expected: CgValue, actual: CgValue) {
+        +assertions[assertEquals](expected, actual)
     }
 }
 

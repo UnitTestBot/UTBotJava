@@ -243,8 +243,8 @@ sealed class TestFramework(
 }
 
 object Pytest : TestFramework(displayName = "pytest") {
-    override val mainPackage: String
-        get() = TODO("Not yet implemented")
+
+    override val mainPackage: String = "pytest"
     override val assertionsClass: ClassId = BuiltinClassId(
         name = "Asserts",
         canonicalName = "Asserts",
@@ -272,14 +272,17 @@ object Pytest : TestFramework(displayName = "pytest") {
     override val methodSourceAnnotationFqn: String
         get() = TODO("Not yet implemented")
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
         buildDirectory: String,
         additionalArguments: List<String>
-    ): List<String> {
-        TODO("Not yet implemented")
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add(mainPackage)
     }
 
 }

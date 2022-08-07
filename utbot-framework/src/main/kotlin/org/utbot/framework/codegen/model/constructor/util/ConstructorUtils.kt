@@ -46,7 +46,7 @@ import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import org.utbot.framework.plugin.api.util.arrayLikeName
 
-internal data class EnvironmentFieldStateCache(
+data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
     val arguments: Array<FieldStateCache>,
     val classesWithStaticFields: MutableMap<ClassId, FieldStateCache>
@@ -92,7 +92,7 @@ internal data class EnvironmentFieldStateCache(
     }
 }
 
-internal class FieldStateCache {
+class FieldStateCache {
     val before: MutableMap<FieldPath, CgFieldState> = mutableMapOf()
     val after: MutableMap<FieldPath, CgFieldState> = mutableMapOf()
 
@@ -118,7 +118,7 @@ internal class FieldStateCache {
     }
 }
 
-internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
+data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
 

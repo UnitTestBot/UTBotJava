@@ -803,7 +803,9 @@ class CgGetJavaClass(classId: ClassId) : CgGetClass(classId)
 
 class CgGetKotlinClass(classId: ClassId) : CgGetClass(classId)
 
-class CgGetPythonClass(classId: ClassId) : CgGetClass(classId)
+class CgGetPythonClass(classId: ClassId) : CgGetClass(classId) {
+    override val type: ClassId = classId
+}
 
 // Executable calls
 

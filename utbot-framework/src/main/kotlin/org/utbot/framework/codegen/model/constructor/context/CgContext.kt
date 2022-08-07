@@ -383,7 +383,7 @@ internal interface CgContextOwner {
 /**
  * Context with current code generation info
  */
-internal data class CgContext(
+data class CgContext(
     override val classUnderTest: ClassId,
     override var currentExecutable: ExecutableId? = null,
     override val collectedTestClassInterfaces: MutableSet<ClassId> = mutableSetOf(),

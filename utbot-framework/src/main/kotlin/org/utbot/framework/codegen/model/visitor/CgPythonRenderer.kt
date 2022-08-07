@@ -13,7 +13,6 @@ import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.WildcardTypeParameter
-import org.utbot.framework.plugin.api.util.kClass
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -174,7 +173,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override fun visit(element: CgParameterDeclaration) {
         print(element.name.escapeNamePossibleKeyword())
         print(": ")
-        print(element.type.asString())
+        print(element.type.name)
     }
 
     override fun visit(element: CgGetLength) {
@@ -192,7 +191,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgConstructorCall) {
-        print(element.executableId.classId.asString())
+        print(element.executableId.classId.name)
         renderExecutableCallArguments(element)
     }
 
@@ -331,6 +330,10 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
         renderTypeParameters(element.typeParameters)
         renderExecutableCallArguments(element)
+    }
+
+    override fun visit(element: CgPythonRepr) {
+        print(element.content)
     }
 
     override fun String.escapeCharacters(): String =

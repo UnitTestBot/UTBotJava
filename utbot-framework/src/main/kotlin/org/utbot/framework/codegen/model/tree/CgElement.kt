@@ -101,6 +101,7 @@ interface CgElement {
             is CgThrowStatement -> visit(element)
             is CgErrorWrapper -> visit(element)
             is CgEmptyLine -> visit(element)
+            is CgPythonRepr -> visit(element)
             else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
         }
     }
@@ -860,3 +861,8 @@ class CgClassId(
         isNullable: Boolean = true,
     ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
 }
+
+class CgPythonRepr(
+    override val type: ClassId,
+    val content: String
+) : CgValue

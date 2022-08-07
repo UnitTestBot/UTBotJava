@@ -4,11 +4,7 @@ import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.infiniteInts
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isArray
 
 /**
@@ -27,6 +23,7 @@ internal interface CgNameGenerator {
      */
     fun nameFrom(id: ClassId): String =
             when {
+                id is PythonClassId -> id.simpleName.decapitalize()
                 id.isAnonymous -> id.prettifiedName
                 id.isArray -> id.prettifiedName
                 id.simpleName.isScreamingSnakeCase() -> id.simpleName.fromScreamingSnakeCaseToCamelCase() // special case for enum instances

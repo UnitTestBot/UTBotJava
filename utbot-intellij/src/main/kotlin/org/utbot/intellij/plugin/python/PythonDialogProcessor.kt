@@ -102,8 +102,6 @@ object PythonDialogProcessor {
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
-                val startTime = System.currentTimeMillis()
-
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
                 val testSourceRoot = model.testSourceRoot!!.path
                 val filePath = model.file.virtualFile.path
@@ -131,6 +129,7 @@ object PythonDialogProcessor {
 
                     indicator.text = "Generating tests"
                 }
+                val startTime = System.currentTimeMillis()
 
                 val pythonMethods = findSelectedPythonMethods(model)
 

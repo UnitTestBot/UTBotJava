@@ -218,7 +218,7 @@ internal abstract class TestFrameworkManager(val context: CgContext)
 }
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
-    val assert = Pytest.assert
+//    val assert = Pytest.assert
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
         block()

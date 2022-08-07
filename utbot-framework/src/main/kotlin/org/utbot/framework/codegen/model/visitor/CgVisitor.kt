@@ -1,88 +1,10 @@
 package org.utbot.framework.codegen.model.visitor
 
-import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
-import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
-import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
-import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgArrayInitializer
-import org.utbot.framework.codegen.model.tree.CgAssignment
-import org.utbot.framework.codegen.model.tree.CgBreakStatement
-import org.utbot.framework.codegen.model.tree.CgComment
-import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
-import org.utbot.framework.codegen.model.tree.CgComparison
-import org.utbot.framework.codegen.model.tree.CgConstructorCall
-import org.utbot.framework.codegen.model.tree.CgContinueStatement
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgDecrement
-import org.utbot.framework.codegen.model.tree.CgDoWhileLoop
-import org.utbot.framework.codegen.model.tree.CgDocClassLinkStmt
-import org.utbot.framework.codegen.model.tree.CgDocCodeStmt
-import org.utbot.framework.codegen.model.tree.CgDocMethodLinkStmt
-import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
-import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
-import org.utbot.framework.codegen.model.tree.CgDocumentationComment
-import org.utbot.framework.codegen.model.tree.CgElement
-import org.utbot.framework.codegen.model.tree.CgEmptyLine
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
-import org.utbot.framework.codegen.model.tree.CgErrorWrapper
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgForLoop
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
-import org.utbot.framework.codegen.model.tree.CgGetLength
-import org.utbot.framework.codegen.model.tree.CgGreaterThan
-import org.utbot.framework.codegen.model.tree.CgIfStatement
-import org.utbot.framework.codegen.model.tree.CgIncrement
-import org.utbot.framework.codegen.model.tree.CgInnerBlock
-import org.utbot.framework.codegen.model.tree.CgLessThan
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgLogicalAnd
-import org.utbot.framework.codegen.model.tree.CgLogicalOr
-import org.utbot.framework.codegen.model.tree.CgLoop
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultilineComment
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgReturnStatement
-import org.utbot.framework.codegen.model.tree.CgSimpleRegion
-import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
-import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgSpread
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgStaticRunnable
-import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgSwitchCase
-import org.utbot.framework.codegen.model.tree.CgSwitchCaseLabel
-import org.utbot.framework.codegen.model.tree.CgTestClass
-import org.utbot.framework.codegen.model.tree.CgTestClassBody
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgThrowStatement
-import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
-import org.utbot.framework.codegen.model.tree.CgTryCatch
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgUtilMethod
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.tree.CgWhileLoop
+import org.utbot.framework.codegen.model.tree.*
 
 interface CgVisitor<R> {
+    fun visit(element: CgPythonRepr): R
+
     fun visit(element: CgElement): R
 
     fun visit(element: CgTestClassFile): R

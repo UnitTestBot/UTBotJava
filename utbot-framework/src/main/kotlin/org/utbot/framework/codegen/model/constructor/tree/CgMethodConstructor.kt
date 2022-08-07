@@ -24,48 +24,12 @@ import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaratio
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
 import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.constructor.util.typeCast
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAnnotation
-import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
-import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgDeclaration
-import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
-import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
-import org.utbot.framework.codegen.model.tree.CgDocumentationComment
-import org.utbot.framework.codegen.model.tree.CgEqualTo
-import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgFieldAccess
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultilineComment
-import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgParameterKind
-import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.CgRegion
-import org.utbot.framework.codegen.model.tree.CgSimpleRegion
-import org.utbot.framework.codegen.model.tree.CgSingleLineComment
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTestMethodType
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.CRASH
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.FAILING
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.PARAMETRIZED
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.SUCCESSFUL
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.TIMEOUT
-import org.utbot.framework.codegen.model.tree.CgTryCatch
-import org.utbot.framework.codegen.model.tree.CgTypeCast
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.tree.buildParameterizedTestDataProviderMethod
-import org.utbot.framework.codegen.model.tree.buildTestMethod
-import org.utbot.framework.codegen.model.tree.convertDocToCg
-import org.utbot.framework.codegen.model.tree.toStatement
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.canBeSetIn
 import org.utbot.framework.codegen.model.util.equalTo
@@ -988,6 +952,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 else -> {
                     when (expected) {
                         is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
+                        is CgPythonRepr -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
                         else -> generateDeepEqualsOrNullAssertion(expected, actual)
                     }

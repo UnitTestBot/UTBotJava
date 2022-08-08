@@ -1147,9 +1147,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
-            .filterIsInstance<UtSymbolicExecution>()
             .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
-            ?: testSet.executions.filterIsInstance<UtSymbolicExecution>().first()
+            ?: testSet.executions.first()
 
         return withTestMethodScope(genericExecution) {
             val testName = nameGenerator.parameterizedTestMethodName(dataProviderMethodName)
@@ -1197,7 +1196,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun createParameterDeclarations(
         testSet: CgMethodTestSet,
-        genericExecution: UtSymbolicExecution,
+        genericExecution: UtExecution,
     ): List<CgParameterDeclaration> {
         val executableUnderTest = testSet.executableId
         val executableUnderTestParameters = testSet.executableId.executable.parameters
@@ -1295,7 +1294,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 emptyLine()
 
-                for ((execIndex, execution) in testSet.executions.filterIsInstance<UtSymbolicExecution>().withIndex()) {
+                for ((execIndex, execution) in testSet.executions.withIndex()) {
                     // create a block for current test case
                     innerBlock {
                         val arguments = createExecutionArguments(testSet, execution)
@@ -1310,7 +1309,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtSymbolicExecution): List<CgExpression> {
+    private fun createExecutionArguments(testSet: CgMethodTestSet, execution: UtExecution): List<CgExpression> {
         val arguments = mutableListOf<CgExpression>()
         execution.stateBefore.thisInstance?.let {
             arguments += variableConstructor.getOrCreateVariable(it)

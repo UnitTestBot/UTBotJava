@@ -74,7 +74,7 @@ val instanceCounter = AtomicInteger(0)
 fun nextModelName(base: String): String = "$base${instanceCounter.incrementAndGet()}"
 
 fun UtMethodTestSet.toValueTestCase(): UtMethodValueTestSet<*> {
-    val valueExecutions = executions.filterIsInstance<UtSymbolicExecution>().map { ValueConstructor().construct(it) }
+    val valueExecutions = executions.map { ValueConstructor().construct(it) } // TODO: make something about UTExecution
     return UtMethodValueTestSet(method, valueExecutions, errors)
 }
 

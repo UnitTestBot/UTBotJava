@@ -57,16 +57,9 @@
     "name": "time"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "time",
-    "returns": "_Int"
+    "name": "time"
    }
   ],
   "name": "time"
@@ -124,28 +117,14 @@
     "name": "kwargs"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "inspect.BoundArguments",
-    "kwonlyargs": [],
-    "name": "kwargs",
-    "returns": "dict[str, Any]"
+    "name": "kwargs"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "ParamSpecKwargs",
     "className": "typing.ParamSpec",
-    "kwonlyargs": [],
-    "name": "kwargs",
-    "returns": "ParamSpecKwargs"
+    "name": "kwargs"
    }
   ],
   "name": "kwargs"
@@ -173,16 +152,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "list[Event]",
     "className": "sched.scheduler",
-    "kwonlyargs": [],
-    "name": "queue",
-    "returns": "list[Event]"
+    "name": "queue"
    },
    {
     "annotation": "Any",
@@ -310,16 +282,9 @@
     "name": "lineno"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "tracemalloc.Frame",
-    "kwonlyargs": [],
-    "name": "lineno",
-    "returns": "int"
+    "name": "lineno"
    },
    {
     "annotation": "int",
@@ -537,40 +502,19 @@
     "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "hmac.HMAC",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "socket.SocketIO",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "int"
+    "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "inspect.Parameter",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
     "annotation": "str",
@@ -613,16 +557,9 @@
     "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "logging.LoggerAdapter",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
     "annotation": "(str | None)",
@@ -660,28 +597,14 @@
     "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "configparser.SectionProxy",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "AnyStr",
     "className": "os.DirEntry",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "AnyStr"
+    "name": "name"
    },
    {
     "annotation": "Any",
@@ -689,28 +612,14 @@
     "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "contextvars.ContextVar",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
     "annotation": "str",
@@ -743,16 +652,9 @@
     "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "typing.IO",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    },
    {
     "annotation": "str",
@@ -785,16 +687,9 @@
     "name": "name"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "zipfile.Path",
-    "kwonlyargs": [],
-    "name": "name",
-    "returns": "str"
+    "name": "name"
    }
   ],
   "name": "name"
@@ -842,16 +737,9 @@
     "name": "args"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[Any, ...]",
     "className": "inspect.BoundArguments",
-    "kwonlyargs": [],
-    "name": "args",
-    "returns": "tuple[Any, ...]"
+    "name": "args"
    },
    {
     "annotation": "list[str]",
@@ -894,16 +782,9 @@
     "name": "args"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "ParamSpecArgs",
     "className": "typing.ParamSpec",
-    "kwonlyargs": [],
-    "name": "args",
-    "returns": "ParamSpecArgs"
+    "name": "args"
    },
    {
     "annotation": "list[str]",
@@ -911,16 +792,9 @@
     "name": "args"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[Any, ...]",
     "className": "functools.partial",
-    "kwonlyargs": [],
-    "name": "args",
-    "returns": "tuple[Any, ...]"
+    "name": "args"
    },
    {
     "annotation": "tuple[Any, ...]",
@@ -988,16 +862,9 @@
     "name": "keywords"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "functools.partial",
-    "kwonlyargs": [],
-    "name": "keywords",
-    "returns": "dict[str, Any]"
+    "name": "keywords"
    },
    {
     "annotation": "dict[str, Any]",
@@ -1235,16 +1102,9 @@
     "name": "annotation"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "inspect.Parameter",
-    "kwonlyargs": [],
-    "name": "annotation",
-    "returns": "Any"
+    "name": "annotation"
    }
   ],
   "name": "annotation"
@@ -1722,16 +1582,9 @@
     "name": "key"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "zoneinfo.ZoneInfo",
-    "kwonlyargs": [],
-    "name": "key",
-    "returns": "str"
+    "name": "key"
    }
   ],
   "name": "key"
@@ -1769,16 +1622,9 @@
     "name": "func"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Callable[..., _T]",
     "className": "functools.partial",
-    "kwonlyargs": [],
-    "name": "func",
-    "returns": "Callable[..., _T]"
+    "name": "func"
    },
    {
     "annotation": "(Callable[..., _T] | _Descriptor)",
@@ -1826,16 +1672,9 @@
     "name": "kind"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_ParameterKind",
     "className": "inspect.Parameter",
-    "kwonlyargs": [],
-    "name": "kind",
-    "returns": "_ParameterKind"
+    "name": "kind"
    },
    {
     "annotation": "str",
@@ -1953,28 +1792,14 @@
     "name": "step"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "builtins.slice",
-    "kwonlyargs": [],
-    "name": "step",
-    "returns": "Any"
+    "name": "step"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.range",
-    "kwonlyargs": [],
-    "name": "step",
-    "returns": "int"
+    "name": "step"
    }
   ],
   "name": "step"
@@ -2032,16 +1857,9 @@
     "name": "type"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "SocketKind",
     "className": "socket.socket",
-    "kwonlyargs": [],
-    "name": "type",
-    "returns": "SocketKind"
+    "name": "type"
    },
    {
     "annotation": "(Callable[[str], Any] | FileType | None)",
@@ -2084,16 +1902,9 @@
     "name": "type"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "_socket.socket",
-    "kwonlyargs": [],
-    "name": "type",
-    "returns": "int"
+    "name": "type"
    }
   ],
   "name": "type"
@@ -2266,16 +2077,9 @@
     "name": "pattern"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "AnyStr",
     "className": "typing.Pattern",
-    "kwonlyargs": [],
-    "name": "pattern",
-    "returns": "AnyStr"
+    "name": "pattern"
    }
   ],
   "name": "pattern"
@@ -2363,52 +2167,24 @@
     "name": "closed"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "gzip.GzipFile",
-    "kwonlyargs": [],
-    "name": "closed",
-    "returns": "bool"
+    "name": "closed"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "io.IOBase",
-    "kwonlyargs": [],
-    "name": "closed",
-    "returns": "bool"
+    "name": "closed"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "io.TextIOWrapper",
-    "kwonlyargs": [],
-    "name": "closed",
-    "returns": "bool"
+    "name": "closed"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "lzma.LZMAFile",
-    "kwonlyargs": [],
-    "name": "closed",
-    "returns": "bool"
+    "name": "closed"
    },
    {
     "annotation": "bool",
@@ -2421,16 +2197,9 @@
     "name": "closed"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "typing.IO",
-    "kwonlyargs": [],
-    "name": "closed",
-    "returns": "bool"
+    "name": "closed"
    }
   ],
   "name": "closed"
@@ -2438,16 +2207,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "grp.struct_group",
-    "kwonlyargs": [],
-    "name": "gr_name",
-    "returns": "str"
+    "name": "gr_name"
    }
   ],
   "name": "gr_name"
@@ -2455,16 +2217,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | None)",
     "className": "grp.struct_group",
-    "kwonlyargs": [],
-    "name": "gr_passwd",
-    "returns": "(str | None)"
+    "name": "gr_passwd"
    }
   ],
   "name": "gr_passwd"
@@ -2472,16 +2227,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "grp.struct_group",
-    "kwonlyargs": [],
-    "name": "gr_gid",
-    "returns": "int"
+    "name": "gr_gid"
    }
   ],
   "name": "gr_gid"
@@ -2489,16 +2237,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "list[str]",
     "className": "grp.struct_group",
-    "kwonlyargs": [],
-    "name": "gr_mem",
-    "returns": "list[str]"
+    "name": "gr_mem"
    }
   ],
   "name": "gr_mem"
@@ -2601,16 +2342,9 @@
     "name": "mode"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Literal['rb', 'wb', 'rwb']",
     "className": "socket.SocketIO",
-    "kwonlyargs": [],
-    "name": "mode",
-    "returns": "Literal['rb', 'wb', 'rwb']"
+    "name": "mode"
    },
    {
     "annotation": "str",
@@ -2618,16 +2352,9 @@
     "name": "mode"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "statistics.NormalDist",
-    "kwonlyargs": [],
-    "name": "mode",
-    "returns": "float"
+    "name": "mode"
    },
    {
     "annotation": "str",
@@ -2645,16 +2372,9 @@
     "name": "mode"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "typing.IO",
-    "kwonlyargs": [],
-    "name": "mode",
-    "returns": "str"
+    "name": "mode"
    },
    {
     "annotation": "_ReadWriteMode",
@@ -2682,16 +2402,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "gzip.GzipFile",
-    "kwonlyargs": [],
-    "name": "filename",
-    "returns": "str"
+    "name": "filename"
    },
    {
     "annotation": "str",
@@ -2749,16 +2462,9 @@
     "name": "filename"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "tracemalloc.Frame",
-    "kwonlyargs": [],
-    "name": "filename",
-    "returns": "str"
+    "name": "filename"
    },
    {
     "annotation": "(str | None)",
@@ -2791,16 +2497,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(int | None)",
     "className": "gzip.GzipFile",
-    "kwonlyargs": [],
-    "name": "mtime",
-    "returns": "(int | None)"
+    "name": "mtime"
    },
    {
     "annotation": "int",
@@ -3023,28 +2722,14 @@
     "name": "eof"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "lzma.LZMADecompressor",
-    "kwonlyargs": [],
-    "name": "eof",
-    "returns": "bool"
+    "name": "eof"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "bz2.BZ2Decompressor",
-    "kwonlyargs": [],
-    "name": "eof",
-    "returns": "bool"
+    "name": "eof"
    },
    {
     "annotation": "str",
@@ -3207,28 +2892,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_signo",
-    "returns": "int"
+    "name": "si_signo"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.waitid_result",
-    "kwonlyargs": [],
-    "name": "si_signo",
-    "returns": "int"
+    "name": "si_signo"
    }
   ],
   "name": "si_signo"
@@ -3236,28 +2907,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_code",
-    "returns": "int"
+    "name": "si_code"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.waitid_result",
-    "kwonlyargs": [],
-    "name": "si_code",
-    "returns": "int"
+    "name": "si_code"
    }
   ],
   "name": "si_code"
@@ -3265,16 +2922,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_errno",
-    "returns": "int"
+    "name": "si_errno"
    }
   ],
   "name": "si_errno"
@@ -3282,28 +2932,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_pid",
-    "returns": "int"
+    "name": "si_pid"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.waitid_result",
-    "kwonlyargs": [],
-    "name": "si_pid",
-    "returns": "int"
+    "name": "si_pid"
    }
   ],
   "name": "si_pid"
@@ -3311,28 +2947,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_uid",
-    "returns": "int"
+    "name": "si_uid"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.waitid_result",
-    "kwonlyargs": [],
-    "name": "si_uid",
-    "returns": "int"
+    "name": "si_uid"
    }
   ],
   "name": "si_uid"
@@ -3340,28 +2962,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_status",
-    "returns": "int"
+    "name": "si_status"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.waitid_result",
-    "kwonlyargs": [],
-    "name": "si_status",
-    "returns": "int"
+    "name": "si_status"
    }
   ],
   "name": "si_status"
@@ -3369,16 +2977,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "signal.struct_siginfo",
-    "kwonlyargs": [],
-    "name": "si_band",
-    "returns": "int"
+    "name": "si_band"
    }
   ],
   "name": "si_band"
@@ -3386,16 +2987,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "http.HTTPStatus",
-    "kwonlyargs": [],
-    "name": "phrase",
-    "returns": "str"
+    "name": "phrase"
    }
   ],
   "name": "phrase"
@@ -3403,16 +2997,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "http.HTTPStatus",
-    "kwonlyargs": [],
-    "name": "description",
-    "returns": "str"
+    "name": "description"
    },
    {
     "annotation": "Any",
@@ -4175,16 +3762,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "smtpd.SMTPChannel",
-    "kwonlyargs": [],
-    "name": "max_command_size_limit",
-    "returns": "int"
+    "name": "max_command_size_limit"
    }
   ],
   "name": "max_command_size_limit"
@@ -4227,28 +3807,14 @@
     "name": "__isabstractmethod__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "builtins.staticmethod",
-    "kwonlyargs": [],
-    "name": "__isabstractmethod__",
-    "returns": "bool"
+    "name": "__isabstractmethod__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "builtins.classmethod",
-    "kwonlyargs": [],
-    "name": "__isabstractmethod__",
-    "returns": "bool"
+    "name": "__isabstractmethod__"
    },
    {
     "annotation": "bool",
@@ -4256,28 +3822,14 @@
     "name": "__isabstractmethod__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "functools.partialmethod",
-    "kwonlyargs": [],
-    "name": "__isabstractmethod__",
-    "returns": "bool"
+    "name": "__isabstractmethod__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "functools.singledispatchmethod",
-    "kwonlyargs": [],
-    "name": "__isabstractmethod__",
-    "returns": "bool"
+    "name": "__isabstractmethod__"
    }
   ],
   "name": "__isabstractmethod__"
@@ -4310,16 +3862,9 @@
     "name": "readonly"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "readonly",
-    "returns": "bool"
+    "name": "readonly"
    }
   ],
   "name": "readonly"
@@ -4917,16 +4462,9 @@
     "name": "timeout"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(float | None)",
     "className": "_socket.socket",
-    "kwonlyargs": [],
-    "name": "timeout",
-    "returns": "(float | None)"
+    "name": "timeout"
    },
    {
     "annotation": "int",
@@ -4989,16 +4527,9 @@
     "name": "user"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.times_result",
-    "kwonlyargs": [],
-    "name": "user",
-    "returns": "float"
+    "name": "user"
    }
   ],
   "name": "user"
@@ -5681,28 +5212,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "AddressFamily",
     "className": "socket.socket",
-    "kwonlyargs": [],
-    "name": "family",
-    "returns": "AddressFamily"
+    "name": "family"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "_socket.socket",
-    "kwonlyargs": [],
-    "name": "family",
-    "returns": "int"
+    "name": "family"
    }
   ],
   "name": "family"
@@ -6040,28 +5557,14 @@
     "name": "default"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "inspect.Parameter",
-    "kwonlyargs": [],
-    "name": "default",
-    "returns": "Any"
+    "name": "default"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Callable[[Any], Any]",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "default",
-    "returns": "Callable[[Any], Any]"
+    "name": "default"
    },
    {
     "annotation": "Any",
@@ -6244,16 +5747,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "Self",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Callable[[Any, Any, Self], BaseRequestHandler]",
     "className": "socketserver.BaseServer",
-    "kwonlyargs": [],
-    "name": "RequestHandlerClass",
-    "returns": "Callable[[Any, Any, Self], BaseRequestHandler]"
+    "name": "RequestHandlerClass"
    }
   ],
   "name": "RequestHandlerClass"
@@ -6421,16 +5917,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_TypeCode",
     "className": "array.array",
-    "kwonlyargs": [],
-    "name": "typecode",
-    "returns": "_TypeCode"
+    "name": "typecode"
    }
   ],
   "name": "typecode"
@@ -6438,28 +5927,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "array.array",
-    "kwonlyargs": [],
-    "name": "itemsize",
-    "returns": "int"
+    "name": "itemsize"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "itemsize",
-    "returns": "int"
+    "name": "itemsize"
    }
   ],
   "name": "itemsize"
@@ -6477,16 +5952,9 @@
     "name": "indent"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(int | None)",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "indent",
-    "returns": "(int | None)"
+    "name": "indent"
    },
    {
     "annotation": "int",
@@ -6564,16 +6032,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "types.MappingProxyType[str, Parameter]",
     "className": "inspect.Signature",
-    "kwonlyargs": [],
-    "name": "parameters",
-    "returns": "types.MappingProxyType[str, Parameter]"
+    "name": "parameters"
    }
   ],
   "name": "parameters"
@@ -6581,16 +6042,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "inspect.Signature",
-    "kwonlyargs": [],
-    "name": "return_annotation",
-    "returns": "Any"
+    "name": "return_annotation"
    }
   ],
   "name": "return_annotation"
@@ -6658,16 +6112,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Signature",
     "className": "inspect.BoundArguments",
-    "kwonlyargs": [],
-    "name": "signature",
-    "returns": "Signature"
+    "name": "signature"
    }
   ],
   "name": "signature"
@@ -6895,16 +6342,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_namp",
-    "returns": "str"
+    "name": "sp_namp"
    }
   ],
   "name": "sp_namp"
@@ -6912,16 +6352,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_pwdp",
-    "returns": "str"
+    "name": "sp_pwdp"
    }
   ],
   "name": "sp_pwdp"
@@ -6929,16 +6362,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_lstchg",
-    "returns": "int"
+    "name": "sp_lstchg"
    }
   ],
   "name": "sp_lstchg"
@@ -6946,16 +6372,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_min",
-    "returns": "int"
+    "name": "sp_min"
    }
   ],
   "name": "sp_min"
@@ -6963,16 +6382,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_max",
-    "returns": "int"
+    "name": "sp_max"
    }
   ],
   "name": "sp_max"
@@ -6980,16 +6392,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_warn",
-    "returns": "int"
+    "name": "sp_warn"
    }
   ],
   "name": "sp_warn"
@@ -6997,16 +6402,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_inact",
-    "returns": "int"
+    "name": "sp_inact"
    }
   ],
   "name": "sp_inact"
@@ -7014,16 +6412,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_expire",
-    "returns": "int"
+    "name": "sp_expire"
    }
   ],
   "name": "sp_expire"
@@ -7031,16 +6422,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "spwd.struct_spwd",
-    "kwonlyargs": [],
-    "name": "sp_flag",
-    "returns": "int"
+    "name": "sp_flag"
    }
   ],
   "name": "sp_flag"
@@ -7083,16 +6467,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "io.FileIO",
-    "kwonlyargs": [],
-    "name": "closefd",
-    "returns": "bool"
+    "name": "closefd"
    }
   ],
   "name": "closefd"
@@ -7135,16 +6512,9 @@
     "name": "encoding"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "tempfile.SpooledTemporaryFile",
-    "kwonlyargs": [],
-    "name": "encoding",
-    "returns": "str"
+    "name": "encoding"
    },
    {
     "annotation": "str",
@@ -7157,16 +6527,9 @@
     "name": "encoding"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "typing.TextIO",
-    "kwonlyargs": [],
-    "name": "encoding",
-    "returns": "str"
+    "name": "encoding"
    },
    {
     "annotation": "str",
@@ -7229,16 +6592,9 @@
     "name": "errors"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | None)",
     "className": "typing.TextIO",
-    "kwonlyargs": [],
-    "name": "errors",
-    "returns": "(str | None)"
+    "name": "errors"
    }
   ],
   "name": "errors"
@@ -7251,40 +6607,19 @@
     "name": "newlines"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | tuple[str, ...] | None)",
     "className": "io.IncrementalNewlineDecoder",
-    "kwonlyargs": [],
-    "name": "newlines",
-    "returns": "(str | tuple[str, ...] | None)"
+    "name": "newlines"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | tuple[str, ...] | None)",
     "className": "tempfile.SpooledTemporaryFile",
-    "kwonlyargs": [],
-    "name": "newlines",
-    "returns": "(str | tuple[str, ...] | None)"
+    "name": "newlines"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "typing.TextIO",
-    "kwonlyargs": [],
-    "name": "newlines",
-    "returns": "Any"
+    "name": "newlines"
    },
    {
     "annotation": "(list[bytes] | None)",
@@ -7297,16 +6632,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "BinaryIO",
     "className": "io.TextIOWrapper",
-    "kwonlyargs": [],
-    "name": "buffer",
-    "returns": "BinaryIO"
+    "name": "buffer"
    },
    {
     "annotation": "list[str]",
@@ -7324,16 +6652,9 @@
     "name": "buffer"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "BinaryIO",
     "className": "typing.TextIO",
-    "kwonlyargs": [],
-    "name": "buffer",
-    "returns": "BinaryIO"
+    "name": "buffer"
    }
   ],
   "name": "buffer"
@@ -7341,28 +6662,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "io.TextIOWrapper",
-    "kwonlyargs": [],
-    "name": "line_buffering",
-    "returns": "bool"
+    "name": "line_buffering"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "typing.TextIO",
-    "kwonlyargs": [],
-    "name": "line_buffering",
-    "returns": "int"
+    "name": "line_buffering"
    }
   ],
   "name": "line_buffering"
@@ -7390,16 +6697,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(IPv4Address | None)",
     "className": "ipaddress.IPv6Address",
-    "kwonlyargs": [],
-    "name": "ipv4_mapped",
-    "returns": "(IPv4Address | None)"
+    "name": "ipv4_mapped"
    }
   ],
   "name": "ipv4_mapped"
@@ -7407,28 +6707,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "ipaddress.IPv6Address",
-    "kwonlyargs": [],
-    "name": "is_site_local",
-    "returns": "bool"
+    "name": "is_site_local"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "ipaddress.IPv6Network",
-    "kwonlyargs": [],
-    "name": "is_site_local",
-    "returns": "bool"
+    "name": "is_site_local"
    }
   ],
   "name": "is_site_local"
@@ -7436,16 +6722,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(IPv4Address | None)",
     "className": "ipaddress.IPv6Address",
-    "kwonlyargs": [],
-    "name": "sixtofour",
-    "returns": "(IPv4Address | None)"
+    "name": "sixtofour"
    }
   ],
   "name": "sixtofour"
@@ -7453,16 +6732,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[IPv4Address, IPv4Address] | None)",
     "className": "ipaddress.IPv6Address",
-    "kwonlyargs": [],
-    "name": "teredo",
-    "returns": "(tuple[IPv4Address, IPv4Address] | None)"
+    "name": "teredo"
    }
   ],
   "name": "teredo"
@@ -7475,28 +6747,14 @@
     "name": "pos"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "sre_parse.Tokenizer",
-    "kwonlyargs": [],
-    "name": "pos",
-    "returns": "int"
+    "name": "pos"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "pos",
-    "returns": "int"
+    "name": "pos"
    }
   ],
   "name": "pos"
@@ -7604,16 +6862,9 @@
     "name": "string"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "AnyStr",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "string",
-    "returns": "AnyStr"
+    "name": "string"
    }
   ],
   "name": "string"
@@ -8256,16 +7507,9 @@
     "name": "server_side"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "ssl.SSLObject",
-    "kwonlyargs": [],
-    "name": "server_side",
-    "returns": "bool"
+    "name": "server_side"
    }
   ],
   "name": "server_side"
@@ -8278,16 +7522,9 @@
     "name": "server_hostname"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | None)",
     "className": "ssl.SSLObject",
-    "kwonlyargs": [],
-    "name": "server_hostname",
-    "returns": "(str | None)"
+    "name": "server_hostname"
    }
   ],
   "name": "server_hostname"
@@ -8310,28 +7547,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(bool | None)",
     "className": "ssl.SSLSocket",
-    "kwonlyargs": [],
-    "name": "session_reused",
-    "returns": "(bool | None)"
+    "name": "session_reused"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "ssl.SSLObject",
-    "kwonlyargs": [],
-    "name": "session_reused",
-    "returns": "bool"
+    "name": "session_reused"
    }
   ],
   "name": "session_reused"
@@ -8454,16 +7677,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_SSLMethod",
     "className": "ssl.SSLContext",
-    "kwonlyargs": [],
-    "name": "protocol",
-    "returns": "_SSLMethod"
+    "name": "protocol"
    }
   ],
   "name": "protocol"
@@ -8746,16 +7962,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "statistics.NormalDist",
-    "kwonlyargs": [],
-    "name": "mean",
-    "returns": "float"
+    "name": "mean"
    }
   ],
   "name": "mean"
@@ -8763,16 +7972,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "statistics.NormalDist",
-    "kwonlyargs": [],
-    "name": "median",
-    "returns": "float"
+    "name": "median"
    }
   ],
   "name": "median"
@@ -8780,16 +7982,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "statistics.NormalDist",
-    "kwonlyargs": [],
-    "name": "stdev",
-    "returns": "float"
+    "name": "stdev"
    }
   ],
   "name": "stdev"
@@ -8797,16 +7992,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "statistics.NormalDist",
-    "kwonlyargs": [],
-    "name": "variance",
-    "returns": "float"
+    "name": "variance"
    }
   ],
   "name": "variance"
@@ -8974,16 +8162,9 @@
     "name": "line"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | None)",
     "className": "traceback.FrameSummary",
-    "kwonlyargs": [],
-    "name": "line",
-    "returns": "(str | None)"
+    "name": "line"
    },
    {
     "annotation": "(str | None)",
@@ -9111,16 +8292,9 @@
     "name": "flags"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "typing.Pattern",
-    "kwonlyargs": [],
-    "name": "flags",
-    "returns": "int"
+    "name": "flags"
    }
   ],
   "name": "flags"
@@ -9148,16 +8322,9 @@
     "name": "root"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "root",
-    "returns": "str"
+    "name": "root"
    }
   ],
   "name": "root"
@@ -9220,28 +8387,14 @@
     "name": "parent"
    },
    {
-    "args": [
-     {
-      "annotation": "Self",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Self",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "parent",
-    "returns": "Self"
+    "name": "parent"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "PathLike[str]",
     "className": "zipfile.Path",
-    "kwonlyargs": [],
-    "name": "parent",
-    "returns": "PathLike[str]"
+    "name": "parent"
    }
   ],
   "name": "parent"
@@ -9659,16 +8812,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "lzma.LZMADecompressor",
-    "kwonlyargs": [],
-    "name": "check",
-    "returns": "int"
+    "name": "check"
    }
   ],
   "name": "check"
@@ -9676,28 +8822,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bytes",
     "className": "lzma.LZMADecompressor",
-    "kwonlyargs": [],
-    "name": "unused_data",
-    "returns": "bytes"
+    "name": "unused_data"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bytes",
     "className": "bz2.BZ2Decompressor",
-    "kwonlyargs": [],
-    "name": "unused_data",
-    "returns": "bytes"
+    "name": "unused_data"
    }
   ],
   "name": "unused_data"
@@ -9705,28 +8837,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "lzma.LZMADecompressor",
-    "kwonlyargs": [],
-    "name": "needs_input",
-    "returns": "bool"
+    "name": "needs_input"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "bz2.BZ2Decompressor",
-    "kwonlyargs": [],
-    "name": "needs_input",
-    "returns": "bool"
+    "name": "needs_input"
    }
   ],
   "name": "needs_input"
@@ -9754,16 +8872,9 @@
     "name": "size"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "tracemalloc.Trace",
-    "kwonlyargs": [],
-    "name": "size",
-    "returns": "int"
+    "name": "size"
    },
    {
     "annotation": "int",
@@ -9906,16 +9017,9 @@
     "name": "output"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "IO[str]",
     "className": "pydoc.Helper",
-    "kwonlyargs": [],
-    "name": "output",
-    "returns": "IO[str]"
+    "name": "output"
    }
   ],
   "name": "output"
@@ -9973,16 +9077,9 @@
     "name": "__dict__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "types.MappingProxyType[str, Any]",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__dict__",
-    "returns": "types.MappingProxyType[str, Any]"
+    "name": "__dict__"
    },
    {
     "annotation": "dict[str, Any]",
@@ -9995,16 +9092,9 @@
     "name": "__dict__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "types.ModuleType",
-    "kwonlyargs": [],
-    "name": "__dict__",
-    "returns": "dict[str, Any]"
+    "name": "__dict__"
    }
   ],
   "name": "__dict__"
@@ -10057,16 +9147,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "Self",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type[Self]",
     "className": "builtins.object",
-    "kwonlyargs": [],
-    "name": "__class__",
-    "returns": "type[Self]"
+    "name": "__class__"
    }
   ],
   "name": "__class__"
@@ -10074,40 +9157,19 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Callable[..., _R_co]",
     "className": "builtins.staticmethod",
-    "kwonlyargs": [],
-    "name": "__func__",
-    "returns": "Callable[..., _R_co]"
+    "name": "__func__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Callable[..., _R_co]",
     "className": "builtins.classmethod",
-    "kwonlyargs": [],
-    "name": "__func__",
-    "returns": "Callable[..., _R_co]"
+    "name": "__func__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_StaticFunctionType",
     "className": "types.MethodType",
-    "kwonlyargs": [],
-    "name": "__func__",
-    "returns": "_StaticFunctionType"
+    "name": "__func__"
    }
   ],
   "name": "__func__"
@@ -10115,16 +9177,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__base__",
-    "returns": "type"
+    "name": "__base__"
    }
   ],
   "name": "__base__"
@@ -10142,16 +9197,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__basicsize__",
-    "returns": "int"
+    "name": "__basicsize__"
    }
   ],
   "name": "__basicsize__"
@@ -10159,16 +9207,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__dictoffset__",
-    "returns": "int"
+    "name": "__dictoffset__"
    }
   ],
   "name": "__dictoffset__"
@@ -10176,16 +9217,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__flags__",
-    "returns": "int"
+    "name": "__flags__"
    }
   ],
   "name": "__flags__"
@@ -10193,16 +9227,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__itemsize__",
-    "returns": "int"
+    "name": "__itemsize__"
    }
   ],
   "name": "__itemsize__"
@@ -10210,16 +9237,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[type, ...]",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__mro__",
-    "returns": "tuple[type, ...]"
+    "name": "__mro__"
    }
   ],
   "name": "__mro__"
@@ -10262,100 +9282,44 @@
     "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MethodType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.BuiltinFunctionType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.WrapperDescriptorType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MethodWrapperType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MethodDescriptorType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.ClassMethodDescriptorType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.GetSetDescriptorType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MemberDescriptorType",
-    "kwonlyargs": [],
-    "name": "__name__",
-    "returns": "str"
+    "name": "__name__"
    },
    {
     "annotation": "str",
@@ -10408,100 +9372,44 @@
     "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MethodType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.BuiltinFunctionType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.WrapperDescriptorType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MethodWrapperType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MethodDescriptorType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.ClassMethodDescriptorType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.GetSetDescriptorType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.MemberDescriptorType",
-    "kwonlyargs": [],
-    "name": "__qualname__",
-    "returns": "str"
+    "name": "__qualname__"
    },
    {
     "annotation": "str",
@@ -10514,16 +9422,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | None)",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__text_signature__",
-    "returns": "(str | None)"
+    "name": "__text_signature__"
    }
   ],
   "name": "__text_signature__"
@@ -10531,16 +9432,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.type",
-    "kwonlyargs": [],
-    "name": "__weakrefoffset__",
-    "returns": "int"
+    "name": "__weakrefoffset__"
    }
   ],
   "name": "__weakrefoffset__"
@@ -10548,88 +9442,39 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.int",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "int"
+    "name": "real"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "builtins.float",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "float"
+    "name": "real"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "builtins.complex",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "float"
+    "name": "real"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Decimal",
     "className": "_decimal.Decimal",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "Decimal"
+    "name": "real"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "numbers.Complex",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "Any"
+    "name": "real"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "numbers.Real",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "Any"
+    "name": "real"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Fraction",
     "className": "fractions.Fraction",
-    "kwonlyargs": [],
-    "name": "real",
-    "returns": "Fraction"
+    "name": "real"
    }
   ],
   "name": "real"
@@ -10637,88 +9482,39 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.int",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "int"
+    "name": "imag"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "builtins.float",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "float"
+    "name": "imag"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "builtins.complex",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "float"
+    "name": "imag"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Decimal",
     "className": "_decimal.Decimal",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "Decimal"
+    "name": "imag"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "numbers.Complex",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "Any"
+    "name": "imag"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "numbers.Real",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "Any"
+    "name": "imag"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Literal[0]",
     "className": "fractions.Fraction",
-    "kwonlyargs": [],
-    "name": "imag",
-    "returns": "Literal[0]"
+    "name": "imag"
    }
   ],
   "name": "imag"
@@ -10726,52 +9522,24 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.int",
-    "kwonlyargs": [],
-    "name": "numerator",
-    "returns": "int"
+    "name": "numerator"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "numbers.Rational",
-    "kwonlyargs": [],
-    "name": "numerator",
-    "returns": "int"
+    "name": "numerator"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "numbers.Integral",
-    "kwonlyargs": [],
-    "name": "numerator",
-    "returns": "int"
+    "name": "numerator"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "fractions.Fraction",
-    "kwonlyargs": [],
-    "name": "numerator",
-    "returns": "int"
+    "name": "numerator"
    }
   ],
   "name": "numerator"
@@ -10779,52 +9547,24 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.int",
-    "kwonlyargs": [],
-    "name": "denominator",
-    "returns": "int"
+    "name": "denominator"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "numbers.Rational",
-    "kwonlyargs": [],
-    "name": "denominator",
-    "returns": "int"
+    "name": "denominator"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "numbers.Integral",
-    "kwonlyargs": [],
-    "name": "denominator",
-    "returns": "int"
+    "name": "denominator"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "fractions.Fraction",
-    "kwonlyargs": [],
-    "name": "denominator",
-    "returns": "int"
+    "name": "denominator"
    }
   ],
   "name": "denominator"
@@ -10877,16 +9617,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "format",
-    "returns": "str"
+    "name": "format"
    },
    {
     "annotation": "(int | None)",
@@ -10899,16 +9632,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[int, ...] | None)",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "shape",
-    "returns": "(tuple[int, ...] | None)"
+    "name": "shape"
    }
   ],
   "name": "shape"
@@ -10916,16 +9642,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[int, ...] | None)",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "strides",
-    "returns": "(tuple[int, ...] | None)"
+    "name": "strides"
    }
   ],
   "name": "strides"
@@ -10933,16 +9652,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[int, ...] | None)",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "suboffsets",
-    "returns": "(tuple[int, ...] | None)"
+    "name": "suboffsets"
    }
   ],
   "name": "suboffsets"
@@ -10950,16 +9662,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "ndim",
-    "returns": "int"
+    "name": "ndim"
    }
   ],
   "name": "ndim"
@@ -10967,16 +9672,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(bytes | bytearray)",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "obj",
-    "returns": "(bytes | bytearray)"
+    "name": "obj"
    }
   ],
   "name": "obj"
@@ -10984,16 +9682,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "c_contiguous",
-    "returns": "bool"
+    "name": "c_contiguous"
    }
   ],
   "name": "c_contiguous"
@@ -11001,16 +9692,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "f_contiguous",
-    "returns": "bool"
+    "name": "f_contiguous"
    }
   ],
   "name": "f_contiguous"
@@ -11018,16 +9702,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "contiguous",
-    "returns": "bool"
+    "name": "contiguous"
    }
   ],
   "name": "contiguous"
@@ -11035,16 +9712,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.memoryview",
-    "kwonlyargs": [],
-    "name": "nbytes",
-    "returns": "int"
+    "name": "nbytes"
    }
   ],
   "name": "nbytes"
@@ -11052,28 +9722,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "builtins.slice",
-    "kwonlyargs": [],
-    "name": "start",
-    "returns": "Any"
+    "name": "start"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.range",
-    "kwonlyargs": [],
-    "name": "start",
-    "returns": "int"
+    "name": "start"
    },
    {
     "annotation": "int",
@@ -11096,28 +9752,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "builtins.slice",
-    "kwonlyargs": [],
-    "name": "stop",
-    "returns": "Any"
+    "name": "stop"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "builtins.range",
-    "kwonlyargs": [],
-    "name": "stop",
-    "returns": "int"
+    "name": "stop"
    }
   ],
   "name": "stop"
@@ -11125,40 +9767,19 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[_Cell, ...] | None)",
     "className": "builtins.function",
-    "kwonlyargs": [],
-    "name": "__closure__",
-    "returns": "(tuple[_Cell, ...] | None)"
+    "name": "__closure__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[_Cell, ...] | None)",
     "className": "types.FunctionType",
-    "kwonlyargs": [],
-    "name": "__closure__",
-    "returns": "(tuple[_Cell, ...] | None)"
+    "name": "__closure__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[_Cell, ...] | None)",
     "className": "types.MethodType",
-    "kwonlyargs": [],
-    "name": "__closure__",
-    "returns": "(tuple[_Cell, ...] | None)"
+    "name": "__closure__"
    }
   ],
   "name": "__closure__"
@@ -11191,16 +9812,9 @@
     "name": "__defaults__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(tuple[Any, ...] | None)",
     "className": "types.MethodType",
-    "kwonlyargs": [],
-    "name": "__defaults__",
-    "returns": "(tuple[Any, ...] | None)"
+    "name": "__defaults__"
    }
   ],
   "name": "__defaults__"
@@ -11208,28 +9822,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "builtins.function",
-    "kwonlyargs": [],
-    "name": "__globals__",
-    "returns": "dict[str, Any]"
+    "name": "__globals__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "types.FunctionType",
-    "kwonlyargs": [],
-    "name": "__globals__",
-    "returns": "dict[str, Any]"
+    "name": "__globals__"
    }
   ],
   "name": "__globals__"
@@ -11402,16 +10002,9 @@
     "name": "path"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "AnyStr",
     "className": "os.DirEntry",
-    "kwonlyargs": [],
-    "name": "path",
-    "returns": "AnyStr"
+    "name": "path"
    }
   ],
   "name": "path"
@@ -12189,16 +10782,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "tarfile.TarInfo",
-    "kwonlyargs": [],
-    "name": "linkpath",
-    "returns": "str"
+    "name": "linkpath"
    }
   ],
   "name": "linkpath"
@@ -12446,16 +11032,9 @@
     "name": "lines"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.terminal_size",
-    "kwonlyargs": [],
-    "name": "lines",
-    "returns": "int"
+    "name": "lines"
    }
   ],
   "name": "lines"
@@ -12538,16 +11117,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "sort_keys",
-    "returns": "bool"
+    "name": "sort_keys"
    }
   ],
   "name": "sort_keys"
@@ -12555,16 +11127,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "skipkeys",
-    "returns": "bool"
+    "name": "skipkeys"
    }
   ],
   "name": "skipkeys"
@@ -12572,16 +11137,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "key_separator",
-    "returns": "str"
+    "name": "key_separator"
    }
   ],
   "name": "key_separator"
@@ -12589,16 +11147,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(dict[int, Any] | None)",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "markers",
-    "returns": "(dict[int, Any] | None)"
+    "name": "markers"
    }
   ],
   "name": "markers"
@@ -12606,16 +11157,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Callable[[str], str]",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "encoder",
-    "returns": "Callable[[str], str]"
+    "name": "encoder"
    }
   ],
   "name": "encoder"
@@ -12623,16 +11167,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "_json.make_encoder",
-    "kwonlyargs": [],
-    "name": "item_separator",
-    "returns": "str"
+    "name": "item_separator"
    }
   ],
   "name": "item_separator"
@@ -12690,16 +11227,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Encoder",
     "className": "codecs.CodecInfo",
-    "kwonlyargs": [],
-    "name": "encode",
-    "returns": "_Encoder"
+    "name": "encode"
    }
   ],
   "name": "encode"
@@ -12707,16 +11237,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Decoder",
     "className": "codecs.CodecInfo",
-    "kwonlyargs": [],
-    "name": "decode",
-    "returns": "_Decoder"
+    "name": "decode"
    }
   ],
   "name": "decode"
@@ -12724,16 +11247,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_StreamReader",
     "className": "codecs.CodecInfo",
-    "kwonlyargs": [],
-    "name": "streamreader",
-    "returns": "_StreamReader"
+    "name": "streamreader"
    }
   ],
   "name": "streamreader"
@@ -12741,16 +11257,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_StreamWriter",
     "className": "codecs.CodecInfo",
-    "kwonlyargs": [],
-    "name": "streamwriter",
-    "returns": "_StreamWriter"
+    "name": "streamwriter"
    }
   ],
   "name": "streamwriter"
@@ -12758,16 +11267,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_IncrementalEncoder",
     "className": "codecs.CodecInfo",
-    "kwonlyargs": [],
-    "name": "incrementalencoder",
-    "returns": "_IncrementalEncoder"
+    "name": "incrementalencoder"
    }
   ],
   "name": "incrementalencoder"
@@ -12775,16 +11277,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_IncrementalDecoder",
     "className": "codecs.CodecInfo",
-    "kwonlyargs": [],
-    "name": "incrementaldecoder",
-    "returns": "_IncrementalDecoder"
+    "name": "incrementaldecoder"
    }
   ],
   "name": "incrementaldecoder"
@@ -12987,16 +11482,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(int | None)",
     "className": "collections.deque",
-    "kwonlyargs": [],
-    "name": "maxlen",
-    "returns": "(int | None)"
+    "name": "maxlen"
    }
   ],
   "name": "maxlen"
@@ -13029,28 +11517,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "Self",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Self",
     "className": "collections.ChainMap",
-    "kwonlyargs": [],
-    "name": "parents",
-    "returns": "Self"
+    "name": "parents"
    },
    {
-    "args": [
-     {
-      "annotation": "Self",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Sequence[Self]",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "parents",
-    "returns": "Sequence[Self]"
+    "name": "parents"
    }
   ],
   "name": "parents"
@@ -13058,16 +11532,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(int | None)",
     "className": "threading.Thread",
-    "kwonlyargs": [],
-    "name": "ident",
-    "returns": "(int | None)"
+    "name": "ident"
    }
   ],
   "name": "ident"
@@ -13085,16 +11552,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "threading.Barrier",
-    "kwonlyargs": [],
-    "name": "parties",
-    "returns": "int"
+    "name": "parties"
    }
   ],
   "name": "parties"
@@ -13102,16 +11562,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "threading.Barrier",
-    "kwonlyargs": [],
-    "name": "n_waiting",
-    "returns": "int"
+    "name": "n_waiting"
    }
   ],
   "name": "n_waiting"
@@ -13119,16 +11572,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "threading.Barrier",
-    "kwonlyargs": [],
-    "name": "broken",
-    "returns": "bool"
+    "name": "broken"
    }
   ],
   "name": "broken"
@@ -13136,16 +11582,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_year",
-    "returns": "int"
+    "name": "tm_year"
    }
   ],
   "name": "tm_year"
@@ -13153,16 +11592,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_mon",
-    "returns": "int"
+    "name": "tm_mon"
    }
   ],
   "name": "tm_mon"
@@ -13170,16 +11602,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_mday",
-    "returns": "int"
+    "name": "tm_mday"
    }
   ],
   "name": "tm_mday"
@@ -13187,16 +11612,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_hour",
-    "returns": "int"
+    "name": "tm_hour"
    }
   ],
   "name": "tm_hour"
@@ -13204,16 +11622,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_min",
-    "returns": "int"
+    "name": "tm_min"
    }
   ],
   "name": "tm_min"
@@ -13221,16 +11632,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_sec",
-    "returns": "int"
+    "name": "tm_sec"
    }
   ],
   "name": "tm_sec"
@@ -13238,16 +11642,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_wday",
-    "returns": "int"
+    "name": "tm_wday"
    }
   ],
   "name": "tm_wday"
@@ -13255,16 +11652,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_yday",
-    "returns": "int"
+    "name": "tm_yday"
    }
   ],
   "name": "tm_yday"
@@ -13272,16 +11662,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_isdst",
-    "returns": "int"
+    "name": "tm_isdst"
    }
   ],
   "name": "tm_isdst"
@@ -13289,16 +11672,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_zone",
-    "returns": "str"
+    "name": "tm_zone"
    }
   ],
   "name": "tm_zone"
@@ -13306,16 +11682,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "time.struct_time",
-    "kwonlyargs": [],
-    "name": "tm_gmtoff",
-    "returns": "int"
+    "name": "tm_gmtoff"
    }
   ],
   "name": "tm_gmtoff"
@@ -13453,16 +11822,9 @@
     "name": "parser"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "RawConfigParser",
     "className": "configparser.SectionProxy",
-    "kwonlyargs": [],
-    "name": "parser",
-    "returns": "RawConfigParser"
+    "name": "parser"
    }
   ],
   "name": "parser"
@@ -13750,16 +12112,9 @@
     "name": "version"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "os.uname_result",
-    "kwonlyargs": [],
-    "name": "version",
-    "returns": "str"
+    "name": "version"
    },
    {
     "annotation": "str",
@@ -13767,16 +12122,9 @@
     "name": "version"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(_Int | None)",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "version",
-    "returns": "(_Int | None)"
+    "name": "version"
    }
   ],
   "name": "version"
@@ -13944,16 +12292,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_mode",
-    "returns": "int"
+    "name": "st_mode"
    }
   ],
   "name": "st_mode"
@@ -13961,16 +12302,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_ino",
-    "returns": "int"
+    "name": "st_ino"
    }
   ],
   "name": "st_ino"
@@ -13978,16 +12312,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_dev",
-    "returns": "int"
+    "name": "st_dev"
    }
   ],
   "name": "st_dev"
@@ -13995,16 +12322,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_nlink",
-    "returns": "int"
+    "name": "st_nlink"
    }
   ],
   "name": "st_nlink"
@@ -14012,16 +12332,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_uid",
-    "returns": "int"
+    "name": "st_uid"
    }
   ],
   "name": "st_uid"
@@ -14029,16 +12342,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_gid",
-    "returns": "int"
+    "name": "st_gid"
    }
   ],
   "name": "st_gid"
@@ -14046,16 +12352,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_size",
-    "returns": "int"
+    "name": "st_size"
    }
   ],
   "name": "st_size"
@@ -14063,16 +12362,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_atime",
-    "returns": "float"
+    "name": "st_atime"
    }
   ],
   "name": "st_atime"
@@ -14080,16 +12372,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_mtime",
-    "returns": "float"
+    "name": "st_mtime"
    }
   ],
   "name": "st_mtime"
@@ -14097,16 +12382,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_ctime",
-    "returns": "float"
+    "name": "st_ctime"
    }
   ],
   "name": "st_ctime"
@@ -14114,16 +12392,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_atime_ns",
-    "returns": "int"
+    "name": "st_atime_ns"
    }
   ],
   "name": "st_atime_ns"
@@ -14131,16 +12402,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_mtime_ns",
-    "returns": "int"
+    "name": "st_mtime_ns"
    }
   ],
   "name": "st_mtime_ns"
@@ -14148,16 +12412,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.stat_result",
-    "kwonlyargs": [],
-    "name": "st_ctime_ns",
-    "returns": "int"
+    "name": "st_ctime_ns"
    }
   ],
   "name": "st_ctime_ns"
@@ -14165,16 +12422,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_bsize",
-    "returns": "int"
+    "name": "f_bsize"
    }
   ],
   "name": "f_bsize"
@@ -14182,16 +12432,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_frsize",
-    "returns": "int"
+    "name": "f_frsize"
    }
   ],
   "name": "f_frsize"
@@ -14199,16 +12442,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_blocks",
-    "returns": "int"
+    "name": "f_blocks"
    }
   ],
   "name": "f_blocks"
@@ -14216,16 +12452,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_bfree",
-    "returns": "int"
+    "name": "f_bfree"
    }
   ],
   "name": "f_bfree"
@@ -14233,16 +12462,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_bavail",
-    "returns": "int"
+    "name": "f_bavail"
    }
   ],
   "name": "f_bavail"
@@ -14250,16 +12472,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_files",
-    "returns": "int"
+    "name": "f_files"
    }
   ],
   "name": "f_files"
@@ -14267,16 +12482,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_ffree",
-    "returns": "int"
+    "name": "f_ffree"
    }
   ],
   "name": "f_ffree"
@@ -14284,16 +12492,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_favail",
-    "returns": "int"
+    "name": "f_favail"
    }
   ],
   "name": "f_favail"
@@ -14301,16 +12502,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_flag",
-    "returns": "int"
+    "name": "f_flag"
    }
   ],
   "name": "f_flag"
@@ -14318,16 +12512,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.statvfs_result",
-    "kwonlyargs": [],
-    "name": "f_namemax",
-    "returns": "int"
+    "name": "f_namemax"
    }
   ],
   "name": "f_namemax"
@@ -14335,16 +12522,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "os.uname_result",
-    "kwonlyargs": [],
-    "name": "sysname",
-    "returns": "str"
+    "name": "sysname"
    }
   ],
   "name": "sysname"
@@ -14352,16 +12532,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "os.uname_result",
-    "kwonlyargs": [],
-    "name": "nodename",
-    "returns": "str"
+    "name": "nodename"
    }
   ],
   "name": "nodename"
@@ -14369,16 +12542,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "os.uname_result",
-    "kwonlyargs": [],
-    "name": "release",
-    "returns": "str"
+    "name": "release"
    },
    {
     "annotation": "str",
@@ -14391,16 +12557,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "os.uname_result",
-    "kwonlyargs": [],
-    "name": "machine",
-    "returns": "str"
+    "name": "machine"
    },
    {
     "annotation": "str",
@@ -14413,16 +12572,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.terminal_size",
-    "kwonlyargs": [],
-    "name": "columns",
-    "returns": "int"
+    "name": "columns"
    }
   ],
   "name": "columns"
@@ -14430,16 +12582,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.times_result",
-    "kwonlyargs": [],
-    "name": "system",
-    "returns": "float"
+    "name": "system"
    },
    {
     "annotation": "str",
@@ -14452,16 +12597,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.times_result",
-    "kwonlyargs": [],
-    "name": "children_user",
-    "returns": "float"
+    "name": "children_user"
    }
   ],
   "name": "children_user"
@@ -14469,16 +12607,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.times_result",
-    "kwonlyargs": [],
-    "name": "children_system",
-    "returns": "float"
+    "name": "children_system"
    }
   ],
   "name": "children_system"
@@ -14486,16 +12617,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "os.times_result",
-    "kwonlyargs": [],
-    "name": "elapsed",
-    "returns": "float"
+    "name": "elapsed"
    }
   ],
   "name": "elapsed"
@@ -14503,16 +12627,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "os.sched_param",
-    "kwonlyargs": [],
-    "name": "sched_priority",
-    "returns": "int"
+    "name": "sched_priority"
    }
   ],
   "name": "sched_priority"
@@ -15225,16 +13342,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "ContextVar[_T]",
     "className": "contextvars.Token",
-    "kwonlyargs": [],
-    "name": "var",
-    "returns": "ContextVar[_T]"
+    "name": "var"
    }
   ],
   "name": "var"
@@ -15242,16 +13352,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "contextvars.Token",
-    "kwonlyargs": [],
-    "name": "old_value",
-    "returns": "Any"
+    "name": "old_value"
    }
   ],
   "name": "old_value"
@@ -15269,16 +13372,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[str, ...]",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "parts",
-    "returns": "tuple[str, ...]"
+    "name": "parts"
    }
   ],
   "name": "parts"
@@ -15286,16 +13382,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "drive",
-    "returns": "str"
+    "name": "drive"
    }
   ],
   "name": "drive"
@@ -15303,16 +13392,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "anchor",
-    "returns": "str"
+    "name": "anchor"
    }
   ],
   "name": "anchor"
@@ -15320,16 +13402,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "suffix",
-    "returns": "str"
+    "name": "suffix"
    }
   ],
   "name": "suffix"
@@ -15337,16 +13412,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "list[str]",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "suffixes",
-    "returns": "list[str]"
+    "name": "suffixes"
    }
   ],
   "name": "suffixes"
@@ -15354,16 +13422,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pathlib.PurePath",
-    "kwonlyargs": [],
-    "name": "stem",
-    "returns": "str"
+    "name": "stem"
    }
   ],
   "name": "stem"
@@ -15371,16 +13432,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "tokenize.TokenInfo",
-    "kwonlyargs": [],
-    "name": "exact_type",
-    "returns": "int"
+    "name": "exact_type"
    }
   ],
   "name": "exact_type"
@@ -15678,16 +13732,9 @@
     "name": "proto"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "_socket.socket",
-    "kwonlyargs": [],
-    "name": "proto",
-    "returns": "int"
+    "name": "proto"
    }
   ],
   "name": "proto"
@@ -15705,16 +13752,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "tracemalloc.DomainFilter",
-    "kwonlyargs": [],
-    "name": "domain",
-    "returns": "int"
+    "name": "domain"
    },
    {
     "annotation": "(int | None)",
@@ -15722,16 +13762,9 @@
     "name": "domain"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "tracemalloc.Trace",
-    "kwonlyargs": [],
-    "name": "domain",
-    "returns": "int"
+    "name": "domain"
    }
   ],
   "name": "domain"
@@ -15739,16 +13772,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "tracemalloc.Filter",
-    "kwonlyargs": [],
-    "name": "filename_pattern",
-    "returns": "str"
+    "name": "filename_pattern"
    }
   ],
   "name": "filename_pattern"
@@ -15791,16 +13817,9 @@
     "name": "traceback"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Traceback",
     "className": "tracemalloc.Trace",
-    "kwonlyargs": [],
-    "name": "traceback",
-    "returns": "Traceback"
+    "name": "traceback"
    }
   ],
   "name": "traceback"
@@ -15993,16 +14012,9 @@
     "name": "_type_"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type[_CT]",
     "className": "ctypes.Array",
-    "kwonlyargs": [],
-    "name": "_type_",
-    "returns": "type[_CT]"
+    "name": "_type_"
    }
   ],
   "name": "_type_"
@@ -16020,16 +14032,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "ctypes.Array",
-    "kwonlyargs": [],
-    "name": "_length_",
-    "returns": "int"
+    "name": "_length_"
    }
   ],
   "name": "_length_"
@@ -16257,16 +14262,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_argcount",
-    "returns": "int"
+    "name": "co_argcount"
    }
   ],
   "name": "co_argcount"
@@ -16274,16 +14272,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_kwonlyargcount",
-    "returns": "int"
+    "name": "co_kwonlyargcount"
    }
   ],
   "name": "co_kwonlyargcount"
@@ -16291,16 +14282,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_nlocals",
-    "returns": "int"
+    "name": "co_nlocals"
    }
   ],
   "name": "co_nlocals"
@@ -16308,16 +14292,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_stacksize",
-    "returns": "int"
+    "name": "co_stacksize"
    }
   ],
   "name": "co_stacksize"
@@ -16325,16 +14302,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_flags",
-    "returns": "int"
+    "name": "co_flags"
    }
   ],
   "name": "co_flags"
@@ -16342,16 +14312,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bytes",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_code",
-    "returns": "bytes"
+    "name": "co_code"
    }
   ],
   "name": "co_code"
@@ -16359,16 +14322,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[Any, ...]",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_consts",
-    "returns": "tuple[Any, ...]"
+    "name": "co_consts"
    }
   ],
   "name": "co_consts"
@@ -16376,16 +14332,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[str, ...]",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_names",
-    "returns": "tuple[str, ...]"
+    "name": "co_names"
    }
   ],
   "name": "co_names"
@@ -16393,16 +14342,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[str, ...]",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_varnames",
-    "returns": "tuple[str, ...]"
+    "name": "co_varnames"
    }
   ],
   "name": "co_varnames"
@@ -16410,16 +14352,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_filename",
-    "returns": "str"
+    "name": "co_filename"
    }
   ],
   "name": "co_filename"
@@ -16427,16 +14362,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_name",
-    "returns": "str"
+    "name": "co_name"
    }
   ],
   "name": "co_name"
@@ -16444,16 +14372,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_firstlineno",
-    "returns": "int"
+    "name": "co_firstlineno"
    }
   ],
   "name": "co_firstlineno"
@@ -16461,16 +14382,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bytes",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_lnotab",
-    "returns": "bytes"
+    "name": "co_lnotab"
    }
   ],
   "name": "co_lnotab"
@@ -16478,16 +14392,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[str, ...]",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_freevars",
-    "returns": "tuple[str, ...]"
+    "name": "co_freevars"
    }
   ],
   "name": "co_freevars"
@@ -16495,16 +14402,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[str, ...]",
     "className": "types.CodeType",
-    "kwonlyargs": [],
-    "name": "co_cellvars",
-    "returns": "tuple[str, ...]"
+    "name": "co_cellvars"
    }
   ],
   "name": "co_cellvars"
@@ -16562,28 +14462,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "types.GeneratorType",
-    "kwonlyargs": [],
-    "name": "gi_code",
-    "returns": "CodeType"
+    "name": "gi_code"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "typing.Generator",
-    "kwonlyargs": [],
-    "name": "gi_code",
-    "returns": "CodeType"
+    "name": "gi_code"
    }
   ],
   "name": "gi_code"
@@ -16591,28 +14477,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "types.GeneratorType",
-    "kwonlyargs": [],
-    "name": "gi_frame",
-    "returns": "FrameType"
+    "name": "gi_frame"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "typing.Generator",
-    "kwonlyargs": [],
-    "name": "gi_frame",
-    "returns": "FrameType"
+    "name": "gi_frame"
    }
   ],
   "name": "gi_frame"
@@ -16620,28 +14492,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "types.GeneratorType",
-    "kwonlyargs": [],
-    "name": "gi_running",
-    "returns": "bool"
+    "name": "gi_running"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "typing.Generator",
-    "kwonlyargs": [],
-    "name": "gi_running",
-    "returns": "bool"
+    "name": "gi_running"
    }
   ],
   "name": "gi_running"
@@ -16649,28 +14507,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(GeneratorType[_T_co, _T_contra, Any] | None)",
     "className": "types.GeneratorType",
-    "kwonlyargs": [],
-    "name": "gi_yieldfrom",
-    "returns": "(GeneratorType[_T_co, _T_contra, Any] | None)"
+    "name": "gi_yieldfrom"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(Generator[Any, Any, Any] | None)",
     "className": "typing.Generator",
-    "kwonlyargs": [],
-    "name": "gi_yieldfrom",
-    "returns": "(Generator[Any, Any, Any] | None)"
+    "name": "gi_yieldfrom"
    }
   ],
   "name": "gi_yieldfrom"
@@ -16678,28 +14522,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(Awaitable[Any] | None)",
     "className": "types.AsyncGeneratorType",
-    "kwonlyargs": [],
-    "name": "ag_await",
-    "returns": "(Awaitable[Any] | None)"
+    "name": "ag_await"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Any",
     "className": "typing.AsyncGenerator",
-    "kwonlyargs": [],
-    "name": "ag_await",
-    "returns": "Any"
+    "name": "ag_await"
    }
   ],
   "name": "ag_await"
@@ -16707,28 +14537,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "types.AsyncGeneratorType",
-    "kwonlyargs": [],
-    "name": "ag_frame",
-    "returns": "FrameType"
+    "name": "ag_frame"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "typing.AsyncGenerator",
-    "kwonlyargs": [],
-    "name": "ag_frame",
-    "returns": "FrameType"
+    "name": "ag_frame"
    }
   ],
   "name": "ag_frame"
@@ -16736,28 +14552,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "types.AsyncGeneratorType",
-    "kwonlyargs": [],
-    "name": "ag_running",
-    "returns": "bool"
+    "name": "ag_running"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "typing.AsyncGenerator",
-    "kwonlyargs": [],
-    "name": "ag_running",
-    "returns": "bool"
+    "name": "ag_running"
    }
   ],
   "name": "ag_running"
@@ -16765,28 +14567,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "types.AsyncGeneratorType",
-    "kwonlyargs": [],
-    "name": "ag_code",
-    "returns": "CodeType"
+    "name": "ag_code"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "typing.AsyncGenerator",
-    "kwonlyargs": [],
-    "name": "ag_code",
-    "returns": "CodeType"
+    "name": "ag_code"
    }
   ],
   "name": "ag_code"
@@ -16794,28 +14582,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(Any | None)",
     "className": "types.CoroutineType",
-    "kwonlyargs": [],
-    "name": "cr_await",
-    "returns": "(Any | None)"
+    "name": "cr_await"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(Any | None)",
     "className": "typing.Coroutine",
-    "kwonlyargs": [],
-    "name": "cr_await",
-    "returns": "(Any | None)"
+    "name": "cr_await"
    }
   ],
   "name": "cr_await"
@@ -16823,28 +14597,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "types.CoroutineType",
-    "kwonlyargs": [],
-    "name": "cr_code",
-    "returns": "CodeType"
+    "name": "cr_code"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "typing.Coroutine",
-    "kwonlyargs": [],
-    "name": "cr_code",
-    "returns": "CodeType"
+    "name": "cr_code"
    }
   ],
   "name": "cr_code"
@@ -16852,28 +14612,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "types.CoroutineType",
-    "kwonlyargs": [],
-    "name": "cr_frame",
-    "returns": "FrameType"
+    "name": "cr_frame"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "typing.Coroutine",
-    "kwonlyargs": [],
-    "name": "cr_frame",
-    "returns": "FrameType"
+    "name": "cr_frame"
    }
   ],
   "name": "cr_frame"
@@ -16881,28 +14627,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "types.CoroutineType",
-    "kwonlyargs": [],
-    "name": "cr_running",
-    "returns": "bool"
+    "name": "cr_running"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "typing.Coroutine",
-    "kwonlyargs": [],
-    "name": "cr_running",
-    "returns": "bool"
+    "name": "cr_running"
    }
   ],
   "name": "cr_running"
@@ -16910,40 +14642,19 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "object",
     "className": "types.MethodType",
-    "kwonlyargs": [],
-    "name": "__self__",
-    "returns": "object"
+    "name": "__self__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(object | ModuleType)",
     "className": "types.BuiltinFunctionType",
-    "kwonlyargs": [],
-    "name": "__self__",
-    "returns": "(object | ModuleType)"
+    "name": "__self__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "object",
     "className": "types.MethodWrapperType",
-    "kwonlyargs": [],
-    "name": "__self__",
-    "returns": "object"
+    "name": "__self__"
    }
   ],
   "name": "__self__"
@@ -16951,76 +14662,34 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.WrapperDescriptorType",
-    "kwonlyargs": [],
-    "name": "__objclass__",
-    "returns": "type"
+    "name": "__objclass__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.MethodWrapperType",
-    "kwonlyargs": [],
-    "name": "__objclass__",
-    "returns": "type"
+    "name": "__objclass__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.MethodDescriptorType",
-    "kwonlyargs": [],
-    "name": "__objclass__",
-    "returns": "type"
+    "name": "__objclass__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.ClassMethodDescriptorType",
-    "kwonlyargs": [],
-    "name": "__objclass__",
-    "returns": "type"
+    "name": "__objclass__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.GetSetDescriptorType",
-    "kwonlyargs": [],
-    "name": "__objclass__",
-    "returns": "type"
+    "name": "__objclass__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.MemberDescriptorType",
-    "kwonlyargs": [],
-    "name": "__objclass__",
-    "returns": "type"
+    "name": "__objclass__"
    }
   ],
   "name": "__objclass__"
@@ -17028,16 +14697,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "FrameType",
     "className": "types.TracebackType",
-    "kwonlyargs": [],
-    "name": "tb_frame",
-    "returns": "FrameType"
+    "name": "tb_frame"
    }
   ],
   "name": "tb_frame"
@@ -17045,16 +14707,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.TracebackType",
-    "kwonlyargs": [],
-    "name": "tb_lasti",
-    "returns": "int"
+    "name": "tb_lasti"
    }
   ],
   "name": "tb_lasti"
@@ -17062,16 +14717,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.TracebackType",
-    "kwonlyargs": [],
-    "name": "tb_lineno",
-    "returns": "int"
+    "name": "tb_lineno"
    }
   ],
   "name": "tb_lineno"
@@ -17079,16 +14727,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(FrameType | None)",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_back",
-    "returns": "(FrameType | None)"
+    "name": "f_back"
    }
   ],
   "name": "f_back"
@@ -17096,16 +14737,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_builtins",
-    "returns": "dict[str, Any]"
+    "name": "f_builtins"
    }
   ],
   "name": "f_builtins"
@@ -17113,16 +14747,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "CodeType",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_code",
-    "returns": "CodeType"
+    "name": "f_code"
    }
   ],
   "name": "f_code"
@@ -17130,16 +14757,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_globals",
-    "returns": "dict[str, Any]"
+    "name": "f_globals"
    }
   ],
   "name": "f_globals"
@@ -17147,16 +14767,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_lasti",
-    "returns": "int"
+    "name": "f_lasti"
    }
   ],
   "name": "f_lasti"
@@ -17164,16 +14777,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(int | Any)",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_lineno",
-    "returns": "(int | Any)"
+    "name": "f_lineno"
    }
   ],
   "name": "f_lineno"
@@ -17181,16 +14787,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "dict[str, Any]",
     "className": "types.FrameType",
-    "kwonlyargs": [],
-    "name": "f_locals",
-    "returns": "dict[str, Any]"
+    "name": "f_locals"
    }
   ],
   "name": "f_locals"
@@ -17208,16 +14807,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "type",
     "className": "types.GenericAlias",
-    "kwonlyargs": [],
-    "name": "__origin__",
-    "returns": "type"
+    "name": "__origin__"
    },
    {
     "annotation": "ParamSpec",
@@ -17235,28 +14827,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[Any, ...]",
     "className": "types.GenericAlias",
-    "kwonlyargs": [],
-    "name": "__args__",
-    "returns": "tuple[Any, ...]"
+    "name": "__args__"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[Any, ...]",
     "className": "types.UnionType",
-    "kwonlyargs": [],
-    "name": "__args__",
-    "returns": "tuple[Any, ...]"
+    "name": "__args__"
    }
   ],
   "name": "__args__"
@@ -17264,16 +14842,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[Any, ...]",
     "className": "types.GenericAlias",
-    "kwonlyargs": [],
-    "name": "__parameters__",
-    "returns": "tuple[Any, ...]"
+    "name": "__parameters__"
    }
   ],
   "name": "__parameters__"
@@ -17376,16 +14947,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.date",
-    "kwonlyargs": [],
-    "name": "year",
-    "returns": "int"
+    "name": "year"
    }
   ],
   "name": "year"
@@ -17393,16 +14957,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.date",
-    "kwonlyargs": [],
-    "name": "month",
-    "returns": "int"
+    "name": "month"
    }
   ],
   "name": "month"
@@ -17410,16 +14967,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.date",
-    "kwonlyargs": [],
-    "name": "day",
-    "returns": "int"
+    "name": "day"
    }
   ],
   "name": "day"
@@ -17427,28 +14977,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.time",
-    "kwonlyargs": [],
-    "name": "hour",
-    "returns": "int"
+    "name": "hour"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.datetime",
-    "kwonlyargs": [],
-    "name": "hour",
-    "returns": "int"
+    "name": "hour"
    }
   ],
   "name": "hour"
@@ -17456,28 +14992,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.time",
-    "kwonlyargs": [],
-    "name": "minute",
-    "returns": "int"
+    "name": "minute"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.datetime",
-    "kwonlyargs": [],
-    "name": "minute",
-    "returns": "int"
+    "name": "minute"
    }
   ],
   "name": "minute"
@@ -17485,28 +15007,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.time",
-    "kwonlyargs": [],
-    "name": "second",
-    "returns": "int"
+    "name": "second"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.datetime",
-    "kwonlyargs": [],
-    "name": "second",
-    "returns": "int"
+    "name": "second"
    }
   ],
   "name": "second"
@@ -17514,28 +15022,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.time",
-    "kwonlyargs": [],
-    "name": "microsecond",
-    "returns": "int"
+    "name": "microsecond"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.datetime",
-    "kwonlyargs": [],
-    "name": "microsecond",
-    "returns": "int"
+    "name": "microsecond"
    }
   ],
   "name": "microsecond"
@@ -17543,28 +15037,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(_tzinfo | None)",
     "className": "datetime.time",
-    "kwonlyargs": [],
-    "name": "tzinfo",
-    "returns": "(_tzinfo | None)"
+    "name": "tzinfo"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(_tzinfo | None)",
     "className": "datetime.datetime",
-    "kwonlyargs": [],
-    "name": "tzinfo",
-    "returns": "(_tzinfo | None)"
+    "name": "tzinfo"
    }
   ],
   "name": "tzinfo"
@@ -17572,28 +15052,14 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.time",
-    "kwonlyargs": [],
-    "name": "fold",
-    "returns": "int"
+    "name": "fold"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.datetime",
-    "kwonlyargs": [],
-    "name": "fold",
-    "returns": "int"
+    "name": "fold"
    }
   ],
   "name": "fold"
@@ -17601,16 +15067,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.timedelta",
-    "kwonlyargs": [],
-    "name": "days",
-    "returns": "int"
+    "name": "days"
    }
   ],
   "name": "days"
@@ -17618,16 +15077,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.timedelta",
-    "kwonlyargs": [],
-    "name": "seconds",
-    "returns": "int"
+    "name": "seconds"
    }
   ],
   "name": "seconds"
@@ -17635,16 +15087,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "datetime.timedelta",
-    "kwonlyargs": [],
-    "name": "microseconds",
-    "returns": "int"
+    "name": "microseconds"
    }
   ],
   "name": "microseconds"
@@ -17657,16 +15102,9 @@
     "name": "node"
    },
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "node",
-    "returns": "_Int"
+    "name": "node"
    }
   ],
   "name": "node"
@@ -17749,16 +15187,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "endpos",
-    "returns": "int"
+    "name": "endpos"
    }
   ],
   "name": "endpos"
@@ -17766,16 +15197,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(int | None)",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "lastindex",
-    "returns": "(int | None)"
+    "name": "lastindex"
    }
   ],
   "name": "lastindex"
@@ -17783,16 +15207,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "(str | None)",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "lastgroup",
-    "returns": "(str | None)"
+    "name": "lastgroup"
    }
   ],
   "name": "lastgroup"
@@ -17800,16 +15217,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Pattern[AnyStr]",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "re",
-    "returns": "Pattern[AnyStr]"
+    "name": "re"
    }
   ],
   "name": "re"
@@ -17817,16 +15227,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "tuple[tuple[int, int], ...]",
     "className": "typing.Match",
-    "kwonlyargs": [],
-    "name": "regs",
-    "returns": "tuple[tuple[int, int], ...]"
+    "name": "regs"
    }
   ],
   "name": "regs"
@@ -17834,16 +15237,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "Mapping[str, int]",
     "className": "typing.Pattern",
-    "kwonlyargs": [],
-    "name": "groupindex",
-    "returns": "Mapping[str, int]"
+    "name": "groupindex"
    }
   ],
   "name": "groupindex"
@@ -17851,16 +15247,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "typing.Pattern",
-    "kwonlyargs": [],
-    "name": "groups",
-    "returns": "int"
+    "name": "groups"
    }
   ],
   "name": "groups"
@@ -18128,16 +15517,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Bytes",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "bytes",
-    "returns": "_Bytes"
+    "name": "bytes"
    }
   ],
   "name": "bytes"
@@ -18145,16 +15527,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Bytes",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "bytes_le",
-    "returns": "_Bytes"
+    "name": "bytes_le"
    }
   ],
   "name": "bytes_le"
@@ -18162,16 +15537,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "clock_seq",
-    "returns": "_Int"
+    "name": "clock_seq"
    }
   ],
   "name": "clock_seq"
@@ -18179,16 +15547,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "clock_seq_hi_variant",
-    "returns": "_Int"
+    "name": "clock_seq_hi_variant"
    }
   ],
   "name": "clock_seq_hi_variant"
@@ -18196,16 +15557,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "clock_seq_low",
-    "returns": "_Int"
+    "name": "clock_seq_low"
    }
   ],
   "name": "clock_seq_low"
@@ -18213,16 +15567,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_FieldsType",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "fields",
-    "returns": "_FieldsType"
+    "name": "fields"
    }
   ],
   "name": "fields"
@@ -18230,16 +15577,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "hex",
-    "returns": "str"
+    "name": "hex"
    }
   ],
   "name": "hex"
@@ -18247,16 +15587,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "int",
-    "returns": "_Int"
+    "name": "int"
    }
   ],
   "name": "int"
@@ -18264,16 +15597,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "time_hi_version",
-    "returns": "_Int"
+    "name": "time_hi_version"
    }
   ],
   "name": "time_hi_version"
@@ -18281,16 +15607,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "time_low",
-    "returns": "_Int"
+    "name": "time_low"
    }
   ],
   "name": "time_low"
@@ -18298,16 +15617,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "_Int",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "time_mid",
-    "returns": "_Int"
+    "name": "time_mid"
    }
   ],
   "name": "time_mid"
@@ -18315,16 +15627,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "urn",
-    "returns": "str"
+    "name": "urn"
    }
   ],
   "name": "urn"
@@ -18332,16 +15637,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "uuid.UUID",
-    "kwonlyargs": [],
-    "name": "variant",
-    "returns": "str"
+    "name": "variant"
    }
   ],
   "name": "variant"
@@ -18754,16 +16052,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_name",
-    "returns": "str"
+    "name": "pw_name"
    }
   ],
   "name": "pw_name"
@@ -18771,16 +16062,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_passwd",
-    "returns": "str"
+    "name": "pw_passwd"
    }
   ],
   "name": "pw_passwd"
@@ -18788,16 +16072,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_uid",
-    "returns": "int"
+    "name": "pw_uid"
    }
   ],
   "name": "pw_uid"
@@ -18805,16 +16082,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_gid",
-    "returns": "int"
+    "name": "pw_gid"
    }
   ],
   "name": "pw_gid"
@@ -18822,16 +16092,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_gecos",
-    "returns": "str"
+    "name": "pw_gecos"
    }
   ],
   "name": "pw_gecos"
@@ -18839,16 +16102,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_dir",
-    "returns": "str"
+    "name": "pw_dir"
    }
   ],
   "name": "pw_dir"
@@ -18856,16 +16112,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "str",
     "className": "pwd.struct_passwd",
-    "kwonlyargs": [],
-    "name": "pw_shell",
-    "returns": "str"
+    "name": "pw_shell"
    }
   ],
   "name": "pw_shell"
@@ -18873,16 +16122,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "bool",
     "className": "weakref.finalize",
-    "kwonlyargs": [],
-    "name": "alive",
-    "returns": "bool"
+    "name": "alive"
    }
   ],
   "name": "alive"
@@ -19290,16 +16532,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "IO[str]",
     "className": "pydoc.Helper",
-    "kwonlyargs": [],
-    "name": "input",
-    "returns": "IO[str]"
+    "name": "input"
    }
   ],
   "name": "input"
@@ -20272,16 +17507,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_utime",
-    "returns": "float"
+    "name": "ru_utime"
    }
   ],
   "name": "ru_utime"
@@ -20289,16 +17517,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "float",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_stime",
-    "returns": "float"
+    "name": "ru_stime"
    }
   ],
   "name": "ru_stime"
@@ -20306,16 +17527,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_maxrss",
-    "returns": "int"
+    "name": "ru_maxrss"
    }
   ],
   "name": "ru_maxrss"
@@ -20323,16 +17537,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_ixrss",
-    "returns": "int"
+    "name": "ru_ixrss"
    }
   ],
   "name": "ru_ixrss"
@@ -20340,16 +17547,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_idrss",
-    "returns": "int"
+    "name": "ru_idrss"
    }
   ],
   "name": "ru_idrss"
@@ -20357,16 +17557,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_isrss",
-    "returns": "int"
+    "name": "ru_isrss"
    }
   ],
   "name": "ru_isrss"
@@ -20374,16 +17567,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_minflt",
-    "returns": "int"
+    "name": "ru_minflt"
    }
   ],
   "name": "ru_minflt"
@@ -20391,16 +17577,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_majflt",
-    "returns": "int"
+    "name": "ru_majflt"
    }
   ],
   "name": "ru_majflt"
@@ -20408,16 +17587,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_nswap",
-    "returns": "int"
+    "name": "ru_nswap"
    }
   ],
   "name": "ru_nswap"
@@ -20425,16 +17597,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_inblock",
-    "returns": "int"
+    "name": "ru_inblock"
    }
   ],
   "name": "ru_inblock"
@@ -20442,16 +17607,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_oublock",
-    "returns": "int"
+    "name": "ru_oublock"
    }
   ],
   "name": "ru_oublock"
@@ -20459,16 +17617,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_msgsnd",
-    "returns": "int"
+    "name": "ru_msgsnd"
    }
   ],
   "name": "ru_msgsnd"
@@ -20476,16 +17627,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_msgrcv",
-    "returns": "int"
+    "name": "ru_msgrcv"
    }
   ],
   "name": "ru_msgrcv"
@@ -20493,16 +17637,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_nsignals",
-    "returns": "int"
+    "name": "ru_nsignals"
    }
   ],
   "name": "ru_nsignals"
@@ -20510,16 +17647,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_nvcsw",
-    "returns": "int"
+    "name": "ru_nvcsw"
    }
   ],
   "name": "ru_nvcsw"
@@ -20527,16 +17657,9 @@
  {
   "definitions": [
    {
-    "args": [
-     {
-      "annotation": "",
-      "arg": "self"
-     }
-    ],
+    "annotation": "int",
     "className": "resource.struct_rusage",
-    "kwonlyargs": [],
-    "name": "ru_nivcsw",
-    "returns": "int"
+    "name": "ru_nivcsw"
    }
   ],
   "name": "ru_nivcsw"

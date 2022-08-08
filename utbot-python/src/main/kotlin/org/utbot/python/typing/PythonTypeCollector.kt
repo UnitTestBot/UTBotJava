@@ -83,12 +83,7 @@ object PythonTypesStorage {
         return projectClasses.any { it.pythonClass.name == typeName }
     }
 
-    val typeCache = mutableMapOf<String, PythonType>()
-
     fun getTypeByName(classId: ClassId): PythonType? {
-        if (typeCache[classId.name] != null)
-            return typeCache[classId.name]
-
         val fromStub = StubFileFinder.nameToClassMap[classId.name]
         val result =
             if (fromStub != null) {
@@ -121,9 +116,6 @@ object PythonTypesStorage {
                     )
                 }
             }
-
-        if (result != null)
-            typeCache[classId.name] = result
 
         return result
     }

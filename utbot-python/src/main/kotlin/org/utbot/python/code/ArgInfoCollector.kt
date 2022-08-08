@@ -13,6 +13,9 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
+import io.github.danielnaczo.python3parser.model.expr.datastructures.Dict
+import io.github.danielnaczo.python3parser.model.expr.datastructures.ListExpr
+import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
@@ -38,6 +41,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
     data class FunctionArg(override val name: String, val index: Int): BaseStorage
     data class FunctionRet(override val name: String): BaseStorage
     data class Field(override val name: String): BaseStorage
+    data class Function(override val name: String): BaseStorage
     data class ArgInfoStorage(
         val types: MutableSet<Type> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf(),
@@ -55,12 +59,16 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             ).flatten()
         }
     }
+    data class GeneralStorage(
+        val types: MutableList<Type> = mutableListOf(),
+        val functions: MutableList<Function> = mutableListOf()
+    )
 
     private val paramNames = method.arguments.mapIndexedNotNull { index, param ->
         if (argumentTypes[index] == pythonAnyClassId) param.name else null
     }
     private val collectedValues = mutableMapOf<String, ArgInfoStorage>()
-    private val visitor = MatchVisitor(paramNames, mutableSetOf())
+    private val visitor = MatchVisitor(paramNames, mutableSetOf(), GeneralStorage())
 
     init {
         visitor.visitFunctionDef(method.ast(), collectedValues)
@@ -68,7 +76,10 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
     fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()
 
-    fun getAllStorages(): Map<String, List<BaseStorage>> {
+    fun getAllGeneralStorages(): List<BaseStorage> =
+        visitor.generalStorage.types + visitor.generalStorage.functions
+
+    fun getAllArgStorages(): Map<String, List<BaseStorage>> {
        return collectedValues.entries.associate { (argName, storage) ->
            argName to storage.toList()
        }
@@ -99,7 +110,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
     private class MatchVisitor(
         private val paramNames: List<String>,
-        val constStorage: MutableSet<FuzzedConcreteValue>
+        val constStorage: MutableSet<FuzzedConcreteValue>,
+        val generalStorage: GeneralStorage
     ): ModifierVisitor<MutableMap<String, ArgInfoStorage>>() {
 
         private fun <A, N> namePat(): Pattern<(String) -> A, A, N> {
@@ -264,11 +276,26 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             }
         }
 
+        private fun collectFunction(atom: Atom) {
+            parse(
+                functionCallWithPrefix(
+                    fid = apply(),
+                    fprefix = drop(),
+                    farguments = drop()
+                ),
+                onError = null,
+                atom
+            ) { it } ?.let {
+                generalStorage.functions.add(Function(it))
+            }
+        }
+
         override fun visitAtom(atom: Atom, param: MutableMap<String, ArgInfoStorage>): AST {
             collectFunctionArg(atom, param)
             collectField(atom, param)
             collectAtomMethod(atom, param)
             collectMagicMethodsFromCalls(atom, param)
+            collectFunction(atom)
             return super.visitAtom(atom, param)
         }
 
@@ -404,13 +431,16 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
         override fun visitNum(num: Num, param: MutableMap<String, ArgInfoStorage>): AST {
             val value = getNumFuzzedValue(num.n)
-            if (value != null)
+            if (value != null) {
                 constStorage.add(value)
+                generalStorage.types.add(Type(value.classId.name))
+            }
             return super.visitNum(num, param)
         }
 
         override fun visitStr(str: Str, param: MutableMap<String, ArgInfoStorage>?): AST {
             constStorage.add(FuzzedConcreteValue(PythonStrModel.classId, getStr(str.s)))
+            generalStorage.types.add(Type("builtins.str"))
             return super.visitStr(str, param)
         }
 
@@ -464,6 +494,29 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         override fun visitDelete(delete: Delete, param: MutableMap<String, ArgInfoStorage>): AST {
             saveToAttributeStorage(delete.expression, "__delitem__", param)
             return super.visitDelete(delete, param)
+        }
+
+        override fun visitListExpr(listExpr: ListExpr, param: MutableMap<String, ArgInfoStorage>): AST {
+            generalStorage.types.add(Type("builtins.list"))
+            return super.visitListExpr(listExpr, param)
+        }
+
+        override fun visitSet(
+            set: io.github.danielnaczo.python3parser.model.expr.datastructures.Set,
+            param: MutableMap<String, ArgInfoStorage>
+        ): AST {
+            generalStorage.types.add(Type("builtins.set"))
+            return super.visitSet(set, param)
+        }
+
+        override fun visitTuple(tuple: Tuple, param: MutableMap<String, ArgInfoStorage>): AST {
+            generalStorage.types.add(Type("builtins.tuple"))
+            return super.visitTuple(tuple, param)
+        }
+
+        override fun visitDict(dict: Dict, param: MutableMap<String, ArgInfoStorage>): AST {
+            generalStorage.types.add(Type("builtins.dict"))
+            return super.visitDict(dict, param)
         }
     }
 }

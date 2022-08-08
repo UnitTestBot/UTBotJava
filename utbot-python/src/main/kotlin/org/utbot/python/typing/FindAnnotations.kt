@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.utils.AnnotationNormalizer
@@ -11,20 +12,28 @@ object AnnotationFinder {
     private const val INF = 1000
 
     private fun increaseValue(map: MutableMap<String, Int>, key: String) {
-        if (map[key] == INF)
+        if (map[key] == INF || key == pythonAnyClassId.name)
             return
         map[key] = (map[key] ?: 0) + 1
     }
 
-    private fun firstLevelCandidates(
-        storages: List<ArgInfoCollector.BaseStorage>?
-    ): List<String> {
+    private fun getInitCandidateMap(): MutableMap<String, Int> {
         val candidates = mutableMapOf<String, Int>() // key: type, value: priority
         PythonTypesStorage.builtinTypes.associateByTo(
             destination = candidates,
             { AnnotationNormalizer.substituteTypes("builtins.$it") },
             { 0 }
         )
+        return candidates
+    }
+
+    private fun candidatesMapToRating(candidates: Map<String, Int>): List<String> =
+        candidates.toList().sortedByDescending { it.second }.map { it.first }
+
+    private fun firstLevelCandidates(
+        storages: List<ArgInfoCollector.BaseStorage>?
+    ): List<String> {
+        val candidates = getInitCandidateMap()
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
                 is ArgInfoCollector.Type -> candidates[argInfoStorage.name] = INF
@@ -53,13 +62,39 @@ object AnnotationFinder {
             if (PythonTypesStorage.isFromProject(typeName))
                 increaseValue(candidates, typeName)
         }
-        return candidates.toList().sortedByDescending { it.second }.map { it.first }
+        return candidatesMapToRating(candidates)
+    }
+
+    private fun getGeneralTypeRating(
+        argInfoCollector: ArgInfoCollector
+    ): List<String> {
+        val candidates = getInitCandidateMap()
+        argInfoCollector.getAllGeneralStorages().map { generalStorage ->
+            when (generalStorage) {
+                is ArgInfoCollector.Type -> increaseValue(candidates, generalStorage.name)
+                is ArgInfoCollector.Function -> {
+                    listOf(
+                        PythonTypesStorage.findTypeByFunctionReturnValue(generalStorage.name),
+                        PythonTypesStorage.findTypeByFunctionWithArgumentPosition(generalStorage.name)
+                    ).flatten().forEach { increaseValue(candidates, it.name) }
+                }
+            }
+        }
+        return candidatesMapToRating(candidates)
     }
 
     private fun findTypeCandidates(
-        storages: List<ArgInfoCollector.BaseStorage>?
-    ): List<String> {
-        return firstLevelCandidates(storages)
+        argInfoCollector: ArgInfoCollector,
+        existingAnnotations: Map<String, String>
+    ): Map<String, List<String>> {
+        val storageMap = argInfoCollector.getAllArgStorages()
+        val userAnnotations = existingAnnotations.entries.associate {
+            it.key to listOf(it.value)
+        }
+        val annotationCombinations = storageMap.entries.associate { (name, storages) ->
+            name to firstLevelCandidates(storages)
+        }
+        return userAnnotations + annotationCombinations
     }
 
     fun findAnnotations(
@@ -73,17 +108,12 @@ object AnnotationFinder {
         isCancelled: () -> Boolean,
         storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine>
     ): Sequence<Map<String, ClassId>> {
-        val storageMap = argInfoCollector.getAllStorages()
-        val userAnnotations = existingAnnotations.entries.associate {
-            it.key to listOf(it.value)
-        }
-        val annotationCombinations = storageMap.entries.associate { (name, storages) ->
-            name to findTypeCandidates(storages)
-        }
+
+        val annotationsToCheck = findTypeCandidates(argInfoCollector, existingAnnotations)
 
         return MypyAnnotations.getCheckedByMypyAnnotations(
             methodUnderTest,
-            userAnnotations + annotationCombinations,
+            annotationsToCheck,
             moduleToImport,
             directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
             pythonPath,

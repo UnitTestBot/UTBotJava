@@ -86,7 +86,7 @@ internal interface CgContextOwner {
     var currentExecutable: ExecutableId?
 
     // ClassInfo for the outermost class currently being generated
-    var outerMostTestClassInfo: TestClassInfo
+    val outerMostTestClassInfo: TestClassInfo
 
     // If generating series of nested classes, it is ClassInfo for the innermost one,
     // otherwise it should be equal to outerMostTestClassInfo
@@ -316,7 +316,7 @@ internal interface CgContextOwner {
     }
 
     private fun clearClassScope() {
-        outerMostTestClassInfo = TestClassInfo()
+        outerMostTestClassInfo.clear()
         currentTestClassInfo = outerMostTestClassInfo
         collectedImports.clear()
         importedStaticMethods.clear()
@@ -397,7 +397,7 @@ internal interface CgContextOwner {
 internal data class CgContext(
     override val classUnderTest: ClassId,
     override var currentExecutable: ExecutableId? = null,
-    override var outerMostTestClassInfo: TestClassInfo = TestClassInfo(),
+    override val outerMostTestClassInfo: TestClassInfo = TestClassInfo(),
     override var currentTestClassInfo: TestClassInfo = outerMostTestClassInfo,
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),

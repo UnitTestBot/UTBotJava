@@ -388,7 +388,6 @@ object Junit4 : TestFramework("JUnit4") {
         )
     }
 
-
     override val nestedClassesShouldBeStatic = true
 
     @OptIn(ExperimentalStdlibApi::class)

@@ -66,15 +66,14 @@ class CodeGenerator(
     private fun generateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
-    ): TestsCodeWithTestReport =
-            withCustomContext(testClassCustomName) {
-                context.withTestClassFileScope {
-                    val testClassFile = CgTestClassConstructor(context).construct(
-                        UtTestClass.fromTestSets(classUnderTest, cgTestSets)
-                    )
-                    TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
-                }
-            }
+    ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
+        context.withTestClassFileScope {
+            val testClassFile = CgTestClassConstructor(context).construct(
+                UtTestClass.fromTestSets(classUnderTest, cgTestSets)
+            )
+            TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+        }
+    }
 
     /**
      * Wrapper function that configures context as needed for utbot-online:

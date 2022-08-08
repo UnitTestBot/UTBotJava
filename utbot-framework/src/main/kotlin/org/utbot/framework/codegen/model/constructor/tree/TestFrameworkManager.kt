@@ -72,6 +72,9 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     val assertFloatArrayEquals = context.testFramework.assertFloatArrayEquals
     val assertDoubleArrayEquals = context.testFramework.assertDoubleArrayEquals
 
+    // Points to the class, into which data provider methods in parametrized tests should be put (current or outermost).
+    // It is needed, because data provider methods are static and thus may not be put into inner classes, e.g. in JUnit5
+    // all data providers should be placed in the outermost class.
     protected abstract val dataProviderMethodsHolder: TestClassInfo
 
     protected val statementConstructor = CgComponents.getStatementConstructorBy(context)

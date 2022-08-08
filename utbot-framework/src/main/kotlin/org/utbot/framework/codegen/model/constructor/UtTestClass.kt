@@ -16,11 +16,18 @@ data class UtTestClass(
 ) {
     companion object {
         fun fromTestSets(classUnderTest: ClassId, testSets: List<CgMethodTestSet>): UtTestClass {
+            // For each class stores list of methods declared in this class (methods from nested classes are excluded)
             val class2methodTestSets = testSets.groupBy { it.executableId.classId }
+
+            // For each class stores list of its "direct" nested classes
             val class2nestedClasses = testSets
                 .map { it.executableId.classId }
-                .flatMap { generateSequence(it) { it.enclosingClass }.takeWhile { it != classUnderTest } }
-                .groupBy { it.enclosingClass ?: error("All of the given to codegen methods should belong to classUnderTest") }
+                .flatMap { clazz ->
+                    generateSequence(clazz) { it.enclosingClass }.takeWhile { it != classUnderTest }
+                }
+                .groupBy {
+                    it.enclosingClass ?: error("All of the given to codegen methods should belong to classUnderTest")
+                }
                 .mapValues { (_, v) -> v.distinct() }
             return constructRecursively(classUnderTest, class2methodTestSets, class2nestedClasses)
         }

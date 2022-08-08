@@ -266,21 +266,6 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
         return new UtHashSetIterator();
     }
 
-    @Override
-    public Stream<E> stream() {
-        preconditionCheck();
-
-        int size = elementData.end;
-        E[] data = elementData.toCastedArray(0, size);
-
-        return new UtStream<>(data, size);
-    }
-
-    @Override
-    public Stream<E> parallelStream() {
-        return stream();
-    }
-
     public class UtHashSetIterator implements Iterator<E> {
         int index = 0;
 

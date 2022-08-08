@@ -140,7 +140,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             mapped[i] = mapper.apply(elementData.get(i));
         }
 
-        return new UtStream<>((U[]) mapped, size);
+        return new UtStream<>((U[]) mapped);
     }
 
     @Override
@@ -562,7 +562,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             elements[i] = elementData.get(i);
         }
 
-        return new UtStream<>(elements, size);
+        return new UtStream<>(elements);
     }
 
     @Override

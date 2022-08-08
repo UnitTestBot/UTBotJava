@@ -140,7 +140,7 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             mapped[i] = mapper.apply(elementData.get(i));
         }
 
-        return new UtStream<>(mapped, size);
+        return new UtStream<>(mapped);
     }
 
     @Override
@@ -586,7 +586,7 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             elements[i] = elementData.get(i);
         }
 
-        return new UtStream<>(elements, size);
+        return new UtStream<>(elements);
     }
 
     @Override

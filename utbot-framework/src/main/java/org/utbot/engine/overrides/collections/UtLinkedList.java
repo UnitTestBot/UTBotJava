@@ -451,22 +451,6 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         preconditionCheck();
         return new ReverseIteratorWrapper(elementData.end);
     }
-
-    @Override
-    public Stream<E> stream() {
-        preconditionCheck();
-
-        int size = elementData.end;
-        E[] data = elementData.toCastedArray(0, size);
-
-        return new UtStream<>(data, size);
-    }
-
-    @Override
-    public Stream<E> parallelStream() {
-        return stream();
-    }
-
     public class ReverseIteratorWrapper implements ListIterator<E> {
 
         int index;

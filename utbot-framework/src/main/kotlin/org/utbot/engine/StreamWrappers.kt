@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.defaultValueModel
@@ -73,25 +74,29 @@ abstract class StreamWrapper(
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtAssembleModel = resolver.run {
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
-        val parametersArrayModel = resolveElementsAsArrayModel(wrapper)?.transformElementsModel()
+        val elementsModel = resolveElements(wrapper)
 
         val instantiationChain = mutableListOf<UtStatementModel>()
         val modificationsChain = emptyList<UtStatementModel>()
 
+        // TODO tests with mutations for origin collections
         UtAssembleModel(addr, streamClassId, modelName, instantiationChain, modificationsChain)
             .apply {
-                val (builder, params) = if (parametersArrayModel == null || parametersArrayModel.length == 0) {
-                    streamEmptyMethodId to emptyList()
+                instantiationChain += if (elementsModel != null) {
+                    UtExecutableCallModel(
+                        instance = elementsModel,
+                        executable = streamMethodId,
+                        params = emptyList(),
+                        returnValue = this
+                    )
                 } else {
-                    streamOfMethodId to listOf(parametersArrayModel)
+                    UtExecutableCallModel(
+                        instance = null,
+                        executable = streamEmptyMethodId,
+                        params = emptyList(),
+                        returnValue = this
+                    )
                 }
-
-                instantiationChain += UtExecutableCallModel(
-                    instance = null,
-                    executable = builder,
-                    params = params,
-                    returnValue = this
-                )
             }
     }
 
@@ -106,7 +111,23 @@ abstract class StreamWrapper(
         return collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as? UtArrayModel
     }
 
+    private fun Resolver.resolveElements(wrapper: ObjectValue): UtReferenceModel? {
+        val elementDataFieldId = FieldId(overriddenClass.type.classId, "elementData")
+
+        return collectFieldModels(wrapper.addr, overriddenClass.type)[elementDataFieldId] as? UtReferenceModel
+    }
+
     open fun UtArrayModel.transformElementsModel(): UtArrayModel = this
+
+    private val collectionId: ClassId = java.util.Collection::class.java.id
+
+    private val streamMethodId: MethodId
+        get() = methodId(
+            classId = collectionId,
+            name = "stream",
+            returnType = streamClassId,
+            arguments = emptyArray()
+        )
 
     private val streamOfMethodId: MethodId
         get() = methodId(

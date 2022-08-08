@@ -8,27 +8,24 @@ import java.util.stream.BaseStream;
 
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
-@SuppressWarnings("unused")
 @UtClassMock(target = java.util.stream.Stream.class, internalUsage = true)
 public interface Stream<E> extends BaseStream<E, Stream<E>> {
     @SuppressWarnings("unchecked")
     static <E> java.util.stream.Stream<E> of(E element) {
-        Object[] data = new Object[1];
+        E[] data = (E[]) new Object[1];
         data[0] = element;
 
-        return new UtStream<>((E[]) data, 1);
+        return new UtStream<>(data);
     }
 
     @SuppressWarnings("unchecked")
     static <E> java.util.stream.Stream<E> of(E... elements) {
-        int size = elements.length;
-
-        return new UtStream<>(elements, size);
+        return new UtStream<>(elements);
     }
 
     @SuppressWarnings("unchecked")
     static <E> java.util.stream.Stream<E> empty() {
-        return new UtStream<>((E[]) new Object[]{}, 0);
+        return new UtStream<>((E[]) new Object[]{});
     }
 
     static <E> java.util.stream.Stream<E> generate(Supplier<E> s) {

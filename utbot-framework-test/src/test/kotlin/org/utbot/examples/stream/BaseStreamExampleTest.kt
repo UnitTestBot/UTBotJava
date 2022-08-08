@@ -389,7 +389,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
                 BaseStreamExample::streamOfExample,
                 ignoreExecutionsNumber,
                 // NOTE: the order of the matchers is important because Stream could be used only once
-                { c, r -> c.isNotEmpty() && c.contentEquals(r!!.toArray()) },
+                { c, r -> c.isNotEmpty() && !Stream.empty<Int>().toArray().contentEquals(r!!.toArray()) },
                 { c, r -> c.isEmpty() && Stream.empty<Int>().toArray().contentEquals(r!!.toArray()) },
                 coverage = FullWithAssumptions(assumeCallsNumber = 1)
             )

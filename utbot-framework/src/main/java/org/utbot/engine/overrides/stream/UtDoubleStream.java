@@ -139,7 +139,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             mapped[i] = mapper.apply(elementData.get(i));
         }
 
-        return new UtStream<>((U[]) mapped, size);
+        return new UtStream<>((U[]) mapped);
     }
 
     @Override
@@ -544,7 +544,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             elements[i] = elementData.get(i);
         }
 
-        return new UtStream<>(elements, size);
+        return new UtStream<>(elements);
     }
 
     @Override

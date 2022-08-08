@@ -343,7 +343,13 @@ class ValueConstructor {
         assembleModel: UtAssembleModel,
     ) {
         val executable = callModel.executable
-        val instanceValue = resultsCache[callModel.instance]
+        val instanceValue = callModel.instance?.let { instance ->
+            resultsCache.getOrElse(instance) {
+                value(instance)?.also {
+                    resultsCache[instance] = it
+                }
+            }
+        }
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {

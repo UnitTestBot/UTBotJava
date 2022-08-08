@@ -64,10 +64,16 @@ public class UtArrayList<E> extends AbstractList<E>
     }
 
     public UtArrayList(E[] data) {
+        this(data, 0, data.length);
+    }
+
+    public UtArrayList(E[] data, int startInclusive, int endExclusive) {
         visit(this);
-        int length = data.length;
+
+        int length = endExclusive - startInclusive;
+
         elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
+        elementData.setRange(0, data, startInclusive, length);
         elementData.end = length;
     }
 
@@ -370,21 +376,6 @@ public class UtArrayList<E> extends AbstractList<E>
         for (int i = 0; i < elementData.end; i++) {
             elementData.set(i, operator.apply(elementData.get(i)));
         }
-    }
-
-    @Override
-    public Stream<E> stream() {
-        preconditionCheck();
-
-        int size = elementData.end;
-        E[] data = elementData.toCastedArray(0, size);
-
-        return new UtStream<>(data, size);
-    }
-
-    @Override
-    public Stream<E> parallelStream() {
-        return stream();
     }
 
     /**

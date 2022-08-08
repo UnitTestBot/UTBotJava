@@ -12,7 +12,7 @@ object EvaluationError : EvaluationResult()
 class EvaluationSuccess(rawOutput: OutputData, val isException: Boolean): EvaluationResult() {
     val output: OutputData =
         when (rawOutput.type) {
-            "complex" -> OutputData("complex('" + rawOutput.output + "')", rawOutput.type)
+            "builtins.complex" -> OutputData("complex('" + rawOutput.output + "')", rawOutput.type)
             else -> rawOutput
         }
     operator fun component1() = output

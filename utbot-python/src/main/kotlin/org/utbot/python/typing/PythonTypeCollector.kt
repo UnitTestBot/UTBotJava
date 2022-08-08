@@ -50,7 +50,7 @@ object PythonTypesStorage {
     fun findTypeWithMethod(
         methodName: String
     ): Set<PythonClassId> {
-        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithMethod(methodName).map { ClassId(it.typeName) }
+        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithMethod(methodName).map { PythonClassId(it.typeName) }
         val fromProject = projectClasses.mapNotNull {
             if (it.info.methods.contains(methodName)) PythonClassId(it.pythonClass.name) else null
         }
@@ -60,7 +60,7 @@ object PythonTypesStorage {
     fun findTypeWithField(
         fieldName: String
     ): Set<PythonClassId> {
-        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithField(fieldName).map { ClassId(it.typeName) }
+        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithField(fieldName).map { PythonClassId(it.typeName) }
         val fromProject = projectClasses.mapNotNull {
             if (it.info.fields.contains(fieldName)) PythonClassId(it.pythonClass.name) else null
         }

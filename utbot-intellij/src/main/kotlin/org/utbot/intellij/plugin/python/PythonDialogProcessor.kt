@@ -200,28 +200,31 @@ object PythonDialogProcessor {
                         methods[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
                     }.toMutableMap()
 
-                val codegen = CodeGenerator(
-                    classId,
-                    paramNames = paramNames,
-                    testFramework = model.testFramework,
-                    codegenLanguage = model.codegenLanguage,
-                    testClassPackageName = "",
-                )
-                val testCode = codegen.generateAsStringWithTestReport(
-                    notEmptyTests.map { testSet ->
-                        CgMethodTestSet(
-                            methods[testSet.method] as ExecutableId,
-                            testSet.executions.map { execution -> execution.utExecution },
-                            messages[testSet]
-                        )
-                    }
-                ).generatedCode
-                val fileName = "test_${classId.name.camelToSnakeCase()}.py"
-                val testFile = FileManager.createPermanentFile(fileName, testCode)
-                val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(testFile)
-                if (virtualFile != null) {
-                    invokeAndWaitIfNeeded {
-                        OpenFileDescriptor(model.project, virtualFile).navigate(true)
+                val context = UtContext(this::class.java.classLoader)
+                withUtContext(context) {
+                    val codegen = CodeGenerator(
+                        classId,
+                        paramNames = paramNames,
+                        testFramework = model.testFramework,
+                        codegenLanguage = model.codegenLanguage,
+                        testClassPackageName = "",
+                    )
+                    val testCode = codegen.generateAsStringWithTestReport(
+                        notEmptyTests.map { testSet ->
+                            CgMethodTestSet(
+                                methods[testSet.method] as ExecutableId,
+                                testSet.executions.map { execution -> execution.utExecution },
+                                messages[testSet]
+                            )
+                        }
+                    ).generatedCode
+                    val fileName = "test_${classId.name.camelToSnakeCase()}.py"
+                    val testFile = FileManager.createPermanentFile(fileName, testCode)
+                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(testFile)
+                    if (virtualFile != null) {
+                        invokeAndWaitIfNeeded {
+                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
+                        }
                     }
                 }
             }

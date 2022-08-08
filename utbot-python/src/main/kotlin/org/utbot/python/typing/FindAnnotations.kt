@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.ArgInfoCollector
@@ -107,7 +108,7 @@ object AnnotationFinder {
         fileOfMethod: String,
         isCancelled: () -> Boolean,
         storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine>
-    ): Sequence<Map<String, ClassId>> {
+    ): Sequence<Map<String, PythonClassId>> {
 
         val annotationsToCheck = findTypeCandidates(argInfoCollector, existingAnnotations)
 

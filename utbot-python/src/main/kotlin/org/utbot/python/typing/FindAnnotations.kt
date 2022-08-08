@@ -27,22 +27,22 @@ object AnnotationFinder {
         )
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
-                is ArgInfoCollector.TypeStorage -> candidates[argInfoStorage.name] = INF
-                is ArgInfoCollector.MethodStorage -> {
+                is ArgInfoCollector.Type -> candidates[argInfoStorage.name] = INF
+                is ArgInfoCollector.Method -> {
                     val typesWithMethod = PythonTypesStorage.findTypeWithMethod(argInfoStorage.name)
                     typesWithMethod.forEach { increaseValue(candidates, it.name) }
                 }
-                is ArgInfoCollector.FieldStorage -> {
+                is ArgInfoCollector.Field -> {
                     val typesWithField = PythonTypesStorage.findTypeWithField(argInfoStorage.name)
                     typesWithField.forEach { increaseValue(candidates, it.name) }
                 }
-                is ArgInfoCollector.FunctionArgStorage -> {
+                is ArgInfoCollector.FunctionArg -> {
                     PythonTypesStorage.findTypeByFunctionWithArgumentPosition(
                         argInfoStorage.name,
                         argumentPosition = argInfoStorage.index
                     ).forEach { increaseValue(candidates, it.name) }
                 }
-                is ArgInfoCollector.FunctionRetStorage -> {
+                is ArgInfoCollector.FunctionRet -> {
                     PythonTypesStorage.findTypeByFunctionReturnValue(
                         argInfoStorage.name
                     ).forEach { increaseValue(candidates, it.name) }

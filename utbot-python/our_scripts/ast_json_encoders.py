@@ -62,6 +62,12 @@ class AstClassEncoder(json.JSONEncoder):
                     is_property = method['is_property']
                     del method['is_property']
                     if is_property:
+                        del method['args']
+                        del method['kwonlyargs']
+
+                        method['annotation'] = method['returns']
+                        del method['returns']
+
                         json_dump['fields'].append(method)
                     else:
                         json_dump['methods'].append(method)

@@ -65,6 +65,7 @@ class StubFileCollector:
             module_name,
             search_context=get_search_context(version=python_version)
         )
+        print(stub)
 
         def _ast_handler(ast_: ast.AST):
             if isinstance(ast_, OverloadedName):
@@ -195,6 +196,6 @@ if __name__ == '__main__':
 
     with suppress_stdout():
         collector = StubFileCollector('../src/main/resources')
-        for module in tqdm.tqdm(MODULES):
+        for module in tqdm.tqdm(['requests']):
             parse_submodule(module, collector)
         collector.save_method_annotations()

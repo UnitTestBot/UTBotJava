@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentSkipListMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
-val logger = KotlinLogging.logger{}
+private val logger = KotlinLogging.logger{}
 private const val fileWaitTimeoutMillis = 10L
 
 /**

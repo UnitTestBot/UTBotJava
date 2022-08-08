@@ -1,9 +1,9 @@
 package org.utbot.instrumentation
 
-import com.jetbrains.rd.util.lifetime.LifetimeDefinition
-import com.jetbrains.rd.util.lifetime.isAlive
-import com.jetbrains.rd.util.lifetime.isNotAlive
-import com.jetbrains.rd.util.lifetime.throwIfNotAlive
+import com.jetbrains.rd.util.ILoggerFactory
+import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.Statics
+import com.jetbrains.rd.util.lifetime.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -17,6 +17,7 @@ import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.rd.UtInstrumentationProcess
+import org.utbot.instrumentation.rd.UtRdLoggerFactory
 import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.Protocol
 import java.io.Closeable
@@ -54,6 +55,11 @@ inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withI
 
 class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorPoolSize) : AutoCloseable {
     private val executors = ArrayDeque<ConcreteExecutor<*, *>>(maxCount)
+    private val def = LifetimeDefinition()
+
+    init {
+        Logger.set(def, UtRdLoggerFactory)
+    }
 
     /**
      * Tries to find the concrete executor for the supplied [instrumentation] and [pathsToDependencyClasses]. If it
@@ -79,6 +85,7 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
     }
 
     override fun close() {
+        def.terminate()
         executors.forEach { it.close() }
         executors.clear()
     }
@@ -231,7 +238,17 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         } finally {
             receiveTimeStamp.set(System.currentTimeMillis())
         }
+        // 1. мага четверг пятница
+        // 2. сделал окружение полностью из докера, удалив все из path и тд и тп
+        // 3. раз в 100 тестов
+        // 4. теперь CI не виснет и хотя бы выплевывает в меня логи
+        // теперь на разных тестах в разные моменты он не может найти UtConcreteExecutionData
+        // причем это похоже снова какое-то мигание, и я поисследовав все подряд
+        // 5. произошло что-то веселое на этих выходных - рд перестал подтягивать
+        // свои
     }
+
+//    Statics<>
 
     suspend fun <T : Protocol.Command> request(cmd: T) = withProcess {
         sendTimestamp.set(System.currentTimeMillis())

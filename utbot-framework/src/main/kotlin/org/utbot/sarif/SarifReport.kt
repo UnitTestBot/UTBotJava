@@ -6,7 +6,15 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionFailure
+import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtImplicitlyThrownException
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtOverflowFailure
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.

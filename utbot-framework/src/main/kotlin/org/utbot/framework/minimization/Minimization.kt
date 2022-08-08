@@ -1,7 +1,24 @@
 package org.utbot.framework.minimization
 
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.EnvironmentModels
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtClassRefModel
+import org.utbot.framework.plugin.api.UtCompositeModel
+import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
+import org.utbot.framework.plugin.api.UtDirectSetFieldModel
+import org.utbot.framework.plugin.api.UtEnumConstantModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionFailure
+import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.UtVoidModel
+
 
 /**
  * Minimizes [executions] in each test suite independently. Test suite is computed with [executionToTestSuite] function.

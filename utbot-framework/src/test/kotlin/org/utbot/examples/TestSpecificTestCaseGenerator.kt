@@ -13,7 +13,12 @@ import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.TestCodeGeneratorPipeline
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.TestCaseGenerator
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path

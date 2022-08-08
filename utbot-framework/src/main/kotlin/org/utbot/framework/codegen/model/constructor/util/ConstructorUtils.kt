@@ -32,7 +32,18 @@ import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
-import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.arrayLikeName
 
 internal data class EnvironmentFieldStateCache(

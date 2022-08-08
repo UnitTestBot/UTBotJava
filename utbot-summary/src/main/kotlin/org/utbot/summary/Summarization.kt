@@ -5,7 +5,6 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionCluster
-import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE

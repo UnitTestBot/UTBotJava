@@ -102,9 +102,15 @@ object AnnotationFinder {
 
     private fun getArgCandidates(
         generalTypeRating: List<String>,
-        argStorages: List<ArgInfoCollector.BaseStorage>
+        argStorages: List<ArgInfoCollector.BaseStorage> = emptyList(),
+        userAnnotation: String? = null
     ): List<String> {
-        val root = getFirstLevelCandidates(argStorages).asSequence().iterator()
+        val root =
+            if (userAnnotation != null)
+                sequenceOf(userAnnotation).iterator()
+            else
+                getFirstLevelCandidates(argStorages).asSequence().iterator()
+
         val bfsQueue = ArrayDeque(listOf(root))
         val result = mutableListOf<String>()
         while (result.size < MAX_CANDIDATES_FOR_PARAM && bfsQueue.isNotEmpty()) {
@@ -145,10 +151,10 @@ object AnnotationFinder {
         existingAnnotations: Map<String, String>
     ): Map<String, List<String>> {
         val storageMap = argInfoCollector.getAllArgStorages()
-        val userAnnotations = existingAnnotations.entries.associate {
-            it.key to listOf(it.value)
-        }
         val generalTypeRating = getGeneralTypeRating(argInfoCollector)
+        val userAnnotations = existingAnnotations.entries.associate {
+            it.key to getArgCandidates(generalTypeRating, userAnnotation = it.value)
+        }
         val annotationCombinations = storageMap.entries.associate { (name, storages) ->
             name to getArgCandidates(generalTypeRating, storages)
         }

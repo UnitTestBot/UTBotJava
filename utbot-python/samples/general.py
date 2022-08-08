@@ -19,6 +19,7 @@ def f(x, y, z, a, b, c, d, e, g, h):
 
 
 def g(x: List[int], y: List[Any]):
+    y[0] += 1
     return x, y
 
 

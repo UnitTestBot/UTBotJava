@@ -164,7 +164,6 @@ open class UtExecution(
  * - static fields changed during execution;
  * - required instrumentation details (such as randoms, time, static methods).
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
- * - the engine type that created this execution.
  * - comments, method names and display names created by utbot-summary module.
  */
 class UtSymbolicExecution(

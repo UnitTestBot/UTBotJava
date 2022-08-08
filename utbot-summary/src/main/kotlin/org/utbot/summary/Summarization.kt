@@ -245,14 +245,16 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 }
 
 private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
-    val maxDepth = testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path }.maxOfOrNull { it.depth } ?: 0
+    val symbolicExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
+
+    val maxDepth = symbolicExecutions.flatMap { it.path }.maxOfOrNull { it.depth } ?: 0
 
     if (maxDepth > 0) {
         logger.info { "Recursive function, max recursion: $maxDepth" }
         return
     }
 
-    var diversity = percentageDiverseExecutions(testSet.executions.filterIsInstance<UtSymbolicExecution>())
+    var diversity = percentageDiverseExecutions(symbolicExecutions)
     if (diversity >= 50) {
         logger.info { "Diversity execution path percentage: $diversity" }
         return
@@ -260,8 +262,8 @@ private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
 
     for (depth in 1..2) {
         logger.info { "Depth to add: $depth" }
-        stepsUpToDepth(testSet.executions.filterIsInstance<UtSymbolicExecution>(), depth)
-        diversity = percentageDiverseExecutions(testSet.executions.filterIsInstance<UtSymbolicExecution>())
+        stepsUpToDepth(symbolicExecutions, depth)
+        diversity = percentageDiverseExecutions(symbolicExecutions)
 
         if (diversity >= 50) {
             logger.info { "Diversity execution path percentage: $diversity" }

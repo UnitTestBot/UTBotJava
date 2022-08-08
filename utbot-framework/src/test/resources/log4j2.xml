@@ -21,14 +21,14 @@
         </Console>
     </Appenders>
     <Loggers>
-<!--        <Logger name="org.utbot.instrumentation.rd" level="trace">-->
-<!--            <AppenderRef ref="Console2"/>-->
-<!--        </Logger>-->
+        <Logger name="org.utbot.instrumentation.rd" level="trace">
+            <AppenderRef ref="Console2"/>
+        </Logger>
         <!--        Uncomment this logger to see path -->
         <Logger name="org.utbot.engine.UtBotSymbolicEngine.path" level="debug"/>
-<!--        <Logger name="org.utbot.instrumentation.ConcreteExecutorKt" level="trace">-->
-<!--            <AppenderRef ref = "Console2"/>-->
-<!--        </Logger>-->
+        <Logger name="org.utbot.instrumentation.ConcreteExecutorKt" level="trace">
+            <AppenderRef ref = "Console2"/>
+        </Logger>
 
 
         <!-- Set this logger level to TRACE to see SMT requests, and SAT/UNSAT/UNKNOWN responses -->
@@ -39,7 +39,7 @@
 
         <Logger name="soot.PackManager" level="INFO"/>
 
-        <Root level="debug">
+        <Root level="trace">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="FrameworkAppender"/>
         </Root>

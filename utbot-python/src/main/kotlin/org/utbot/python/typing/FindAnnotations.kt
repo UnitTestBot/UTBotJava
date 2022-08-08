@@ -30,6 +30,13 @@ object AnnotationFinder {
     private fun candidatesMapToRating(candidates: Map<String, Int>): List<String> =
         candidates.toList().sortedByDescending { it.second }.map { it.first }
 
+    private fun increaseForProjectClasses(candidates: MutableMap<String, Int>) {
+        candidates.keys.forEach { typeName ->
+            if (PythonTypesStorage.isFromProject(typeName))
+                increaseValue(candidates, typeName)
+        }
+    }
+
     private fun firstLevelCandidates(
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
@@ -58,10 +65,7 @@ object AnnotationFinder {
                 }
             }
         }
-        candidates.keys.forEach { typeName ->
-            if (PythonTypesStorage.isFromProject(typeName))
-                increaseValue(candidates, typeName)
-        }
+        increaseForProjectClasses(candidates)
         return candidatesMapToRating(candidates)
     }
 
@@ -78,8 +82,19 @@ object AnnotationFinder {
                         PythonTypesStorage.findTypeByFunctionWithArgumentPosition(generalStorage.name)
                     ).flatten().forEach { increaseValue(candidates, it.name) }
                 }
+                is ArgInfoCollector.Method -> {
+                    PythonTypesStorage.findTypeWithMethod(generalStorage.name).forEach {
+                        increaseValue(candidates, it.name)
+                    }
+                }
+                is ArgInfoCollector.Field -> {
+                    PythonTypesStorage.findTypeWithField(generalStorage.name).forEach {
+                        increaseValue(candidates, it.name)
+                    }
+                }
             }
         }
+        increaseForProjectClasses(candidates)
         return candidatesMapToRating(candidates)
     }
 

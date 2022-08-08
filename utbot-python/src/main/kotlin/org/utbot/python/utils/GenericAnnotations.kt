@@ -39,7 +39,7 @@ class DictAnnotation(
         val regex = Regex("typing.Dict\\[(.*), *(.*)]")
 
         fun parse(annotation: String): DictAnnotation? {
-            val res = DictAnnotation.regex.matchEntire(annotation)
+            val res = regex.matchEntire(annotation)
             return res?.let { DictAnnotation(it.groupValues[1], it.groupValues[2]) }
         }
     }
@@ -56,7 +56,7 @@ class SetAnnotation(
         val regex = Regex("typing.Set\\[(.*)]")
 
         fun parse(annotation: String): SetAnnotation? {
-            val res = SetAnnotation.regex.matchEntire(annotation)
+            val res = regex.matchEntire(annotation)
             return res?.let { SetAnnotation(it.groupValues[1]) }
         }
     }

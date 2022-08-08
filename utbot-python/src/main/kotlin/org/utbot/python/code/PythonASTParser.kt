@@ -245,12 +245,38 @@ fun <A, B, C> classField(
 ): Pattern<A, C, Atom> =
     atom(refl(fname), list1(refl(attribute(fattributeId))))
 
+fun <A, B> attributesFromAtom(
+    fattributes: Pattern<A, B, List<String>>
+): Pattern<A, B, Atom> =
+    Pattern { node, x ->
+        val res = mutableListOf<String>()
+        for (elem in node.trailers) {
+            if (elem is Attribute)
+                res.add(elem.attr.name)
+        }
+        fattributes.go(res, x)
+    }
+
 fun <A, B, C, D> classMethod(
     fname: Pattern<A, B, Name>,
     fattributeId: Pattern<B, C, String>,
     farguments: Pattern<C, D, Arguments>
 ): Pattern<A, D, Atom> =
     atom(refl(fname), list2(refl(attribute(fattributeId)), refl(farguments)))
+
+fun <A, B, C> methodFromAtom(
+    fattributeId: Pattern<A, B, String>,
+    farguments: Pattern<B, C, Arguments>
+): Pattern<A, C, Atom> =
+    Pattern { node, x ->
+        if (node.trailers.size < 2 || node.trailers.last() !is Arguments)
+            return@Pattern Error()
+        val methodName = node.trailers[node.trailers.size - 2]
+        if (methodName !is Attribute)
+            return@Pattern Error()
+        val x1 = fattributeId.go(methodName.attr.name, x)
+        go(farguments, node.trailers.last() as Arguments, x1)
+    }
 
 fun <A, B> nameWithPrefixFromAtom(
     fname: Pattern<A, B, String>

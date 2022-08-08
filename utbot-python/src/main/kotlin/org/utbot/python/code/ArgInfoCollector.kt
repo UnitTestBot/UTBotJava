@@ -46,7 +46,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         val types: MutableSet<Type> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf(),
         val functionArgs: MutableSet<FunctionArg> = mutableSetOf(),
-        val fieldStorages: MutableSet<Field> = mutableSetOf(),
+        val fields: MutableSet<Field> = mutableSetOf(),
         val functionRets: MutableSet<FunctionRet> = mutableSetOf()
     ) {
         fun toList(): List<BaseStorage> {
@@ -54,15 +54,26 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
                 types,
                 methods,
                 functionArgs,
-                fieldStorages,
+                fields,
                 functionRets
             ).flatten()
         }
     }
     data class GeneralStorage(
         val types: MutableList<Type> = mutableListOf(),
-        val functions: MutableList<Function> = mutableListOf()
-    )
+        val functions: MutableSet<Function> = mutableSetOf(),
+        val fields: MutableSet<Field> = mutableSetOf(),
+        val methods: MutableSet<Method> = mutableSetOf()
+    ) {
+        fun toList(): List<BaseStorage> {
+            return listOf(
+                types,
+                functions,
+                fields,
+                methods
+            ).flatten()
+        }
+    }
 
     private val paramNames = method.arguments.mapIndexedNotNull { index, param ->
         if (argumentTypes[index] == pythonAnyClassId) param.name else null
@@ -76,8 +87,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
     fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()
 
-    fun getAllGeneralStorages(): List<BaseStorage> =
-        visitor.generalStorage.types + visitor.generalStorage.functions
+    fun getAllGeneralStorages(): List<BaseStorage> = visitor.generalStorage.toList()
 
     fun getAllArgStorages(): Map<String, List<BaseStorage>> {
        return collectedValues.entries.associate { (argName, storage) ->
@@ -101,7 +111,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
 
     fun getFields(): Map<String, Set<Field>> =
         collectedValues.entries.associate {
-            it.key to it.value.fieldStorages
+            it.key to it.value.fields
         }
     fun getFunctionRets() =
         collectedValues.entries.associate {
@@ -220,7 +230,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             parse(pat, onError = null, atom) { paramName -> { attributeId ->
                 Pair(paramName, Field(attributeId))
             } } ?.let {
-                addToStorage(it.first, param) { storage -> storage.fieldStorages.add(it.second) }
+                addToStorage(it.first, param) { storage -> storage.fields.add(it.second) }
             }
         }
 
@@ -285,8 +295,27 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
                 ),
                 onError = null,
                 atom
-            ) { it } ?.let {
-                generalStorage.functions.add(Function(it))
+            ) { it } ?.let { generalStorage.functions.add(Function(it)) }
+        }
+
+        private fun collectGeneralMethod(atom: Atom) {
+            parse(
+                methodFromAtom(
+                    fattributeId = apply(),
+                    farguments = drop()
+                ),
+                onError = null,
+                atom
+            ) { it } ?.let { generalStorage.methods.add(Method(it)) }
+        }
+
+        private fun collectGeneralFields(atom: Atom) {
+            parse(
+                attributesFromAtom(fattributes = apply()),
+                onError = null,
+                atom
+            ) { it } ?.let { attributes ->
+                attributes.forEach { generalStorage.fields.add(Field(it)) }
             }
         }
 
@@ -296,6 +325,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
             collectAtomMethod(atom, param)
             collectMagicMethodsFromCalls(atom, param)
             collectFunction(atom)
+            collectGeneralMethod(atom)
+            collectGeneralFields(atom)
             return super.visitAtom(atom, param)
         }
 

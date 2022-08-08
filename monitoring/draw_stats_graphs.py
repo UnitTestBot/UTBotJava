@@ -23,7 +23,7 @@ def load(json_file):
 def transform_stats(stats):
     num = stats["covered_instructions_count"]
     denum = stats["total_instructions_count"]
-    stats["total_coverage"] = num / denum if denum != 0 else 0
+    stats["total_coverage"] = 100 * num / denum if denum != 0 else 0
     del stats["covered_instructions_count"]
     del stats["total_instructions_count"]
 

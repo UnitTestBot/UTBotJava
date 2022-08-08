@@ -1,4 +1,4 @@
-package org.utbot.framework.codegen.utils;
+package org.utbot.runtime.utils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
@@ -149,11 +149,11 @@ public final class UtUtils {
         }
     }
 
-    public static boolean deepEquals(Object o1, Object o2, boolean mockFrameworkUsed) {
-        return deepEquals(o1, o2, new java.util.HashSet<>(), mockFrameworkUsed);
+    public static boolean deepEquals(Object o1, Object o2) {
+        return deepEquals(o1, o2, new java.util.HashSet<>());
     }
 
-    private static boolean deepEquals(Object o1, Object o2, java.util.Set<FieldsPair> visited, boolean mockFrameworkUsed) {
+    private static boolean deepEquals(Object o1, Object o2, java.util.Set<FieldsPair> visited) {
         visited.add(new FieldsPair(o1, o2));
 
         if (o1 == o2) {
@@ -169,7 +169,7 @@ public final class UtUtils {
                 return false;
             }
 
-            return iterablesDeepEquals((Iterable<?>) o1, (Iterable<?>) o2, visited, mockFrameworkUsed);
+            return iterablesDeepEquals((Iterable<?>) o1, (Iterable<?>) o2, visited);
         }
 
         if (o2 instanceof Iterable) {
@@ -181,7 +181,7 @@ public final class UtUtils {
                 return false;
             }
 
-            return streamsDeepEquals((java.util.stream.Stream<?>) o1, (java.util.stream.Stream<?>) o2, visited, mockFrameworkUsed);
+            return streamsDeepEquals((java.util.stream.Stream<?>) o1, (java.util.stream.Stream<?>) o2, visited);
         }
 
         if (o2 instanceof java.util.stream.Stream) {
@@ -193,7 +193,7 @@ public final class UtUtils {
                 return false;
             }
 
-            return mapsDeepEquals((java.util.Map<?, ?>) o1, (java.util.Map<?, ?>) o2, visited, mockFrameworkUsed);
+            return mapsDeepEquals((java.util.Map<?, ?>) o1, (java.util.Map<?, ?>) o2, visited);
         }
 
         if (o2 instanceof java.util.Map) {
@@ -207,7 +207,7 @@ public final class UtUtils {
             }
 
             // Primitive arrays should not appear here
-            return arraysDeepEquals(o1, o2, visited, mockFrameworkUsed);
+            return arraysDeepEquals(o1, o2, visited);
         }
 
         // common classes
@@ -215,11 +215,7 @@ public final class UtUtils {
         // Check if class has custom equals method (including wrappers and strings)
         // It is very important to check it here but not earlier because iterables and maps also have custom equals
         // based on elements equals.
-        //
-        // Class MockUtils uses Mockito and will only be loaded if mockFrameworkUsed == true.
-        // In this case we know that mockito-core is on the runtime classpath, so MockUtils#isMock will work fine.
-        // Otherwise, call to MockUtils#isMock will not be performed, so MockUtils class will not be loaded at all.
-        if (hasCustomEquals(firstClass) && (!mockFrameworkUsed || !MockUtils.isMock(o1))) {
+        if (hasCustomEquals(firstClass) && !MockUtils.isMock(o1)) {
             return o1.equals(o2);
         }
 
@@ -236,7 +232,7 @@ public final class UtUtils {
             try {
                 final Object field1 = field.get(o1);
                 final Object field2 = field.get(o2);
-                if (!visited.contains(new FieldsPair(field1, field2)) && !deepEquals(field1, field2, visited, mockFrameworkUsed)) {
+                if (!visited.contains(new FieldsPair(field1, field2)) && !deepEquals(field1, field2, visited)) {
                     return false;
                 }
             } catch (IllegalArgumentException e) {
@@ -250,11 +246,11 @@ public final class UtUtils {
         return true;
     }
 
-    public static boolean arraysDeepEquals(Object arr1, Object arr2, boolean mockFrameworkUsed) {
-        return arraysDeepEquals(arr1, arr2, new HashSet<>(), mockFrameworkUsed);
+    public static boolean arraysDeepEquals(Object arr1, Object arr2) {
+        return arraysDeepEquals(arr1, arr2, new HashSet<>());
     }
 
-    private static boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited, boolean mockFrameworkUsed) {
+    private static boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
         final int length = java.lang.reflect.Array.getLength(arr1);
         if (length != java.lang.reflect.Array.getLength(arr2)) {
             return false;
@@ -263,7 +259,7 @@ public final class UtUtils {
         for (int i = 0; i < length; i++) {
             Object item1 = java.lang.reflect.Array.get(arr1, i);
             Object item2 = java.lang.reflect.Array.get(arr2, i);
-            if (!deepEquals(item1, item2, visited, mockFrameworkUsed)) {
+            if (!deepEquals(item1, item2, visited)) {
                 return false;
             }
         }
@@ -271,15 +267,15 @@ public final class UtUtils {
         return true;
     }
 
-    public static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, boolean mockFrameworkUsed) {
-        return iterablesDeepEquals(i1, i2, new HashSet<>(), mockFrameworkUsed);
+    public static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2) {
+        return iterablesDeepEquals(i1, i2, new HashSet<>());
     }
 
-    private static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited, boolean mockFrameworkUsed) {
+    private static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
         final java.util.Iterator<?> firstIterator = i1.iterator();
         final java.util.Iterator<?> secondIterator = i2.iterator();
         while (firstIterator.hasNext() && secondIterator.hasNext()) {
-            if (!deepEquals(firstIterator.next(), secondIterator.next(), visited, mockFrameworkUsed)) {
+            if (!deepEquals(firstIterator.next(), secondIterator.next(), visited)) {
                 return false;
             }
         }
@@ -293,22 +289,20 @@ public final class UtUtils {
 
     public static boolean streamsDeepEquals(
             java.util.stream.Stream<?> s1,
-            java.util.stream.Stream<?> s2,
-            boolean mockFrameworkUsed
+            java.util.stream.Stream<?> s2
     ) {
-        return streamsDeepEquals(s1, s2, new HashSet<>(), mockFrameworkUsed);
+        return streamsDeepEquals(s1, s2, new HashSet<>());
     }
 
     private static boolean streamsDeepEquals(
             java.util.stream.Stream<?> s1,
             java.util.stream.Stream<?> s2,
-            java.util.Set<FieldsPair> visited,
-            boolean mockFrameworkUsed
+            java.util.Set<FieldsPair> visited
     ) {
         final java.util.Iterator<?> firstIterator = s1.iterator();
         final java.util.Iterator<?> secondIterator = s2.iterator();
         while (firstIterator.hasNext() && secondIterator.hasNext()) {
-            if (!deepEquals(firstIterator.next(), secondIterator.next(), visited, mockFrameworkUsed)) {
+            if (!deepEquals(firstIterator.next(), secondIterator.next(), visited)) {
                 return false;
             }
         }
@@ -322,17 +316,15 @@ public final class UtUtils {
 
     public static boolean mapsDeepEquals(
             java.util.Map<?, ?> m1,
-            java.util.Map<?, ?> m2,
-            boolean mockFrameworkUsed
+            java.util.Map<?, ?> m2
     ) {
-        return mapsDeepEquals(m1, m2, new HashSet<>(), mockFrameworkUsed);
+        return mapsDeepEquals(m1, m2, new HashSet<>());
     }
 
     private static boolean mapsDeepEquals(
             java.util.Map<?, ?> m1,
             java.util.Map<?, ?> m2,
-            java.util.Set<FieldsPair> visited,
-            boolean mockFrameworkUsed
+            java.util.Set<FieldsPair> visited
     ) {
         final java.util.Iterator<? extends java.util.Map.Entry<?, ?>> firstIterator = m1.entrySet().iterator();
         final java.util.Iterator<? extends java.util.Map.Entry<?, ?>> secondIterator = m2.entrySet().iterator();
@@ -340,11 +332,11 @@ public final class UtUtils {
             final java.util.Map.Entry<?, ?> firstEntry = firstIterator.next();
             final java.util.Map.Entry<?, ?> secondEntry = secondIterator.next();
 
-            if (!deepEquals(firstEntry.getKey(), secondEntry.getKey(), visited, mockFrameworkUsed)) {
+            if (!deepEquals(firstEntry.getKey(), secondEntry.getKey(), visited)) {
                 return false;
             }
 
-            if (!deepEquals(firstEntry.getValue(), secondEntry.getValue(), visited, mockFrameworkUsed)) {
+            if (!deepEquals(firstEntry.getValue(), secondEntry.getValue(), visited)) {
                 return false;
             }
         }

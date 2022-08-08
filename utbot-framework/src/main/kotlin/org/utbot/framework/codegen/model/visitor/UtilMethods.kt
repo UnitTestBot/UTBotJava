@@ -15,39 +15,56 @@ import java.lang.reflect.Modifier
 import java.util.Arrays
 import java.util.Objects
 
+private enum class Visibility(val text: String) {
+    PRIVATE("private"),
+    @Suppress("unused")
+    PROTECTED("protected"),
+    PUBLIC("public");
+
+    infix fun by(language: CodegenLanguage): String {
+        if (this == PUBLIC && language == CodegenLanguage.KOTLIN) {
+            // public is default in Kotlin
+            return ""
+        }
+        return "$text "
+    }
+}
+
 internal fun UtilMethodProvider.utilMethodTextById(
     id: MethodId,
     mockFrameworkUsed: Boolean,
     mockFramework: MockFramework,
     codegenLanguage: CodegenLanguage
 ): Result<String> = runCatching {
+    // If util methods are declared in the test class, then they are private. Otherwise, they are public.
+    val visibility = if (this is TestClassUtilMethodProvider) Visibility.PRIVATE else Visibility.PUBLIC
     with(this) {
         when (id) {
-            getUnsafeInstanceMethodId -> getUnsafeInstance(codegenLanguage)
-            createInstanceMethodId -> createInstance(codegenLanguage)
-            createArrayMethodId -> createArray(codegenLanguage)
-            setFieldMethodId -> setField(codegenLanguage)
-            setStaticFieldMethodId -> setStaticField(codegenLanguage)
-            getFieldValueMethodId -> getFieldValue(codegenLanguage)
-            getStaticFieldValueMethodId -> getStaticFieldValue(codegenLanguage)
-            getEnumConstantByNameMethodId -> getEnumConstantByName(codegenLanguage)
-            deepEqualsMethodId -> deepEquals(codegenLanguage, mockFrameworkUsed, mockFramework)
-            arraysDeepEqualsMethodId -> arraysDeepEquals(codegenLanguage)
-            iterablesDeepEqualsMethodId -> iterablesDeepEquals(codegenLanguage)
-            streamsDeepEqualsMethodId -> streamsDeepEquals(codegenLanguage)
-            mapsDeepEqualsMethodId -> mapsDeepEquals(codegenLanguage)
-            hasCustomEqualsMethodId -> hasCustomEquals(codegenLanguage)
-            getArrayLengthMethodId -> getArrayLength(codegenLanguage)
+            getUnsafeInstanceMethodId -> getUnsafeInstance(visibility, codegenLanguage)
+            createInstanceMethodId -> createInstance(visibility, codegenLanguage)
+            createArrayMethodId -> createArray(visibility, codegenLanguage)
+            setFieldMethodId -> setField(visibility, codegenLanguage)
+            setStaticFieldMethodId -> setStaticField(visibility, codegenLanguage)
+            getFieldValueMethodId -> getFieldValue(visibility, codegenLanguage)
+            getStaticFieldValueMethodId -> getStaticFieldValue(visibility, codegenLanguage)
+            getEnumConstantByNameMethodId -> getEnumConstantByName(visibility, codegenLanguage)
+            deepEqualsMethodId -> deepEquals(visibility, codegenLanguage, mockFrameworkUsed, mockFramework)
+            arraysDeepEqualsMethodId -> arraysDeepEquals(visibility, codegenLanguage)
+            iterablesDeepEqualsMethodId -> iterablesDeepEquals(visibility, codegenLanguage)
+            streamsDeepEqualsMethodId -> streamsDeepEquals(visibility, codegenLanguage)
+            mapsDeepEqualsMethodId -> mapsDeepEquals(visibility, codegenLanguage)
+            hasCustomEqualsMethodId -> hasCustomEquals(visibility, codegenLanguage)
+            getArrayLengthMethodId -> getArrayLength(visibility, codegenLanguage)
             else -> error("Unknown util method for class $this: $id")
         }
     }
 }
 
-fun getEnumConstantByName(language: CodegenLanguage): String =
+private fun getEnumConstantByName(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getEnumConstantByName(Class<?> enumClass, String name) throws IllegalAccessException {
+            ${visibility by language}static Object getEnumConstantByName(Class<?> enumClass, String name) throws IllegalAccessException {
                 java.lang.reflect.Field[] fields = enumClass.getDeclaredFields();
                 for (java.lang.reflect.Field field : fields) {
                     String fieldName = field.getName();
@@ -64,7 +81,7 @@ fun getEnumConstantByName(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getEnumConstantByName(enumClass: Class<*>, name: String): kotlin.Any? {
+            ${visibility by language}fun getEnumConstantByName(enumClass: Class<*>, name: String): kotlin.Any? {
                 val fields: kotlin.Array<java.lang.reflect.Field> = enumClass.declaredFields
                 for (field in fields) {
                     val fieldName = field.name
@@ -81,11 +98,11 @@ fun getEnumConstantByName(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun getStaticFieldValue(language: CodegenLanguage): String =
+private fun getStaticFieldValue(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws IllegalAccessException, NoSuchFieldException {
+            ${visibility by language}static Object getStaticFieldValue(Class<?> clazz, String fieldName) throws IllegalAccessException, NoSuchFieldException {
                 java.lang.reflect.Field field;
                 Class<?> originClass = clazz;
                 do {
@@ -108,7 +125,7 @@ fun getStaticFieldValue(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getStaticFieldValue(clazz: Class<*>, fieldName: String): kotlin.Any? {
+            ${visibility by language}fun getStaticFieldValue(clazz: Class<*>, fieldName: String): kotlin.Any? {
                 var currentClass: Class<*>? = clazz
                 var field: java.lang.reflect.Field
                 do {
@@ -131,11 +148,11 @@ fun getStaticFieldValue(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun getFieldValue(language: CodegenLanguage): String =
+private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getFieldValue(Object obj, String fieldName) throws IllegalAccessException, NoSuchFieldException {
+            ${visibility by language}static Object getFieldValue(Object obj, String fieldName) throws IllegalAccessException, NoSuchFieldException {
                 Class<?> clazz = obj.getClass();
                 java.lang.reflect.Field field;
                 do {
@@ -158,7 +175,7 @@ fun getFieldValue(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getFieldValue(any: kotlin.Any, fieldName: String): kotlin.Any? {
+            ${visibility by language}fun getFieldValue(any: kotlin.Any, fieldName: String): kotlin.Any? {
                 var clazz: Class<*>? = any.javaClass
                 var field: java.lang.reflect.Field
                 do {
@@ -181,11 +198,11 @@ fun getFieldValue(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun setStaticField(language: CodegenLanguage): String =
+private fun setStaticField(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
+            ${visibility by language}static void setStaticField(Class<?> clazz, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
                 java.lang.reflect.Field field;
     
                 do {
@@ -208,7 +225,7 @@ fun setStaticField(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun setStaticField(defaultClass: Class<*>, fieldName: String, fieldValue: kotlin.Any?) {
+            ${visibility by language}fun setStaticField(defaultClass: Class<*>, fieldName: String, fieldValue: kotlin.Any?) {
                 var field: java.lang.reflect.Field?
                 var clazz = defaultClass
         
@@ -232,11 +249,11 @@ fun setStaticField(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun setField(language: CodegenLanguage): String =
+private fun setField(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static void setField(Object object, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
+            ${visibility by language}static void setField(Object object, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
                 Class<?> clazz = object.getClass();
                 java.lang.reflect.Field field;
     
@@ -260,7 +277,7 @@ fun setField(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun setField(any: kotlin.Any, fieldName: String, fieldValue: kotlin.Any?) {
+            ${visibility by language}fun setField(any: kotlin.Any, fieldName: String, fieldValue: kotlin.Any?) {
                 var clazz: Class<*> = any.javaClass
                 var field: java.lang.reflect.Field?
                 do {
@@ -283,11 +300,11 @@ fun setField(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun createArray(language: CodegenLanguage): String =
+private fun createArray(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object[] createArray(String className, int length, Object... values) throws ClassNotFoundException {
+            ${visibility by language}static Object[] createArray(String className, int length, Object... values) throws ClassNotFoundException {
                 Object array = java.lang.reflect.Array.newInstance(Class.forName(className), length);
     
                 for (int i = 0; i < values.length; i++) {
@@ -300,7 +317,7 @@ fun createArray(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun createArray(
+            ${visibility by language}fun createArray(
                 className: String, 
                 length: Int, 
                 vararg values: kotlin.Any
@@ -317,11 +334,11 @@ fun createArray(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun createInstance(language: CodegenLanguage): String =
+private fun createInstance(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object createInstance(String className) throws Exception {
+            ${visibility by language}static Object createInstance(String className) throws Exception {
                 Class<?> clazz = Class.forName(className);
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class.class)
                     .invoke(getUnsafeInstance(), clazz);
@@ -330,7 +347,7 @@ fun createInstance(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun createInstance(className: String): kotlin.Any? {
+            ${visibility by language}fun createInstance(className: String): kotlin.Any? {
                 val clazz: Class<*> = Class.forName(className)
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class::class.java)
                     .invoke(getUnsafeInstance(), clazz)
@@ -339,11 +356,11 @@ fun createInstance(language: CodegenLanguage): String =
         }
     }.trimIndent()
 
-fun getUnsafeInstance(language: CodegenLanguage): String =
+private fun getUnsafeInstance(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object getUnsafeInstance() throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+            ${visibility by language}static Object getUnsafeInstance() throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
                 java.lang.reflect.Field f = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe");
                 f.setAccessible(true);
                 return f.get(null);
@@ -352,7 +369,7 @@ fun getUnsafeInstance(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun getUnsafeInstance(): kotlin.Any? {
+            ${visibility by language}fun getUnsafeInstance(): kotlin.Any? {
                 val f: java.lang.reflect.Field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
                 f.isAccessible = true
                 return f[null]
@@ -367,13 +384,19 @@ fun getUnsafeInstance(language: CodegenLanguage): String =
 private fun isMockCondition(mockFrameworkUsed: Boolean, mockFramework: MockFramework): String {
     if (!mockFrameworkUsed) return ""
 
-    // TODO for now we have only Mockito but in can be changed in the future
-    if (mockFramework != MockFramework.MOCKITO) return ""
-
-    return " && !org.mockito.Mockito.mockingDetails(o1).isMock()"
+    return when (mockFramework) {
+        MockFramework.MOCKITO -> " && !org.mockito.Mockito.mockingDetails(o1).isMock()"
+        // in case we will add any other mock frameworks, newer Kotlin compiler versions
+        // will report a non-exhaustive 'when', so we will not forget to support them here as well
+    }
 }
 
-fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramework: MockFramework): String =
+private fun deepEquals(
+    visibility: Visibility,
+    language: CodegenLanguage,
+    mockFrameworkUsed: Boolean,
+    mockFramework: MockFramework
+): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
@@ -391,16 +414,16 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                     if (this == o) return true;
                     if (o == null || getClass() != o.getClass()) return false;
                     FieldsPair that = (FieldsPair) o;
-                    return Objects.equals(o1, that.o1) && Objects.equals(o2, that.o2);
+                    return java.util.Objects.equals(o1, that.o1) && java.util.Objects.equals(o2, that.o2);
                 }
         
                 @Override
                 public int hashCode() {
-                    return Objects.hash(o1, o2);
+                    return java.util.Objects.hash(o1, o2);
                 }
             }
         
-            private static boolean deepEquals(Object o1, Object o2) {
+            ${visibility by language}static boolean deepEquals(Object o1, Object o2) {
                 return deepEquals(o1, o2, new java.util.HashSet<>());
             }
         
@@ -500,7 +523,7 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun deepEquals(o1: kotlin.Any?, o2: kotlin.Any?): Boolean = deepEquals(o1, o2, hashSetOf())
+            ${visibility by language}fun deepEquals(o1: kotlin.Any?, o2: kotlin.Any?): Boolean = deepEquals(o1, o2, hashSetOf())
             
             private fun deepEquals(
                 o1: kotlin.Any?, 
@@ -575,11 +598,11 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
         }
     }
 
-fun arraysDeepEquals(language: CodegenLanguage): String =
+private fun arraysDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
+            ${visibility by language}static boolean arraysDeepEquals(Object arr1, Object arr2, java.util.Set<FieldsPair> visited) {
                 final int length = java.lang.reflect.Array.getLength(arr1);
                 if (length != java.lang.reflect.Array.getLength(arr2)) {
                     return false;
@@ -597,7 +620,7 @@ fun arraysDeepEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun arraysDeepEquals(
+            ${visibility by language}fun arraysDeepEquals(
                 arr1: kotlin.Any?, 
                 arr2: kotlin.Any?, 
                 visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
@@ -617,11 +640,11 @@ fun arraysDeepEquals(language: CodegenLanguage): String =
         }
     }
 
-fun iterablesDeepEquals(language: CodegenLanguage): String =
+private fun iterablesDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
+            ${visibility by language}static boolean iterablesDeepEquals(Iterable<?> i1, Iterable<?> i2, java.util.Set<FieldsPair> visited) {
                 final java.util.Iterator<?> firstIterator = i1.iterator();
                 final java.util.Iterator<?> secondIterator = i2.iterator();
                 while (firstIterator.hasNext() && secondIterator.hasNext()) {
@@ -640,7 +663,7 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun iterablesDeepEquals(
+            ${visibility by language}fun iterablesDeepEquals(
                 i1: Iterable<*>, 
                 i2: Iterable<*>, 
                 visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
@@ -657,11 +680,11 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
         }
     }
 
-fun streamsDeepEquals(language: CodegenLanguage): String =
+private fun streamsDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static boolean streamsDeepEquals(
+            ${visibility by language}static boolean streamsDeepEquals(
                 java.util.stream.Stream<?> s1, 
                 java.util.stream.Stream<?> s2, 
                 java.util.Set<FieldsPair> visited
@@ -684,7 +707,7 @@ fun streamsDeepEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun streamsDeepEquals(
+            ${visibility by language}fun streamsDeepEquals(
                 s1: java.util.stream.Stream<*>, 
                 s2: java.util.stream.Stream<*>, 
                 visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
@@ -701,11 +724,11 @@ fun streamsDeepEquals(language: CodegenLanguage): String =
         }
     }
 
-fun mapsDeepEquals(language: CodegenLanguage): String =
+private fun mapsDeepEquals(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static boolean mapsDeepEquals(
+            ${visibility by language}static boolean mapsDeepEquals(
                 java.util.Map<?, ?> m1, 
                 java.util.Map<?, ?> m2, 
                 java.util.Set<FieldsPair> visited
@@ -735,7 +758,7 @@ fun mapsDeepEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun mapsDeepEquals(
+            ${visibility by language}fun mapsDeepEquals(
                 m1: kotlin.collections.Map<*, *>, 
                 m2: kotlin.collections.Map<*, *>, 
                 visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
@@ -757,11 +780,11 @@ fun mapsDeepEquals(language: CodegenLanguage): String =
         }
     }
 
-fun hasCustomEquals(language: CodegenLanguage): String =
+private fun hasCustomEquals(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static boolean hasCustomEquals(Class<?> clazz) {
+            ${visibility by language}static boolean hasCustomEquals(Class<?> clazz) {
                 while (!Object.class.equals(clazz)) {
                     try {
                         clazz.getDeclaredMethod("equals", Object.class);
@@ -778,7 +801,7 @@ fun hasCustomEquals(language: CodegenLanguage): String =
         }
         CodegenLanguage.KOTLIN -> {
             """
-            private fun hasCustomEquals(clazz: Class<*>): Boolean {
+            ${visibility by language}fun hasCustomEquals(clazz: Class<*>): Boolean {
                 var c = clazz
                 while (kotlin.Any::class.java != c) {
                     try {
@@ -795,17 +818,17 @@ fun hasCustomEquals(language: CodegenLanguage): String =
         }
     }
 
-fun getArrayLength(codegenLanguage: CodegenLanguage) =
-    when (codegenLanguage) {
+private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
+    when (language) {
         CodegenLanguage.JAVA ->
             """
-            private static int getArrayLength(Object arr) {
+            ${visibility by language}static int getArrayLength(Object arr) {
                 return java.lang.reflect.Array.getLength(arr);
             }
             """.trimIndent()
         CodegenLanguage.KOTLIN ->
             """
-            private fun getArrayLength(arr: kotlin.Any?): Int = java.lang.reflect.Array.getLength(arr)
+            ${visibility by language}fun getArrayLength(arr: kotlin.Any?): Int = java.lang.reflect.Array.getLength(arr)
             """.trimIndent()
     }
 
@@ -821,7 +844,10 @@ internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
     }
 }
 
-private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(id: MethodId, codegenLanguage: CodegenLanguage): List<ClassId> {
+private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
+    id: MethodId,
+    codegenLanguage: CodegenLanguage
+): List<ClassId> {
     val fieldClassId = Field::class.id
     return when (id) {
         getUnsafeInstanceMethodId -> listOf(fieldClassId)

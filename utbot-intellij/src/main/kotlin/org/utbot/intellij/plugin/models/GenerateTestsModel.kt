@@ -48,11 +48,10 @@ data class GenerateTestsModel(
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
-    var mockFramework: MockFramework? = null
+    lateinit var mockFramework: MockFramework
     lateinit var staticsMocking: StaticsMocking
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var codegenLanguage: CodegenLanguage
-    var codegenUtilsLibraryInstalled: Boolean = false
     lateinit var runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour
     lateinit var hangingTestsTimeout: HangingTestsTimeout
     lateinit var forceStaticMocking: ForceStaticMocking

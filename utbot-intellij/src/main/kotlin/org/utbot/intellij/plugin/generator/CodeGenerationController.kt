@@ -5,12 +5,14 @@ import com.intellij.codeInsight.FileModificationService
 import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
+import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileTypes.FileType
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
@@ -22,6 +24,7 @@ import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
@@ -31,6 +34,7 @@ import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
 import com.siyeh.ig.psiutils.ImportUtils
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
+import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
@@ -51,7 +55,12 @@ import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.TestsCodeWithTestReport
+import org.utbot.framework.codegen.model.CodeGenerationResult
+import org.utbot.framework.codegen.model.UtilClassKind
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.PACKAGE_DELIMITER
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_PACKAGE_NAME
+import org.utbot.framework.codegen.model.UtilClassKind.UtUtilsWithMockito
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
@@ -84,6 +93,22 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
 
+    private class UtilMethodListener {
+        var requiredUtilClassKind: UtilClassKind? = null
+
+        fun onTestClassGenerated(result: CodeGenerationResult) {
+            requiredUtilClassKind = maxOfNullable(requiredUtilClassKind, result.utilClassKind)
+        }
+
+        private fun <T : Comparable<T>> maxOfNullable(a: T?, b: T?): T? {
+            return when {
+                a == null -> b
+                b == null -> a
+                else -> maxOf(a, b)
+            }
+        }
+    }
+
     fun generateTests(
         model: GenerateTestsModel,
         testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>,
@@ -96,25 +121,60 @@ object CodeGenerationController {
 
         val reports = mutableListOf<TestsGenerationReport>()
         val testFiles = mutableListOf<PsiFile>()
+        val utilMethodListener = UtilMethodListener()
         for (srcClass in testSetsByClass.keys) {
             val testSets = testSetsByClass[srcClass] ?: continue
             try {
-                val classPackageName = if (model.testPackageName.isNullOrEmpty())
-                    srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
+                val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
-                val file = testClass.containingFile
+                val testClassFile = testClass.containingFile
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(srcClass, cut, testClass, file, testSets, model, latch, reports)
-                        testFiles.add(file)
+                        generateCodeAndReport(
+                            srcClass,
+                            cut,
+                            testClass,
+                            testClassFile,
+                            testSets,
+                            model,
+                            latch,
+                            reports,
+                            utilMethodListener
+                        )
+                        testFiles.add(testClassFile)
                     } catch (e: IncorrectOperationException) {
                         showCreatingClassError(model.project, createTestClassName(srcClass))
                     }
                 })
             } catch (e: IncorrectOperationException) {
                 showCreatingClassError(model.project, createTestClassName(srcClass))
+            }
+        }
+
+
+        run(EDT_LATER) {
+            waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
+                val utilClassKind = utilMethodListener.requiredUtilClassKind
+                if (utilClassKind != null) {
+                    // create a directory to put utils class into
+                    val utilClassDirectory = createUtUtilSubdirectories(baseTestDirectory)
+
+                    val language = model.codegenLanguage
+                    val utUtilsName = "$UT_UTILS_CLASS_NAME${language.extension}"
+
+                    val utUtilsAlreadyExists = utilClassDirectory.findFile(utUtilsName) != null
+
+                    // we generate and write an util class in one of the two cases:
+                    // - util file does not yet exist --> then we generate it, because it is required by generated tests
+                    // - utilClassKind is UtUtilsWithMockito --> then we generate utils class and add it to utils directory.
+                    //   If utils file already exists, we overwrite it, because existing utils may be without Mockito,
+                    //   and we want to make sure that the generated utils use Mockito.
+                    if (!utUtilsAlreadyExists || utilClassKind is UtUtilsWithMockito) {
+                        generateAndWriteUtilClass(utUtilsName, utilClassDirectory, model, utilClassKind)
+                    }
+                }
             }
         }
 
@@ -145,10 +205,98 @@ object CodeGenerationController {
         }
     }
 
-    private fun waitForCountDown(latch: CountDownLatch, action: Runnable) {
+    /**
+     * Create package directories if needed for UtUtils class.
+     * Then generate and create a UtUtils class file in the utils package.
+     * Also run reformatting for the generated class.
+     */
+    private fun generateAndWriteUtilClass(
+        utUtilsName: String,
+        utilClassDirectory: PsiDirectory,
+        model: GenerateTestsModel,
+        utilClassKind: UtilClassKind
+    ) {
+        val psiDocumentManager = PsiDocumentManager.getInstance(model.project)
+
+        val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
+
+        val existingUtUtilsDocument = utilClassDirectory
+            .findFile(utUtilsName)
+            ?.let { psiDocumentManager.getDocument(it) }
+
+        val utUtilsFile = if (existingUtUtilsDocument != null) {
+            executeCommand {
+                existingUtUtilsDocument.setText(utUtilsText)
+            }
+            unblockDocument(model.project, existingUtUtilsDocument)
+            psiDocumentManager.getPsiFile(existingUtUtilsDocument)
+        } else {
+            val utUtilsFile = PsiFileFactory.getInstance(model.project)
+                .createFileFromText(
+                    utUtilsName,
+                    model.codegenLanguage.fileType,
+                    utUtilsText
+                )
+            // add the UtUtils class file into the utils directory
+            runWriteCommandAction(model.project) {
+                utilClassDirectory.add(utUtilsFile)
+            }
+            utUtilsFile
+        }
+
+        // there's only one class in the file
+        val utUtilsClass = (utUtilsFile as PsiClassOwner).classes.first()
+
+        runWriteCommandAction(model.project, "UtBot util class reformatting", null, {
+            reformat(model, utUtilsFile, utUtilsClass)
+        })
+
+        val utUtilsDocument = psiDocumentManager.getDocument(utUtilsFile)
+            ?: error("Failed to get a Document for UtUtils file")
+
+        unblockDocument(model.project, utUtilsDocument)
+    }
+
+    /**
+     * @param srcClass class under test
+     * @return name of the package of a given [srcClass].
+     * Null is returned if [PsiDirectory.getPackage] call returns null for the [srcClass] directory.
+     */
+    private fun GenerateTestsModel.getTestClassPackageNameFor(srcClass: PsiClass): String? {
+        return when {
+            testPackageName.isNullOrEmpty() -> srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName
+            else -> testPackageName
+        }
+    }
+
+    /**
+     * Create all package directories for UtUtils class.
+     * @return the innermost directory - utils from `org.utbot.runtime.utils`
+     */
+    private fun createUtUtilSubdirectories(baseTestDirectory: PsiDirectory): PsiDirectory {
+        val directoryNames = UT_UTILS_PACKAGE_NAME.split(PACKAGE_DELIMITER)
+        var currentDirectory = baseTestDirectory
+        runWriteCommandAction(baseTestDirectory.project) {
+            for (name in directoryNames) {
+                currentDirectory = currentDirectory.findSubdirectory(name) ?: currentDirectory.createSubdirectory(name)
+            }
+        }
+        return currentDirectory
+    }
+
+    /**
+     * @return Java or Kotlin file type depending on the given [CodegenLanguage]
+     */
+    private val CodegenLanguage.fileType: FileType
+        get() = when (this) {
+            CodegenLanguage.JAVA -> JavaFileType.INSTANCE
+            CodegenLanguage.KOTLIN -> KotlinFileType.INSTANCE
+        }
+
+    private fun waitForCountDown(latch: CountDownLatch, timeout: Long = 5, timeUnit: TimeUnit = TimeUnit.SECONDS, action: Runnable) {
         try {
-            if (!latch.await(5, TimeUnit.SECONDS)) {
-                run(THREAD_POOL) { waitForCountDown(latch, action) }
+            if (!latch.await(timeout, timeUnit)) {
+                run(THREAD_POOL) { waitForCountDown(latch, timeout, timeUnit, action) }
             } else {
                 action.run()
             }
@@ -254,33 +402,36 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
         reports: MutableList<TestsGenerationReport>,
+        utilMethodListener: UtilMethodListener
     ) {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
         val paramNames = DumbService.getInstance(model.project)
             .runReadActionInSmartMode(Computable { findMethodParamNames(classUnderTest, classMethods) })
 
         val codeGenerator = CodeGenerator(
-                classUnderTest = classUnderTest.id,
-                paramNames = paramNames.toMutableMap(),
-                testFramework = model.testFramework,
-                mockFramework = model.mockFramework,
-                codegenLanguage = model.codegenLanguage,
-                parameterizedTestSource = model.parametrizedTestSource,
-                staticsMocking = model.staticsMocking,
-                forceStaticMocking = model.forceStaticMocking,
-                generateWarningsForStaticMocking = model.generateWarningsForStaticMocking,
-                runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
-                hangingTestsTimeout = model.hangingTestsTimeout,
-                enableTestsTimeout = true,
-                testClassPackageName = testClass.packageName
-            )
+            classUnderTest = classUnderTest.id,
+            generateUtilClassFile = true,
+            paramNames = paramNames.toMutableMap(),
+            testFramework = model.testFramework,
+            mockFramework = model.mockFramework,
+            codegenLanguage = model.codegenLanguage,
+            parameterizedTestSource = model.parametrizedTestSource,
+            staticsMocking = model.staticsMocking,
+            forceStaticMocking = model.forceStaticMocking,
+            generateWarningsForStaticMocking = model.generateWarningsForStaticMocking,
+            runtimeExceptionTestsBehaviour = model.runtimeExceptionTestsBehaviour,
+            hangingTestsTimeout = model.hangingTestsTimeout,
+            enableTestsTimeout = true,
+            testClassPackageName = testClass.packageName
+        )
 
         val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, file, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
-            val testsCodeWithTestReport = codeGenerator.generateAsStringWithTestReport(testSets)
-            val generatedTestsCode = testsCodeWithTestReport.generatedCode
+            val codeGenerationResult = codeGenerator.generateAsStringWithTestReport(testSets)
+            utilMethodListener.onTestClassGenerated(codeGenerationResult)
+            val generatedTestsCode = codeGenerationResult.generatedCode
             run(EDT_LATER) {
                 run(WRITE_ACTION) {
                     unblockDocument(testClass.project, editor.document)
@@ -305,17 +456,18 @@ object CodeGenerationController {
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             // uploading formatted code
-                            val testsCodeWithTestReportFormatted =
-                                testsCodeWithTestReport.copy(generatedCode = file.text)
+                            val codeGenerationResultFormatted =
+                                codeGenerationResult.copy(generatedCode = file.text)
 
                             // creating and saving reports
-                            reports += testsCodeWithTestReportFormatted.testsGenerationReport
+                            reports += codeGenerationResultFormatted.testsGenerationReport
+
                             run(WRITE_ACTION) {
                                 saveSarifReport(
                                     testClassUpdated,
                                     testSets,
                                     model,
-                                    testsCodeWithTestReportFormatted,
+                                    codeGenerationResultFormatted,
                                 )
                             }
                             unblockDocument(testClassUpdated.project, editor.document)
@@ -358,7 +510,7 @@ object CodeGenerationController {
         testClass: PsiClass,
         testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
-        testsCodeWithTestReport: TestsCodeWithTestReport,
+        testsCodeWithTestReport: CodeGenerationResult,
     ) {
         val project = model.project
         val generatedTestsCode = testsCodeWithTestReport.generatedCode

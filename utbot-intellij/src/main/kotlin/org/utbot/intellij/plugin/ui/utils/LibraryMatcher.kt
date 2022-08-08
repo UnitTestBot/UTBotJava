@@ -25,6 +25,7 @@ fun findFrameworkLibrary(
     scope: LibrarySearchScope = LibrarySearchScope.Module,
 ): LibraryOrderEntry? = findMatchingLibrary(project, testModule, mockFramework.patterns(), scope)
 
+@Suppress("unused")
 fun findCodegenUtilsLibrary(
     project: Project,
     testModule: Module,

@@ -31,7 +31,6 @@ import com.intellij.openapi.ui.OptionAction
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.util.text.TextWithMnemonic
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -147,7 +146,7 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 private const val ACTION_GENERATE = "Generate Tests"
-private const val ACTION_GENERATE_AND_RUN = "Generate && Run" //Note that ampersand has to be escaped (doubled)
+private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {
@@ -469,7 +468,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         private fun updateButtonText(e: ActionEvent?) {
             with(e?.source as JButton) {
-                text = TextWithMnemonic.parse(testsModel.getActionText()).dropMnemonic().text
+                text = testsModel.getActionText()
                 testsModel.project.service<Settings>().runGeneratedTestsWithCoverage =
                     testsModel.runGeneratedTestsWithCoverage
                 repaint()

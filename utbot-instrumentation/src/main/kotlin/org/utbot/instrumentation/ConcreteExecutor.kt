@@ -243,6 +243,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             corMutex.withLock {
                 if (alive) {
                     try {
+                        logger.trace { "doing close" }
                         processInstance?.request(Protocol.StopProcessCommand())
                         processInstance = null
                     } catch (e: Throwable) {

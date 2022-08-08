@@ -13,6 +13,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
+import io.github.danielnaczo.python3parser.model.expr.comprehensions.Comprehension
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Dict
 import io.github.danielnaczo.python3parser.model.expr.datastructures.ListExpr
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
@@ -21,6 +22,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.*
 import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.*
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.forStmts.For
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Delete
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
@@ -548,6 +550,25 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
         override fun visitDict(dict: Dict, param: MutableMap<String, ArgInfoStorage>): AST {
             generalStorage.types.add(Type("builtins.dict"))
             return super.visitDict(dict, param)
+        }
+
+        override fun visitComprehension(
+            comprehension: Comprehension,
+            param: MutableMap<String, ArgInfoStorage>
+        ): AST {
+            generalStorage.methods.add(Method("__iter__"))
+            parse(namePat(), onError = null, comprehension.iter) { it } ?.let { paramName ->
+                addToStorage(paramName, param) { storage -> storage.methods.add(Method("__iter__")) }
+            }
+            return super.visitComprehension(comprehension, param)
+        }
+
+        override fun visitFor(forElement: For, param: MutableMap<String, ArgInfoStorage>): AST {
+            generalStorage.methods.add(Method("__iter__"))
+            parse(namePat(), onError = null, forElement.iter) { it } ?.let { paramName ->
+                addToStorage(paramName, param) { storage -> storage.methods.add(Method("__iter__")) }
+            }
+            return super.visitFor(forElement, param)
         }
     }
 }

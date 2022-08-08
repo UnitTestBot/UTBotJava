@@ -27,13 +27,6 @@ import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.junitByVersion
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
@@ -62,6 +55,7 @@ import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 import org.utbot.common.filterWhen
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.isKnownSyntheticMethod
 
 internal const val junitVersion = 4
@@ -325,7 +319,7 @@ fun runGeneration(
                         testCaseGenerator.generateAsync(controller, method, mockStrategyApi)
                             .collect { result ->
                                 when (result) {
-                                    is UtSymbolicExecution -> {
+                                    is UtExecution -> {
                                         try {
                                             val testMethodName = testMethodName(method.toString(), ++testsCounter)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }

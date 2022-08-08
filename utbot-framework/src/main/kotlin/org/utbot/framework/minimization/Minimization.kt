@@ -173,8 +173,8 @@ private fun List<UtExecution>.filteredCrashExecutions(): List<UtExecution> {
 }
 
 /**
- * As for now crash execution can only be produced by Concrete Executor, it does not have [UtSymbolicExecution.stateAfter] and
- * [UtSymbolicExecution.result] is [UtExecutionFailure], so we check only [UtSymbolicExecution.stateBefore].
+ * As for now crash execution can only be produced by Concrete Executor, it does not have [UtExecution.stateAfter] and
+ * [UtExecution.result] is [UtExecutionFailure], so we check only [UtExecution.stateBefore].
  */
 private fun List<UtExecution>.chooseMinimalCrashExecution(): UtExecution = minByOrNull {
    it.stateBefore.calculateSize()

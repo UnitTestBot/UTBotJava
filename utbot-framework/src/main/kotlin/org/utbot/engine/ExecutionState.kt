@@ -31,7 +31,7 @@ data class Edge(val src: Stmt, val dst: Stmt, val decisionNum: Int)
  * [INTERMEDIATE] is a label for an intermediate state which is suitable for further symbolic analysis.
  *
  * [TERMINAL] is a label for a terminal state from which we might (or might not) execute concretely and construct
- * [UtSymbolicExecution]. This state represents the final state of the program execution, that is a throw or return from the outer
+ * [UtExecution]. This state represents the final state of the program execution, that is a throw or return from the outer
  * method.
  *
  * [CONCRETE] is a label for a state which is not suitable for further symbolic analysis, and it is also not a terminal

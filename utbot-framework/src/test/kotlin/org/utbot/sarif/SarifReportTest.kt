@@ -2,13 +2,9 @@ package org.utbot.sarif
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.junit.Test
 import org.mockito.Mockito
+import org.utbot.framework.plugin.api.*
 
 class SarifReportTest {
 
@@ -38,13 +34,13 @@ class SarifReportTest {
     fun testDetectAllUncheckedExceptions() {
         mockUtMethodNames()
 
-        val mockUtExecutionNPE = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecutionNPE = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
         Mockito.`when`(mockUtExecutionNPE.result).thenReturn(
             UtImplicitlyThrownException(NullPointerException(), false),
         )
         Mockito.`when`(mockUtExecutionNPE.stateBefore.parameters).thenReturn(listOf())
 
-        val mockUtExecutionAIOBE = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecutionAIOBE = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
         Mockito.`when`(mockUtExecutionAIOBE.result).thenReturn(
             UtImplicitlyThrownException(ArrayIndexOutOfBoundsException(), false),
         )
@@ -190,7 +186,7 @@ class SarifReportTest {
     fun testMinimizationRemovesDuplicates() {
         mockUtMethodNames()
 
-        val mockUtExecution = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
         Mockito.`when`(mockUtExecution.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
         val testSets = listOf(
@@ -211,8 +207,8 @@ class SarifReportTest {
     fun testMinimizationDoesNotRemoveResultsWithDifferentRuleId() {
         mockUtMethodNames()
 
-        val mockUtExecution1 = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
-        val mockUtExecution2 = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution1 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution2 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
 
         // different ruleId's
         Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
@@ -268,8 +264,8 @@ class SarifReportTest {
         val mockNPE1 = Mockito.mock(NullPointerException::class.java)
         val mockNPE2 = Mockito.mock(NullPointerException::class.java)
 
-        val mockUtExecution1 = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
-        val mockUtExecution2 = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution1 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution2 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
 
         // the same ruleId's
         Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(mockNPE1, false))

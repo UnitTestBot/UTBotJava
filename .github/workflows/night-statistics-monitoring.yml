@@ -1,4 +1,4 @@
-name: "UTBot Java: night statistics collection"
+name: "UTBot Java: night statistics monitoring"
 
 on:
    schedule:

@@ -323,11 +323,13 @@ class Traverser(
      * environment.state.methodResult can contain the work result.
      */
     private fun TraversalContext.doPreparatoryWorkIfRequired(current: Stmt): Boolean {
-        if (current !is JAssignStmt) return false
-
-        return when {
-            processStaticInitializerIfRequired(current) -> true
-            unfoldMultiArrayExprIfRequired(current) -> true
+        return when (current) {
+            is JIdentityStmt -> processEnumInitializationIfRequired(current)
+            is JAssignStmt -> when {
+                processStaticInitializerIfRequired(current) -> true
+                unfoldMultiArrayExprIfRequired(current) -> true
+                else -> false
+            }
             else -> false
         }
     }
@@ -356,6 +358,40 @@ class Traverser(
             .firstOrNull { processStaticInitializer(it, stmt) }
 
         return result != null
+    }
+
+    private class SyntheticStaticFieldRef(sootField: SootField) : StaticFieldRef(sootField.makeRef())
+
+    private fun insideEnumConstructor(
+        method: SootMethod,
+        declaringClass: SootClass
+    ): Boolean {
+        return method.declaringClass == declaringClass && method.isConstructor
+    }
+
+    private fun TraversalContext.processEnumInitializationIfRequired(stmt: JIdentityStmt): Boolean {
+        val type = stmt.rightOp.type as? RefType
+        if (type == null || !type.hasSootClass()) return false
+
+        val method = environment.method
+        val declaringClass = type.sootClass
+        if (declaringClass.isEnum) {
+            val result = declaringClass.fields
+                .filter { it.isStatic }
+                .firstOrNull {
+                    val staticFieldRef = SyntheticStaticFieldRef(it)
+                    if (
+                        insideStaticInitializer(staticFieldRef, method, declaringClass) ||
+                        insideEnumConstructor(method, declaringClass)
+                    ) {
+                        false
+                    } else {
+                        processStaticInitializer(staticFieldRef, stmt)
+                    }
+                }
+            return result != null
+        }
+        return false
     }
 
     /**
@@ -630,7 +666,7 @@ class Traverser(
 
         // so, we have to make an update for the local $r0
 
-        return if (stmt is JAssignStmt) {
+        return if (stmt is DefinitionStmt) {
             val local = stmt.leftOp as JimpleLocal
 
             localMemoryUpdate(local.variable to symbolicValue)

@@ -344,7 +344,8 @@ class UtBotSymbolicEngine(
 
                     state.executingTime += measureTimeMillis {
                         val newStates = try {
-                            traverser.traverse(state)
+                            val ns = traverser.traverse(state)
+                            ns
                         } catch (ex: Throwable) {
                             emit(UtError(ex.description, ex))
                             return@measureTimeMillis

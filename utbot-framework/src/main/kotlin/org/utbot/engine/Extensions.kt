@@ -83,7 +83,6 @@ fun SootClass.staticInitializerOrNull(): SootMethod? = methods.singleOrNull { it
 fun insideStaticInitializer(value: StaticFieldRef, method: SootMethod, declaringClass: SootClass) =
     method.isStaticInitializer && declaringClass == value.field.declaringClass
 
-
 fun Expr.isInvokeExpr() = this is JDynamicInvokeExpr
         || this is JStaticInvokeExpr
         || this is JInterfaceInvokeExpr

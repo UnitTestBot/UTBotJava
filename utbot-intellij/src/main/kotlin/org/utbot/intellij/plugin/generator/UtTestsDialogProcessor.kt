@@ -28,7 +28,6 @@ import org.jetbrains.kotlin.idea.util.module
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.framework.JdkPathService
 import org.utbot.framework.UtSettings
-import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
@@ -38,9 +37,6 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
-import org.utbot.intellij.plugin.ui.utils.jdkVersion
-import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
 import org.utbot.intellij.plugin.util.PluginJdkPathProvider
 import org.utbot.intellij.plugin.util.signature
@@ -54,6 +50,11 @@ import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.ui.utils.isGradle
+import org.utbot.intellij.plugin.ui.utils.jdkVersion
+import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.intellij.plugin.util.isAbstract
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
@@ -86,6 +87,15 @@ object UtTestsDialogProcessor {
         } catch (e: IllegalStateException) {
             // Just ignore it here, notification will be shown in
             // org.utbot.intellij.plugin.ui.utils.ModuleUtilsKt.jdkVersionBy
+            return null
+        }
+
+        if (project.isGradle() && testModule.suitableTestSourceRoots().isEmpty()) {
+            val errorMessage = """
+                <html>No test source roots found in the project.<br>
+                Please, <a href="https://www.jetbrains.com/help/idea/testing.html#add-test-root">create or configure</a> at least one test source root.
+            """.trimIndent()
+            showErrorDialogLater(project, errorMessage, "Test source roots not found")
             return null
         }
 

@@ -22,10 +22,14 @@ private const val MESSAGE_SEPARATOR = ":"
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Generates UtBot specific sections to include them to rendered JavaDoc comment.
+ *
+ * Methods responsible for value generation were taken from IJ platform class (they are private and couldn't be used outside).
+ *
+ * See [com.intellij.codeInsight.javadoc.JavaDocInfoGenerator].
+ */
 class UtJavaDocInfoGenerator {
-    /**
-     * Generates UtBot specific sections to include them to rendered JavaDoc comment.
-     */
     fun addUtBotSpecificSectionsToJavaDoc(javadoc: String?, comment: PsiDocComment): String {
         val builder: StringBuilder = StringBuilder(javadoc)
         val docTagProvider = UtCustomJavaDocTagProvider()

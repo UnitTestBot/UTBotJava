@@ -119,7 +119,7 @@ open class SimpleCommentBuilder(
         return stmts
     }
 
-    fun findExceptionReason(currentMethod: SootMethod, thrownException: Throwable): String {
+    protected fun findExceptionReason(currentMethod: SootMethod, thrownException: Throwable): String {
         val path = traceTag.path
         if (path.isEmpty()) {
             if (thrownException is ConcreteExecutionFailureException) {

@@ -5,6 +5,12 @@ import org.junit.jupiter.api.extension.BeforeEachCallback
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.utbot.framework.UtSettings
 
+/**
+ * Controls the value of useCustomJavaDocTags global variable.
+ *
+ * Should be used in summary tests containing custom JavaDoc tags.
+ * To use it, add an annotation @ExtendWith(CustomJavaDocTagsEnabler::class) under test class.
+ */
 class CustomJavaDocTagsEnabler(private val enable: Boolean = true) : BeforeEachCallback, AfterEachCallback {
     private var previousValue = false
 

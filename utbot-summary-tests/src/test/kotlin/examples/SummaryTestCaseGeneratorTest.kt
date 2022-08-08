@@ -160,52 +160,6 @@ open class SummaryTestCaseGeneratorTest(
         }
     }
 
-    fun List<UtExecution>.checkMatchersWithCustomTagsInSummary(
-        comments: List<String>
-    ) {
-        if (comments.isEmpty()) {
-            return
-        }
-
-        val notMatchedExecutions = this.filter { execution ->
-            comments.none { comment ->
-                execution.summary?.toString()?.contains(comment) == true
-            }
-        }
-
-        val notMatchedComments = comments.filter { comment ->
-            this.none { execution ->
-                execution.summary?.toString()?.contains(comment) == true
-            }
-        }
-
-        Assertions.assertTrue(notMatchedExecutions.isEmpty() && notMatchedComments.isEmpty()) {
-            buildString {
-                if (notMatchedExecutions.isNotEmpty()) {
-                    append(
-                        "\nThe following comments were produced by the UTBot, " +
-                                "but were not found in the list of comments passed in the check() method:\n\n${
-                                    commentsFromExecutions(
-                                        notMatchedExecutions
-                                    )
-                                }"
-                    )
-                }
-
-                if (notMatchedComments.isNotEmpty()) {
-                    append(
-                        "\nThe following comments were passed in the check() method, " +
-                                "but were not found in the list of comments produced by the UTBot:\n\n${
-                                    comments(
-                                        notMatchedComments
-                                    )
-                                }"
-                    )
-                }
-            }
-        }
-    }
-
     fun List<UtExecution>.checkMatchersWithMethodNames(
         methodNames: List<String>,
     ) {

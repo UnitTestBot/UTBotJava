@@ -18,6 +18,10 @@
             <AppenderRef ref="Console"/>
         </Logger>
 
+        <Logger name="org.utbot.monitoring" level="debug">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
 
         <Logger name="org.utbot.engine.UtBotSymbolicEngine" level="debug"/>
         <Logger name="org.utbot.instrumentation" level="trace"/>

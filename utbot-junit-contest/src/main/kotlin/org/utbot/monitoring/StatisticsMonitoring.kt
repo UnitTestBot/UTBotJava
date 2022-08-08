@@ -13,6 +13,7 @@ import org.utbot.contest.Tool
 import org.utbot.contest.runEstimator
 import org.utbot.contest.toText
 import org.utbot.framework.JdkPathService
+import org.utbot.instrumentation.ConcreteExecutor
 import kotlin.system.exitProcess
 
 private val javaHome = System.getenv("JAVA_HOME")
@@ -57,7 +58,10 @@ fun main(args: Array<String>) {
             }
                 ?.onSuccess { statistics.add(it as GlobalStats) }
                 ?.onFailure { logger.error(it) { "Run failure!" } }
-                ?: logger.info { "Run timeout!" }
+                ?: run {
+                    logger.info { "Run timeout!" }
+                    ConcreteExecutor.defaultPool.forceTerminateProcesses()
+                }
 
         }
     }

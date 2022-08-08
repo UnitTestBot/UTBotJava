@@ -9,7 +9,10 @@ import mu.KotlinLogging
 private val logger = KotlinLogging.logger {}
 
 object UtRdLoggerFactory : ILoggerFactory {
-    override fun getLogger(category: String): Logger = UtRdLogger(category)
+    override fun getLogger(category: String): Logger {
+        logger.trace("getting logger for category: $category")
+        return UtRdLogger(category)
+    }
 }
 
 class UtRdLogger(val category: String) : Logger {
@@ -26,13 +29,13 @@ class UtRdLogger(val category: String) : Logger {
 
     override fun log(level: LogLevel, message: Any?, throwable: Throwable?) {
         val msg = defaultLogFormat(category, level, message, throwable)
-       when(level) {
-           LogLevel.Trace -> logger.trace(msg)
-           LogLevel.Debug -> logger.debug(msg)
-           LogLevel.Info -> logger.info(msg)
-           LogLevel.Warn -> logger.warn(msg)
-           LogLevel.Error -> logger.error(msg)
-           LogLevel.Fatal -> logger.error(msg)
-       }
+        when (level) {
+            LogLevel.Trace -> logger.trace(msg)
+            LogLevel.Debug -> logger.debug(msg)
+            LogLevel.Info -> logger.info(msg)
+            LogLevel.Warn -> logger.warn(msg)
+            LogLevel.Error -> logger.error(msg)
+            LogLevel.Fatal -> logger.error(msg)
+        }
     }
 }

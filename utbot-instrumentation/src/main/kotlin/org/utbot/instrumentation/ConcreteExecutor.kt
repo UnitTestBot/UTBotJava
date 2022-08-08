@@ -55,10 +55,11 @@ inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withI
 
 class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorPoolSize) : AutoCloseable {
     private val executors = ArrayDeque<ConcreteExecutor<*, *>>(maxCount)
-    private val def = LifetimeDefinition()
 
     init {
-        Logger.set(def, UtRdLoggerFactory)
+        logger.info("settings logger factory")
+        Logger.set(Lifetime.Eternal, UtRdLoggerFactory)
+        logger.trace("logger factory set")
     }
 
     /**
@@ -85,7 +86,6 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
     }
 
     override fun close() {
-        def.terminate()
         executors.forEach { it.close() }
         executors.clear()
     }

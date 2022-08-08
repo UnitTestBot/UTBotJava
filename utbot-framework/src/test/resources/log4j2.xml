@@ -16,7 +16,7 @@
         </Console>
 
         <Console name="Console2" target="SYSTEM_OUT">
-            <ThresholdFilter level="DEBUG"  onMatch="ACCEPT"   onMismatch="DENY"/>
+            <ThresholdFilter level="TRACE"  onMatch="ACCEPT"   onMismatch="DENY"/>
             <PatternLayout pattern="%d{HH:mm:ss.SSS} | %-5level | %c{1} | %msg%n"/>
         </Console>
     </Appenders>
@@ -26,7 +26,7 @@
         </Logger>
         <!--        Uncomment this logger to see path -->
         <Logger name="org.utbot.engine.UtBotSymbolicEngine.path" level="debug"/>
-        <Logger name="org.utbot.instrumentation.ConcreteExecutorKt" level="trace">
+        <Logger name="org.utbot.instrumentation.ConcreteExecutor" level="trace">
             <AppenderRef ref = "Console2"/>
         </Logger>
 

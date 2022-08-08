@@ -1,6 +1,10 @@
 package org.utbot.instrumentation.process
 
 import com.jetbrains.rd.framework.util.launchChild
+import com.jetbrains.rd.util.ILoggerFactory
+import com.jetbrains.rd.util.LogLevel
+import com.jetbrains.rd.util.Logger
+import com.jetbrains.rd.util.defaultLogFormat
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.plusAssign
@@ -19,6 +23,8 @@ import org.utbot.instrumentation.util.UnexpectedCommand
 import org.utbot.rd.UtRdUtil
 import org.utbot.rd.UtSingleThreadScheduler
 import java.io.File
+import java.io.OutputStream
+import java.io.PrintStream
 import java.net.URLClassLoader
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -126,10 +132,26 @@ fun main(args: Array<String>): Unit {
 private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracketIfAlive({
     // We don't want user code to litter the standard output, so we redirect it.
     // it is import to set output before creating protocol because rd has its own logging to stdout
-//    val tmpStream = PrintStream(object : OutputStream() {
-//        override fun write(b: Int) {}
-//    })
-    System.setOut(System.err)
+    val tmpStream = PrintStream(object : OutputStream() {
+        override fun write(b: Int) {}
+    })
+    System.setOut(tmpStream)
+
+    Logger.set(lifetime, object : ILoggerFactory {
+        override fun getLogger(category: String)= object: Logger {
+            val cat = category
+            override fun isEnabled(level: LogLevel): Boolean {
+                return true
+            }
+
+            override fun log(level: LogLevel, message: Any?, throwable: Throwable?) {
+                val msg = defaultLogFormat(cat, level, message, throwable)
+                logInfo {msg}
+            }
+
+        }
+
+    })
 
     val clientProtocol = UtRdUtil.createUtClientProtocol(lifetime, port, UtSingleThreadScheduler { logInfo(it) })
     logInfo { "hearthbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${

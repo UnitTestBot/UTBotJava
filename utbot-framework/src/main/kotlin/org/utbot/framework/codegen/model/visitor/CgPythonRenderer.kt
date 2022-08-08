@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
+import org.utbot.framework.codegen.PythonImport
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -28,6 +29,25 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override val language: CodegenLanguage = CodegenLanguage.PYTHON
 
     override val langPackage: String = "python"
+
+    private fun renderSysPaths(element: CgTestClassFile) {
+        element.sysPaths.forEach {
+            visit(it)
+        }
+    }
+
+    override fun visit(element: CgTestClassFile) {
+        renderPythonImport(PythonImport("sys"))
+        renderSysPaths(element)
+        element.imports.filterIsInstance<PythonImport>().forEach {
+            renderPythonImport(it)
+        }
+
+        println()
+        println()
+
+        super.visit(element)
+    }
 
     override fun visit(element: CgCommentedAnnotation) {
         print("#")
@@ -195,12 +215,20 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderRegularImport(regularImport: RegularImport) {
-        val escapedImport = getEscapedImportRendering(regularImport)  // ???
-        print("import $escapedImport")
+        val escapedImport = getEscapedImportRendering(regularImport)
+        println("import $escapedImport")
     }
 
     override fun renderStaticImport(staticImport: StaticImport) {
         TODO("Not yet implemented")
+    }
+
+    override fun renderPythonImport(pythonImport: PythonImport) {
+        if (pythonImport.moduleName == null) {
+            println("import ${pythonImport.importName}")
+        } else {
+            println("from ${pythonImport.moduleName} import ${pythonImport.importName}")
+        }
     }
 
     override fun renderMethodSignature(element: CgTestMethod) {
@@ -340,6 +368,10 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         print("${element.keyword} ")
         visit(element.expression)
         println()
+    }
+
+    override fun visit(element: CgPythonSysPath) {
+        println("sys.path.append('${element.newPath}')")
     }
 
     override fun String.escapeCharacters(): String =

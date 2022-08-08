@@ -11,6 +11,7 @@ interface PythonMethod {
     val name: String
     val returnAnnotation: String?
     val arguments: List<PythonArgument>
+    val moduleFilename: String
     fun asString(): String
     fun ast(): FunctionDef
 }
@@ -33,5 +34,6 @@ data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<PythonExecution>,
     val errors: List<PythonError>,
-    val mypyReport: List<MypyAnnotations.MypyReportLine>
+    val mypyReport: List<MypyAnnotations.MypyReportLine>,
+    val classId: PythonClassId? = null,
 )

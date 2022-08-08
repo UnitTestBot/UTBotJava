@@ -18,7 +18,9 @@ data class CgMethodTestSet private constructor(
 ) {
     var executions: List<UtExecution> = emptyList()
         private set
+
     var comments: String = ""
+    val sysPaths: MutableList<String> = mutableListOf()
 
     constructor(from: UtMethodTestSet) : this(
         from.method.callable.executableId,
@@ -32,7 +34,6 @@ data class CgMethodTestSet private constructor(
     constructor(
         executableId: ExecutableId,
         executions: List<UtExecution> = emptyList(),
-        comments: String? = "",
     ) : this(
         executableId,
     null,
@@ -41,7 +42,16 @@ data class CgMethodTestSet private constructor(
         listOf(null to executions.indices)
     ) {
         this.executions = executions
-        this.comments = comments ?: ""
+    }
+
+    constructor(
+        executableId_: ExecutableId,
+        executions_: List<UtExecution> = emptyList(),
+        comment_: String? = "",
+        sysPaths_: List<String> = emptyList()
+    ) : this(executableId_, executions_) {
+        sysPaths.addAll(sysPaths_)
+        comments = comment_ ?: ""
     }
 
     /**

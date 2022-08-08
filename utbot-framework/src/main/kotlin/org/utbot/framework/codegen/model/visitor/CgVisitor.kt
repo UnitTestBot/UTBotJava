@@ -3,10 +3,6 @@ package org.utbot.framework.codegen.model.visitor
 import org.utbot.framework.codegen.model.tree.*
 
 interface CgVisitor<R> {
-    fun visit(element: CgPythonRepr): R
-
-    fun visit(element: CgPythonAssertEquals): R
-
     fun visit(element: CgElement): R
 
     fun visit(element: CgTestClassFile): R
@@ -170,4 +166,10 @@ interface CgVisitor<R> {
 
     // Empty line
     fun visit(element: CgEmptyLine): R
+
+    fun visit(element: CgPythonRepr): R
+
+    fun visit(element: CgPythonAssertEquals): R
+
+    fun visit(element: CgPythonSysPath): R
 }

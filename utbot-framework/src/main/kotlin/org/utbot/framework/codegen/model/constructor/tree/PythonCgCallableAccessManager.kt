@@ -7,6 +7,7 @@ import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgMethodCall
+import org.utbot.framework.codegen.model.tree.CgPythonSysPath
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -38,7 +39,12 @@ internal class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCal
     }
 
     private fun newMethodCall(methodId: MethodId) {
-//        importIfNeeded(methodId)
+        val pyMethod = methodId as PythonMethodId
+        val newSysPath = pyMethod.classId.moduleParentPath
+        if (pyMethod.classId.moduleParentPath.isNotEmpty()) {
+            context.collectedSysPaths.add(newSysPath)
+        }
+        importIfNeeded(pyMethod)
     }
 
 }

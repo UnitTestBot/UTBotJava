@@ -8,21 +8,8 @@ import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
-import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
-import org.utbot.framework.codegen.model.tree.CgRegion
-import org.utbot.framework.codegen.model.tree.CgSimpleRegion
-import org.utbot.framework.codegen.model.tree.CgStaticsRegion
-import org.utbot.framework.codegen.model.tree.CgTestClassFile
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
-import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
-import org.utbot.framework.codegen.model.tree.CgUtilMethod
-import org.utbot.framework.codegen.model.tree.buildTestClass
-import org.utbot.framework.codegen.model.tree.buildTestClassBody
-import org.utbot.framework.codegen.model.tree.buildTestClassFile
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
@@ -54,6 +41,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     cgDataProviderMethods.clear()
                     for (testSet in testSets) {
                         updateCurrentExecutable(testSet.executableId)
+                        sysPaths += testSet.sysPaths.map { CgPythonSysPath(it) }
                         val currentMethodUnderTestRegions = construct(testSet) ?: continue
                         val executableUnderTestCluster = CgExecutableUnderTestCluster(
                             "Test suites for executable $currentExecutable",
@@ -73,7 +61,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
 //                superclass = context.testClassSuperclass
 //                interfaces += context.collectedTestClassInterfaces
             }
-//            imports += context.collectedImports
+            sysPaths += context.collectedSysPaths.map { CgPythonSysPath(it) }
+            imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }
@@ -93,11 +82,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
-//                        runCatching {
+                        runCatching {
                             currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-//                        }.onFailure {
-//                                e -> processFailure(testSet, e)
-//                        }
+                        }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content
@@ -121,7 +108,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
             testsGenerationReport.addMethodErrors(testSet, errors)
         }
         val comments = testSet.comments
-        if (comments != "") {
+        if (comments.isNotEmpty()) {
             regions += methodConstructor.errorMethod(
                 testSet.executableId,
                 mapOf(comments to 1)

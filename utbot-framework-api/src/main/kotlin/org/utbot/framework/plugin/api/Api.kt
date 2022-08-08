@@ -233,17 +233,24 @@ sealed class UtModel(
 
 class PythonClassId(
     pyName: String,
+    val moduleName: String = "",
+    val moduleParentPath: String = "",
     private val initMethod: PythonInitObjectModel? = null,
 ) : ClassId(pyName) {
-    constructor(pyName: String): this(pyName, null)
+    constructor(pyName: String): this(pyName, "", "", null)
+    override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
 }
 
 class PythonMethodId(
     override val classId: PythonClassId,
     override val name: String,
     override val returnType: PythonClassId,
-    override val parameters: List<PythonClassId>
-) : MethodId(classId, name, returnType, parameters)
+    override val parameters: List<PythonClassId>,
+) : MethodId(classId, name, returnType, parameters) {
+    val moduleName: String = classId.moduleName
+    val moduleParentPath: String = classId.moduleParentPath
+    override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
+}
 
 sealed class PythonModel(classId: PythonClassId): UtModel(classId)
 

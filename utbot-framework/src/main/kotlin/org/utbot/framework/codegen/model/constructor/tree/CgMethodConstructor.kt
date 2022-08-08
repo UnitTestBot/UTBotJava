@@ -15,14 +15,9 @@ import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
+import org.utbot.framework.codegen.model.constructor.util.*
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.CgStatementConstructor
-import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
-import org.utbot.framework.codegen.model.constructor.util.FieldStateCache
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
-import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
-import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.CRASH
@@ -44,38 +39,7 @@ import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.onFailure
-import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
@@ -1036,6 +1000,20 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     return
                 }
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
+                is PythonMethodId -> {
+                    // TODO possible engine bug - void method return type and result not UtVoidModel
+                    if (executable.returnType == pythonNoneClassId) return
+
+                    emptyLineIfNeeded()
+
+                    importIfNeeded(result.classId)
+                    actual = newVar(
+                        CgClassId(result.classId),
+                        "actual",
+                    ) {
+                        thisInstance[executable](*methodArguments.toTypedArray())
+                    }
+                }
                 is MethodId -> {
                     // TODO possible engine bug - void method return type and result not UtVoidModel
                     if (result.isUnit() || executable.returnType == voidClassId) return
@@ -1046,11 +1024,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         CgClassId(result.classId, isNullable = result is UtNullModel),
                         "actual"
                     ) {
-                        val a = thisInstance[executable]
-                        val b = methodArguments.toTypedArray()
-                        val c = a(*b)
-                        c
-//                        thisInstance[executable](*methodArguments.toTypedArray())
+                        thisInstance[executable](*methodArguments.toTypedArray())
                     }
                 }
             }

@@ -68,6 +68,11 @@ data class RegularImport(val packageName: String, val className: String) : Impor
     }
 }
 
+data class PythonImport(val importName: String, val moduleName: String? = null): Import(1) {
+    override val qualifiedName: String
+        get() = if (moduleName != null) "${moduleName}.${importName}" else importName
+}
+
 private const val TEST_NG_PACKAGE = "org.testng"
 private const val JUNIT4_PACKAGE = "org.junit"
 private const val JUNIT5_PACKAGE = "org.junit.jupiter.api"

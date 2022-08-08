@@ -182,7 +182,9 @@ object PythonDialogProcessor {
                 }
 
                 val classId = PythonClassId(
-                    "File${model.file.name.split('.').dropLast(1).last().capitalize()}"
+                    "File${model.file.name.split('.').dropLast(1).last().capitalize()}",
+                    model.file.name.split(".").first(),
+                    model.file.virtualFile.parent.path
                 )
                 val methods = notEmptyTests.associate {
                     it.method to PythonMethodId(
@@ -214,7 +216,8 @@ object PythonDialogProcessor {
                             CgMethodTestSet(
                                 methods[testSet.method] as ExecutableId,
                                 testSet.executions.map { execution -> execution.utExecution },
-                                messages[testSet]
+                                messages[testSet],
+                                model.directoriesForSysPath,
                             )
                         }
                     ).generatedCode

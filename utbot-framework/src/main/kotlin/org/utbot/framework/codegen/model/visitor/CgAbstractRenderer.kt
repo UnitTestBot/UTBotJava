@@ -4,6 +4,7 @@ import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
+import org.utbot.framework.codegen.PythonImport
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -54,11 +55,6 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     private val MethodId.accessibleByName: Boolean
         get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
-
-    override fun visit(element: CgPythonRepr) {}
-
-    override fun visit(element: CgPythonAssertEquals) {}
-
     override fun visit(element: CgElement) {
         val error =
             "CgRenderer has reached the top of Cg elements hierarchy and did not find a method for ${element::class}"
@@ -617,10 +613,17 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         println()
     }
 
+    override fun visit(element: CgPythonRepr) {}
+
+    override fun visit(element: CgPythonAssertEquals) {}
+
+    override fun visit(element: CgPythonSysPath) {}
+
     override fun toString(): String = printer.toString()
 
     protected abstract fun renderRegularImport(regularImport: RegularImport)
     protected abstract fun renderStaticImport(staticImport: StaticImport)
+    open fun renderPythonImport(pythonImport: PythonImport) {}
 
     //we render parameters in method signature on one line or on separate lines depending their amount
     protected val maxParametersAmountInOneLine = 3

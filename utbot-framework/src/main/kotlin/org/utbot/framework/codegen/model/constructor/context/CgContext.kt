@@ -25,14 +25,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMetho
 import org.utbot.framework.codegen.model.constructor.tree.Block
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.tree.CgAnnotation
-import org.utbot.framework.codegen.model.tree.CgExecutableCall
-import org.utbot.framework.codegen.model.tree.CgStatement
-import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
-import org.utbot.framework.codegen.model.tree.CgTestMethod
-import org.utbot.framework.codegen.model.tree.CgThisInstance
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.createTestClassName
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
@@ -53,7 +45,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.tree.CgParameterKind
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -391,6 +383,7 @@ data class CgContext(
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
+    val collectedSysPaths: MutableSet<String> = mutableSetOf(),
     override val importedStaticMethods: MutableSet<MethodId> = mutableSetOf(),
     override val importedClasses: MutableSet<ClassId> = mutableSetOf(),
     override val requiredUtilMethods: MutableSet<MethodId> = mutableSetOf(),

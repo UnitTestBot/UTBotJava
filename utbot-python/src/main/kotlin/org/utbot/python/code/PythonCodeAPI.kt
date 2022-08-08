@@ -26,18 +26,14 @@ import java.util.*
 
 class PythonCode(private val body: Module, val filename: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
-        body.statements.mapNotNull { statement ->
-            (statement as? FunctionDef)?.let { functionDef: FunctionDef ->
-                PythonMethodBody(functionDef)
+        body.functionDefs.mapNotNull { functionDef ->
+                PythonMethodBody(functionDef, filename ?: "")
             }
-        }
 
     fun getToplevelClasses(): List<PythonClass> =
-        body.statements.mapNotNull { statement ->
-            (statement as? ClassDef)?.let { classDef: ClassDef ->
+        body.classDefs.mapNotNull { classDef ->
                 PythonClass(classDef, filename)
             }
-        }
 
     companion object {
         fun getFromString(code: String, filename: String? = null): PythonCode {
@@ -52,11 +48,13 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null) {
         get() = ast.name.name
 
     val methods: List<PythonMethodBody>
-        get() = ast.functionDefs.map { PythonMethodBody(it) }
+        get() = ast.functionDefs.map { PythonMethodBody(it, filename ?: "") }
 
     val initSignature: List<PythonArgument>?
         get() {
-            val ordinary = ast.functionDefs.find { it.name.name == "__init__" } ?.let { PythonMethodBody(it) }
+            val ordinary = ast.functionDefs.find { it.name.name == "__init__" } ?.let {
+                PythonMethodBody(it, filename ?: "")
+            }
             if (ordinary != null) {
                 return ordinary.arguments.drop(1) // drop 'self' parameter
             }
@@ -75,7 +73,7 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null) {
         get() = (ast.body as? Body)?.statements?.mapNotNull { it as? AnnAssign } ?: emptyList()
 }
 
-class PythonMethodBody(private val ast: FunctionDef): PythonMethod {
+class PythonMethodBody(private val ast: FunctionDef, override val moduleFilename: String = ""): PythonMethod {
     override val name: String
         get() = ast.name.name
 

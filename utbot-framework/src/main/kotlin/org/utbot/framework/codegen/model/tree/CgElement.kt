@@ -103,6 +103,7 @@ interface CgElement {
             is CgEmptyLine -> visit(element)
             is CgPythonRepr -> visit(element)
             is CgPythonAssertEquals -> visit(element)
+            is CgPythonSysPath -> visit(element)
             else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
         }
     }
@@ -113,7 +114,8 @@ interface CgElement {
 data class CgTestClassFile(
     val imports: List<Import>,
     val testClass: CgTestClass,
-    val testsGenerationReport: TestsGenerationReport
+    val testsGenerationReport: TestsGenerationReport,
+    val sysPaths: List<CgPythonSysPath> = emptyList(),
 ) : CgElement
 
 data class CgTestClass(
@@ -871,4 +873,8 @@ class CgPythonRepr(
 class CgPythonAssertEquals(
     val expression: CgEqualTo,
     val keyword: String = "assert",
+) : CgStatement
+
+class CgPythonSysPath(
+    val newPath: String
 ) : CgStatement

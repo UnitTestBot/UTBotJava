@@ -1,4 +1,4 @@
-package org.utbot.fuzzer.names
+package org.utbot.summary.fuzzer.names
 
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
@@ -29,10 +29,12 @@ class ModelBasedNameSuggester(
             return emptySequence()
         }
 
-        return sequenceOf(TestSuggestedInfo(
+        return sequenceOf(
+            TestSuggestedInfo(
             testName = createTestName(description, values, result),
             displayName = createDisplayName(description, values, result)
-        ))
+        )
+        )
     }
 
     /**

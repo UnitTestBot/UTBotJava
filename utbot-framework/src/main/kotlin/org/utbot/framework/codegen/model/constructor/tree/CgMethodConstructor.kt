@@ -111,6 +111,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.onFailure
@@ -171,26 +172,29 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private lateinit var methodType: CgTestMethodType
 
     private fun setupInstrumentation() {
-        val instrumentation = currentExecution!!.instrumentation
-        if (instrumentation.isEmpty()) return
+        if (currentExecution is UtSymbolicExecution) {
+            val execution = currentExecution as UtSymbolicExecution
+            val instrumentation = execution.instrumentation
+            if (instrumentation.isEmpty()) return
 
-        if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.DO_NOT_FORCE) {
-            // warn user about possible flaky tests
-            multilineComment(forceStaticMocking.warningMessage)
-            return
-        }
+            if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.DO_NOT_FORCE) {
+                // warn user about possible flaky tests
+                multilineComment(forceStaticMocking.warningMessage)
+                return
+            }
 
-        instrumentation
-            .filterIsInstance<UtNewInstanceInstrumentation>()
-            .forEach { mockFrameworkManager.mockNewInstance(it) }
-        instrumentation
-            .filterIsInstance<UtStaticMethodInstrumentation>()
-            .groupBy { it.methodId.classId }
-            .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
+            instrumentation
+                .filterIsInstance<UtNewInstanceInstrumentation>()
+                .forEach { mockFrameworkManager.mockNewInstance(it) }
+            instrumentation
+                .filterIsInstance<UtStaticMethodInstrumentation>()
+                .groupBy { it.methodId.classId }
+                .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
 
-        if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
-            // warn user about forced using static mocks
-            multilineComment(forceStaticMocking.warningMessage)
+            if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
+                // warn user about forced using static mocks
+                multilineComment(forceStaticMocking.warningMessage)
+            }
         }
     }
 

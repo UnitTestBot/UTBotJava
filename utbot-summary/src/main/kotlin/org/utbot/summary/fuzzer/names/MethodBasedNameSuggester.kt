@@ -1,4 +1,4 @@
-package org.utbot.fuzzer.names
+package org.utbot.summary.fuzzer.names
 
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.fuzzer.FuzzedMethodDescription

@@ -26,12 +26,14 @@ import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.fields.ModifiedFields
 import org.utbot.framework.fields.StateModificationInfo
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.hasField
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.util.hasThisInstance
+import org.utbot.fuzzer.UtFuzzedExecution
 import java.lang.reflect.Array
 
 internal interface CgFieldStateManager {
@@ -67,13 +69,23 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
     }
 
     private fun rememberThisInstanceState(info: StateModificationInfo, state: FieldState) {
-        if (!currentExecution!!.hasThisInstance()) {
-            return
+        when (currentExecution) {
+            is UtSymbolicExecution -> {
+                if (!(currentExecution!! as UtSymbolicExecution).hasThisInstance()) {
+                    return
+                }
+                val thisInstance = context.thisInstance!!
+                val modifiedFields = info.thisInstance
+                // by now this instance variable must have already been created
+                saveFieldsState(thisInstance, modifiedFields, statesCache.thisInstance, state)
+            }
+            is UtFuzzedExecution -> {
+                return
+            }
+            else -> {
+                return
+            }
         }
-        val thisInstance = context.thisInstance!!
-        val modifiedFields = info.thisInstance
-        // by now this instance variable must have already been created
-        saveFieldsState(thisInstance, modifiedFields, statesCache.thisInstance, state)
     }
 
     private fun rememberArgumentsState(info: StateModificationInfo, state: FieldState) {

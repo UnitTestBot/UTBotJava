@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.UtValueExecutionState
 import org.utbot.framework.plugin.api.UtVoidModel
@@ -123,17 +124,31 @@ class ValueConstructor {
         val (stateAfter, _) = constructState(execution.stateAfter)
         val returnValue = execution.result.map { construct(listOf(it)).single().value }
 
-        return UtValueExecution(
-            stateBefore,
-            stateAfter,
-            returnValue,
-            execution.path,
-            mocks,
-            execution.instrumentation,
-            execution.summary,
-            execution.testMethodName,
-            execution.displayName
-        )
+        if (execution is UtSymbolicExecution) {
+            return UtValueExecution(
+                stateBefore,
+                stateAfter,
+                returnValue,
+                execution.path,
+                mocks,
+                execution.instrumentation,
+                execution.summary,
+                execution.testMethodName,
+                execution.displayName
+            )
+        } else {
+            return UtValueExecution(
+                stateBefore,
+                stateAfter,
+                returnValue,
+                emptyList(),
+                mocks,
+                emptyList(),
+                execution.summary,
+                execution.testMethodName,
+                execution.displayName
+            )
+        }
     }
 
     private fun constructParamsAndMocks(

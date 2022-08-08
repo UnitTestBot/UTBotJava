@@ -135,8 +135,28 @@ data class Step(
  */
 sealed class UtResult
 
+
 /**
  * Execution.
+ *
+ * Contains:
+ * - execution parameters, including thisInstance;
+ * - result;
+ * - coverage information (instructions) if this execution was obtained from the concrete execution.
+ * - comments, method names and display names created by utbot-summary module.
+ */
+open class UtExecution(
+    val stateBefore: EnvironmentModels,
+    val stateAfter: EnvironmentModels,
+    val result: UtExecutionResult,
+    val coverage: Coverage? = null,
+    var summary: List<DocStatement>? = null,
+    var testMethodName: String? = null,
+    var displayName: String? = null
+) : UtResult()
+
+/**
+ * Symbolic execution.
  *
  * Contains:
  * - execution parameters, including thisInstance;
@@ -144,22 +164,20 @@ sealed class UtResult
  * - static fields changed during execution;
  * - required instrumentation details (such as randoms, time, static methods).
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
- * - the engine type that created this execution.
  * - comments, method names and display names created by utbot-summary module.
  */
-data class UtExecution(
-    val stateBefore: EnvironmentModels,
-    val stateAfter: EnvironmentModels,
-    val result: UtExecutionResult,
+class UtSymbolicExecution(
+    stateBefore: EnvironmentModels,
+    stateAfter: EnvironmentModels,
+    result: UtExecutionResult,
     val instrumentation: List<UtInstrumentation>,
     val path: MutableList<Step>,
     val fullPath: List<Step>,
-    val coverage: Coverage? = null,
-    val createdBy: UtExecutionCreator? = null,
-    var summary: List<DocStatement>? = null,
-    var testMethodName: String? = null,
-    var displayName: String? = null,
-) : UtResult() {
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null
+) : UtExecution(stateBefore, stateAfter, result, coverage, summary, testMethodName, displayName) {
     /**
      * By design the 'before' and 'after' states contain info about the same fields.
      * It means that it is not possible for a field to be present at 'before' and to be absent at 'after'.
@@ -169,7 +187,7 @@ data class UtExecution(
         get() = stateBefore.statics.keys
 
     override fun toString(): String = buildString {
-        append("UtExecution(")
+        append("UtSymbolicExecution(")
         appendLine()
 
         append("<State before>:")
@@ -190,6 +208,21 @@ data class UtExecution(
         appendOptional("instrumentation", instrumentation)
         append(")")
     }
+
+    fun copy(stateAfter: EnvironmentModels, result: UtExecutionResult, coverage: Coverage): UtResult {
+        return UtSymbolicExecution(
+            stateBefore,
+            stateAfter,
+            result,
+            instrumentation,
+            path,
+            fullPath,
+            coverage,
+            summary,
+            testMethodName,
+            displayName
+        )
+    }
 }
 
 open class EnvironmentModels(
@@ -209,7 +242,7 @@ open class EnvironmentModels(
 }
 
 /**
- * Represents missing state. Useful for [UtConcreteExecutionFailure] because it does not have [UtExecution.stateAfter]
+ * Represents missing state. Useful for [UtConcreteExecutionFailure] because it does not have [UtSymbolicExecution.stateAfter]
  */
 object MissingState : EnvironmentModels(
     thisInstance = null,
@@ -553,12 +586,12 @@ data class UtDirectSetFieldModel(
     val fieldModel: UtModel,
 ) : UtStatementModel(instance) {
     override fun toString(): String = withToStringThreadLocalReentrancyGuard {
-            val modelRepresentation = when (fieldModel) {
-                is UtAssembleModel -> fieldModel.modelName
-                else -> fieldModel.toString()
-            }
-            "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+        val modelRepresentation = when (fieldModel) {
+            is UtAssembleModel -> fieldModel.modelName
+            else -> fieldModel.toString()
         }
+        "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+    }
 
 }
 
@@ -1034,7 +1067,7 @@ class BuiltinMethodId(
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
-class WildcardTypeParameter: TypeParameters(emptyList())
+class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface CodeGenerationSettingItem {
     val displayName: String
@@ -1164,6 +1197,7 @@ enum class CodegenLanguage(
                 "-cp", classPath,
                 "-XDignore.symbol.file" // to let javac use classes from rt.jar
             ).plus(sourcesFiles)
+
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
         }
         if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {

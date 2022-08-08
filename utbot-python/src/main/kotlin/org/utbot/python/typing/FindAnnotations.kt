@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.ArgInfoCollector
-import org.utbot.python.utils.AnnotationNormalizer
+import org.utbot.python.utils.*
 import java.io.File
 
 object AnnotationFinder {
@@ -37,7 +37,7 @@ object AnnotationFinder {
         }
     }
 
-    private fun firstLevelCandidates(
+    private fun getFirstLevelCandidates(
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
         val candidates = getInitCandidateMap()
@@ -98,6 +98,48 @@ object AnnotationFinder {
         return candidatesMapToRating(candidates)
     }
 
+    private const val MAX_CANDIDATES_FOR_PARAM = 100
+
+    private fun getArgCandidates(
+        generalTypeRating: List<String>,
+        argStorages: List<ArgInfoCollector.BaseStorage>
+    ): List<String> {
+        val root = getFirstLevelCandidates(argStorages).asSequence().iterator()
+        val bfsQueue = ArrayDeque(listOf(root))
+        val result = mutableListOf<String>()
+        while (result.size < MAX_CANDIDATES_FOR_PARAM && bfsQueue.isNotEmpty()) {
+            val curIter = bfsQueue.removeFirst()
+            if (!curIter.hasNext())
+                continue
+
+            val value = curIter.next()
+            result.add(value)
+            bfsQueue.addLast(curIter)
+
+            val asGeneric = parseGeneric(value) ?: continue
+            if (!asGeneric.args.any { it == pythonAnyClassId.name })
+                continue
+
+            val argCandidates = asGeneric.args.map {
+                if (it == pythonAnyClassId.name)
+                    generalTypeRating
+                else
+                    listOf(it)
+            }
+            val toAnnotation =
+                when (asGeneric) {
+                    is ListAnnotation -> ListAnnotation::unparse
+                    is DictAnnotation -> DictAnnotation::unparse
+                    is SetAnnotation -> SetAnnotation::unparse
+                }
+            val nextGenericCandidates = PriorityCartesianProduct(argCandidates).getSequence().map {
+                toAnnotation(it).toString()
+            }
+            bfsQueue.add(nextGenericCandidates.iterator())
+        }
+        return result
+    }
+
     private fun findTypeCandidates(
         argInfoCollector: ArgInfoCollector,
         existingAnnotations: Map<String, String>
@@ -106,8 +148,9 @@ object AnnotationFinder {
         val userAnnotations = existingAnnotations.entries.associate {
             it.key to listOf(it.value)
         }
+        val generalTypeRating = getGeneralTypeRating(argInfoCollector)
         val annotationCombinations = storageMap.entries.associate { (name, storages) ->
-            name to firstLevelCandidates(storages)
+            name to getArgCandidates(generalTypeRating, storages)
         }
         return userAnnotations + annotationCombinations
     }

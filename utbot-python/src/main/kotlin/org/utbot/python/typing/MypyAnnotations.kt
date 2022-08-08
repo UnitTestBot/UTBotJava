@@ -4,6 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
+import org.utbot.python.utils.PriorityCartesianProduct
 import org.utbot.python.utils.getLineOfFunction
 import org.utbot.python.utils.runCommand
 import java.io.File

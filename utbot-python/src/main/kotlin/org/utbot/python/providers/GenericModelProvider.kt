@@ -82,20 +82,25 @@ object GenericModelProvider: ModelProvider {
                     is DictAnnotation -> genDict(parsedAnnotation, index)
                     is SetAnnotation -> genSet(parsedAnnotation, index)
                 }
-                yieldAll(generatedModels.take(maxGenNum))
+                yieldAll(
+                    generatedModels.take(maxGenNum).distinctBy { fuzzedParameter ->
+                        fuzzedParameter.value.model.toString()
+                    }
+                )
             }
         }
     }
 }
 
+const val MAX_CONTAINER_SIZE = 15
+
 fun Sequence<List<FuzzedValue>>.randomChunked(): Sequence<List<List<FuzzedValue>>> {
     val seq = this
-    val maxSize = 15
-    val itemsToGenerateFrom = seq.take(20).toList()
+    val itemsToGenerateFrom = seq.take(MAX_CONTAINER_SIZE * 2).toList()
     return sequenceOf(emptyList<List<FuzzedValue>>()) + generateSequence {
         if (itemsToGenerateFrom.isEmpty())
             return@generateSequence null
-        val size = Random.nextInt(1, min(maxSize, itemsToGenerateFrom.size) + 1)
+        val size = Random.nextInt(1, min(MAX_CONTAINER_SIZE, itemsToGenerateFrom.size) + 1)
         (0 until size).map {
             val index = Random.nextInt(0, itemsToGenerateFrom.size)
             itemsToGenerateFrom[index]

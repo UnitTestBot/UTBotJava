@@ -17,6 +17,8 @@ class ListAnnotation(
     override val args: List<String>
         get() = listOf(elemAnnotation)
 
+    override fun toString(): String = "typing.List[$elemAnnotation]"
+
     companion object {
         val regex = Regex("typing.List\\[(.*)]")
 
@@ -24,6 +26,8 @@ class ListAnnotation(
             val res = regex.matchEntire(annotation)
             return res?.let { ListAnnotation(it.groupValues[1]) }
         }
+
+        fun unparse(args: List<String>) = ListAnnotation(args[0])
     }
 }
 
@@ -35,6 +39,8 @@ class DictAnnotation(
     override val args: List<String>
         get() = listOf(keyAnnotation, valueAnnotation)
 
+    override fun toString(): String = "typing.Dict[$keyAnnotation, $valueAnnotation]"
+
     companion object {
         val regex = Regex("typing.Dict\\[(.*), *(.*)]")
 
@@ -42,6 +48,8 @@ class DictAnnotation(
             val res = regex.matchEntire(annotation)
             return res?.let { DictAnnotation(it.groupValues[1], it.groupValues[2]) }
         }
+
+        fun unparse(args: List<String>) = DictAnnotation(args[0], args[1])
     }
 }
 
@@ -52,6 +60,8 @@ class SetAnnotation(
     override val args: List<String>
         get() = listOf(elemAnnotation)
 
+    override fun toString(): String = "typing.Set[$elemAnnotation]"
+
     companion object {
         val regex = Regex("typing.Set\\[(.*)]")
 
@@ -59,5 +69,7 @@ class SetAnnotation(
             val res = regex.matchEntire(annotation)
             return res?.let { SetAnnotation(it.groupValues[1]) }
         }
+
+        fun unparse(args: List<String>) = SetAnnotation(args[0])
     }
 }

@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.python
 
+import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
@@ -29,6 +30,7 @@ import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
 import org.utbot.python.code.PythonCodeGenerator.generateTestCode
+import org.utbot.python.code.camelToSnakeCase
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
@@ -159,42 +161,31 @@ object PythonDialogProcessor {
                     )
                 }
 
-//                val files = mutableListOf<File>()
-//                val codeAsString = getContentFromPyFile(model.file)
-//                notEmptyTests.forEach { testSet ->
-//                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
-//                    val message =
-//                        if (testSet.mypyReport.isNotEmpty())
-//                            "MYPY REPORT\n${
-//                                testSet.mypyReport.joinToString(separator = "") {
-//                                    if (lineOfFunction != null && it.line >= 0)
-//                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-//                                    else
-//                                        "${it.type}: ${it.message}"
-//                                }
-//                            }"
-//                        else
-//                            null
-//
-//                    val testCode = generateTestCode(testSet, model.directoriesForSysPath, model.moduleToImport, message)
-//                    val fileName = "test_${testSet.method.name}.py"
-//                    val testFile = FileManager.createPermanentFile(fileName, testCode)
-//                    files.add(testFile)
-//                }
-//
-//                if (files.size == 1) {
-//                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(files[0])
-//                    if (virtualFile != null) {
-//                        invokeLater {
-//                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
-//                        }
-//                    }
-//                }
-                val context = UtContext(this::class.java.classLoader)
+                val files = mutableListOf<File>()
+                val codeAsString = getContentFromPyFile(model.file)
 
-                val classId = PythonClassId("src.a.a.__ivtdjvrdkgbmpmsclaro__")
-                val methods = notEmptyTests.map {
-                    PythonMethodId(
+                val messages = notEmptyTests.associateWith { testSet ->
+                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
+                    val message =
+                        if (testSet.mypyReport.isNotEmpty())
+                            "MYPY REPORT\n${
+                                testSet.mypyReport.joinToString(separator = "") {
+                                    if (lineOfFunction != null && it.line >= 0)
+                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                                    else
+                                        "${it.type}: ${it.message}"
+                                }
+                            }"
+                        else
+                            null
+                    message
+                }
+
+                val classId = PythonClassId(
+                    "File${model.file.name.split('.').dropLast(1).last().capitalize()}"
+                )
+                val methods = notEmptyTests.associate {
+                    it.method to PythonMethodId(
                         classId,
                         it.method.name,
                         PythonClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
@@ -205,27 +196,33 @@ object PythonDialogProcessor {
                         }
                     )
                 }
-                withUtContext(context) {
-                    val codegen = CodeGenerator(
-                        classId,
-                        paramNames = notEmptyTests.zip(methods)
-                            .associate { (testSet, method) ->
-                                method to testSet.method.arguments.map { it.name }
-                            }
-                            .toMutableMap(),
-                        testFramework = model.testFramework,
-                        codegenLanguage = model.codegenLanguage,
-                        testClassPackageName = "",
-                    )
-                    val x = codegen.generateAsStringWithTestReport(
-                        methods.zip(notEmptyTests).map { (method, testSet) ->
-                            CgMethodTestSet(
-                                method,
-                                testSet.executions.map { execution -> execution.utExecution }
-                            )
-                        }
-                    )
-                    println(x.generatedCode)
+                val paramNames = notEmptyTests.associate { testSet ->
+                        methods[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
+                    }.toMutableMap()
+
+                val codegen = CodeGenerator(
+                    classId,
+                    paramNames = paramNames,
+                    testFramework = model.testFramework,
+                    codegenLanguage = model.codegenLanguage,
+                    testClassPackageName = "",
+                )
+                val testCode = codegen.generateAsStringWithTestReport(
+                    notEmptyTests.map { testSet ->
+                        CgMethodTestSet(
+                            methods[testSet.method] as ExecutableId,
+                            testSet.executions.map { execution -> execution.utExecution },
+                            messages[testSet]
+                        )
+                    }
+                ).generatedCode
+                val fileName = "test_${classId.name.camelToSnakeCase()}.py"
+                val testFile = FileManager.createPermanentFile(fileName, testCode)
+                val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(testFile)
+                if (virtualFile != null) {
+                    invokeAndWaitIfNeeded {
+                        OpenFileDescriptor(model.project, virtualFile).navigate(true)
+                    }
                 }
             }
         })

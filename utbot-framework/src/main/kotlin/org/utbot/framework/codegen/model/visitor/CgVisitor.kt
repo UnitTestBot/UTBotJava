@@ -5,6 +5,8 @@ import org.utbot.framework.codegen.model.tree.*
 interface CgVisitor<R> {
     fun visit(element: CgPythonRepr): R
 
+    fun visit(element: CgPythonAssertEquals): R
+
     fun visit(element: CgElement): R
 
     fun visit(element: CgTestClassFile): R

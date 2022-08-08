@@ -102,6 +102,7 @@ interface CgElement {
             is CgErrorWrapper -> visit(element)
             is CgEmptyLine -> visit(element)
             is CgPythonRepr -> visit(element)
+            is CgPythonAssertEquals -> visit(element)
             else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
         }
     }
@@ -866,3 +867,8 @@ class CgPythonRepr(
     override val type: ClassId,
     val content: String
 ) : CgValue
+
+class CgPythonAssertEquals(
+    val expression: CgEqualTo,
+    val keyword: String = "assert",
+) : CgStatement

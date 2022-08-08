@@ -16,15 +16,7 @@ import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
-import org.utbot.framework.codegen.model.tree.CgValue
+import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
@@ -218,7 +210,6 @@ internal abstract class TestFrameworkManager(val context: CgContext)
 }
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
-//    val assert = Pytest.assert
     override fun expectException(exception: ClassId, block: () -> Unit) {
         require(testFramework is Pytest) { "According to settings, Pytest was expected, but got: $testFramework" }
         block()
@@ -228,7 +219,9 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     }
 
     override fun assertEquals(expected: CgValue, actual: CgValue) {
-        +assertions[assertEquals](expected, actual)
+        +CgPythonAssertEquals(
+            CgEqualTo(actual, expected)
+        )
     }
 }
 

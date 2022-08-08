@@ -5,14 +5,12 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
-import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.*
+import org.utbot.python.code.camelToSnakeCase
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -172,8 +170,9 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgParameterDeclaration) {
         print(element.name.escapeNamePossibleKeyword())
-        print(": ")
-        print(element.type.name)
+        if (element.type.name != "")
+            print(": ")
+            print(element.type.name)
     }
 
     override fun visit(element: CgGetLength) {
@@ -206,16 +205,17 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun renderMethodSignature(element: CgTestMethod) {
         print("def ")
-        print(element.name)
+        print(element.name.camelToSnakeCase())
 
         print("(")
         val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
-        element.parameters.renderSeparated(newLinesNeeded)
+        val selfParameter = CgParameterDeclaration("self", ClassId(""))
+        (listOf(selfParameter) + element.parameters).renderSeparated(newLinesNeeded)
         print(")")
     }
 
     override fun renderMethodSignature(element: CgErrorTestMethod) {
-        print("def ${element.name}()")
+        print("def ${element.name.camelToSnakeCase()}(self)")
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
@@ -334,6 +334,12 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgPythonRepr) {
         print(element.content)
+    }
+
+    override fun visit(element: CgPythonAssertEquals) {
+        print("${element.keyword} ")
+        visit(element.expression)
+        println()
     }
 
     override fun String.escapeCharacters(): String =

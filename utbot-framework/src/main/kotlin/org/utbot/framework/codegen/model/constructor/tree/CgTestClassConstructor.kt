@@ -120,6 +120,14 @@ internal class CgTestClassConstructor(val context: CgContext) :
             regions += methodConstructor.errorMethod(testSet.executableId, errors)
             testsGenerationReport.addMethodErrors(testSet, errors)
         }
+        val comments = testSet.comments
+        if (comments != "") {
+            regions += methodConstructor.errorMethod(
+                testSet.executableId,
+                mapOf(comments to 1)
+            )
+            testsGenerationReport.addMethodErrors(testSet, mapOf(comments to 1))
+        }
 
         return regions
     }

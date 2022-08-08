@@ -57,6 +57,8 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgPythonRepr) {}
 
+    override fun visit(element: CgPythonAssertEquals) {}
+
     override fun visit(element: CgElement) {
         val error =
             "CgRenderer has reached the top of Cg elements hierarchy and did not find a method for ${element::class}"

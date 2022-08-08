@@ -363,7 +363,7 @@ object PythonCodeGenerator {
 }
 
 fun String.camelToSnakeCase(): String {
-    val camelRegex = "(?<=[a-zA-Z])[A-Z]".toRegex()
+    val camelRegex = "(?<=[a-zA-Z])[\\dA-Z]".toRegex()
     return camelRegex.replace(this) {
         "_${it.value}"
     }.toLowerCase()

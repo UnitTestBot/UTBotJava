@@ -18,6 +18,7 @@ data class CgMethodTestSet private constructor(
 ) {
     var executions: List<UtExecution> = emptyList()
         private set
+    var comments: String = ""
 
     constructor(from: UtMethodTestSet) : this(
         from.method.callable.executableId,
@@ -30,7 +31,8 @@ data class CgMethodTestSet private constructor(
 
     constructor(
         executableId: ExecutableId,
-        executions: List<UtExecution> = emptyList()
+        executions: List<UtExecution> = emptyList(),
+        comments: String? = "",
     ) : this(
         executableId,
     null,
@@ -39,6 +41,7 @@ data class CgMethodTestSet private constructor(
         listOf(null to executions.indices)
     ) {
         this.executions = executions
+        this.comments = comments ?: ""
     }
 
     /**

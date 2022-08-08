@@ -243,7 +243,6 @@ sealed class TestFramework(
 }
 
 object Pytest : TestFramework(displayName = "pytest") {
-
     override val mainPackage: String = "pytest"
     override val assertionsClass: ClassId = BuiltinClassId(
         name = "Asserts",
@@ -254,9 +253,9 @@ object Pytest : TestFramework(displayName = "pytest") {
     override val testAnnotation: String
         get() = TODO("Not yet implemented")
     override val testAnnotationId: ClassId = BuiltinClassId(
-        name = "Test",
-        canonicalName = "Test",
-        simpleName = "Test"
+        name = "Tests",
+        canonicalName = "Tests",
+        simpleName = "Tests"
     )
     override val testAnnotationFqn: String = "Test"
     override val parameterizedTestAnnotation: String

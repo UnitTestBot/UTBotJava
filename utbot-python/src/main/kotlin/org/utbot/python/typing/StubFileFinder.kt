@@ -95,7 +95,7 @@ object StubFileFinder {
         } else if (argumentPosition != null) {
             functionInfos.forEach { functionInfo ->
                 val checkCountArgs = functionInfo.args.size > argumentPosition
-                val ann = functionInfo.args[argumentPosition].annotation
+                val ann = functionInfo.args.getOrNull(argumentPosition)?.annotation ?: ""
                 if (checkCountArgs && ann != "") {
                     types.add(SearchResult(ann, functionInfo.module))
                 }

@@ -57,11 +57,17 @@ object AnnotationNormalizer {
                 )
             )
 
+    private val stubAnnotationCache: MutableMap<String, PythonClassId> = mutableMapOf()
+
     fun annotationFromStubToClassId(
         annotation: String,
         pythonPath: String,
         moduleOfAnnotation: String
     ): PythonClassId {
+        val cached = stubAnnotationCache[annotation]
+        if (cached != null)
+            return cached
+
         val scriptFile = getFileWithScript("/normalize_annotation_from_stub.py")
         val result = runCommand(listOf(
             pythonPath,
@@ -70,11 +76,14 @@ object AnnotationNormalizer {
             moduleOfAnnotation
         ))
         scriptFile.delete()
-        return PythonClassId(
+
+        val ret = PythonClassId(
             substituteTypes(
                 if (result.exitValue == 0) result.stdout else annotation
             )
         )
+        stubAnnotationCache[annotation] = ret
+        return ret
     }
 
     val substitutionMapFirstStage = listOf(

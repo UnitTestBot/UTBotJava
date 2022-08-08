@@ -239,13 +239,16 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 }
 
 fun getDefaultModuleToImport(file: PyFile): String {
-    val importPath = file.virtualFile?.let { absoluteFilePath ->
+    var importPath = file.virtualFile?.let { absoluteFilePath ->
         ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
             VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
         }
     } ?: ""
 
-    return "${importPath}.${file.name}".dropLast(3).toPath().joinToString(".")
+    if (importPath != "")
+        importPath += "."
+
+    return "${importPath}${file.name}".dropLast(3).toPath().joinToString(".")
 }
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()

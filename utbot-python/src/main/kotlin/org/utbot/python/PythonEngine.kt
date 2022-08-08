@@ -33,7 +33,7 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        val pythonTypes = selectedTypeMap.values.mapNotNull { PythonTypesStorage.getTypeByName(it)?.name }
+        val pythonTypes = selectedTypeMap.values.map { it.name }
 
         fuzz(methodUnderTestDescription, concreteTypesModelProvider).forEach { values ->
             val modelList = values.map { it.model }

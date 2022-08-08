@@ -23,38 +23,38 @@ sealed class Result<T>
 class Match<T>(val value: T): Result<T>()
 class Error<T> : Result<T>()
 
-open class Parser<A, B, N> (
+open class Pattern<A, B, N> (
     val go: (N, A) -> Result<B>
 )
 
-fun <A, B, N> parse(pat: Parser<A, B, N>, onError: B, node: N, x: A): B {
+fun <A, B, N> parse(pat: Pattern<A, B, N>, onError: B, node: N, x: A): B {
     return when (val result = pat.go(node, x)) {
         is Match -> result.value
         is Error -> onError
     }
 }
 
-inline fun <A, B, reified N, M> refl(pat: Parser<A, B, N>): Parser<A, B, M> =
-    Parser { node, x ->
+inline fun <A, B, reified N, M> refl(pat: Pattern<A, B, N>): Pattern<A, B, M> =
+    Pattern { node, x ->
         when (node) {
             is N -> pat.go(node, x)
             else -> Error()
         }
     }
 
-fun <A, N> drop(): Parser<A, A, N> =
-    Parser { _, x ->  Match(x) }
+fun <A, N> drop(): Pattern<A, A, N> =
+    Pattern { _, x ->  Match(x) }
 
-fun <A, N> apply(): Parser<(N) -> A, A, N> =
-    Parser { node, x -> Match(x(node)) }
+fun <A, N> apply(): Pattern<(N) -> A, A, N> =
+    Pattern { node, x -> Match(x(node)) }
 
-fun <A, B> name(fid: Parser<A, B, String>): Parser<A, B, Name> =
-    Parser { node, x ->
+fun <A, B> name(fid: Pattern<A, B, String>): Pattern<A, B, Name> =
+    Pattern { node, x ->
         fid.go(node.id.name, x)
     }
 
-fun <A> int(): Parser<A, A, String> =
-    Parser { node, x ->
+fun <A> int(): Pattern<A, A, String> =
+    Pattern { node, x ->
         when (NumberUtils.createNumber(node)) {
             is Int -> Match(x)
             is Long -> Match(x)
@@ -63,21 +63,21 @@ fun <A> int(): Parser<A, A, String> =
         }
     }
 
-fun <A, B> num(fnum: Parser<A, B, String>): Parser<A, B, Num> = Parser { node, x -> fnum.go(node.n, x) }
-fun <A, B> str(fstr: Parser<A, B, String>): Parser<A, B, Str> = Parser { node, x -> fstr.go(node.s, x) }
-fun <A> true_(): Parser<A, A, True> = Parser { _, x -> Match(x) }
-fun <A> false_(): Parser<A, A, False> = Parser { _, x -> Match(x) }
-fun <A> none(): Parser<A, A, None> = Parser { _, x -> Match(x) }
+fun <A, B> num(fnum: Pattern<A, B, String>): Pattern<A, B, Num> = Pattern { node, x -> fnum.go(node.n, x) }
+fun <A, B> str(fstr: Pattern<A, B, String>): Pattern<A, B, Str> = Pattern { node, x -> fstr.go(node.s, x) }
+fun <A> true_(): Pattern<A, A, True> = Pattern { _, x -> Match(x) }
+fun <A> false_(): Pattern<A, A, False> = Pattern { _, x -> Match(x) }
+fun <A> none(): Pattern<A, A, None> = Pattern { _, x -> Match(x) }
 
-fun <A, N> equal(value: N): Parser<A, A, N> =
-    Parser { node, x ->
+fun <A, N> equal(value: N): Pattern<A, A, N> =
+    Pattern { node, x ->
         if (node != value)
             Error()
         else
             Match(x)
     }
 
-fun <A, B, N> go(y: Parser<A, B, N>, node: N, x: Result<A>) =
+fun <A, B, N> go(y: Pattern<A, B, N>, node: N, x: Result<A>) =
     when (x) {
         is Match -> y.go(node, x.value)
         is Error -> Error()
@@ -89,7 +89,7 @@ fun <A> toMatch(x: Result<List<A>>): Match<List<A>> =
         is Match -> x
     }
 
-fun <A, B, N> multiGo(y: Parser<A, B, N>, node: N, x: Result<List<A>>): Result<List<B>> {
+fun <A, B, N> multiGo(y: Pattern<A, B, N>, node: N, x: Result<List<A>>): Result<List<B>> {
     val res = mutableListOf<B>()
     for (z in (toMatch(x)).value) {
         when (val w = y.go(node, z)) {
@@ -101,86 +101,86 @@ fun <A, B, N> multiGo(y: Parser<A, B, N>, node: N, x: Result<List<A>>): Result<L
 }
 
 fun <A, B, C> assign(
-    ftargets: Parser<A, B, List<Expression>>,
-    fvalue: Parser<B, C, Expression>
-): Parser<A, C, Assign> =
-    Parser { node, x ->
+    ftargets: Pattern<A, B, List<Expression>>,
+    fvalue: Pattern<B, C, Expression>
+): Pattern<A, C, Assign> =
+    Pattern { node, x ->
         if (!node.value.isPresent)
-            return@Parser Error()
+            return@Pattern Error()
         val x1 = ftargets.go(node.targets, x)
         go(fvalue, node.value.get(), x1)
     }
 
 fun <A, B, C> assignAll(
-    ftargets: Parser<A, List<B>, List<Expression>>,
-    fvalue: Parser<B, C, Expression>
-): Parser<A, List<C>, Assign> =
-    Parser { node, x ->
+    ftargets: Pattern<A, List<B>, List<Expression>>,
+    fvalue: Pattern<B, C, Expression>
+): Pattern<A, List<C>, Assign> =
+    Pattern { node, x ->
         if (!node.value.isPresent)
-            return@Parser Error()
+            return@Pattern Error()
         val x1 = ftargets.go(node.targets, x)
         multiGo(fvalue, node.value.get(), x1)
     }
 
 fun <A, B, C> dict(
-    fkeys: Parser<A, B, List<Expression>>,
-    fvalues: Parser<B, C, List<Expression>>
-): Parser<A, C, Dict> =
-    Parser { node, x ->
+    fkeys: Pattern<A, B, List<Expression>>,
+    fvalues: Pattern<B, C, List<Expression>>
+): Pattern<A, C, Dict> =
+    Pattern { node, x ->
         val x1 = fkeys.go(node.keys, x)
         go(fvalues, node.values, x1)
     }
 
 fun <A, B> list(
-    felts: Parser<A, B, List<Expression>>
-): Parser<A, B, ListExpr> =
-    Parser { node, x ->
+    felts: Pattern<A, B, List<Expression>>
+): Pattern<A, B, ListExpr> =
+    Pattern { node, x ->
         felts.go(node.elts, x)
     }
 
 fun <A, B> set(
-    felts: Parser<A, B, List<Expression>>
-): Parser<A, B, Set> =
-    Parser { node, x ->
+    felts: Pattern<A, B, List<Expression>>
+): Pattern<A, B, Set> =
+    Pattern { node, x ->
         felts.go(node.elts, x)
     }
 
 fun <A, B> tuple(
-    felts: Parser<A, B, List<Expression>>
-): Parser<A, B, Tuple> =
-    Parser { node, x ->
+    felts: Pattern<A, B, List<Expression>>
+): Pattern<A, B, Tuple> =
+    Pattern { node, x ->
         felts.go(node.elts, x)
     }
 
 fun <A, B, C, D> augAssign(
-    ftarget: Parser<A, B, Expression>,
-    fop: Parser<B, C, Operator>,
-    fvalue: Parser<C, D, Expression>
-): Parser<A, D, AugAssign> =
-    Parser { node, x ->
+    ftarget: Pattern<A, B, Expression>,
+    fop: Pattern<B, C, Operator>,
+    fvalue: Pattern<C, D, Expression>
+): Pattern<A, D, AugAssign> =
+    Pattern { node, x ->
         val x1 = ftarget.go(node.target, x)
         val x2 = go(fop, node.op, x1)
         go(fvalue, node.value, x2)
     }
 
 fun <A, B, C> binOp(
-    fleft: Parser<A, B, Expression>,
-    fright: Parser<B, C, Expression>
-): Parser<A, C, BinOp> =
-    Parser { node, x ->
+    fleft: Pattern<A, B, Expression>,
+    fright: Pattern<B, C, Expression>
+): Pattern<A, C, BinOp> =
+    Pattern { node, x ->
         if (node.left == null || node.right == null)
-            return@Parser Error()
+            return@Pattern Error()
         val x1 = fleft.go(node.left, x)
         go(fright, node.right, x1)
     }
 
 fun <A, B, C, D, E> arguments(
-    fargs: Parser<A, B, List<Expression>>,
-    fkeywords: Parser<B, C, List<Keyword>>,
-    fstarredArgs: Parser<C, D, List<Expression>>,
-    fdoubleStarredArgs: Parser<D, E, List<Keyword>>
-): Parser<A, E, Arguments> =
-    Parser { node, x ->
+    fargs: Pattern<A, B, List<Expression>>,
+    fkeywords: Pattern<B, C, List<Keyword>>,
+    fstarredArgs: Pattern<C, D, List<Expression>>,
+    fdoubleStarredArgs: Pattern<D, E, List<Keyword>>
+): Pattern<A, E, Arguments> =
+    Pattern { node, x ->
         val x1 = fargs.go(node.args ?: emptyList(), x)
         val x2 = go(fkeywords, node.keywords ?: emptyList(), x1)
         val x3 = go(fstarredArgs, node.starredArgs ?: emptyList(), x2)
@@ -188,76 +188,76 @@ fun <A, B, C, D, E> arguments(
     }
 
 fun <A, B, C> atom(
-    fatomElement: Parser<A, B, Expression>,
-    ftrailers: Parser<B, C, List<Expression>>
-): Parser<A, C, Atom> =
-    Parser { node, x ->
+    fatomElement: Pattern<A, B, Expression>,
+    ftrailers: Pattern<B, C, List<Expression>>
+): Pattern<A, C, Atom> =
+    Pattern { node, x ->
         val x1 = fatomElement.go(node.atomElement, x)
         go(ftrailers, node.trailers, x1)
     }
 
 fun <A, B, N> list1(
-    felem1: Parser<A, B, N>
-): Parser<A, B, List<N>> =
-    Parser { node, x ->
+    felem1: Pattern<A, B, N>
+): Pattern<A, B, List<N>> =
+    Pattern { node, x ->
         if (node.size != 1)
-            return@Parser Error()
+            return@Pattern Error()
         felem1.go(node[0], x)
     }
 
 fun <A, B, C, N> list2(
-    felem1: Parser<A, B, N>,
-    felem2: Parser<B, C, N>
-): Parser<A, C, List<N>> =
-    Parser { node, x ->
+    felem1: Pattern<A, B, N>,
+    felem2: Pattern<B, C, N>
+): Pattern<A, C, List<N>> =
+    Pattern { node, x ->
         if (node.size != 2)
-            return@Parser Error()
+            return@Pattern Error()
         val x1 = felem1.go(node[0], x)
         go(felem2, node[1], x1)
     }
 
 fun <A, B, N> first(
-    felem: Parser<A, B, N>
-): Parser<A, B, List<N>> =
-    Parser { node, x ->
+    felem: Pattern<A, B, N>
+): Pattern<A, B, List<N>> =
+    Pattern { node, x ->
         if (node.isEmpty())
-            return@Parser Error()
+            return@Pattern Error()
         felem.go(node[0], x)
     }
 
 fun <A, B> index(
-    felem: Parser<A, B, Expression>
-): Parser<A, B, Subscript> =
-    Parser { node, x ->
+    felem: Pattern<A, B, Expression>
+): Pattern<A, B, Subscript> =
+    Pattern { node, x ->
         if (node.slice !is Index)
-            return@Parser Error()
+            return@Pattern Error()
         felem.go((node.slice as Index).value, x)
     }
 
 fun <A, B> attribute(
-    fattributeId: Parser<A, B, String>
-): Parser<A, B, Attribute> =
-    Parser { node, x -> fattributeId.go(node.attr.name, x) }
+    fattributeId: Pattern<A, B, String>
+): Pattern<A, B, Attribute> =
+    Pattern { node, x -> fattributeId.go(node.attr.name, x) }
 
 fun <A, B, C> classField(
-    fname: Parser<A, B, Name>,
-    fattributeId: Parser<B, C, String>
-): Parser<A, C, Atom> =
+    fname: Pattern<A, B, Name>,
+    fattributeId: Pattern<B, C, String>
+): Pattern<A, C, Atom> =
     atom(refl(fname), list1(refl(attribute(fattributeId))))
 
 fun <A, B, C, D> classMethod(
-    fname: Parser<A, B, Name>,
-    fattributeId: Parser<B, C, String>,
-    farguments: Parser<C, D, Arguments>
-): Parser<A, D, Atom> =
+    fname: Pattern<A, B, Name>,
+    fattributeId: Pattern<B, C, String>,
+    farguments: Pattern<C, D, Arguments>
+): Pattern<A, D, Atom> =
     atom(refl(fname), list2(refl(attribute(fattributeId)), refl(farguments)))
 
 fun <A, B> nameWithPrefixFromAtom(
-    fname: Parser<A, B, String>
-): Parser<A, B, Atom> =
-    Parser { node, x ->
+    fname: Pattern<A, B, String>
+): Pattern<A, B, Atom> =
+    Pattern { node, x ->
         if (node.atomElement !is Name)
-            return@Parser Error()
+            return@Pattern Error()
         var res = (node.atomElement as Name).id.name
         for (elem in node.trailers) {
             if (elem !is Attribute)
@@ -268,22 +268,22 @@ fun <A, B> nameWithPrefixFromAtom(
     }
 
 fun <A, B, C> functionCallWithoutPrefix(
-    fname: Parser<A, B, Name>,
-    farguments: Parser<B, C, Arguments>
-): Parser<A, C, Atom> =
+    fname: Pattern<A, B, Name>,
+    farguments: Pattern<B, C, Arguments>
+): Pattern<A, C, Atom> =
     atom(refl(fname), list1(refl(farguments)))
 
 fun <A, B, C, D> functionCallWithPrefix(
-    fprefix: Parser<A, B, List<Expression>>,
-    fid: Parser<B, C, String>,
-    farguments: Parser<C, D, Arguments>
-): Parser<A, D, Atom> =
-    Parser { node, x ->
+    fprefix: Pattern<A, B, List<Expression>>,
+    fid: Pattern<B, C, String>,
+    farguments: Pattern<C, D, Arguments>
+): Pattern<A, D, Atom> =
+    Pattern { node, x ->
         if (node.trailers.size == 0)
-            return@Parser Error()
+            return@Pattern Error()
         if (node.trailers.size == 1) {
             val x1 = fprefix.go(emptyList(), x)
-            return@Parser go(functionCallWithoutPrefix(name(fid), farguments), node, x1)
+            return@Pattern go(functionCallWithoutPrefix(name(fid), farguments), node, x1)
         }
         val prefix = listOf(node.atomElement) + node.trailers.dropLast(2)
         val x1 = fprefix.go(prefix, x)
@@ -307,9 +307,9 @@ fun <A, B, N> goWithMatches(
     }
 
 fun <A> opExpr(
-    fatomMatch: Parser<A, A, Expression>,
-    fatomExtra: Parser<A, A, Expression>
-): Parser<A, A, Expression> {
+    fatomMatch: Pattern<A, A, Expression>,
+    fatomExtra: Pattern<A, A, Expression>
+): Pattern<A, A, Expression> {
     fun innerGo(node: Expression, x: A): Result<Pair<A, Int>> {
         val y = fatomMatch.go(node, x)
         if (y is Match)
@@ -328,7 +328,7 @@ fun <A> opExpr(
             else -> Error()
         }
     }
-    return Parser { node, x ->
+    return Pattern { node, x ->
         when (val x1 = innerGo(node, x)) {
             is Error -> Error()
             is Match -> if (x1.value.second == 0) Error() else Match(x1.value.first)
@@ -336,18 +336,18 @@ fun <A> opExpr(
     }
 }
 
-fun <A, B, N> any(felem: Parser<A, B, N>): Parser<A, B, List<N>> =
-    Parser { node, x ->
+fun <A, B, N> any(felem: Pattern<A, B, N>): Pattern<A, B, List<N>> =
+    Pattern { node, x ->
         for (elem in node) {
             val x1 = felem.go(elem, x)
             if (x1 is Match)
-                return@Parser x1
+                return@Pattern x1
         }
-        return@Parser Error()
+        return@Pattern Error()
     }
 
-fun <A, B, N> allMatches(felem: Parser<A, B, N>): Parser<A, List<B>, List<N>> =
-    Parser { node, x ->
+fun <A, B, N> allMatches(felem: Pattern<A, B, N>): Pattern<A, List<B>, List<N>> =
+    Pattern { node, x ->
         val res = mutableListOf<B>()
         for (elem in node) {
             val x1 = felem.go(elem, x)
@@ -357,18 +357,18 @@ fun <A, B, N> allMatches(felem: Parser<A, B, N>): Parser<A, List<B>, List<N>> =
         Match(res)
     }
 
-fun <A, B, N> anyIndexed(felem: Parser<A, B, N>): Parser<(Int) -> A, B, List<N>> =
-    Parser { node, x ->
+fun <A, B, N> anyIndexed(felem: Pattern<A, B, N>): Pattern<(Int) -> A, B, List<N>> =
+    Pattern { node, x ->
         node.forEachIndexed { index, elem ->
             val x1 = felem.go(elem, x(index))
             if (x1 is Match)
-                return@Parser x1
+                return@Pattern x1
         }
-        return@Parser Error()
+        return@Pattern Error()
     }
 
-fun <A, B, N> or(pat1: Parser<A, B, N>, pat2: Parser<A, B, N>): Parser<A, B, N> =
-    Parser { node, x ->
+fun <A, B, N> or(pat1: Pattern<A, B, N>, pat2: Pattern<A, B, N>): Pattern<A, B, N> =
+    Pattern { node, x ->
         val x1 = pat1.go(node, x)
         when (x1) {
             is Match -> x1
@@ -376,19 +376,19 @@ fun <A, B, N> or(pat1: Parser<A, B, N>, pat2: Parser<A, B, N>): Parser<A, B, N> 
         }
     }
 
-fun <A, B, N> reject(): Parser<A, B, N> = Parser { _, _ -> Error() }
+fun <A, B, N> reject(): Pattern<A, B, N> = Pattern { _, _ -> Error() }
 
-fun <A, B, C, N> map0(pat: Parser<A, B, N>, value: C): Parser<(C) -> A, B, N> =
-    Parser { node, x: (C) -> A ->
+fun <A, B, C, N> map0(pat: Pattern<A, B, N>, value: C): Pattern<(C) -> A, B, N> =
+    Pattern { node, x: (C) -> A ->
         pat.go(node, x(value))
     }
 
-fun <A, B, C, D, N> map1(pat: Parser<(A) -> B, C, N>, f: (A) -> D): Parser<(D) -> B, C, N> =
-    Parser { node, x: (D) -> B ->
+fun <A, B, C, D, N> map1(pat: Pattern<(A) -> B, C, N>, f: (A) -> D): Pattern<(D) -> B, C, N> =
+    Pattern { node, x: (D) -> B ->
         pat.go(node) { y -> x(f(y)) }
     }
 
-fun <A, B, C, D, N> swap(pat: Parser<(A) -> (B) -> C, D, N>): Parser<(B) -> (A) -> C, D, N> =
-    Parser { node, f: (B) -> (A) -> C ->
+fun <A, B, C, D, N> swap(pat: Pattern<(A) -> (B) -> C, D, N>): Pattern<(B) -> (A) -> C, D, N> =
+    Pattern { node, f: (B) -> (A) -> C ->
         pat.go(node) { x -> { y -> f(y)(x) } }
     }

@@ -216,8 +216,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Thus, this method only caches an actual initial static fields state in order to recover it
      * at the end of the test, and it has nothing to do with the 'before' and 'after' caches.
      */
-    private fun rememberInitialStaticFields() {
-        for ((field, _) in currentExecution!!.stateBefore.statics.accessibleFields()) {
+    private fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
+        val accessibleStaticFields = statics.accessibleFields()
+        for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
             val fieldAccessible = field.isAccessibleFrom(testClassPackageName)
 
@@ -240,11 +241,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun mockStaticFields() {
-        for ((field, model) in currentExecution!!.stateBefore.statics.accessibleFields()) {
+    private fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
+        val accessibleStaticFields = statics.accessibleFields()
+        for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
             val fieldAccessible = field.canBeSetIn(testClassPackageName)
-            val fieldValue = variableConstructor.getOrCreateVariable(model, field.name)
+
+            val fieldValue = if (isParametrized) {
+                currentMethodParameters[CgParameterKind.Statics(model)]
+            } else {
+                variableConstructor.getOrCreateVariable(model, field.name)
+            }
+
             if (fieldAccessible) {
                 declaringClass[field] `=` fieldValue
             } else {
@@ -1101,12 +1109,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
-                rememberInitialStaticFields()
+                val statics = currentExecution!!.stateBefore.statics
+                rememberInitialStaticFields(statics)
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
                 val mainBody = {
-                    mockStaticFields()
+                    substituteStaticFields(statics)
                     setupInstrumentation()
                     // build this instance
                     thisInstance = execution.stateBefore.thisInstance?.let {
@@ -1124,7 +1133,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     generateFieldStateAssertions()
                 }
 
-                val statics = currentExecution!!.stateBefore.statics
                 if (statics.isNotEmpty()) {
                     +tryBlock {
                         mainBody()
@@ -1181,11 +1189,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
             ?: testSet.executions.first()
 
+        val statics = genericExecution.stateBefore.statics
+
         return withTestMethodScope(genericExecution) {
             val testName = nameGenerator.parameterizedTestMethodName(dataProviderMethodName)
             withNameScope {
                 val testParameterDeclarations = createParameterDeclarations(testSet, genericExecution)
                 val mainBody = {
+                    substituteStaticFields(statics, isParametrized = true)
                     // build this instance
                     thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
 
@@ -1207,9 +1218,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     parameterized = true,
                     dataProviderMethodName
                 ) {
-                    if (containsFailureExecution(testSet)) {
-                        +tryBlock(mainBody)
-                            .catch(Throwable::class.java.id) { e ->
+                    rememberInitialStaticFields(statics)
+
+                    if (containsFailureExecution(testSet) || statics.isNotEmpty()) {
+                        var currentTryBlock = tryBlock {
+                            mainBody()
+                        }
+
+                        if (containsFailureExecution(testSet)) {
+                            currentTryBlock = currentTryBlock.catch(Throwable::class.java.id) { e ->
                                 val pseudoExceptionVarName = when (codegenLanguage) {
                                     CodegenLanguage.JAVA -> "${expectedErrorVarName}.isInstance(${e.name.decapitalize()})"
                                     CodegenLanguage.KOTLIN -> "${expectedErrorVarName}!!.isInstance(${e.name.decapitalize()})"
@@ -1217,6 +1234,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                                 testFrameworkManager.assertBoolean(CgVariable(pseudoExceptionVarName, booleanClassId))
                             }
+                        }
+
+                        if (statics.isNotEmpty()) {
+                            currentTryBlock = currentTryBlock.finally {
+                                recoverStaticFields()
+                            }
+                        }
+                        +currentTryBlock
                     } else {
                         mainBody()
                     }
@@ -1267,6 +1292,22 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 )
                 this += argument
                 currentMethodParameters[CgParameterKind.Argument(index)] = argument.parameter
+            }
+
+            val statics = genericExecution.stateBefore.statics
+            if (statics.isNotEmpty()) {
+                for ((fieldId, model) in statics) {
+                    val staticType = wrapTypeIfRequired(model.classId)
+                    val static = CgParameterDeclaration(
+                        parameter = declareParameter(
+                            type = staticType,
+                            name = nameGenerator.variableName(fieldId.name, isStatic = true)
+                        ),
+                        isReferenceType = staticType.isRefType
+                    )
+                    this += static
+                    currentMethodParameters[CgParameterKind.Statics(model)] = static.parameter
+                }
             }
 
             val expectedResultClassId = wrapTypeIfRequired(testSet.resultType())
@@ -1350,6 +1391,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             val argumentName = paramNames[testSet.executableId]?.get(paramIndex)
             arguments += variableConstructor.getOrCreateVariable(paramModel, argumentName)
         }
+
+        val statics = execution.stateBefore.statics
+        for ((field, model) in statics) {
+            arguments += variableConstructor.getOrCreateVariable(model, field.name)
+        }
+
 
         val method = currentExecutable!!
         val needsReturnValue = method.returnType != voidClassId

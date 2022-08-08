@@ -16,9 +16,9 @@ class PluginJdkPathProvider(
 
     override val jdkPath: Path
         get() =
-            if (AndroidApiHelper.isAndroidStudio()) {
+            if (IntelliJApiHelper.isAndroidStudio()) {
                 // Get Gradle JDK for Android
-                AndroidApiHelper.gradleSDK(project)
+                IntelliJApiHelper.androidGradleSDK(project)
                     ?.let { sdkName ->
                         ProjectJdkTable.getInstance().findJdk(sdkName)?.homePath?.toPath()
                     }

@@ -53,6 +53,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         var parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.defaultItem,
         var classesToMockAlways: Array<String> = Mocker.defaultSuperClassesToMockAlwaysNames.toTypedArray(),
         var fuzzingValue: Double = 0.05,
+        var runGeneratedTestsWithCoverage : Boolean = false,
     ) {
         constructor(model: GenerateTestsModel) : this(
             codegenLanguage = model.codegenLanguage,
@@ -65,7 +66,8 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             forceStaticMocking = model.forceStaticMocking,
             parametrizedTestSource = model.parametrizedTestSource,
             classesToMockAlways = model.chosenClassesToMockAlways.mapTo(mutableSetOf()) { it.name }.toTypedArray(),
-            fuzzingValue = model.fuzzingValue
+            fuzzingValue = model.fuzzingValue,
+            runGeneratedTestsWithCoverage = model.runGeneratedTestsWithCoverage
         )
 
         override fun equals(other: Any?): Boolean {
@@ -86,6 +88,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             if (parametrizedTestSource != other.parametrizedTestSource) return false
             if (!classesToMockAlways.contentEquals(other.classesToMockAlways)) return false
             if (fuzzingValue != other.fuzzingValue) return false
+            if (runGeneratedTestsWithCoverage != other.runGeneratedTestsWithCoverage) return false
 
             return true
         }
@@ -102,6 +105,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
             result = 31 * result + parametrizedTestSource.hashCode()
             result = 31 * result + classesToMockAlways.contentHashCode()
             result = 31 * result + fuzzingValue.hashCode()
+            result = 31 * result + if (runGeneratedTestsWithCoverage) 1 else 0
 
             return result
         }
@@ -138,6 +142,7 @@ class Settings(val project: Project) : PersistentStateComponent<Settings.State> 
         set(value) {
             state.fuzzingValue = value.coerceIn(0.0, 1.0)
         }
+    var runGeneratedTestsWithCoverage = state.runGeneratedTestsWithCoverage
 
     fun setClassesToMockAlways(classesToMockAlways: List<String>) {
         state.classesToMockAlways = classesToMockAlways.distinct().toTypedArray()

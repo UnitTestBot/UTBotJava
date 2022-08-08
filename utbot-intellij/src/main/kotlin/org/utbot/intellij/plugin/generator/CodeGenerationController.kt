@@ -6,7 +6,6 @@ import com.intellij.ide.fileTemplates.FileTemplateManager
 import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
@@ -29,14 +28,12 @@ import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
-import com.intellij.util.concurrency.AppExecutorUtil
 import com.siyeh.ig.psiutils.ImportUtils
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.jetbrains.kotlin.idea.core.ShortenReferences
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.util.ImportInsertHelperImpl
-import org.jetbrains.kotlin.idea.util.application.invokeLater
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
@@ -57,12 +54,9 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
-import org.utbot.intellij.plugin.generator.CodeGenerationController.Target.*
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.sarif.SarifReportIdea
@@ -74,6 +68,7 @@ import org.utbot.intellij.plugin.ui.TestsReportNotifier
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
@@ -81,9 +76,10 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
-    private enum class Target { THREAD_POOL, READ_ACTION, WRITE_ACTION, EDT_LATER }
 
     fun generateTests(model: GenerateTestsModel, testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
@@ -92,6 +88,7 @@ object CodeGenerationController {
         val latch = CountDownLatch(testSetsByClass.size)
 
         val reports = mutableListOf<TestsGenerationReport>()
+        val testFiles = mutableListOf<PsiFile>()
         for (srcClass in testSetsByClass.keys) {
             val testSets = testSetsByClass[srcClass] ?: continue
             try {
@@ -103,6 +100,7 @@ object CodeGenerationController {
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
                         generateCodeAndReport(srcClass, testClass, file, testSets, model, latch, reports)
+                        testFiles.add(file)
                     } catch (e: IncorrectOperationException) {
                         showCreatingClassError(model.project, createTestClassName(srcClass))
                     }
@@ -131,24 +129,12 @@ object CodeGenerationController {
                     }
 
                     mergeSarifReports(model, sarifReportsPath)
+                    if (model.runGeneratedTestsWithCoverage) {
+                        RunConfigurationHelper.runTestsWithCoverage(model, testFiles)
+                    }
                 }
             }
         }
-    }
-
-    private fun run(target: Target, runnable: Runnable) {
-        UtContext.currentContext()?.let {
-            when (target) {
-                THREAD_POOL -> AppExecutorUtil.getAppExecutorService().submit {
-                    withUtContext(it) {
-                        runnable.run()
-                    }
-                }
-                READ_ACTION -> runReadAction { withUtContext(it) { runnable.run() } }
-                WRITE_ACTION -> runWriteAction { withUtContext(it) { runnable.run() } }
-                EDT_LATER -> invokeLater { withUtContext(it) { runnable.run() } }
-            }
-        } ?: error("No context in thread ${Thread.currentThread()}")
     }
 
     private fun waitForCountDown(latch: CountDownLatch, action: Runnable) {
@@ -316,17 +302,17 @@ object CodeGenerationController {
 
                             // creating and saving reports
                             reports += testsCodeWithTestReportFormatted.testsGenerationReport
-
-                            saveSarifReport(
-                                testClassUpdated,
-                                testSets,
-                                model,
-                                testsCodeWithTestReportFormatted,
-                            )
+                            run(WRITE_ACTION) {
+                                saveSarifReport(
+                                    testClassUpdated,
+                                    testSets,
+                                    model,
+                                    testsCodeWithTestReportFormatted,
+                                )
+                            }
+                            unblockDocument(testClassUpdated.project, editor.document)
 
                             reportsCountDown.countDown()
-
-                            unblockDocument(testClassUpdated.project, editor.document)
                         }
                     }
                 }

@@ -108,8 +108,15 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
-                for (currentTestSet in testSet.splitExecutionsByResult()) {
-                    createParametrizedTestAndDataProvider(currentTestSet, requiredFields, regions, methodUnderTest)
+                for (splitByExecutionTestSet in testSet.splitExecutionsByResult()) {
+                    for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
+                        createParametrizedTestAndDataProvider(
+                            splitByChangedStaticsTestSet,
+                            requiredFields,
+                            regions,
+                            methodUnderTest
+                        )
+                    }
                 }
             }
         }

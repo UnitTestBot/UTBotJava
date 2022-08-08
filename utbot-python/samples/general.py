@@ -26,6 +26,10 @@ def i(x: Dict[int, int]):
     return x[0]
 
 
+def j(x: Set[int]):
+    return x
+
+
 def h(x):
     if x < 123:
         return 1

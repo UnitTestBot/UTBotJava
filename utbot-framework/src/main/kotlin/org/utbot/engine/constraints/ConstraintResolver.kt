@@ -1,12 +1,13 @@
-package org.utbot.engine
+package org.utbot.engine.constraints
 
-import org.utbot.engine.MemoryState.CURRENT
-import org.utbot.engine.MemoryState.INITIAL
-import org.utbot.engine.MemoryState.STATIC_INITIAL
+import org.utbot.engine.*
+import org.utbot.engine.NULL_ADDR
 import org.utbot.engine.pc.*
 import org.utbot.engine.pc.constraint.UtVarBuilder
 import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.constraint.UtConstraintTransformer
+import org.utbot.framework.plugin.api.constraint.UtConstraintVariableCollector
 import org.utbot.framework.plugin.api.util.intClassId
 
 /**
@@ -18,6 +19,7 @@ class ConstraintResolver(
     val holder: UtSolverStatusSAT,
     val typeRegistry: TypeRegistry,
     val typeResolver: TypeResolver,
+    val useSoftConstraints: Boolean = false
 ) {
 
     lateinit var state: MemoryState
@@ -46,14 +48,14 @@ class ConstraintResolver(
     }
 
     private inline fun <T> withStaticMemoryState(staticFieldUnderResolving: FieldId, block: () -> T): T {
-        return if (state == INITIAL) {
+        return if (state == MemoryState.INITIAL) {
             try {
                 this.staticFieldUnderResolving = staticFieldUnderResolving
-                this.state = STATIC_INITIAL
+                this.state = MemoryState.STATIC_INITIAL
                 block()
             } finally {
                 this.staticFieldUnderResolving = null
-                this.state = INITIAL
+                this.state = MemoryState.INITIAL
             }
         } else {
             block()
@@ -63,18 +65,24 @@ class ConstraintResolver(
     internal fun resolveModels(parameters: List<SymbolicValue>): ConstrainedExecution {
         varBuilder = UtVarBuilder(holder, typeRegistry, typeResolver)
         val allAddresses = UtExprCollector { it is UtAddrExpression }.let {
-            holder.constraints.hard.forEach { constraint -> constraint.accept(it) }
-//            holder.constraints.soft.forEach { constraint -> constraint.accept(it) }
+            holder.constraints.hard.forEach { constraint ->
+                constraint.accept(it)
+            }
+            if (useSoftConstraints) {
+                holder.constraints.soft.forEach { constraint ->
+                    constraint.accept(it)
+                }
+            }
             it.results
         }.groupBy { holder.concreteAddr(it as UtAddrExpression) }.mapValues { it.value.toSet() }
         val staticsBefore = memory.staticFields().map { (fieldId, states) -> fieldId to states.stateBefore }
         val staticsAfter = memory.staticFields().map { (fieldId, states) -> fieldId to states.stateAfter }
 
-        val modelsBefore = withMemoryState(INITIAL) {
+        val modelsBefore = withMemoryState(MemoryState.INITIAL) {
             internalResolveModel(parameters, staticsBefore, allAddresses)
         }
 
-        val modelsAfter = withMemoryState(CURRENT) {
+        val modelsAfter = withMemoryState(MemoryState.CURRENT) {
             val resolvedModels = internalResolveModel(parameters, staticsAfter, allAddresses)
             resolvedModels
         }
@@ -99,17 +107,22 @@ class ConstraintResolver(
         return ResolvedModels(parameterModels, allStatics)
     }
 
-    fun resolveModel(value: SymbolicValue, addrs: Map<Address, Set<UtExpression>>): UtModel = when (value) {
+    private fun resolveModel(
+        value: SymbolicValue,
+        addrs: Map<Address, Set<UtExpression>>
+    ): UtModel = when (value) {
         is PrimitiveValue -> buildModel(
-            collectAtoms(value, addrs),
             value.expr.variable,
-            emptySet()
+            collectAtoms(value, addrs),
+            emptySet(),
+            null
         )
 
         is ReferenceValue -> buildModel(
-            collectAtoms(value, addrs),
             value.addr.variable,
-            addrs[value.addr.variable.addr]!!.map { it.variable }.toSet()
+            collectAtoms(value, addrs),
+            addrs[value.addr.variable.addr]!!.map { it.variable }.toSet(),
+            value.concrete?.value
         )
     }
 
@@ -118,9 +131,11 @@ class ConstraintResolver(
             holder.constraints.hard.forEach {
                 it.accept(this)
             }
-//            holder.constraints.soft.forEach {
-//                it.accept(this)
-//            }
+            if (useSoftConstraints) {
+                holder.constraints.soft.forEach {
+                    it.accept(this)
+                }
+            }
             result
         }.mapNotNull {
             it.accept(UtConstraintBuilder(varBuilder))
@@ -136,9 +151,10 @@ class ConstraintResolver(
         }
 
     private fun buildModel(
-        atoms: Set<UtConstraint>,
         variable: UtConstraintVariable,
-        aliases: Set<UtConstraintVariable>
+        atoms: Set<UtConstraint>,
+        aliases: Set<UtConstraintVariable>,
+        concrete: Any? = null
     ): UtModel = when {
         variable.isPrimitive -> buildPrimitiveModel(atoms, variable, aliases)
         variable.addr == NULL_ADDR -> UtNullModel(variable.classId)
@@ -151,7 +167,7 @@ class ConstraintResolver(
             resolvedConstraints[variable.addr] = it
         }
 
-        else -> buildObjectModel(atoms, variable, aliases).also {
+        else -> buildObjectModel(atoms, variable, aliases, concrete).also {
             resolvedConstraints[variable.addr] = it
         }
     }
@@ -176,7 +192,8 @@ class ConstraintResolver(
     private fun buildObjectModel(
         atoms: Set<UtConstraint>,
         variable: UtConstraintVariable,
-        aliases: Set<UtConstraintVariable>
+        aliases: Set<UtConstraintVariable>,
+        concrete: Any? = null
     ): UtModel {
         assert(!variable.isPrimitive && !variable.isArray)
         assert(aliases.all { !it.isPrimitive && !it.isArray })
@@ -187,7 +204,7 @@ class ConstraintResolver(
         }.toSet()
 
         return UtReferenceConstraintModel(
-            variable, refConstraints
+            variable, refConstraints, concrete
         )
     }
 
@@ -205,13 +222,13 @@ class ConstraintResolver(
             it is UtConstraintArrayLength && it.instance in allAliases
         }.toSet()
         val lengthVariable = UtConstraintArrayLength(variable)
-        val lengthModel = buildModel(atoms, lengthVariable, lengths)
+        val lengthModel = buildModel(lengthVariable, atoms, lengths, null)
         val concreteLength = lengths.firstOrNull()?.let { holder.eval(it.expr).value() as Int } ?: 100
 
         val indexMap = atoms
             .flatMap {
-                it.accept(UtConstraintVariableCollector { indx ->
-                    indx is UtConstraintArrayAccess && indx.instance in allAliases
+                it.accept(UtConstraintVariableCollector { index ->
+                    index is UtConstraintArrayAccess && index.instance in allAliases
                 })
             }
             .map { (it as UtConstraintArrayAccess).index }
@@ -236,7 +253,7 @@ class ConstraintResolver(
             val indexAliases = indices.flatMap { idx ->
                 allAliases.map { UtConstraintArrayAccess(it, idx, elementClassId) }
             }.toSet()
-            val res = buildModel(atoms, arrayAccess, indexAliases).withConstraints(
+            val res = buildModel(arrayAccess, atoms, indexAliases, null).withConstraints(
                 indices.map { UtEqConstraint(it, indexVariable) }.toSet() + setOf(
                     UtGeConstraint(indexVariable, UtConstraintNumericConstant(0)),
                     UtLtConstraint(indexVariable, lengthVariable)
@@ -265,22 +282,3 @@ class ConstraintResolver(
         else -> this
     }
 }
-
-private fun UtConstraint.flatMap() = flatMap { true }
-private fun UtConstraint.flatMap(predicate: (UtConstraintVariable) -> Boolean) =
-    this.accept(UtConstraintVariableCollector(predicate))
-
-private fun UtConstraint.first(predicate: (UtConstraintVariable) -> Boolean) =
-    this.accept(UtConstraintVariableCollector(predicate)).first()
-
-private fun UtConstraint.any(predicate: (UtConstraintVariable) -> Boolean) =
-    this.accept(UtConstraintVariableCollector(predicate)).isNotEmpty()
-
-private operator fun UtConstraint.contains(variable: UtConstraintVariable) = this.accept(UtConstraintVariableCollector {
-    it == variable
-}).isNotEmpty()
-
-private operator fun UtConstraint.contains(variables: Set<UtConstraintVariable>) =
-    this.accept(UtConstraintVariableCollector {
-        it in variables
-    }).isNotEmpty()

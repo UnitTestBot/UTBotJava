@@ -46,7 +46,7 @@ class Synthesizer(
     private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
     private val unitChecker = SynthesisUnitChecker(objectClassId.toSoot())
 
-    fun synthesize(timeLimit: Long = 100000L): List<UtModel>? {
+    fun synthesize(timeLimit: Long = 10000L): List<UtModel>? {
         val currentTime = { System.currentTimeMillis() }
         val startTime = currentTime()
         while (queueIterator.hasNext() && ((currentTime() - startTime) < timeLimit)) {

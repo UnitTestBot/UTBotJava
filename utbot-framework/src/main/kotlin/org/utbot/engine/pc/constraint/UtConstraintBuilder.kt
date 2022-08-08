@@ -24,7 +24,6 @@ class UtConstraintBuilder(
         if ("addrToType" in expr.toString()) return true
         if ("addrToNumDimensions" in expr.toString()) return true
         if ("isMock" in expr.toString()) return true
-        if ("org.utbot.engine.overrides.collections." in expr.toString()) return true
         return false
     }
 
@@ -122,8 +121,8 @@ class UtConstraintBuilder(
             }
 
             Ne -> when (lhv.isPrimitive && rhv.isPrimitive) {
-                true -> UtNeqConstraint(lhv, rhv)
-                false -> UtRefNeqConstraint(lhv, rhv.wrapToRef())
+                true -> UtEqConstraint(lhv, rhv).negated()
+                false -> UtEqConstraint(lhv, rhv.wrapToRef()).negated()
             }
         }
     }
@@ -147,7 +146,11 @@ class UtConstraintBuilder(
     }
 
     override fun visit(expr: UtIsGenericTypeExpression): UtConstraint = applyConstraint(expr) {
-        UtBoolConstraint(expr.accept(varBuilder))
+        UtRefGenericTypeConstraint(
+            expr.addr.accept(varBuilder),
+            expr.baseAddr.accept(varBuilder),
+            expr.parameterTypeIndex
+        )
     }!!
 
     override fun visit(expr: UtEqGenericTypeParametersExpression): UtConstraint? = applyConstraint(expr) {
@@ -155,7 +158,7 @@ class UtConstraintBuilder(
 
         val lhv = expr.firstAddr.accept(varBuilder)
         val rhv = expr.secondAddr.accept(varBuilder)
-        UtRefEqConstraint(lhv, rhv)
+        UtRefGenericEqConstraint(lhv, rhv, expr.indexMapping)
     }
 
     override fun visit(expr: UtInstanceOfExpression): UtConstraint? = applyConstraint(expr) {

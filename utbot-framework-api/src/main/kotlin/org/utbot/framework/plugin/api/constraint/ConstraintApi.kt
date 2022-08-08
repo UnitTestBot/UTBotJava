@@ -1,14 +1,11 @@
 package org.utbot.framework.plugin.api
 
+import org.utbot.framework.plugin.api.constraint.UtConstraintVariableCollector
 import org.utbot.framework.plugin.api.util.*
 
 sealed class UtConstraintVariable {
     abstract val classId: ClassId
-    val isPrimitive get() = try {
-        classId.isPrimitive
-    } catch (e: Throwable) {
-        throw e
-    }
+    val isPrimitive get() = classId.isPrimitive
     val isArray get() = classId.isArray
 
     abstract fun <T> accept(visitor: UtConstraintVariableVisitor<T>): T
@@ -317,10 +314,19 @@ sealed class UtConstraint {
     abstract fun <T> accept(visitor: UtConstraintVisitor<T>): T
 }
 
+data class UtNegatedConstraint(val constraint: UtConstraint) : UtConstraint() {
+    override fun negated(): UtConstraint = constraint
+    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
+        return visitor.visitUtNegatedConstraint(this)
+    }
+
+    override fun toString(): String = "!($constraint)"
+}
+
 sealed class UtReferenceConstraint : UtConstraint()
 
 data class UtRefEqConstraint(val lhv: UtConstraintVariable, val rhv: UtConstraintVariable) : UtReferenceConstraint() {
-    override fun negated(): UtConstraint = UtRefNeqConstraint(lhv, rhv)
+    override fun negated(): UtConstraint = UtNegatedConstraint(this)
 
     override fun toString(): String = "$lhv == $rhv"
 
@@ -329,18 +335,22 @@ data class UtRefEqConstraint(val lhv: UtConstraintVariable, val rhv: UtConstrain
     }
 }
 
-data class UtRefNeqConstraint(val lhv: UtConstraintVariable, val rhv: UtConstraintVariable) : UtReferenceConstraint() {
-    override fun negated(): UtConstraint = UtRefEqConstraint(lhv, rhv)
+data class UtRefGenericEqConstraint(
+    val lhv: UtConstraintVariable,
+    val rhv: UtConstraintVariable,
+    val mapping: Map<Int, Int>
+) : UtReferenceConstraint() {
+    override fun negated(): UtConstraint = UtNegatedConstraint(this)
 
-    override fun toString(): String = "$lhv != $rhv"
+    override fun toString(): String = "$lhv == $rhv <$mapping>"
 
     override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
-        return visitor.visitUtRefNeqConstraint(this)
+        return visitor.visitUtRefGenericEqConstraint(this)
     }
 }
 
 data class UtRefTypeConstraint(val operand: UtConstraintVariable, val type: ClassId) : UtReferenceConstraint() {
-    override fun negated(): UtConstraint = UtRefNotTypeConstraint(operand, type)
+    override fun negated(): UtConstraint = UtNegatedConstraint(this)
 
     override fun toString(): String = "$operand is $type"
 
@@ -349,15 +359,20 @@ data class UtRefTypeConstraint(val operand: UtConstraintVariable, val type: Clas
     }
 }
 
-data class UtRefNotTypeConstraint(val operand: UtConstraintVariable, val type: ClassId) : UtReferenceConstraint() {
-    override fun negated(): UtConstraint = UtRefTypeConstraint(operand, type)
+data class UtRefGenericTypeConstraint(
+    val operand: UtConstraintVariable,
+    val base: UtConstraintVariable,
+    val parameterIndex: Int
+) : UtReferenceConstraint() {
+    override fun negated(): UtConstraint = UtNegatedConstraint(this)
 
-    override fun toString(): String = "$operand !is $type"
+    override fun toString(): String = "$operand is $base<$parameterIndex>"
 
     override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
-        return visitor.visitUtRefNotTypeConstraint(this)
+        return visitor.visitUtRefGenericTypeConstraint(this)
     }
 }
+
 
 sealed class UtPrimitiveConstraint : UtConstraint()
 
@@ -370,22 +385,12 @@ data class UtBoolConstraint(val operand: UtConstraintVariable) : UtPrimitiveCons
 }
 
 data class UtEqConstraint(val lhv: UtConstraintVariable, val rhv: UtConstraintVariable) : UtPrimitiveConstraint() {
-    override fun negated(): UtConstraint = UtNeqConstraint(lhv, rhv)
+    override fun negated(): UtConstraint = UtNegatedConstraint(this)
 
     override fun toString(): String = "$lhv == $rhv"
 
     override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
         return visitor.visitUtEqConstraint(this)
-    }
-}
-
-data class UtNeqConstraint(val lhv: UtConstraintVariable, val rhv: UtConstraintVariable) : UtPrimitiveConstraint() {
-    override fun negated(): UtConstraint = UtEqConstraint(lhv, rhv)
-
-    override fun toString(): String = "$lhv != $rhv"
-
-    override fun <T> accept(visitor: UtConstraintVisitor<T>): T {
-        return visitor.visitUtNeqConstraint(this)
     }
 }
 
@@ -448,6 +453,20 @@ data class UtOrConstraint(val lhv: UtConstraint, val rhv: UtConstraint) : UtPrim
         return visitor.visitUtOrConstraint(this)
     }
 }
+
+
+fun UtConstraint.flatMap() = flatMap { true }
+fun UtConstraint.flatMap(predicate: (UtConstraintVariable) -> Boolean) =
+    this.accept(UtConstraintVariableCollector(predicate))
+
+operator fun UtConstraint.contains(variable: UtConstraintVariable) = this.accept(UtConstraintVariableCollector {
+    it == variable
+}).isNotEmpty()
+
+operator fun UtConstraint.contains(variables: Set<UtConstraintVariable>) =
+    this.accept(UtConstraintVariableCollector {
+        it in variables
+    }).isNotEmpty()
 
 data class ConstrainedExecution(
     val modelsBefore: List<UtModel>,

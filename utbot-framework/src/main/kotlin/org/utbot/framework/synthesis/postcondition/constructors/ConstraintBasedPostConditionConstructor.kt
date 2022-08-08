@@ -355,16 +355,20 @@ private class UtConstraintBuilder(
         )
     }
 
+    override fun visitUtNegatedConstraint(expr: UtNegatedConstraint): UtBoolExpression = with(expr) {
+        mkNot(constraint.accept(this@UtConstraintBuilder))
+    }
+
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint): UtBoolExpression = with(expr) {
         val lhvVal = lhv.accept(this@UtConstraintBuilder)
         val rhvVal = rhv.accept(this@UtConstraintBuilder)
         mkEq(lhvVal, rhvVal)
     }
 
-    override fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint): UtBoolExpression = with(expr) {
+    override fun visitUtRefGenericEqConstraint(expr: UtRefGenericEqConstraint) = with(expr) {
         val lhvVal = lhv.accept(this@UtConstraintBuilder)
         val rhvVal = rhv.accept(this@UtConstraintBuilder)
-        mkNot(mkEq(lhvVal, rhvVal))
+        UtEqGenericTypeParametersExpression(lhvVal.addr, rhvVal.addr, mapping)
     }
 
     override fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): UtBoolExpression = with(expr) {
@@ -373,10 +377,10 @@ private class UtConstraintBuilder(
         engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint()
     }
 
-    override fun visitUtRefNotTypeConstraint(expr: UtRefNotTypeConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = operand.accept(this@UtConstraintBuilder)
-        val type = type.toSootType()
-        mkNot(engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint())
+    override fun visitUtRefGenericTypeConstraint(expr: UtRefGenericTypeConstraint): UtBoolExpression = with(expr) {
+        val operandVal = operand.accept(this@UtConstraintBuilder)
+        val baseVal = base.accept(this@UtConstraintBuilder)
+        UtIsGenericTypeExpression(operandVal.addr, baseVal.addr, parameterIndex)
     }
 
     override fun visitUtBoolConstraint(expr: UtBoolConstraint): UtBoolExpression =
@@ -386,12 +390,6 @@ private class UtConstraintBuilder(
         val lhvVal = lhv.accept(this@UtConstraintBuilder)
         val rhvVal = rhv.accept(this@UtConstraintBuilder)
         mkEq(lhvVal, rhvVal)
-    }
-
-    override fun visitUtNeqConstraint(expr: UtNeqConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder)
-        val rhvVal = rhv.accept(this@UtConstraintBuilder)
-        mkNot(mkEq(lhvVal, rhvVal))
     }
 
     override fun visitUtLtConstraint(expr: UtLtConstraint): UtBoolExpression = with(expr) {

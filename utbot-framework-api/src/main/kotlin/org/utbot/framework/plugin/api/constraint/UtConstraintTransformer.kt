@@ -1,4 +1,4 @@
-package org.utbot.engine
+package org.utbot.framework.plugin.api.constraint
 
 import org.utbot.framework.plugin.api.*
 
@@ -159,6 +159,12 @@ class UtConstraintTransformer(
         )
     }
 
+    override fun visitUtNegatedConstraint(expr: UtNegatedConstraint): UtConstraint = with(expr) {
+        UtNegatedConstraint(
+            expr.constraint.accept(this@UtConstraintTransformer)
+        )
+    }
+
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint) = with(expr) {
         UtRefEqConstraint(
             lhv.accept(this@UtConstraintTransformer),
@@ -166,10 +172,11 @@ class UtConstraintTransformer(
         )
     }
 
-    override fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint) = with(expr) {
-        UtRefNeqConstraint(
+    override fun visitUtRefGenericEqConstraint(expr: UtRefGenericEqConstraint): UtConstraint = with(expr) {
+        UtRefGenericEqConstraint(
             lhv.accept(this@UtConstraintTransformer),
-            rhv.accept(this@UtConstraintTransformer)
+            rhv.accept(this@UtConstraintTransformer),
+            mapping
         )
     }
 
@@ -180,12 +187,14 @@ class UtConstraintTransformer(
         )
     }
 
-    override fun visitUtRefNotTypeConstraint(expr: UtRefNotTypeConstraint) = with(expr) {
-        UtRefNotTypeConstraint(
+    override fun visitUtRefGenericTypeConstraint(expr: UtRefGenericTypeConstraint): UtConstraint = with(expr) {
+        UtRefGenericTypeConstraint(
             operand.accept(this@UtConstraintTransformer),
-            type
+            base.accept(this@UtConstraintTransformer),
+            parameterIndex
         )
     }
+
 
     override fun visitUtBoolConstraint(expr: UtBoolConstraint) = with(expr) {
         UtBoolConstraint(
@@ -195,13 +204,6 @@ class UtConstraintTransformer(
 
     override fun visitUtEqConstraint(expr: UtEqConstraint) = with(expr) {
         UtEqConstraint(
-            lhv.accept(this@UtConstraintTransformer),
-            rhv.accept(this@UtConstraintTransformer)
-        )
-    }
-
-    override fun visitUtNeqConstraint(expr: UtNeqConstraint) = with(expr) {
-        UtNeqConstraint(
             lhv.accept(this@UtConstraintTransformer),
             rhv.accept(this@UtConstraintTransformer)
         )

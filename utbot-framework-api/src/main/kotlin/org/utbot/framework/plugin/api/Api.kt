@@ -461,7 +461,8 @@ data class UtPrimitiveConstraintModel(
 
 data class UtReferenceConstraintModel(
     override val variable: UtConstraintVariable,
-    override val utConstraints: Set<UtConstraint>
+    override val utConstraints: Set<UtConstraint>,
+    val concrete: Any? = null
 ) : UtConstraintModel(variable, utConstraints) {
     fun isNull() = utConstraints.any {
         it is UtRefEqConstraint && it.lhv == variable && it.rhv is UtConstraintNull

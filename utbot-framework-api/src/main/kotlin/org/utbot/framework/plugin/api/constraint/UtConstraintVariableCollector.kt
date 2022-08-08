@@ -1,4 +1,4 @@
-package org.utbot.engine
+package org.utbot.framework.plugin.api.constraint
 
 import org.utbot.framework.plugin.api.*
 
@@ -123,12 +123,16 @@ class UtConstraintVariableCollector(
         expr.operand.accept(this)
     }
 
+    override fun visitUtNegatedConstraint(expr: UtNegatedConstraint) = visitConstraint(expr) {
+        expr.constraint.accept(this)
+    }
+
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint) = visitConstraint(expr) {
         expr.lhv.accept(this)
         expr.rhv.accept(this)
     }
 
-    override fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint) = visitConstraint(expr) {
+    override fun visitUtRefGenericEqConstraint(expr: UtRefGenericEqConstraint) = visitConstraint(expr) {
         expr.lhv.accept(this)
         expr.rhv.accept(this)
     }
@@ -137,8 +141,9 @@ class UtConstraintVariableCollector(
         expr.operand.accept(this)
     }
 
-    override fun visitUtRefNotTypeConstraint(expr: UtRefNotTypeConstraint) = visitConstraint(expr) {
+    override fun visitUtRefGenericTypeConstraint(expr: UtRefGenericTypeConstraint) = visitConstraint(expr) {
         expr.operand.accept(this)
+        expr.base.accept(this)
     }
 
     override fun visitUtBoolConstraint(expr: UtBoolConstraint) = visitConstraint(expr) {
@@ -146,11 +151,6 @@ class UtConstraintVariableCollector(
     }
 
     override fun visitUtEqConstraint(expr: UtEqConstraint) = visitConstraint(expr) {
-        expr.lhv.accept(this)
-        expr.rhv.accept(this)
-    }
-
-    override fun visitUtNeqConstraint(expr: UtNeqConstraint) = visitConstraint(expr) {
         expr.lhv.accept(this)
         expr.rhv.accept(this)
     }

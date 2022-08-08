@@ -31,14 +31,17 @@ interface UtConstraintVariableVisitor<T> {
 }
 
 interface UtConstraintVisitor<T> {
+    fun visitUtNegatedConstraint(expr: UtNegatedConstraint): T
+
     fun visitUtRefEqConstraint(expr: UtRefEqConstraint): T
-    fun visitUtRefNeqConstraint(expr: UtRefNeqConstraint): T
+
+    fun visitUtRefGenericEqConstraint(expr: UtRefGenericEqConstraint): T
+
     fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): T
-    fun visitUtRefNotTypeConstraint(expr: UtRefNotTypeConstraint): T
+    fun visitUtRefGenericTypeConstraint(expr: UtRefGenericTypeConstraint): T
 
     fun visitUtBoolConstraint(expr: UtBoolConstraint): T
     fun visitUtEqConstraint(expr: UtEqConstraint): T
-    fun visitUtNeqConstraint(expr: UtNeqConstraint): T
     fun visitUtLtConstraint(expr: UtLtConstraint): T
     fun visitUtGtConstraint(expr: UtGtConstraint): T
     fun visitUtLeConstraint(expr: UtLeConstraint): T

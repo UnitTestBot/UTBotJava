@@ -104,7 +104,11 @@ internal abstract class AbstractPostConditionTest(
         UtBotTestCaseGenerator.init(buildDir, classpath = null, dependencyPaths = System.getProperty("java.class.path"))
         val testCase = UtTestCase(
             method,
-            UtBotTestCaseGenerator.generateWithPostCondition(method.toSootMethod(), mockStrategy, postConditionConstructor),
+            UtBotTestCaseGenerator.generateWithPostCondition(
+                method.toSootMethod(),
+                mockStrategy,
+                postConditionConstructor
+            ),
             jimpleBody(method)
         )
         return testCase

@@ -44,6 +44,7 @@ import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.utbot.engine.*
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
+import org.utbot.engine.selectors.strategies.defaultScoringStrategy
 import org.utbot.framework.UtSettings.enableSynthesis
 import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
@@ -375,7 +376,7 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         method: SootMethod,
         mockStrategy: MockStrategyApi,
         postConditionConstructor: PostConditionConstructor,
-        scoringStrategy: ScoringStrategyBuilder
+        scoringStrategy: ScoringStrategyBuilder = defaultScoringStrategy
     ): List<UtExecution> {
         if (isCanceled()) return emptyList()
 

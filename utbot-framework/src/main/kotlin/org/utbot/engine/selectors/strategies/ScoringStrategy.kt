@@ -29,6 +29,8 @@ class ScoringStrategyBuilder(
         ModelSynthesisScoringStrategy(graph, targets, typeRegistry)
 }
 
+val defaultScoringStrategy get() = ScoringStrategyBuilder(emptyMap())
+
 
 private typealias Path = PersistentList<Stmt>
 

@@ -144,7 +144,10 @@ class SynthesisMethodContext(
         val parametersWithoutThis = parameterLocals.drop(1)
 
         val sootMethod = method.classId.toSoot().methods.first { it.pureJavaSignature == method.signature }
-        val invokeStmt = sootMethod.toVirtualInvoke(local, parametersWithoutThis).toInvokeStmt()
+        val invokeStmt = when {
+            sootMethod.declaringClass.isInterface -> sootMethod.toInterfaceInvoke(local, parametersWithoutThis)
+            else -> sootMethod.toVirtualInvoke(local, parametersWithoutThis)
+        }.toInvokeStmt()
 
         stmts += invokeStmt
 

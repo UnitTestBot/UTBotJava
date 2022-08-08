@@ -1,7 +1,6 @@
 package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
-import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -24,9 +23,6 @@ class SynthesisUnitChecker(
         val synthesisMethodContext = SynthesisMethodContext(synthesisUnitContext)
         val method = synthesisMethodContext.method("\$initializer_${id++}", declaringClass)
 
-        val scoringStrategy = ScoringStrategyBuilder(
-            emptyMap()
-        )
         val execution = run {
             val executions = UtBotTestCaseGenerator.generateWithPostCondition(
                 method,
@@ -35,8 +31,7 @@ class SynthesisUnitChecker(
                     parameters,
                     synthesisUnitContext,
                     synthesisMethodContext
-                ),
-                scoringStrategy
+                )
             )
             executions.firstOrNull { it.result is UtExecutionSuccess }
         } ?: return null

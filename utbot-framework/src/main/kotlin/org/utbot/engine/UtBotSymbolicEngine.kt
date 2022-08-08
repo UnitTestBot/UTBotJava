@@ -29,6 +29,7 @@ import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
 import org.utbot.engine.MockStrategy.NO_MOCKS
+import org.utbot.engine.constraints.ConstraintResolver
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
 import org.utbot.engine.overrides.UtOverrideMock

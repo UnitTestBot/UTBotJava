@@ -41,6 +41,7 @@ fun Expr.value(unsigned: Boolean = false): Any = when (this) {
 }
 
 internal fun Expr.intValue() = this.value() as Int
+internal fun Expr.boolValue() = this.value() as Boolean
 
 /**
  * Converts a variable to given type.

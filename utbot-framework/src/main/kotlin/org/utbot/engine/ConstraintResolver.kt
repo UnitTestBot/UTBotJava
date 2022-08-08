@@ -4,6 +4,7 @@ import org.utbot.engine.MemoryState.CURRENT
 import org.utbot.engine.MemoryState.INITIAL
 import org.utbot.engine.MemoryState.STATIC_INITIAL
 import org.utbot.engine.pc.*
+import org.utbot.engine.pc.constraint.UtVarBuilder
 import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.intClassId

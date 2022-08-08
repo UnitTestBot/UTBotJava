@@ -1,6 +1,8 @@
-package org.utbot.engine.pc
+package org.utbot.engine.pc.constraint
 
 import org.utbot.engine.*
+import org.utbot.engine.pc.*
+import org.utbot.engine.z3.boolValue
 import org.utbot.engine.z3.intValue
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.UtConstraintParameter
@@ -15,12 +17,12 @@ class UtVarBuilder(
     val holder: UtSolverStatusSAT,
     val typeRegistry: TypeRegistry,
     val typeResolver: TypeResolver,
-) : UtExpressionVisitor<UtConstraintVariable> {
+) : UtDefaultExpressionVisitor<UtConstraintVariable>({ throw NotSupportedByConstraintResolverException() }) {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
     val backMapping = mutableMapOf<UtConstraintVariable, UtExpression>()
 
     operator fun get(variable: UtConstraintVariable) = backMapping[variable]
-        ?: error("a")
+        ?: throw IllegalArgumentException()
 
     override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
         val res = when (val base = expr.arrayExpression.accept(this)) {
@@ -29,6 +31,7 @@ class UtVarBuilder(
                     val instance = expr.index.accept(this)
                     UtConstraintArrayLength(instance)
                 }
+
                 "RefValues_Arrays" -> expr.index.accept(this)
                 "boolean_Arrays" -> expr.index.accept(this)
                 "char_Arrays" -> expr.index.accept(this)
@@ -48,10 +51,12 @@ class UtVarBuilder(
                     }
                 }
             }
+
             is UtConstraintFieldAccess -> {
                 val index = expr.index.accept(this)
                 arrayAccess(base, index)
             }
+
             is UtConstraintNumericConstant -> expr.index.accept(this)
             is UtConstraintNull -> UtConstraintArrayAccess(base, expr.index.accept(this), objectClassId)
             else -> error("Unexpected: $base")
@@ -64,12 +69,15 @@ class UtVarBuilder(
         base.classId.isArray && index.classId.isPrimitive -> {
             UtConstraintArrayAccess(base, index, base.classId.elementClassId!!)
         }
+
         base.classId.isMap -> {
             UtConstraintArrayAccess(base, index, objectClassId)
         }
+
         base.classId.isSet -> {
             UtConstraintArrayAccess(base, index, objectClassId)
         }
+
         else -> {
             System.err.println(base)
             System.err.println(base.classId)
@@ -77,10 +85,6 @@ class UtVarBuilder(
             System.err.println(index.classId)
             index
         }
-    }
-
-    override fun visit(expr: UtConstArrayExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
     }
 
     override fun visit(expr: UtMkArrayExpression): UtConstraintVariable {
@@ -125,6 +129,7 @@ class UtVarBuilder(
                 (expr.internal as UtBvConst).name,
                 holder.findTypeOrNull(expr)?.classId ?: objectClassId
             )
+
             is UtBvLiteral -> when (internal.value) {
                 0 -> UtConstraintNull(objectClassId)
                 else -> internalAddrs.getOrPut(internal.value.toInt()) {
@@ -134,6 +139,7 @@ class UtVarBuilder(
                     )
                 }
             }
+
             else -> expr.internal.accept(this)
         }.also {
             backMapping[it] = expr
@@ -190,10 +196,6 @@ class UtVarBuilder(
         }
     }
 
-    override fun visit(expr: UtEqExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
     override fun visit(expr: UtBoolConst): UtConstraintVariable {
         return UtConstraintParameter(expr.name, booleanClassId).also {
             backMapping[it] = expr
@@ -204,14 +206,6 @@ class UtVarBuilder(
         return UtConstraintNot(expr.expr.accept(this)).also {
             backMapping[it] = expr
         }
-    }
-
-    override fun visit(expr: UtOrBoolExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtAndBoolExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
     }
 
     override fun visit(expr: UtNegExpression): UtConstraintVariable {
@@ -231,144 +225,12 @@ class UtVarBuilder(
         }
     }
 
-    override fun visit(expr: UtBoolOpExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtIsExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtGenericExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtIsGenericTypeExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtEqGenericTypeParametersExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtInstanceOfExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
     override fun visit(expr: UtIteExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtMkTermArrayExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringConst): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtConcatExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtConvertToString): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringToInt): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringLength): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringPositiveLength): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringCharAt): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringEq): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtSubstringExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtReplaceExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStartsWithExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtEndsWithExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtIndexOfExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtContainsExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtToStringExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtSeqLiteral): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayToString): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayInsert): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayInsertRange): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayRemove): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayRemoveRange): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArraySetRange): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayShiftIndexes): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtArrayApplyForAll): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtStringToArray): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtAddNoOverflowExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: UtSubNoOverflowExpression): UtConstraintVariable {
-        TODO("Not yet implemented")
+        val condValue = holder.eval(expr.condition).boolValue()
+        return when {
+            condValue -> expr.thenExpr.accept(this)
+            else -> expr.elseExpr.accept(this)
+        }
     }
 
     /**

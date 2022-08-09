@@ -35,7 +35,9 @@ task lifetimedProcessMockJar (type: Jar) {
         )
     }
 
-    from configurations.lifetimedProcessMockCompileClasspath.plus(sourceSets.lifetimedProcessMock.output).findAll {it.exists()}.collect { it.isDirectory() ? it : zipTree(it) }
+    from configurations.lifetimedProcessMockCompileClasspath.collect {
+        it.isDirectory() ? it : zipTree(it)
+    } + sourceSets.lifetimedProcessMock.output
 }
 
 task processWithRdServerMockJar (type: Jar) {
@@ -48,7 +50,9 @@ task processWithRdServerMockJar (type: Jar) {
         )
     }
 
-    from configurations.processWithRdServerMockCompileClasspath.plus(sourceSets.processWithRdServerMock.output).findAll {it.exists()}.collect { it.isDirectory() ? it : zipTree(it) }
+    from configurations.processWithRdServerMockCompileClasspath.collect {
+        it.isDirectory() ? it : zipTree(it)
+    } + sourceSets.processWithRdServerMock.output
 }
 
 test {

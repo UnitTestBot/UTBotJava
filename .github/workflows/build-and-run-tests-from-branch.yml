@@ -124,22 +124,22 @@ jobs:
             docker-ce-cli \
             containerd.io \
             docker-compose-plugin
-      - name: Run service containers on the background
-        run: |
-          printf "process_names:\n- comm:\n  - java\n" > /tmp/config.yml
-          docker run -d --name process_exporter \
-                        --publish=9256:9256 \
-                        --privileged \
-                        --volume=/proc:/host/proc \
-                        --volume=/tmp:/config \
-                          ncabatoff/process-exporter \
-                          --procfs /host/proc \
-                          -config.path /config/config.yml
-          docker run -d --name curl-process \
-                        --net="host" \
-                        --entrypoint=/bin/sh \
-                            curlimages/curl:7.84.0 \
-                            "-c" "while true; do curl localhost:9256/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+#      - name: Run service containers on the background
+#        run: |
+#          printf "process_names:\n- comm:\n  - java\n" > /tmp/config.yml
+#          docker run -d --name process_exporter \
+#                        --publish=9256:9256 \
+#                        --privileged \
+#                        --volume=/proc:/host/proc \
+#                        --volume=/tmp:/config \
+#                          ncabatoff/process-exporter \
+#                          --procfs /host/proc \
+#                          -config.path /config/config.yml
+#          docker run -d --name curl-process \
+#                        --net="host" \
+#                        --entrypoint=/bin/sh \
+#                            curlimages/curl:7.84.0 \
+#                            "-c" "while true; do curl localhost:9256/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
 #          docker run -d --name cadvisor \
 #                        --volume=/:/rootfs:ro \
 #                        --volume=/var/run:/var/run:ro \
@@ -171,6 +171,8 @@ jobs:
 
       - name: Build and run test
         run: |
+          chmod +x scripts/ps_parser.sh
+          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done &"
           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
             --tests "org.utbot.examples.collections.*"
       - name: Upload utbot-framework logs

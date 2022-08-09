@@ -783,7 +783,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                     ifStatement(
                         CgEqualTo(expectedNestedElement, nullLiteral()),
-                        trueBranch = { assertions[assertNull](actualNestedElement).toStatement() },
+                        trueBranch = { +assertions[assertNull](actualNestedElement).toStatement() },
                         falseBranch = {
                             floatingPointArraysDeepEquals(
                                 expectedArrayInfo.getNested(),
@@ -1055,7 +1055,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
                 else -> ifStatement(
                     CgEqualTo(expected, nullLiteral()),
-                    trueBranch = { testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
+                    trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
                     falseBranch = { generateDeepEqualsAssertion(expected, actual) }
                 )
             }
@@ -1188,7 +1188,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
             .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
-            ?: testSet.executions.first()
+            ?: testSet.executions
+                .firstOrNull { it.result is UtExecutionSuccess } ?: testSet.executions.first()
 
         val statics = genericExecution.stateBefore.statics
 

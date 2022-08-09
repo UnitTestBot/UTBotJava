@@ -1,6 +1,6 @@
 import ast
 import json
-from typing import Optional
+from typing import Optional, Union
 
 import astor.code_gen  # type: ignore
 from typeshed_client import OverloadedName  # type: ignore
@@ -59,7 +59,18 @@ class AstClassEncoder(json.JSONEncoder):
             def _function_statements_handler(_statement):
                 if isinstance(_statement, ast.FunctionDef):
                     method = AstFunctionDefEncoder().default(_statement)
-                    json_dump['methods'].append(method)
+                    is_property = method['is_property']
+                    del method['is_property']
+                    if is_property:
+                        del method['args']
+                        del method['kwonlyargs']
+
+                        method['annotation'] = method['returns']
+                        del method['returns']
+
+                        json_dump['fields'].append(method)
+                    else:
+                        json_dump['methods'].append(method)
                 if isinstance(_statement, ast.AnnAssign):
                     field = AstAnnAssignEncoder().default(_statement)
                     json_dump['fields'].append(field)
@@ -103,8 +114,16 @@ class AstFunctionDefEncoder(json.JSONEncoder):
                     AstArgEncoder().default(arg)
                     for arg in o.args.kwonlyargs
                 ],
+                'is_property': function_is_property(o),
             }
             return json_dump
+
+
+def function_is_property(function: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> bool:
+    return any(
+        'property' == astor.code_gen.to_source(decorator).strip()
+        for decorator in function.decorator_list
+    )
 
 
 class AstArgEncoder(json.JSONEncoder):

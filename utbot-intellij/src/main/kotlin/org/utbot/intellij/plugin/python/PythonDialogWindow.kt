@@ -50,8 +50,6 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
         )
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.pythonItems.toTypedArray()))
-    private val pathChooser = PathChooser(model)
-    private val moduleToImportField = ModuleToImportField(model)
 
     private lateinit var panel: DialogPanel
 
@@ -86,27 +84,10 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             row("Timeout for all selected functions:") {
                 component(timeoutSpinner)
             }
-            row("Add to sys.path:") {}
-            row {
-                component(Panel().apply { add(pathChooser.createPanel()) })
-            }
-            row("Module to import:") {
-                component(moduleToImportField.component)
-            }
         }
 
         updateFunctionsTable()
         return panel
-    }
-
-    private fun findTestPackageComboValue(): String {
-        val file = model.file
-        val path = file.virtualFile?.let { absoluteFilePath ->
-            ProjectFileIndex.SERVICE.getInstance(model.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
-                VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
-            }
-        } ?: SAME_PACKAGE_LABEL
-        return path.replace('/', '.')
     }
 
     private fun globalPyFunctionsToPyMemberInfo(project: Project, functions: Collection<PyFunction>): List<PyMemberInfo<PyElement>> {
@@ -174,73 +155,5 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
 
         super.doOKAction()
-    }
-
-    private class PathChooser(testsModel: PythonTestsModel) {
-        private val list = JBList(model)
-        private val decorator = ToolbarDecorator.createDecorator(list)
-        init {
-            val currentFile = testsModel.file.virtualFile.path
-            val baseDir = testsModel.project.basePath
-            if (model.isEmpty || (lastFile != currentFile && !model.contains(baseDir)))
-                model.add(0, baseDir)
-            lastFile = currentFile
-
-            decorator.disableUpDownActions()
-            decorator.setAddAction {
-                val files = chooseFiles(
-                    FileChooserDescriptor(
-                        false,
-                        true,
-                        false,
-                        false,
-                        false,
-                        true
-                    ), testsModel.project, null).map { it.path }
-                files.forEach { model.add(0, it) }
-            }
-            decorator.setRemoveAction {
-                val selectedIndex = list.selectedIndex
-                val selection = list.selectedIndices
-                selection.reversed().forEach {
-                    model.removeElementAt(it)
-                }
-                if (model.size > 0) {
-                    ScrollingUtil.selectItem(list, selectedIndex.coerceIn(0, model.size - 1))
-                }
-            }
-        }
-        fun createPanel() = decorator.createPanel()
-
-        companion object {
-            val model = DefaultListModel<String>()
-            var lastFile: String? = null
-        }
-    }
-
-    private class ModuleToImportField(model: PythonTestsModel) {
-        private val moduleToImportField = JBTextField()
-
-        init {
-            if (defaultField == null || model.file.virtualFile.path != lastFile) {
-                defaultField = model.moduleToImport
-                lastFile = model.file.virtualFile.path
-            }
-            moduleToImportField.text = defaultField
-        }
-
-        val text: String
-            get() {
-                defaultField = moduleToImportField.text
-                return moduleToImportField.text
-            }
-
-        val component: JComponent
-            get() = moduleToImportField
-
-        companion object {
-            var defaultField: String? = null
-            var lastFile: String? = null
-        }
     }
 }

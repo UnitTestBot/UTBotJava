@@ -47,10 +47,15 @@ object PythonTypesStorage {
             annotationFromStubToClassId(it.typeName, pythonPath ?: error(noPythonMsg), it.module)
         }
 
+    fun normalizeAnnotation(annotation: String): String {
+        val module = moduleOfType(annotation) ?: return annotation
+        return annotationFromStubToClassId(annotation, pythonPath ?: error(noPythonMsg), module).name
+    }
+
     fun findTypeWithMethod(
         methodName: String
     ): Set<PythonClassId> {
-        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithMethod(methodName).map { PythonClassId(it.typeName) }
+        val fromStubs = mapToClassId(StubFileFinder.findTypeWithMethod(methodName))
         val fromProject = projectClasses.mapNotNull {
             if (it.info.methods.contains(methodName)) PythonClassId(it.pythonClass.name) else null
         }
@@ -59,8 +64,8 @@ object PythonTypesStorage {
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<PythonClassId> {
-        val fromStubs = /* mapToClassId( */ StubFileFinder.findTypeWithField(fieldName).map { PythonClassId(it.typeName) }
+    ): Set<ClassId> {
+        val fromStubs = mapToClassId(StubFileFinder.findTypeWithField(fieldName))
         val fromProject = projectClasses.mapNotNull {
             if (it.info.fields.contains(fieldName)) PythonClassId(it.pythonClass.name) else null
         }

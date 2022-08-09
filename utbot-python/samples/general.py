@@ -4,6 +4,10 @@ from typing import *
 from dataclasses import dataclass
 
 
+def id_(x):
+    return x
+
+
 def f(x, y, z, a, b, c, d, e, g, h):
     if y % 2 == 0:
         x = 1 + y
@@ -18,7 +22,8 @@ def f(x, y, z, a, b, c, d, e, g, h):
     return x + y
 
 
-def g(x: List[int], y: List[Any]):
+def g(x: List[int], y: List):
+    y[0] += 1
     return x, y
 
 
@@ -83,6 +88,13 @@ def d(x: Optional[int]):
 def k(x: typing.Any):
     if x == complex(1):
         return x
+
+
+def set_small_data_labels(dates):
+    if all(x.hour == 0 and x.minute == 0 for x in dates):
+        return [x.strftime('%Y-%m-%d') for x in dates]
+    else:
+        return [x.strftime('%H:%M') for x in dates]
 
 
 # bad function

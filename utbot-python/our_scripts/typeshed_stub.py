@@ -51,48 +51,6 @@ MODULES = [
 ]
 
 
-BUILTIN_TYPES = [
-    # 'ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError', 'BrokenPipeError',
-    # 'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError',
-    # 'ConnectionRefusedError', 'ConnectionResetError', 'DeprecationWarning', 'EOFError', 'EncodingWarning',
-    # 'EnvironmentError', 'Exception', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError', 'FutureWarning',
-    # 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning', 'IndentationError', 'IndexError', 'InterruptedError',
-    # 'IsADirectoryError', 'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError', 'ModuleNotFoundError',
-    # 'NameError', 'NotADirectoryError', 'NotImplementedError', 'OSError', 'OverflowError',
-    # 'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError', 'RecursionError', 'ReferenceError',
-    # 'ResourceWarning', 'RuntimeError', 'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError',
-    # 'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError', 'TimeoutError', 'TypeError', 'UnboundLocalError',
-    # 'UnicodeDecodeError', 'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning',
-    # 'UserWarning', 'ValueError', 'Warning', 'ZeroDivisionError',
-    'Exception',
-    'bool', 'bytearray', 'bytes', 'classmethod',
-    'complex', 'dict', 'enumerate', 'filter', 'float', 'frozenset', 'int', 'list', 'map', 'memoryview', 'object',
-    'property', 'range', 'reversed', 'set', 'slice', 'staticmethod', 'str', 'super', 'tuple', 'type', 'zip'
-]
-
-BUILTIN_FUNCTIONS = [
-    # 'ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError', 'BrokenPipeError',
-    # 'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError', 'ConnectionError',
-    # 'ConnectionRefusedError', 'ConnectionResetError', 'DeprecationWarning', 'EOFError', 'EncodingWarning',
-    # 'EnvironmentError', 'Exception', 'FileExistsError', 'FileNotFoundError', 'FloatingPointError', 'FutureWarning',
-    # 'GeneratorExit', 'IOError', 'ImportError', 'ImportWarning', 'IndentationError', 'IndexError', 'InterruptedError',
-    # 'IsADirectoryError', 'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError', 'ModuleNotFoundError',
-    # 'NameError', 'NotADirectoryError', 'NotImplementedError', 'OSError', 'OverflowError', 'PendingDeprecationWarning',
-    # 'PermissionError', 'ProcessLookupError', 'RecursionError', 'ReferenceError', 'ResourceWarning', 'RuntimeError',
-    # 'RuntimeWarning', 'StopAsyncIteration', 'StopIteration', 'SyntaxError', 'SyntaxWarning', 'SystemError',
-    # 'SystemExit', 'TabError', 'TimeoutError', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError',
-    # 'UnicodeEncodeError', 'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning', 'UserWarning', 'ValueError',
-    # 'Warning', 'ZeroDivisionError',
-    'abs', 'aiter', 'all', 'anext', 'any', 'ascii', 'bin', 'bool', 'breakpoint',
-    'bytearray', 'bytes', 'callable', 'chr', 'classmethod', 'compile', 'complex', 'copyright', 'credits', 'delattr',
-    'dict', 'dir', 'display', 'divmod', 'enumerate', 'eval', 'exec', 'filter', 'float', 'format', 'frozenset',
-    'get_ipython', 'getattr', 'globals', 'hasattr', 'hash', 'help', 'hex', 'id', 'input', 'int', 'isinstance',
-    'issubclass', 'iter', 'len', 'license', 'list', 'locals', 'map', 'max', 'memoryview', 'min', 'next', 'object',
-    'oct', 'open', 'ord', 'pow', 'print', 'property', 'range', 'repr', 'reversed', 'round', 'set', 'setattr', 'slice',
-    'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type', 'vars', 'zip'
-]
-
-
 class StubFileCollector:
     def __init__(self, dataset_directory: str):
         self.methods_dataset: dict[str, Any] = defaultdict(list)
@@ -109,6 +67,7 @@ class StubFileCollector:
             module_name,
             search_context=get_search_context(version=python_version)
         )
+        print(stub)
 
         def _ast_handler(ast_: ast.AST):
             if isinstance(ast_, OverloadedName):
@@ -178,14 +137,14 @@ class StubFileCollector:
             _ast_handler(name_info.ast)
 
     def save_method_annotations(self):
-        # with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
-        #     print(json.dumps(self.classes_dataset, sort_keys=True, indent=True), file=fout)
-        #
-        # with open(f'{self.dataset_directory}/field_annotations.json', 'w') as fout:
-        #     print(json.dumps(defaultdict_to_array(self.fields_dataset), sort_keys=True, indent=True), file=fout)
-        #
-        # with open(f'{self.dataset_directory}/method_annotations.json', 'w') as fout:
-        #     print(json.dumps(defaultdict_to_array(self.methods_dataset), sort_keys=True, indent=True), file=fout)
+        with open(f'{self.dataset_directory}/class_annotations.json', 'w') as fout:
+            print(json.dumps(self.classes_dataset, sort_keys=True, indent=True), file=fout)
+
+        with open(f'{self.dataset_directory}/field_annotations.json', 'w') as fout:
+            print(json.dumps(defaultdict_to_array(self.fields_dataset), sort_keys=True, indent=True), file=fout)
+
+        with open(f'{self.dataset_directory}/method_annotations.json', 'w') as fout:
+            print(json.dumps(defaultdict_to_array(self.methods_dataset), sort_keys=True, indent=True), file=fout)
 
         with open(f'{self.dataset_directory}/function_annotations.json', 'w') as fout:
             print(json.dumps(defaultdict_to_array(self.functions_dataset), sort_keys=True, indent=True), file=fout)
@@ -239,6 +198,6 @@ if __name__ == '__main__':
 
     with suppress_stdout():
         collector = StubFileCollector('../src/main/resources')
-        for module in tqdm.tqdm(MODULES):
+        for module in tqdm.tqdm(['requests']):
             parse_submodule(module, collector)
         collector.save_method_annotations()

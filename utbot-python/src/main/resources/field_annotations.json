@@ -55,6 +55,11 @@
     "annotation": "int",
     "className": "tkinter.Event",
     "name": "time"
+   },
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "time"
    }
   ],
   "name": "time"
@@ -110,6 +115,16 @@
     "annotation": "dict[str, Any]",
     "className": "sched.Event",
     "name": "kwargs"
+   },
+   {
+    "annotation": "dict[str, Any]",
+    "className": "inspect.BoundArguments",
+    "name": "kwargs"
+   },
+   {
+    "annotation": "ParamSpecKwargs",
+    "className": "typing.ParamSpec",
+    "name": "kwargs"
    }
   ],
   "name": "kwargs"
@@ -133,6 +148,31 @@
    }
   ],
   "name": "delayfunc"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[Event]",
+    "className": "sched.scheduler",
+    "name": "queue"
+   },
+   {
+    "annotation": "Any",
+    "className": "queue.Queue",
+    "name": "queue"
+   },
+   {
+    "annotation": "list[_T]",
+    "className": "queue.PriorityQueue",
+    "name": "queue"
+   },
+   {
+    "annotation": "list[_T]",
+    "className": "queue.LifoQueue",
+    "name": "queue"
+   }
+  ],
+  "name": "queue"
  },
  {
   "definitions": [
@@ -239,6 +279,11 @@
    {
     "annotation": "(int | None)",
     "className": "tracemalloc.Filter",
+    "name": "lineno"
+   },
+   {
+    "annotation": "int",
+    "className": "tracemalloc.Frame",
     "name": "lineno"
    },
    {
@@ -458,6 +503,21 @@
    },
    {
     "annotation": "str",
+    "className": "hmac.HMAC",
+    "name": "name"
+   },
+   {
+    "annotation": "int",
+    "className": "socket.SocketIO",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "inspect.Parameter",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
     "className": "inspect.Attribute",
     "name": "name"
    },
@@ -497,6 +557,11 @@
     "name": "name"
    },
    {
+    "annotation": "str",
+    "className": "logging.LoggerAdapter",
+    "name": "name"
+   },
+   {
     "annotation": "(str | None)",
     "className": "builtins.ImportError",
     "name": "name"
@@ -532,8 +597,28 @@
     "name": "name"
    },
    {
+    "annotation": "str",
+    "className": "configparser.SectionProxy",
+    "name": "name"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "os.DirEntry",
+    "name": "name"
+   },
+   {
     "annotation": "Any",
     "className": "tkinter.Image",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "contextvars.ContextVar",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "pathlib.PurePath",
     "name": "name"
    },
    {
@@ -568,6 +653,11 @@
    },
    {
     "annotation": "str",
+    "className": "typing.IO",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
     "className": "doctest.DocTest",
     "name": "name"
    },
@@ -594,6 +684,11 @@
    {
     "annotation": "str",
     "className": "zipfile.ZipExtFile",
+    "name": "name"
+   },
+   {
+    "annotation": "str",
+    "className": "zipfile.Path",
     "name": "name"
    }
   ],
@@ -642,6 +737,11 @@
     "name": "args"
    },
    {
+    "annotation": "tuple[Any, ...]",
+    "className": "inspect.BoundArguments",
+    "name": "args"
+   },
+   {
     "annotation": "list[str]",
     "className": "inspect.Arguments",
     "name": "args"
@@ -682,8 +782,18 @@
     "name": "args"
    },
    {
+    "annotation": "ParamSpecArgs",
+    "className": "typing.ParamSpec",
+    "name": "args"
+   },
+   {
     "annotation": "list[str]",
     "className": "webbrowser.BaseBrowser",
+    "name": "args"
+   },
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "functools.partial",
     "name": "args"
    },
    {
@@ -749,6 +859,11 @@
    {
     "annotation": "dict[str, str | tuple[str, str]]",
     "className": "pydoc.Helper",
+    "name": "keywords"
+   },
+   {
+    "annotation": "dict[str, Any]",
+    "className": "functools.partial",
     "name": "keywords"
    },
    {
@@ -984,6 +1099,11 @@
    {
     "annotation": "(expr | None)",
     "className": "_ast.arg",
+    "name": "annotation"
+   },
+   {
+    "annotation": "Any",
+    "className": "inspect.Parameter",
     "name": "annotation"
    }
   ],
@@ -1460,6 +1580,11 @@
     "annotation": "_KT",
     "className": "weakref.KeyedRef",
     "name": "key"
+   },
+   {
+    "annotation": "str",
+    "className": "zoneinfo.ZoneInfo",
+    "name": "key"
    }
   ],
   "name": "key"
@@ -1494,6 +1619,11 @@
    {
     "annotation": "Any",
     "className": "tkinter.CallWrapper",
+    "name": "func"
+   },
+   {
+    "annotation": "Callable[..., _T]",
+    "className": "functools.partial",
     "name": "func"
    },
    {
@@ -1539,6 +1669,11 @@
    {
     "annotation": "(str | None)",
     "className": "_ast.Constant",
+    "name": "kind"
+   },
+   {
+    "annotation": "_ParameterKind",
+    "className": "inspect.Parameter",
     "name": "kind"
    },
    {
@@ -1655,6 +1790,16 @@
     "annotation": "(expr | None)",
     "className": "_ast.Slice",
     "name": "step"
+   },
+   {
+    "annotation": "Any",
+    "className": "builtins.slice",
+    "name": "step"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.range",
+    "name": "step"
    }
   ],
   "name": "step"
@@ -1712,6 +1857,11 @@
     "name": "type"
    },
    {
+    "annotation": "SocketKind",
+    "className": "socket.socket",
+    "name": "type"
+   },
+   {
     "annotation": "(Callable[[str], Any] | FileType | None)",
     "className": "argparse.Action",
     "name": "type"
@@ -1749,6 +1899,11 @@
    {
     "annotation": "Type[_T]",
     "className": "dataclasses.InitVar",
+    "name": "type"
+   },
+   {
+    "annotation": "int",
+    "className": "_socket.socket",
     "name": "type"
    }
   ],
@@ -1920,6 +2075,11 @@
     "annotation": "Pattern[str]",
     "className": "string.Template",
     "name": "pattern"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "typing.Pattern",
+    "name": "pattern"
    }
   ],
   "name": "pattern"
@@ -2008,6 +2168,26 @@
    },
    {
     "annotation": "bool",
+    "className": "gzip.GzipFile",
+    "name": "closed"
+   },
+   {
+    "annotation": "bool",
+    "className": "io.IOBase",
+    "name": "closed"
+   },
+   {
+    "annotation": "bool",
+    "className": "io.TextIOWrapper",
+    "name": "closed"
+   },
+   {
+    "annotation": "bool",
+    "className": "lzma.LZMAFile",
+    "name": "closed"
+   },
+   {
+    "annotation": "bool",
     "className": "mmap.mmap",
     "name": "closed"
    },
@@ -2015,9 +2195,54 @@
     "annotation": "bool",
     "className": "chunk.Chunk",
     "name": "closed"
+   },
+   {
+    "annotation": "bool",
+    "className": "typing.IO",
+    "name": "closed"
    }
   ],
   "name": "closed"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "grp.struct_group",
+    "name": "gr_name"
+   }
+  ],
+  "name": "gr_name"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(str | None)",
+    "className": "grp.struct_group",
+    "name": "gr_passwd"
+   }
+  ],
+  "name": "gr_passwd"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "grp.struct_group",
+    "name": "gr_gid"
+   }
+  ],
+  "name": "gr_gid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[str]",
+    "className": "grp.struct_group",
+    "name": "gr_mem"
+   }
+  ],
+  "name": "gr_mem"
  },
  {
   "definitions": [
@@ -2117,8 +2342,18 @@
     "name": "mode"
    },
    {
+    "annotation": "Literal['rb', 'wb', 'rwb']",
+    "className": "socket.SocketIO",
+    "name": "mode"
+   },
+   {
     "annotation": "str",
     "className": "io.FileIO",
+    "name": "mode"
+   },
+   {
+    "annotation": "float",
+    "className": "statistics.NormalDist",
     "name": "mode"
    },
    {
@@ -2134,6 +2369,11 @@
    {
     "annotation": "int",
     "className": "tarfile.TarInfo",
+    "name": "mode"
+   },
+   {
+    "annotation": "str",
+    "className": "typing.IO",
     "name": "mode"
    },
    {
@@ -2158,6 +2398,116 @@
    }
   ],
   "name": "compress"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "gzip.GzipFile",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "inspect.Traceback",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "inspect.FrameInfo",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "logging.LogRecord",
+    "name": "filename"
+   },
+   {
+    "annotation": "Any",
+    "className": "builtins.OSError",
+    "name": "filename"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "builtins.SyntaxError",
+    "name": "filename"
+   },
+   {
+    "annotation": "Any",
+    "className": "cgi.MiniFieldStorage",
+    "name": "filename"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "cgi.FieldStorage",
+    "name": "filename"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "netrc.NetrcParseError",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "code.InteractiveConsole",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "traceback.TracebackException",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "traceback.FrameSummary",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "tracemalloc.Frame",
+    "name": "filename"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "doctest.DocTest",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "warnings.WarningMessage",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "pydoc.ErrorDuringImport",
+    "name": "filename"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "zipfile.ZipFile",
+    "name": "filename"
+   },
+   {
+    "annotation": "str",
+    "className": "zipfile.ZipInfo",
+    "name": "filename"
+   }
+  ],
+  "name": "filename"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(int | None)",
+    "className": "gzip.GzipFile",
+    "name": "mtime"
+   },
+   {
+    "annotation": "int",
+    "className": "tarfile.TarInfo",
+    "name": "mtime"
+   }
+  ],
+  "name": "mtime"
  },
  {
   "definitions": [
@@ -2372,6 +2722,16 @@
     "name": "eof"
    },
    {
+    "annotation": "bool",
+    "className": "lzma.LZMADecompressor",
+    "name": "eof"
+   },
+   {
+    "annotation": "bool",
+    "className": "bz2.BZ2Decompressor",
+    "name": "eof"
+   },
+   {
     "annotation": "str",
     "className": "_sitebuiltins.Quitter",
     "name": "eof"
@@ -2528,6 +2888,126 @@
    }
   ],
   "name": "SIG_SETMASK"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_signo"
+   },
+   {
+    "annotation": "int",
+    "className": "os.waitid_result",
+    "name": "si_signo"
+   }
+  ],
+  "name": "si_signo"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_code"
+   },
+   {
+    "annotation": "int",
+    "className": "os.waitid_result",
+    "name": "si_code"
+   }
+  ],
+  "name": "si_code"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_errno"
+   }
+  ],
+  "name": "si_errno"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_pid"
+   },
+   {
+    "annotation": "int",
+    "className": "os.waitid_result",
+    "name": "si_pid"
+   }
+  ],
+  "name": "si_pid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_uid"
+   },
+   {
+    "annotation": "int",
+    "className": "os.waitid_result",
+    "name": "si_uid"
+   }
+  ],
+  "name": "si_uid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_status"
+   },
+   {
+    "annotation": "int",
+    "className": "os.waitid_result",
+    "name": "si_status"
+   }
+  ],
+  "name": "si_status"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "signal.struct_siginfo",
+    "name": "si_band"
+   }
+  ],
+  "name": "si_band"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "http.HTTPStatus",
+    "name": "phrase"
+   }
+  ],
+  "name": "phrase"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "http.HTTPStatus",
+    "name": "description"
+   },
+   {
+    "annotation": "Any",
+    "className": "optparse.OptionContainer",
+    "name": "description"
+   }
+  ],
+  "name": "description"
  },
  {
   "definitions": [
@@ -3282,6 +3762,16 @@
  {
   "definitions": [
    {
+    "annotation": "int",
+    "className": "smtpd.SMTPChannel",
+    "name": "max_command_size_limit"
+   }
+  ],
+  "name": "max_command_size_limit"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "type[SMTPChannel]",
     "className": "smtpd.SMTPServer",
     "name": "channel_class"
@@ -3318,7 +3808,27 @@
    },
    {
     "annotation": "bool",
+    "className": "builtins.staticmethod",
+    "name": "__isabstractmethod__"
+   },
+   {
+    "annotation": "bool",
+    "className": "builtins.classmethod",
+    "name": "__isabstractmethod__"
+   },
+   {
+    "annotation": "bool",
     "className": "builtins.property",
+    "name": "__isabstractmethod__"
+   },
+   {
+    "annotation": "bool",
+    "className": "functools.partialmethod",
+    "name": "__isabstractmethod__"
+   },
+   {
+    "annotation": "bool",
+    "className": "functools.singledispatchmethod",
     "name": "__isabstractmethod__"
    }
   ],
@@ -3349,6 +3859,11 @@
    {
     "annotation": "type[Exception]",
     "className": "imaplib.IMAP4",
+    "name": "readonly"
+   },
+   {
+    "annotation": "bool",
+    "className": "builtins.memoryview",
     "name": "readonly"
    }
   ],
@@ -3947,6 +4462,11 @@
     "name": "timeout"
    },
    {
+    "annotation": "(float | None)",
+    "className": "_socket.socket",
+    "name": "timeout"
+   },
+   {
     "annotation": "int",
     "className": "ftplib.FTP",
     "name": "timeout"
@@ -4004,6 +4524,11 @@
    {
     "annotation": "str",
     "className": "smtplib.SMTP",
+    "name": "user"
+   },
+   {
+    "annotation": "float",
+    "className": "os.times_result",
     "name": "user"
    }
   ],
@@ -4687,6 +5212,21 @@
  {
   "definitions": [
    {
+    "annotation": "AddressFamily",
+    "className": "socket.socket",
+    "name": "family"
+   },
+   {
+    "annotation": "int",
+    "className": "_socket.socket",
+    "name": "family"
+   }
+  ],
+  "name": "family"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "(str | None)",
     "className": "argparse.ArgumentError",
     "name": "argument_name"
@@ -5018,6 +5558,16 @@
    },
    {
     "annotation": "Any",
+    "className": "inspect.Parameter",
+    "name": "default"
+   },
+   {
+    "annotation": "Callable[[Any], Any]",
+    "className": "_json.make_encoder",
+    "name": "default"
+   },
+   {
+    "annotation": "Any",
     "className": "optparse.Option",
     "name": "default"
    },
@@ -5197,6 +5747,16 @@
  {
   "definitions": [
    {
+    "annotation": "Callable[[Any, Any, Self], BaseRequestHandler]",
+    "className": "socketserver.BaseServer",
+    "name": "RequestHandlerClass"
+   }
+  ],
+  "name": "RequestHandlerClass"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "bool",
     "className": "socketserver.TCPServer",
     "name": "allow_reuse_port"
@@ -5357,6 +5917,31 @@
  {
   "definitions": [
    {
+    "annotation": "_TypeCode",
+    "className": "array.array",
+    "name": "typecode"
+   }
+  ],
+  "name": "typecode"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "array.array",
+    "name": "itemsize"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.memoryview",
+    "name": "itemsize"
+   }
+  ],
+  "name": "itemsize"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "int",
     "className": "inspect.BlockFinder",
     "name": "indent"
@@ -5364,6 +5949,11 @@
    {
     "annotation": "int",
     "className": "modulefinder.ModuleFinder",
+    "name": "indent"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "_json.make_encoder",
     "name": "indent"
    },
    {
@@ -5442,6 +6032,26 @@
  {
   "definitions": [
    {
+    "annotation": "types.MappingProxyType[str, Parameter]",
+    "className": "inspect.Signature",
+    "name": "parameters"
+   }
+  ],
+  "name": "parameters"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "inspect.Signature",
+    "name": "return_annotation"
+   }
+  ],
+  "name": "return_annotation"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "ClassVar[Literal[_ParameterKind.POSITIONAL_ONLY]]",
     "className": "inspect.Parameter",
     "name": "POSITIONAL_ONLY"
@@ -5498,6 +6108,16 @@
    }
   ],
   "name": "arguments"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Signature",
+    "className": "inspect.BoundArguments",
+    "name": "signature"
+   }
+  ],
+  "name": "signature"
  },
  {
   "definitions": [
@@ -5624,91 +6244,6 @@
    {
     "annotation": "str",
     "className": "inspect.Traceback",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "inspect.FrameInfo",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "logging.LogRecord",
-    "name": "filename"
-   },
-   {
-    "annotation": "Any",
-    "className": "builtins.OSError",
-    "name": "filename"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "builtins.SyntaxError",
-    "name": "filename"
-   },
-   {
-    "annotation": "Any",
-    "className": "cgi.MiniFieldStorage",
-    "name": "filename"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "cgi.FieldStorage",
-    "name": "filename"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "netrc.NetrcParseError",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "code.InteractiveConsole",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "traceback.TracebackException",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "traceback.FrameSummary",
-    "name": "filename"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "doctest.DocTest",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "warnings.WarningMessage",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "pydoc.ErrorDuringImport",
-    "name": "filename"
-   },
-   {
-    "annotation": "(str | None)",
-    "className": "zipfile.ZipFile",
-    "name": "filename"
-   },
-   {
-    "annotation": "str",
-    "className": "zipfile.ZipInfo",
-    "name": "filename"
-   }
-  ],
-  "name": "filename"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "inspect.Traceback",
     "name": "function"
    },
    {
@@ -5807,6 +6342,96 @@
  {
   "definitions": [
    {
+    "annotation": "str",
+    "className": "spwd.struct_spwd",
+    "name": "sp_namp"
+   }
+  ],
+  "name": "sp_namp"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "spwd.struct_spwd",
+    "name": "sp_pwdp"
+   }
+  ],
+  "name": "sp_pwdp"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_lstchg"
+   }
+  ],
+  "name": "sp_lstchg"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_min"
+   }
+  ],
+  "name": "sp_min"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_max"
+   }
+  ],
+  "name": "sp_max"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_warn"
+   }
+  ],
+  "name": "sp_warn"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_inact"
+   }
+  ],
+  "name": "sp_inact"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_expire"
+   }
+  ],
+  "name": "sp_expire"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "spwd.struct_spwd",
+    "name": "sp_flag"
+   }
+  ],
+  "name": "sp_flag"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "Callable[..., Any]",
     "className": "io.IOBase",
     "name": "read"
@@ -5838,6 +6463,16 @@
    }
   ],
   "name": "raw"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "io.FileIO",
+    "name": "closefd"
+   }
+  ],
+  "name": "closefd"
  },
  {
   "definitions": [
@@ -5878,12 +6513,22 @@
    },
    {
     "annotation": "str",
+    "className": "tempfile.SpooledTemporaryFile",
+    "name": "encoding"
+   },
+   {
+    "annotation": "str",
     "className": "nntplib.NNTP",
     "name": "encoding"
    },
    {
     "annotation": "(str | None)",
     "className": "tokenize.Untokenizer",
+    "name": "encoding"
+   },
+   {
+    "annotation": "str",
+    "className": "typing.TextIO",
     "name": "encoding"
    },
    {
@@ -5945,6 +6590,11 @@
     "annotation": "list[tuple[int, str]]",
     "className": "configparser.ParsingError",
     "name": "errors"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "typing.TextIO",
+    "name": "errors"
    }
   ],
   "name": "errors"
@@ -5957,12 +6607,72 @@
     "name": "newlines"
    },
    {
+    "annotation": "(str | tuple[str, ...] | None)",
+    "className": "io.IncrementalNewlineDecoder",
+    "name": "newlines"
+   },
+   {
+    "annotation": "(str | tuple[str, ...] | None)",
+    "className": "tempfile.SpooledTemporaryFile",
+    "name": "newlines"
+   },
+   {
+    "annotation": "Any",
+    "className": "typing.TextIO",
+    "name": "newlines"
+   },
+   {
     "annotation": "(list[bytes] | None)",
     "className": "zipfile.ZipExtFile",
     "name": "newlines"
    }
   ],
   "name": "newlines"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "BinaryIO",
+    "className": "io.TextIOWrapper",
+    "name": "buffer"
+   },
+   {
+    "annotation": "list[str]",
+    "className": "code.InteractiveConsole",
+    "name": "buffer"
+   },
+   {
+    "annotation": "str",
+    "className": "codecs.BufferedIncrementalEncoder",
+    "name": "buffer"
+   },
+   {
+    "annotation": "bytes",
+    "className": "codecs.BufferedIncrementalDecoder",
+    "name": "buffer"
+   },
+   {
+    "annotation": "BinaryIO",
+    "className": "typing.TextIO",
+    "name": "buffer"
+   }
+  ],
+  "name": "buffer"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "io.TextIOWrapper",
+    "name": "line_buffering"
+   },
+   {
+    "annotation": "int",
+    "className": "typing.TextIO",
+    "name": "line_buffering"
+   }
+  ],
+  "name": "line_buffering"
  },
  {
   "definitions": [
@@ -5987,8 +6697,63 @@
  {
   "definitions": [
    {
+    "annotation": "(IPv4Address | None)",
+    "className": "ipaddress.IPv6Address",
+    "name": "ipv4_mapped"
+   }
+  ],
+  "name": "ipv4_mapped"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "ipaddress.IPv6Address",
+    "name": "is_site_local"
+   },
+   {
+    "annotation": "bool",
+    "className": "ipaddress.IPv6Network",
+    "name": "is_site_local"
+   }
+  ],
+  "name": "is_site_local"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(IPv4Address | None)",
+    "className": "ipaddress.IPv6Address",
+    "name": "sixtofour"
+   }
+  ],
+  "name": "sixtofour"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(tuple[IPv4Address, IPv4Address] | None)",
+    "className": "ipaddress.IPv6Address",
+    "name": "teredo"
+   }
+  ],
+  "name": "teredo"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "(int | None)",
     "className": "sre_constants.error",
+    "name": "pos"
+   },
+   {
+    "annotation": "int",
+    "className": "sre_parse.Tokenizer",
+    "name": "pos"
+   },
+   {
+    "annotation": "int",
+    "className": "typing.Match",
     "name": "pos"
    }
   ],
@@ -6094,6 +6859,11 @@
    {
     "annotation": "Any",
     "className": "sre_parse.Tokenizer",
+    "name": "string"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "typing.Match",
     "name": "string"
    }
   ],
@@ -6735,6 +7505,11 @@
     "annotation": "bool",
     "className": "ssl.SSLSocket",
     "name": "server_side"
+   },
+   {
+    "annotation": "bool",
+    "className": "ssl.SSLObject",
+    "name": "server_side"
    }
   ],
   "name": "server_side"
@@ -6744,6 +7519,11 @@
    {
     "annotation": "(str | None)",
     "className": "ssl.SSLSocket",
+    "name": "server_hostname"
+   },
+   {
+    "annotation": "(str | None)",
+    "className": "ssl.SSLObject",
     "name": "server_hostname"
    }
   ],
@@ -6763,6 +7543,21 @@
    }
   ],
   "name": "session"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(bool | None)",
+    "className": "ssl.SSLSocket",
+    "name": "session_reused"
+   },
+   {
+    "annotation": "bool",
+    "className": "ssl.SSLObject",
+    "name": "session_reused"
+   }
+  ],
+  "name": "session_reused"
  },
  {
   "definitions": [
@@ -6878,6 +7673,16 @@
    }
   ],
   "name": "verify_mode"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_SSLMethod",
+    "className": "ssl.SSLContext",
+    "name": "protocol"
+   }
+  ],
+  "name": "protocol"
  },
  {
   "definitions": [
@@ -7158,6 +7963,46 @@
   "definitions": [
    {
     "annotation": "float",
+    "className": "statistics.NormalDist",
+    "name": "mean"
+   }
+  ],
+  "name": "mean"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "statistics.NormalDist",
+    "name": "median"
+   }
+  ],
+  "name": "median"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "statistics.NormalDist",
+    "name": "stdev"
+   }
+  ],
+  "name": "stdev"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "statistics.NormalDist",
+    "name": "variance"
+   }
+  ],
+  "name": "variance"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
     "className": "statistics.LinearRegression",
     "name": "slope"
    }
@@ -7318,6 +8163,11 @@
    },
    {
     "annotation": "(str | None)",
+    "className": "traceback.FrameSummary",
+    "name": "line"
+   },
+   {
+    "annotation": "(str | None)",
     "className": "warnings.WarningMessage",
     "name": "line"
    }
@@ -7440,6 +8290,11 @@
     "annotation": "int",
     "className": "codeop.Compile",
     "name": "flags"
+   },
+   {
+    "annotation": "int",
+    "className": "typing.Pattern",
+    "name": "flags"
    }
   ],
   "name": "flags"
@@ -7464,6 +8319,11 @@
    {
     "annotation": "ClassVar[RootLogger]",
     "className": "logging.Logger",
+    "name": "root"
+   },
+   {
+    "annotation": "str",
+    "className": "pathlib.PurePath",
     "name": "root"
    }
   ],
@@ -7524,6 +8384,16 @@
    {
     "annotation": "(Logger | None)",
     "className": "logging.Logger",
+    "name": "parent"
+   },
+   {
+    "annotation": "Self",
+    "className": "pathlib.PurePath",
+    "name": "parent"
+   },
+   {
+    "annotation": "PathLike[str]",
+    "className": "zipfile.Path",
     "name": "parent"
    }
   ],
@@ -7943,6 +8813,46 @@
   "definitions": [
    {
     "annotation": "int",
+    "className": "lzma.LZMADecompressor",
+    "name": "check"
+   }
+  ],
+  "name": "check"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bytes",
+    "className": "lzma.LZMADecompressor",
+    "name": "unused_data"
+   },
+   {
+    "annotation": "bytes",
+    "className": "bz2.BZ2Decompressor",
+    "name": "unused_data"
+   }
+  ],
+  "name": "unused_data"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "lzma.LZMADecompressor",
+    "name": "needs_input"
+   },
+   {
+    "annotation": "bool",
+    "className": "bz2.BZ2Decompressor",
+    "name": "needs_input"
+   }
+  ],
+  "name": "needs_input"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
     "className": "struct.Struct",
     "name": "size"
    },
@@ -7959,6 +8869,11 @@
    {
     "annotation": "int",
     "className": "tracemalloc.StatisticDiff",
+    "name": "size"
+   },
+   {
+    "annotation": "int",
+    "className": "tracemalloc.Trace",
     "name": "size"
    },
    {
@@ -8100,6 +9015,11 @@
     "annotation": "Any",
     "className": "subprocess.CalledProcessError",
     "name": "output"
+   },
+   {
+    "annotation": "IO[str]",
+    "className": "pydoc.Helper",
+    "name": "output"
    }
   ],
   "name": "output"
@@ -8157,6 +9077,11 @@
     "name": "__dict__"
    },
    {
+    "annotation": "types.MappingProxyType[str, Any]",
+    "className": "builtins.type",
+    "name": "__dict__"
+   },
+   {
     "annotation": "dict[str, Any]",
     "className": "builtins.function",
     "name": "__dict__"
@@ -8164,6 +9089,11 @@
    {
     "annotation": "dict[str, Any]",
     "className": "types.FunctionType",
+    "name": "__dict__"
+   },
+   {
+    "annotation": "dict[str, Any]",
+    "className": "types.ModuleType",
     "name": "__dict__"
    }
   ],
@@ -8217,12 +9147,102 @@
  {
   "definitions": [
    {
+    "annotation": "type[Self]",
+    "className": "builtins.object",
+    "name": "__class__"
+   }
+  ],
+  "name": "__class__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Callable[..., _R_co]",
+    "className": "builtins.staticmethod",
+    "name": "__func__"
+   },
+   {
+    "annotation": "Callable[..., _R_co]",
+    "className": "builtins.classmethod",
+    "name": "__func__"
+   },
+   {
+    "annotation": "_StaticFunctionType",
+    "className": "types.MethodType",
+    "name": "__func__"
+   }
+  ],
+  "name": "__func__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "type",
+    "className": "builtins.type",
+    "name": "__base__"
+   }
+  ],
+  "name": "__base__"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "tuple[type, ...]",
     "className": "builtins.type",
     "name": "__bases__"
    }
   ],
   "name": "__bases__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.type",
+    "name": "__basicsize__"
+   }
+  ],
+  "name": "__basicsize__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.type",
+    "name": "__dictoffset__"
+   }
+  ],
+  "name": "__dictoffset__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.type",
+    "name": "__flags__"
+   }
+  ],
+  "name": "__flags__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.type",
+    "name": "__itemsize__"
+   }
+  ],
+  "name": "__itemsize__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[type, ...]",
+    "className": "builtins.type",
+    "name": "__mro__"
+   }
+  ],
+  "name": "__mro__"
  },
  {
   "definitions": [
@@ -8259,6 +9279,46 @@
    {
     "annotation": "str",
     "className": "types.CoroutineType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MethodType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.BuiltinFunctionType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.WrapperDescriptorType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MethodWrapperType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MethodDescriptorType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.ClassMethodDescriptorType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.GetSetDescriptorType",
+    "name": "__name__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MemberDescriptorType",
     "name": "__name__"
    },
    {
@@ -8313,11 +9373,201 @@
    },
    {
     "annotation": "str",
+    "className": "types.MethodType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.BuiltinFunctionType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.WrapperDescriptorType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MethodWrapperType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MethodDescriptorType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.ClassMethodDescriptorType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.GetSetDescriptorType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
+    "className": "types.MemberDescriptorType",
+    "name": "__qualname__"
+   },
+   {
+    "annotation": "str",
     "className": "typing.Coroutine",
     "name": "__qualname__"
    }
   ],
   "name": "__qualname__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(str | None)",
+    "className": "builtins.type",
+    "name": "__text_signature__"
+   }
+  ],
+  "name": "__text_signature__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.type",
+    "name": "__weakrefoffset__"
+   }
+  ],
+  "name": "__weakrefoffset__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.int",
+    "name": "real"
+   },
+   {
+    "annotation": "float",
+    "className": "builtins.float",
+    "name": "real"
+   },
+   {
+    "annotation": "float",
+    "className": "builtins.complex",
+    "name": "real"
+   },
+   {
+    "annotation": "Decimal",
+    "className": "_decimal.Decimal",
+    "name": "real"
+   },
+   {
+    "annotation": "Any",
+    "className": "numbers.Complex",
+    "name": "real"
+   },
+   {
+    "annotation": "Any",
+    "className": "numbers.Real",
+    "name": "real"
+   },
+   {
+    "annotation": "Fraction",
+    "className": "fractions.Fraction",
+    "name": "real"
+   }
+  ],
+  "name": "real"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.int",
+    "name": "imag"
+   },
+   {
+    "annotation": "float",
+    "className": "builtins.float",
+    "name": "imag"
+   },
+   {
+    "annotation": "float",
+    "className": "builtins.complex",
+    "name": "imag"
+   },
+   {
+    "annotation": "Decimal",
+    "className": "_decimal.Decimal",
+    "name": "imag"
+   },
+   {
+    "annotation": "Any",
+    "className": "numbers.Complex",
+    "name": "imag"
+   },
+   {
+    "annotation": "Any",
+    "className": "numbers.Real",
+    "name": "imag"
+   },
+   {
+    "annotation": "Literal[0]",
+    "className": "fractions.Fraction",
+    "name": "imag"
+   }
+  ],
+  "name": "imag"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.int",
+    "name": "numerator"
+   },
+   {
+    "annotation": "int",
+    "className": "numbers.Rational",
+    "name": "numerator"
+   },
+   {
+    "annotation": "int",
+    "className": "numbers.Integral",
+    "name": "numerator"
+   },
+   {
+    "annotation": "int",
+    "className": "fractions.Fraction",
+    "name": "numerator"
+   }
+  ],
+  "name": "numerator"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.int",
+    "name": "denominator"
+   },
+   {
+    "annotation": "int",
+    "className": "numbers.Rational",
+    "name": "denominator"
+   },
+   {
+    "annotation": "int",
+    "className": "numbers.Integral",
+    "name": "denominator"
+   },
+   {
+    "annotation": "int",
+    "className": "fractions.Fraction",
+    "name": "denominator"
+   }
+  ],
+  "name": "denominator"
  },
  {
   "definitions": [
@@ -8367,6 +9617,176 @@
  {
   "definitions": [
    {
+    "annotation": "str",
+    "className": "builtins.memoryview",
+    "name": "format"
+   },
+   {
+    "annotation": "(int | None)",
+    "className": "tarfile.TarFile",
+    "name": "format"
+   }
+  ],
+  "name": "format"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(tuple[int, ...] | None)",
+    "className": "builtins.memoryview",
+    "name": "shape"
+   }
+  ],
+  "name": "shape"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(tuple[int, ...] | None)",
+    "className": "builtins.memoryview",
+    "name": "strides"
+   }
+  ],
+  "name": "strides"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(tuple[int, ...] | None)",
+    "className": "builtins.memoryview",
+    "name": "suboffsets"
+   }
+  ],
+  "name": "suboffsets"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.memoryview",
+    "name": "ndim"
+   }
+  ],
+  "name": "ndim"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(bytes | bytearray)",
+    "className": "builtins.memoryview",
+    "name": "obj"
+   }
+  ],
+  "name": "obj"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "builtins.memoryview",
+    "name": "c_contiguous"
+   }
+  ],
+  "name": "c_contiguous"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "builtins.memoryview",
+    "name": "f_contiguous"
+   }
+  ],
+  "name": "f_contiguous"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "builtins.memoryview",
+    "name": "contiguous"
+   }
+  ],
+  "name": "contiguous"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "builtins.memoryview",
+    "name": "nbytes"
+   }
+  ],
+  "name": "nbytes"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "builtins.slice",
+    "name": "start"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.range",
+    "name": "start"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.UnicodeDecodeError",
+    "name": "start"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.UnicodeEncodeError",
+    "name": "start"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.UnicodeTranslateError",
+    "name": "start"
+   }
+  ],
+  "name": "start"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "builtins.slice",
+    "name": "stop"
+   },
+   {
+    "annotation": "int",
+    "className": "builtins.range",
+    "name": "stop"
+   }
+  ],
+  "name": "stop"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(tuple[_Cell, ...] | None)",
+    "className": "builtins.function",
+    "name": "__closure__"
+   },
+   {
+    "annotation": "(tuple[_Cell, ...] | None)",
+    "className": "types.FunctionType",
+    "name": "__closure__"
+   },
+   {
+    "annotation": "(tuple[_Cell, ...] | None)",
+    "className": "types.MethodType",
+    "name": "__closure__"
+   }
+  ],
+  "name": "__closure__"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "CodeType",
     "className": "builtins.function",
     "name": "__code__"
@@ -8390,9 +9810,29 @@
     "annotation": "(tuple[Any, ...] | None)",
     "className": "types.FunctionType",
     "name": "__defaults__"
+   },
+   {
+    "annotation": "(tuple[Any, ...] | None)",
+    "className": "types.MethodType",
+    "name": "__defaults__"
    }
   ],
   "name": "__defaults__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "dict[str, Any]",
+    "className": "builtins.function",
+    "name": "__globals__"
+   },
+   {
+    "annotation": "dict[str, Any]",
+    "className": "types.FunctionType",
+    "name": "__globals__"
+   }
+  ],
+  "name": "__globals__"
  },
  {
   "definitions": [
@@ -8560,6 +10000,11 @@
     "annotation": "str",
     "className": "tarfile.TarInfo",
     "name": "path"
+   },
+   {
+    "annotation": "AnyStr",
+    "className": "os.DirEntry",
+    "name": "path"
    }
   ],
   "name": "path"
@@ -8633,26 +10078,6 @@
    }
   ],
   "name": "characters_written"
- },
- {
-  "definitions": [
-   {
-    "annotation": "int",
-    "className": "builtins.UnicodeDecodeError",
-    "name": "start"
-   },
-   {
-    "annotation": "int",
-    "className": "builtins.UnicodeEncodeError",
-    "name": "start"
-   },
-   {
-    "annotation": "int",
-    "className": "builtins.UnicodeTranslateError",
-    "name": "start"
-   }
-  ],
-  "name": "start"
  },
  {
   "definitions": [
@@ -9182,16 +10607,6 @@
  {
   "definitions": [
    {
-    "annotation": "(int | None)",
-    "className": "tarfile.TarFile",
-    "name": "format"
-   }
-  ],
-  "name": "format"
- },
- {
-  "definitions": [
-   {
     "annotation": "type[TarInfo]",
     "className": "tarfile.TarFile",
     "name": "tarinfo"
@@ -9253,16 +10668,6 @@
    }
   ],
   "name": "errorlevel"
- },
- {
-  "definitions": [
-   {
-    "annotation": "int",
-    "className": "tarfile.TarInfo",
-    "name": "mtime"
-   }
-  ],
-  "name": "mtime"
  },
  {
   "definitions": [
@@ -9373,6 +10778,16 @@
    }
   ],
   "name": "gname"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "tarfile.TarInfo",
+    "name": "linkpath"
+   }
+  ],
+  "name": "linkpath"
  },
  {
   "definitions": [
@@ -9562,26 +10977,6 @@
  {
   "definitions": [
    {
-    "annotation": "list[str]",
-    "className": "code.InteractiveConsole",
-    "name": "buffer"
-   },
-   {
-    "annotation": "str",
-    "className": "codecs.BufferedIncrementalEncoder",
-    "name": "buffer"
-   },
-   {
-    "annotation": "bytes",
-    "className": "codecs.BufferedIncrementalDecoder",
-    "name": "buffer"
-   }
-  ],
-  "name": "buffer"
- },
- {
-  "definitions": [
-   {
     "annotation": "str",
     "className": "nntplib.NNTPError",
     "name": "response"
@@ -9634,6 +11029,11 @@
    {
     "annotation": "list[bytes]",
     "className": "nntplib.ArticleInfo",
+    "name": "lines"
+   },
+   {
+    "annotation": "int",
+    "className": "os.terminal_size",
     "name": "lines"
    }
   ],
@@ -9717,6 +11117,66 @@
  {
   "definitions": [
    {
+    "annotation": "bool",
+    "className": "_json.make_encoder",
+    "name": "sort_keys"
+   }
+  ],
+  "name": "sort_keys"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "_json.make_encoder",
+    "name": "skipkeys"
+   }
+  ],
+  "name": "skipkeys"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "_json.make_encoder",
+    "name": "key_separator"
+   }
+  ],
+  "name": "key_separator"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(dict[int, Any] | None)",
+    "className": "_json.make_encoder",
+    "name": "markers"
+   }
+  ],
+  "name": "markers"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Callable[[str], str]",
+    "className": "_json.make_encoder",
+    "name": "encoder"
+   }
+  ],
+  "name": "encoder"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "_json.make_encoder",
+    "name": "item_separator"
+   }
+  ],
+  "name": "item_separator"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "Any",
     "className": "_json.make_scanner",
     "name": "object_hook"
@@ -9763,6 +11223,66 @@
    }
   ],
   "name": "parse_float"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Encoder",
+    "className": "codecs.CodecInfo",
+    "name": "encode"
+   }
+  ],
+  "name": "encode"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Decoder",
+    "className": "codecs.CodecInfo",
+    "name": "decode"
+   }
+  ],
+  "name": "decode"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_StreamReader",
+    "className": "codecs.CodecInfo",
+    "name": "streamreader"
+   }
+  ],
+  "name": "streamreader"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_StreamWriter",
+    "className": "codecs.CodecInfo",
+    "name": "streamwriter"
+   }
+  ],
+  "name": "streamwriter"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_IncrementalEncoder",
+    "className": "codecs.CodecInfo",
+    "name": "incrementalencoder"
+   }
+  ],
+  "name": "incrementalencoder"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_IncrementalDecoder",
+    "className": "codecs.CodecInfo",
+    "name": "incrementaldecoder"
+   }
+  ],
+  "name": "incrementaldecoder"
  },
  {
   "definitions": [
@@ -9962,6 +11482,16 @@
  {
   "definitions": [
    {
+    "annotation": "(int | None)",
+    "className": "collections.deque",
+    "name": "maxlen"
+   }
+  ],
+  "name": "maxlen"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "(Callable[[], _VT] | None)",
     "className": "collections.defaultdict",
     "name": "default_factory"
@@ -9987,12 +11517,177 @@
  {
   "definitions": [
    {
+    "annotation": "Self",
+    "className": "collections.ChainMap",
+    "name": "parents"
+   },
+   {
+    "annotation": "Sequence[Self]",
+    "className": "pathlib.PurePath",
+    "name": "parents"
+   }
+  ],
+  "name": "parents"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(int | None)",
+    "className": "threading.Thread",
+    "name": "ident"
+   }
+  ],
+  "name": "ident"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "bool",
     "className": "threading.Thread",
     "name": "daemon"
    }
   ],
   "name": "daemon"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "threading.Barrier",
+    "name": "parties"
+   }
+  ],
+  "name": "parties"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "threading.Barrier",
+    "name": "n_waiting"
+   }
+  ],
+  "name": "n_waiting"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "threading.Barrier",
+    "name": "broken"
+   }
+  ],
+  "name": "broken"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_year"
+   }
+  ],
+  "name": "tm_year"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_mon"
+   }
+  ],
+  "name": "tm_mon"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_mday"
+   }
+  ],
+  "name": "tm_mday"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_hour"
+   }
+  ],
+  "name": "tm_hour"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_min"
+   }
+  ],
+  "name": "tm_min"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_sec"
+   }
+  ],
+  "name": "tm_sec"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_wday"
+   }
+  ],
+  "name": "tm_wday"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_yday"
+   }
+  ],
+  "name": "tm_yday"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_isdst"
+   }
+  ],
+  "name": "tm_isdst"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "time.struct_time",
+    "name": "tm_zone"
+   }
+  ],
+  "name": "tm_zone"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "time.struct_time",
+    "name": "tm_gmtoff"
+   }
+  ],
+  "name": "tm_gmtoff"
  },
  {
   "definitions": [
@@ -10124,6 +11819,11 @@
    {
     "annotation": "OptionParser",
     "className": "optparse.OptionGroup",
+    "name": "parser"
+   },
+   {
+    "annotation": "RawConfigParser",
+    "className": "configparser.SectionProxy",
     "name": "parser"
    }
   ],
@@ -10312,16 +12012,6 @@
  {
   "definitions": [
    {
-    "annotation": "Any",
-    "className": "optparse.OptionContainer",
-    "name": "description"
-   }
-  ],
-  "name": "description"
- },
- {
-  "definitions": [
-   {
     "annotation": "type[Option]",
     "className": "optparse.OptionContainer",
     "name": "option_class"
@@ -10423,7 +12113,17 @@
    },
    {
     "annotation": "str",
+    "className": "os.uname_result",
+    "name": "version"
+   },
+   {
+    "annotation": "str",
     "className": "platform.uname_result",
+    "name": "version"
+   },
+   {
+    "annotation": "(_Int | None)",
+    "className": "uuid.UUID",
     "name": "version"
    }
   ],
@@ -10588,6 +12288,351 @@
    }
   ],
   "name": "reference"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_mode"
+   }
+  ],
+  "name": "st_mode"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_ino"
+   }
+  ],
+  "name": "st_ino"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_dev"
+   }
+  ],
+  "name": "st_dev"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_nlink"
+   }
+  ],
+  "name": "st_nlink"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_uid"
+   }
+  ],
+  "name": "st_uid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_gid"
+   }
+  ],
+  "name": "st_gid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_size"
+   }
+  ],
+  "name": "st_size"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.stat_result",
+    "name": "st_atime"
+   }
+  ],
+  "name": "st_atime"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.stat_result",
+    "name": "st_mtime"
+   }
+  ],
+  "name": "st_mtime"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.stat_result",
+    "name": "st_ctime"
+   }
+  ],
+  "name": "st_ctime"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_atime_ns"
+   }
+  ],
+  "name": "st_atime_ns"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_mtime_ns"
+   }
+  ],
+  "name": "st_mtime_ns"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.stat_result",
+    "name": "st_ctime_ns"
+   }
+  ],
+  "name": "st_ctime_ns"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_bsize"
+   }
+  ],
+  "name": "f_bsize"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_frsize"
+   }
+  ],
+  "name": "f_frsize"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_blocks"
+   }
+  ],
+  "name": "f_blocks"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_bfree"
+   }
+  ],
+  "name": "f_bfree"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_bavail"
+   }
+  ],
+  "name": "f_bavail"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_files"
+   }
+  ],
+  "name": "f_files"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_ffree"
+   }
+  ],
+  "name": "f_ffree"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_favail"
+   }
+  ],
+  "name": "f_favail"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_flag"
+   }
+  ],
+  "name": "f_flag"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.statvfs_result",
+    "name": "f_namemax"
+   }
+  ],
+  "name": "f_namemax"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "os.uname_result",
+    "name": "sysname"
+   }
+  ],
+  "name": "sysname"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "os.uname_result",
+    "name": "nodename"
+   }
+  ],
+  "name": "nodename"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "os.uname_result",
+    "name": "release"
+   },
+   {
+    "annotation": "str",
+    "className": "platform.uname_result",
+    "name": "release"
+   }
+  ],
+  "name": "release"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "os.uname_result",
+    "name": "machine"
+   },
+   {
+    "annotation": "str",
+    "className": "platform.uname_result",
+    "name": "machine"
+   }
+  ],
+  "name": "machine"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.terminal_size",
+    "name": "columns"
+   }
+  ],
+  "name": "columns"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.times_result",
+    "name": "system"
+   },
+   {
+    "annotation": "str",
+    "className": "platform.uname_result",
+    "name": "system"
+   }
+  ],
+  "name": "system"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.times_result",
+    "name": "children_user"
+   }
+  ],
+  "name": "children_user"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.times_result",
+    "name": "children_system"
+   }
+  ],
+  "name": "children_system"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "os.times_result",
+    "name": "elapsed"
+   }
+  ],
+  "name": "elapsed"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "os.sched_param",
+    "name": "sched_priority"
+   }
+  ],
+  "name": "sched_priority"
  },
  {
   "definitions": [
@@ -11297,12 +13342,102 @@
  {
   "definitions": [
    {
+    "annotation": "ContextVar[_T]",
+    "className": "contextvars.Token",
+    "name": "var"
+   }
+  ],
+  "name": "var"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Any",
+    "className": "contextvars.Token",
+    "name": "old_value"
+   }
+  ],
+  "name": "old_value"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "ClassVar[object]",
     "className": "contextvars.Token",
     "name": "MISSING"
    }
   ],
   "name": "MISSING"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[str, ...]",
+    "className": "pathlib.PurePath",
+    "name": "parts"
+   }
+  ],
+  "name": "parts"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pathlib.PurePath",
+    "name": "drive"
+   }
+  ],
+  "name": "drive"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pathlib.PurePath",
+    "name": "anchor"
+   }
+  ],
+  "name": "anchor"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pathlib.PurePath",
+    "name": "suffix"
+   }
+  ],
+  "name": "suffix"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "list[str]",
+    "className": "pathlib.PurePath",
+    "name": "suffixes"
+   }
+  ],
+  "name": "suffixes"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pathlib.PurePath",
+    "name": "stem"
+   }
+  ],
+  "name": "stem"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "tokenize.TokenInfo",
+    "name": "exact_type"
+   }
+  ],
+  "name": "exact_type"
  },
  {
   "definitions": [
@@ -11595,6 +13730,11 @@
     "annotation": "int",
     "className": "pickletools.OpcodeInfo",
     "name": "proto"
+   },
+   {
+    "annotation": "int",
+    "className": "_socket.socket",
+    "name": "proto"
    }
   ],
   "name": "proto"
@@ -11612,12 +13752,32 @@
  {
   "definitions": [
    {
+    "annotation": "int",
+    "className": "tracemalloc.DomainFilter",
+    "name": "domain"
+   },
+   {
     "annotation": "(int | None)",
     "className": "tracemalloc.Filter",
+    "name": "domain"
+   },
+   {
+    "annotation": "int",
+    "className": "tracemalloc.Trace",
     "name": "domain"
    }
   ],
   "name": "domain"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "tracemalloc.Filter",
+    "name": "filename_pattern"
+   }
+  ],
+  "name": "filename_pattern"
  },
  {
   "definitions": [
@@ -11654,6 +13814,11 @@
    {
     "annotation": "Traceback",
     "className": "tracemalloc.StatisticDiff",
+    "name": "traceback"
+   },
+   {
+    "annotation": "Traceback",
+    "className": "tracemalloc.Trace",
     "name": "traceback"
    }
   ],
@@ -11845,6 +14010,11 @@
     "annotation": "type[_CT]",
     "className": "ctypes.pointer",
     "name": "_type_"
+   },
+   {
+    "annotation": "type[_CT]",
+    "className": "ctypes.Array",
+    "name": "_type_"
    }
   ],
   "name": "_type_"
@@ -11858,6 +14028,16 @@
    }
   ],
   "name": "contents"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "ctypes.Array",
+    "name": "_length_"
+   }
+  ],
+  "name": "_length_"
  },
  {
   "definitions": [
@@ -12082,6 +14262,156 @@
  {
   "definitions": [
    {
+    "annotation": "int",
+    "className": "types.CodeType",
+    "name": "co_argcount"
+   }
+  ],
+  "name": "co_argcount"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.CodeType",
+    "name": "co_kwonlyargcount"
+   }
+  ],
+  "name": "co_kwonlyargcount"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.CodeType",
+    "name": "co_nlocals"
+   }
+  ],
+  "name": "co_nlocals"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.CodeType",
+    "name": "co_stacksize"
+   }
+  ],
+  "name": "co_stacksize"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.CodeType",
+    "name": "co_flags"
+   }
+  ],
+  "name": "co_flags"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bytes",
+    "className": "types.CodeType",
+    "name": "co_code"
+   }
+  ],
+  "name": "co_code"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "types.CodeType",
+    "name": "co_consts"
+   }
+  ],
+  "name": "co_consts"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[str, ...]",
+    "className": "types.CodeType",
+    "name": "co_names"
+   }
+  ],
+  "name": "co_names"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[str, ...]",
+    "className": "types.CodeType",
+    "name": "co_varnames"
+   }
+  ],
+  "name": "co_varnames"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "types.CodeType",
+    "name": "co_filename"
+   }
+  ],
+  "name": "co_filename"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "types.CodeType",
+    "name": "co_name"
+   }
+  ],
+  "name": "co_name"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.CodeType",
+    "name": "co_firstlineno"
+   }
+  ],
+  "name": "co_firstlineno"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bytes",
+    "className": "types.CodeType",
+    "name": "co_lnotab"
+   }
+  ],
+  "name": "co_lnotab"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[str, ...]",
+    "className": "types.CodeType",
+    "name": "co_freevars"
+   }
+  ],
+  "name": "co_freevars"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[str, ...]",
+    "className": "types.CodeType",
+    "name": "co_cellvars"
+   }
+  ],
+  "name": "co_cellvars"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "(str | None)",
     "className": "types.ModuleType",
     "name": "__file__"
@@ -12132,12 +14462,392 @@
  {
   "definitions": [
    {
+    "annotation": "CodeType",
+    "className": "types.GeneratorType",
+    "name": "gi_code"
+   },
+   {
+    "annotation": "CodeType",
+    "className": "typing.Generator",
+    "name": "gi_code"
+   }
+  ],
+  "name": "gi_code"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "FrameType",
+    "className": "types.GeneratorType",
+    "name": "gi_frame"
+   },
+   {
+    "annotation": "FrameType",
+    "className": "typing.Generator",
+    "name": "gi_frame"
+   }
+  ],
+  "name": "gi_frame"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "types.GeneratorType",
+    "name": "gi_running"
+   },
+   {
+    "annotation": "bool",
+    "className": "typing.Generator",
+    "name": "gi_running"
+   }
+  ],
+  "name": "gi_running"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(GeneratorType[_T_co, _T_contra, Any] | None)",
+    "className": "types.GeneratorType",
+    "name": "gi_yieldfrom"
+   },
+   {
+    "annotation": "(Generator[Any, Any, Any] | None)",
+    "className": "typing.Generator",
+    "name": "gi_yieldfrom"
+   }
+  ],
+  "name": "gi_yieldfrom"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(Awaitable[Any] | None)",
+    "className": "types.AsyncGeneratorType",
+    "name": "ag_await"
+   },
+   {
+    "annotation": "Any",
+    "className": "typing.AsyncGenerator",
+    "name": "ag_await"
+   }
+  ],
+  "name": "ag_await"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "FrameType",
+    "className": "types.AsyncGeneratorType",
+    "name": "ag_frame"
+   },
+   {
+    "annotation": "FrameType",
+    "className": "typing.AsyncGenerator",
+    "name": "ag_frame"
+   }
+  ],
+  "name": "ag_frame"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "types.AsyncGeneratorType",
+    "name": "ag_running"
+   },
+   {
+    "annotation": "bool",
+    "className": "typing.AsyncGenerator",
+    "name": "ag_running"
+   }
+  ],
+  "name": "ag_running"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "CodeType",
+    "className": "types.AsyncGeneratorType",
+    "name": "ag_code"
+   },
+   {
+    "annotation": "CodeType",
+    "className": "typing.AsyncGenerator",
+    "name": "ag_code"
+   }
+  ],
+  "name": "ag_code"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(Any | None)",
+    "className": "types.CoroutineType",
+    "name": "cr_await"
+   },
+   {
+    "annotation": "(Any | None)",
+    "className": "typing.Coroutine",
+    "name": "cr_await"
+   }
+  ],
+  "name": "cr_await"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "CodeType",
+    "className": "types.CoroutineType",
+    "name": "cr_code"
+   },
+   {
+    "annotation": "CodeType",
+    "className": "typing.Coroutine",
+    "name": "cr_code"
+   }
+  ],
+  "name": "cr_code"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "FrameType",
+    "className": "types.CoroutineType",
+    "name": "cr_frame"
+   },
+   {
+    "annotation": "FrameType",
+    "className": "typing.Coroutine",
+    "name": "cr_frame"
+   }
+  ],
+  "name": "cr_frame"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "types.CoroutineType",
+    "name": "cr_running"
+   },
+   {
+    "annotation": "bool",
+    "className": "typing.Coroutine",
+    "name": "cr_running"
+   }
+  ],
+  "name": "cr_running"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "object",
+    "className": "types.MethodType",
+    "name": "__self__"
+   },
+   {
+    "annotation": "(object | ModuleType)",
+    "className": "types.BuiltinFunctionType",
+    "name": "__self__"
+   },
+   {
+    "annotation": "object",
+    "className": "types.MethodWrapperType",
+    "name": "__self__"
+   }
+  ],
+  "name": "__self__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "type",
+    "className": "types.WrapperDescriptorType",
+    "name": "__objclass__"
+   },
+   {
+    "annotation": "type",
+    "className": "types.MethodWrapperType",
+    "name": "__objclass__"
+   },
+   {
+    "annotation": "type",
+    "className": "types.MethodDescriptorType",
+    "name": "__objclass__"
+   },
+   {
+    "annotation": "type",
+    "className": "types.ClassMethodDescriptorType",
+    "name": "__objclass__"
+   },
+   {
+    "annotation": "type",
+    "className": "types.GetSetDescriptorType",
+    "name": "__objclass__"
+   },
+   {
+    "annotation": "type",
+    "className": "types.MemberDescriptorType",
+    "name": "__objclass__"
+   }
+  ],
+  "name": "__objclass__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "FrameType",
+    "className": "types.TracebackType",
+    "name": "tb_frame"
+   }
+  ],
+  "name": "tb_frame"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.TracebackType",
+    "name": "tb_lasti"
+   }
+  ],
+  "name": "tb_lasti"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.TracebackType",
+    "name": "tb_lineno"
+   }
+  ],
+  "name": "tb_lineno"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(FrameType | None)",
+    "className": "types.FrameType",
+    "name": "f_back"
+   }
+  ],
+  "name": "f_back"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "dict[str, Any]",
+    "className": "types.FrameType",
+    "name": "f_builtins"
+   }
+  ],
+  "name": "f_builtins"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "CodeType",
+    "className": "types.FrameType",
+    "name": "f_code"
+   }
+  ],
+  "name": "f_code"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "dict[str, Any]",
+    "className": "types.FrameType",
+    "name": "f_globals"
+   }
+  ],
+  "name": "f_globals"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "types.FrameType",
+    "name": "f_lasti"
+   }
+  ],
+  "name": "f_lasti"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(int | Any)",
+    "className": "types.FrameType",
+    "name": "f_lineno"
+   }
+  ],
+  "name": "f_lineno"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "dict[str, Any]",
+    "className": "types.FrameType",
+    "name": "f_locals"
+   }
+  ],
+  "name": "f_locals"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "(Callable[[FrameType, str, Any], Any] | None)",
     "className": "types.FrameType",
     "name": "f_trace"
    }
   ],
   "name": "f_trace"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "type",
+    "className": "types.GenericAlias",
+    "name": "__origin__"
+   },
+   {
+    "annotation": "ParamSpec",
+    "className": "typing.ParamSpecArgs",
+    "name": "__origin__"
+   },
+   {
+    "annotation": "ParamSpec",
+    "className": "typing.ParamSpecKwargs",
+    "name": "__origin__"
+   }
+  ],
+  "name": "__origin__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "types.GenericAlias",
+    "name": "__args__"
+   },
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "types.UnionType",
+    "name": "__args__"
+   }
+  ],
+  "name": "__args__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[Any, ...]",
+    "className": "types.GenericAlias",
+    "name": "__parameters__"
+   }
+  ],
+  "name": "__parameters__"
  },
  {
   "definitions": [
@@ -12237,12 +14947,152 @@
  {
   "definitions": [
    {
-    "annotation": "str",
-    "className": "platform.uname_result",
-    "name": "system"
+    "annotation": "int",
+    "className": "datetime.date",
+    "name": "year"
    }
   ],
-  "name": "system"
+  "name": "year"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.date",
+    "name": "month"
+   }
+  ],
+  "name": "month"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.date",
+    "name": "day"
+   }
+  ],
+  "name": "day"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.time",
+    "name": "hour"
+   },
+   {
+    "annotation": "int",
+    "className": "datetime.datetime",
+    "name": "hour"
+   }
+  ],
+  "name": "hour"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.time",
+    "name": "minute"
+   },
+   {
+    "annotation": "int",
+    "className": "datetime.datetime",
+    "name": "minute"
+   }
+  ],
+  "name": "minute"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.time",
+    "name": "second"
+   },
+   {
+    "annotation": "int",
+    "className": "datetime.datetime",
+    "name": "second"
+   }
+  ],
+  "name": "second"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.time",
+    "name": "microsecond"
+   },
+   {
+    "annotation": "int",
+    "className": "datetime.datetime",
+    "name": "microsecond"
+   }
+  ],
+  "name": "microsecond"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(_tzinfo | None)",
+    "className": "datetime.time",
+    "name": "tzinfo"
+   },
+   {
+    "annotation": "(_tzinfo | None)",
+    "className": "datetime.datetime",
+    "name": "tzinfo"
+   }
+  ],
+  "name": "tzinfo"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.time",
+    "name": "fold"
+   },
+   {
+    "annotation": "int",
+    "className": "datetime.datetime",
+    "name": "fold"
+   }
+  ],
+  "name": "fold"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.timedelta",
+    "name": "days"
+   }
+  ],
+  "name": "days"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.timedelta",
+    "name": "seconds"
+   }
+  ],
+  "name": "seconds"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "datetime.timedelta",
+    "name": "microseconds"
+   }
+  ],
+  "name": "microseconds"
  },
  {
   "definitions": [
@@ -12250,29 +15100,14 @@
     "annotation": "str",
     "className": "platform.uname_result",
     "name": "node"
+   },
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "node"
    }
   ],
   "name": "node"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "platform.uname_result",
-    "name": "release"
-   }
-  ],
-  "name": "release"
- },
- {
-  "definitions": [
-   {
-    "annotation": "str",
-    "className": "platform.uname_result",
-    "name": "machine"
-   }
-  ],
-  "name": "machine"
  },
  {
   "definitions": [
@@ -12342,27 +15177,82 @@
  {
   "definitions": [
    {
-    "annotation": "ParamSpec",
-    "className": "typing.ParamSpecArgs",
-    "name": "__origin__"
-   },
-   {
-    "annotation": "ParamSpec",
-    "className": "typing.ParamSpecKwargs",
-    "name": "__origin__"
-   }
-  ],
-  "name": "__origin__"
- },
- {
-  "definitions": [
-   {
     "annotation": "type",
     "className": "typing.NewType",
     "name": "__supertype__"
    }
   ],
   "name": "__supertype__"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "typing.Match",
+    "name": "endpos"
+   }
+  ],
+  "name": "endpos"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(int | None)",
+    "className": "typing.Match",
+    "name": "lastindex"
+   }
+  ],
+  "name": "lastindex"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "(str | None)",
+    "className": "typing.Match",
+    "name": "lastgroup"
+   }
+  ],
+  "name": "lastgroup"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Pattern[AnyStr]",
+    "className": "typing.Match",
+    "name": "re"
+   }
+  ],
+  "name": "re"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "tuple[tuple[int, int], ...]",
+    "className": "typing.Match",
+    "name": "regs"
+   }
+  ],
+  "name": "regs"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "Mapping[str, int]",
+    "className": "typing.Pattern",
+    "name": "groupindex"
+   }
+  ],
+  "name": "groupindex"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "typing.Pattern",
+    "name": "groups"
+   }
+  ],
+  "name": "groups"
  },
  {
   "definitions": [
@@ -12623,6 +15513,136 @@
    }
   ],
   "name": "unknown"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Bytes",
+    "className": "uuid.UUID",
+    "name": "bytes"
+   }
+  ],
+  "name": "bytes"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Bytes",
+    "className": "uuid.UUID",
+    "name": "bytes_le"
+   }
+  ],
+  "name": "bytes_le"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "clock_seq"
+   }
+  ],
+  "name": "clock_seq"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "clock_seq_hi_variant"
+   }
+  ],
+  "name": "clock_seq_hi_variant"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "clock_seq_low"
+   }
+  ],
+  "name": "clock_seq_low"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_FieldsType",
+    "className": "uuid.UUID",
+    "name": "fields"
+   }
+  ],
+  "name": "fields"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "uuid.UUID",
+    "name": "hex"
+   }
+  ],
+  "name": "hex"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "int"
+   }
+  ],
+  "name": "int"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "time_hi_version"
+   }
+  ],
+  "name": "time_hi_version"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "time_low"
+   }
+  ],
+  "name": "time_low"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "_Int",
+    "className": "uuid.UUID",
+    "name": "time_mid"
+   }
+  ],
+  "name": "time_mid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "uuid.UUID",
+    "name": "urn"
+   }
+  ],
+  "name": "urn"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "uuid.UUID",
+    "name": "variant"
+   }
+  ],
+  "name": "variant"
  },
  {
   "definitions": [
@@ -13032,6 +16052,86 @@
  {
   "definitions": [
    {
+    "annotation": "str",
+    "className": "pwd.struct_passwd",
+    "name": "pw_name"
+   }
+  ],
+  "name": "pw_name"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pwd.struct_passwd",
+    "name": "pw_passwd"
+   }
+  ],
+  "name": "pw_passwd"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "pwd.struct_passwd",
+    "name": "pw_uid"
+   }
+  ],
+  "name": "pw_uid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "pwd.struct_passwd",
+    "name": "pw_gid"
+   }
+  ],
+  "name": "pw_gid"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pwd.struct_passwd",
+    "name": "pw_gecos"
+   }
+  ],
+  "name": "pw_gecos"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pwd.struct_passwd",
+    "name": "pw_dir"
+   }
+  ],
+  "name": "pw_dir"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "str",
+    "className": "pwd.struct_passwd",
+    "name": "pw_shell"
+   }
+  ],
+  "name": "pw_shell"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "bool",
+    "className": "weakref.finalize",
+    "name": "alive"
+   }
+  ],
+  "name": "alive"
+ },
+ {
+  "definitions": [
+   {
     "annotation": "bool",
     "className": "weakref.finalize",
     "name": "atexit"
@@ -13428,6 +16528,16 @@
    }
   ],
   "name": "topics"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "IO[str]",
+    "className": "pydoc.Helper",
+    "name": "input"
+   }
+  ],
+  "name": "input"
  },
  {
   "definitions": [
@@ -13982,26 +17092,6 @@
  {
   "definitions": [
    {
-    "annotation": "Any",
-    "className": "queue.Queue",
-    "name": "queue"
-   },
-   {
-    "annotation": "list[_T]",
-    "className": "queue.PriorityQueue",
-    "name": "queue"
-   },
-   {
-    "annotation": "list[_T]",
-    "className": "queue.LifoQueue",
-    "name": "queue"
-   }
-  ],
-  "name": "queue"
- },
- {
-  "definitions": [
-   {
     "annotation": "ClassVar[int]",
     "className": "random.Random",
     "name": "VERSION"
@@ -14413,6 +17503,166 @@
    }
   ],
   "name": "prefix"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "resource.struct_rusage",
+    "name": "ru_utime"
+   }
+  ],
+  "name": "ru_utime"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "float",
+    "className": "resource.struct_rusage",
+    "name": "ru_stime"
+   }
+  ],
+  "name": "ru_stime"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_maxrss"
+   }
+  ],
+  "name": "ru_maxrss"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_ixrss"
+   }
+  ],
+  "name": "ru_ixrss"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_idrss"
+   }
+  ],
+  "name": "ru_idrss"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_isrss"
+   }
+  ],
+  "name": "ru_isrss"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_minflt"
+   }
+  ],
+  "name": "ru_minflt"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_majflt"
+   }
+  ],
+  "name": "ru_majflt"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_nswap"
+   }
+  ],
+  "name": "ru_nswap"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_inblock"
+   }
+  ],
+  "name": "ru_inblock"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_oublock"
+   }
+  ],
+  "name": "ru_oublock"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_msgsnd"
+   }
+  ],
+  "name": "ru_msgsnd"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_msgrcv"
+   }
+  ],
+  "name": "ru_msgrcv"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_nsignals"
+   }
+  ],
+  "name": "ru_nsignals"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_nvcsw"
+   }
+  ],
+  "name": "ru_nvcsw"
+ },
+ {
+  "definitions": [
+   {
+    "annotation": "int",
+    "className": "resource.struct_rusage",
+    "name": "ru_nivcsw"
+   }
+  ],
+  "name": "ru_nivcsw"
  },
  {
   "definitions": [

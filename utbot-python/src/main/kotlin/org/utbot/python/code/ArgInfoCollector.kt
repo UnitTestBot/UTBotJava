@@ -13,6 +13,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.model.expr.atoms.Num
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
+import io.github.danielnaczo.python3parser.model.expr.comprehensions.Comprehension
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Dict
 import io.github.danielnaczo.python3parser.model.expr.datastructures.ListExpr
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
@@ -21,6 +22,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.*
 import io.github.danielnaczo.python3parser.model.expr.operators.unaryops.*
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.forStmts.For
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Delete
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AugAssign
@@ -46,7 +48,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
         val types: MutableSet<Type> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf(),
         val functionArgs: MutableSet<FunctionArg> = mutableSetOf(),
-        val fieldStorages: MutableSet<Field> = mutableSetOf(),
+        val fields: MutableSet<Field> = mutableSetOf(),
         val functionRets: MutableSet<FunctionRet> = mutableSetOf()
     ) {
         fun toList(): List<BaseStorage> {
@@ -54,15 +56,26 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
                 types,
                 methods,
                 functionArgs,
-                fieldStorages,
+                fields,
                 functionRets
             ).flatten()
         }
     }
     data class GeneralStorage(
         val types: MutableList<Type> = mutableListOf(),
-        val functions: MutableList<Function> = mutableListOf()
-    )
+        val functions: MutableSet<Function> = mutableSetOf(),
+        val fields: MutableSet<Field> = mutableSetOf(),
+        val methods: MutableSet<Method> = mutableSetOf()
+    ) {
+        fun toList(): List<BaseStorage> {
+            return listOf(
+                types,
+                functions,
+                fields,
+                methods
+            ).flatten()
+        }
+    }
 
     private val paramNames = method.arguments.mapIndexedNotNull { index, param ->
         if (argumentTypes[index] == pythonAnyClassId) param.name else null
@@ -76,12 +89,11 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
 
     fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()
 
-    fun getAllGeneralStorages(): List<BaseStorage> =
-        visitor.generalStorage.types + visitor.generalStorage.functions
+    fun getAllGeneralStorages(): List<BaseStorage> = visitor.generalStorage.toList()
 
     fun getAllArgStorages(): Map<String, List<BaseStorage>> {
-       return collectedValues.entries.associate { (argName, storage) ->
-           argName to storage.toList()
+       return paramNames.associate { argName ->
+           argName to (collectedValues[argName]?.toList() ?: emptyList())
        }
     }
 
@@ -101,7 +113,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
 
     fun getFields(): Map<String, Set<Field>> =
         collectedValues.entries.associate {
-            it.key to it.value.fieldStorages
+            it.key to it.value.fields
         }
     fun getFunctionRets() =
         collectedValues.entries.associate {
@@ -220,7 +232,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
             parse(pat, onError = null, atom) { paramName -> { attributeId ->
                 Pair(paramName, Field(attributeId))
             } } ?.let {
-                addToStorage(it.first, param) { storage -> storage.fieldStorages.add(it.second) }
+                addToStorage(it.first, param) { storage -> storage.fields.add(it.second) }
             }
         }
 
@@ -285,8 +297,27 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
                 ),
                 onError = null,
                 atom
-            ) { it } ?.let {
-                generalStorage.functions.add(Function(it))
+            ) { it } ?.let { generalStorage.functions.add(Function(it)) }
+        }
+
+        private fun collectGeneralMethod(atom: Atom) {
+            parse(
+                methodFromAtom(
+                    fattributeId = apply(),
+                    farguments = drop()
+                ),
+                onError = null,
+                atom
+            ) { it } ?.let { generalStorage.methods.add(Method(it)) }
+        }
+
+        private fun collectGeneralFields(atom: Atom) {
+            parse(
+                attributesFromAtom(fattributes = apply()),
+                onError = null,
+                atom
+            ) { it } ?.let { attributes ->
+                attributes.forEach { generalStorage.fields.add(Field(it)) }
             }
         }
 
@@ -296,6 +327,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
             collectAtomMethod(atom, param)
             collectMagicMethodsFromCalls(atom, param)
             collectFunction(atom)
+            collectGeneralMethod(atom)
+            collectGeneralFields(atom)
             return super.visitAtom(atom, param)
         }
 
@@ -517,6 +550,25 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
         override fun visitDict(dict: Dict, param: MutableMap<String, ArgInfoStorage>): AST {
             generalStorage.types.add(Type("builtins.dict"))
             return super.visitDict(dict, param)
+        }
+
+        override fun visitComprehension(
+            comprehension: Comprehension,
+            param: MutableMap<String, ArgInfoStorage>
+        ): AST {
+            generalStorage.methods.add(Method("__iter__"))
+            parse(namePat(), onError = null, comprehension.iter) { it } ?.let { paramName ->
+                addToStorage(paramName, param) { storage -> storage.methods.add(Method("__iter__")) }
+            }
+            return super.visitComprehension(comprehension, param)
+        }
+
+        override fun visitFor(forElement: For, param: MutableMap<String, ArgInfoStorage>): AST {
+            generalStorage.methods.add(Method("__iter__"))
+            parse(namePat(), onError = null, forElement.iter) { it } ?.let { paramName ->
+                addToStorage(paramName, param) { storage -> storage.methods.add(Method("__iter__")) }
+            }
+            return super.visitFor(forElement, param)
         }
     }
 }

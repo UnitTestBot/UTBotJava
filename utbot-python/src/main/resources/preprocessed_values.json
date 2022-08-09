@@ -530,78 +530,10 @@
     ]
   },
   {
-    "name": "builtins.enumerate",
-    "useAsReturn": false,
-    "instances": [
-      "enumerate([])",
-      "enumerate(range(10))",
-      "enumerate([lambda a, b: a < b, lambda a, b: a <= b, lambda a, b: a > b, lambda a, b: a >= b])",
-      "enumerate([(lambda a, b: a == b, False), (lambda a, b: a != b, True)])",
-      "enumerate([lambda a, b: a == b, lambda a, b: a <= b, lambda a, b: a >= b])",
-      "enumerate([lambda a, b: a < b, lambda a, b: a <= b, lambda a, b: a != b])",
-      "enumerate([lambda a, b: a > b, lambda a, b: a >= b, lambda a, b: a != b])",
-      "enumerate([(False, False, False, '', ''), (False, False, True, '', ''), (False, True, False, 'none', ''), (False, True, True, 'fn', ''), (True, False, False, 'fn', 'exception'), (True, False, True, 'fn', 'exception'), (True, True, False, 'fn', 'exception'), (True, True, True, 'fn', 'exception')], 1)",
-      "enumerate('abc')",
-      "enumerate(range(5))",
-      "enumerate([1, 2, 2, 3, 2])",
-      "enumerate('june july august'.split(), 10)",
-      "enumerate('june july august'.split(), 30)",
-      "enumerate('june july august'.split(), 40)",
-      "enumerate('R W X'.split())",
-      "enumerate('june july august'.split(), 1)",
-      "enumerate('june july august'.split(), 20)",
-      "enumerate('SPRING SUMMER AUTUMN WINTER'.split(), 1)",
-      "enumerate([0.3989, 0.3989, 0.3989, 0.3988, 0.3986, 0.3984, 0.3982, 0.398, 0.3977, 0.3973, 0.397, 0.3965, 0.3961, 0.3956, 0.3951, 0.3945, 0.3939, 0.3932, 0.3925, 0.3918, 0.391, 0.3902, 0.3894, 0.3885, 0.3876, 0.3867, 0.3857, 0.3847, 0.3836, 0.3825, 0.3814, 0.3802, 0.379, 0.3778, 0.3765, 0.3752, 0.3739, 0.3725, 0.3712, 0.3697, 0.3683, 0.3668, 0.3653, 0.3637,0.3621, 0.3605, 0.3589, 0.3572, 0.3555, 0.3538])",
-      "enumerate('june july august'.split(), 10)",
-      "enumerate('june july august'.split(), 30)",
-      "enumerate('june july august'.split(), 40)",
-      "enumerate('R W X'.split())",
-      "enumerate('june july august'.split(), 1)",
-      "enumerate('june july august'.split(), 20)",
-      "enumerate('SPRING SUMMER AUTUMN WINTER'.split(), 1)"
-    ]
-  },
-  {
-    "name": "builtins.filter",
-    "useAsReturn": false,
-    "instances": [
-      "filter(lambda x: x > 0, [1, -3, 9, 0, 2])",
-      "filter(42, (1, 2))",
-      "filter(None, (1, 2))",
-      "filter(lambda x: x >= 3, (1, 2, 3, 4))",
-      "filter(lambda c: 'a' <= c <= 'z', 'Hello World')",
-      "filter(None, [1, 'hello', [], [3], '', None, 9, 0])"
-    ]
-  },
-  {
     "name": "builtins.frozenset",
     "useAsReturn": true,
     "instances": [
-      "frozenset(range(7))",
-      "frozenset({'module1', 'module2'})",
-      "frozenset({1, None})",
-      "frozenset(['EDOM', 'ERANGE'])",
-      "frozenset(('APPDATA', 'AR', 'ARCHFLAGS', 'ARFLAGS', 'AUDIODEV', 'CC', 'CFLAGS', 'COLUMNS', 'COMPUTERNAME', 'COMSPEC', 'CPP', 'CPPFLAGS', 'DISPLAY', 'DISTUTILS_DEBUG', 'DISTUTILS_USE_SDK', 'DYLD_LIBRARY_PATH', 'ENSUREPIP_OPTIONS', 'HISTORY_FILE', 'HOME', 'HOMEDRIVE', 'HOMEPATH', 'IDLESTARTUP', 'LANG', 'LDFLAGS', 'LDSHARED', 'LD_LIBRARY_PATH', 'LINES', 'MACOSX_DEPLOYMENT_TARGET', 'MAILCAPS', 'MAKEFLAGS', 'MIXERDEV', 'MSSDK', 'PATH', 'PATHEXT', 'PIP_CONFIG_FILE', 'PLAT', 'POSIXLY_CORRECT', 'PY_SAX_PARSER', 'ProgramFiles', 'ProgramFiles(x86)', 'RUNNING_ON_VALGRIND', 'SDK_TOOLS_BIN', 'SERVER_SOFTWARE', 'SHELL', 'SOURCE_DATE_EPOCH', 'SYSTEMROOT', 'TEMP', 'TERM', 'TILE_LIBRARY', 'TIX_LIBRARY', 'TMP', 'TMPDIR', 'TRAVIS', 'TZ', 'USERPROFILE', 'VIRTUAL_ENV', 'WAYLAND_DISPLAY', 'WINDIR', '_PYTHON_HOST_PLATFORM', '_PYTHON_PROJECT_BASE', '_PYTHON_SYSCONFIGDATA_NAME', '__PYVENV_LAUNCHER__'))",
-      "frozenset({'module'})",
-      "frozenset({'a', 'b'})",
-      "frozenset({0})",
-      "frozenset(('str_value',))",
-      "frozenset([1, 2, 3, 4, 5, 6])",
-      "frozenset({'x', 'meth'})",
-      "frozenset()",
-      "frozenset({1, 2, 3, 4, 5, 6, 7})",
-      "frozenset(('utc', 'gmt', 'Tokyo (standard time)'))",
-      "frozenset({'a', 'c', 'b'})",
-      "frozenset([4, 5, 6])",
-      "frozenset({(1, 2), 3, 4})",
-      "frozenset('frozenset')",
-      "frozenset({8})",
-      "frozenset({1, 2, 3})",
-      "frozenset(['a'])",
-      "frozenset({1})",
-      "frozenset(range(3))",
-      "frozenset('Tokyo (daylight time)')",
-      "frozenset({123, 'abc'})"
+      "frozenset()"
     ]
   },
   {
@@ -609,39 +541,6 @@
     "useAsReturn": true,
     "instances": [
       "list()"
-    ]
-  },
-  {
-    "name": "builtins.map",
-    "useAsReturn": false,
-    "instances": [
-      "map(ord, 'Hello')",
-      "map(int, '123')",
-      "map(chr, list(range(0, 55296)) + list(range(57344, 1114112)))",
-      "map(chr, range(256))",
-      "map(frozenset, ['abcdef', 'bcd', 'bdcb', 'fed', 'fedccba'])",
-      "map(int, 'X')",
-      "map(lambda x, y: x + y, [1, 3, 2], [9, 1, 4])",
-      "map(lambda x: x * x, range(1, 4))",
-      "map(lambda x: list(map(sqrt, x)), [[16, 4], [81, 9]])",
-      "map(chr, range(33, 126 + 1))",
-      "map(str, range(20))",
-      "map(chr, range(256, 2 ** 16, 255))",
-      "map(pow, range(40), range(40))",
-      "map(pow, range(10), range(10))",
-      "map(str, range(10))",
-      "map(int, '0X')",
-      "map(chr, range(ord('a'), ord('z')))",
-      "map(chr, range(32, 128))",
-      "map(id, zip('abc', 'def'))",
-      "map(tuple, 'Ax Ay Bx By Cx Cy Dx Dy'.split())",
-      "map(10, range(5))",
-      "map(tuple, 'AB AC AD BA BC BD CA CB CD DA DB DC'.split())",
-      "map(None, range(3), range(3))",
-      "map(id, list(zip('abc', 'def')))",
-      "map(pow, (2, 3, 10), (5, 2, 3))",
-      "map(chr, list(range(0, 55296)) + list(range(57344, 1114112)))",
-      "map(chr, range(256))"
     ]
   },
   {
@@ -696,29 +595,6 @@
     "useAsReturn": false,
     "instances": [
       "object()"
-    ]
-  },
-  {
-    "name": "builtins.reversed",
-    "useAsReturn": false,
-    "instances": [
-      "reversed({None: []}.items())",
-      "reversed(range(100))",
-      "reversed(range(256))",
-      "reversed(dict().values())",
-      "reversed([])",
-      "reversed({}.items())",
-      "reversed(range(1000))",
-      "reversed(dict())",
-      "reversed('')",
-      "reversed({}.values())",
-      "reversed('abcd')",
-      "reversed({})",
-      "reversed([1, 2, 3])",
-      "reversed(dict().keys())",
-      "reversed(range(-200, 0))",
-      "reversed({}.keys())",
-      "reversed(dict().items())"
     ]
   },
   {
@@ -821,34 +697,6 @@
     ]
   },
   {
-    "name": "builtins.tuple",
-    "useAsReturn": true,
-    "instances": [
-      "tuple(range(5))",
-      "tuple([0, 1, 2, 3])",
-      "tuple(())",
-      "tuple(range(256))",
-      "tuple(range(1000000))",
-      "tuple(range(10000))",
-      "tuple(enumerate('abc'))",
-      "tuple('BHILQN')",
-      "tuple('bhilqn')",
-      "tuple('hello')",
-      "tuple('abcdefghijklmnopqrst')",
-      "tuple([(ch + 'sort') for ch in '*\\/3+%~=!'])",
-      "tuple(range(100))",
-      "tuple('tuple')",
-      "tuple('defg')",
-      "tuple('<>!=')",
-      "tuple(range(13))",
-      "tuple(range(10))",
-      "tuple(x for x in range(10) if x % 2)",
-      "tuple('abc')",
-      "tuple('abcde')",
-      "tuple('spam')"
-    ]
-  },
-  {
     "name": "builtins.type",
     "useAsReturn": false,
     "instances": [
@@ -879,152 +727,6 @@
       "type(iter(range(1 << 1000)))",
       "type('C', (), {})",
       "type({}.keys())"
-    ]
-  },
-  {
-    "name": "builtins.zip",
-    "useAsReturn": false,
-    "instances": [
-      "zip(range(4), range(1, 5))",
-      "zip(range(6), range(6))",
-      "zip(range(6), [0] * 6)",
-      "zip(range(100), range(99, -1, -1))",
-      "zip(range(10), range(9, -1, -1))",
-      "zip()",
-      "zip(*[])",
-      "zip([[]])",
-      "zip()",
-      "zip(range(5), range(5))",
-      "zip(*[])",
-      "zip(range(5))",
-      "zip(*[(1, 2), 'ab'])",
-      "zip([65, 97, 34, 38, 9731, 1053236], ['A', 'a', '\"', '&', '☃', '\\U00101234'])",
-      "zip('Hello', 'World')",
-      "zip()",
-      "zip(range(3), range(1, 7))",
-      "zip('AABBBAAAA', range(9))",
-      "zip('abcdef', range(3))",
-      "zip([])",
-      "zip('abc', 'def')",
-      "zip('ABCD', 'xy')",
-      "zip('abc', range(6))",
-      "zip('abcdef')",
-      "zip(list('abc') + [None], 'defg')"
-    ]
-  },
-  {
-    "name": "collections.Counter",
-    "useAsReturn": true,
-    "instances": [
-      "collections.Counter('abcaba')",
-      "collections.Counter('a' * 50 + 'b' * 30)",
-      "collections.Counter(iterable=None)",
-      "collections.Counter(a=-5, b=0, c=5, d=10, e=15, g=40)",
-      "collections.Counter('xyzpdqqdpzyx')",
-      "collections.Counter(a=-6, b=-2, c=8, d=0, e=-5, f=-30, g=40, h=50)",
-      "collections.Counter('aaabbcd')",
-      "collections.Counter(a=3, b=2, c=1)",
-      "collections.Counter('abracadabra simsalabim')",
-      "collections.Counter('which witch had which witches wrist watch'.split())",
-      "collections.Counter(a=2, b=None)",
-      "collections.Counter(a=-1, b=0, c=-1, d=1, e=-1)",
-      "collections.Counter()",
-      "collections.Counter({'a': 3, 'b': 2, 'c': 1})",
-      "collections.Counter(iterable=42)",
-      "collections.Counter('abracadabra')",
-      "collections.Counter(self=42)",
-      "collections.Counter(a=1, b=2, c=-3, d=10, e=20, f=30, h=-50)",
-      "collections.Counter(a=10, b=-2, c=0)"
-    ]
-  },
-  {
-    "name": "collections.OrderedDict",
-    "useAsReturn": true,
-    "instances": [
-      "collections.OrderedDict([('a', 5), ('b', 2), ('r', 2), ('c', 1), ('d', 1)])",
-      "collections.OrderedDict([('fname', 'Graham'), ('lname', 'Chapman'), (None, ['Over1',    'Over2'])])",
-      "collections.OrderedDict([('FirstName', 'Eric'), ('LastName', 'Idle')])",
-      "collections.OrderedDict([('fname', 'Under1'), ('lname', None)])",
-      "collections.OrderedDict(j=0, h=88888)",
-      "collections.OrderedDict([('FirstName', 'Under1'), ('LastName', None)])",
-      "collections.OrderedDict(self=42)",
-      "collections.OrderedDict([('a', 1), ('b', 2), ('c', 3), ('d', 44), ('e', 55)])",
-      "collections.OrderedDict([('x', 1), ('y', 2)])",
-      "collections.OrderedDict(other=42)",
-      "collections.OrderedDict([('c', 1), ('b', 2), ('a', 3), ('d', 4), ('e', 5), ('f', 6)])",
-      "collections.OrderedDict(a=1, b=2, c=3, d=4, e=5)",
-      "collections.OrderedDict()",
-      "collections.OrderedDict([('d', 1), ('b', 2), ('c', 3), ('a', 4), ('e', 5)])",
-      "collections.OrderedDict([('FirstName', 'Graham'), ('LastName', 'Chapman'), ('OtherInfo',    ['Over1', 'Over2'])])",
-      "collections.OrderedDict([('a', 1), ('b', 2), ('c', 9), ('d', 4)], c=3, e=5)",
-      "collections.OrderedDict(x=[])",
-      "collections.OrderedDict(i=9999, d=4444, c=3333)",
-      "collections.OrderedDict([('x', 3), ('y', 4)])",
-      "collections.OrderedDict([('FirstName', 'John'), ('LastName', 'Cleese')])",
-      "collections.OrderedDict([('fname', 'Eric'), ('lname', 'Idle')])",
-      "collections.OrderedDict((('R', 2), ('W', 8), ('X', 32)))",
-      "collections.OrderedDict([('FirstName', 'Graham'), ('LastName', 'Chapman'), (None, [    'Over1', 'Over2'])])",
-      "collections.OrderedDict([('x', 42), ('y', 2)])",
-      "collections.OrderedDict(f=666, b=222, g=777, c=333, h=888)",
-      "collections.OrderedDict([('fname', 'John'), ('lname', 'Cleese')])",
-      "collections.OrderedDict((('june', 1), ('july', 2), ('august', 3)))",
-      "collections.OrderedDict(e=55, b=22)"
-    ]
-  },
-  {
-    "name": "collections.defaultdict",
-    "useAsReturn": true,
-    "instances": [
-      "collections.defaultdict(list, foo=1, bar=2)",
-      "collections.defaultdict(int)",
-      "collections.defaultdict()"
-    ]
-  },
-  {
-    "name": "collections.deque",
-    "useAsReturn": true,
-    "instances": [
-      "collections.deque()",
-      "collections.deque('efgh')",
-      "collections.deque('bcabc')",
-      "collections.deque('abcdef', 500)",
-      "collections.deque(range(-5125, -5000))",
-      "collections.deque(range(200))",
-      "collections.deque('ab')",
-      "collections.deque(range(10), maxlen=None)",
-      "collections.deque('abcdef', maxlen=4)",
-      "collections.deque('abdefghcij')",
-      "collections.deque([None] * 16)",
-      "collections.deque(maxlen=0)",
-      "collections.deque(range(0, 10000, 10))",
-      "collections.deque('xabc')",
-      "collections.deque('gallahad')",
-      "collections.deque('ABCDEFGHI')",
-      "collections.deque('abc', maxlen=2)",
-      "collections.deque('superman')",
-      "collections.deque('A' * 3)",
-      "collections.deque([1, 2, 3, 4, 5, 6, 7])",
-      "collections.deque('abcdef')",
-      "collections.deque(range(100))",
-      "collections.deque('abcabc')",
-      "collections.deque('gh')",
-      "collections.deque('abcdefghcij')",
-      "collections.deque('abcabcabc')",
-      "collections.deque('abc', 3)",
-      "collections.deque('abc', maxlen=5)",
-      "collections.deque(range(200), maxlen=10)",
-      "collections.deque('abc')",
-      "collections.deque([1, 2, 3])",
-      "collections.deque('abdefghij')",
-      "collections.deque(['ab'])",
-      "collections.deque('abcdefg')",
-      "collections.deque('a', 500)",
-      "collections.deque('abc', maxlen=0)",
-      "collections.deque('def')",
-      "collections.deque(range(200), 100)",
-      "collections.deque(range(10), 3)",
-      "collections.deque('a')",
-      "collections.deque('abc', maxlen=4)"
     ]
   },
   {
@@ -1413,5 +1115,37 @@
       "_decimal.Decimal('8.71E+799')",
       "_decimal.Decimal('20.686')"
     ]
+  },
+  {
+    "name": "builtins.tuple",
+    "useAsReturn": true,
+    "instances": [
+      "tuple()"
+    ]
+  },
+  {
+    "name": "builtins.reversed",
+    "useAsReturn": false,
+    "instances": []
+  },
+  {
+    "name": "builtins.zip",
+    "useAsReturn": false,
+    "instances": []
+  },
+  {
+    "name": "builtins.enumerate",
+    "useAsReturn": false,
+    "instances": []
+  },
+  {
+    "name": "builtins.filter",
+    "useAsReturn": false,
+    "instances": []
+  },
+  {
+    "name": "builtins.map",
+    "useAsReturn": false,
+    "instances": []
   }
 ]

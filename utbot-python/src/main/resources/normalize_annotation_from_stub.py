@@ -8,10 +8,17 @@ from typing import *
 def main(annotation: str, module_of_annotation: str):
     def walk_mypy_type(mypy_type) -> str:
         try:
-            modname = eval(mypy_type.name).__module__
-            result = f'{modname}.{mypy_type.name}'
-        except:
+            prefix = module_of_annotation + "."
+            if mypy_type.name[:len(prefix)] == prefix:
+                name = mypy_type.name[len(prefix):]
+            else:
+                name = mypy_type.name
+
+            modname = eval(name).__module__
+            result = f'{modname}.{name}'
+        except Exception as e:
             result = 'typing.Any'
+            print(e)
 
         if len(mypy_type.args) != 0:
             arg_strs = [

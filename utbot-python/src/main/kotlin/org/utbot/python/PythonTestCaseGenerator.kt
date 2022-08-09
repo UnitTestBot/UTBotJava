@@ -103,21 +103,16 @@ object PythonTestCaseGenerator {
                 existingAnnotations[method.arguments[index].name] = classId.name
         }
 
-        return if (existingAnnotations.size == method.arguments.size)
-            sequenceOf(
-                existingAnnotations.mapValues { entry -> PythonClassId(entry.value) }
-            )
-        else
-            findAnnotations(
-                argInfoCollector,
-                method,
-                existingAnnotations,
-                moduleToImport,
-                directoriesForSysPath,
-                pythonPath,
-                fileOfMethod,
-                isCancelled,
-                storageForMypyMessages
-            )
+        return findAnnotations(
+            argInfoCollector,
+            method,
+            existingAnnotations,
+            moduleToImport,
+            directoriesForSysPath,
+            pythonPath,
+            fileOfMethod,
+            isCancelled,
+            storageForMypyMessages
+        )
     }
 }

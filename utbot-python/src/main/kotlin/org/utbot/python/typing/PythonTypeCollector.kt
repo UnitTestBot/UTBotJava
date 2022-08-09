@@ -64,7 +64,7 @@ object PythonTypesStorage {
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<ClassId> {
+    ): Set<PythonClassId> {
         val fromStubs = mapToClassId(StubFileFinder.findTypeWithField(fieldName))
         val fromProject = projectClasses.mapNotNull {
             if (it.info.fields.contains(fieldName)) PythonClassId(it.pythonClass.name) else null

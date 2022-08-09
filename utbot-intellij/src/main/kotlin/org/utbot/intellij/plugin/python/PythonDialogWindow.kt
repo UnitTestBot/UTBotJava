@@ -148,8 +148,6 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     override fun doOKAction() {
         val selectedMembers = functionsTable.selectedMemberInfos
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
-        model.directoriesForSysPath = PathChooser.model.elements().toList()
-        model.moduleToImport = moduleToImportField.text
         model.testFramework = testFrameworks.item
         model.codegenLanguage = CodegenLanguage.PYTHON
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())

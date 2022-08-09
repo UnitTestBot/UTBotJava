@@ -39,6 +39,7 @@ import org.utbot.framework.codegen.model.tree.CgGreaterThan
 import org.utbot.framework.codegen.model.tree.CgIfStatement
 import org.utbot.framework.codegen.model.tree.CgIncrement
 import org.utbot.framework.codegen.model.tree.CgInnerBlock
+import org.utbot.framework.codegen.model.tree.CgIsInstance
 import org.utbot.framework.codegen.model.tree.CgLessThan
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgLogicalAnd
@@ -420,6 +421,15 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgDecrement) {
         print("${element.variable.name}--")
+    }
+
+    // isInstance check
+
+    override fun visit(element: CgIsInstance) {
+        element.classExpression.accept(this)
+        print(".isInstance(")
+        element.value.accept(this)
+        print(")")
     }
 
     // Try-catch

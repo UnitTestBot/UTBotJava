@@ -171,6 +171,10 @@ internal interface CgContextOwner {
     // a variable representing an actual result of the method under test call
     var actual: CgVariable
 
+    // a variable representing if test method contains reflective call or not
+    // and should we catch exceptions like InvocationTargetException or not so on
+    var containsReflectiveCall: Boolean
+
     // map from a set of tests for a method to another map
     // which connects code generation error message
     // with the number of times it occurred
@@ -420,7 +424,8 @@ internal data class CgContext(
     override val runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour =
         RuntimeExceptionTestsBehaviour.defaultItem,
     override val hangingTestsTimeout: HangingTestsTimeout = HangingTestsTimeout(),
-    override val enableTestsTimeout: Boolean = true
+    override val enableTestsTimeout: Boolean = true,
+    override var containsReflectiveCall: Boolean = false,
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable

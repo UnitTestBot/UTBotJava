@@ -359,6 +359,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
     private fun MethodId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
+        containsReflectiveCall = true
         val method = declaredExecutableRefs[this]
             ?: toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)
@@ -372,6 +373,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun ConstructorId.callWithReflection(args: List<CgExpression>): CgExecutableCall {
+        containsReflectiveCall = true
         val constructor = declaredExecutableRefs[this]
             ?: this.toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)

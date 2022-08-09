@@ -251,6 +251,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
 //    Statics<>
 
     suspend fun <T : Protocol.Command> request(cmd: T) = withProcess {
+        logger.info { "requesting on pid - ${process.pid}, alive - ${process.isAlive}"}
         sendTimestamp.set(System.currentTimeMillis())
         request(cmd)
     }

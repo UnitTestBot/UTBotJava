@@ -154,7 +154,7 @@ class UtInstrumentationProcess private constructor(
             }
 
             logger.trace("sending add paths")
-            proc.request(
+            proc.execute(
                 Protocol.AddPathsCommand(
                     pathsToUserClasses,
                     pathsToDependencyClasses
@@ -162,7 +162,7 @@ class UtInstrumentationProcess private constructor(
             )
 
             logger.trace("sending instrumentation")
-            proc.request(Protocol.SetInstrumentationCommand(instrumentation))
+            proc.execute(Protocol.SetInstrumentationCommand(instrumentation))
             logger.trace("start commands sent")
 
             return proc

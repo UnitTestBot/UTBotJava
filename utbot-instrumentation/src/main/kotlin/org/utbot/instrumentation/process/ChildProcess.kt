@@ -310,6 +310,7 @@ private fun getInstrumentation(kryoHelper: KryoHelper): Instrumentation<*>? {
     val (id, cmd) = read(kryoHelper)
     return when (cmd) {
         is Protocol.SetInstrumentationCommand<*> -> {
+            send(kryoHelper, id, Protocol.OperationCompleted())
             cmd.instrumentation
         }
         is Protocol.StopProcessCommand -> {
@@ -327,6 +328,7 @@ private fun readClasspath(kryoHelper: KryoHelper): Protocol.AddPathsCommand? {
     val (id, cmd) = read(kryoHelper)
     return when (cmd) {
         is Protocol.AddPathsCommand -> {
+            send(kryoHelper, id, Protocol.OperationCompleted())
             cmd
         }
         is Protocol.StopProcessCommand -> {

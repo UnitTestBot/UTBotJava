@@ -7,6 +7,7 @@ env:
   GRADLE_BUILD_CMD: "gradle clean build --no-daemon"
   GRADLE_RUN_FRAMEWORK_TESTS_CMD: "gradle --no-daemon :utbot-framework:test --tests"
   KOTLIN_C_EXEC_STRATEGY: "-Dkotlin.compiler.execution.strategy=out-of-process"
+  CADVISOR_VERSION: v0.36.0
 
 jobs:
 #   utbot-analytics:
@@ -95,9 +96,75 @@ jobs:
 #             path: utbot-framework/build/reports/tests/test/*
               
   utbot-framework-collections:
-    runs-on: [self-hosted, blue]
+    runs-on: ubuntu-latest
     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
+      - name: Show current GITHUB_RUN_ID and HOSTNAME
+        run: |
+          echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
+      - name: Prerequisites
+        run: |
+          apt-get update
+          apt-get install -y -q --no-install-recommends \
+            ca-certificates \
+            curl \
+            gnupg \
+            lsb-release
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+          apt-get update
+          apt-get -y -q install --no-install-recommends \
+            docker-ce \
+            docker-ce-cli \
+            containerd.io \
+            docker-compose-plugin
+      - name: Run service containers on the background
+        run: |
+          CONFIG=/tmp/config.yml
+          printf "process_names:\n- comm:\n  - java\n" > ${CONFIG}
+          docker run -d --name process_exporter \
+                        --publish=9256:9256 \
+                        --privileged \
+                        --volume=/proc:/host/proc \
+                        --volume=${CONFIG}:/config
+                          ncabatoff/process-exporter \
+                          --procfs /host/proc \
+                          -config.path /config/config.yml
+          docker run -d --name curl-process \
+                        --net="host" \
+                        --entrypoint=/bin/sh \
+                            curlimages/curl:7.84.0 \
+                            "-c" "while true; do curl localhost:9256/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+          docker run -d --name cadvisor \
+                        --volume=/:/rootfs:ro \
+                        --volume=/var/run:/var/run:ro \
+                        --volume=/sys:/sys:ro \
+                        --volume=/var/lib/docker/:/var/lib/docker:ro \
+                        --volume=/dev/disk/:/dev/disk:ro \
+                        --publish=9280:8080 \
+                        --privileged \
+                        --device=/dev/kmsg \
+                            gcr.io/cadvisor/cadvisor:${{ env.CADVISOR_VERSION }}
+          docker run -d --name curl-container \
+                        --net="host" \
+                        --entrypoint=/bin/sh \
+                            curlimages/curl:7.84.0 \
+                            "-c" "while true; do curl localhost:9280/metrics | grep -v 'id=\"\/\(system\|user\).slice' | sed -r 's/(^.*} .*) ([0-9]*)/\1/' | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+          docker run -d --name node_exporter \
+                        --net="host" \
+                        --pid="host" \
+                        --volume="/:/host:ro,rslave" \
+                            quay.io/prometheus/node-exporter:latest \
+                            --path.rootfs=/host
+          docker run -d --name curl-node \
+                        --net="host" \
+                        --entrypoint=/bin/sh \
+                            curlimages/curl:7.84.0 \
+                            "-c" "while true; do curl localhost:9100/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+
       - uses: actions/checkout@v2
 
       - name: Build and run test

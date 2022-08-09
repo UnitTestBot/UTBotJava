@@ -129,7 +129,7 @@ jobs:
                         --publish=9256:9256 \
                         --privileged \
                         --volume=/proc:/host/proc \
-                        --volume=${CONFIG}:/config
+                        --volume=${CONFIG}:/config \
                           ncabatoff/process-exporter \
                           --procfs /host/proc \
                           -config.path /config/config.yml

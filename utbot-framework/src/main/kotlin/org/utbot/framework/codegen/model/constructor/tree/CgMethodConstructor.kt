@@ -1001,12 +1001,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
                 is PythonMethodId -> {
-                    // TODO possible engine bug - void method return type and result not UtVoidModel
-                    if (executable.returnType == pythonNoneClassId) return
-
                     emptyLineIfNeeded()
 
-                    importIfNeeded(result.classId)
+//                    importIfNeeded(result.classId)
                     actual = newVar(
                         CgClassId(result.classId),
                         "actual",
@@ -1051,6 +1048,15 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
+                        val classId = param.classId
+                        if (classId is PythonClassId && classId.moduleName.isNotEmpty()) {
+                            collectedImports.add(PythonImport(classId.name, classId.moduleName))
+                        } else if (param.classId.name.contains(".")) {
+                            collectedImports.add(PythonImport(normalizedName = param.classId.name))
+                        }
+                        else {
+                            print(param.classId.name)
+                        }
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }
                     rememberInitialEnvironmentState(modificationInfo)

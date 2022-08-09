@@ -3,6 +3,8 @@ import importlib
 import json
 import tqdm
 import sys, os
+import pickle
+pickle.loads
 
 from contextlib import contextmanager
 from collections import defaultdict

@@ -420,7 +420,11 @@ data class CgContext(
 
     override val currentTestClass: ClassId by lazy {
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
-        val simpleName = testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
+        val simpleName = if (codegenLanguage == CodegenLanguage.PYTHON)
+            testClassCustomName ?: "Test${createTestClassName(classUnderTest.name)}"
+        else
+            testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
+
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
             name = name,

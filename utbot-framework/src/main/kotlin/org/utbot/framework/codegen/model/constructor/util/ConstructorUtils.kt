@@ -173,7 +173,7 @@ internal fun CgContextOwner.importIfNeeded(method: MethodId) {
 }
 
 internal fun CgContextOwner.importIfNeeded(method: PythonMethodId) {
-    collectedImports += PythonImport(method.name, method.moduleName)
+    collectedImports += PythonImport("*", method.moduleName)
 }
 
 internal fun CgContextOwner.importIfNeeded(pyClass: PythonClassId) {

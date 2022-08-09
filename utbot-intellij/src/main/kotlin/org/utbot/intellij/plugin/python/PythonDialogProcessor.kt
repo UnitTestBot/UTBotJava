@@ -166,19 +166,13 @@ object PythonDialogProcessor {
 
                 val messages = notEmptyTests.associateWith { testSet ->
                     val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
-                    val message =
-                        if (testSet.mypyReport.isNotEmpty())
-                            "MYPY REPORT\n${
-                                testSet.mypyReport.joinToString(separator = "") {
-                                    if (lineOfFunction != null && it.line >= 0)
-                                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-                                    else
-                                        "${it.type}: ${it.message}"
-                                }
-                            }"
-                        else
-                            null
-                    message
+                    listOf("MYPY REPORT\n") +
+                        testSet.mypyReport.map {
+                            if (lineOfFunction != null && it.line >= 0)
+                                ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                            else
+                                "${it.type}: ${it.message}"
+                    }
                 }
 
                 val classId = PythonClassId(
@@ -216,7 +210,6 @@ object PythonDialogProcessor {
                             CgMethodTestSet(
                                 methods[testSet.method] as ExecutableId,
                                 testSet.executions.map { execution -> execution.utExecution },
-                                messages[testSet],
                                 model.directoriesForSysPath,
                             )
                         }

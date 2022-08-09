@@ -17,10 +17,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 is PythonFloatModel -> CgLiteral(model.classId, model.value)
                 is PythonIntModel -> CgLiteral(model.classId, model.value)
                 is PythonComplexObjectModel -> TODO()
-                is PythonInitObjectModel -> newVar(model.classId, baseName) {CgConstructorCall(
-                    ConstructorId(model.classId, model.initValues.map { it.classId }),
-                    model.initValues.map { getOrCreateVariable(it) }
-                )}
+                is PythonInitObjectModel -> constructInitObjectModel(model, baseName)
                 is PythonDictModel -> CgPythonRepr(model.classId, model.toString())
                 is PythonListModel -> CgPythonRepr(model.classId, model.toString())
                 is PythonSetModel -> CgPythonRepr(model.classId, model.toString())
@@ -31,8 +28,10 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
         }
     }
 
-    private fun constructDefaultModel(model: PythonDefaultModel, baseName: String): CgVariable {
-        val init = model.repr
-        return newVar(model.classId, baseName) { CgLiteral(model.classId, init) }
+    private fun constructInitObjectModel(model: PythonInitObjectModel, baseName: String): CgVariable {
+        return newVar(model.classId, baseName) { CgConstructorCall(
+            ConstructorId(model.classId, model.initValues.map { it.classId }),
+            model.initValues.map { getOrCreateVariable(it) }
+        ) }
     }
 }

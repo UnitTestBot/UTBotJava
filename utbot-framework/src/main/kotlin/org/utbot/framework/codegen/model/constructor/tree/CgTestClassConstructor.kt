@@ -82,9 +82,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
-                        runCatching {
+//                        runCatching {
                             currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-                        }.onFailure { e -> processFailure(testSet, e) }
+//                        }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content
@@ -106,14 +106,6 @@ internal class CgTestClassConstructor(val context: CgContext) :
         if (errors.isNotEmpty()) {
             regions += methodConstructor.errorMethod(testSet.executableId, errors)
             testsGenerationReport.addMethodErrors(testSet, errors)
-        }
-        val comments = testSet.comments
-        if (comments.isNotEmpty()) {
-            regions += methodConstructor.errorMethod(
-                testSet.executableId,
-                mapOf(comments to 1)
-            )
-            testsGenerationReport.addMethodErrors(testSet, mapOf(comments to 1))
         }
 
         return regions

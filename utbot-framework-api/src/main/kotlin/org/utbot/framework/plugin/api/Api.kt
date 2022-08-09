@@ -239,6 +239,7 @@ class PythonClassId(
 ) : ClassId(pyName) {
     constructor(pyName: String): this(pyName, "", "", null)
     override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
+    override val simpleName: String = pyName.split(".").last()
 }
 
 class PythonMethodId(

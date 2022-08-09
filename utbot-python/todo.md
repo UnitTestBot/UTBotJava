@@ -18,7 +18,8 @@
 - [ ] учитывать в ArgInfoCollector ситуации вида `arg.field[0]`
 - [x] добавить обработку dataclass'ов
 - [ ] импорты в codegen
-- [ ] `sys.path` в codegen
+- [x] `sys.path` в codegen
+- [ ] получение `sys.path` из настроек проекта
 
 Проблемы могут быть с: `__getitem__`/`__class_getitem__`,
 `__add__/__radd__/__iadd__`

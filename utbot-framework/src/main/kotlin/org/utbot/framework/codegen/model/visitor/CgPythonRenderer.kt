@@ -37,7 +37,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgTestClassFile) {
-        renderPythonImport(PythonImport("sys"))
+        renderPythonImport(PythonImport(importName = "sys"))
         renderSysPaths(element)
         element.imports.filterIsInstance<PythonImport>().forEach {
             renderPythonImport(it)
@@ -337,23 +337,11 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         if (printNextLine) println()
     }
 
+    override fun visit(element: CgMethod) {
+        visit(element.statements, printNextLine = true)
+    }
 
     override fun visit(element: CgMethodCall) {
-//        val caller = element.caller
-//        if (caller != null) {
-//            // 'this' can be omitted, otherwise render caller
-//            if (caller !is CgThisInstance) {
-//                caller.accept(this)
-//                renderAccess(caller)
-//            }
-//        } else {
-//            // for static methods render declaring class only if required
-//            if (!element.executableId.accessibleByName) {
-//                val method = element.executableId
-//                print(method.classId.asString())
-//                print(".")
-//            }
-//        }
         print(element.executableId.name)
 
         renderTypeParameters(element.typeParameters)

@@ -118,7 +118,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         if (this is CgTestMethodCluster) description?.accept(this@CgAbstractRenderer)
 
         for (method in content) {
-            println()
+//            println()
             method.accept(this@CgAbstractRenderer)
         }
 

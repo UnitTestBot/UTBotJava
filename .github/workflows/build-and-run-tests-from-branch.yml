@@ -7,6 +7,8 @@ env:
   GRADLE_BUILD_CMD: "gradle clean build --no-daemon"
   GRADLE_RUN_FRAMEWORK_TESTS_CMD: "gradle --no-daemon :utbot-framework:test --tests"
   KOTLIN_C_EXEC_STRATEGY: "-Dkotlin.compiler.execution.strategy=out-of-process"
+  # {/<LABEL_NAME>/<LABEL_VALUE>}
+  PROM_ADDITIONAL_LABELS: /service/github
   CADVISOR_VERSION: v0.36.0
 
 jobs:

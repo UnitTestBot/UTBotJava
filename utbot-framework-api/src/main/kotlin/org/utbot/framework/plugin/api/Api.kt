@@ -481,9 +481,11 @@ data class UtArrayConstraintModel(
     val elements: Map<UtModel, UtModel>,
     override val utConstraints: Set<UtConstraint> = emptySet()
 ) : UtConstraintModel(variable, utConstraints) {
-    val allConstraints get() = elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
-        acc + ((pair.first as? UtConstraintModel)?.utConstraints
-            ?: emptySet()) + ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet())
+    val allConstraints: Set<UtConstraint> get() = elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
+        acc +
+        ((pair.first as? UtConstraintModel)?.utConstraints ?: emptySet()) +
+        ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet()) +
+        ((pair.second as? UtArrayConstraintModel)?.allConstraints ?: emptySet())
     }
 }
 

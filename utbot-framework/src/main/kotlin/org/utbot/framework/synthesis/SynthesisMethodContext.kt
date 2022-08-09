@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 import org.utbot.framework.synthesis.postcondition.constructors.toSootType
+import soot.ArrayType
 import soot.RefType
 import soot.SootClass
 import soot.SootMethod
@@ -121,11 +122,11 @@ class SynthesisMethodContext(
     }
 
     private fun synthesizeArrayUnit(unit: ArrayUnit): JimpleLocal {
-        val arrayType = unit.classId.toSootType()
+        val arrayType = unit.classId.toSootType() as ArrayType
         val lengthLocal = synthesizeUnit(context[unit.length])
 
         val arrayLocal = JimpleLocal(nextName(), arrayType)
-        val arrayExpr = newArrayExpr(arrayType, lengthLocal)
+        val arrayExpr = newArrayExpr(arrayType.elementType, lengthLocal)
         stmts += assignStmt(arrayLocal, arrayExpr)
 
         for ((index, value) in unit.elements) {

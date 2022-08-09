@@ -248,8 +248,10 @@ class ConstraintResolver(
             )
 
             val arrayAccess = UtConstraintArrayAccess(variable, indexVariable, elementClassId)
-            varBuilder.backMapping[arrayAccess] =
-                varBuilder.backMapping[UtConstraintArrayAccess(variable, indices.first(), elementClassId)]!!
+            val actualExpr = aliases.flatMap { base ->
+                indices.map { UtConstraintArrayAccess(base, it, elementClassId) }
+            }.mapNotNull { varBuilder.backMapping[it] }.first()
+            varBuilder.backMapping[arrayAccess] = actualExpr
             val indexAliases = indices.flatMap { idx ->
                 allAliases.map { UtConstraintArrayAccess(it, idx, elementClassId) }
             }.toSet()

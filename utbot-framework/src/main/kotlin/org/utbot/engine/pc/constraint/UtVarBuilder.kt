@@ -33,6 +33,7 @@ class UtVarBuilder(
                 }
 
                 "RefValues_Arrays" -> expr.index.accept(this)
+                "Multi_Arrays" -> expr.index.accept(this)
                 "boolean_Arrays" -> expr.index.accept(this)
                 "char_Arrays" -> expr.index.accept(this)
                 "int_Arrays" -> expr.index.accept(this)
@@ -52,16 +53,15 @@ class UtVarBuilder(
                 }
             }
 
-            is UtConstraintFieldAccess -> {
-                val index = expr.index.accept(this)
-                arrayAccess(base, index)
-            }
-
+            is UtConstraintFieldAccess -> arrayAccess(base, expr.index.accept(this))
             is UtConstraintNumericConstant -> expr.index.accept(this)
             is UtConstraintNull -> UtConstraintArrayAccess(base, expr.index.accept(this), objectClassId)
+            is UtConstraintArrayAccess -> arrayAccess(base, expr.index.accept(this))
             else -> error("Unexpected: $base")
         }
-        backMapping[res] = expr
+        if (res.isPrimitive) {
+            backMapping[res] = expr
+        }
         return res
     }
 

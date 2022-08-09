@@ -172,7 +172,7 @@ jobs:
       - name: Build and run test
         run: |
           chmod +x scripts/ps_parser.sh
-          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done &
+          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
             --tests "org.utbot.examples.collections.*"
       - name: Upload utbot-framework logs

@@ -75,6 +75,7 @@ interface CgElement {
             is CgDeclaration -> visit(element)
             is CgAssignment -> visit(element)
             is CgTypeCast -> visit(element)
+            is CgIsInstance -> visit(element)
             is CgThisInstance -> visit(element)
             is CgNotNullAssertion -> visit(element)
             is CgVariable -> visit(element)
@@ -535,6 +536,16 @@ class CgTypeCast(
     val isSafetyCast: Boolean = false,
 ) : CgExpression {
     override val type: ClassId = targetType
+}
+
+/**
+ * Represents [java.lang.Class.isInstance] method.
+ */
+class CgIsInstance(
+    val classExpression: CgExpression,
+    val value: CgExpression,
+): CgExpression {
+    override val type: ClassId = booleanClassId
 }
 
 // Value

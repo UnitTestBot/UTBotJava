@@ -37,6 +37,13 @@ object AnnotationFinder {
         }
     }
 
+    private fun increaseForGenerics(candidates: MutableMap<String, Int>) {
+        candidates.keys.forEach { typeName ->
+            if (isGeneric(typeName))
+                increaseValue(candidates, typeName)
+        }
+    }
+
     private fun getFirstLevelCandidates(
         storages: List<ArgInfoCollector.BaseStorage>?
     ): List<String> {
@@ -66,6 +73,7 @@ object AnnotationFinder {
             }
         }
         increaseForProjectClasses(candidates)
+        increaseForGenerics(candidates)
         return candidatesMapToRating(candidates)
     }
 

@@ -6,6 +6,9 @@ fun parseGeneric(annotation: String): GenericAnnotation? =
         ?: SetAnnotation.parse(annotation)
 
 
+fun isGeneric(annotation: String): Boolean = parseGeneric(annotation) != null
+
+
 sealed class GenericAnnotation {
     abstract val args: List<String>
 }

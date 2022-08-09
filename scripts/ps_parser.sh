@@ -7,5 +7,3 @@ while read line; do
 	DESCRIPTION=$(echo $line | grep -o "Gradle Test Executor [0-9]*")
 	echo "processe_memory_bytes{pid=\"${PID}\",pid_executable=\"${PID_EXECUTABLE}\",description=\"${DESCRIPTION}\"} ${RSS}"
 done <<< $(ps -ax --no-headers --format=pid,rss,command --sort=-rss,pid)
-
-sleep 15

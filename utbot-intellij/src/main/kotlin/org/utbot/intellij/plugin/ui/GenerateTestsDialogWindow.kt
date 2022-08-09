@@ -217,8 +217,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.eventLogSuffix]?.plusAssign {
-            val twm = ToolWindowManager.getInstance(model.project)
-            twm.getToolWindow("Event Log")?.activate(null)
+            with(model.project) {
+                if (this.isDisposed) return@with
+                val twm = ToolWindowManager.getInstance(this)
+                twm.getToolWindow("Event Log")?.activate(null)
+            }
         }
 
         model.runGeneratedTestsWithCoverage = model.project.service<Settings>().runGeneratedTestsWithCoverage

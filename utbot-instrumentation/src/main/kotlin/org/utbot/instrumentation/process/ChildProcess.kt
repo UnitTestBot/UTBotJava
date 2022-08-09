@@ -158,6 +158,10 @@ private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracket
         clientProtocol.wire.connected.value}"}
     val (mainToProcess, processToMain, sync) = obtainClientIO(lifetime, clientProtocol, pid)
     logInfo { "IO obtained" }
+    val kryoHelper =
+        KryoHelper(lifetime, mainToProcess, processToMain)
+        { logTrace(it) } // this generates a lot of logs - comment if needed
+    logInfo { "kryo created" }
     logInfo { "hearthbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${
         clientProtocol.wire.connected.value}"}
     val latch = CountDownLatch(1)
@@ -168,9 +172,6 @@ private fun initiate(lifetime: Lifetime, port: Int, pid: Int) = lifetime.bracket
         }
     }
     latch.await()
-    val kryoHelper =
-        KryoHelper(lifetime, mainToProcess, processToMain)
-        { logTrace(it) } // this generates a lot of logs - comment if needed
     logInfo { "hearthbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${
         clientProtocol.wire.connected.value}"}
 

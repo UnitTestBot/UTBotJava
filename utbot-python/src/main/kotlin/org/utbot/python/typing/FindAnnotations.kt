@@ -54,6 +54,9 @@ object AnnotationFinder {
                 is ArgInfoCollector.Method -> {
                     val typesWithMethod = PythonTypesStorage.findTypeWithMethod(argInfoStorage.name)
                     typesWithMethod.forEach { increaseValue(candidates, it.name) }
+
+                    if (argInfoStorage.name == "__iter__")
+                        increaseForGenerics(candidates)
                 }
                 is ArgInfoCollector.Field -> {
                     val typesWithField = PythonTypesStorage.findTypeWithField(argInfoStorage.name)
@@ -73,7 +76,6 @@ object AnnotationFinder {
             }
         }
         increaseForProjectClasses(candidates)
-        increaseForGenerics(candidates)
         return candidatesMapToRating(candidates)
     }
 

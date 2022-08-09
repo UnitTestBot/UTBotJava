@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
@@ -58,6 +59,7 @@ object PythonDialogProcessor {
     ): PythonDialogWindow {
         val srcModule = findSrcModule(functionsToShow)
         val testModule = srcModule.testModule(project)
+        val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
 
         return PythonDialogWindow(
             PythonTestsModel(
@@ -68,7 +70,8 @@ object PythonDialogProcessor {
                 containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,
                 file,
-                getDefaultModuleToImport(file),
+                directoriesForSysPath,
+                moduleToImport,
                 UtSettings.utBotGenerationTimeoutInMillis
             )
         )
@@ -200,22 +203,28 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
     }
 }
 
-fun getDefaultModuleToImport(file: PyFile): String {
-    var importPath = file.virtualFile?.let { absoluteFilePath ->
-        ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(absoluteFilePath)?.let {absoluteProjectPath ->
-            VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(absoluteFilePath, absoluteProjectPath))
-        }
-    } ?: ""
-
-    if (importPath != "")
-        importPath += "."
-
-    return "${importPath}${file.name}".dropLast(3).toPath().joinToString(".")
-}
-
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
 fun getPyCodeFromPyFile(file: PyFile): PythonCode {
     val content = getContentFromPyFile(file)
     return getFromString(content)
+}
+
+fun getDirectoriesForSysPath(
+    srcModule: Module,
+    file: PyFile
+): Pair<List<String>, String> {
+    val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
+    val ancestor = ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(file.virtualFile)
+    if (ancestor != null && !sources.contains(ancestor))
+        sources.add(ancestor)
+
+    var importPath = ancestor?.let { VfsUtil.getParentDir(VfsUtilCore.getRelativeLocation(file.virtualFile, it)) } ?: ""
+    if (importPath != "")
+        importPath += "."
+
+    return Pair(
+        sources.map { it.path },
+        "${importPath}${file.name}".dropLast(3).toPath().joinToString(".")
+    )
 }

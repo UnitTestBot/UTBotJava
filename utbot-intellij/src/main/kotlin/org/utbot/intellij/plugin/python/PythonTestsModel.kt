@@ -18,7 +18,8 @@ class PythonTestsModel(
     val containingClass: PyClass?,
     val focusedMethod: Set<PyFunction>?,
     val file: PyFile,
-    var moduleToImport: String,
+    val directoriesForSysPath: List<String>,
+    val moduleToImport: String,
     var timeout: Long
 ): BaseTestsModel(
     project,
@@ -27,5 +28,4 @@ class PythonTestsModel(
 ) {
      lateinit var testFramework: TestFramework
      lateinit var selectedFunctions: Set<PyFunction>
-     lateinit var directoriesForSysPath: List<String>
 }

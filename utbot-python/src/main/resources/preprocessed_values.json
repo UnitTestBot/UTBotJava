@@ -1117,6 +1117,13 @@
     ]
   },
   {
+    "name": "builtins.tuple",
+    "useAsReturn": true,
+    "instances": [
+      "tuple()"
+    ]
+  },
+  {
     "name": "builtins.reversed",
     "useAsReturn": false,
     "instances": []
@@ -1139,11 +1146,6 @@
   {
     "name": "builtins.map",
     "useAsReturn": false,
-    "instances": []
-  },
-  {
-    "name": "builtins.tuple",
-    "useAsReturn": true,
     "instances": []
   }
 ]

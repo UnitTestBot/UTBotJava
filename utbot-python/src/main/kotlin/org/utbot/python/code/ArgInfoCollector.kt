@@ -92,8 +92,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<ClassId
     fun getAllGeneralStorages(): List<BaseStorage> = visitor.generalStorage.toList()
 
     fun getAllArgStorages(): Map<String, List<BaseStorage>> {
-       return collectedValues.entries.associate { (argName, storage) ->
-           argName to storage.toList()
+       return paramNames.associate { argName ->
+           argName to (collectedValues[argName]?.toList() ?: emptyList())
        }
     }
 

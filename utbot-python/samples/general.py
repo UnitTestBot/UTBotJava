@@ -4,6 +4,10 @@ from typing import *
 from dataclasses import dataclass
 
 
+def id_(x):
+    return x
+
+
 def f(x, y, z, a, b, c, d, e, g, h):
     if y % 2 == 0:
         x = 1 + y

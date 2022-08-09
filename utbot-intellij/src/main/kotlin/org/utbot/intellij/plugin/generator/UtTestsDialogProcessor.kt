@@ -26,7 +26,7 @@ import com.intellij.util.concurrency.AppExecutorUtil
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.engine.util.mockListeners.ForceMockListener
-import org.utbot.framework.JdkPathService
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtMethod
@@ -39,7 +39,7 @@ import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
-import org.utbot.intellij.plugin.util.PluginJdkPathProvider
+import org.utbot.intellij.plugin.util.PluginJdkInfoProvider
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.summary.summarize
 import java.io.File
@@ -50,9 +50,11 @@ import java.util.concurrent.TimeUnit
 import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.plugin.api.testFlow
+import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.isGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
+import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.isAbstract
 import org.utbot.intellij.plugin.ui.utils.testModules
 import kotlin.reflect.KClass
@@ -80,7 +82,9 @@ object UtTestsDialogProcessor {
         val srcModule = findSrcModule(srcClasses)
         val testModules = srcModule.testModules(project)
 
-        JdkPathService.jdkPathProvider = PluginJdkPathProvider(project)
+        JdkInfoService.jdkInfoProvider = PluginJdkInfoProvider(project)
+        // we want to start the child process in the same directory as the test runner
+        WorkingDirService.workingDirProvider = PluginWorkingDirProvider(project)
 
         if (project.isGradle() && testModules.flatMap { it.suitableTestSourceRoots() }.isEmpty()) {
             val errorMessage = """

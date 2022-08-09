@@ -31,7 +31,12 @@ private val logger = KotlinLogging.logger {}
  */
 class UtJavaDocInfoGenerator {
     fun addUtBotSpecificSectionsToJavaDoc(javadoc: String?, comment: PsiDocComment): String {
-        val builder: StringBuilder = StringBuilder(javadoc)
+        val builder = if (javadoc == null) {
+            StringBuilder()
+        } else {
+            StringBuilder(javadoc)
+        }
+
         val docTagProvider = UtCustomJavaDocTagProvider()
         docTagProvider.supportedTags.forEach {
             generateUtTagSection(builder, comment, it)
@@ -44,49 +49,54 @@ class UtJavaDocInfoGenerator {
      */
     private fun generateUtTagSection(
         builder: StringBuilder,
-        comment: PsiDocComment?,
+        comment: PsiDocComment,
         utTag: UtCustomJavaDocTagProvider.UtCustomTagInfo
     ) {
-        if (comment != null) {
-            val tag = comment.findTagByName(utTag.name) ?: return
-            startHeaderSection(builder, utTag.getMessage()).append("<p>")
-            val sectionContent = buildString {
-                generateValue(this, tag.dataElements)
-                this.trim { it <= ' ' }
-            }
-            builder.append(sectionContent)
-            builder.append(DocumentationMarkup.SECTION_END)
+        val tag = comment.findTagByName(utTag.name) ?: return
+        startHeaderSection(builder, utTag.getMessage()).append("<p>")
+        val sectionContent = buildString {
+            generateValue(this, tag.dataElements)
+            trim()
         }
+
+        builder.append(sectionContent)
+        builder.append(DocumentationMarkup.SECTION_END)
     }
 
-    private fun startHeaderSection(builder: StringBuilder, message: String): StringBuilder {
-        return builder.append(DocumentationMarkup.SECTION_HEADER_START)
+    private fun startHeaderSection(builder: StringBuilder, message: String): StringBuilder =
+        builder.append(DocumentationMarkup.SECTION_HEADER_START)
             .append(message)
             .append(MESSAGE_SEPARATOR)
             .append(DocumentationMarkup.SECTION_SEPARATOR)
-    }
 
     /**
      * Generates info depending on tag's value type.
      */
     private fun generateValue(builder: StringBuilder, elements: Array<PsiElement>) {
-        var offset = if (elements.isNotEmpty()) {
-            elements[0].textOffset + elements[0].text.length
-        } else 0
+        if (elements.isEmpty()) {
+            return
+        }
 
-        for (i in elements.indices) {
-            if (elements[i].textOffset > offset) builder.append(' ')
-            offset = elements[i].textOffset + elements[i].text.length
-            val element = elements[i]
-            if (element is PsiInlineDocTag) {
-                when (element.name) {
-                    LITERAL_TAG -> generateLiteralValue(builder, element)
-                    CODE_TAG, SYSTEM_PROPERTY_TAG -> generateCodeValue(element, builder)
-                    LINK_TAG -> generateLinkValue(element, builder, false)
-                    LINKPLAIN_TAG -> generateLinkValue(element, builder, true)
+        var offset = elements[0].textOffset + elements[0].text.length
+
+        for (element in elements) {
+            with(element) {
+                if (textOffset > offset) {
+                    builder.append(' ')
                 }
-            } else {
-                appendPlainText(builder, element.text)
+
+                offset = textOffset + text.length
+
+                if (element is PsiInlineDocTag) {
+                    when (element.name) {
+                        LITERAL_TAG -> generateLiteralValue(builder, element)
+                        CODE_TAG, SYSTEM_PROPERTY_TAG -> generateCodeValue(element, builder)
+                        LINK_TAG -> generateLinkValue(element, builder, false)
+                        LINKPLAIN_TAG -> generateLinkValue(element, builder, true)
+                    }
+                } else {
+                    appendPlainText(builder, text)
+                }
             }
         }
     }
@@ -140,11 +150,11 @@ class UtJavaDocInfoGenerator {
 
     private fun generateLinkValue(tag: PsiInlineDocTag, builder: StringBuilder, plainLink: Boolean) {
         val tagElements = tag.dataElements
-        val linkText: String = createLinkText(tagElements)
+        val linkText = createLinkText(tagElements)
         if (linkText.isNotEmpty()) {
             val index = JavaDocUtil.extractReference(linkText)
-            val referenceText = linkText.substring(0, index).trim { it <= ' ' }
-            val label = StringUtil.nullize(linkText.substring(index).trim { it <= ' ' })
+            val referenceText = linkText.substring(0, index).trim()
+            val label = StringUtil.nullize(linkText.substring(index).trim())
             generateLink(builder, referenceText, label, tagElements[0], plainLink)
         }
     }
@@ -166,7 +176,7 @@ class UtJavaDocInfoGenerator {
                     this.append(' ')
                 }
             }
-        }.trim { it <= ' ' }
+        }.trim()
     }
 
     private fun generateLink(
@@ -176,10 +186,8 @@ class UtJavaDocInfoGenerator {
         context: PsiElement,
         plainLink: Boolean
     ) {
-        var linkLabel = label
-        if (label == null) {
-            val manager = context.manager
-            linkLabel = JavaDocUtil.getLabelText(manager.project, manager, refText, context)
+        val linkLabel = label ?: context.manager.let {
+            JavaDocUtil.getLabelText(it.project, it, refText, context)
         }
 
         var target: PsiElement? = null
@@ -196,9 +204,8 @@ class UtJavaDocInfoGenerator {
         } else if (target == null) {
             builder.append("<font color=red>").append(linkLabel).append("</font>")
         } else {
-            val referenceText = JavaDocUtil.getReferenceText(target.project, target)
-            if (referenceText != null) {
-                DocumentationManagerUtil.createHyperlink(builder, target, referenceText, linkLabel, plainLink)
+            JavaDocUtil.getReferenceText(target.project, target)?.let {
+                DocumentationManagerUtil.createHyperlink(builder, target, it, linkLabel, plainLink)
             }
         }
     }

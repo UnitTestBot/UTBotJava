@@ -14,7 +14,7 @@ import org.utbot.summary.comment.CustomJavaDocTagProvider
  */
 class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
     override fun getSupportedTags(): List<UtCustomTagInfo> =
-        CustomJavaDocTagProvider().getPluginCustomTags().map { t -> UtCustomTagInfo(t) }
+        CustomJavaDocTagProvider().getPluginCustomTags().map { UtCustomTagInfo(it) }
 
     class UtCustomTagInfo(private val tag: CustomJavaDocTag) : JavadocTagInfo {
         override fun getName(): String = tag.name
@@ -27,8 +27,6 @@ class UtCustomJavaDocTagProvider : CustomJavadocTagProvider {
 
         override fun getReference(value: PsiDocTagValue?): PsiReference? = null
 
-        override fun isValidInContext(element: PsiElement?): Boolean {
-            return element is PsiMethod
-        }
+        override fun isValidInContext(element: PsiElement?): Boolean = element is PsiMethod
     }
 }

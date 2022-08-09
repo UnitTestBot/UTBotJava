@@ -5,7 +5,6 @@ import com.intellij.codeInsight.javadoc.JavaDocInfoGenerator
 import com.intellij.lang.java.JavaDocumentationProvider
 import com.intellij.psi.PsiDocCommentBase
 import com.intellij.psi.PsiJavaDocumentedElement
-import com.intellij.psi.javadoc.PsiDocComment
 
 /**
  * To render UtBot custom JavaDoc tags correctly, we need to override the way it generates HTML tags for comments.
@@ -14,22 +13,23 @@ import com.intellij.psi.javadoc.PsiDocComment
  * It renders text, code, and links.
  */
 class UtDocumentationProvider : JavaDocumentationProvider() {
-    override fun generateRenderedDoc(comment: PsiDocCommentBase): String {
-        var target = comment.owner
-        if (target == null) target = comment
-        val docComment: PsiDocComment?
-        var finalJavaDoc = ""
-        if (target is PsiJavaDocumentedElement) {
-            docComment = target.docComment
-            if (docComment != null) {
-                val baseJavaDocInfoGenerator = JavaDocInfoGenerator(target.project, target)
-                val baseJavaDocInfo = baseJavaDocInfoGenerator.generateRenderedDocInfo()
-                val utJavaDocInfoGenerator = UtJavaDocInfoGenerator()
-                val javaDocInfoWithUtSections =
-                    utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(baseJavaDocInfo, docComment)
-                finalJavaDoc = JavaDocExternalFilter.filterInternalDocInfo(javaDocInfoWithUtSections)!!
-            }
+    override fun generateRenderedDoc(comment: PsiDocCommentBase): String? {
+        val target = comment.owner ?: comment
+
+        if (target !is PsiJavaDocumentedElement) {
+            return ""
         }
-        return finalJavaDoc
+
+        val docComment = target.docComment ?: return ""
+
+        val baseJavaDocInfoGenerator = JavaDocInfoGenerator(target.project, target)
+        // get JavaDoc comment rendered by the platform.
+        val baseJavaDocInfo = baseJavaDocInfoGenerator.generateRenderedDocInfo()
+        val utJavaDocInfoGenerator = UtJavaDocInfoGenerator()
+        // add UTBot sections with custom tags.
+        val javaDocInfoWithUtSections =
+            utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(baseJavaDocInfo, docComment)
+
+        return JavaDocExternalFilter.filterInternalDocInfo(javaDocInfoWithUtSections)
     }
 }

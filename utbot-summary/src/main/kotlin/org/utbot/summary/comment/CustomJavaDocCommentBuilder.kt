@@ -16,10 +16,10 @@ class CustomJavaDocCommentBuilder(
      * Collects statements for final JavaDoc comment.
      */
     fun buildDocStatements(method: SootMethod): List<DocStatement> {
-        val comment: CustomJavaDocComment = buildCustomJavaDocComment(method)
+        val comment = buildCustomJavaDocComment(method)
         val docStatementList =
             CustomJavaDocTagProvider().getPluginCustomTags().mapNotNull { it.generateDocStatement(comment) }
-        return listOf<DocStatement>(DocCustomTagStatement(docStatementList))
+        return listOf(DocCustomTagStatement(docStatementList))
     }
 
     private fun buildCustomJavaDocComment(currentMethod: SootMethod): CustomJavaDocComment {

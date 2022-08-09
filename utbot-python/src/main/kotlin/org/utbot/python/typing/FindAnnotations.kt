@@ -50,7 +50,8 @@ object AnnotationFinder {
         val candidates = getInitCandidateMap()
         storages?.forEach { argInfoStorage ->
             when (argInfoStorage) {
-                is ArgInfoCollector.Type -> candidates[argInfoStorage.name] = INF
+                is ArgInfoCollector.Type ->
+                    candidates[PythonTypesStorage.normalizeAnnotation(argInfoStorage.name)] = INF
                 is ArgInfoCollector.Method -> {
                     val typesWithMethod = PythonTypesStorage.findTypeWithMethod(argInfoStorage.name)
                     typesWithMethod.forEach { increaseValue(candidates, it.name) }
@@ -85,7 +86,7 @@ object AnnotationFinder {
         val candidates = getInitCandidateMap()
         argInfoCollector.getAllGeneralStorages().map { generalStorage ->
             when (generalStorage) {
-                is ArgInfoCollector.Type -> increaseValue(candidates, generalStorage.name)
+                is ArgInfoCollector.Type -> increaseValue(candidates, PythonTypesStorage.normalizeAnnotation(generalStorage.name))
                 is ArgInfoCollector.Function -> {
                     listOf(
                         PythonTypesStorage.findTypeByFunctionReturnValue(generalStorage.name),

@@ -47,6 +47,11 @@ object PythonTypesStorage {
             annotationFromStubToClassId(it.typeName, pythonPath ?: error(noPythonMsg), it.module)
         }
 
+    fun normalizeAnnotation(annotation: String): String {
+        val module = moduleOfType(annotation) ?: return annotation
+        return annotationFromStubToClassId(annotation, pythonPath ?: error(noPythonMsg), module).name
+    }
+
     fun findTypeWithMethod(
         methodName: String
     ): Set<ClassId> {

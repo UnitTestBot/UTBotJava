@@ -19,14 +19,14 @@ object OptionalModelProvider: PythonModelProvider() {
                         if (it == index) pythonNoneClassId else pythonAnyClassId
                     }
                 )
-                result += concreteTypesModelProvider.generate(descriptionWithNoneType)
+                result += defaultPythonModelProvider.generate(descriptionWithNoneType)
                 val descriptionWithNonNoneType = substituteTypesByIndex(
                     description,
                     (0 until description.parameters.size).map {
                         if (it == index) NormalizedPythonAnnotation(match.groupValues[1]) else pythonAnyClassId
                     }
                 )
-                result += concreteTypesModelProvider.generate(descriptionWithNonNoneType)
+                result += defaultPythonModelProvider.generate(descriptionWithNonNoneType)
             }
         }
         return result

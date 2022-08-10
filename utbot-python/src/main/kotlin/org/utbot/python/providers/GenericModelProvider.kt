@@ -2,17 +2,14 @@ package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.*
-import org.utbot.python.utils.*
+import org.utbot.python.typing.DictAnnotation
+import org.utbot.python.typing.ListAnnotation
+import org.utbot.python.typing.SetAnnotation
+import org.utbot.python.typing.parseGeneric
 import java.lang.Integer.min
 import kotlin.random.Random
 
 object GenericModelProvider: PythonModelProvider() {
-    private val concreteTypesModelProvider = ModelProvider.of(
-        ConstantModelProvider,
-        DefaultValuesModelProvider,
-        GenericModelProvider
-    )
-
     private const val maxGenNum = 10
 
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
@@ -27,7 +24,7 @@ object GenericModelProvider: PythonModelProvider() {
                 parameters,
                 description.concreteValues
             )
-            fuzz(syntheticGenericType, concreteTypesModelProvider)
+            fuzz(syntheticGenericType, defaultPythonModelProvider)
                 .randomChunked()
                 .map(modelConstructor)
                 .forEach {

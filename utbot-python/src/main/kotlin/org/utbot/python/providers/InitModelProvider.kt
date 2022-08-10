@@ -9,7 +9,7 @@ import org.utbot.python.typing.PythonTypesStorage
 object InitModelProvider: PythonModelProvider() {
     override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         description.parametersMap.forEach { (classId, parameterIndices) ->
-            val type = PythonTypesStorage.getTypeByName(PythonClassId(classId.name)) ?: return@forEach
+            val type = PythonTypesStorage.findPythonClassIdInfoByName(classId.name) ?: return@forEach
             val initSignature = type.initSignature ?: return@forEach
 
             val models: Sequence<PythonModel> =
@@ -17,7 +17,7 @@ object InitModelProvider: PythonModelProvider() {
                     sequenceOf(PythonInitObjectModel(classId.name, emptyList()))
                 else {
                     val constructor = FuzzedMethodDescription(
-                        type.name,
+                        type.pythonClassId.name,
                         classId,
                         initSignature,
                         description.concreteValues

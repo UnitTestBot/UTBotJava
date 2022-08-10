@@ -6,9 +6,8 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.python.providers.concreteTypesModelProvider
+import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.typing.PythonTypesStorage
-import org.utbot.python.typing.ReturnRenderType
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -35,7 +34,7 @@ class PythonEngine(
 
         val pythonTypes = selectedTypeMap.values.map { it.name }
 
-        fuzz(methodUnderTestDescription, concreteTypesModelProvider).forEach { values ->
+        fuzz(methodUnderTestDescription, defaultPythonModelProvider).forEach { values ->
             val modelList = values.map { it.model }
             val evalResult = PythonEvaluation.evaluate(
                 methodUnderTest,
@@ -54,14 +53,11 @@ class PythonEngine(
                 yield(PythonError(UtError(resultJSON.output, Throwable()), modelList, pythonTypes))
             } else {
 
-                // some types cannot be used as return types in tests (like socket or memoryview)
                 val outputType = PythonClassId(resultJSON.type)
-                if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
-                    return@sequence
 
                 val resultAsModel = PythonDefaultModel(
                     resultJSON.output,
-                    resultJSON.type
+                    outputType
                 )
                 val result = UtExecutionSuccess(resultAsModel)
 

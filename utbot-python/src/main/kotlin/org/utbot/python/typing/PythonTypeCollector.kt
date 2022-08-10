@@ -17,26 +17,20 @@ import java.io.File
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
 
-class PythonType(
-    val name: String, // include module name (like 'ast.Assign')
+class PythonClassIdInfo(
+    val pythonClassId: PythonClassId,
     val initSignature: List<NormalizedPythonAnnotation>?,
-    val sourceFile: String?,
     val preprocessedInstances: List<String>?,
     val methods: List<String>,
-    val fields: List<String>,
-    val returnRenderType: ReturnRenderType = ReturnRenderType.REPR
+    val fields: List<String>
 ) {
     val module: String?
-        get() = moduleOfType(name)
+        get() = moduleOfType(pythonClassId.name)
 }
 
 fun moduleOfType(typeName: String): String? {
     val lastIndex = typeName.lastIndexOf('.')
     return if (lastIndex == -1) null else typeName.substring(0, lastIndex)
-}
-
-enum class ReturnRenderType {
-    REPR, PICKLE, NONE
 }
 
 object PythonTypesStorage {
@@ -85,33 +79,30 @@ object PythonTypesStorage {
         return projectClasses.any { it.name.name == typeName.name }
     }
 
-    fun getTypeByName(classId: PythonClassId): PythonType? {
-        val fromStub = StubFileFinder.nameToClassMap[classId.name]
+    fun findPythonClassIdInfoByName(classIdName: String): PythonClassIdInfo? {
+        val fromStub = StubFileFinder.nameToClassMap[classIdName]
         val result =
             if (fromStub != null) {
-                val fromPreprocessed = TypesFromJSONStorage.typeNameMap[classId.name]
-                return PythonType(
-                    classId.name,
+                val fromPreprocessed = TypesFromJSONStorage.typeNameMap[classIdName]
+                return PythonClassIdInfo(
+                    PythonClassId(fromStub.className),
                     fromStub.methods.find { it.name == "__init__" }
                         ?.args
                         ?.drop(1) // drop 'self' parameter
                         ?.map { annotationFromStubToClassId(
                             it.annotation,
                             pythonPath ?: error(PYTHON_NOT_SPECIFIED),
-                            moduleOfType(classId.name) ?: "builtins"
+                            moduleOfType(classIdName) ?: "builtins"
                         ) },
-                    null,
                     fromPreprocessed?.instances,
                     fromStub.methods.map { it.name },
                     fromStub.fields.map { it.name },
-                    if (fromPreprocessed?.useAsReturn == false) ReturnRenderType.NONE else ReturnRenderType.REPR
                 )
             } else {
-                projectClasses.find { it.pythonClass.name == classId.name } ?.let { projectClass ->
-                    PythonType(
-                        classId.name,
+                projectClasses.find { it.name.name == classIdName } ?.let { projectClass ->
+                    PythonClassIdInfo(
+                        projectClass.name,
                         projectClass.initAnnotation,
-                        projectClass.pythonClass.filename,
                         null,
                         projectClass.info.methods,
                         projectClass.info.fields
@@ -178,8 +169,7 @@ object PythonTypesStorage {
 
     private data class PreprocessedValueFromJSON(
         val name: String,
-        val instances: List<String>,
-        val useAsReturn: Boolean
+        val instances: List<String>
     )
 
     private object TypesFromJSONStorage {

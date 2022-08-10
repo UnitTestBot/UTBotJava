@@ -9,7 +9,7 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 
-val concreteTypesModelProvider = ModelProvider.of(
+val defaultPythonModelProvider = ModelProvider.of(
     ConstantModelProvider,
     DefaultValuesModelProvider,
     InitModelProvider,
@@ -44,8 +44,7 @@ class PythonFuzzedMethodDescription(
     returnType: ClassId,
     parameters: List<NormalizedPythonAnnotation>,
     concreteValues: Collection<FuzzedConcreteValue> = emptyList()
-): FuzzedMethodDescription(name, returnType, parameters, concreteValues) {
-}
+): FuzzedMethodDescription(name, returnType, parameters, concreteValues)
 
 fun substituteType(
     description: FuzzedMethodDescription,

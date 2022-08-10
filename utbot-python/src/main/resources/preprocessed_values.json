@@ -1,7 +1,6 @@
 [
   {
     "name": "builtins.int",
-    "useAsReturn": true,
     "instances": [
       "int('3723ai4h', 20)",
       "int('4000001', 32)",
@@ -126,7 +125,6 @@
   },
   {
     "name": "builtins.bool",
-    "useAsReturn": true,
     "instances": [
       "True",
       "False"
@@ -134,7 +132,6 @@
   },
   {
     "name": "builtins.str",
-    "useAsReturn": true,
     "instances": [
       "str(float('-infinity'))",
       "str(Exception('a'))",
@@ -195,7 +192,6 @@
   },
   {
     "name": "builtins.float",
-    "useAsReturn": true,
     "instances": [
       "float(-1)",
       "float(0.0)",
@@ -246,7 +242,6 @@
   },
   {
     "name": "builtins.range",
-    "useAsReturn": true,
     "instances": [
       "range(127, 256)",
       "range(24)",
@@ -282,7 +277,6 @@
   },
   {
     "name": "builtins.complex",
-    "useAsReturn": true,
     "instances": [
       "complex(1.0, float('inf'))",
       "complex('1j')",
@@ -371,21 +365,18 @@
   },
   {
     "name": "builtins.BaseException",
-    "useAsReturn": true,
     "instances": [
       "BaseException()"
     ]
   },
   {
   "name": "types.NoneType",
-  "useAsReturn": true,
   "instances": [
     "None"
   ]
   },
   {
     "name": "builtins.bytearray",
-    "useAsReturn": true,
     "instances": [
       "bytearray(b'a')",
       "bytearray(100)",
@@ -509,7 +500,6 @@
   },
   {
     "name": "builtins.bytes",
-    "useAsReturn": true,
     "instances": [
       "bytes(b'ab')",
       "bytes(b'def')",
@@ -524,28 +514,24 @@
   },
   {
     "name": "builtins.dict",
-    "useAsReturn": true,
     "instances": [
       "dict()"
     ]
   },
   {
     "name": "builtins.frozenset",
-    "useAsReturn": true,
     "instances": [
       "frozenset()"
     ]
   },
   {
     "name": "builtins.list",
-    "useAsReturn": true,
     "instances": [
       "list()"
     ]
   },
   {
     "name": "builtins.memoryview",
-    "useAsReturn": false,
     "instances": [
       "memoryview(b'a')",
       "memoryview(b'1234')",
@@ -592,21 +578,18 @@
   },
   {
     "name": "builtins.object",
-    "useAsReturn": false,
     "instances": [
       "object()"
     ]
   },
   {
     "name": "builtins.set",
-    "useAsReturn": true,
     "instances": [
       "set()"
     ]
   },
   {
     "name": "builtins.slice",
-    "useAsReturn": true,
     "instances": [
       "slice(0, 2, 1)",
       "slice(2)",
@@ -698,7 +681,6 @@
   },
   {
     "name": "builtins.type",
-    "useAsReturn": false,
     "instances": [
       "type(len)",
       "type('123')",
@@ -731,7 +713,6 @@
   },
   {
     "name": "datetime.date",
-    "useAsReturn": true,
     "instances": [
       "datetime.date(1, 1, 1)",
       "datetime.date(1995, 4, 12)",
@@ -744,7 +725,6 @@
   },
   {
     "name": "datetime.datetime",
-    "useAsReturn": true,
     "instances": [
       "datetime.datetime(2011, 1, 1)",
       "datetime.datetime(1970, 1, 1)",
@@ -766,7 +746,6 @@
   },
   {
     "name": "datetime.time",
-    "useAsReturn": true,
     "instances": [
       "datetime.time(fold=1)",
       "datetime.time()",
@@ -781,7 +760,6 @@
   },
   {
     "name": "datetime.timedelta",
-    "useAsReturn": true,
     "instances": [
       "datetime.timedelta(days=100, weeks=-7, hours=-24 * (100 - 49), minutes=-3, seconds=12, microseconds=(3 * 60 - 12) * 1000000)",
       "datetime.timedelta(hours=24)",
@@ -823,15 +801,7 @@
     ]
   },
   {
-    "name": "datetime.tzinfo",
-    "useAsReturn": true,
-    "instances": [
-      "datetime.tzinfo()"
-    ]
-  },
-  {
     "name": "_decimal.Decimal",
-    "useAsReturn": true,
     "instances": [
       "_decimal.Decimal('22.2')",
       "_decimal.Decimal('1.234e7')",
@@ -1115,37 +1085,5 @@
       "_decimal.Decimal('8.71E+799')",
       "_decimal.Decimal('20.686')"
     ]
-  },
-  {
-    "name": "builtins.tuple",
-    "useAsReturn": true,
-    "instances": [
-      "tuple()"
-    ]
-  },
-  {
-    "name": "builtins.reversed",
-    "useAsReturn": false,
-    "instances": []
-  },
-  {
-    "name": "builtins.zip",
-    "useAsReturn": false,
-    "instances": []
-  },
-  {
-    "name": "builtins.enumerate",
-    "useAsReturn": false,
-    "instances": []
-  },
-  {
-    "name": "builtins.filter",
-    "useAsReturn": false,
-    "instances": []
-  },
-  {
-    "name": "builtins.map",
-    "useAsReturn": false,
-    "instances": []
   }
 ]

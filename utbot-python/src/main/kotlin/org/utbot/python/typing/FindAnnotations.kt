@@ -10,6 +10,31 @@ import java.io.File
 
 object AnnotationFinder {
 
+    fun findAnnotations(
+        argInfoCollector: ArgInfoCollector,
+        methodUnderTest: PythonMethod,
+        existingAnnotations: Map<String, NormalizedPythonAnnotation>,
+        moduleToImport: String,
+        directoriesForSysPath: List<String>,
+        pythonPath: String,
+        fileOfMethod: String,
+        isCancelled: () -> Boolean,
+        storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine>
+    ): Sequence<Map<String, NormalizedPythonAnnotation>> {
+
+        val annotationsToCheck = findTypeCandidates(argInfoCollector, existingAnnotations)
+
+        return MypyAnnotations.getCheckedByMypyAnnotations(
+            methodUnderTest,
+            annotationsToCheck,
+            moduleToImport,
+            directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
+            pythonPath,
+            isCancelled,
+            storageForMypyMessages
+        )
+    }
+
     private const val INF = 1000
 
     private fun increaseValue(map: MutableMap<NormalizedPythonAnnotation, Int>, key: NormalizedPythonAnnotation) {
@@ -172,30 +197,5 @@ object AnnotationFinder {
             name to getArgCandidates(generalTypeRating, storages)
         }
         return userAnnotations + annotationCombinations
-    }
-
-    fun findAnnotations(
-        argInfoCollector: ArgInfoCollector,
-        methodUnderTest: PythonMethod,
-        existingAnnotations: Map<String, NormalizedPythonAnnotation>,
-        moduleToImport: String,
-        directoriesForSysPath: List<String>,
-        pythonPath: String,
-        fileOfMethod: String,
-        isCancelled: () -> Boolean,
-        storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine>
-    ): Sequence<Map<String, NormalizedPythonAnnotation>> {
-
-        val annotationsToCheck = findTypeCandidates(argInfoCollector, existingAnnotations)
-
-        return MypyAnnotations.getCheckedByMypyAnnotations(
-            methodUnderTest,
-            annotationsToCheck,
-            moduleToImport,
-            directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
-            pythonPath,
-            isCancelled,
-            storageForMypyMessages
-        )
     }
 }

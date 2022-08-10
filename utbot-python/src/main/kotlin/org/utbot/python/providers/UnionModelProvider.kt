@@ -19,7 +19,7 @@ object UnionModelProvider: PythonModelProvider() {
                             if (it == index) NormalizedPythonAnnotation(newAnnotation) else pythonAnyClassId
                         }
                     )
-                    result += concreteTypesModelProvider.generate(newDescription)
+                    result += defaultPythonModelProvider.generate(newDescription)
                 }
             }
         }

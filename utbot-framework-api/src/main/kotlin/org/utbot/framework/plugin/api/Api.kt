@@ -268,8 +268,8 @@ sealed class PythonModel(classId: PythonClassId): UtModel(classId)
 
 class PythonDefaultModel(
     val repr: String,
-    val type: String
-): PythonModel(PythonClassId(type)) {
+    classId: PythonClassId
+): PythonModel(classId) {
     override fun toString() = repr
 }
 

@@ -1,4 +1,4 @@
-package org.utbot.python.utils
+package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 

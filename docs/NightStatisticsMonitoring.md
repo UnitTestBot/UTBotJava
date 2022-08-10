@@ -19,53 +19,43 @@ More about statistic: Statistics.kt.
 
 Example input:
 ```
-stats.json 3 20
+stats.json 2 20
 ```
 Example output:
 ```json
 [
-	{
-		"classes_for_generation": 20,
-		"testcases_generated": 1204,
-		"classes_without_problems": 12,
-		"classes_canceled_by_timeout": 3,
-		"total_methods_for_generation": 519,
-		"methods_with_at_least_one_testcase_generated": 332,
-		"methods_with_exceptions": 42,
-		"suspicious_methods": 107,
-		"test_classes_failed_to_compile": 0,
-		"covered_instructions_count": 5282,
-		"total_instructions_count": 10932,
-		"avg_coverage": 57.43687433585721
-	},
-	{
-		"classes_for_generation": 20,
-		"testcases_generated": 1692,
-		"classes_without_problems": 12,
-		"classes_canceled_by_timeout": 2,
-		"total_methods_for_generation": 519,
-		"methods_with_at_least_one_testcase_generated": 426,
-		"methods_with_exceptions": 49,
-		"suspicious_methods": 29,
-		"test_classes_failed_to_compile": 1,
-		"covered_instructions_count": 6499,
-		"total_instructions_count": 11023,
-		"avg_coverage": 66.33821560285908
-	},
-	{
-		"classes_for_generation": 20,
-		"testcases_generated": 1406,
-		"classes_without_problems": 12,
-		"classes_canceled_by_timeout": 3,
-		"total_methods_for_generation": 519,
-		"methods_with_at_least_one_testcase_generated": 394,
-		"methods_with_exceptions": 43,
-		"suspicious_methods": 61,
-		"test_classes_failed_to_compile": 0,
-		"covered_instructions_count": 5851,
-		"total_instructions_count": 11011,
-		"avg_coverage": 60.71679400185094
-	}
+  {
+    "classes_for_generation": 20,
+    "testcases_generated": 958,
+    "classes_without_problems": 12,
+    "classes_canceled_by_timeout": 3,
+    "total_methods_for_generation": 519,
+    "methods_with_at_least_one_testcase_generated": 314,
+    "methods_with_exceptions": 47,
+    "suspicious_methods": 63,
+    "test_classes_failed_to_compile": 1,
+    "covered_instructions_count": 4388,
+    "covered_instructions_count_by_fuzzing": 3651,
+    "covered_instructions_count_by_concolic": 2178,
+    "total_instructions_count": 9531,
+    "avg_coverage": 60.10571074242921
+  },
+  {
+    "classes_for_generation": 9,
+    "testcases_generated": 557,
+    "classes_without_problems": 5,
+    "classes_canceled_by_timeout": 2,
+    "total_methods_for_generation": 114,
+    "methods_with_at_least_one_testcase_generated": 109,
+    "methods_with_exceptions": 11,
+    "suspicious_methods": 1,
+    "test_classes_failed_to_compile": 0,
+    "covered_instructions_count": 1675,
+    "covered_instructions_count_by_fuzzing": 1276,
+    "covered_instructions_count_by_concolic": 1332,
+    "total_instructions_count": 2407,
+    "avg_coverage": 70.9287503305422
+  }
 ]
 ```
 
@@ -87,20 +77,22 @@ monitoring/history.json stats.json monitoring/coverage_graph.png monitoring/quan
 Example output:
 ```json
 [
-    {
-        "classes_for_generation": 20.0,
-        "testcases_generated": 1434.0,
-        "classes_without_problems": 12.0,
-        "classes_canceled_by_timeout": 2.6666666666666665,
-        "total_methods_for_generation": 519.0,
-        "methods_with_at_least_one_testcase_generated": 384.0,
-        "methods_with_exceptions": 44.666666666666664,
-        "suspicious_methods": 65.66666666666667,
-        "test_classes_failed_to_compile": 0.33333333333333337,
-        "avg_coverage": 61.49729464685574,
-        "total_coverage": 53.47106015409328,
-        "timestamp": 1659715928504
-    }
+  {
+    "classes_for_generation": 14.5,
+    "testcases_generated": 757.5,
+    "classes_without_problems": 8.5,
+    "classes_canceled_by_timeout": 2.5,
+    "total_methods_for_generation": 316.5,
+    "methods_with_at_least_one_testcase_generated": 211.5,
+    "methods_with_exceptions": 29.0,
+    "suspicious_methods": 32.0,
+    "test_classes_failed_to_compile": 0.5,
+    "avg_coverage": 65.5172305364857,
+    "total_coverage": 57.813969999804286,
+    "total_coverage_by_fuzzing": 45.65931336298925,
+    "total_coverage_by_concolic": 39.095171346713414,
+    "timestamp": 1660132400587
+  }
 ]
 ```
 

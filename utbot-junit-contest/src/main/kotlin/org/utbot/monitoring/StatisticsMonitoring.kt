@@ -100,6 +100,8 @@ private fun GlobalStats.jsonString(baseTabs: Int = 0) =
         addValue("suspicious_methods", suspiciousMethods, tabs)
         addValue("test_classes_failed_to_compile", testClassesFailedToCompile, tabs)
         addValue("covered_instructions_count", coveredInstructionsCount, tabs)
+        addValue("covered_instructions_count_by_fuzzing", coveredInstructionsCountByFuzzing, tabs)
+        addValue("covered_instructions_count_by_concolic", coveredInstructionsCountByConcolic, tabs)
         addValue("total_instructions_count", totalInstructionsCount, tabs)
         addValue("avg_coverage", avgCoverage, tabs, needComma = false)
 

@@ -50,6 +50,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.isKnownSyntheticMethod
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
@@ -326,7 +327,8 @@ fun runGeneration(
                                             result.coverage?.let {
                                                 statsForClass.updateCoverage(
                                                     newCoverage = it,
-                                                    isNewClass = !testedClasses.contains(className)
+                                                    isNewClass = !testedClasses.contains(className),
+                                                    fromFuzzing = result is UtFuzzedExecution
                                                 )
                                             }
                                             testedClasses.add(className)
@@ -480,8 +482,23 @@ internal val Method.isVisibleFromGeneratedTest: Boolean
     get() = (this.modifiers and Modifier.ABSTRACT) == 0
             && (this.modifiers and Modifier.NATIVE) == 0
 
-private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean) {
-    coverage = coverage?.let { oldCoverage ->
+private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
+    coverage = coverage.update(newCoverage, isNewClass)
+    // other coverage type updates by empty coverage to respect new class
+    val emptyCoverage = newCoverage.copy(
+        coveredInstructions = emptyList()
+    )
+    if (fromFuzzing) {
+        fuzzedCoverage = fuzzedCoverage.update(newCoverage, isNewClass)
+        concolicCoverage = concolicCoverage.update(emptyCoverage, isNewClass)
+    } else {
+        fuzzedCoverage = fuzzedCoverage.update(emptyCoverage, isNewClass)
+        concolicCoverage = concolicCoverage.update(newCoverage, isNewClass)
+    }
+}
+
+private fun Coverage?.update(newCoverage: Coverage, isNewClass: Boolean) =
+    this?.let { oldCoverage ->
         val instructionsCount = if (isNewClass && newCoverage.instructionsCount != null) {
             newCoverage.instructionsCount!! + (oldCoverage.instructionsCount ?: 0)
         } else {
@@ -492,4 +509,3 @@ private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Bool
             instructionsCount = instructionsCount
         )
     } ?: newCoverage
-}

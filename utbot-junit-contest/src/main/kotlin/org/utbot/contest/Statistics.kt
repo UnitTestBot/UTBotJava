@@ -46,7 +46,13 @@ class GlobalStats {
         get() = statsForClasses.count { it.failedToCompile }
 
     val coveredInstructionsCount: Int
-        get() = statsForClasses.sumBy { it.getCoverageInfo().first }
+        get() = statsForClasses.sumBy { it.coverage.getCoverageInfo(it.className).first }
+
+    val coveredInstructionsCountByFuzzing: Int
+        get() = statsForClasses.sumBy { it.fuzzedCoverage.getCoverageInfo(it.className).first }
+
+    val coveredInstructionsCountByConcolic: Int
+        get() = statsForClasses.sumBy { it.concolicCoverage.getCoverageInfo(it.className).first }
 
     val totalInstructionsCount: Int
         get() = statsForClasses.sumBy { it.coverage?.instructionsCount?.toInt() ?: 0 }
@@ -54,7 +60,8 @@ class GlobalStats {
     val avgCoverage: Double
         get() = statsForClasses
             .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
-            .map { it.getCoverageInfo().run { if (second == 0) 0.0 else 100.0 * first / second } }.average()
+            .map { it.coverage.getCoverageInfo(it.className).run { if (second == 0) 0.0 else 100.0 * first / second } }
+            .average()
 
     override fun toString(): String = "\n<Global statistics> :" +
             "\n\t#classes for generation = $classesForGeneration" +
@@ -78,9 +85,17 @@ class GlobalStats {
                 .take(10)
                 .printMultiline { (reason, names) -> " ${names.joinToString()}\n-->> In ${names.size} method(s) :: $reason" } +
             "\n----------------------------------------" +
-            "\n\tTotal coverage: \n\t\t" +
-            coveredInstructionsCount.let { num ->
-                totalInstructionsCount.let { denum ->
+            totalInstructionsCount.let { denum ->
+                "\n\tTotal coverage: \n\t\t" +
+                coveredInstructionsCount.let { num ->
+                    "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
+                } +
+                "\n\tTotal fuzzed coverage: \n\t\t" +
+                coveredInstructionsCountByFuzzing.let { num ->
+                    "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
+                } +
+                "\n\tTotal concolic coverage: \n\t\t" +
+                coveredInstructionsCountByConcolic.let { num ->
                     "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
                 }
             } +
@@ -100,15 +115,11 @@ class StatsForClass(val className: String) {
     val testcasesGenerated: Int get() = statsForMethods.sumBy { it.testsGeneratedCount }
 
     var coverage: Coverage? = null
+    var fuzzedCoverage: Coverage? = null
+    var concolicCoverage: Coverage? = null
 
-    fun getCoverageInfo(): Pair<Int, Int> = coverage?.run {
-        coveredInstructions.filter { instr ->
-            instr.className.startsWith(className)
-        }.toSet().size to (instructionsCount?.toInt() ?: 0)
-    } ?: (0 to 0)
-
-    private fun prettyInfo(): String =
-        getCoverageInfo().run { "$first/$second" }
+    private fun Coverage?.prettyInfo(): String =
+        getCoverageInfo(className).run { "$first/$second" }
 
     override fun toString(): String = "\n<StatsForClass> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
@@ -117,7 +128,9 @@ class StatsForClass(val className: String) {
             "\n\t#methods with at least one TC = ${statsForMethods.count { it.testsGeneratedCount > 0 }}" +
             "\n\t#methods with exceptions = $methodsWithAtLeastOneException" +
             "\n\t#generated TC = $testcasesGenerated" +
-            "\n\t#coverage = ${prettyInfo()}"
+            "\n\t#total coverage = ${coverage.prettyInfo()}" +
+            "\n\t#fuzzed coverage = ${fuzzedCoverage.prettyInfo()}" +
+            "\n\t#concolic coverage = ${concolicCoverage.prettyInfo()}"
 }
 
 
@@ -163,5 +176,10 @@ class FailReason(private val throwable: Throwable) {
         return stackTrace.contentHashCode()
     }
 
-
 }
+
+private fun Coverage?.getCoverageInfo(className: String): Pair<Int, Int> = this?.run {
+    coveredInstructions.filter { instr ->
+        instr.className.startsWith(className)
+    }.toSet().size to (instructionsCount?.toInt() ?: 0)
+} ?: (0 to 0)

@@ -22,10 +22,16 @@ def load(json_file):
 
 
 def transform_stats(stats):
-    num = stats["covered_instructions_count"]
+    common_prefix = "covered_instructions_count"
     denum = stats["total_instructions_count"]
-    stats["total_coverage"] = 100 * num / denum if denum != 0 else 0
-    del stats["covered_instructions_count"]
+
+    nums_keys = [(key, key.removeprefix(common_prefix)) for key in stats.keys() if key.startswith(common_prefix)]
+
+    for (key, by) in nums_keys:
+        num = stats[key]
+        stats["total_coverage" + by] = 100 * num / denum if denum != 0 else 0
+        del stats[key]
+
     del stats["total_instructions_count"]
 
     return stats

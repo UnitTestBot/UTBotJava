@@ -3328,10 +3328,11 @@ class Traverser(
         val updatedFields = staticFieldsUpdates.mapTo(mutableSetOf()) { it.fieldId }
         val objectUpdates = mutableListOf<UtNamedStore>()
 
-        // we assign unbounded symbolic variables for every non-final field of the class
+        // we assign unbounded symbolic variables for every non-final meaningful field of the class
+        // fields from predefined library classes are excluded, because there are not meaningful
         typeResolver
             .findFields(declaringClass.type)
-            .filter { !it.isFinal && it.fieldId in updatedFields }
+            .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
             .forEach {
                 // remove updates from clinit, because we'll replace those values
                 // with new unbounded symbolic variable

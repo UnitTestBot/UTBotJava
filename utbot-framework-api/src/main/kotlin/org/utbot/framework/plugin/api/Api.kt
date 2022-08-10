@@ -504,6 +504,13 @@ data class UtListConstraintModel(
     override val utConstraints: Set<UtConstraint> = emptySet()
 ) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
 
+data class UtSetConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val utConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
+
 /**
  * Model for complex objects with assemble instructions.
  *

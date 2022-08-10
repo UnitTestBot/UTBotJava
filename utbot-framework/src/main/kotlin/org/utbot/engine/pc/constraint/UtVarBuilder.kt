@@ -80,13 +80,7 @@ class UtVarBuilder(
             UtConstraintArrayAccess(base, index, objectClassId)
         }
 
-        else -> {
-            System.err.println(base)
-            System.err.println(base.classId)
-            System.err.println(index)
-            System.err.println(index.classId)
-            index
-        }
+        else -> index
     }
 
     override fun visit(expr: UtMkArrayExpression): UtConstraintVariable {

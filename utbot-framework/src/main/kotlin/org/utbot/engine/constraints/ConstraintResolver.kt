@@ -287,7 +287,8 @@ class ConstraintResolver(
         aliases: Set<UtConstraintVariable>
     ): UtModel = when (concrete.value) {
         is ListWrapper -> buildListModel(concrete.value, variable, atoms, aliases)
-        else -> TODO()
+        is SetWrapper -> buildSetModel(concrete.value, variable, atoms, aliases)
+        else -> buildObjectModel(variable, atoms, aliases)
     }
 
     private fun buildListModel(
@@ -330,6 +331,36 @@ class ConstraintResolver(
             variable,
             array.length,
             completedElements,
+            array.utConstraints + refConstraints
+        )
+    }
+
+    private fun buildSetModel(
+        concrete: SetWrapper,
+        variable: UtConstraintVariable,
+        atoms: Set<UtConstraint>,
+        aliases: Set<UtConstraintVariable>
+    ): UtModel {
+        val allAliases = aliases + variable
+        val refConstraints = atoms.filter { constraint ->
+            allAliases.any { it in constraint }
+        }.toSet()
+
+        val default = { buildObjectModel(variable, atoms, aliases) }
+        val elementData = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == variable && it.fieldId.name == "elementData" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val storageArray = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == elementData && it.fieldId.name == "storage" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val aliasArrays = aliases.map {
+            UtConstraintFieldAccess(UtConstraintFieldAccess(it, elementData.fieldId), storageArray.fieldId)
+        }.toSet()
+        val array = buildArrayModel(storageArray, atoms, aliasArrays) as UtArrayConstraintModel
+        return UtSetConstraintModel(
+            variable,
+            array.length,
+            array.elements,
             array.utConstraints + refConstraints
         )
     }

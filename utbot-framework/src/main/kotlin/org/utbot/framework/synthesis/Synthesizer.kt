@@ -95,6 +95,12 @@ class SynthesisUnitContext(
                     this.length
                 )
 
+                is UtSetConstraintModel -> SetUnit(
+                    this.classId,
+                    this.elements.toList(),
+                    this.length
+                )
+
                 is UtReferenceToConstraintModel -> ReferenceToUnit(this.classId, this.reference)
                 else -> error("Only UtSynthesisModel supported")
             }

@@ -41,6 +41,17 @@ data class ListUnit(
     }
 }
 
+data class SetUnit(
+    override val classId: ClassId,
+    override val elements: List<Pair<UtModel, UtModel>>,
+    override val length: UtModel
+) : ElementContainingUnit(classId, elements, length) {
+    val constructorId get() = classId.allConstructors.first { it.parameters.isEmpty() }
+    val addId get() = classId.allMethods.first {
+        it.name == "add" && it.parameters == listOf(objectClassId)
+    }
+}
+
 data class NullUnit(
     override val classId: ClassId
 ) : SynthesisUnit()

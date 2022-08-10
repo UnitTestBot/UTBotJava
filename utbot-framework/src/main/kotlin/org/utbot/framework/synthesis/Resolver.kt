@@ -24,6 +24,7 @@ class Resolver(
             is ReferenceToUnit -> resolve(synthesisUnitContext[unit.reference])
             is ArrayUnit -> unitToModel.getOrPut(unit) { resolveArray(unit) }
             is ListUnit -> unitToModel.getOrPut(unit) { resolveList(unit) }
+            is SetUnit -> unitToModel.getOrPut(unit) { resolveSet(unit) }
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =
@@ -77,10 +78,12 @@ class Resolver(
         return model
     }
 
-    private fun resolveList(unit: ListUnit): UtModel {
-        val elements = unit.elements.associate {
-            resolve(synthesisUnitContext[it.first]) to resolve(synthesisUnitContext[it.second])
-        }
+    private fun resolveCollection(
+        unit: ElementContainingUnit,
+        constructorId: ConstructorId,
+        modificationId: MethodId
+    ): UtModel {
+        val elements = unit.elements.map { resolve(synthesisUnitContext[it.second]) }
 
         val instantiationChain = mutableListOf<UtStatementModel>()
         val modificationChain = mutableListOf<UtStatementModel>()
@@ -94,19 +97,23 @@ class Resolver(
         )
 
         instantiationChain.add(
-            UtExecutableCallModel(model, unit.constructorId, listOf(), model)
+            UtExecutableCallModel(model, constructorId, listOf(), model)
         )
 
-        for ((_, value) in elements) {
+        for (value in elements) {
             modificationChain.add(
                 UtExecutableCallModel(
-                    model, unit.addId, listOf(value),
+                    model, modificationId, listOf(value),
                 )
             )
         }
 
         return model
     }
+
+    private fun resolveList(unit: ListUnit): UtModel = resolveCollection(unit, unit.constructorId, unit.addId)
+
+    private fun resolveSet(unit: SetUnit): UtModel = resolveCollection(unit, unit.constructorId, unit.addId)
 
     private fun resolveArray(unit: ArrayUnit): UtModel {
         val lengthModel = resolve(synthesisUnitContext[unit.length]) as UtPrimitiveModel

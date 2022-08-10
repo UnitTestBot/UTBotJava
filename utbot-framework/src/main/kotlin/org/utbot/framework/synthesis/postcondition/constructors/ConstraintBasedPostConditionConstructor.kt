@@ -404,26 +404,34 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtLtConstraint(expr: UtLtConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
         Lt(lhvVal, rhvVal)
     }
 
     override fun visitUtGtConstraint(expr: UtGtConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
         Gt(lhvVal, rhvVal)
     }
 
     override fun visitUtLeConstraint(expr: UtLeConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
         Le(lhvVal, rhvVal)
     }
 
     override fun visitUtGeConstraint(expr: UtGeConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
+        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
         Ge(lhvVal, rhvVal)
     }
 

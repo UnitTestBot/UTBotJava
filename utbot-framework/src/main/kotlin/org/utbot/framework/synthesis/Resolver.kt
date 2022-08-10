@@ -23,6 +23,7 @@ class Resolver(
             is NullUnit -> UtNullModel(unit.classId)
             is ReferenceToUnit -> resolve(synthesisUnitContext[unit.reference])
             is ArrayUnit -> unitToModel.getOrPut(unit) { resolveArray(unit) }
+            is ListUnit -> unitToModel.getOrPut(unit) { resolveList(unit) }
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =
@@ -72,6 +73,37 @@ class Resolver(
         instantiationChain.add(
             UtExecutableCallModel(model, unit.method, resolvedModels, model)
         )
+
+        return model
+    }
+
+    private fun resolveList(unit: ListUnit): UtModel {
+        val elements = unit.elements.associate {
+            resolve(synthesisUnitContext[it.first]) to resolve(synthesisUnitContext[it.second])
+        }
+
+        val instantiationChain = mutableListOf<UtStatementModel>()
+        val modificationChain = mutableListOf<UtStatementModel>()
+
+        val model = UtAssembleModel(
+            nextDefaultModelId++,
+            unit.classId,
+            nextModelName("refModel_${unit.classId.simpleName}"),
+            instantiationChain,
+            modificationChain
+        )
+
+        instantiationChain.add(
+            UtExecutableCallModel(model, unit.constructorId, listOf(), model)
+        )
+
+        for ((_, value) in elements) {
+            modificationChain.add(
+                UtExecutableCallModel(
+                    model, unit.addId, listOf(value),
+                )
+            )
+        }
 
         return model
     }

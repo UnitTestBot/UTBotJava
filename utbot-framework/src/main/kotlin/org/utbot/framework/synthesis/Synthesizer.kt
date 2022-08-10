@@ -89,6 +89,12 @@ class SynthesisUnitContext(
                     this.length
                 )
 
+                is UtListConstraintModel -> ListUnit(
+                    this.classId,
+                    this.elements.toList(),
+                    this.length
+                )
+
                 is UtReferenceToConstraintModel -> ReferenceToUnit(this.classId, this.reference)
                 else -> error("Only UtSynthesisModel supported")
             }
@@ -107,9 +113,10 @@ class SynthesisUnitContext(
         is NullUnit -> true
         is ReferenceToUnit -> true
         is ObjectUnit -> isPrimitive()
-        is ArrayUnit -> elements.all {
+        is ElementContainingUnit -> elements.all {
             this@SynthesisUnitContext[it.first].isFullyDefined() && this@SynthesisUnitContext[it.second].isFullyDefined()
         }
+
         is MethodUnit -> params.all { it.isFullyDefined() }
     }
 }
@@ -169,7 +176,7 @@ class SynthesisUnitContextQueue(
             context.set(model, it)
         }
 
-        is ArrayUnit -> {
+        is ElementContainingUnit -> {
             if (unit.isPrimitive()) emptyList()
             else {
                 var currentContext = context
@@ -177,8 +184,8 @@ class SynthesisUnitContextQueue(
                 var index = 0
 
                 while (true) {
-                    model as UtArrayConstraintModel
-                    val current = currentContext[model] as ArrayUnit
+                    model as UtElementContainerConstraintModel
+                    val current = currentContext[model] as ElementContainingUnit
                     val elements = current.elements
                     if (index >= elements.size) break
 
@@ -222,8 +229,9 @@ class SynthesisUnitContextQueue(
                     else -> listOf(NullUnit(state.classId)) + leafs
                 }
             }
+
             is NullUnit -> emptyList()
             is ReferenceToUnit -> emptyList()
-            is ArrayUnit -> emptyList()
+            is ElementContainingUnit -> emptyList()
         }
 }

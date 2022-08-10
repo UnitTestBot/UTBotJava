@@ -24,6 +24,8 @@ class UtVarBuilder(
     operator fun get(variable: UtConstraintVariable) = backMapping[variable]
         ?: throw IllegalArgumentException()
 
+    fun evalType(addr: UtAddrExpression) = holder.findTypeOrNull(addr)
+
     override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
         val res = when (val base = expr.arrayExpression.accept(this)) {
             is UtConstraintParameter -> when (base.name) {

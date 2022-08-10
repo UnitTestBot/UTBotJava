@@ -3,7 +3,7 @@ package org.utbot.framework.synthesis
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.primitives
 
 sealed class SynthesisUnit {
@@ -16,12 +16,29 @@ data class ObjectUnit(
     fun isPrimitive() = classId in primitives
 }
 
-data class ArrayUnit(
+sealed class ElementContainingUnit(
     override val classId: ClassId,
-    val elements: List<Pair<UtModel, UtModel>>,
-    val length: UtModel
+    open val elements: List<Pair<UtModel, UtModel>>,
+    open val length: UtModel
 ) : SynthesisUnit() {
     fun isPrimitive() = classId.elementClassId in primitives
+}
+
+data class ArrayUnit(
+    override val classId: ClassId,
+    override val elements: List<Pair<UtModel, UtModel>>,
+    override val length: UtModel
+) : ElementContainingUnit(classId, elements, length)
+
+data class ListUnit(
+    override val classId: ClassId,
+    override val elements: List<Pair<UtModel, UtModel>>,
+    override val length: UtModel
+) : ElementContainingUnit(classId, elements, length) {
+    val constructorId get() = classId.allConstructors.first { it.parameters.isEmpty() }
+    val addId get() = classId.allMethods.first {
+        it.name == "add" && it.parameters == listOf(objectClassId)
+    }
 }
 
 data class NullUnit(
@@ -43,6 +60,6 @@ fun SynthesisUnit.isFullyDefined(): Boolean = when (this) {
     is NullUnit -> true
     is ReferenceToUnit -> true
     is ObjectUnit -> isPrimitive()
-    is ArrayUnit -> true
+    is ElementContainingUnit -> true
     is MethodUnit -> params.all { it.isFullyDefined() }
 }

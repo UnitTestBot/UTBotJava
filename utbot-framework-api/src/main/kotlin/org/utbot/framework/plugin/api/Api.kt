@@ -455,14 +455,14 @@ sealed class UtConstraintModel(
 
 data class UtPrimitiveConstraintModel(
     override val variable: UtConstraintVariable,
-    override val utConstraints: Set<UtConstraint>
+    override val utConstraints: Set<UtConstraint>,
+    val  concrete: Any? = null
 ) : UtConstraintModel(variable, utConstraints) {
 }
 
 data class UtReferenceConstraintModel(
     override val variable: UtConstraintVariable,
     override val utConstraints: Set<UtConstraint>,
-    val concrete: Any? = null
 ) : UtConstraintModel(variable, utConstraints) {
     fun isNull() = utConstraints.any {
         it is UtRefEqConstraint && it.lhv == variable && it.rhv is UtConstraintNull
@@ -475,19 +475,34 @@ data class UtReferenceToConstraintModel(
     override val utConstraints: Set<UtConstraint> = emptySet()
 ) : UtConstraintModel(variable, utConstraints)
 
-data class UtArrayConstraintModel(
+sealed class UtElementContainerConstraintModel(
     override val variable: UtConstraintVariable,
-    val length: UtModel,
-    val elements: Map<UtModel, UtModel>,
+    open val length: UtModel,
+    open val elements: Map<UtModel, UtModel>,
     override val utConstraints: Set<UtConstraint> = emptySet()
 ) : UtConstraintModel(variable, utConstraints) {
-    val allConstraints: Set<UtConstraint> get() = elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
-        acc +
-        ((pair.first as? UtConstraintModel)?.utConstraints ?: emptySet()) +
-        ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet()) +
-        ((pair.second as? UtArrayConstraintModel)?.allConstraints ?: emptySet())
-    }
+    val allConstraints: Set<UtConstraint>
+        get() = elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
+            acc +
+                    ((pair.first as? UtConstraintModel)?.utConstraints ?: emptySet()) +
+                    ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet()) +
+                    ((pair.second as? UtArrayConstraintModel)?.allConstraints ?: emptySet())
+        }
 }
+
+data class UtArrayConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val utConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
+
+data class UtListConstraintModel(
+    override val variable: UtConstraintVariable,
+    override val length: UtModel,
+    override val elements: Map<UtModel, UtModel>,
+    override val utConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
 
 /**
  * Model for complex objects with assemble instructions.
@@ -588,12 +603,12 @@ data class UtDirectSetFieldModel(
     val fieldModel: UtModel,
 ) : UtStatementModel(instance) {
     override fun toString(): String = withToStringThreadLocalReentrancyGuard {
-            val modelRepresentation = when (fieldModel) {
-                is UtAssembleModel -> fieldModel.modelName
-                else -> fieldModel.toString()
-            }
-            "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+        val modelRepresentation = when (fieldModel) {
+            is UtAssembleModel -> fieldModel.modelName
+            else -> fieldModel.toString()
         }
+        "${instance.modelName}.${fieldId.name} = $modelRepresentation"
+    }
 
 }
 
@@ -1058,7 +1073,7 @@ class BuiltinMethodId(
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
-class WildcardTypeParameter: TypeParameters(emptyList())
+class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface TestCaseGenerator {
     fun init(
@@ -1199,6 +1214,7 @@ enum class CodegenLanguage(
                 "-cp", classPath,
                 "-XDignore.symbol.file" // to let javac use classes from rt.jar
             ).plus(sourcesFiles)
+
             KOTLIN -> listOf("-d", buildDirectory, "-jvm-target", jvmTarget, "-cp", classPath).plus(sourcesFiles)
         }
         if (this == KOTLIN && System.getenv("KOTLIN_HOME") == null) {

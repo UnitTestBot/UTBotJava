@@ -32,7 +32,7 @@ class CompositeUnitExpander(
         statementsStorage.items
             .filter { (method, info) ->
                 val sameClass = method.classId == classId
-                val modifiesSomething = info.modifiedFields.any { it.declaringClass == classId }
+                val modifiesSomething = true//info.modifiedFields.any { it.declaringClass == classId }
                 sameClass && modifiesSomething
             }
             .keys

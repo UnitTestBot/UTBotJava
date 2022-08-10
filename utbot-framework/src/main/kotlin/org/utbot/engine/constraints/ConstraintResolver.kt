@@ -9,6 +9,8 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.constraint.UtConstraintTransformer
 import org.utbot.framework.plugin.api.constraint.UtConstraintVariableCollector
 import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.framework.plugin.api.util.objectClassId
 
 /**
  * Constructs path conditions using calculated model. Can construct them for initial and current memory states that reflect
@@ -122,7 +124,7 @@ class ConstraintResolver(
             value.addr.variable,
             collectAtoms(value, addrs),
             addrs[value.addr.variable.addr]!!.map { it.variable }.toSet(),
-            value.concrete?.value
+            value.concrete
         )
     }
 
@@ -154,27 +156,31 @@ class ConstraintResolver(
         variable: UtConstraintVariable,
         atoms: Set<UtConstraint>,
         aliases: Set<UtConstraintVariable>,
-        concrete: Any? = null
+        concrete: Concrete? = null
     ): UtModel = when {
-        variable.isPrimitive -> buildPrimitiveModel(atoms, variable, aliases)
+        variable.isPrimitive -> buildPrimitiveModel(variable, atoms, aliases)
         variable.addr == NULL_ADDR -> UtNullModel(variable.classId)
         variable.addr in resolvedConstraints -> UtReferenceToConstraintModel(
             variable,
             resolvedConstraints.getValue(variable.addr)
         )
 
-        variable.isArray -> buildArrayModel(atoms, variable, aliases).also {
+        variable.isArray -> buildArrayModel(variable, atoms, aliases).also {
             resolvedConstraints[variable.addr] = it
         }
 
-        else -> buildObjectModel(atoms, variable, aliases, concrete).also {
-            resolvedConstraints[variable.addr] = it
+        else -> when (concrete) {
+            null -> buildObjectModel(variable, atoms, aliases).also {
+                resolvedConstraints[variable.addr] = it
+            }
+
+            else -> buildConcreteModel(concrete, variable, atoms, aliases)
         }
     }
 
     private fun buildPrimitiveModel(
-        atoms: Set<UtConstraint>,
         variable: UtConstraintVariable,
+        atoms: Set<UtConstraint>,
         aliases: Set<UtConstraintVariable>
     ): UtModel {
         assert(variable.isPrimitive)
@@ -185,15 +191,14 @@ class ConstraintResolver(
         }.map { it.accept(UtConstraintTransformer(aliases.associateWith { variable })) }.toSet()
 
         return UtPrimitiveConstraintModel(
-            variable, primitiveConstraints
+            variable, primitiveConstraints, concrete = holder.eval(variable.expr).value()
         )
     }
 
     private fun buildObjectModel(
-        atoms: Set<UtConstraint>,
         variable: UtConstraintVariable,
-        aliases: Set<UtConstraintVariable>,
-        concrete: Any? = null
+        atoms: Set<UtConstraint>,
+        aliases: Set<UtConstraintVariable>
     ): UtModel {
         assert(!variable.isPrimitive && !variable.isArray)
         assert(aliases.all { !it.isPrimitive && !it.isArray })
@@ -204,13 +209,13 @@ class ConstraintResolver(
         }.toSet()
 
         return UtReferenceConstraintModel(
-            variable, refConstraints, concrete
+            variable, refConstraints
         )
     }
 
     private fun buildArrayModel(
-        atoms: Set<UtConstraint>,
         variable: UtConstraintVariable,
+        atoms: Set<UtConstraint>,
         aliases: Set<UtConstraintVariable>
     ): UtModel {
         assert(variable.isArray)
@@ -226,49 +231,106 @@ class ConstraintResolver(
         val concreteLength = lengths.firstOrNull()?.let { holder.eval(it.expr).value() as Int } ?: 100
 
         val indexMap = atoms
-            .flatMap {
-                it.accept(UtConstraintVariableCollector { index ->
-                    index is UtConstraintArrayAccess && index.instance in allAliases
-                })
+            .flatten { index ->
+                index is UtConstraintArrayAccess && index.instance in allAliases
             }
             .map { (it as UtConstraintArrayAccess).index }
             .filter { (holder.eval(it.expr).value() as Int) < concreteLength }
-            .groupBy { holder.eval(varBuilder[it]) }
-            .map { it.value.toSet() }
+            .groupBy { holder.eval(varBuilder[it]).value() }
+            .mapValues { it.value.toSet() }
 
         var indexCount = 0
-        val elements = indexMap.associate { indices ->
+        val elements = indexMap.map { (key, indices) ->
             val indexVariable = UtConstraintParameter(
                 "${variable}_index${indexCount++}", intClassId
             )
 
             val indexModel = UtPrimitiveConstraintModel(
                 indexVariable,
-                indices.map { UtEqConstraint(indexVariable, it) }.toSet()
+                indices.map { UtEqConstraint(indexVariable, it) }.toSet(),
+                concrete = key
             )
 
-            val arrayAccess = UtConstraintArrayAccess(variable, indexVariable, elementClassId)
-            val actualExpr = aliases.flatMap { base ->
+            val actualExpr = allAliases.flatMap { base ->
                 indices.map { UtConstraintArrayAccess(base, it, elementClassId) }
             }.mapNotNull { varBuilder.backMapping[it] }.first()
+            val elementType = when {
+                elementClassId.isPrimitive -> elementClassId
+                else -> varBuilder.evalType(actualExpr as UtAddrExpression)!!.classId
+            }
+            val arrayAccess = UtConstraintArrayAccess(variable, indexVariable, elementType)
             varBuilder.backMapping[arrayAccess] = actualExpr
             val indexAliases = indices.flatMap { idx ->
                 allAliases.map { UtConstraintArrayAccess(it, idx, elementClassId) }
             }.toSet()
-            val res = buildModel(arrayAccess, atoms, indexAliases, null).withConstraints(
+            val res = buildModel(arrayAccess, atoms, indexAliases).withConstraints(
                 indices.map { UtEqConstraint(it, indexVariable) }.toSet() + setOf(
                     UtGeConstraint(indexVariable, UtConstraintNumericConstant(0)),
                     UtLtConstraint(indexVariable, lengthVariable)
                 )
             )
             (indexModel as UtModel) to res
-        }
+        }.toMap()
 
         return UtArrayConstraintModel(
             variable,
             lengthModel,
             elements,
             setOf()
+        )
+    }
+
+    private fun buildConcreteModel(
+        concrete: Concrete,
+        variable: UtConstraintVariable,
+        atoms: Set<UtConstraint>,
+        aliases: Set<UtConstraintVariable>
+    ): UtModel = when (concrete.value) {
+        is ListWrapper -> buildListModel(concrete.value, variable, atoms, aliases)
+        else -> TODO()
+    }
+
+    private fun buildListModel(
+        concrete: ListWrapper,
+        variable: UtConstraintVariable,
+        atoms: Set<UtConstraint>,
+        aliases: Set<UtConstraintVariable>
+    ): UtModel {
+        val allAliases = aliases + variable
+        val refConstraints = atoms.filter { constraint ->
+            allAliases.any { it in constraint }
+        }.toSet()
+
+        val default = { buildObjectModel(variable, atoms, aliases) }
+        val elementData = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == variable && it.fieldId.name == "elementData" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val storageArray = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == elementData && it.fieldId.name == "storage" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val aliasArrays = aliases.map {
+            UtConstraintFieldAccess(UtConstraintFieldAccess(it, elementData.fieldId), storageArray.fieldId)
+        }.toSet()
+        val array = buildArrayModel(storageArray, atoms, aliasArrays) as UtArrayConstraintModel
+        val concreteLength = (array.length as UtPrimitiveConstraintModel).concrete as Int
+        val concreteIndices = array.elements.toList().associate { (index, value) ->
+            (index as UtPrimitiveConstraintModel).concrete as Int to ((index as UtModel) to value)
+        }
+        val completedElements = (0 until concreteLength).associate {
+            if (it in concreteIndices) concreteIndices[it]!!
+            else {
+                UtPrimitiveConstraintModel(
+                    UtConstraintNumericConstant(it),
+                    emptySet(),
+                    it
+                ) to UtNullModel(objectClassId)
+            }
+        }
+        return UtListConstraintModel(
+            variable,
+            array.length,
+            completedElements,
+            array.utConstraints + refConstraints
         )
     }
 
@@ -283,4 +345,9 @@ class ConstraintResolver(
         is UtArrayConstraintModel -> copy(utConstraints = utConstraints + constraints)
         else -> this
     }
+
+    private fun Set<UtConstraint>.flatten(predicate: (UtConstraintVariable) -> Boolean): Set<UtConstraintVariable> =
+        this.flatMap {
+            it.accept(UtConstraintVariableCollector(predicate))
+        }.toSet()
 }

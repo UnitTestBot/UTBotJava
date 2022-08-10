@@ -55,6 +55,7 @@ class ConstraintBasedPostConditionConstructor(
             is UtNullModel -> {
                 add(mkEq(symbolicValue.addr, nullObjectAddr))
             }
+
             is UtConstraintModel -> {
                 if (model is UtArrayConstraintModel) {
                     addAll(buildPostCondition(model.length, builder, parameters, localVariableMemory))
@@ -68,6 +69,7 @@ class ConstraintBasedPostConditionConstructor(
                 }
                 add(mkEq(symbolicValue, model.variable.accept(builder)))
             }
+
             else -> error("Unknown model: ${model::class}")
         }
     }
@@ -119,11 +121,13 @@ private class UtConstraintBuilder(
                     else -> error("Unknown primitive parameter: $this")
                 }
             }
+
             isArray -> {
                 val sootType = classId.toSootType() as ArrayType
                 val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
                 engine.createArray(addr, sootType, useConcreteType = addr.isThisAddr)
             }
+
             else -> {
                 val sootType = classId.toSoot().type
                 val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
@@ -187,11 +191,13 @@ private class UtConstraintBuilder(
 
                 objectValue
             }
+
             is ArrayType -> engine.createArray(
                 UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
                 elementType,
                 useConcreteType = false
             )
+
             else -> PrimitiveValue(elementType, array.select(arrayInstance.addr, index.exprValue))
         }
     }
@@ -374,7 +380,12 @@ private class UtConstraintBuilder(
     override fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): UtBoolExpression = with(expr) {
         val lhvVal = operand.accept(this@UtConstraintBuilder)
         val type = type.toSootType()
-        engine.typeRegistry.typeConstraint(lhvVal.addr, TypeStorage(type)).isConstraint()
+        engine.typeRegistry
+            .typeConstraint(
+                lhvVal.addr,
+                engine.typeResolver.constructTypeStorage(type, false)
+            )
+            .isConstraint()
     }
 
     override fun visitUtRefGenericTypeConstraint(expr: UtRefGenericTypeConstraint): UtBoolExpression = with(expr) {

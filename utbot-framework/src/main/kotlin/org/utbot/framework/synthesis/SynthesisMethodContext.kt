@@ -1,9 +1,7 @@
 package org.utbot.framework.synthesis
 
 import org.utbot.engine.*
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 import org.utbot.framework.synthesis.postcondition.constructors.toSootType
 import soot.ArrayType
@@ -72,7 +70,7 @@ class SynthesisMethodContext(
         is ObjectUnit -> synthesizeCompositeUnit(unit)
         is MethodUnit -> synthesizeMethodUnit(unit)
         is NullUnit -> synthesizeNullUnit(unit)
-        is ArrayUnit -> synthesizeArrayUnit(unit)
+        is ElementContainingUnit -> synthesizeElementContainingUnit(unit)
         is ReferenceToUnit -> synthesizeRefUnit(unit)
     }.also {
         unitToLocal_[unit] = it
@@ -121,23 +119,46 @@ class SynthesisMethodContext(
         return local
     }
 
-    private fun synthesizeArrayUnit(unit: ArrayUnit): JimpleLocal {
-        val arrayType = unit.classId.toSootType() as ArrayType
+    private fun synthesizeElementContainingUnit(unit: ElementContainingUnit): JimpleLocal {
         val lengthLocal = synthesizeUnit(context[unit.length])
-
-        val arrayLocal = JimpleLocal(nextName(), arrayType)
-        val arrayExpr = newArrayExpr(arrayType.elementType, lengthLocal)
-        stmts += assignStmt(arrayLocal, arrayExpr)
-
-        for ((index, value) in unit.elements) {
-            val indexLocal = synthesizeUnit(context[index])
+        val unitLocal = synthesizeCreateExpr(unit, lengthLocal)
+        for ((key, value) in unit.elements) {
+            val indexLocal = synthesizeUnit(context[key])
             val valueLocal = synthesizeUnit(context[value])
 
-            val arrayRef = newArrayRef(arrayLocal, indexLocal)
-            stmts += assignStmt(arrayRef, valueLocal)
-
+            synthesizeSetExpr(unit, unitLocal, indexLocal, valueLocal)
         }
-        return arrayLocal
+        return unitLocal
+    }
+
+    private fun synthesizeCreateExpr(unit: ElementContainingUnit, lengthLocal: JimpleLocal): JimpleLocal = when (unit) {
+        is ArrayUnit -> {
+            val arrayType = unit.classId.toSootType() as ArrayType
+            val arrayLocal = JimpleLocal(nextName(), arrayType)
+            val arrayExpr = newArrayExpr(arrayType.elementType, lengthLocal)
+            stmts += assignStmt(arrayLocal, arrayExpr)
+            arrayLocal
+        }
+
+        is ListUnit -> synthesizeConstructorInvoke(unit.constructorId, listOf())
+
+        else -> TODO()
+    }
+
+    private fun synthesizeSetExpr(
+        unit: ElementContainingUnit,
+        unitLocal: JimpleLocal,
+        key: JimpleLocal,
+        value: JimpleLocal
+    ): Any = when (unit) {
+        is ArrayUnit -> {
+            val arrayRef = newArrayRef(unitLocal, key)
+            stmts += assignStmt(arrayRef, value)
+        }
+
+        is ListUnit -> synthesizeVirtualInvoke(unit.addId, listOf(unitLocal, value))
+
+        else -> TODO()
     }
 
     private fun synthesizeVirtualInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {

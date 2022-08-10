@@ -51,7 +51,7 @@ class PythonEngine(
             val (resultJSON, isException) = evalResult as EvaluationSuccess
 
             if (isException) {
-                yield(PythonError(UtError(resultJSON.output, Throwable()), modelList, pythonTypes))
+                yield(PythonError(UtError(resultJSON.output.toString(), Throwable()), modelList, pythonTypes))
             } else {
 
                 // some types cannot be used as return types in tests (like socket or memoryview)
@@ -59,9 +59,9 @@ class PythonEngine(
                 if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
                     return@sequence
 
-                val resultAsModel = PythonDefaultModel(
+                val resultAsModel = PythonTreeModel(
                     resultJSON.output,
-                    resultJSON.type
+                    PythonClassId(resultJSON.type)
                 )
                 val result = UtExecutionSuccess(resultAsModel)
 

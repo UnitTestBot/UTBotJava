@@ -1,7 +1,8 @@
 package org.utbot.python
 
-import com.beust.klaxon.Klaxon
+import org.utbot.framework.plugin.api.PythonTree
 import org.utbot.framework.plugin.api.UtModel
+import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.runCommand
@@ -9,17 +10,12 @@ import org.utbot.python.utils.runCommand
 
 sealed class EvaluationResult
 object EvaluationError : EvaluationResult()
-class EvaluationSuccess(rawOutput: OutputData, val isException: Boolean): EvaluationResult() {
-    val output: OutputData =
-        when (rawOutput.type) {
-            "builtins.complex" -> OutputData("complex('" + rawOutput.output + "')", rawOutput.type)
-            else -> rawOutput
-        }
+class EvaluationSuccess(val output: OutputData, val isException: Boolean): EvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
 }
 
-data class OutputData(val output: String, val type: String)
+data class OutputData(val output: PythonTree.PythonTreeNode, val type: String)
 
 object PythonEvaluation {
     fun evaluate(
@@ -65,8 +61,10 @@ object PythonEvaluation {
         if (failedEvaluation)
             return EvaluationError
 
+        val pythonTree = KlaxonPythonTreeParser.parseJsonToPythonTree(outputAsString)
+
         return EvaluationSuccess(
-            Klaxon().parse(outputAsString) ?: error("Couldn't parse evaluation output"),
+            OutputData(pythonTree, pythonTree.type),
             !isSuccess
         )
     }

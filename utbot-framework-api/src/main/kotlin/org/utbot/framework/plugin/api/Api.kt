@@ -255,6 +255,11 @@ class PythonMethodId(
 
 sealed class PythonModel(classId: PythonClassId): UtModel(classId)
 
+class PythonTreeModel(
+    val tree: PythonTree.PythonTreeNode,
+    classId: PythonClassId,
+): PythonModel(classId)
+
 class PythonDefaultModel(
     val repr: String,
     val type: String

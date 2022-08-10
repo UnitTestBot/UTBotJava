@@ -48,7 +48,6 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.arrayLikeName
-import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
@@ -135,13 +134,6 @@ data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
  */
 internal fun CgContextOwner.isUtil(method: MethodId): Boolean {
     return method in utilMethodProvider.utilMethodIds
-}
-
-/**
- * Check if a method is an util method that is declared in the test class (not taken from the codegen utils library)
- */
-internal fun CgContextOwner.isTestClassUtil(method: MethodId): Boolean {
-    return utilMethodProvider is TestClassUtilMethodProvider && isUtil(method)
 }
 
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)

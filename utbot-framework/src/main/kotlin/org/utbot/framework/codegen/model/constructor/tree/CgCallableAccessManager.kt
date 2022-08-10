@@ -18,7 +18,6 @@ import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.constructor.util.isTestClassUtil
 import org.utbot.framework.codegen.model.constructor.util.isUtil
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
@@ -107,7 +106,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun newMethodCall(methodId: MethodId) {
-        if (isTestClassUtil(methodId)) requiredUtilMethods += methodId
+        if (isUtil(methodId)) requiredUtilMethods += methodId
         importIfNeeded(methodId)
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
@@ -226,7 +225,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
      * @return true if a method can be called with the given arguments without reflection
      */
     private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean =
-        (isTestClassUtil(this) || isAccessibleFrom(testClassPackageName))
+        (isUtil(this) || isAccessibleFrom(testClassPackageName))
                 && caller canBeReceiverOf this
                 && args canBeArgsOf this
 

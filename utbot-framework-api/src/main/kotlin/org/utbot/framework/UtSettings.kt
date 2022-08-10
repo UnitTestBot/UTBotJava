@@ -432,6 +432,11 @@ enum class PathSelectorType {
     NN_REWARD_GUIDED_SELECTOR,
 
     /**
+     * [NNTorchRewardGuidedSelector]
+     */
+    NN_TORCH_REWARD_GUIDED_SELECTOR,
+
+    /**
      * [RandomSelector]
      */
     RANDOM_SELECTOR,

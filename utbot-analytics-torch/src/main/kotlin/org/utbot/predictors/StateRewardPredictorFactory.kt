@@ -7,10 +7,10 @@ import org.utbot.framework.UtSettings
 /**
  * Creates [StateRewardPredictor], by checking the [UtSettings] configuration.
  */
-class StateRewardPredictorFactoryImpl : StateRewardPredictorFactory {
+class StateRewardPredictorFactoryImplWithTorch : StateRewardPredictorFactory {
     override operator fun invoke() = when (UtSettings.stateRewardPredictorType) {
         StateRewardPredictorType.BASE -> NNStateRewardPredictorBase()
-        StateRewardPredictorType.TORCH -> error("Torch model wrapper is not supported!")
+        StateRewardPredictorType.TORCH -> StateRewardPredictorTorch()
         StateRewardPredictorType.LINEAR -> LinearStateRewardPredictor()
     }
 }

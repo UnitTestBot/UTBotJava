@@ -334,6 +334,9 @@ fun runEstimator(
     if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
         Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
     }
+    if (UtSettings.pathSelectorType == PathSelectorType.NN_TORCH_REWARD_GUIDED_SELECTOR) {
+        Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+    }
     
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
     if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {

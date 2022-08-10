@@ -31,11 +31,11 @@ class NNStateRewardPredictorTest {
             println(averageTime)
         }
 
-
-        withRewardModelPath("models") {
+        // TODO: move this test to the torch module
+        /** withRewardModelPath("models") {
             val averageTime = calcAverageTimeForModelPredict(::StateRewardPredictorTorch, 100, features)
             println(averageTime)
-        }
+        } */
     }
 
     private fun calcAverageTimeForModelPredict(

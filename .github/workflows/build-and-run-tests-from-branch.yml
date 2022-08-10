@@ -10,6 +10,8 @@ env:
   # {/<LABEL_NAME>/<LABEL_VALUE>}
   PROM_ADDITIONAL_LABELS: /service/github
   CADVISOR_VERSION: v0.36.0
+  JMX_EXPORTER_PORT: 12345
+  JMX_EXPORTER_CONFIG: /tmp/jmx-exporter.yml
 
 jobs:
 #   utbot-analytics:
@@ -169,12 +171,19 @@ jobs:
 
       - uses: actions/checkout@v2
 
+#      - name: Build and run test
+#        run: |
+#          chmod +x scripts/ps_parser.sh
+#          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
+#          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
+#            --tests "org.utbot.examples.collections.*"
       - name: Build and run test
         run: |
-          chmod +x scripts/ps_parser.sh
-          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
-          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
-            --tests "org.utbot.examples.collections.*"
+          printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
+          while true; do curl localhost:${JMX_EXPORTER_PORT} | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
+          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process \
+          gradle --no-daemon :utbot-framework:test --tests "org.utbot.examples.collections.*"
+
       - name: Upload utbot-framework logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v2

@@ -4,10 +4,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
-import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedParameter
-import org.utbot.fuzzer.ModelProvider
+import org.utbot.fuzzer.*
 
 val defaultPythonModelProvider = ModelProvider.of(
     ConstantModelProvider,

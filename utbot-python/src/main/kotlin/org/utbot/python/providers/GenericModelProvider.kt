@@ -16,7 +16,7 @@ object GenericModelProvider: PythonModelProvider() {
         fun <T: UtModel> fuzzGeneric(
             parameters: List<NormalizedPythonAnnotation>,
             index: Int,
-            modelConstructor: (List<List<FuzzedValue>>) -> T
+            modelConstructor: (List<List<FuzzedValue>>) -> T?
         ) = sequence {
             val syntheticGenericType = FuzzedMethodDescription(
                 "${description.name}<syntheticGenericList>",
@@ -28,7 +28,8 @@ object GenericModelProvider: PythonModelProvider() {
                 .randomChunked()
                 .map(modelConstructor)
                 .forEach {
-                    yield(FuzzedParameter(index, it.fuzzed()))
+                    if (it != null)
+                        yield(FuzzedParameter(index, it.fuzzed()))
                 }
         }
 
@@ -36,17 +37,19 @@ object GenericModelProvider: PythonModelProvider() {
             return fuzzGeneric(listOf(listAnnotation.elemAnnotation), index) { list ->
                 PythonListModel(
                     list.size,
-                    list.flatten().map { it.model }
+                    list.flatten().mapNotNull { it.model as? PythonModel }
                 )
             }
         }
 
         fun genDict(dictAnnotation: DictAnnotation, index: Int): Sequence<FuzzedParameter> {
             return fuzzGeneric(listOf(dictAnnotation.keyAnnotation, dictAnnotation.valueAnnotation), index) { list ->
+                    if (list.any { it.any { value -> value.model !is PythonModel } })
+                        return@fuzzGeneric null
                     PythonDictModel(
                         list.size,
                         list.associate { pair ->
-                            pair[0].model to pair[1].model
+                            (pair[0].model as PythonModel) to (pair[1].model as PythonModel)
                         }
                     )
                 }
@@ -56,7 +59,7 @@ object GenericModelProvider: PythonModelProvider() {
             return fuzzGeneric(listOf(setAnnotation.elemAnnotation), index) { list ->
                     PythonSetModel(
                         list.size,
-                        list.flatten().map { it.model }.toSet(),
+                        list.flatten().mapNotNull { it.model as? PythonModel }.toSet(),
                     )
                 }
         }

@@ -1048,14 +1048,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
-                        val classId = param.classId
-                        if (classId is PythonClassId && classId.moduleName.isNotEmpty()) {
-                            collectedImports.add(PythonImport(classId.name, classId.moduleName))
-                        } else if (param.classId.name.contains(".")) {
-                            collectedImports.add(PythonImport(normalizedName = param.classId.name))
-                        }
-                        else {
-                            print(param.classId.name)
+                        if (param is PythonModel) {
+                            param.allContainingClassIds.forEach {
+                                collectedImports += PythonImport(it.moduleName)
+                            }
                         }
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
                     }

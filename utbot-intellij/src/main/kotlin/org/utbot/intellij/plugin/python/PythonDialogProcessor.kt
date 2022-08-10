@@ -176,11 +176,7 @@ object PythonDialogProcessor {
                     }
                 }
 
-                val classId = PythonClassId(
-                    "File${model.file.name.split('.').dropLast(1).last().capitalize()}",
-                    model.file.name.split(".").first(),
-                    model.file.virtualFile.parent.path
-                )
+                val classId = PythonClassId(model.moduleToImport + ".toplevel_functions")
                 val methods = notEmptyTests.associate {
                     it.method to PythonMethodId(
                         classId,

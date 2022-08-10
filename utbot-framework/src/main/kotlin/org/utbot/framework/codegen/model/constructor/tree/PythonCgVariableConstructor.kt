@@ -16,7 +16,6 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 is PythonStrModel -> CgLiteral(model.classId, model.value)
                 is PythonFloatModel -> CgLiteral(model.classId, model.value)
                 is PythonIntModel -> CgLiteral(model.classId, model.value)
-                is PythonComplexObjectModel -> TODO()
                 is PythonInitObjectModel -> constructInitObjectModel(model, baseName)
                 is PythonDictModel -> CgPythonRepr(model.classId, model.toString())
                 is PythonListModel -> CgPythonRepr(model.classId, model.toString())

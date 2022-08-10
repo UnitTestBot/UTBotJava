@@ -24,7 +24,7 @@ object InitModelProvider: PythonModelProvider() {
                     )
 
                     fuzz(constructor, nonRecursiveModelProvider).map { initValues ->
-                        PythonInitObjectModel(classId.name, initValues.map { it.model })
+                        PythonInitObjectModel(classId.name, initValues.mapNotNull { it.model as? PythonModel })
                     }
                 }
 

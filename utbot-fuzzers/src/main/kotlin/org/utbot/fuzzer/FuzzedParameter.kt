@@ -6,7 +6,7 @@ package org.utbot.fuzzer
  * @param index of the parameter in method signature
  * @param value fuzzed values
  */
-class FuzzedParameter(
+open class FuzzedParameter(
     val index: Int,
     val value: FuzzedValue
 ) {

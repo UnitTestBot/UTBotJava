@@ -23,10 +23,7 @@ class PythonClassIdInfo(
     val preprocessedInstances: List<String>?,
     val methods: List<String>,
     val fields: List<String>
-) {
-    val module: String?
-        get() = moduleOfType(pythonClassId.name)
-}
+)
 
 fun moduleOfType(typeName: String): String? {
     val lastIndex = typeName.lastIndexOf('.')
@@ -84,15 +81,16 @@ object PythonTypesStorage {
         val result =
             if (fromStub != null) {
                 val fromPreprocessed = TypesFromJSONStorage.typeNameMap[classIdName]
+                val classId = PythonClassId(fromStub.className)
                 return PythonClassIdInfo(
-                    PythonClassId(fromStub.className),
+                    classId,
                     fromStub.methods.find { it.name == "__init__" }
                         ?.args
                         ?.drop(1) // drop 'self' parameter
                         ?.map { annotationFromStubToClassId(
                             it.annotation,
                             pythonPath ?: error(PYTHON_NOT_SPECIFIED),
-                            moduleOfType(classIdName) ?: "builtins"
+                            classId.moduleName
                         ) },
                     fromPreprocessed?.instances,
                     fromStub.methods.map { it.name },

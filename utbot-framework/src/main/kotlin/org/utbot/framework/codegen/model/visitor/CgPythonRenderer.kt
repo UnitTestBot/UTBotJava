@@ -342,6 +342,10 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgMethodCall) {
+        val module = (element.executableId.classId as PythonClassId).moduleName
+        if (module != pythonBuiltinsModuleName) {
+            print("$module.")
+        }
         print(element.executableId.name)
 
         renderTypeParameters(element.typeParameters)

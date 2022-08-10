@@ -7,6 +7,7 @@ import com.intellij.ide.fileTemplates.FileTemplateUtil
 import com.intellij.ide.fileTemplates.JavaTemplateUtil
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction
 import com.intellij.openapi.command.executeCommand
@@ -57,10 +58,7 @@ import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.CodeGenerationResult
 import org.utbot.framework.codegen.model.UtilClassKind
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.PACKAGE_DELIMITER
 import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
-import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_PACKAGE_NAME
-import org.utbot.framework.codegen.model.UtilClassKind.UtUtilsWithMockito
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
@@ -93,11 +91,13 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
 
-    private class UtilMethodListener {
+    private class UtilClassListener {
         var requiredUtilClassKind: UtilClassKind? = null
+        var mockFrameworkUsed: Boolean = false
 
         fun onTestClassGenerated(result: CodeGenerationResult) {
             requiredUtilClassKind = maxOfNullable(requiredUtilClassKind, result.utilClassKind)
+            mockFrameworkUsed = maxOf(mockFrameworkUsed, result.mockFrameworkUsed)
         }
 
         private fun <T : Comparable<T>> maxOfNullable(a: T?, b: T?): T? {
@@ -121,7 +121,7 @@ object CodeGenerationController {
 
         val reports = mutableListOf<TestsGenerationReport>()
         val testFiles = mutableListOf<PsiFile>()
-        val utilMethodListener = UtilMethodListener()
+        val utilClassListener = UtilClassListener()
         for (srcClass in testSetsByClass.keys) {
             val testSets = testSetsByClass[srcClass] ?: continue
             try {
@@ -141,7 +141,7 @@ object CodeGenerationController {
                             model,
                             latch,
                             reports,
-                            utilMethodListener
+                            utilClassListener
                         )
                         testFiles.add(testClassFile)
                     } catch (e: IncorrectOperationException) {
@@ -156,25 +156,29 @@ object CodeGenerationController {
 
         run(EDT_LATER) {
             waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
-                val utilClassKind = utilMethodListener.requiredUtilClassKind
-                if (utilClassKind != null) {
-                    // create a directory to put utils class into
-                    val utilClassDirectory = createUtUtilSubdirectories(baseTestDirectory)
+                val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(baseTestDirectory)
 
-                    val language = model.codegenLanguage
-                    val utUtilsName = "$UT_UTILS_CLASS_NAME${language.extension}"
+                val utilClassKind = utilClassListener.requiredUtilClassKind
+                    ?: return@waitForCountDown // no util class needed
 
-                    val utUtilsAlreadyExists = utilClassDirectory.findFile(utUtilsName) != null
+                val utilClassExists = existingUtilClass != null
+                val mockFrameworkNotUsed = !utilClassListener.mockFrameworkUsed
 
-                    // we generate and write an util class in one of the two cases:
-                    // - util file does not yet exist --> then we generate it, because it is required by generated tests
-                    // - utilClassKind is UtUtilsWithMockito --> then we generate utils class and add it to utils directory.
-                    //   If utils file already exists, we overwrite it, because existing utils may be without Mockito,
-                    //   and we want to make sure that the generated utils use Mockito.
-                    if (!utUtilsAlreadyExists || utilClassKind is UtUtilsWithMockito) {
-                        generateAndWriteUtilClass(utUtilsName, utilClassDirectory, model, utilClassKind)
-                    }
+                if (utilClassExists && mockFrameworkNotUsed) {
+                    // If util class already exists and mock framework is not used,
+                    // then existing util class is enough, and we don't need to generate a new one.
+                    // That's because both regular and mock versions of util class can work
+                    // with tests that do not use mocks, so we do not have to worry about
+                    // version of util class that we have at the moment.
+                    return@waitForCountDown
                 }
+
+                createOrUpdateUtilClass(
+                    testDirectory = baseTestDirectory,
+                    utilClassKind = utilClassKind,
+                    existingUtilClass = existingUtilClass,
+                    model = model
+                )
             }
         }
 
@@ -206,55 +210,107 @@ object CodeGenerationController {
     }
 
     /**
-     * Create package directories if needed for UtUtils class.
-     * Then generate and create a UtUtils class file in the utils package.
-     * Also run reformatting for the generated class.
+     * If [existingUtilClass] is null (no util class exists), then we create package directories for util class,
+     * create util class itself, and put it into the corresponding directory.
+     * Otherwise, we overwrite the existing util class with a new one.
+     * This is necessary in case if existing util class has no mocks support, but the newly generated tests do use mocks.
+     * So, we overwrite an util class with a new one that does support mocks.
+     *
+     * @param testDirectory root test directory where we will put our generated tests.
+     * @param utilClassKind kind of util class required by the test class(es) that we generated.
+     * @param existingUtilClass util class that already exists or null if it does not yet exist.
+     * @param model [GenerateTestsModel] that contains some useful information for util class generation.
      */
-    private fun generateAndWriteUtilClass(
-        utUtilsName: String,
-        utilClassDirectory: PsiDirectory,
-        model: GenerateTestsModel,
-        utilClassKind: UtilClassKind
+    private fun createOrUpdateUtilClass(
+        testDirectory: PsiDirectory,
+        utilClassKind: UtilClassKind,
+        existingUtilClass: PsiFile?,
+        model: GenerateTestsModel
     ) {
-        val psiDocumentManager = PsiDocumentManager.getInstance(model.project)
+        val language = model.codegenLanguage
 
-        val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
-
-        val existingUtUtilsDocument = utilClassDirectory
-            .findFile(utUtilsName)
-            ?.let { psiDocumentManager.getDocument(it) }
-
-        val utUtilsFile = if (existingUtUtilsDocument != null) {
-            executeCommand {
-                existingUtUtilsDocument.setText(utUtilsText)
-            }
-            unblockDocument(model.project, existingUtUtilsDocument)
-            psiDocumentManager.getPsiFile(existingUtUtilsDocument)
+        val utUtilsFile = if (existingUtilClass == null) {
+            // create a directory to put utils class into
+            val utilClassDirectory = createUtUtilSubdirectories(testDirectory)
+            // create util class file and put it into utils directory
+            createNewUtilClass(utilClassDirectory, language, utilClassKind, model)
         } else {
-            val utUtilsFile = PsiFileFactory.getInstance(model.project)
-                .createFileFromText(
-                    utUtilsName,
-                    model.codegenLanguage.fileType,
-                    utUtilsText
-                )
-            // add the UtUtils class file into the utils directory
-            runWriteCommandAction(model.project) {
-                utilClassDirectory.add(utUtilsFile)
-            }
-            utUtilsFile
+            overwriteUtilClass(existingUtilClass, utilClassKind, model)
         }
 
-        // there's only one class in the file
-        val utUtilsClass = (utUtilsFile as PsiClassOwner).classes.first()
+        val utUtilsClass = runReadAction {
+            // there's only one class in the file
+            (utUtilsFile as PsiClassOwner).classes.first()
+        }
 
         runWriteCommandAction(model.project, "UtBot util class reformatting", null, {
             reformat(model, utUtilsFile, utUtilsClass)
         })
 
-        val utUtilsDocument = psiDocumentManager.getDocument(utUtilsFile)
-            ?: error("Failed to get a Document for UtUtils file")
+        val utUtilsDocument = PsiDocumentManager
+            .getInstance(model.project)
+            .getDocument(utUtilsFile) ?: error("Failed to get a Document for UtUtils file")
 
         unblockDocument(model.project, utUtilsDocument)
+    }
+
+    private fun overwriteUtilClass(
+        existingUtilClass: PsiFile,
+        utilClassKind: UtilClassKind,
+        model: GenerateTestsModel
+    ): PsiFile {
+        val utilsClassDocument = PsiDocumentManager
+            .getInstance(model.project)
+            .getDocument(existingUtilClass)
+            ?: error("Failed to get Document for UtUtils class PsiFile: ${existingUtilClass.name}")
+
+        val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
+
+        run(EDT_LATER) {
+            run(WRITE_ACTION) {
+                unblockDocument(model.project, utilsClassDocument)
+                executeCommand {
+                    utilsClassDocument.setText(utUtilsText)
+                }
+                unblockDocument(model.project, utilsClassDocument)
+            }
+        }
+        return existingUtilClass
+    }
+
+    /**
+     * This method creates an util class file and adds it into [utilClassDirectory].
+     *
+     * @param utilClassDirectory directory to put util class into.
+     * @param language language of util class.
+     * @param utilClassKind kind of util class required by the test class(es) that we generated.
+     * @param model [GenerateTestsModel] that contains some useful information for util class generation.
+     */
+    private fun createNewUtilClass(
+        utilClassDirectory: PsiDirectory,
+        language: CodegenLanguage,
+        utilClassKind: UtilClassKind,
+        model: GenerateTestsModel,
+    ): PsiFile {
+        val utUtilsName = language.utilClassFileName
+
+        val utUtilsText = utilClassKind.getUtilClassText(model.codegenLanguage)
+
+        val utUtilsFile = runReadAction {
+            PsiFileFactory.getInstance(model.project)
+                .createFileFromText(
+                    utUtilsName,
+                    model.codegenLanguage.fileType,
+                    utUtilsText
+                )
+        }
+
+        // add UtUtils class file into the utils directory
+        runWriteCommandAction(model.project) {
+            utilClassDirectory.add(utUtilsFile)
+        }
+
+        return utUtilsFile
     }
 
     /**
@@ -269,12 +325,40 @@ object CodeGenerationController {
         }
     }
 
+    private val CodegenLanguage.utilClassFileName: String
+        get() = "$UT_UTILS_CLASS_NAME${this.extension}"
+
+    /**
+     * @param testDirectory root test directory where we will put our generated tests.
+     * @return directory for util class if it exists or null otherwise.
+     */
+    private fun getUtilDirectoryOrNull(testDirectory: PsiDirectory): PsiDirectory? {
+        val directoryNames = UtilClassKind.utilsPackages
+        var currentDirectory = testDirectory
+        for (name in directoryNames) {
+            val subdirectory = runReadAction { currentDirectory.findSubdirectory(name) } ?: return null
+            currentDirectory = subdirectory
+        }
+        return currentDirectory
+    }
+
+    /**
+     * @param testDirectory root test directory where we will put our generated tests.
+     * @return file of util class if it exists or null otherwise.
+     */
+    private fun CodegenLanguage.getUtilClassOrNull(testDirectory: PsiDirectory): PsiFile? {
+        return runReadAction {
+            val utilDirectory = getUtilDirectoryOrNull(testDirectory)
+            utilDirectory?.findFile(this.utilClassFileName)
+        }
+    }
+
     /**
      * Create all package directories for UtUtils class.
      * @return the innermost directory - utils from `org.utbot.runtime.utils`
      */
     private fun createUtUtilSubdirectories(baseTestDirectory: PsiDirectory): PsiDirectory {
-        val directoryNames = UT_UTILS_PACKAGE_NAME.split(PACKAGE_DELIMITER)
+        val directoryNames = UtilClassKind.utilsPackages
         var currentDirectory = baseTestDirectory
         runWriteCommandAction(baseTestDirectory.project) {
             for (name in directoryNames) {
@@ -402,7 +486,7 @@ object CodeGenerationController {
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
         reports: MutableList<TestsGenerationReport>,
-        utilMethodListener: UtilMethodListener
+        utilClassListener: UtilClassListener
     ) {
         val classMethods = srcClass.extractClassMethodsIncludingNested(false)
         val paramNames = DumbService.getInstance(model.project)
@@ -430,7 +514,7 @@ object CodeGenerationController {
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
             val codeGenerationResult = codeGenerator.generateAsStringWithTestReport(testSets)
-            utilMethodListener.onTestClassGenerated(codeGenerationResult)
+            utilClassListener.onTestClassGenerated(codeGenerationResult)
             val generatedTestsCode = codeGenerationResult.generatedCode
             run(EDT_LATER) {
                 run(WRITE_ACTION) {

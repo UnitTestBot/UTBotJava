@@ -195,5 +195,12 @@ sealed class UtilClassKind(
         const val UT_UTILS_PACKAGE_NAME = "org.utbot.runtime.utils"
         const val UT_UTILS_CLASS_NAME = "UtUtils"
         const val PACKAGE_DELIMITER = "."
+
+        /**
+         * List of package names of UtUtils class.
+         * See whole package name at [UT_UTILS_PACKAGE_NAME].
+         */
+        val utilsPackages: List<String>
+            get() = UT_UTILS_PACKAGE_NAME.split(PACKAGE_DELIMITER)
     }
 }

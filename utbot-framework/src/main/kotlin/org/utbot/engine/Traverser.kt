@@ -1,10 +1,10 @@
 package org.utbot.engine
 
 import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
@@ -112,6 +112,7 @@ import soot.DoubleType
 import soot.FloatType
 import soot.IntType
 import soot.LongType
+import soot.Modifier
 import soot.PrimType
 import soot.RefLikeType
 import soot.RefType
@@ -560,7 +561,7 @@ class Traverser(
         }
 
         val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
-            initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
+            initializedStaticFields = staticFields.map { it.first.fieldId }.toPersistentSet(),
             meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet(),
             symbolicEnumValues = enumConstantSymbolicValues.toPersistentList()
         )
@@ -596,7 +597,7 @@ class Traverser(
 
         // Collects memory updates
         val initializedFieldUpdate =
-            MemoryUpdate(initializedStaticFields = persistentHashMapOf(fieldId to concreteValue))
+            MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
         val objectUpdate = objectUpdate(
             instance = findOrCreateStaticObject(declaringClass.type),
@@ -823,7 +824,7 @@ class Traverser(
                 val staticFieldMemoryUpdate = StaticFieldMemoryUpdateInfo(fieldId, value)
                 val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
                 queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
-                if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+                if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(left.field)) {
                     queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
                 }
             }
@@ -1780,12 +1781,18 @@ class Traverser(
         queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
 
         // TODO filter enum constant static fields JIRA:1681
-        if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+        if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(field)) {
             queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
         }
 
         return createdField
     }
+
+    private fun isStaticFieldMeaningful(field: SootField) =
+        !Modifier.isSynthetic(field.modifiers) &&
+            // we don't want to set fields from library classes
+            !javaPackagesToProcessConcretely.any { field.declaringClass.packageName.startsWith(it) } &&
+            !sunPackagesToProcessConcretely.any { field.declaringClass.packageName.startsWith(it) }
 
     /**
      * Locates object represents static fields of particular class.

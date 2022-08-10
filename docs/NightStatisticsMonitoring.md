@@ -26,7 +26,7 @@ Example output:
 [
 	{
 		"classes_for_generation": 20,
-		"tc_generated": 1204,
+		"testcases_generated": 1204,
 		"classes_without_problems": 12,
 		"classes_canceled_by_timeout": 3,
 		"total_methods_for_generation": 519,
@@ -40,7 +40,7 @@ Example output:
 	},
 	{
 		"classes_for_generation": 20,
-		"tc_generated": 1692,
+		"testcases_generated": 1692,
 		"classes_without_problems": 12,
 		"classes_canceled_by_timeout": 2,
 		"total_methods_for_generation": 519,
@@ -54,7 +54,7 @@ Example output:
 	},
 	{
 		"classes_for_generation": 20,
-		"tc_generated": 1406,
+		"testcases_generated": 1406,
 		"classes_without_problems": 12,
 		"classes_canceled_by_timeout": 3,
 		"total_methods_for_generation": 519,
@@ -89,7 +89,7 @@ Example output:
 [
     {
         "classes_for_generation": 20.0,
-        "tc_generated": 1434.0,
+        "testcases_generated": 1434.0,
         "classes_without_problems": 12.0,
         "classes_canceled_by_timeout": 2.6666666666666665,
         "total_methods_for_generation": 519.0,

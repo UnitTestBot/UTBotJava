@@ -91,7 +91,7 @@ private fun GlobalStats.jsonString(baseTabs: Int = 0) =
 
         val tabs = baseTabs + 1
         addValue("classes_for_generation", classesForGeneration, tabs)
-        addValue("tc_generated", testCasesGenerated, tabs)
+        addValue("testcases_generated", testCasesGenerated, tabs)
         addValue("classes_without_problems", classesWithoutProblems, tabs)
         addValue("classes_canceled_by_timeout", classesCanceledByTimeout, tabs)
         addValue("total_methods_for_generation", totalMethodsForGeneration, tabs)

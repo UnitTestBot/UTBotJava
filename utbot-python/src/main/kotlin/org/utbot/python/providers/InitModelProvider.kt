@@ -1,6 +1,5 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.PythonInitObjectModel
 import org.utbot.framework.plugin.api.PythonModel
 import org.utbot.fuzzer.*

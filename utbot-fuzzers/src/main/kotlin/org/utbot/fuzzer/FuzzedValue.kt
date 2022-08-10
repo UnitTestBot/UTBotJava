@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.UtModel
  * Fuzzed Value stores information about concrete UtModel, reference to [ModelProvider]
  * and reasons about why this value was generated.
  */
-open class FuzzedValue(
+class FuzzedValue(
     val model: UtModel,
     val createdBy: ModelProvider? = null
 ) {

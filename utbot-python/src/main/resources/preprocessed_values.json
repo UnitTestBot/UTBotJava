@@ -589,6 +589,12 @@
     ]
   },
   {
+    "name": "builtins.tuple",
+    "instances": [
+      "tuple()"
+    ]
+  },
+  {
     "name": "builtins.slice",
     "instances": [
       "slice(0, 2, 1)",

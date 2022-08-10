@@ -4,6 +4,8 @@ import com.beust.klaxon.Klaxon
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.filefilter.DirectoryFileFilter
+import org.apache.commons.io.filefilter.FileFilterUtils
+import org.apache.commons.io.filefilter.NameFileFilter
 import org.apache.commons.io.filefilter.RegexFileFilter
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
@@ -126,8 +128,15 @@ object PythonTypesStorage {
     private fun getPythonFiles(dirPath: String): Collection<File> =
         FileUtils.listFiles(
             File(dirPath),
-            RegexFileFilter("^.*[.]py"),
-            DirectoryFileFilter.DIRECTORY
+            /* fileFilter = */ FileFilterUtils.and(
+                FileFilterUtils.suffixFileFilter(".py"),
+                FileFilterUtils.notFileFilter(
+                    FileFilterUtils.prefixFileFilter("test")
+                )
+            ),
+            /* dirFilter = */ FileFilterUtils.notFileFilter(
+                NameFileFilter("test")
+            )
         )
 
     private fun getModuleName(path: String, fileWithClass: File): String =

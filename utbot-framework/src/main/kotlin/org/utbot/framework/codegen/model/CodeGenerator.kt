@@ -80,7 +80,8 @@ class CodeGenerator(
             CodeGenerationResult(
                 generatedCode = renderClassFile(testClassFile),
                 utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-                testsGenerationReport = testClassFile.testsGenerationReport
+                testsGenerationReport = testClassFile.testsGenerationReport,
+                mockFrameworkUsed = context.mockFrameworkUsed
             )
         }
     }
@@ -114,12 +115,14 @@ class CodeGenerator(
  * @property generatedCode the source code of the test class
  * @property utilClassKind the kind of util class if it is required, otherwise - null
  * @property testsGenerationReport some info about test generation process
+ * @property mockFrameworkUsed flag indicating whether any mock objects have been created during code generation ot not
  */
 data class CodeGenerationResult(
     val generatedCode: String,
     // null if no util class needed, e.g. when we are using a library or generating utils directly into test class
     val utilClassKind: UtilClassKind?,
-    val testsGenerationReport: TestsGenerationReport
+    val testsGenerationReport: TestsGenerationReport,
+    val mockFrameworkUsed: Boolean = false
 )
 
 /**
@@ -177,6 +180,7 @@ sealed class UtilClassKind(
          * or they will be generated directly into the test class (in this case provider will be [TestClassUtilMethodProvider])
          */
         internal fun fromCgContextOrNull(context: CgContext): UtilClassKind? {
+            if (context.requiredUtilMethods.isEmpty()) return null
             val provider = context.utilMethodProvider as? UtilClassFileMethodProvider ?: return null
             if (!context.mockFrameworkUsed) {
                 return RegularUtUtils(provider)

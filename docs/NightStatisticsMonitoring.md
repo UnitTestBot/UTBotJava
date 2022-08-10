@@ -99,7 +99,11 @@ Example output:
         "test_classes_failed_to_compile": 0.33333333333333337,
         "avg_coverage": 61.49729464685574,
         "total_coverage": 53.47106015409328,
-        "timestamp": 1659715928.5049753
+        "timestamp": 1659715928504
     }
 ]
 ```
+
+### Grafana
+Also, we can use [Grafana](https://monitoring.utbot.org) for more dynamic and detailed statistics visualization.
+Grafana pulls data from our repository automatically by GitHub API.

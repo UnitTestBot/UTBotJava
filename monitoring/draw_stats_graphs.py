@@ -8,9 +8,10 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 from matplotlib.dates import DayLocator, ConciseDateFormatter
 
-DPI = 128
-WIDTH = 20
-HEIGHT = 10
+DPI = 108
+WIDTH = 10
+HEIGHT = 5
+MILLIS_IN_SEC = 1000
 
 
 def load(json_file):
@@ -39,7 +40,8 @@ def transform_and_combine_stats(stats_list):
         for key in transformed:
             new_stats[key] = new_stats[key] + (transformed[key] - new_stats[key]) / n
 
-    new_stats["timestamp"] = time()
+    # need milliseconds
+    new_stats["timestamp"] = round(time() * MILLIS_IN_SEC)
 
     return new_stats
 
@@ -56,7 +58,7 @@ def update_stats_history(history_file, new_stats_file):
 
 
 def get_history_x(history):
-    return list(map(lambda x: datetime.fromtimestamp(x["timestamp"]), history))
+    return list(map(lambda x: datetime.fromtimestamp(x["timestamp"] / MILLIS_IN_SEC), history))
 
 
 def get_history_y_seq(history):
@@ -86,7 +88,7 @@ def get_subplot(title):
 
 
 def postprocess_plot(ax):
-    ax.legend(loc="upper left")
+    ax.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
 
 
 def render_history(history, coverage_graph_file, quantitative_graph_file):

@@ -231,16 +231,27 @@ sealed class UtModel(
     open val classId: ClassId
 )
 
+/**
+ * PythonClassId represents Python type.
+ * NormalizedPythonAnnotation represents annotation after normalization.
+ *
+ * Example of PythonClassId, but not NormalizedPythonAnnotation:
+ *  builtins.list (normalized annotation is typing.List[typing.Any])
+ */
+
 class PythonClassId(
     pyName: String,
     val moduleName: String = "",
-    val moduleParentPath: String = "",
-    private val initMethod: PythonInitObjectModel? = null,
+    val moduleParentPath: String = ""
 ) : ClassId(pyName) {
-    constructor(pyName: String): this(pyName, "", "", null)
+    constructor(pyName: String): this(pyName, "", "")
     override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
     override val simpleName: String = pyName.split(".").last()
 }
+
+class NormalizedPythonAnnotation(
+    annotation: String
+) : ClassId(annotation)
 
 class PythonMethodId(
     override val classId: PythonClassId,
@@ -262,8 +273,10 @@ class PythonDefaultModel(
     override fun toString() = repr
 }
 
-val pythonAnyClassId = PythonClassId("typing.Any")
-val pythonNoneClassId = PythonClassId("types.NoneType")
+val pythonAnyClassId = NormalizedPythonAnnotation("typing.Any")
+
+// none annotation can be used in code only since Python 3.10
+val pythonNoneClassId = NormalizedPythonAnnotation("types.NoneType")
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"

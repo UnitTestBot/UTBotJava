@@ -6,12 +6,10 @@ import org.utbot.framework.plugin.api.PythonModel
 import org.utbot.fuzzer.*
 import org.utbot.python.typing.PythonTypesStorage
 
-object InitModelProvider: ModelProvider {
-    override fun generate(description: FuzzedMethodDescription) = sequence {
-        description.parametersMap.forEach { (classId_, parameterIndices) ->
-            val classId = classId_ as PythonClassId
-
-            val type = PythonTypesStorage.getTypeByName(classId) ?: return@forEach
+object InitModelProvider: PythonModelProvider() {
+    override fun generate(description: PythonFuzzedMethodDescription) = sequence {
+        description.parametersMap.forEach { (classId, parameterIndices) ->
+            val type = PythonTypesStorage.getTypeByName(PythonClassId(classId.name)) ?: return@forEach
             val initSignature = type.initSignature ?: return@forEach
 
             val models: Sequence<PythonModel> =

@@ -5,20 +5,19 @@ import org.utbot.framework.plugin.api.PythonIntModel
 import org.utbot.framework.plugin.api.PythonStrModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.math.BigInteger
 
-object ConstantModelProvider: ModelProvider {
+object ConstantModelProvider: PythonModelProvider() {
     private val javaModelProvider = ModelProvider.of(
         ConstantsModelProvider,
         StringConstantModelProvider,
     )
 
-    override fun generate(description: FuzzedMethodDescription) = sequence {
+    override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         val typeMap = mapOf(
             PythonIntModel.classId to BigInteger::class.id,
             PythonStrModel.classId to String::class.id,

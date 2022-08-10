@@ -16,7 +16,7 @@ class PythonEngine(
     private val moduleToImport: String,
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
-    private val selectedTypeMap: Map<String, PythonClassId>
+    private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>
 ) {
     fun fuzzing(): Sequence<PythonResult> = sequence {
         val types = methodUnderTest.arguments.map {

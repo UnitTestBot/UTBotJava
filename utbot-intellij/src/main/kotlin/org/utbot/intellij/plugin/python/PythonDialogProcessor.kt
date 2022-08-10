@@ -122,10 +122,8 @@ object PythonDialogProcessor {
                 if (!indicator.isCanceled) {
                     indicator.text = "Loading information about Python types"
 
-                    // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
                     PythonTypesStorage.pythonPath = pythonPath
                     PythonTypesStorage.refreshProjectClassesList(
-                        filePath,
                         model.project.basePath!!,
                         model.directoriesForSysPath
                     )
@@ -262,6 +260,6 @@ fun getDirectoriesForSysPath(
 
     return Pair(
         sources.map { it.path },
-        "${importPath}${file.name}".dropLast(3).toPath().joinToString(".")
+        "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".")
     )
 }

@@ -12,6 +12,8 @@ env:
   CADVISOR_VERSION: v0.36.0
   JMX_EXPORTER_PORT: 12345
   JMX_EXPORTER_CONFIG: /tmp/jmx-exporter.yml
+  JMX_EXPORTER_JAR: /tmp/jmx-exporter.jar
+  JMX_EXPORTER_URL: https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.0/jmx_prometheus_javaagent-0.17.0.jar
 
 jobs:
 #   utbot-analytics:
@@ -179,6 +181,8 @@ jobs:
 #            --tests "org.utbot.examples.collections.*"
       - name: Build and run test
         run: |
+          curl ${JMX_EXPORTER_URL} -o ${JMX_EXPORTER_JAR}
+          chmod +x ${JMX_EXPORTER_JAR}
           printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
           while true; do curl localhost:${JMX_EXPORTER_PORT} | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process \

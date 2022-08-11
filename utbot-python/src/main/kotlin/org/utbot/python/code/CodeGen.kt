@@ -14,6 +14,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.If
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
@@ -159,32 +160,25 @@ object PythonCodeGenerator {
                     listOf(Name("out['output']")),
                     Atom(Name("repr"), listOf(createArguments(listOf(Name(outputName)))))
                 ),
-                Assign(
-                    listOf(Name("out['type']")),
-                    Add(
-                        Atom(
-                            Atom(
-                                Name("inspect.getmodule"),
-                                listOf(createArguments(listOf(
+                If(
+                    Name("$outputName != None"),
+                    Body(listOf(Assign(
+                        listOf(Name("out['type']")),
+                        Add(
+                            Name("type($outputName).__module__"),
+                            Add(
+                                Str("."),
+                                Atom(
                                     Atom(
                                         Name("type"),
                                         listOf(createArguments(listOf(Name(outputName))))
-                                    )
-                                )))
-                            ),
-                            listOf(Attribute(Identifier("__name__")))
-                        ),
-                        Add(
-                            Str("."),
-                            Atom(
-                                Atom(
-                                    Name("type"),
-                                    listOf(createArguments(listOf(Name(outputName))))
+                                    ),
+                                    listOf(Attribute(Identifier("__name__")))
                                 ),
-                                listOf(Attribute(Identifier("__name__")))
-                            ),
+                            )
                         )
-                    )
+                    ))),
+                    Body(listOf(Name("out['type'] = 'types.NoneType'")))
                 ),
                 Atom(
                     Name("print"),

@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.code.ClassInfoCollector
 import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
+import org.utbot.python.utils.AnnotationNormalizer
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromStubToClassId
 import java.io.File
@@ -47,7 +48,10 @@ object PythonTypesStorage {
     ): Set<NormalizedPythonAnnotation> {
         val fromStubs = mapToClassId(StubFileFinder.findTypeWithMethod(methodName))
         val fromProject = projectClasses.mapNotNull {
-            if (it.info.methods.contains(methodName)) NormalizedPythonAnnotation(it.pythonClass.name) else null
+            if (it.info.methods.contains(methodName))
+                AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(it.name)
+            else
+                null
         }
         return (fromStubs union fromProject).toSet()
     }
@@ -57,7 +61,10 @@ object PythonTypesStorage {
     ): Set<NormalizedPythonAnnotation> {
         val fromStubs = mapToClassId(StubFileFinder.findTypeWithField(fieldName))
         val fromProject = projectClasses.mapNotNull {
-            if (it.info.fields.contains(fieldName)) NormalizedPythonAnnotation(it.pythonClass.name) else null
+            if (it.info.fields.contains(fieldName))
+                AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(it.name)
+            else
+                null
         }
         return (fromStubs union fromProject).toSet()
     }

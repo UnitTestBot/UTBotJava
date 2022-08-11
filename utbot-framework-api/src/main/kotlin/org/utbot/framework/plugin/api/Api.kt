@@ -363,7 +363,10 @@ class PythonSetModel(
     val stores: Set<PythonModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
-        stores.joinToString(", ", "{", "}") { it.toString() }
+        if (stores.isEmpty())
+            "set()"
+        else
+            stores.joinToString(", ", "{", "}") { it.toString() }
     }
 
     override val allContainingClassIds: Set<PythonClassId>

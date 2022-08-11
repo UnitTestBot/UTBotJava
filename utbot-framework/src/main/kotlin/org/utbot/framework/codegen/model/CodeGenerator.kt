@@ -148,14 +148,12 @@ sealed class UtilClassKind(
     /**
      * A kind of regular UtUtils class. "Regular" here means that this class does not use a mock framework.
      */
-    class RegularUtUtils internal constructor(provider: UtilClassFileMethodProvider)
-        : UtilClassKind(provider, mockFrameworkUsed = false, priority = 0)
+    object RegularUtUtils : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = false, priority = 0)
 
     /**
      * A kind of UtUtils class that uses a mock framework. At the moment the framework is Mockito.
      */
-    class UtUtilsWithMockito internal constructor(provider: UtilClassFileMethodProvider)
-        : UtilClassKind(provider, mockFrameworkUsed = true, priority = 1)
+    object UtUtilsWithMockito : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = true, priority = 1)
 
     override fun compareTo(other: UtilClassKind): Int {
         return priority.compareTo(other.priority)
@@ -181,12 +179,11 @@ sealed class UtilClassKind(
          */
         internal fun fromCgContextOrNull(context: CgContext): UtilClassKind? {
             if (context.requiredUtilMethods.isEmpty()) return null
-            val provider = context.utilMethodProvider as? UtilClassFileMethodProvider ?: return null
             if (!context.mockFrameworkUsed) {
-                return RegularUtUtils(provider)
+                return RegularUtUtils
             }
             return when (context.mockFramework) {
-                MockFramework.MOCKITO -> UtUtilsWithMockito(provider)
+                MockFramework.MOCKITO -> UtUtilsWithMockito
                 // in case we will add any other mock frameworks, newer Kotlin compiler versions
                 // will report a non-exhaustive 'when', so we will not forget to support them here as well
             }

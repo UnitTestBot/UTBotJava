@@ -9,11 +9,11 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
     <depends>org.jetbrains.kotlin</depends>
+    <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.python</depends> <!-- should be optional -->
 
     <!--Optional dependency on org.jetbrains.android-->
     <depends optional="true" config-file="withAndroid.xml">org.jetbrains.android</depends>
-
-    <depends optional="true" config-file="withPython.xml">PythonCore</depends>
 
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"

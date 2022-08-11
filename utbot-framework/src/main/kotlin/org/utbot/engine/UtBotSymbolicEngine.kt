@@ -403,7 +403,7 @@ class UtBotSymbolicEngine(
                 null
             }
             else -> {
-                ObjectModelProvider(ReferencePreservingIntIdGenerator()).withFallback(fallbackModelProvider).generate(
+                ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
                     FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues)
                 ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,

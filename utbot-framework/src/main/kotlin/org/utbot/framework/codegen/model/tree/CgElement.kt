@@ -6,19 +6,7 @@ import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.DocClassLinkStmt
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocMethodLinkStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -864,6 +852,11 @@ class CgClassId(
         isNullable: Boolean = true,
     ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
 }
+
+class CgPythonTree(
+    override val type: ClassId,
+    val tree: PythonTree.PythonTreeNode
+) : CgValue
 
 class CgPythonRepr(
     override val type: ClassId,

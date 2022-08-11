@@ -19,42 +19,58 @@ More about statistic: Statistics.kt.
 
 Example input:
 ```
-stats.json 2 20
+stats.json 3 20
 ```
 Example output:
 ```json
 [
   {
     "classes_for_generation": 20,
-    "testcases_generated": 958,
+    "testcases_generated": 1651,
     "classes_without_problems": 12,
-    "classes_canceled_by_timeout": 3,
+    "classes_canceled_by_timeout": 2,
     "total_methods_for_generation": 519,
-    "methods_with_at_least_one_testcase_generated": 314,
-    "methods_with_exceptions": 47,
-    "suspicious_methods": 63,
-    "test_classes_failed_to_compile": 1,
-    "covered_instructions_count": 4388,
-    "covered_instructions_count_by_fuzzing": 3651,
-    "covered_instructions_count_by_concolic": 2178,
-    "total_instructions_count": 9531,
-    "avg_coverage": 60.10571074242921
+    "methods_with_at_least_one_testcase_generated": 365,
+    "methods_with_exceptions": 46,
+    "suspicious_methods": 85,
+    "test_classes_failed_to_compile": 0,
+    "covered_instructions_count": 5753,
+    "covered_instructions_count_by_fuzzing": 4375,
+    "covered_instructions_count_by_concolic": 4069,
+    "total_instructions_count": 10182,
+    "avg_coverage": 62.885408034613
   },
   {
-    "classes_for_generation": 9,
-    "testcases_generated": 557,
-    "classes_without_problems": 5,
+    "classes_for_generation": 20,
+    "testcases_generated": 1872,
+    "classes_without_problems": 12,
     "classes_canceled_by_timeout": 2,
-    "total_methods_for_generation": 114,
-    "methods_with_at_least_one_testcase_generated": 109,
-    "methods_with_exceptions": 11,
-    "suspicious_methods": 1,
+    "total_methods_for_generation": 519,
+    "methods_with_at_least_one_testcase_generated": 413,
+    "methods_with_exceptions": 46,
+    "suspicious_methods": 38,
     "test_classes_failed_to_compile": 0,
-    "covered_instructions_count": 1675,
-    "covered_instructions_count_by_fuzzing": 1276,
-    "covered_instructions_count_by_concolic": 1332,
-    "total_instructions_count": 2407,
-    "avg_coverage": 70.9287503305422
+    "covered_instructions_count": 6291,
+    "covered_instructions_count_by_fuzzing": 4470,
+    "covered_instructions_count_by_concolic": 5232,
+    "total_instructions_count": 11011,
+    "avg_coverage": 62.966064315865275
+  },
+  {
+    "classes_for_generation": 20,
+    "testcases_generated": 1770,
+    "classes_without_problems": 13,
+    "classes_canceled_by_timeout": 2,
+    "total_methods_for_generation": 519,
+    "methods_with_at_least_one_testcase_generated": 405,
+    "methods_with_exceptions": 44,
+    "suspicious_methods": 43,
+    "test_classes_failed_to_compile": 0,
+    "covered_instructions_count": 6266,
+    "covered_instructions_count_by_fuzzing": 4543,
+    "covered_instructions_count_by_concolic": 5041,
+    "total_instructions_count": 11011,
+    "avg_coverage": 61.59069193429194
   }
 ]
 ```
@@ -77,22 +93,22 @@ monitoring/history.json stats.json monitoring/coverage_graph.png monitoring/quan
 Example output:
 ```json
 [
-  {
-    "classes_for_generation": 14.5,
-    "testcases_generated": 757.5,
-    "classes_without_problems": 8.5,
-    "classes_canceled_by_timeout": 2.5,
-    "total_methods_for_generation": 316.5,
-    "methods_with_at_least_one_testcase_generated": 211.5,
-    "methods_with_exceptions": 29.0,
-    "suspicious_methods": 32.0,
-    "test_classes_failed_to_compile": 0.5,
-    "avg_coverage": 65.5172305364857,
-    "total_coverage": 57.813969999804286,
-    "total_coverage_by_fuzzing": 45.65931336298925,
-    "total_coverage_by_concolic": 39.095171346713414,
-    "timestamp": 1660132400587
-  }
+    {
+        "classes_for_generation": 20.0,
+        "testcases_generated": 1764.3333333333333,
+        "classes_without_problems": 12.333333333333334,
+        "classes_canceled_by_timeout": 2.0,
+        "total_methods_for_generation": 519.0,
+        "methods_with_at_least_one_testcase_generated": 394.3333333333333,
+        "methods_with_exceptions": 45.333333333333336,
+        "suspicious_methods": 55.333333333333336,
+        "test_classes_failed_to_compile": 0.0,
+        "avg_coverage": 62.480721428256736,
+        "total_coverage": 56.84739152087949,
+        "total_coverage_by_fuzzing": 41.60749728061026,
+        "total_coverage_by_concolic": 44.420096905766805,
+        "timestamp": 1660202621883
+    }
 ]
 ```
 

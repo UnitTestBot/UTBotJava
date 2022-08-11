@@ -1,17 +1,14 @@
 package org.utbot.python.providers
 
-import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.PythonInitObjectModel
 import org.utbot.framework.plugin.api.PythonModel
 import org.utbot.fuzzer.*
 import org.utbot.python.typing.PythonTypesStorage
 
-object InitModelProvider: ModelProvider {
-    override fun generate(description: FuzzedMethodDescription) = sequence {
-        description.parametersMap.forEach { (classId_, parameterIndices) ->
-            val classId = classId_ as PythonClassId
-
-            val type = PythonTypesStorage.getTypeByName(classId) ?: return@forEach
+object InitModelProvider: PythonModelProvider() {
+    override fun generate(description: PythonFuzzedMethodDescription) = sequence {
+        description.parametersMap.forEach { (classId, parameterIndices) ->
+            val type = PythonTypesStorage.findPythonClassIdInfoByName(classId.name) ?: return@forEach
             val initSignature = type.initSignature ?: return@forEach
 
             val models: Sequence<PythonModel> =
@@ -19,14 +16,14 @@ object InitModelProvider: ModelProvider {
                     sequenceOf(PythonInitObjectModel(classId.name, emptyList()))
                 else {
                     val constructor = FuzzedMethodDescription(
-                        type.name,
+                        type.pythonClassId.name,
                         classId,
                         initSignature,
                         description.concreteValues
                     )
 
                     fuzz(constructor, nonRecursiveModelProvider).map { initValues ->
-                        PythonInitObjectModel(classId.name, initValues.map { it.model })
+                        PythonInitObjectModel(classId.name, initValues.mapNotNull { it.model as? PythonModel })
                     }
                 }
 

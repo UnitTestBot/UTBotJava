@@ -72,9 +72,6 @@ data class RegularImport(val packageName: String, val className: String) : Impor
 }
 
 data class PythonImport(val importName: String, val moduleName: String? = null): Import(1) {
-    constructor(normalizedName: String): this(
-        importName = normalizedName.split(".").dropLast(1).joinToString(".")
-    )
     override val qualifiedName: String
         get() = if (moduleName != null) "${moduleName}.${importName}" else importName
 

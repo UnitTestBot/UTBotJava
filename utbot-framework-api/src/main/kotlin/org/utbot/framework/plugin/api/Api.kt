@@ -231,44 +231,67 @@ sealed class UtModel(
     open val classId: ClassId
 )
 
+/**
+ * PythonClassId represents Python type.
+ * NormalizedPythonAnnotation represents annotation after normalization.
+ *
+ * Example of PythonClassId, but not NormalizedPythonAnnotation:
+ *  builtins.list (normalized annotation is typing.List[typing.Any])
+ */
+
+const val pythonBuiltinsModuleName = "builtins"
+
 class PythonClassId(
-    pyName: String,
-    val moduleName: String = "",
-    val moduleParentPath: String = "",
-    private val initMethod: PythonInitObjectModel? = null,
-) : ClassId(pyName) {
-    constructor(pyName: String): this(pyName, "", "", null)
-    override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
-    override val simpleName: String = pyName.split(".").last()
+    name: String  // includes module (like "_ast.Assign")
+) : ClassId(name) {
+    override fun toString(): String = name
+    override val simpleName: String = name.split(".").last()
+    val moduleName: String
+        get() {
+            val lastIndex = name.lastIndexOf('.')
+            return if (lastIndex == -1) pythonBuiltinsModuleName else name.substring(0, lastIndex)
+        }
 }
 
+class NormalizedPythonAnnotation(
+    annotation: String
+) : ClassId(annotation)
+
 class PythonMethodId(
-    override val classId: PythonClassId,
+    override val classId: PythonClassId,  // may be a fake class for top-level functions
     override val name: String,
     override val returnType: PythonClassId,
     override val parameters: List<PythonClassId>,
 ) : MethodId(classId, name, returnType, parameters) {
     val moduleName: String = classId.moduleName
-    val moduleParentPath: String = classId.moduleParentPath
     override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
 }
 
-sealed class PythonModel(classId: PythonClassId): UtModel(classId)
+sealed class PythonModel(classId: PythonClassId): UtModel(classId) {
+    open val allContainingClassIds: Set<PythonClassId> = setOf(classId)
+}
 
 class PythonTreeModel(
     val tree: PythonTree.PythonTreeNode,
     classId: PythonClassId,
-): PythonModel(classId)
+): PythonModel(classId) {
+    override val allContainingClassIds: Set<PythonClassId>
+        get() {
+            val children = tree.children.map { PythonTreeModel(it, it.type) }
+            return super.allContainingClassIds + children.flatMap { it.allContainingClassIds }
+        }
+}
 
 class PythonDefaultModel(
     val repr: String,
-    val type: String
-): PythonModel(PythonClassId(type)) {
+    classId: PythonClassId
+): PythonModel(classId) {
     override fun toString() = repr
 }
 
-val pythonAnyClassId = PythonClassId("typing.Any")
-val pythonNoneClassId = PythonClassId("types.NoneType")
+// none annotation can be used in code only since Python 3.10
+val pythonNoneClassId = NormalizedPythonAnnotation("types.NoneType")
+val pythonAnyClassId = NormalizedPythonAnnotation("typing.Any")
 val pythonIntClassId = PythonClassId("builtins.int")
 val pythonFloatClassId = PythonClassId("builtins.float")
 val pythonStrClassId = PythonClassId("builtins.str")
@@ -303,28 +326,29 @@ class PythonBoolModel(val value: Boolean): PythonModel(classId) {
     }
 }
 
-class PythonComplexObjectModel(
-    val type: String,
-    val fields: Map<String, PythonModel>
-): PythonModel(PythonClassId(type))
-
 class PythonInitObjectModel(
     val type: String,
-    val initValues: List<UtModel>
+    val initValues: List<PythonModel>
 ): PythonModel(PythonClassId(type)) {
     override fun toString(): String {
         val params = initValues.joinToString(separator = ", ") { it.toString() }
         return "$type($params)"
     }
+
+    override val allContainingClassIds: Set<PythonClassId>
+        get() = super.allContainingClassIds + initValues.flatMap { it.allContainingClassIds }
 }
 
 class PythonListModel(
     val length: Int = 0,
-    val stores: List<UtModel>
+    val stores: List<PythonModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         (0 until length).map { stores[it] }.joinToString(", ", "[", "]")
     }
+
+    override val allContainingClassIds: Set<PythonClassId>
+        get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
 
     companion object {
         val classId = PythonClassId("builtins.list")
@@ -333,11 +357,15 @@ class PythonListModel(
 
 class PythonDictModel(
     val length: Int = 0,
-    val stores: Map<UtModel, UtModel>
+    val stores: Map<PythonModel, PythonModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         stores.entries.joinToString(", ", "{", "}") { "${it.key}: ${it.value}" }
     }
+
+    override val allContainingClassIds: Set<PythonClassId>
+        get() = super.allContainingClassIds +
+                stores.entries.flatMap { it.key.allContainingClassIds + it.value.allContainingClassIds }
 
     companion object {
         val classId = PythonClassId("builtins.dict")
@@ -346,11 +374,17 @@ class PythonDictModel(
 
 class PythonSetModel(
     val length: Int = 0,
-    val stores: Set<UtModel>
+    val stores: Set<PythonModel>
 ) : PythonModel(classId) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
-        stores.joinToString(", ", "{", "}") { it.toString() }
+        if (stores.isEmpty())
+            "set()"
+        else
+            stores.joinToString(", ", "{", "}") { it.toString() }
     }
+
+    override val allContainingClassIds: Set<PythonClassId>
+        get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
 
     companion object {
         val classId = PythonClassId("builtins.set")

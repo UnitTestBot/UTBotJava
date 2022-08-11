@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
@@ -92,15 +93,15 @@ object PythonTestCaseGenerator {
 
     fun getAnnotations(
         method: PythonMethod,
-        initialArgumentTypes: List<PythonClassId>,
+        initialArgumentTypes: List<NormalizedPythonAnnotation>,
         argInfoCollector: ArgInfoCollector,
         isCancelled: () -> Boolean
-    ): Sequence<Map<String, PythonClassId>> {
+    ): Sequence<Map<String, NormalizedPythonAnnotation>> {
 
-        val existingAnnotations = mutableMapOf<String, String>()
+        val existingAnnotations = mutableMapOf<String, NormalizedPythonAnnotation>()
         initialArgumentTypes.forEachIndexed { index, classId ->
             if (classId != pythonAnyClassId)
-                existingAnnotations[method.arguments[index].name] = classId.name
+                existingAnnotations[method.arguments[index].name] = classId
         }
 
         return findAnnotations(

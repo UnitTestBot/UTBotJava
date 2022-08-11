@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
@@ -18,7 +19,7 @@ object MypyAnnotations {
 
     fun getCheckedByMypyAnnotations(
         method: PythonMethod,
-        functionArgAnnotations: Map<String, List<String>>,
+        functionArgAnnotations: Map<String, List<NormalizedPythonAnnotation>>,
         moduleToImport: String,
         directoriesForSysPath: List<String>,
         pythonPath: String,
@@ -71,7 +72,7 @@ object MypyAnnotations {
             val errorNum = getErrorNumber(mypyOutput)
             if (errorNum <= defaultErrorNum) {
                 yield(annotationMap.mapValues { entry ->
-                    PythonClassId(entry.value)
+                    entry.value
                 })
             }
         }

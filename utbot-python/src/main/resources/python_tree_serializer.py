@@ -1,4 +1,3 @@
-import inspect
 import types
 from itertools import zip_longest
 
@@ -8,9 +7,9 @@ class _PythonTreeSerializer:
     def get_type(py_object):
         if py_object is None:
             return 'types.NoneType'
-        module = inspect.getmodule(type(py_object))
+        module = type(py_object).__module__
         return '{module}.{name}'.format(
-            module='' if module is None else module.__name__,
+            module=module,
             name=type(py_object).__name__,
         )
 

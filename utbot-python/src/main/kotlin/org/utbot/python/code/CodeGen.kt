@@ -14,6 +14,7 @@ import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.compar
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.If
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
@@ -28,6 +29,7 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Assert
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.*
@@ -310,14 +312,14 @@ object PythonCodeGenerator {
 
     fun generateMypyCheckCode(
         method: PythonMethod,
-        methodAnnotations: Map<String, String>,
+        methodAnnotations: Map<String, NormalizedPythonAnnotation>,
         directoriesForSysPath: List<String>,
         moduleToImport: String
     ): String {
         val importStatements = generateImportFunctionCode(
             moduleToImport,
             directoriesForSysPath,
-            methodAnnotations.values.toSet().toList(),
+            methodAnnotations.values.map { it.name }.toSet().toList(),
         )
 
         val parameters = Parameters(

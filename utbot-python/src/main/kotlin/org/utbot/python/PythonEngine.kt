@@ -6,9 +6,8 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.python.providers.concreteTypesModelProvider
+import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.typing.PythonTypesStorage
-import org.utbot.python.typing.ReturnRenderType
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -16,7 +15,7 @@ class PythonEngine(
     private val moduleToImport: String,
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
-    private val selectedTypeMap: Map<String, PythonClassId>
+    private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>
 ) {
     fun fuzzing(): Sequence<PythonResult> = sequence {
         val types = methodUnderTest.arguments.map {
@@ -35,7 +34,7 @@ class PythonEngine(
 
         val pythonTypes = selectedTypeMap.values.map { it.name }
 
-        fuzz(methodUnderTestDescription, concreteTypesModelProvider).forEach { values ->
+        fuzz(methodUnderTestDescription, defaultPythonModelProvider).forEach { values ->
             val modelList = values.map { it.model }
             val evalResult = PythonEvaluation.evaluate(
                 methodUnderTest,
@@ -53,11 +52,6 @@ class PythonEngine(
             if (isException) {
                 yield(PythonError(UtError(resultJSON.output.toString(), Throwable()), modelList, pythonTypes))
             } else {
-
-                // some types cannot be used as return types in tests (like socket or memoryview)
-                val outputType = resultJSON.type
-                if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
-                    return@sequence
 
                 val resultAsModel = PythonTreeModel(
                     resultJSON.output,

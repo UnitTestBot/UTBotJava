@@ -39,12 +39,7 @@ internal class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCal
     }
 
     private fun newMethodCall(methodId: MethodId) {
-        val pyMethod = methodId
-//        val newSysPath = pyMethod.classId.moduleParentPath
-//        if (pyMethod.classId.moduleParentPath.isNotEmpty()) {
-//            context.collectedSysPaths.add(newSysPath)
-//        }
-        importIfNeeded(pyMethod)
+        importIfNeeded(methodId)
     }
 
 }

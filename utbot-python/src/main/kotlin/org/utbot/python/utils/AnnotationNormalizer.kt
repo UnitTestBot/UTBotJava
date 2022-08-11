@@ -1,5 +1,6 @@
 package org.utbot.python.utils
 
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import java.io.File
@@ -41,11 +42,11 @@ object AnnotationNormalizer {
         projectRoot: String,
         fileOfAnnotation: String,
         filesToAddToSysPath: List<String>
-    ): PythonClassId =
+    ): NormalizedPythonAnnotation =
         if (annotation == null)
             pythonAnyClassId
         else
-            PythonClassId(
+            NormalizedPythonAnnotation(
                 substituteTypes(
                     normalizeAnnotationFromProject(
                         annotation,
@@ -57,13 +58,13 @@ object AnnotationNormalizer {
                 )
             )
 
-    private val stubAnnotationCache: MutableMap<String, PythonClassId> = mutableMapOf()
+    private val stubAnnotationCache: MutableMap<String, NormalizedPythonAnnotation> = mutableMapOf()
 
     fun annotationFromStubToClassId(
         annotation: String,
         pythonPath: String,
         moduleOfAnnotation: String
-    ): PythonClassId {
+    ): NormalizedPythonAnnotation {
         val cached = stubAnnotationCache[annotation]
         if (cached != null)
             return cached
@@ -77,7 +78,7 @@ object AnnotationNormalizer {
         ))
         scriptFile.delete()
 
-        val ret = PythonClassId(
+        val ret = NormalizedPythonAnnotation(
             substituteTypes(
                 if (result.exitValue == 0) result.stdout else annotation
             )
@@ -98,12 +99,16 @@ object AnnotationNormalizer {
         Regex("typing.Set *([^\\[]|$)") to "typing.Set[typing.Any]"
     )
 
-    fun substituteTypes(annotation: String): String {
+    private fun substituteTypes(annotation: String): String {
         val firstStage = substitutionMapFirstStage.fold(annotation) { acc, (old, new) ->
             acc.replace(old, new)
         }
         return substitutionMapSecondStage.fold(firstStage) { acc, (re, new) ->
             acc.replace(re, new)
         }
+    }
+
+    fun pythonClassIdToNormalizedAnnotation(classId: PythonClassId): NormalizedPythonAnnotation {
+        return NormalizedPythonAnnotation(substituteTypes(classId.name))
     }
 }

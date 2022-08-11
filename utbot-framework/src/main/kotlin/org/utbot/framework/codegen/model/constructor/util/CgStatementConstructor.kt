@@ -58,6 +58,8 @@ import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import fj.data.Either
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.codegen.model.tree.CgIsInstance
+import org.utbot.framework.plugin.api.util.classClassId
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -115,6 +117,8 @@ interface CgStatementConstructor {
     fun tryBlock(init: () -> Unit, resources: List<CgDeclaration>?): CgTryCatch
     fun CgTryCatch.catch(exception: ClassId, init: (CgVariable) -> Unit): CgTryCatch
     fun CgTryCatch.finally(init: () -> Unit): CgTryCatch
+
+    fun CgExpression.isInstance(value: CgExpression): CgIsInstance
 
     fun innerBlock(init: () -> Unit): CgInnerBlock
 
@@ -300,6 +304,15 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     override fun CgTryCatch.finally(init: () -> Unit): CgTryCatch {
         val finallyBlock = block(init)
         return this.copy(finally = finallyBlock)
+    }
+
+    override fun CgExpression.isInstance(value: CgExpression): CgIsInstance {
+        require(this.type == classClassId) {
+            "isInstance method can be called on object with type $classClassId only, but actual type is ${this.type}"
+        }
+
+        //TODO: we should better process it as this[isInstanceMethodId](value) as it is a call
+        return CgIsInstance(this, value)
     }
 
     override fun innerBlock(init: () -> Unit): CgInnerBlock =

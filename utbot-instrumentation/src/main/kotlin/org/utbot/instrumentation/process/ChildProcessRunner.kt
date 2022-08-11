@@ -1,13 +1,20 @@
 package org.utbot.instrumentation.process
 
 import mu.KotlinLogging
-import org.utbot.common.*
-import org.utbot.framework.JdkPathService
+import org.utbot.common.bracket
+import org.utbot.common.debug
+import org.utbot.common.firstOrNullResourceIS
+import org.utbot.common.getCurrentProcessId
+import org.utbot.common.packageName
+import org.utbot.common.pid
+import org.utbot.common.scanForResourcesContaining
+import org.utbot.common.utBotTempDirectory
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import java.io.File
-import java.nio.file.Paths
 import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
@@ -23,8 +30,10 @@ class ChildProcessRunner {
             emptyList()
         }
 
-        listOf(Paths.get(JdkPathService.jdkPath.toString(),"bin", "java").toString()) +
-                debugCmd + listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
+        listOf(
+            JdkInfoService.provide().path.resolve("bin${File.separatorChar}java").toString(),
+            "-javaagent:$jarFile", "-ea", "-jar", "$jarFile"
+        ) + debugCmd
     }
 
     var errorLogFile: File = NULL_FILE
@@ -40,7 +49,12 @@ class ChildProcessRunner {
             errorLogFile = File(UT_BOT_TEMP_DIR, "${id}-${processSeqN}.log")
         }
 
-        val processBuilder = ProcessBuilder(cmds + " " + portArgument).redirectError(errorLogFile)
+        val directory = WorkingDirService.provide().toFile()
+
+        val processBuilder = ProcessBuilder(cmds + " " + portArgument)
+            .redirectError(errorLogFile)
+            .directory(directory)
+
         return processBuilder.start().also {
             logger.debug { "Process started with PID=${it.pid}" }
 

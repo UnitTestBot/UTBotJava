@@ -14,6 +14,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
+import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.JavaDirectoryService
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassOwner
@@ -370,6 +371,9 @@ object CodeGenerationController {
         }
     }
 
+    private fun isEventLogAvailable(project: Project) =
+        ToolWindowManager.getInstance(project).getToolWindow("Event Log") != null
+
     private fun eventLogMessage(): String =
         """
             <a href="${TestReportUrlOpeningListener.prefix}${TestReportUrlOpeningListener.eventLogSuffix}">See details in Event Log</a>.
@@ -402,13 +406,15 @@ object CodeGenerationController {
 
                     destinationWarningMessage(model.testPackageName, classUnderTestPackageName)
                         ?.let {
+                            hasWarnings = true
                             appendHtmlLine(it)
                             appendHtmlLine()
                         }
-
-                appendHtmlLine(eventLogMessage())
+                if (isEventLogAvailable(model.project)) {
+                    appendHtmlLine(eventLogMessage())
+                }
             }
-            hasWarnings = report.hasWarnings
+            hasWarnings = hasWarnings || report.hasWarnings
             Pair(message, report.detailedStatistics)
         } else {
             val accumulatedReport = reports.first()
@@ -439,8 +445,9 @@ object CodeGenerationController {
                         }
                     }
                 }
-
-                appendHtmlLine(eventLogMessage())
+                if (isEventLogAvailable(model.project)) {
+                    appendHtmlLine(eventLogMessage())
+                }
             }
 
             Pair(message, null)

@@ -3,6 +3,7 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 dependencies {
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
     api project(':utbot-framework-api')
+    api project(':utbot-fuzzers')
     compile(project(':utbot-instrumentation'))
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version

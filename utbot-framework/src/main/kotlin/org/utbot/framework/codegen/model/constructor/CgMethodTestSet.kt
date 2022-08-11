@@ -5,6 +5,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.executableId
@@ -36,12 +37,19 @@ data class CgMethodTestSet private constructor(
      */
     fun splitExecutionsByResult() : List<CgMethodTestSet> {
         val successfulExecutions = executions.filter { it.result is UtExecutionSuccess }
-        val executionsByResult: Map<ClassId, List<UtExecution>> =
-            if (successfulExecutions.isNotEmpty()) {
-                successfulExecutions.groupBy { (it.result as UtExecutionSuccess).model.classId }
-            } else {
-                mapOf(objectClassId to executions)
-            }
+        val failureExecutions = executions.filter { it.result is UtExecutionFailure }
+
+        val executionsByResult: MutableMap<ClassId, List<UtExecution>> =
+            successfulExecutions
+                .groupBy { (it.result as UtExecutionSuccess).model.classId }.toMutableMap()
+
+        // if we have failure executions, we add them to the first successful executions group
+        val groupClassId = executionsByResult.keys.firstOrNull()
+        if (groupClassId != null) {
+            executionsByResult[groupClassId] = executionsByResult[groupClassId]!! + failureExecutions
+        } else {
+            executionsByResult[objectClassId] = failureExecutions
+        }
 
         return executionsByResult.map{ (_, executions) -> substituteExecutions(executions) }
     }
@@ -52,15 +60,8 @@ data class CgMethodTestSet private constructor(
      * A separate test set is created for each combination of modified statics.
      */
     fun splitExecutionsByChangedStatics(): List<CgMethodTestSet> {
-        val successfulExecutions = executions.filter { it.result is UtExecutionSuccess }
         val executionsByStaticsUsage: Map<Set<FieldId>, List<UtExecution>> =
-            if (successfulExecutions.isNotEmpty()) {
-                successfulExecutions.groupBy {
-                    it.stateBefore.statics.keys
-                }
-            } else {
-                mapOf(executions.first().stateBefore.statics.keys to executions)
-            }
+            executions.groupBy { it.stateBefore.statics.keys }
 
         return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
     }

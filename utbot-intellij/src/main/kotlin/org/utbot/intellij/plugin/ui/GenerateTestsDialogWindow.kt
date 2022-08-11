@@ -31,7 +31,6 @@ import com.intellij.openapi.ui.OptionAction
 import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.ui.popup.IconButton
 import com.intellij.openapi.util.Computable
-import com.intellij.openapi.util.text.TextWithMnemonic
 import com.intellij.openapi.vfs.StandardFileSystems
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore.urlToPath
@@ -82,6 +81,7 @@ import java.awt.event.ActionEvent
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.text.ParseException
 import java.util.Objects
 import java.util.concurrent.TimeUnit
 import javax.swing.AbstractAction
@@ -146,7 +146,7 @@ private const val WILL_BE_CONFIGURED_LABEL = " (will be configured)"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 private const val ACTION_GENERATE = "Generate Tests"
-private const val ACTION_GENERATE_AND_RUN = "Generate && Run" //Note that ampersand has to be escaped (doubled)
+private const val ACTION_GENERATE_AND_RUN = "Generate and Run"
 
 class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(model.project) {
     companion object {
@@ -217,8 +217,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         TestReportUrlOpeningListener.callbacks[TestReportUrlOpeningListener.eventLogSuffix]?.plusAssign {
-            val twm = ToolWindowManager.getInstance(model.project)
-            twm.getToolWindow("Event Log")?.activate(null)
+            with(model.project) {
+                if (this.isDisposed) return@with
+                val twm = ToolWindowManager.getInstance(this)
+                twm.getToolWindow("Event Log")?.activate(null)
+            }
         }
 
         model.runGeneratedTestsWithCoverage = model.project.service<Settings>().runGeneratedTestsWithCoverage
@@ -468,7 +471,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         private fun updateButtonText(e: ActionEvent?) {
             with(e?.source as JButton) {
-                text = TextWithMnemonic.parse(testsModel.getActionText()).dropMnemonic().text
+                text = testsModel.getActionText()
                 testsModel.project.service<Settings>().runGeneratedTestsWithCoverage =
                     testsModel.runGeneratedTestsWithCoverage
                 repaint()
@@ -507,6 +510,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         model.mockFramework = MOCKITO
         model.staticsMocking = staticsMocking.item
         model.codegenLanguage = codegenLanguages.item
+        try {
+            timeoutSpinner.commitEdit()
+        } catch (ignored: ParseException) {
+        }
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
 
         val settings = model.project.service<Settings>()
@@ -557,8 +564,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Creates test source root if absent and target packages for tests.
      */
     private fun createTestRootAndPackages(): Boolean {
-        model.testSourceRoot = createDirectoryIfMissing(model.testSourceRoot)
+        model.setSourceRootAndFindTestModule(createDirectoryIfMissing(model.testSourceRoot))
         val testSourceRoot = model.testSourceRoot ?: return false
+
         if (model.testSourceRoot?.isDirectory != true) return false
         if (getOrCreateTestRoot(testSourceRoot)) {
             if (cbSpecifyTestPackage.isSelected) {
@@ -856,10 +864,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         testSourceFolderField.childComponent.addActionListener { event ->
             with((event.source as JComboBox<*>).selectedItem) {
                 if (this is VirtualFile) {
-                    model.testSourceRoot = this@with
+                    model.setSourceRootAndFindTestModule(this@with)
                 }
                 else {
-                    model.testSourceRoot = null
+                    model.setSourceRootAndFindTestModule(null)
                 }
             }
         }

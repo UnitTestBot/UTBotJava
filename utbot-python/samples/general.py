@@ -12,7 +12,7 @@ def f(x, y, z, a, b, c, d, e, g, h):
     if y % 2 == 0:
         x = 1 + y
     z += "aba"
-    a += [1] + list("str") + a
+    a += [1] + list("str")
     b = (1, [1, 2])
     A = c < "abc"
     B = "abc" == d

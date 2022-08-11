@@ -219,7 +219,7 @@ object PythonDialogProcessor {
                             )
                         }
                     ).generatedCode
-                    val fileName = "test_${classId.name.camelToSnakeCase()}.py"
+                    val fileName = "test_${classId.moduleName.camelToSnakeCase()}.py"
                     val testFile = FileManager.createPermanentFile(fileName, testCode)
                     val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(testFile)
                     if (virtualFile != null) {

@@ -16,7 +16,6 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.comprehensions.Comprehension
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Dict
 import io.github.danielnaczo.python3parser.model.expr.datastructures.ListExpr
-import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
 import io.github.danielnaczo.python3parser.model.expr.operators.Operator
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.*
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.boolops.Or
@@ -36,14 +35,14 @@ import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonClassId>) {
-    interface BaseStorage { val name: String }
-    data class Type(override val name: String): BaseStorage
-    data class Method(override val name: String): BaseStorage
-    data class FunctionArg(override val name: String, val index: Int): BaseStorage
-    data class FunctionRet(override val name: String): BaseStorage
-    data class Field(override val name: String): BaseStorage
-    data class Function(override val name: String): BaseStorage
+class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<NormalizedPythonAnnotation>) {
+    open class Hint
+    class Type(val type: PythonClassId): Hint()
+    data class Method(val name: String): Hint()
+    data class FunctionArg(val name: String, val index: Int): Hint()
+    data class FunctionRet(val name: String): Hint()
+    data class Field(val name: String): Hint()
+    data class Function(val name: String): Hint()
     data class ArgInfoStorage(
         val types: MutableSet<Type> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf(),
@@ -51,7 +50,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
         val fields: MutableSet<Field> = mutableSetOf(),
         val functionRets: MutableSet<FunctionRet> = mutableSetOf()
     ) {
-        fun toList(): List<BaseStorage> {
+        fun toList(): List<Hint> {
             return listOf(
                 types,
                 methods,
@@ -67,7 +66,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
         val fields: MutableSet<Field> = mutableSetOf(),
         val methods: MutableSet<Method> = mutableSetOf()
     ) {
-        fun toList(): List<BaseStorage> {
+        fun toList(): List<Hint> {
             return listOf(
                 types,
                 functions,
@@ -89,9 +88,9 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
 
     fun getConstants(): List<FuzzedConcreteValue> = visitor.constStorage.toList()
 
-    fun getAllGeneralStorages(): List<BaseStorage> = visitor.generalStorage.toList()
+    fun getAllGeneralHints(): List<Hint> = visitor.generalStorage.toList()
 
-    fun getAllArgStorages(): Map<String, List<BaseStorage>> {
+    fun getAllArgHints(): Map<String, List<Hint>> {
        return paramNames.associate { argName ->
            argName to (collectedValues[argName]?.toList() ?: emptyList())
        }
@@ -168,7 +167,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
                     typeMap[typeNameWithPrefix] = refl(functionCallWithoutPrefix(name(equal(typeNameWithoutPrefix)), drop()))
             }
             return typeMap.entries.fold(reject()) { acc, entry ->
-                or(acc, map0(typedExpr(entry.value), Type(entry.key)))
+                or(acc, map0(typedExpr(entry.value), Type(PythonClassId(entry.key))))
             }
         }
 
@@ -466,14 +465,14 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
             val value = getNumFuzzedValue(num.n)
             if (value != null) {
                 constStorage.add(value)
-                generalStorage.types.add(Type(value.classId.name))
+                (value.classId as? PythonClassId) ?.let { generalStorage.types.add(Type(it)) }
             }
             return super.visitNum(num, param)
         }
 
         override fun visitStr(str: Str, param: MutableMap<String, ArgInfoStorage>?): AST {
             constStorage.add(FuzzedConcreteValue(PythonStrModel.classId, getStr(str.s)))
-            generalStorage.types.add(Type("builtins.str"))
+            generalStorage.types.add(Type(PythonStrModel.classId))
             return super.visitStr(str, param)
         }
 
@@ -530,7 +529,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
         }
 
         override fun visitListExpr(listExpr: ListExpr, param: MutableMap<String, ArgInfoStorage>): AST {
-            generalStorage.types.add(Type("builtins.list"))
+            generalStorage.types.add(Type(PythonListModel.classId))
             return super.visitListExpr(listExpr, param)
         }
 
@@ -538,17 +537,12 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<PythonC
             set: io.github.danielnaczo.python3parser.model.expr.datastructures.Set,
             param: MutableMap<String, ArgInfoStorage>
         ): AST {
-            generalStorage.types.add(Type("builtins.set"))
+            generalStorage.types.add(Type(PythonSetModel.classId))
             return super.visitSet(set, param)
         }
 
-        override fun visitTuple(tuple: Tuple, param: MutableMap<String, ArgInfoStorage>): AST {
-            generalStorage.types.add(Type("builtins.tuple"))
-            return super.visitTuple(tuple, param)
-        }
-
         override fun visitDict(dict: Dict, param: MutableMap<String, ArgInfoStorage>): AST {
-            generalStorage.types.add(Type("builtins.dict"))
+            generalStorage.types.add(Type(PythonDictModel.classId))
             return super.visitDict(dict, param)
         }
 

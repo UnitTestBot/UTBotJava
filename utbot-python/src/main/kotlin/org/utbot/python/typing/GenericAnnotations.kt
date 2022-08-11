@@ -1,23 +1,31 @@
-package org.utbot.python.utils
+package org.utbot.python.typing
 
-fun parseGeneric(annotation: String): GenericAnnotation? =
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
+
+fun parseGeneric(annotation: NormalizedPythonAnnotation): GenericAnnotation? =
     ListAnnotation.parse(annotation)
         ?: DictAnnotation.parse(annotation)
         ?: SetAnnotation.parse(annotation)
 
 
-fun isGeneric(annotation: String): Boolean = parseGeneric(annotation) != null
+fun isGeneric(annotation: NormalizedPythonAnnotation): Boolean = parseGeneric(annotation) != null
 
 
 sealed class GenericAnnotation {
-    abstract val args: List<String>
+    abstract val args: List<NormalizedPythonAnnotation>
+
+    companion object {
+        fun getFromMatch(match: MatchResult, index: Int): NormalizedPythonAnnotation {
+            return NormalizedPythonAnnotation(match.groupValues[index])
+        }
+    }
 }
 
 class ListAnnotation(
-    val elemAnnotation: String
+    val elemAnnotation: NormalizedPythonAnnotation
 ): GenericAnnotation() {
 
-    override val args: List<String>
+    override val args: List<NormalizedPythonAnnotation>
         get() = listOf(elemAnnotation)
 
     override fun toString(): String = "typing.List[$elemAnnotation]"
@@ -25,21 +33,23 @@ class ListAnnotation(
     companion object {
         val regex = Regex("typing.List\\[(.*)]")
 
-        fun parse(annotation: String): ListAnnotation? {
-            val res = regex.matchEntire(annotation)
-            return res?.let { ListAnnotation(it.groupValues[1]) }
+        fun parse(annotation: NormalizedPythonAnnotation): ListAnnotation? {
+            val res = regex.matchEntire(annotation.name)
+            return res?.let {
+                ListAnnotation(getFromMatch(it, 1))
+            }
         }
 
-        fun unparse(args: List<String>) = ListAnnotation(args[0])
+        fun pack(args: List<NormalizedPythonAnnotation>) = ListAnnotation(args[0])
     }
 }
 
 class DictAnnotation(
-    val keyAnnotation: String,
-    val valueAnnotation: String
+    val keyAnnotation: NormalizedPythonAnnotation,
+    val valueAnnotation: NormalizedPythonAnnotation
 ): GenericAnnotation() {
 
-    override val args: List<String>
+    override val args: List<NormalizedPythonAnnotation>
         get() = listOf(keyAnnotation, valueAnnotation)
 
     override fun toString(): String = "typing.Dict[$keyAnnotation, $valueAnnotation]"
@@ -47,20 +57,22 @@ class DictAnnotation(
     companion object {
         val regex = Regex("typing.Dict\\[(.*), *(.*)]")
 
-        fun parse(annotation: String): DictAnnotation? {
-            val res = regex.matchEntire(annotation)
-            return res?.let { DictAnnotation(it.groupValues[1], it.groupValues[2]) }
+        fun parse(annotation: NormalizedPythonAnnotation): DictAnnotation? {
+            val res = regex.matchEntire(annotation.name)
+            return res?.let {
+                DictAnnotation(getFromMatch(it, 1), getFromMatch(it, 2))
+            }
         }
 
-        fun unparse(args: List<String>) = DictAnnotation(args[0], args[1])
+        fun pack(args: List<NormalizedPythonAnnotation>) = DictAnnotation(args[0], args[1])
     }
 }
 
 class SetAnnotation(
-    val elemAnnotation: String
+    val elemAnnotation: NormalizedPythonAnnotation
 ): GenericAnnotation() {
 
-    override val args: List<String>
+    override val args: List<NormalizedPythonAnnotation>
         get() = listOf(elemAnnotation)
 
     override fun toString(): String = "typing.Set[$elemAnnotation]"
@@ -68,11 +80,11 @@ class SetAnnotation(
     companion object {
         val regex = Regex("typing.Set\\[(.*)]")
 
-        fun parse(annotation: String): SetAnnotation? {
-            val res = regex.matchEntire(annotation)
-            return res?.let { SetAnnotation(it.groupValues[1]) }
+        fun parse(annotation: NormalizedPythonAnnotation): SetAnnotation? {
+            val res = regex.matchEntire(annotation.name)
+            return res?.let { SetAnnotation(getFromMatch(it, 1)) }
         }
 
-        fun unparse(args: List<String>) = SetAnnotation(args[0])
+        fun pack(args: List<NormalizedPythonAnnotation>) = SetAnnotation(args[0])
     }
 }

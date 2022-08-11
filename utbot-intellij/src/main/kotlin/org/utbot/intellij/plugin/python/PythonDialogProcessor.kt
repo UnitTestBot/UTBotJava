@@ -123,10 +123,8 @@ object PythonDialogProcessor {
                 if (!indicator.isCanceled) {
                     indicator.text = "Loading information about Python types"
 
-                    // PythonCodeCollector.refreshProjectClassesList(model.project.basePath!!)
                     PythonTypesStorage.pythonPath = pythonPath
                     PythonTypesStorage.refreshProjectClassesList(
-                        filePath,
                         model.project.basePath!!,
                         model.directoriesForSysPath
                     )
@@ -186,11 +184,7 @@ object PythonDialogProcessor {
                     }
                 }
 
-                val classId = PythonClassId(
-                    "File${model.file.name.split('.').dropLast(1).last().capitalize()}",
-                    model.file.name.split(".").first(),
-                    model.file.virtualFile.parent.path
-                )
+                val classId = PythonClassId(model.moduleToImport + ".toplevel_functions")
                 val methods = notEmptyTests.associate {
                     it.method to PythonMethodId(
                         classId,
@@ -225,7 +219,7 @@ object PythonDialogProcessor {
                             )
                         }
                     ).generatedCode
-                    val fileName = "test_${classId.name.camelToSnakeCase()}.py"
+                    val fileName = "test_${classId.moduleName.camelToSnakeCase()}.py"
                     val testFile = FileManager.createPermanentFile(fileName, testCode)
                     val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(testFile)
                     if (virtualFile != null) {
@@ -270,6 +264,6 @@ fun getDirectoriesForSysPath(
 
     return Pair(
         sources.map { it.path },
-        "${importPath}${file.name}".dropLast(3).toPath().joinToString(".")
+        "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".")
     )
 }

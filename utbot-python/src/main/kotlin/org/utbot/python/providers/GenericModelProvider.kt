@@ -2,25 +2,21 @@ package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.*
-import org.utbot.python.code.dict
-import org.utbot.python.utils.*
+import org.utbot.python.typing.DictAnnotation
+import org.utbot.python.typing.ListAnnotation
+import org.utbot.python.typing.SetAnnotation
+import org.utbot.python.typing.parseGeneric
 import java.lang.Integer.min
 import kotlin.random.Random
 
-object GenericModelProvider: ModelProvider {
-    private val concreteTypesModelProvider = ModelProvider.of(
-        ConstantModelProvider,
-        DefaultValuesModelProvider,
-        GenericModelProvider
-    )
-
+object GenericModelProvider: PythonModelProvider() {
     private const val maxGenNum = 10
 
-    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
+    override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         fun <T: UtModel> fuzzGeneric(
-            parameters: List<PythonClassId>,
+            parameters: List<NormalizedPythonAnnotation>,
             index: Int,
-            modelConstructor: (List<List<FuzzedValue>>) -> T
+            modelConstructor: (List<List<FuzzedValue>>) -> T?
         ) = sequence {
             val syntheticGenericType = FuzzedMethodDescription(
                 "${description.name}<syntheticGenericList>",
@@ -28,50 +24,48 @@ object GenericModelProvider: ModelProvider {
                 parameters,
                 description.concreteValues
             )
-            fuzz(syntheticGenericType, concreteTypesModelProvider)
+            fuzz(syntheticGenericType, defaultPythonModelProvider)
                 .randomChunked()
                 .map(modelConstructor)
                 .forEach {
-                    yield(FuzzedParameter(index, it.fuzzed()))
+                    if (it != null)
+                        yield(FuzzedParameter(index, it.fuzzed()))
                 }
         }
 
         fun genList(listAnnotation: ListAnnotation, index: Int): Sequence<FuzzedParameter> {
-            val genericType = PythonClassId(listAnnotation.elemAnnotation)
-            return fuzzGeneric(listOf(genericType), index) { list ->
+            return fuzzGeneric(listOf(listAnnotation.elemAnnotation), index) { list ->
                 PythonListModel(
                     list.size,
-                    list.flatten().map { it.model }
+                    list.flatten().mapNotNull { it.model as? PythonModel }
                 )
             }
         }
 
         fun genDict(dictAnnotation: DictAnnotation, index: Int): Sequence<FuzzedParameter> {
-            val genericKeyType = PythonClassId(dictAnnotation.keyAnnotation)
-            val genericValueType = PythonClassId(dictAnnotation.valueAnnotation)
-            return fuzzGeneric(listOf(genericKeyType, genericValueType), index) { list ->
+            return fuzzGeneric(listOf(dictAnnotation.keyAnnotation, dictAnnotation.valueAnnotation), index) { list ->
+                    if (list.any { it.any { value -> value.model !is PythonModel } })
+                        return@fuzzGeneric null
                     PythonDictModel(
                         list.size,
                         list.associate { pair ->
-                            pair[0].model to pair[1].model
+                            (pair[0].model as PythonModel) to (pair[1].model as PythonModel)
                         }
                     )
                 }
         }
 
         fun genSet(setAnnotation: SetAnnotation, index: Int): Sequence<FuzzedParameter> {
-            val genericType = PythonClassId(setAnnotation.elemAnnotation)
-            return fuzzGeneric(listOf(genericType), index) { list ->
+            return fuzzGeneric(listOf(setAnnotation.elemAnnotation), index) { list ->
                     PythonSetModel(
                         list.size,
-                        list.flatten().map { it.model }.toSet(),
+                        list.flatten().mapNotNull { it.model as? PythonModel }.toSet(),
                     )
                 }
         }
 
         description.parametersMap.forEach { (classId, parameterIndices) ->
-            val annotation = classId.name
-            val parsedAnnotation = parseGeneric(annotation) ?: return@forEach
+            val parsedAnnotation = parseGeneric(classId as NormalizedPythonAnnotation) ?: return@forEach
             parameterIndices.forEach { index ->
                 val generatedModels = when (parsedAnnotation) {
                     is ListAnnotation -> genList(parsedAnnotation, index)

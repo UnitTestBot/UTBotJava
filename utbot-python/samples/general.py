@@ -18,7 +18,7 @@ def f(x, y, z, a, b, c, d, e, g, h):
     if y % 2 == 0:
         x = 1 + y
     z += "aba"
-    a += [1] + list("str") + a
+    a += [1] + list("str")
     b = (1, [1, 2])
     A = c < "abc"
     B = "abc" == d
@@ -45,19 +45,6 @@ def h(x):
     if x < 123:
         return 1
     return 2
-
-
-class A:
-    def __init__(self, val: int):
-        self.description = val
-
-
-class B:
-    def __init__(self, val: complex):
-        self.description = val
-
-    def sqrt(self):
-        return self.description ** 0.5
 
 
 def a(x):

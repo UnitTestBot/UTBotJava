@@ -3,8 +3,8 @@ package org.utbot.python.code
 import com.beust.klaxon.JsonArray
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.PythonTree
-import javax.json.JsonString
 
 object KlaxonPythonTreeParser {
     fun parseJsonToPythonTree(jsonString: String): PythonTree.PythonTreeNode {
@@ -28,7 +28,7 @@ object KlaxonPythonTreeParser {
             if (type == "builtins.complex") {
                 repr = "complex('$repr')"
             }
-            PythonTree.PrimitiveNode(type, repr)
+            PythonTree.PrimitiveNode(PythonClassId(type), repr)
         } else {
             when (type) {
                 "builtins.list" -> parsePythonList(json.array("value")!!)
@@ -42,7 +42,7 @@ object KlaxonPythonTreeParser {
 
     private fun parseReduce(type: String, value: JsonObject): PythonTree.PythonTreeNode {
         return PythonTree.ReduceNode(
-            type,
+            PythonClassId(type),
             value.string("constructor")!!,
             parsePythonList(value.array("args")!!).items,
             parsePythonDict(value.array("state")!!).items.map {
@@ -69,7 +69,7 @@ object KlaxonPythonTreeParser {
         return PythonTree.DictNode(items.associate {
             val key = it[0]
             val value = it[1] as JsonObject
-            (if (key is String) PythonTree.PrimitiveNode("builtins.str", key) else parseToPythonTree(key as JsonObject)) to parseToPythonTree(value)
+            (if (key is String) PythonTree.PrimitiveNode(PythonClassId("builtins.str"), key) else parseToPythonTree(key as JsonObject)) to parseToPythonTree(value)
         })
     }
 }

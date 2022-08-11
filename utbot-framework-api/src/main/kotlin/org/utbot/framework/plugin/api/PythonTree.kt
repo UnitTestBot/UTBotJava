@@ -2,32 +2,32 @@ package org.utbot.framework.plugin.api
 
 object PythonTree {
     open class PythonTreeNode(
-        val type: String,
+        val type: PythonClassId,
     )
 
     class PrimitiveNode(
-        type: String,
+        type: PythonClassId,
         val repr: String,
     ): PythonTreeNode(type)
 
     class ListNode(
         val items: List<PythonTreeNode>
-    ): PythonTreeNode("builtins.list")
+    ): PythonTreeNode(PythonClassId("builtins.list"))
 
     class DictNode(
         val items: Map<PythonTreeNode, PythonTreeNode>
-    ): PythonTreeNode("builtins.dict")
+    ): PythonTreeNode(PythonClassId("builtins.dict"))
 
     class SetNode(
         val items: Set<PythonTreeNode>
-    ): PythonTreeNode("builtins.set")
+    ): PythonTreeNode(PythonClassId("builtins.set"))
 
     class TupleNode(
         val items: List<PythonTreeNode>
-    ): PythonTreeNode("builtins.tuple")
+    ): PythonTreeNode(PythonClassId("builtins.tuple"))
 
     class ReduceNode(
-        type: String,
+        type: PythonClassId,
         val constructor: String,
         val args: List<PythonTreeNode>,
         val state: Map<String, PythonTreeNode>,

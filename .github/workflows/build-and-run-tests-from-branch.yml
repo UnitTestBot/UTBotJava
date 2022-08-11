@@ -103,9 +103,9 @@ jobs:
 #             path: utbot-framework/build/reports/tests/test/*
               
   utbot-framework-collections:
-#    runs-on: ubuntu-latest
-    runs-on: [self-hosted, blue]
-    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    runs-on: ubuntu-latest
+#    runs-on: [self-hosted, blue]
+#    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
       - name: Show current GITHUB_RUN_ID and HOSTNAME
         run: |

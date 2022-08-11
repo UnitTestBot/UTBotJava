@@ -1,18 +1,19 @@
 package org.utbot.fuzzer
 
-import org.utbot.fuzzer.providers.ConstantsModelProvider
-import org.utbot.fuzzer.providers.ObjectModelProvider
-import org.utbot.fuzzer.providers.PrimitivesModelProvider
-import org.utbot.fuzzer.providers.StringConstantModelProvider
 import mu.KotlinLogging
+import org.utbot.fuzzer.mutators.NumberRandomMutator
+import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.ArrayModelProvider
 import org.utbot.fuzzer.providers.CharToStringModelProvider
 import org.utbot.fuzzer.providers.CollectionModelProvider
-import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
+import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.EnumModelProvider
+import org.utbot.fuzzer.providers.ObjectModelProvider
+import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
-import java.lang.IllegalArgumentException
-import java.util.IdentityHashMap
+import org.utbot.fuzzer.providers.PrimitivesModelProvider
+import org.utbot.fuzzer.providers.StringConstantModelProvider
+import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
@@ -148,3 +149,5 @@ fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Model
         PrimitiveWrapperModelProvider,
     )
 }
+
+fun defaultMutators(): List<ModelMutator> = listOf(StringRandomMutator(50), NumberRandomMutator(50))

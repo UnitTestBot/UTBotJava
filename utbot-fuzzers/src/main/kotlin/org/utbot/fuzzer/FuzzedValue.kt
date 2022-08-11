@@ -8,7 +8,8 @@ import org.utbot.framework.plugin.api.UtModel
  */
 class FuzzedValue(
     val model: UtModel,
-    val createdBy: ModelProvider? = null
+    val createdBy: ModelProvider? = null,
+    val mutatedBy: List<ModelMutator> = emptyList(),
 ) {
 
     /**

@@ -83,6 +83,7 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FallbackModelProvider
+import org.utbot.fuzzer.FrequencyRandom
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
@@ -91,6 +92,7 @@ import org.utbot.fuzzer.Trie
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.findNextMutatedValue
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
@@ -421,8 +423,9 @@ class UtBotSymbolicEngine(
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
-        val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
-        var attempts = UtSettings.fuzzingMaxAttempts
+        val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
+        var attempts = 0
+        val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
@@ -436,7 +439,34 @@ class UtBotSymbolicEngine(
                 limitValuesCreatedByFieldAccessors = 500
             })
         }
-        fuzzedValues.forEach { values ->
+
+        val frequencyRandom = FrequencyRandom(Random(221))
+        val factor = maxOf(0, UtSettings.fuzzingRandomMutationsFactor)
+        val fuzzedValueSequence: Sequence<List<FuzzedValue>> = sequence {
+            val fvi = fuzzedValues.iterator()
+            while (fvi.hasNext()) {
+                yield(fvi.next())
+                // if we stuck switch to "next + several mutations" mode
+                if ((attempts + 1) % (factor / 100) == 0 && coveredInstructionValues.isNotEmpty()) {
+                    for (i in 0 until (factor / 100)) {
+                        findNextMutatedValue(frequencyRandom, coveredInstructionValues, methodUnderTestDescription)?.let { yield(it) }
+                    }
+                }
+            }
+            // try mutations if fuzzer tried all combinations
+            var tryLocal = factor
+            while (tryLocal-- >= 0) {
+                val value = findNextMutatedValue(frequencyRandom, coveredInstructionValues, methodUnderTestDescription)
+                if (value != null) {
+                    val before = coveredInstructionValues.size
+                    yield(value)
+                    if (coveredInstructionValues.size != before) {
+                        tryLocal = factor
+                    }
+                }
+            }
+        }
+        fuzzedValueSequence.forEach { values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 return@flow
@@ -473,14 +503,19 @@ class UtBotSymbolicEngine(
 
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             if (coveredInstructions.isNotEmpty()) {
-                val count = coveredInstructionTracker.add(coveredInstructions)
-                if (count.count > 1) {
-                    if (--attempts < 0) {
+                val coverageKey = coveredInstructionTracker.add(coveredInstructions)
+                if (coverageKey.count > 1) {
+                    if (++attempts >= attemptsLimit) {
                         return@flow
+                    }
+                    // Update the seeded values sometimes
+                    // This is necessary because some values cannot do a good values in mutation in any case
+                    if (frequencyRandom.random.nextInt(1, 101) <= 50) {
+                        coveredInstructionValues[coverageKey] = values
                     }
                     return@forEach
                 }
-                coveredInstructionValues[count] = values
+                coveredInstructionValues[coverageKey] = values
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
             }

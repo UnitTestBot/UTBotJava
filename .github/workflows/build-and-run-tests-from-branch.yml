@@ -8,13 +8,13 @@ env:
   GRADLE_RUN_FRAMEWORK_TESTS_CMD: "gradle --no-daemon :utbot-framework:test --tests"
   KOTLIN_C_EXEC_STRATEGY: "-Dkotlin.compiler.execution.strategy=out-of-process"
   # {/<LABEL_NAME>/<LABEL_VALUE>}
-  PROM_ADDITIONAL_LABELS: /service/github
-  CADVISOR_VERSION: v0.36.0
-  SLEEP_TIME_SECONDS: 15
-  JMX_EXPORTER_PORT: 12345
-  JMX_EXPORTER_CONFIG: /tmp/jmx-exporter.yml
-  JMX_EXPORTER_JAR: /tmp/jmx-exporter.jar
-  JMX_EXPORTER_URL: https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.0/jmx_prometheus_javaagent-0.17.0.jar
+#  PROM_ADDITIONAL_LABELS: /service/github
+#  CADVISOR_VERSION: v0.36.0
+#  SLEEP_TIME_SECONDS: 15
+#  JMX_EXPORTER_PORT: 12345
+#  JMX_EXPORTER_CONFIG: /tmp/jmx-exporter.yml
+#  JMX_EXPORTER_JAR: /tmp/jmx-exporter.jar
+#  JMX_EXPORTER_URL: https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.17.0/jmx_prometheus_javaagent-0.17.0.jar
 
 jobs:
 #   utbot-analytics:
@@ -110,25 +110,25 @@ jobs:
       - name: Show current GITHUB_RUN_ID and HOSTNAME
         run: |
           echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
-      - name: Prerequisites
-        run: |
-          apt-get update
-          apt-get install -y -q --no-install-recommends \
-            ca-certificates \
-            curl \
-            gnupg \
-            lsb-release
-          mkdir -p /etc/apt/keyrings
-          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-          echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-            $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-          apt-get update
-          apt-get -y -q install --no-install-recommends \
-            docker-ce \
-            docker-ce-cli \
-            containerd.io \
-            docker-compose-plugin
+#      - name: Prerequisites
+#        run: |
+#          apt-get update
+#          apt-get install -y -q --no-install-recommends \
+#            ca-certificates \
+#            curl \
+#            gnupg \
+#            lsb-release
+#          mkdir -p /etc/apt/keyrings
+#          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+#          echo \
+#            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+#            $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+#          apt-get update
+#          apt-get -y -q install --no-install-recommends \
+#            docker-ce \
+#            docker-ce-cli \
+#            containerd.io \
+#            docker-compose-plugin
 #      - name: Run service containers on the background
 #        run: |
 #          printf "process_names:\n- comm:\n  - java\n" > /tmp/config.yml
@@ -180,14 +180,21 @@ jobs:
 #          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep ${SLEEP_TIME_SECONDS}; done &
 #          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
 #            --tests "org.utbot.examples.collections.*"
+#      - name: Build and run test
+#        run: |
+#          curl ${JMX_EXPORTER_URL} -o ${JMX_EXPORTER_JAR}
+#          chmod +x ${JMX_EXPORTER_JAR}
+#          printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
+#          while true; do curl localhost:${JMX_EXPORTER_PORT} 2>/dev/null | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep ${SLEEP_TIME_SECONDS}; done &
+#          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process \
+#          gradle --no-daemon :utbot-framework:test --tests "org.utbot.examples.collections.*"
       - name: Build and run test
         run: |
-          curl ${JMX_EXPORTER_URL} -o ${JMX_EXPORTER_JAR}
-          chmod +x ${JMX_EXPORTER_JAR}
-          printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
-          while true; do curl localhost:${JMX_EXPORTER_PORT} 2>/dev/null | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep ${SLEEP_TIME_SECONDS}; done &
+          chmod +x ./scripts/monitoring.sh
+          ./scripts/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process \
           gradle --no-daemon :utbot-framework:test --tests "org.utbot.examples.collections.*"
+
 
       - name: Upload utbot-framework logs
         if: ${{ always() }}

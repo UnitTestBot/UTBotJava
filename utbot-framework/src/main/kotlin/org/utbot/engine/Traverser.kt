@@ -1791,8 +1791,7 @@ class Traverser(
     private fun isStaticFieldMeaningful(field: SootField) =
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields from library classes
-            !javaPackagesToProcessConcretely.any { field.declaringClass.packageName.startsWith(it) } &&
-            !sunPackagesToProcessConcretely.any { field.declaringClass.packageName.startsWith(it) }
+            !field.declaringClass.isFromTrustedLibrary()
 
     /**
      * Locates object represents static fields of particular class.

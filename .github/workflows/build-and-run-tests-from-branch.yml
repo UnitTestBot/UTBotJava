@@ -10,6 +10,7 @@ env:
   # {/<LABEL_NAME>/<LABEL_VALUE>}
   PROM_ADDITIONAL_LABELS: /service/github
   CADVISOR_VERSION: v0.36.0
+  SLEEP_TIME_SECONDS: 15
   JMX_EXPORTER_PORT: 12345
   JMX_EXPORTER_CONFIG: /tmp/jmx-exporter.yml
   JMX_EXPORTER_JAR: /tmp/jmx-exporter.jar
@@ -143,7 +144,7 @@ jobs:
 #                        --net="host" \
 #                        --entrypoint=/bin/sh \
 #                            curlimages/curl:7.84.0 \
-#                            "-c" "while true; do curl localhost:9256/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+#                            "-c" "while true; do curl localhost:9256/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep ${SLEEP_TIME_SECONDS}; done"
 #          docker run -d --name cadvisor \
 #                        --volume=/:/rootfs:ro \
 #                        --volume=/var/run:/var/run:ro \
@@ -158,7 +159,7 @@ jobs:
 #                        --net="host" \
 #                        --entrypoint=/bin/sh \
 #                            curlimages/curl:7.84.0 \
-#                            "-c" "while true; do curl localhost:9280/metrics | grep -v 'id=\"\/\(system\|user\).slice' | sed -r 's/(^.*} .*) ([0-9]*)/\1/' | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+#                            "-c" "while true; do curl localhost:9280/metrics | grep -v 'id=\"\/\(system\|user\).slice' | sed -r 's/(^.*} .*) ([0-9]*)/\1/' | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep ${SLEEP_TIME_SECONDS}; done"
 #          docker run -d --name node_exporter \
 #                        --net="host" \
 #                        --pid="host" \
@@ -169,14 +170,14 @@ jobs:
 #                        --net="host" \
 #                        --entrypoint=/bin/sh \
 #                            curlimages/curl:7.84.0 \
-#                            "-c" "while true; do curl localhost:9100/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep 15; done"
+#                            "-c" "while true; do curl localhost:9100/metrics | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} ; sleep ${SLEEP_TIME_SECONDS}; done"
 
       - uses: actions/checkout@v2
 
 #      - name: Build and run test
 #        run: |
 #          chmod +x scripts/ps_parser.sh
-#          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
+#          while true; do ./scripts/ps_parser.sh > /tmp/ps ; cat /tmp/ps | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep ${SLEEP_TIME_SECONDS}; done &
 #          GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process gradle --no-daemon :utbot-framework:test \
 #            --tests "org.utbot.examples.collections.*"
       - name: Build and run test
@@ -184,7 +185,7 @@ jobs:
           curl ${JMX_EXPORTER_URL} -o ${JMX_EXPORTER_JAR}
           chmod +x ${JMX_EXPORTER_JAR}
           printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
-          while true; do curl localhost:${JMX_EXPORTER_PORT} | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep 15; done &
+          while true; do curl localhost:${JMX_EXPORTER_PORT} 2>/dev/null | curl -u ${{ secrets.PUSHGATEWAY_USER }}:${{ secrets.PUSHGATEWAY_PASSWORD }} --data-binary @- https://${{ secrets.PUSHGATEWAY_HOSTNAME }}/pushgateway/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${{ env.PROM_ADDITIONAL_LABELS }} 2>/dev/null ; sleep ${SLEEP_TIME_SECONDS}; done &
           GRADLE_OPTS=-Dkotlin.compiler.execution.strategy=out-of-process \
           gradle --no-daemon :utbot-framework:test --tests "org.utbot.examples.collections.*"
 

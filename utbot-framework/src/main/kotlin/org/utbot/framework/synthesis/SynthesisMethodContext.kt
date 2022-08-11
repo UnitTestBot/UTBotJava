@@ -96,7 +96,7 @@ class SynthesisMethodContext(
         val result = with(unit.method) {
             when {
                 this is ConstructorId -> synthesizeConstructorInvoke(this, parameterLocals)
-                this is MethodId && isStatic -> TODO()
+                this is MethodId && isStatic -> synthesizeStaticInvoke(this, parameterLocals)
                 this is MethodId -> synthesizeVirtualInvoke(this, parameterLocals)
                 else -> TODO()
             }
@@ -173,6 +173,16 @@ class SynthesisMethodContext(
         stmts += invokeStmt
 
         return local
+    }
+    private fun synthesizeStaticInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {
+        val sootMethod = method.classId.toSoot().methods.first { it.pureJavaSignature == method.signature }
+        val invokeExpr = sootMethod.toStaticInvokeExpr(parameterLocals)
+        val invokeResult = JimpleLocal(nextName(), sootMethod.returnType)
+
+
+        stmts += assignStmt(invokeResult, invokeExpr)
+
+        return invokeResult
     }
 
     private fun synthesizeConstructorInvoke(

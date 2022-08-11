@@ -20,19 +20,20 @@ class Synthesizer(
         private var successes = 0
 
 
-        fun stats(): String = buildString {
-            appendLine("Total attempts: $attempts")
-            appendLine("Successful attempts $successes")
-            appendLine("Success rate: ${String.format("%.2f", successes.toDouble() / attempts)}")
+        private fun stats(): String = buildString {
+            appendLine("Synthesizer stats:")
+            appendLine("Total attempts - $attempts")
+            appendLine("Successful attempts - $successes")
+            appendLine("Success rate - ${String.format("%.2f", successes.toDouble() / attempts)}")
         }
 
-        fun success() {
+        private fun success() {
             ++attempts
             ++successes
             logger.debug { stats() }
         }
 
-        fun failure() {
+        private fun failure() {
             ++attempts
             logger.debug { stats() }
         }

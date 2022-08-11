@@ -7,7 +7,7 @@ import org.utbot.engine.Le
 import org.utbot.engine.Lt
 import org.utbot.engine.Ne
 import org.utbot.engine.pc.constraint.UtDefaultExpressionVisitor
-import org.utbot.engine.pc.constraint.UtVarBuilder
+import org.utbot.engine.pc.constraint.UtVarContext
 import org.utbot.engine.z3.boolValue
 import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
@@ -16,14 +16,15 @@ import org.utbot.framework.plugin.api.util.objectClassId
 class NotSupportedByConstraintResolverException : Exception()
 
 class UtConstraintBuilder(
-    val varBuilder: UtVarBuilder
+    val variableContext: UtVarContext
 ) : UtDefaultExpressionVisitor<UtConstraint?>({ throw NotSupportedByConstraintResolverException() }) {
-    val holder get() = varBuilder.holder
+    val holder get() = variableContext.holder
 
     private fun shouldSkip(expr: UtExpression): Boolean {
         if ("addrToType" in expr.toString()) return true
         if ("addrToNumDimensions" in expr.toString()) return true
         if ("isMock" in expr.toString()) return true
+        if ("arraySetRange" in expr.toString()) return true
         return false
     }
 
@@ -50,8 +51,8 @@ class UtConstraintBuilder(
     override fun visit(expr: UtEqExpression): UtConstraint? = applyConstraint(expr) {
         if (shouldSkip(expr)) return@applyConstraint null
 
-        val lhv = expr.left.accept(varBuilder)
-        val rhv = expr.right.accept(varBuilder)
+        val lhv = expr.left.accept(variableContext)
+        val rhv = expr.right.accept(variableContext)
         when {
             lhv.isPrimitive && rhv.isPrimitive -> UtEqConstraint(lhv, rhv)
             else -> UtRefEqConstraint(lhv, rhv)
@@ -59,17 +60,17 @@ class UtConstraintBuilder(
     }
 
     override fun visit(expr: UtBoolConst): UtConstraint = applyConstraint(expr) {
-        UtBoolConstraint(expr.accept(varBuilder))
+        UtBoolConstraint(expr.accept(variableContext))
     }!!
 
     override fun visit(expr: NotBoolExpression): UtConstraint = applyConstraint(expr) {
         UtBoolConstraint(
-            UtConstraintNot(expr.expr.accept(varBuilder))
+            UtConstraintNot(expr.expr.accept(variableContext))
         )
     }!!
 
     override fun visit(expr: UtOrBoolExpression): UtConstraint = applyConstraint(expr) {
-        val vars = expr.exprs.map { it.accept(varBuilder) }
+        val vars = expr.exprs.map { it.accept(variableContext) }
         UtBoolConstraint(
             when {
                 vars.isEmpty() -> UtConstraintBoolConstant(true)
@@ -80,7 +81,7 @@ class UtConstraintBuilder(
     }!!
 
     override fun visit(expr: UtAndBoolExpression): UtConstraint = applyConstraint(expr) {
-        val vars = expr.exprs.map { it.accept(varBuilder) }
+        val vars = expr.exprs.map { it.accept(variableContext) }
         UtBoolConstraint(
             when {
                 vars.isEmpty() -> UtConstraintBoolConstant(true)
@@ -92,8 +93,8 @@ class UtConstraintBuilder(
 
     override fun visit(expr: UtBoolOpExpression): UtConstraint? = applyConstraint(expr) {
         if (shouldSkip(expr)) return@applyConstraint null
-        val lhv = expr.left.expr.accept(varBuilder)
-        val rhv = expr.right.expr.accept(varBuilder)
+        val lhv = expr.left.expr.accept(variableContext)
+        val rhv = expr.right.expr.accept(variableContext)
         when (expr.operator) {
             Le -> {
                 if (!lhv.isPrimitive && !rhv.isPrimitive) return@applyConstraint null
@@ -137,7 +138,7 @@ class UtConstraintBuilder(
 
     override fun visit(expr: UtIsExpression): UtConstraint? {
         if (shouldSkip(expr)) return null
-        val operand = expr.addr.accept(varBuilder)
+        val operand = expr.addr.accept(variableContext)
         return UtRefTypeConstraint(operand, expr.type.classId)
     }
 
@@ -147,8 +148,8 @@ class UtConstraintBuilder(
 
     override fun visit(expr: UtIsGenericTypeExpression): UtConstraint = applyConstraint(expr) {
         UtRefGenericTypeConstraint(
-            expr.addr.accept(varBuilder),
-            expr.baseAddr.accept(varBuilder),
+            expr.addr.accept(variableContext),
+            expr.baseAddr.accept(variableContext),
             expr.parameterTypeIndex
         )
     }!!
@@ -156,8 +157,8 @@ class UtConstraintBuilder(
     override fun visit(expr: UtEqGenericTypeParametersExpression): UtConstraint? = applyConstraint(expr) {
         if (shouldSkip(expr)) return@applyConstraint null
 
-        val lhv = expr.firstAddr.accept(varBuilder)
-        val rhv = expr.secondAddr.accept(varBuilder)
+        val lhv = expr.firstAddr.accept(variableContext)
+        val rhv = expr.secondAddr.accept(variableContext)
         UtRefGenericEqConstraint(lhv, rhv, expr.indexMapping)
     }
 

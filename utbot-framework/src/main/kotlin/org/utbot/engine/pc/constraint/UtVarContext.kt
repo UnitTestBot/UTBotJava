@@ -4,6 +4,7 @@ import org.utbot.engine.*
 import org.utbot.engine.pc.*
 import org.utbot.engine.z3.boolValue
 import org.utbot.engine.z3.intValue
+import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.UtConstraintParameter
 import org.utbot.framework.plugin.api.util.*
@@ -13,18 +14,35 @@ import soot.RefType
 import soot.Type
 
 
-class UtVarBuilder(
+class UtVarContext(
     val holder: UtSolverStatusSAT,
     val typeRegistry: TypeRegistry,
     val typeResolver: TypeResolver,
 ) : UtDefaultExpressionVisitor<UtConstraintVariable>({ throw NotSupportedByConstraintResolverException() }) {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
-    val backMapping = mutableMapOf<UtConstraintVariable, UtExpression>()
+    private val var2Expression = mutableMapOf<UtConstraintVariable, UtExpression>()
 
-    operator fun get(variable: UtConstraintVariable) = backMapping[variable]
+    fun evalOrNull(variable: UtConstraintVariable) = when {
+        hasExpr(variable) -> holder.eval(var2Expression[variable]!!).value()
+        else -> null
+    }
+
+    operator fun get(variable: UtConstraintVariable) = var2Expression[variable]
         ?: throw IllegalArgumentException()
 
-    fun evalType(addr: UtAddrExpression) = holder.findTypeOrNull(addr)
+    fun hasExpr(variable: UtConstraintVariable) = variable in var2Expression
+
+    fun bind(base: UtConstraintVariable, binder: UtConstraintVariable) {
+        if (!hasExpr(binder))
+            throw IllegalArgumentException()
+        var2Expression[base] = var2Expression[binder]!!
+    }
+
+    fun evalTypeOrNull(variable: UtConstraintVariable): Type? {
+        val addr = var2Expression[variable] as? UtAddrExpression ?: return null
+        return holder.findTypeOrNull(addr)
+    }
+
 
     override fun visit(expr: UtArraySelectExpression): UtConstraintVariable {
         val res = when (val base = expr.arrayExpression.accept(this)) {
@@ -62,7 +80,7 @@ class UtVarBuilder(
             else -> error("Unexpected: $base")
         }
         if (res.isPrimitive) {
-            backMapping[res] = expr
+            var2Expression[res] = expr
         }
         return res
     }
@@ -85,7 +103,7 @@ class UtVarBuilder(
 
     override fun visit(expr: UtMkArrayExpression): UtConstraintVariable {
         return UtConstraintParameter(expr.name, objectClassId).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
@@ -100,7 +118,7 @@ class UtVarBuilder(
 
     override fun visit(expr: UtBvLiteral): UtConstraintVariable {
         return UtConstraintNumericConstant(expr.value).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
@@ -115,7 +133,7 @@ class UtVarBuilder(
                 else -> error("Unexpected")
             }
         ).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
@@ -138,12 +156,12 @@ class UtVarBuilder(
 
             else -> expr.internal.accept(this)
         }.also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
     override fun visit(expr: UtFpLiteral): UtConstraintVariable = UtConstraintNumericConstant(expr.value).also {
-        backMapping[it] = expr
+        var2Expression[it] = expr
     }
 
     override fun visit(expr: UtFpConst): UtConstraintVariable =
@@ -154,7 +172,7 @@ class UtVarBuilder(
                 else -> error("Unexpected")
             }
         ).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
 
     override fun visit(expr: UtOpExpression): UtConstraintVariable {
@@ -176,31 +194,31 @@ class UtVarBuilder(
             Ushr -> UtConstraintUshr(lhv, rhv)
             Xor -> UtConstraintXor(lhv, rhv)
         }.also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
     override fun visit(expr: UtTrue): UtConstraintVariable {
         return UtConstraintBoolConstant(true).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
     override fun visit(expr: UtFalse): UtConstraintVariable {
         return UtConstraintBoolConstant(true).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
     override fun visit(expr: UtBoolConst): UtConstraintVariable {
         return UtConstraintParameter(expr.name, booleanClassId).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
     override fun visit(expr: NotBoolExpression): UtConstraintVariable {
         return UtConstraintNot(expr.expr.accept(this)).also {
-            backMapping[it] = expr
+            var2Expression[it] = expr
         }
     }
 
@@ -208,7 +226,7 @@ class UtVarBuilder(
         return UtConstraintNeg(
             expr.variable.expr.accept(this)
         ).also {
-            backMapping[it] = expr.variable.expr
+            var2Expression[it] = expr.variable.expr
         }
     }
 
@@ -217,7 +235,7 @@ class UtVarBuilder(
             expr.variable.expr.accept(this),
             expr.type.classId
         ).also {
-            backMapping[it] = expr.variable.expr
+            var2Expression[it] = expr.variable.expr
         }
     }
 

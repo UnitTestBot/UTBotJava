@@ -3,8 +3,7 @@ package org.utbot.engine.constraints
 import org.utbot.engine.*
 import org.utbot.engine.NULL_ADDR
 import org.utbot.engine.pc.*
-import org.utbot.engine.pc.constraint.UtVarBuilder
-import org.utbot.engine.z3.value
+import org.utbot.engine.pc.constraint.UtVarContext
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.constraint.UtConstraintTransformer
 import org.utbot.framework.plugin.api.constraint.UtConstraintVariableCollector
@@ -19,13 +18,16 @@ import org.utbot.framework.plugin.api.util.objectClassId
 class ConstraintResolver(
     private val memory: Memory,
     val holder: UtSolverStatusSAT,
-    val typeRegistry: TypeRegistry,
-    val typeResolver: TypeResolver,
+    typeRegistry: TypeRegistry,
+    typeResolver: TypeResolver,
     val useSoftConstraints: Boolean = false
 ) {
+    companion object {
+        private const val MAX_ARRAY_LENGTH = 10
+    }
 
     lateinit var state: MemoryState
-    lateinit var varBuilder: UtVarBuilder
+    private val variableContext: UtVarContext = UtVarContext(holder, typeRegistry, typeResolver)
     private val resolvedConstraints = mutableMapOf<Address, UtModel>()
 
     /**
@@ -65,7 +67,6 @@ class ConstraintResolver(
     }
 
     internal fun resolveModels(parameters: List<SymbolicValue>): ConstrainedExecution {
-        varBuilder = UtVarBuilder(holder, typeRegistry, typeResolver)
         val allAddresses = UtExprCollector { it is UtAddrExpression }.let {
             holder.constraints.hard.forEach { constraint ->
                 constraint.accept(it)
@@ -140,7 +141,7 @@ class ConstraintResolver(
             }
             result
         }.mapNotNull {
-            it.accept(UtConstraintBuilder(varBuilder))
+            it.accept(UtConstraintBuilder(variableContext))
         }.toSet()
 
     private fun collectAtoms(value: SymbolicValue, addrs: Map<Address, Set<UtExpression>>): Set<UtConstraint> =
@@ -191,7 +192,7 @@ class ConstraintResolver(
         }.map { it.accept(UtConstraintTransformer(aliases.associateWith { variable })) }.toSet()
 
         return UtPrimitiveConstraintModel(
-            variable, primitiveConstraints, concrete = holder.eval(variable.expr).value()
+            variable, primitiveConstraints, concrete = variableContext.evalOrNull(variable)
         )
     }
 
@@ -228,38 +229,43 @@ class ConstraintResolver(
         }.toSet()
         val lengthVariable = UtConstraintArrayLength(variable)
         val lengthModel = buildModel(lengthVariable, atoms, lengths, null)
-        val concreteLength = lengths.firstOrNull()?.let { holder.eval(it.expr).value() as Int } ?: 100
+        val concreteLength = lengths.firstOrNull()?.let { variableContext.evalOrNull(it) as Int } ?: MAX_ARRAY_LENGTH
 
         val indexMap = atoms
             .flatten { index ->
                 index is UtConstraintArrayAccess && index.instance in allAliases
             }
             .map { (it as UtConstraintArrayAccess).index }
-            .filter { (holder.eval(it.expr).value() as Int) < concreteLength }
-            .groupBy { holder.eval(varBuilder[it]).value() }
+            .filter { (variableContext.evalOrNull(it) as Int) < concreteLength }
+            .groupBy { variableContext.evalOrNull(it) }
             .mapValues { it.value.toSet() }
 
         var indexCount = 0
         val elements = indexMap.map { (key, indices) ->
+
+            // create new variable that represents current index
             val indexVariable = UtConstraintParameter(
                 "${variable}_index${indexCount++}", intClassId
             )
-
             val indexModel = UtPrimitiveConstraintModel(
                 indexVariable,
                 indices.map { UtEqConstraint(indexVariable, it) }.toSet(),
                 concrete = key
             )
 
-            val actualExpr = allAliases.flatMap { base ->
-                indices.map { UtConstraintArrayAccess(base, it, elementClassId) }
-            }.mapNotNull { varBuilder.backMapping[it] }.first()
+            // bind newly created variable with actual indices information
+            val indexWithExpr = allAliases
+                .flatMap { base ->
+                    indices.map { UtConstraintArrayAccess(base, it, elementClassId) }
+                }.first { variableContext.hasExpr(it) }
             val elementType = when {
                 elementClassId.isPrimitive -> elementClassId
-                else -> varBuilder.evalType(actualExpr as UtAddrExpression)!!.classId
+                else -> variableContext.evalTypeOrNull(indexWithExpr)?.classId ?: elementClassId
             }
             val arrayAccess = UtConstraintArrayAccess(variable, indexVariable, elementType)
-            varBuilder.backMapping[arrayAccess] = actualExpr
+            variableContext.bind(arrayAccess, indexWithExpr)
+
+            // compute aliases and build the actual model
             val indexAliases = indices.flatMap { idx ->
                 allAliases.map { UtConstraintArrayAccess(it, idx, elementClassId) }
             }.toSet()
@@ -365,8 +371,14 @@ class ConstraintResolver(
         )
     }
 
-    private val UtExpression.variable get() = accept(varBuilder)
-    private val UtConstraintVariable.expr get() = varBuilder[this]
+    private val UtExpression.variable get() = accept(variableContext)
+    private val UtConstraintVariable.expr get() = variableContext[this]
+
+    private val UtConstraintVariable.exprUnsafe
+        get() = when {
+            variableContext.hasExpr(this) -> variableContext[this]
+            else -> null
+        }
     private val UtConstraintVariable.addr get() = holder.concreteAddr(expr as UtAddrExpression)
 
     private fun UtModel.withConstraints(constraints: Set<UtConstraint>) = when (this) {

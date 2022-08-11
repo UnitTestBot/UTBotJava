@@ -355,7 +355,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintCast(expr: UtConstraintCast): SymbolicValue = with(expr) {
-        val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val oper = operand.accept(this@UtConstraintBuilder) as? PrimitiveValue
+            ?: error("a")
         PrimitiveValue(
             oper.type, UtCastExpression(oper, classId.toSootType())
         )

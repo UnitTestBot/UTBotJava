@@ -105,7 +105,7 @@ jobs:
   utbot-framework-collections:
     runs-on: ubuntu-latest
 #    runs-on: [self-hosted, blue]
-#    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
       - name: Show current GITHUB_RUN_ID and HOSTNAME
         run: |
@@ -191,7 +191,6 @@ jobs:
 
       - name: Run monitoring
         run: |
-          sudo apt-get update && sudo apt-get install -y -q lsof
           echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/monitoring.sh
           sudo ./scripts/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }} ${GITHUB_RUN_ID} ${HOSTNAME}

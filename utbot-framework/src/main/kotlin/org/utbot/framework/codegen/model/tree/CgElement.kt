@@ -122,6 +122,8 @@ data class CgTestClass(
     val superclass: ClassId?,
     val interfaces: List<ClassId>,
     val body: CgTestClassBody,
+    val isStatic: Boolean,
+    val isNested: Boolean
 ) : CgElement {
     val packageName = id.packageName
     val simpleName = id.simpleName
@@ -129,7 +131,8 @@ data class CgTestClass(
 
 data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
-    val utilsRegion: List<CgRegion<CgElement>>
+    val utilsRegion: List<CgRegion<CgElement>>,
+    val nestedClassRegions: List<CgRegion<CgTestClass>>
 ) : CgElement {
     val regions: List<CgRegion<*>>
         get() = testMethodRegions

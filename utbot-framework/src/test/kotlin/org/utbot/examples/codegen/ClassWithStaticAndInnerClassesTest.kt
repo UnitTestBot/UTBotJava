@@ -96,4 +96,20 @@ internal class ClassWithStaticAndInnerClassesTest : UtValueTestCaseChecker(testC
             coverage = DoNotCalculate
         )
     }
+
+    @Test
+    fun testPublicStaticClassWithPrivateField_DeepNestedStatic_g() {
+        checkAllCombinations(
+            ClassWithStaticAndInnerClasses.PublicStaticClassWithPrivateField.DeepNestedStatic::g,
+            generateWithNested = true
+        )
+    }
+
+    @Test
+    fun testPublicStaticClassWithPrivateField_DeepNested_h() {
+        checkAllCombinations(
+            ClassWithStaticAndInnerClasses.PublicStaticClassWithPrivateField.DeepNested::h,
+            generateWithNested = true
+        )
+    }
 }

@@ -164,13 +164,4 @@ class DeepEqualsTest : UtValueTestCaseChecker(
             coverage = DoNotCalculate
         )
     }
-
-    @Test
-    fun testClassWithNullableField() {
-        check(
-            ClassWithNullableField::returnCompoundWithNullableField,
-            eq(2),
-            coverage = DoNotCalculate
-        )
-    }
 }

@@ -19,7 +19,7 @@ PORT_CADVISOR=9280
 PORT_NODE_EXPORTER=9100
 
 # container metrics
-if lsof -Pi :${PORT_CADVISOR} -sTCP:LISTEN ; then
+if ! netstat -tulpn | grep -q ${PORT_CADVISOR} ; then
   docker run -d --name cadvisor \
                 --volume=/:/rootfs:ro \
                 --volume=/var/run:/var/run:ro \
@@ -38,7 +38,7 @@ if lsof -Pi :${PORT_CADVISOR} -sTCP:LISTEN ; then
 fi
 
 # base linux system metrics
-if lsof -Pi :${PORT_NODE_EXPORTER} -sTCP:LISTEN ; then
+if ! netstat -tulpn | grep -q ${PORT_NODE_EXPORTER} ; then
   docker run -d --name node_exporter \
                 --net="host" \
                 --pid="host" \

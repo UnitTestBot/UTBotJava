@@ -4,7 +4,6 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.util.PsiTreeUtil
-import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.testIntegration.createTest.CreateTestAction
 
 class JavaPsiElementHandler(
@@ -25,7 +24,5 @@ class JavaPsiElementHandler(
         CreateTestAction.isAvailableForElement(element)
 
     override fun containingClass(element: PsiElement): PsiClass? =
-        if (PsiTreeUtil.getParentOfType(element, PsiClass::class.java, false) != null) {
-            TestIntegrationUtils.findOuterClass(element)
-        } else null
+        PsiTreeUtil.getParentOfType(element, classClass, false)
 }

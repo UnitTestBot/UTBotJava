@@ -90,6 +90,7 @@ interface CgElement {
             is CgErrorWrapper -> visit(element)
             is CgEmptyLine -> visit(element)
             is CgPythonRepr -> visit(element)
+            is CgPythonIndex -> visit(element)
             is CgPythonAssertEquals -> visit(element)
             is CgPythonSysPath -> visit(element)
             else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
@@ -867,6 +868,20 @@ class CgPythonAssertEquals(
     val expression: CgEqualTo,
     val keyword: String = "assert",
 ) : CgStatement
+
+class CgPythonFunctionCall(
+    override val executableId: ExecutableId,
+    override val arguments: List<CgExpression>,
+    override val typeParameters: TypeParameters,
+) : CgExecutableCall() {
+    override val type: ClassId = executableId.classId
+}
+
+class CgPythonIndex(
+    override val type: PythonClassId,
+    val obj: CgVariable,
+    val index: CgExpression,
+): CgValue
 
 class CgPythonSysPath(
     val newPath: String

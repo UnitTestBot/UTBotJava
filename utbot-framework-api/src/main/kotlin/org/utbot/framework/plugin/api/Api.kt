@@ -269,6 +269,10 @@ class PythonDefaultModel(
 
 val pythonAnyClassId = PythonClassId("typing.Any")
 val pythonNoneClassId = PythonClassId("types.NoneType")
+val pythonIntClassId = PythonClassId("builtins.int")
+val pythonFloatClassId = PythonClassId("builtins.float")
+val pythonStrClassId = PythonClassId("builtins.str")
+val pythonBoolClassId = PythonClassId("builtins.bool")
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"

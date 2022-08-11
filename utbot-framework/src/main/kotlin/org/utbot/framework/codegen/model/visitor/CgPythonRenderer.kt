@@ -352,6 +352,13 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         print(element.content)
     }
 
+    override fun visit(element: CgPythonIndex) {
+        visit(element.obj)
+        print("[")
+        visit(element.index)
+        print("]")
+    }
+
     override fun visit(element: CgPythonAssertEquals) {
         print("${element.keyword} ")
         visit(element.expression)

@@ -615,6 +615,8 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgPythonRepr) {}
 
+    override fun visit(element: CgPythonIndex) {}
+
     override fun visit(element: CgPythonAssertEquals) {}
 
     override fun visit(element: CgPythonSysPath) {}

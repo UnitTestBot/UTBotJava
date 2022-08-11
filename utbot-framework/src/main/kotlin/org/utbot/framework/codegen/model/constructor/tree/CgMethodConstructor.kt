@@ -915,12 +915,50 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 else -> {
                     when (expected) {
-                        is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
+                        is CgPythonTree -> pythonDeepEquals(expected, actual)
                         is CgPythonRepr -> testFrameworkManager.assertEquals(expected, actual)
+                        is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
                         else -> generateDeepEqualsOrNullAssertion(expected, actual)
                     }
                 }
+            }
+        }
+    }
+
+    private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {
+        require(expected is CgPythonTree) {
+            "Expected value have to be CgPythonTree but `${expected::class}` found"
+        }
+        pythonDeepTreeEquals(expected.tree, actual)
+    }
+
+    private fun pythonDeepTreeEquals(expectedNode: PythonTree.PythonTreeNode, actual: CgVariable) {
+        with(testFrameworkManager) {
+            when (expectedNode) {
+                is PythonTree.PrimitiveNode -> {
+                    currentBlock += assertions[assertEquals](
+                        CgLiteral(expectedNode.type, expectedNode.repr),
+                        actual,
+                    ).toStatement()
+                }
+                is PythonTree.ListNode -> {
+                    expectedNode.items.forEachIndexed { index, pythonTreeNode ->
+                        val indexActual = newVar(pythonTreeNode.type) {
+                            CgPythonIndex(
+                                pythonTreeNode.type,
+                                actual,
+                                CgLiteral(pythonIntClassId, index)
+                            )
+                        }
+                        pythonDeepTreeEquals(pythonTreeNode, indexActual)
+                    }
+                }
+                is PythonTree.TupleNode -> {}
+                is PythonTree.DictNode -> {}
+                is PythonTree.SetNode -> {}
+                is PythonTree.ReduceNode -> {}
+                else -> {}
             }
         }
     }

@@ -4,6 +4,8 @@ import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_M
 import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
+import org.utbot.framework.codegen.model.tree.CgExpression
+import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox

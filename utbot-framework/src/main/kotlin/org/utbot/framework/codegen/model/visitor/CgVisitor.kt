@@ -169,6 +169,8 @@ interface CgVisitor<R> {
 
     fun visit(element: CgPythonRepr): R
 
+    fun visit(element: CgPythonIndex): R
+
     fun visit(element: CgPythonAssertEquals): R
 
     fun visit(element: CgPythonSysPath): R

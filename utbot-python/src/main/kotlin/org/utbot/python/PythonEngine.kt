@@ -55,13 +55,13 @@ class PythonEngine(
             } else {
 
                 // some types cannot be used as return types in tests (like socket or memoryview)
-                val outputType = PythonClassId(resultJSON.type)
+                val outputType = resultJSON.type
                 if (PythonTypesStorage.getTypeByName(outputType)?.returnRenderType == ReturnRenderType.NONE)
                     return@sequence
 
                 val resultAsModel = PythonTreeModel(
                     resultJSON.output,
-                    PythonClassId(resultJSON.type)
+                    resultJSON.type
                 )
                 val result = UtExecutionSuccess(resultAsModel)
 

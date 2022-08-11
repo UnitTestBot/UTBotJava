@@ -6,6 +6,8 @@ from itertools import zip_longest
 class _PythonTreeSerializer:
     @staticmethod
     def get_type(py_object):
+        if py_object is None:
+            return 'typing.NoneType'
         module = inspect.getmodule(type(py_object))
         return '{module}.{name}'.format(
             module='' if module is None else module.__name__,
@@ -14,6 +16,8 @@ class _PythonTreeSerializer:
 
     @staticmethod
     def get_type_name(type_):
+        if type_ is None:
+            return 'typing.NoneType'
         return '{module}.{name}'.format(
             module=type_.__module__,
             name=type_.__name__,
@@ -87,7 +91,7 @@ class _PythonTreeSerializer:
             strategy = "repr"
 
         return {
-            'type': type_,
-            'value': value,
-            'strategy': strategy,
+            "type": type_,
+            "value": value,
+            "strategy": strategy,
         }

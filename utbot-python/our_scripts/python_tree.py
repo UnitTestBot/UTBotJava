@@ -16,6 +16,8 @@ def get_type(py_object: typing.Any) -> str:
 
 
 def get_type_name(type_: type) -> str:
+    if type_ is None:
+        return 'typing.NoneType'
     return '{module}.{name}'.format(
         module=type_.__module__,
         name=type_.__name__,
@@ -90,8 +92,8 @@ def serialize(py_object: typing.Any) -> typing.Optional[JSON]:
 
 
 if __name__ == '__main__':
-    x = json.dumps(
-        serialize([1, 2, UserList([1, 2, 3]), Counter("flkafksdf"), OrderedDict({1: 2, 4: "jflas"})])
-    )
-    y = json.loads(x)
-    print(y)
+    import pprint
+    x = serialize([1, 101, UserList([1, 2, 3]), Counter("flkafksdf"), OrderedDict({1: 2, 4: "jflas"})])
+    json_x = json.dumps(x)
+    y = json.loads(json_x)
+    pprint.pprint(y)

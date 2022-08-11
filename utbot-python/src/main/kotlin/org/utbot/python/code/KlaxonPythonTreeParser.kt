@@ -4,6 +4,7 @@ import com.beust.klaxon.JsonArray
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
 import org.utbot.framework.plugin.api.PythonTree
+import javax.json.JsonString
 
 object KlaxonPythonTreeParser {
     fun parseJsonToPythonTree(jsonString: String): PythonTree.PythonTreeNode {
@@ -14,6 +15,7 @@ object KlaxonPythonTreeParser {
     private fun parseJsonString(jsonString: String): JsonObject {
         val parser: Parser = Parser.default()
         val stringBuilder: StringBuilder = StringBuilder(jsonString)
+        println()
         return parser.parse(stringBuilder) as JsonObject
     }
 
@@ -47,7 +49,7 @@ object KlaxonPythonTreeParser {
                 (it.key as PythonTree.PrimitiveNode).repr to it.value
             }.toMap(),
             parsePythonList(value.array("listitems")!!).items,
-            parsePythonDict(value.array("state")!!).items,
+            parsePythonDict(value.array("dictitems")!!).items,
         )
     }
 
@@ -63,11 +65,11 @@ object KlaxonPythonTreeParser {
         return PythonTree.TupleNode(items.map { parseToPythonTree(it) })
     }
 
-    private fun parsePythonDict(items: JsonArray<JsonArray<JsonObject>>): PythonTree.DictNode {
+    private fun parsePythonDict(items: JsonArray<JsonArray<Any>>): PythonTree.DictNode {
         return PythonTree.DictNode(items.associate {
             val key = it[0]
-            val value = it[1]
-            parseToPythonTree(key) to parseToPythonTree(value)
+            val value = it[1] as JsonObject
+            (if (key is String) PythonTree.PrimitiveNode("builtins.str", key) else parseToPythonTree(key as JsonObject)) to parseToPythonTree(value)
         })
     }
 }

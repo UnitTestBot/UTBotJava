@@ -274,7 +274,13 @@ sealed class PythonModel(classId: PythonClassId): UtModel(classId) {
 class PythonTreeModel(
     val tree: PythonTree.PythonTreeNode,
     classId: PythonClassId,
-): PythonModel(classId)
+): PythonModel(classId) {
+    override val allContainingClassIds: Set<PythonClassId>
+        get() {
+            val children = tree.children.map { PythonTreeModel(it, it.type) }
+            return super.allContainingClassIds + children.flatMap { it.allContainingClassIds }
+        }
+}
 
 class PythonDefaultModel(
     val repr: String,

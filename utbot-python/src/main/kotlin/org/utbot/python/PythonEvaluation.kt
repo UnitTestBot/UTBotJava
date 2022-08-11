@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.PythonTree
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.code.KlaxonPythonTreeParser
@@ -15,7 +16,7 @@ class EvaluationSuccess(val output: OutputData, val isException: Boolean): Evalu
     operator fun component2() = isException
 }
 
-data class OutputData(val output: PythonTree.PythonTreeNode, val type: String)
+data class OutputData(val output: PythonTree.PythonTreeNode, val type: PythonClassId)
 
 object PythonEvaluation {
     fun evaluate(

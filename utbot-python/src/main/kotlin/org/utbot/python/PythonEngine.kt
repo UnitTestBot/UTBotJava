@@ -55,7 +55,7 @@ class PythonEngine(
 
                 val resultAsModel = PythonTreeModel(
                     resultJSON.output,
-                    PythonClassId(resultJSON.type)
+                    resultJSON.type
                 )
                 val result = UtExecutionSuccess(resultAsModel)
 

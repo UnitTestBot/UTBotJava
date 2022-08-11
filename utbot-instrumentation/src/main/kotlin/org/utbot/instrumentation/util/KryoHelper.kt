@@ -59,7 +59,6 @@ class KryoHelper internal constructor(
 
     init {
         inputSignal.advise(lifetime) { byteArray ->
-            doLog {"received something"}
             doLog { "received chunk: size - ${byteArray.size}, hash - ${byteArray.contentHashCode()}" }
             queue.offer(byteArray)
         }

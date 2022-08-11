@@ -14,7 +14,7 @@ private val logger = KotlinLogging.logger("UtRdCoroutineScope")
 class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
     companion object {
         private val dispatcher = UtSingleThreadScheduler("UtRdCoroutineScope dispatcher") { logger.info(it) }.asCoroutineDispatcher
-        val current = UtRdCoroutineScope(Lifetime.Eternal) // TODO normal lifetime
+        val current = UtRdCoroutineScope(Lifetime.Eternal)
     }
 
     init {
@@ -39,7 +39,7 @@ class UtRdCoroutineScope(lifetime: Lifetime) : RdCoroutineScope(lifetime) {
         } catch (e: CancellationException) {
             // nothing
         } catch (e: Throwable) {
-            logger.error { e }
+            logger.error { "error during shutdown: $e" }
         }
     }
 

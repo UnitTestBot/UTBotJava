@@ -37,19 +37,10 @@ private const val fileWaitTimeoutMillis = 10L
  * facts
  * 1. process lifetime - helps indicate that child died
  * 2. operation lifetime - terminates either by process lifetime or coroutine scope cancellation, i.e. timeout
- * also removes orphaned continuation on termination
- * 3. child process operations are executed consequently and must always return exactly one answer command
- * 4. if process is dead - it always throws CancellationException on any operation
- * do not allow to obtain dead process, return newly restart instance it if terminated
- *
- * 3. optionally wait until child process starts client protocol and connects
- *
- * To achieve step 3:
- * 1. child process should start client ASAP, preferably should be the first thing done when child starts
- * 2. serverFactory must create protocol with provided child process lifetime
- * 3. server and client protocol should choose same port,
- *      preferable way is to find open port in advance, provide it to child process via process arguments and
- *      have serverFactory use it
+ *      also removes orphaned deferred on termination
+ * 3. if process is dead - it always throws CancellationException on any operation
+ * do not allow to obtain dead process, return newly restarted instance it if terminated
+ * 4. wait until child process starts client protocol, advised all callbacks and connects
  */
 class UtInstrumentationProcess private constructor(
     private val classLoader: ClassLoader?,
@@ -145,10 +136,7 @@ class UtInstrumentationProcess private constructor(
                 classLoader,
                 rdProcess
             ).init()
-//            Thread.sleep(300)
-            logger.trace {"hearthbeatAlive - ${proc.protocol.wire.heartbeatAlive.value}, connected - ${
-                proc.protocol.wire.connected.value
-            }"}
+
             proc.lifetime.onTermination {
                 logger.trace { "process is terminating" }
             }
@@ -194,10 +182,11 @@ class UtInstrumentationProcess private constructor(
 
     private suspend fun doCommand(cmd: Protocol.Command, awaitAnswer: Boolean = true): Protocol.Command? =
         lifetime.usingNested { operationLifetime ->
-            // because some models use utcontext in toString method
-            // utcontext is thread local, and so UtRdCoroutineScope does error
-            // and not to pollute memory on no trace
+            // some models use utcontext in toString method
+            // utcontext is thread local, and so because UtRdCoroutineScope has its own thread - error is thrown
+            // so we do toString here, and only if trace is available
             val cmdString: String? = if (logger.isTraceEnabled) cmd.toString() else null
+
             // if utbot cancels this job by timeout - await will throw cancellationException
             // also if process lifetime terminated - deferred from async call also cancelled and await throws cancellationException
             // if await succeeded - then process lifetime is ok and no timeout happened
@@ -243,10 +232,10 @@ class UtInstrumentationProcess private constructor(
                 ?.complete(Protocol.ExceptionInChildProcess(java.lang.IllegalStateException("id $id was skipped in execution")))
         }
 
-        // 1. if value is not null - we resume continuation with result
+        // 1. if value is not null - we resumed deferred with result
         // meaning request is completed successfully
         // 2. if value is null
-        // this happens because operation lifetime terminated before we resume continuation
+        // this happens because operation lifetime terminated before we resume deferred
         callbacks.remove(contId)?.complete(command)
     }
 

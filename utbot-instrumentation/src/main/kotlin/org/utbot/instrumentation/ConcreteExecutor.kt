@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.withLock
 import mu.KotlinLogging
 import org.utbot.common.catch
 import org.utbot.common.pid
+import org.utbot.common.trace
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.signature
@@ -20,6 +21,7 @@ import org.utbot.instrumentation.rd.UtInstrumentationProcess
 import org.utbot.instrumentation.rd.UtRdLoggerFactory
 import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.Protocol
+import org.utbot.rd.terminateOnException
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.KCallable
@@ -55,12 +57,6 @@ inline fun <TBlockResult, TIResult, reified T : Instrumentation<TIResult>> withI
 
 class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorPoolSize) : AutoCloseable {
     private val executors = ArrayDeque<ConcreteExecutor<*, *>>(maxCount)
-
-    init {
-        logger.info("settings logger factory")
-        Logger.set(Lifetime.Eternal, UtRdLoggerFactory)
-        logger.trace("logger factory set")
-    }
 
     /**
      * Tries to find the concrete executor for the supplied [instrumentation] and [pathsToDependencyClasses]. If it
@@ -110,6 +106,10 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     private val childProcessRunner: ChildProcessRunner = ChildProcessRunner()
 
     companion object {
+        init {
+            Logger.set(Lifetime.Eternal, UtRdLoggerFactory)
+        }
+
         private val sendTimestamp = AtomicLong()
         private val receiveTimeStamp = AtomicLong()
         val lastSendTimeMs: Long
@@ -145,19 +145,22 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     private val corMutex = Mutex()
     private var processInstance: UtInstrumentationProcess? = null
 
+    // this function is intended to be called under corMutex
     private suspend fun regenerate() {
         def.throwIfNotAlive()
         val proc = processInstance
 
-        if (proc == null || proc.lifetime.isNotAlive) {
-            processInstance = UtInstrumentationProcess(
-                def.createNested(),
-                childProcessRunner,
-                instrumentation,
-                pathsToUserClasses,
-                pathsToDependencyClasses,
-                classLoader
-            )
+        if (proc?.lifetime?.isAlive == false) {
+            def.createNested().terminateOnException {
+                processInstance = UtInstrumentationProcess(
+                    it,
+                    childProcessRunner,
+                    instrumentation,
+                    pathsToUserClasses,
+                    pathsToDependencyClasses,
+                    classLoader
+                )
+            }
         }
     }
 
@@ -211,6 +214,11 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             sendTimestamp.set(System.currentTimeMillis())
             return when (val result = execute(cmd)) {
                 is Protocol.ExceptionInChildProcess -> {
+                    // this command is either
+                    // 1. sent by child process meaning something is bad
+                    // 2. may be generated in UtInstrumentationProcess if it notices command reordering,
+                    // for example kryo in child process could not deserialize some message so it was not answered
+                    // see: ChildProcessError, ConcreteExecutionFailureException
                     if (lifetime.isAlive)
                         throw ChildProcessError(result.exception)
                     else
@@ -223,6 +231,9 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                 else -> result
             }
         } catch (e: CancellationException) {
+            // cancellation can be from 2 causes
+            // 1. process died, its lifetime terminated, so operation was cancelled
+            // this clearly indicates child process death -> ConcreteExecutionFailureException
             if (lifetime.isNotAlive)
                 throw ConcreteExecutionFailureException(
                     e,
@@ -233,22 +244,13 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                         emptyList()
                     }
                 )
+            // 2. it can be ordinary timeout from coroutine. then just rethrow
             else
                 throw e
         } finally {
             receiveTimeStamp.set(System.currentTimeMillis())
         }
-        // 1. мага четверг пятница
-        // 2. сделал окружение полностью из докера, удалив все из path и тд и тп
-        // 3. раз в 100 тестов
-        // 4. теперь CI не виснет и хотя бы выплевывает в меня логи
-        // теперь на разных тестах в разные моменты он не может найти UtConcreteExecutionData
-        // причем это похоже снова какое-то мигание, и я поисследовав все подряд
-        // 5. произошло что-то веселое на этих выходных - рд перестал подтягивать
-        // свои
     }
-
-//    Statics<>
 
     suspend fun <T : Protocol.Command> request(cmd: T) = withProcess {
         logger.info { "requesting on pid - ${process.pid}, alive - ${process.isAlive}"}
@@ -260,12 +262,10 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         runBlocking {
             corMutex.withLock {
                 if (alive) {
-                    try {
-                        logger.trace { "doing close" }
+                    logger.catch {
+                        logger.trace("doing close")
                         processInstance?.request(Protocol.StopProcessCommand())
                         processInstance = null
-                    } catch (e: Throwable) {
-                        logger.trace { "exception in close: $e" }
                     }
                 }
                 def.terminate()

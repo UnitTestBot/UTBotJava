@@ -36,13 +36,11 @@ class LifetimedProcessTest {
         return listOf(java.canonicalPath, "-ea", "-jar", jar, delayInSeconds.toString())
     }
 
-    private fun List<String>.startLifetimedProcessWithAssertion(block: suspend (LifetimedProcess) -> Unit) {
+    private fun List<String>.startLifetimedProcessWithAssertion(block: (LifetimedProcess) -> Unit) {
         val proc = startLifetimedProcess(this, parent)
 
         assertProcessAlive(proc)
-        runBlocking {
-            block(proc)
-        }
+        block(proc)
         assertProcessDead(proc)
     }
 
@@ -83,7 +81,9 @@ class LifetimedProcessTest {
         val cmds = processMockCmd(3)
 
         cmds.startLifetimedProcessWithAssertion {
-            delay(5000)
+            runBlocking {
+                delay(5000)
+            }
         }
         Assertions.assertTrue(parent.isAlive)
     }

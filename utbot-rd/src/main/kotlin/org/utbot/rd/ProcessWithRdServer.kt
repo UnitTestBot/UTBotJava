@@ -8,7 +8,9 @@ import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 
-// process will be terminated if parent is not alive
+/**
+ * process will be terminated if parent is not alive
+ */
 suspend fun Process.withRdServer(
     parent: Lifetime? = null,
     serverFactory: (Lifetime) -> Protocol
@@ -26,7 +28,9 @@ suspend fun LifetimedProcess.withRdServer(
     }
 }
 
-// process will not be started if parent is not alive
+/**
+ * process will not be started if parent is not alive
+ */
 suspend fun startProcessWithRdServer(
     cmd: List<String>,
     parent: Lifetime? = null,
@@ -39,7 +43,9 @@ suspend fun startProcessWithRdServer(
     return ProcessWithRdServerImpl(child, serverFactory)
 }
 
-// process will not be started if parent is not alive
+/**
+ * process will not be started if parent is not alive
+ */
 suspend fun startProcessWithRdServer(
     processFactory: (Int) -> Process,
     parent: Lifetime? = null,
@@ -54,7 +60,9 @@ suspend fun startProcessWithRdServer(
     }
 }
 
-// process will not be started if parent is not alive
+/**
+ * process will not be started if parent is not alive
+ */
 suspend fun startProcessWithRdServer2(
     cmd: (Int) -> List<String>,
     parent: Lifetime? = null,
@@ -84,19 +92,25 @@ class ProcessWithRdServerImpl private constructor(
         suspend operator fun invoke(
             child: LifetimedProcess, serverFactory: (Lifetime) -> Protocol
         ): ProcessWithRdServerImpl = coroutineScope {
-            ProcessWithRdServerImpl(child, serverFactory).apply {
-                lifetime.usingNested { operation ->
-                    val def = CompletableDeferred<Boolean>()
+            try {
+                ProcessWithRdServerImpl(child, serverFactory).apply {
+                    lifetime.usingNested { operation ->
+                        val def = CompletableDeferred<Boolean>()
 
-                    protocol.wire.connected.advise(operation) { isConnected ->
-                        if (isConnected) {
-                            def.complete(true)
+                        protocol.wire.connected.advise(operation) { isConnected ->
+                            if (isConnected) {
+                                def.complete(true)
+                            }
                         }
-                    }
 
-                    operation.onTermination { def.cancel() }
-                    def.await()
+                        operation.onTermination { def.cancel() }
+                        def.await()
+                    }
                 }
+            }
+            catch (e: Throwable) {
+                child.terminate()
+                throw e
             }
         }
     }

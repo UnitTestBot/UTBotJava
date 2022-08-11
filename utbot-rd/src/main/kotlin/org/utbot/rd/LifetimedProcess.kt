@@ -60,12 +60,12 @@ class LifetimedProcessIml(override val process: Process, parent: Lifetime? = nul
         def.onTermination {
             process.destroy()
 
-            if (process.waitFor(processKillTimeoutMillis, TimeUnit.MILLISECONDS)) // todo tune?
+            if (process.waitFor(processKillTimeoutMillis, TimeUnit.MILLISECONDS))
                 process.destroyForcibly()
         }
         UtRdCoroutineScope.current.launch(def) {
             while (process.isAlive) {
-                delay(checkProcessAliveDelay) // todo tune?
+                delay(checkProcessAliveDelay)
             }
 
             def.terminate()

@@ -48,15 +48,15 @@ class ConcreteExecutionFailureException(cause: Throwable, errorFile: File, val p
             appendLine("----------------------------------------")
             appendLine("The child process is dead")
             appendLine("Cause:\n${cause.message}")
-            appendLine("error log ${errorFile.absolutePath}:")
+            appendLine("Last 100 lines of the error log ${errorFile.absolutePath}:")
             appendLine("----------------------------------------")
             errorFile.useLines { lines ->
                 val lastLines = LinkedList<String>()
                 for (line in lines) {
                     lastLines.add(line)
-//                    if (lastLines.size > 20) {
-//                        lastLines.removeFirst()
-//                    }
+                    if (lastLines.size > 100) {
+                        lastLines.removeFirst()
+                    }
                 }
                 lastLines.forEach { appendLine(it) }
             }

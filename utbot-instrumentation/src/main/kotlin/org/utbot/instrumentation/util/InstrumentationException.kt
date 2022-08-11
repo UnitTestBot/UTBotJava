@@ -24,8 +24,14 @@ class ReadingFromKryoException(e: Throwable) :
 class WritingToKryoException(e: Throwable) :
     InstrumentationException("Writing to Kryo exception |> ${e.stackTraceToString()}", e)
 
+// this exception is thrown only in main process.
+// currently it means that {e: Throwable} happened in child process,
+// but child process still can operate and not dead.
+// on child process death - ConcreteExecutionFailureException is thrown
 class ChildProcessError(e: Throwable) :
     InstrumentationException("Error in the child process |> ${e.stackTraceToString()}", e)
 
+// throw it in main process if the command is not the one expected
+// send it from child process if received command is not the one expected
 class UnexpectedCommand(cmd: Protocol.Command) :
     InstrumentationException("Got unexpected command: $cmd")

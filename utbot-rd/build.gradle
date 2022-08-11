@@ -1,10 +1,8 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-dependencies {
-    implementation name: 'rd-framework-2022.3.0' // todo api?
-//    implementation name: 'rd-gen-2022.3.0' // todo on kotlin 1.7 - switch to maven
-    implementation name: 'rd-core-2022.3.0'
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+configurations {
+    lifetimedProcessMockCompileClasspath.extendsFrom configurations.compileClasspath
+    processWithRdServerMockCompileClasspath.extendsFrom configurations.compileClasspath
 }
 
 sourceSets {
@@ -20,9 +18,14 @@ sourceSets {
     }
 }
 
-configurations {
-    lifetimedProcessMockCompileClasspath.extendsFrom configurations.compileClasspath
-    processWithRdServerMockCompileClasspath.extendsFrom configurations.compileClasspath
+dependencies {
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.2.5'
+    implementation group: 'com.jetbrains.rd', name: 'rd-gen', version: '2022.2.5'
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.2.5'
+
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+
+    processWithRdServerMockImplementation project(':utbot-rd')
 }
 
 task lifetimedProcessMockJar (type: Jar) {
@@ -59,4 +62,5 @@ test {
     dependsOn lifetimedProcessMockJar
     dependsOn processWithRdServerMockJar
     systemProperty("RD_MOCK_PROCESS", lifetimedProcessMockJar.archiveFile.get().getAsFile().canonicalPath)
+    systemProperty("PROCESS_WITH_RD_SERVER_MOCK", processWithRdServerMockJar.archiveFile.get().getAsFile().canonicalPath)
 }

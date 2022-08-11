@@ -7,9 +7,11 @@ import com.jetbrains.rd.util.lifetime.Lifetime
 import org.utbot.common.utBotTempDirectory
 import java.io.File
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 const val rdProcessDirName = "rdProcessSync"
 val processSyncDirectory = File(utBotTempDirectory.toFile(), rdProcessDirName)
+private val awaitTimeoutMillis: Long = 120 * 1000
 
 internal fun obtainClientIO(lifetime: Lifetime, protocol: Protocol, pid: Int): InstrumentationIO {
     val latch = CountDownLatch(3)
@@ -17,7 +19,9 @@ internal fun obtainClientIO(lifetime: Lifetime, protocol: Protocol, pid: Int): I
     val processToMain = RdSignal<ByteArray>().static(2).init(lifetime, protocol, latch)
     val sync = RdSignal<String>().static(3).init(lifetime, protocol, latch)
 
-    latch.await()
+    if (!latch.await(awaitTimeoutMillis, TimeUnit.MILLISECONDS))
+        throw IllegalStateException("Cannot bind signals")
+
     signalChildReady(pid)
 
     return InstrumentationIO(mainToProcess, processToMain, sync)

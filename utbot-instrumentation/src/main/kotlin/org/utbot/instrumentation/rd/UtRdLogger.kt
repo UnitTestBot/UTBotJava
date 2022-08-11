@@ -10,12 +10,12 @@ private val logger = KotlinLogging.logger {}
 
 object UtRdLoggerFactory : ILoggerFactory {
     override fun getLogger(category: String): Logger {
-        logger.trace("getting logger for category: $category")
+        logger.trace {"getting logger for category: $category" }
         return UtRdLogger(category)
     }
 }
 
-class UtRdLogger(val category: String) : Logger {
+class UtRdLogger(private val category: String) : Logger {
     override fun isEnabled(level: LogLevel): Boolean {
         return when(level) {
             LogLevel.Trace -> logger.isTraceEnabled

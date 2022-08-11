@@ -3,6 +3,7 @@ package org.utbot.rd
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.util.NetUtils
 import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import com.jetbrains.rd.util.reactive.IScheduler
 import mu.KotlinLogging
@@ -59,5 +60,15 @@ object UtRdUtil {
         return factory(port).withRdServer(parent) {
             createUtServerProtocol(it, port)
         }
+    }
+}
+
+inline fun <T> LifetimeDefinition.terminateOnException(block: (Lifetime) -> T): T {
+    try {
+        return block(this)
+    }
+    catch(e: Throwable) {
+        this.terminate()
+        throw e
     }
 }

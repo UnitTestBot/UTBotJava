@@ -29,6 +29,7 @@ object EngineAnalyticsContext {
         NNRewardGuidedSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
     }
 
+    @kotlin.jvm.JvmField
     var stateRewardPredictorFactory: MutableMap<Int, StateRewardPredictorFactory> = mutableMapOf()
 
     init {

@@ -14,6 +14,7 @@ import com.intellij.openapi.command.executeCommand
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Computable
@@ -26,6 +27,7 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiMethod
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
@@ -77,6 +79,7 @@ import org.utbot.intellij.plugin.ui.TestsReportNotifier
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
+import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
 import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.intellij.plugin.util.signature
@@ -156,7 +159,11 @@ object CodeGenerationController {
 
         run(EDT_LATER) {
             waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
-                val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(baseTestDirectory)
+                val project = model.project
+                val language = model.codegenLanguage
+                val testModule = model.testModule
+
+                val existingUtilClass = language.getUtilClassOrNull(project, testModule)
 
                 val utilClassKind = utilClassListener.requiredUtilClassKind
                     ?: return@waitForCountDown // no util class needed
@@ -351,6 +358,28 @@ object CodeGenerationController {
             val utilDirectory = getUtilDirectoryOrNull(testDirectory)
             utilDirectory?.findFile(this.utilClassFileName)
         }
+    }
+
+    /**
+     * @param project project whose classes we generate tests for.
+     * @param testModule module where the generated tests will be placed.
+     * @return an existing util class from one of the test source roots
+     * in the given [testModule] or `null` if no util class was found.
+     */
+    private fun CodegenLanguage.getUtilClassOrNull(project: Project, testModule: Module): PsiFile? {
+        val psiManager = PsiManager.getInstance(project)
+
+        // all test roots for the given test module
+        val testRoots = runReadAction {
+            testModule
+                .suitableTestSourceRoots(this)
+                .mapNotNull { psiManager.findDirectory(it) }
+        }
+
+        // return an util class from one of the test source roots or null if no util class was found
+        return testRoots
+            .mapNotNull { testRoot -> getUtilClassOrNull(testRoot) }
+            .firstOrNull()
     }
 
     /**

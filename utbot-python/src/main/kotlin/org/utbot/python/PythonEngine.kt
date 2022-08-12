@@ -36,10 +36,17 @@ class PythonEngine(
         val pythonTypes = selectedTypeMap.values.map { it.name }
 
         fuzz(methodUnderTestDescription, defaultPythonModelProvider).forEach { values ->
-            val modelList = values.map { it.model }
+            val parameterValues = values.map { it.model }
+
+            val (thisObject, modelList) =
+                if (methodUnderTest.containingPythonClassId == null)
+                    Pair(null, parameterValues)
+                else
+                    Pair(parameterValues[0], parameterValues.drop(1))
+
             val evalResult = PythonEvaluation.evaluate(
                 methodUnderTest,
-                modelList,
+                parameterValues,
                 directoriesForSysPath,
                 moduleToImport,
                 pythonPath,
@@ -72,8 +79,8 @@ class PythonEngine(
 
             yield(
                 UtExecution(
-                    stateBefore = EnvironmentModels(null, modelList, emptyMap()),
-                    stateAfter = EnvironmentModels(null, modelList, emptyMap()),
+                    stateBefore = EnvironmentModels(thisObject, modelList, emptyMap()),
+                    stateAfter = EnvironmentModels(thisObject, modelList, emptyMap()),
                     result = result,
                     instrumentation = emptyList(),
                     path = mutableListOf(), // ??

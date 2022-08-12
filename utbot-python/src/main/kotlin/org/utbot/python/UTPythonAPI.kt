@@ -14,26 +14,15 @@ interface PythonMethod {
     val moduleFilename: String
     fun asString(): String
     fun ast(): FunctionDef
+    val containingPythonClassId: PythonClassId?
 }
 
 sealed class PythonResult(val parameters: List<UtModel>, val types: List<String>)
 
-class PythonError(
-    val utError: UtError,
-    parameters: List<UtModel>,
-    types: List<String>
-): PythonResult(parameters, types)
-
-class PythonExecution(
-    val utExecution: UtExecution,
-    parameters: List<UtModel>,
-    types: List<String>
-): PythonResult(parameters, types)
-
 data class PythonTestSet(
     val method: PythonMethod,
-    val executions: List<PythonExecution>,
-    val errors: List<PythonError>,
+    val executions: List<UtExecution>,
+    val errors: List<UtError>,
     val mypyReport: List<MypyAnnotations.MypyReportLine>,
     val classId: PythonClassId? = null,
 )

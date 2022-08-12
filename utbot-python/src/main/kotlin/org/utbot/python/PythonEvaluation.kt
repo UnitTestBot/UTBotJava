@@ -3,6 +3,7 @@ package org.utbot.python
 import com.beust.klaxon.Klaxon
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.python.code.PythonCodeGenerator
+import org.utbot.python.typing.PythonClassIdInfo
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.runCommand
 

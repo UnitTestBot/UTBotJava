@@ -1,11 +1,13 @@
 package org.utbot.python
 
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.PythonClassId
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
+import org.utbot.python.typing.PythonClassIdInfo
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 
 object PythonTestCaseGenerator {
@@ -47,13 +49,18 @@ object PythonTestCaseGenerator {
                 fileOfMethod,
                 directoriesForSysPath
             )
+        }.toMutableList()
+
+        // TODO: consider static and class methods
+        if (method.containingPythonClassId != null) {
+            initialArgumentTypes[0] = NormalizedPythonAnnotation(method.containingPythonClassId!!.name)
         }
 
         val argInfoCollector = ArgInfoCollector(method, initialArgumentTypes)
         val annotationSequence = getAnnotations(method, initialArgumentTypes, argInfoCollector, isCancelled)
 
-        val executions = mutableListOf<PythonExecution>()
-        val errors = mutableListOf<PythonError>()
+        val executions = mutableListOf<UtExecution>()
+        val errors = mutableListOf<UtError>()
 
         var testsGenerated = 0
 
@@ -75,8 +82,8 @@ object PythonTestCaseGenerator {
                     if (isCancelled())
                         return@breaking
                     when (it) {
-                        is PythonExecution -> executions += it
-                        is PythonError -> errors += it
+                        is UtExecution -> executions += it
+                        is UtError -> errors += it
                     }
                     testsGenerated += 1
                     if (testsGenerated >= maxTestCount)

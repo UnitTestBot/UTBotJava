@@ -11,7 +11,7 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.*
-import org.utbot.python.code.camelToSnakeCase
+import org.utbot.python.utils.camelToSnakeCase
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {

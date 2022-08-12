@@ -8,8 +8,8 @@ import org.utbot.python.PythonMethod
 
 class ClassInfoCollector(val pyClass: PythonClass) {
     class Storage {
-        val fields = mutableListOf<String>()
-        val methods = mutableListOf<String>()
+        val fields = mutableSetOf<String>()
+        val methods = mutableSetOf<String>()
     }
     val storage = Storage()
 

@@ -253,15 +253,19 @@ class PythonClassId(
         }
 }
 
+open class RawPythonAnnotation(
+    annotation: String
+): ClassId(annotation)
+
 class NormalizedPythonAnnotation(
     annotation: String
-) : ClassId(annotation)
+) : RawPythonAnnotation(annotation)
 
 class PythonMethodId(
     override val classId: PythonClassId,  // may be a fake class for top-level functions
     override val name: String,
-    override val returnType: PythonClassId,
-    override val parameters: List<PythonClassId>,
+    override val returnType: RawPythonAnnotation,
+    override val parameters: List<RawPythonAnnotation>,
 ) : MethodId(classId, name, returnType, parameters) {
     val moduleName: String = classId.moduleName
     override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name

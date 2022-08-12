@@ -33,11 +33,11 @@ import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestCaseGenerator
-import org.utbot.python.code.camelToSnakeCase
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.utils.getLineOfFunction
 import javax.swing.SwingUtilities.invokeLater
 
@@ -86,7 +86,7 @@ object PythonDialogProcessor {
     }
 
     private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod> {
-        val code = getPyCodeFromPyFile(model.file)
+        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule)
 
         val shownFunctions: Set<PythonMethod> =
             if (model.containingClass == null) {
@@ -140,7 +140,7 @@ object PythonDialogProcessor {
                 val testCaseGenerator = PythonTestCaseGenerator.apply {
                     init(
                         model.directoriesForSysPath,
-                        model.moduleToImport,
+                        model.currentPythonModule,
                         pythonPath,
                         model.project.basePath!!,
                         filePath
@@ -184,16 +184,21 @@ object PythonDialogProcessor {
                     }
                 }
 
-                val classId = PythonClassId(model.moduleToImport + ".toplevel_functions")
+                val classId =
+                    if (model.containingClass == null)
+                        PythonClassId(model.currentPythonModule + ".TopLevelFunctions")
+                    else
+                        PythonClassId(model.currentPythonModule + "." + model.containingClass.name)
+
                 val methods = notEmptyTests.associate {
                     it.method to PythonMethodId(
                         classId,
                         it.method.name,
-                        PythonClassId(it.method.returnAnnotation ?: pythonNoneClassId.name),
+                        RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
                         it.method.arguments.map { argument ->
-                            PythonClassId(
-                                argument.annotation ?: pythonAnyClassId.name
-                            )
+                            argument.annotation?.let { annotation ->
+                                RawPythonAnnotation(annotation)
+                            } ?: pythonAnyClassId
                         }
                     )
                 }
@@ -214,7 +219,7 @@ object PythonDialogProcessor {
                         notEmptyTests.map { testSet ->
                             CgMethodTestSet(
                                 methods[testSet.method] as ExecutableId,
-                                testSet.executions.map { execution -> execution.utExecution },
+                                testSet.executions,
                                 model.directoriesForSysPath,
                             )
                         }
@@ -244,9 +249,9 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
-fun getPyCodeFromPyFile(file: PyFile): PythonCode {
+fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode {
     val content = getContentFromPyFile(file)
-    return getFromString(content)
+    return getFromString(content, pythonModule = pythonModule)
 }
 
 fun getDirectoriesForSysPath(

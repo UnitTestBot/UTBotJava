@@ -9,7 +9,6 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.Add
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.BinOp
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
@@ -29,9 +28,7 @@ import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Assert
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
-import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.pythonAnyClassId
+import org.utbot.framework.plugin.api.*
 import org.utbot.python.*
 
 
@@ -39,98 +36,6 @@ object PythonCodeGenerator {
     private fun toString(module: Module): String {
         val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
-    }
-
-    fun generateTestCode(
-        testCase: PythonTestSet,
-        directoriesForSysPath: List<String>,
-        moduleToImport: String,
-        messageInBeginningOfFile: String? = null
-    ): String {
-        val importFunction = generateImportFunctionCode(
-            moduleToImport,
-            directoriesForSysPath,
-            testCase.errors.flatMap { it.types } + testCase.executions.flatMap { it.types }
-        )
-        val testCaseCodes = (testCase.executions + testCase.errors).mapIndexed { index, utExecution ->
-            generateTestCode(testCase.method, utExecution, index)
-        }
-
-        var code = toString(Module(importFunction))
-        if (messageInBeginningOfFile != null)
-            code += "\n\"\"\"\n$messageInBeginningOfFile\"\"\"\n"
-        code += testCaseCodes.joinToString("")
-
-        return code
-    }
-
-    fun generateTestCode(method: PythonMethod, result: PythonResult, number: Int) =
-        when (result) {
-            is PythonExecution -> generateExecutionCode(method, result, number)
-            is PythonError -> generateErrorCode(method, result, number)
-        }
-
-    private fun functionWithParameters(
-        testFunctionName: String,
-        method: PythonMethod,
-        parameterValues: List<UtModel>,
-        returnValueName: String
-    ): FunctionDef {
-        val testFunction = FunctionDef(testFunctionName)
-        val parameters = parameterValues.zip(method.arguments).map { (model, argument) ->
-            Assign(
-                listOf(Name(argument.name)),
-                Name(model.toString())
-            )
-        }
-        parameters.forEach {
-            testFunction.addStatement(it)
-        }
-
-        val keywords = method.arguments.map {
-            Keyword(Name(it.name), Name(it.name))
-        }
-        val functionCall = Assign(
-            listOf(Name(returnValueName)),
-            Atom(
-                Name(method.name),
-                listOf(createArguments(emptyList(), keywords))
-            )
-        )
-        testFunction.addStatement(functionCall)
-
-        return testFunction
-    }
-
-    private fun generateErrorCode(method: PythonMethod, error: PythonError, number: Int): String {
-        val testFunctionName = "test_$number"
-        val testFunction = functionWithParameters(testFunctionName, method, error.parameters, "returnValue")
-        testFunction.addStatement(Name("# throws ${error.utError.description}"))
-        return PythonMethodBody(testFunction).asString()
-    }
-
-    private fun generateExecutionCode(method: PythonMethod, pyExecution: PythonExecution, number: Int): String {
-        val execution = pyExecution.utExecution
-        val testFunctionName = "${execution.testMethodName?.camelToSnakeCase() ?: "test"}_$number"
-        val actualName = "actual"
-        val testFunction = functionWithParameters(testFunctionName, method, pyExecution.parameters, actualName)
-
-        val correctResultName = "correct_result"
-        val correctResult = Assign(
-            listOf(Name(correctResultName)),
-            Name(execution.result.toString())
-        )
-        testFunction.addStatement(correctResult)
-
-        val assertLine = Assert(
-            Eq(
-                Name(correctResultName),
-                Name(actualName)
-            )
-        )
-        testFunction.addStatement(assertLine)
-
-        return PythonMethodBody(testFunction).asString()
     }
 
     private fun createOutputBlock(outputName: String, outputFilename: String, outputFileAlias: String): With {
@@ -249,6 +154,32 @@ object PythonCodeGenerator {
         return listOf(systemImport) + systemCalls + additionalImport + listOf(typingImport, mathImport, import)
     }
 
+    private fun generateFunctionCallForTopLevelFunction(method: PythonMethod): Expression {
+        val keywords = method.arguments.map {
+            Keyword(Name(it.name), Name(it.name))
+        }
+        return Atom(
+            Name(method.name),
+            listOf(
+                createArguments(emptyList(), keywords)
+            )
+        )
+    }
+
+    private fun generateMethodCall(method: PythonMethod): Expression {
+        assert(method.containingPythonClassId != null)
+        val keywords = method.arguments.drop(1).map {
+            Keyword(Name(it.name), Name(it.name))
+        }
+        return Atom(
+            Name(method.arguments[0].name),
+            listOf(
+                Attribute(Identifier(method.name)),
+                createArguments(emptyList(), keywords)
+            )
+        )
+    }
+
     fun generateRunFunctionCode(
         method: PythonMethod,
         methodArguments: List<UtModel>,
@@ -275,18 +206,14 @@ object PythonCodeGenerator {
             )
         }
         val resultName = "result"
-        val keywords = method.arguments.map {
-            Keyword(Name(it.name), Name(it.name))
-        }
-        val functionCall = Assign(
-            listOf(Name(resultName)),
-            Atom(
-                Name(method.name),
-                listOf(
-                    createArguments(emptyList(), keywords)
-                )
+        val functionCall =
+            Assign(
+                listOf(Name(resultName)),
+                if (method.containingPythonClassId == null)
+                    generateFunctionCallForTopLevelFunction(method)
+                else
+                    generateMethodCall(method)
             )
-        )
 
         val outputFileAlias = "fout"
         val withOpenResultFile = createOutputBlock(
@@ -355,11 +282,4 @@ object PythonCodeGenerator {
             )
         )
     }
-}
-
-fun String.camelToSnakeCase(): String {
-    val camelRegex = "(?<=[a-zA-Z])[\\dA-Z]".toRegex()
-    return camelRegex.replace(this) {
-        "_${it.value}"
-    }.toLowerCase()
 }

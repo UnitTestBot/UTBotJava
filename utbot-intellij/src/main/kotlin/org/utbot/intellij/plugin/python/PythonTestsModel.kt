@@ -17,7 +17,7 @@ class PythonTestsModel(
     val focusedMethod: Set<PyFunction>?,
     val file: PyFile,
     val directoriesForSysPath: List<String>,
-    val moduleToImport: String,
+    val currentPythonModule: String,
     var timeout: Long
 ): BaseTestsModel(
     project,

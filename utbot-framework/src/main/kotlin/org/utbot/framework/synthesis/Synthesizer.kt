@@ -102,6 +102,12 @@ class SynthesisUnitContext(
                     this.length
                 )
 
+                is UtMapConstraintModel -> MapUnit(
+                    this.classId,
+                    this.elements.toList(),
+                    this.length
+                )
+
                 is UtReferenceToConstraintModel -> ReferenceToUnit(this.classId, this.reference)
                 else -> error("Only UtSynthesisModel supported")
             }
@@ -192,19 +198,26 @@ class SynthesisUnitContextQueue(
 
                 while (true) {
                     model as UtElementContainerConstraintModel
-                    val current = currentContext[model] as ElementContainingUnit
-                    val elements = current.elements
-                    if (index >= elements.size) break
+                    if (index >= unit.elements.size) break
 
-                    val currentModel = model.elements[unit.elements[index].first]!!
-                    val newLeafs = produce(context, currentModel)
-                    if (newLeafs.isEmpty()) {
-                        for (i in 0..index) {
-                            currentContext = currentContext.set(currentModel, currentContext[currentModel])
+                    val currentKeyModel = unit.elements[index].first
+                    val currentValueModel = unit.elements[index].second
+
+                    val newKeyLeafs = produce(context, currentKeyModel)
+                    if (newKeyLeafs.isEmpty()) {
+                        val newValueLeafs = produce(context, currentValueModel)
+                        if (newValueLeafs.isEmpty()) {
+                            for (i in 0..index) {
+                                currentContext = currentContext.set(currentKeyModel, currentContext[currentValueModel])
+                                currentContext = currentContext.set(currentValueModel, currentContext[currentValueModel])
+                            }
+                            index++
+                        } else {
+                            result = newValueLeafs
+                            break
                         }
-                        index++
                     } else {
-                        result = newLeafs
+                        result = newKeyLeafs
                         break
                     }
                 }

@@ -25,6 +25,7 @@ class Resolver(
             is ArrayUnit -> unitToModel.getOrPut(unit) { resolveArray(unit) }
             is ListUnit -> unitToModel.getOrPut(unit) { resolveList(unit) }
             is SetUnit -> unitToModel.getOrPut(unit) { resolveSet(unit) }
+            is MapUnit -> unitToModel.getOrPut(unit) { resolveMap(unit) }
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =
@@ -114,6 +115,37 @@ class Resolver(
     private fun resolveList(unit: ListUnit): UtModel = resolveCollection(unit, unit.constructorId, unit.addId)
 
     private fun resolveSet(unit: SetUnit): UtModel = resolveCollection(unit, unit.constructorId, unit.addId)
+
+    private fun resolveMap(unit: MapUnit): UtModel {
+        val elements = unit.elements.map {
+            resolve(synthesisUnitContext[it.first]) to resolve(synthesisUnitContext[it.second])
+        }
+
+        val instantiationChain = mutableListOf<UtStatementModel>()
+        val modificationChain = mutableListOf<UtStatementModel>()
+
+        val model = UtAssembleModel(
+            nextDefaultModelId++,
+            unit.classId,
+            nextModelName("refModel_${unit.classId.simpleName}"),
+            instantiationChain,
+            modificationChain
+        )
+
+        instantiationChain.add(
+            UtExecutableCallModel(model, unit.constructorId, listOf(), model)
+        )
+
+        for ((key, value) in elements) {
+            modificationChain.add(
+                UtExecutableCallModel(
+                    model, unit.putId, listOf(key, value),
+                )
+            )
+        }
+
+        return model
+    }
 
     private fun resolveArray(unit: ArrayUnit): UtModel {
         val lengthModel = resolve(synthesisUnitContext[unit.length]) as UtPrimitiveModel

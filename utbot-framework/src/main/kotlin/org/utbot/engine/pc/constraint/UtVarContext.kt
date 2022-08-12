@@ -18,7 +18,9 @@ class UtVarContext(
     val holder: UtSolverStatusSAT,
     val typeRegistry: TypeRegistry,
     val typeResolver: TypeResolver,
-) : UtDefaultExpressionVisitor<UtConstraintVariable>({ throw NotSupportedByConstraintResolverException() }) {
+) : UtDefaultExpressionVisitor<UtConstraintVariable>({
+    throw NotSupportedByConstraintResolverException()
+}) {
     private val internalAddrs = mutableMapOf<Address, UtConstraintVariable>()
     private val var2Expression = mutableMapOf<UtConstraintVariable, UtExpression>()
 

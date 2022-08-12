@@ -17,7 +17,9 @@ class NotSupportedByConstraintResolverException : Exception()
 
 class UtConstraintBuilder(
     val variableContext: UtVarContext
-) : UtDefaultExpressionVisitor<UtConstraint?>({ throw NotSupportedByConstraintResolverException() }) {
+) : UtDefaultExpressionVisitor<UtConstraint?>({
+    throw NotSupportedByConstraintResolverException()
+}) {
     val holder get() = variableContext.holder
 
     private fun shouldSkip(expr: UtExpression): Boolean {
@@ -63,33 +65,29 @@ class UtConstraintBuilder(
         UtBoolConstraint(expr.accept(variableContext))
     }!!
 
-    override fun visit(expr: NotBoolExpression): UtConstraint = applyConstraint(expr) {
-        UtBoolConstraint(
-            UtConstraintNot(expr.expr.accept(variableContext))
-        )
-    }!!
+    override fun visit(expr: NotBoolExpression): UtConstraint? = applyConstraint(expr) {
+        expr.expr.accept(this)?.let {
+            UtNegatedConstraint(it)
+        }
+    }
 
-    override fun visit(expr: UtOrBoolExpression): UtConstraint = applyConstraint(expr) {
-        val vars = expr.exprs.map { it.accept(variableContext) }
-        UtBoolConstraint(
-            when {
-                vars.isEmpty() -> UtConstraintBoolConstant(true)
-                vars.size == 1 -> vars.first()
-                else -> vars.reduce { acc, variable -> UtConstraintOr(acc, variable) }
-            }
-        )
-    }!!
+    override fun visit(expr: UtOrBoolExpression): UtConstraint? = applyConstraint(expr) {
+        val vars = expr.exprs.mapNotNull { it.accept(this) }
+        when {
+            vars.isEmpty() -> null
+            vars.size == 1 -> vars.first()
+            else -> vars.reduce { acc, variable -> UtOrConstraint(acc, variable) }
+        }
+    }
 
-    override fun visit(expr: UtAndBoolExpression): UtConstraint = applyConstraint(expr) {
-        val vars = expr.exprs.map { it.accept(variableContext) }
-        UtBoolConstraint(
-            when {
-                vars.isEmpty() -> UtConstraintBoolConstant(true)
-                vars.size == 1 -> vars.first()
-                else -> vars.reduce { acc, variable -> UtConstraintAnd(acc, variable) }
-            }
-        )
-    }!!
+    override fun visit(expr: UtAndBoolExpression): UtConstraint? = applyConstraint(expr) {
+        val vars = expr.exprs.mapNotNull { it.accept(this) }
+        when {
+            vars.isEmpty() -> null
+            vars.size == 1 -> vars.first()
+            else -> vars.reduce { acc, variable -> UtAndConstraint(acc, variable) }
+        }
+    }
 
     override fun visit(expr: UtBoolOpExpression): UtConstraint? = applyConstraint(expr) {
         if (shouldSkip(expr)) return@applyConstraint null
@@ -146,13 +144,14 @@ class UtConstraintBuilder(
         throw NotSupportedByConstraintResolverException()
     }
 
-    override fun visit(expr: UtIsGenericTypeExpression): UtConstraint = applyConstraint(expr) {
+    override fun visit(expr: UtIsGenericTypeExpression): UtConstraint? = applyConstraint(expr) {
+        if (shouldSkip(expr)) return@applyConstraint null
         UtRefGenericTypeConstraint(
             expr.addr.accept(variableContext),
             expr.baseAddr.accept(variableContext),
             expr.parameterTypeIndex
         )
-    }!!
+    }
 
     override fun visit(expr: UtEqGenericTypeParametersExpression): UtConstraint? = applyConstraint(expr) {
         if (shouldSkip(expr)) return@applyConstraint null
@@ -175,4 +174,6 @@ class UtConstraintBuilder(
             else -> expr.elseExpr.accept(this)
         }
     }
+
+    override fun visit(expr: UtMkTermArrayExpression): UtConstraint? = null
 }

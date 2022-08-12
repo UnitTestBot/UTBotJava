@@ -2,6 +2,7 @@ package org.utbot.framework.synthesis
 
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 
@@ -15,7 +16,7 @@ class CompositeUnitExpander(
         if (objectUnit.classId !in statementsStorage.items.keys.map { it.classId }.toSet()) {
             statementsStorage.update(setOf(objectUnit.classId).expandable())
         }
-        val mutators = findMutators(objectUnit.classId)
+        val mutators = findAllMutators(objectUnit.classId)
 
         val expanded = mutators.map { method ->
             MethodUnit(
@@ -27,13 +28,22 @@ class CompositeUnitExpander(
         return expanded
     }
 
+    private fun findAllMutators(classId: ClassId) = findConstructors(classId) + findMutators(classId)
+
+    private fun findConstructors(classId: ClassId): List<ExecutableId> =
+        statementsStorage.items
+            .filter { (method, _) -> method.classId == classId }
+            .keys
+            .filterIsInstance<ConstructorId>()
+            .toList()
 
     private fun findMutators(classId: ClassId): List<ExecutableId> =
         statementsStorage.items
             .filter { (method, info) ->
                 val sameClass = method.classId == classId
-                val modifiesSomething = true//info.modifiedFields.any { it.declaringClass == classId }
-                sameClass && modifiesSomething
+                val modifiesSomething = info.modifiedFields.any { it.declaringClass == classId }
+                val isStaticInit = method.name == "<clinit>"
+                sameClass && modifiesSomething && !isStaticInit
             }
             .keys
             .filterIsInstance<ExecutableId>()

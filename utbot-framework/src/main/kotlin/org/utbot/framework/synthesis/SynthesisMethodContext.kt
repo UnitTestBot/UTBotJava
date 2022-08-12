@@ -142,6 +142,7 @@ class SynthesisMethodContext(
 
         is ListUnit -> synthesizeConstructorInvoke(unit.constructorId, listOf())
         is SetUnit -> synthesizeConstructorInvoke(unit.constructorId, listOf())
+        is MapUnit -> synthesizeConstructorInvoke(unit.constructorId, listOf())
     }
 
     private fun synthesizeSetExpr(
@@ -158,6 +159,8 @@ class SynthesisMethodContext(
         is ListUnit -> synthesizeVirtualInvoke(unit.addId, listOf(unitLocal, value))
 
         is SetUnit -> synthesizeVirtualInvoke(unit.addId, listOf(unitLocal, value))
+
+        is MapUnit -> synthesizeVirtualInvoke(unit.putId, listOf(unitLocal, key, value))
     }
 
     private fun synthesizeVirtualInvoke(method: MethodId, parameterLocals: List<JimpleLocal>): JimpleLocal {

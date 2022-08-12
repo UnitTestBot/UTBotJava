@@ -294,6 +294,7 @@ class ConstraintResolver(
     ): UtModel = when (concrete.value) {
         is ListWrapper -> buildListModel(concrete.value, variable, atoms, aliases)
         is SetWrapper -> buildSetModel(concrete.value, variable, atoms, aliases)
+        is MapWrapper -> buildMapModel(concrete.value, variable, atoms, aliases)
         else -> buildObjectModel(variable, atoms, aliases)
     }
 
@@ -368,6 +369,61 @@ class ConstraintResolver(
             array.length,
             array.elements,
             array.utConstraints + refConstraints
+        )
+    }
+
+    private fun buildMapModel(
+        concrete: MapWrapper,
+        variable: UtConstraintVariable,
+        atoms: Set<UtConstraint>,
+        aliases: Set<UtConstraintVariable>
+    ): UtModel {
+        val allAliases = aliases + variable
+        val refConstraints = atoms.filter { constraint ->
+            allAliases.any { it in constraint }
+        }.toSet()
+
+        val default = { buildObjectModel(variable, atoms, aliases) }
+        val keysField = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == variable && it.fieldId.name == "keys" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val keysStorageArray = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == keysField && it.fieldId.name == "storage" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val keysAliasArrays = aliases.map {
+            UtConstraintFieldAccess(UtConstraintFieldAccess(it, keysField.fieldId), keysStorageArray.fieldId)
+        }.toSet()
+        val keys = buildArrayModel(keysStorageArray, atoms, keysAliasArrays) as UtArrayConstraintModel
+        val concreteKeys = keys.elements.toList().associate { (index, value) ->
+            (index as UtPrimitiveConstraintModel).concrete as Int to ((index as UtModel) to value)
+        }
+
+        val valuesField =
+            atoms.flatten { it is UtConstraintFieldAccess && it.instance == variable && it.fieldId.name == "values" }
+                .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val valuesStorageArray = atoms
+            .flatten { it is UtConstraintFieldAccess && it.instance == valuesField && it.fieldId.name == "storage" }
+            .firstOrNull() as? UtConstraintFieldAccess ?: return default()
+        val valuesAliasArrays = aliases.map {
+            UtConstraintFieldAccess(UtConstraintFieldAccess(it, valuesField.fieldId), valuesStorageArray.fieldId)
+        }.toSet()
+        val values = buildArrayModel(valuesStorageArray, atoms, valuesAliasArrays) as UtArrayConstraintModel
+        val concreteValues = values.elements.toList().associate { (index, value) ->
+            (index as UtPrimitiveConstraintModel).concrete as Int to ((index as UtModel) to value)
+        }
+
+        val mapElements = concreteKeys.mapValues { (key, values) ->
+            values.second to concreteValues.getOrDefault(
+                key,
+                UtNullModel(objectClassId) to UtNullModel(objectClassId)
+            ).second
+        }.values.toMap()
+
+        return UtMapConstraintModel(
+            variable,
+            keys.length,
+            mapElements,
+            refConstraints
         )
     }
 

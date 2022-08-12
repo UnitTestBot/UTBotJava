@@ -52,6 +52,17 @@ data class SetUnit(
     }
 }
 
+data class MapUnit(
+    override val classId: ClassId,
+    override val elements: List<Pair<UtModel, UtModel>>,
+    override val length: UtModel
+) : ElementContainingUnit(classId, elements, length) {
+    val constructorId get() = classId.allConstructors.first { it.parameters.isEmpty() }
+    val putId get() = classId.allMethods.first {
+        it.name == "put" && it.parameters == listOf(objectClassId, objectClassId)
+    }
+}
+
 data class NullUnit(
     override val classId: ClassId
 ) : SynthesisUnit()

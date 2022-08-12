@@ -19,7 +19,8 @@ private val kotlinHardKeywords = setOf(
 private val pythonKeywords = setOf(
     "True", "False", "None", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else",
     "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not",
-    "or", "pass", "raise", "return", "try", "while", "with", "yield"
+    "or", "pass", "raise", "return", "try", "while", "with", "yield", "list", "int", "str", "float", "bool", "bytes", "frozenset",
+    "dict", "set", "tuple",
 )
 
 @Suppress("unused")

@@ -45,8 +45,7 @@ data class UtSolverStatusUNSAT(override val statusKind: UtSolverStatusKind) : Ut
 
 class UtSolverStatusSAT(
     private val translator: Z3TranslatorVisitor,
-    z3Solver: Solver,
-    val constraints: BaseQuery
+    z3Solver: Solver
 ) : UtSolverStatus(SAT) {
     private val model = z3Solver.model
 

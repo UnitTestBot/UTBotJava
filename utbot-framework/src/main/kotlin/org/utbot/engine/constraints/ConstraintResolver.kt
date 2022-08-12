@@ -17,10 +17,11 @@ import org.utbot.framework.plugin.api.util.objectClassId
  */
 class ConstraintResolver(
     private val memory: Memory,
-    val holder: UtSolverStatusSAT,
+    private val holder: UtSolverStatusSAT,
+    private val query: BaseQuery,
     typeRegistry: TypeRegistry,
     typeResolver: TypeResolver,
-    val useSoftConstraints: Boolean = false
+    private val useSoftConstraints: Boolean = false
 ) {
     companion object {
         private const val MAX_ARRAY_LENGTH = 10
@@ -66,15 +67,18 @@ class ConstraintResolver(
         }
     }
 
+    private inline fun traverseQuery(action: (UtExpression) -> Unit) {
+        query.hard.forEach(action)
+        if (useSoftConstraints) {
+            query.soft.forEach(action)
+        }
+    }
+
+
     internal fun resolveModels(parameters: List<SymbolicValue>): ConstrainedExecution {
         val allAddresses = UtExprCollector { it is UtAddrExpression }.let {
-            holder.constraints.hard.forEach { constraint ->
+            traverseQuery { constraint ->
                 constraint.accept(it)
-            }
-            if (useSoftConstraints) {
-                holder.constraints.soft.forEach { constraint ->
-                    constraint.accept(it)
-                }
             }
             it.results
         }.groupBy { holder.concreteAddr(it as UtAddrExpression) }.mapValues { it.value.toSet() }
@@ -131,13 +135,8 @@ class ConstraintResolver(
 
     private fun collectConstraintAtoms(predicate: (UtExpression) -> Boolean): Set<UtConstraint> =
         UtAtomCollector(predicate).run {
-            holder.constraints.hard.forEach {
-                it.accept(this)
-            }
-            if (useSoftConstraints) {
-                holder.constraints.soft.forEach {
-                    it.accept(this)
-                }
+            traverseQuery { constraint ->
+                constraint.accept(this)
             }
             result
         }.mapNotNull {

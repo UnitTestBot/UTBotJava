@@ -3691,6 +3691,7 @@ class UtBotSymbolicEngine(
             ConstraintResolver(
                 updatedMemory,
                 holder,
+                solver.query,
                 typeRegistry,
                 typeResolver
             ).run { resolveModels(resolvedParameters) }

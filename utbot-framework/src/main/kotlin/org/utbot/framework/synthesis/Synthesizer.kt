@@ -1,6 +1,7 @@
 package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
+import org.utbot.framework.UtSettings.synthesisTimeoutInMillis
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isArray
@@ -47,7 +48,7 @@ class Synthesizer(
     private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
     private val unitChecker = SynthesisUnitChecker(objectClassId.toSoot())
 
-    fun synthesize(timeLimit: Long = 10000L): List<UtModel>? {
+    fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel>? {
         val currentTime = { System.currentTimeMillis() }
         val startTime = currentTime()
         while (queueIterator.hasNext() && ((currentTime() - startTime) < timeLimit)) {

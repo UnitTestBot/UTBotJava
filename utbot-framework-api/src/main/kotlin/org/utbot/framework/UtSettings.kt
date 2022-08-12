@@ -341,6 +341,12 @@ object UtSettings {
      */
     var enableSynthesis = true
 
+    /**
+     * Timeout model synthesis
+     *
+     */
+    var synthesisTimeoutInMillis by getLongProperty(60000L)
+
     override fun toString(): String =
         properties
             .entries

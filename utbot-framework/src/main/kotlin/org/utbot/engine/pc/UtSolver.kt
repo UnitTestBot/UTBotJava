@@ -152,6 +152,12 @@ data class UtSolver constructor(
     val rewriter: RewritingVisitor
         get() = constraints.let { if (it is Query) it.rewriter else RewritingVisitor() }
 
+
+    /**
+     * Returns the current constraints.
+     */
+    val query get() = constraints
+
     /**
      * Returns the current status of the constraints.
      * Get is mandatory here to avoid situations when we invoked `check` and asked the solver
@@ -220,7 +226,7 @@ data class UtSolver constructor(
                 }
 
                 when (val status = check(translatedSoft)) {
-                    SAT -> UtSolverStatusSAT(translator, z3Solver, constraints)
+                    SAT -> UtSolverStatusSAT(translator, z3Solver)
                     else -> UtSolverStatusUNSAT(status)
                 }
             }

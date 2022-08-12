@@ -49,7 +49,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
      */
     fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
-            this.testClass = withTestClassScope { constructTestClass(testClassModel) }
+            this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }

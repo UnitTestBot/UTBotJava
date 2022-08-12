@@ -25,6 +25,7 @@ import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.concurrency.AppExecutorUtil
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
+import org.utbot.AnalyticsSetUp
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
 import org.utbot.engine.util.mockListeners.ForceMockListener
@@ -51,8 +52,6 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
-import org.utbot.features.FeatureExtractorFactoryImpl
-import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.intellij.plugin.settings.Settings
@@ -60,7 +59,6 @@ import org.utbot.intellij.plugin.ui.utils.isGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.isAbstract
 import org.utbot.intellij.plugin.ui.utils.testModules
-import org.utbot.predictors.StateRewardPredictorFactoryImpl
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -263,11 +261,12 @@ object UtTestsDialogProcessor {
     }
 
     private fun configureML() {
-        EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
-        EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-        EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
+       // EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
+       // EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
+       // EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
+        //AnalyticsSetUp
         if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
-            Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+            Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory[1]!!.invoke()
         }
 
         logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }

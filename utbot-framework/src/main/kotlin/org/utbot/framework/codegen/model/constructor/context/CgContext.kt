@@ -26,7 +26,6 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.codegen.model.constructor.builtin.LibraryUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.UtilClassFileMethodProvider
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
@@ -324,8 +323,7 @@ internal interface CgContextOwner {
 
     /**
      * [ClassId] of a class that contains util methods.
-     * For example, it can be the current test class, or it can be a `UtUtils` class from module `utbot-codegen-utils`.
-     * The latter is used when our codegen utils library is included in the user's project dependencies.
+     * For example, it can be the current test class, or it can be a generated separate `UtUtils` class.
      */
     val utilsClassId: ClassId
         get() = utilMethodProvider.utilClassId
@@ -463,16 +461,11 @@ internal data class CgContext(
         )
     }
 
-    // TODO: note that when nested test classes feature is implemented,
-    // we will have to use the outermost test class here instead of currentTestClass to construct the TestClassUtilMethodProvider
     /**
      * Determine where the util methods will come from.
      * If we don't want to use a separately generated util class,
      * util methods will be generated directly in the test class (see [TestClassUtilMethodProvider]).
      * Otherwise, an util class will be generated separately and we will use util methods from it (see [UtilClassFileMethodProvider]).
-     *
-     * We may also use utils from a library in the future (see [LibraryUtilMethodProvider]),
-     * but it is not clear at this point. Perhaps, we will remove the library completely.
      */
     override val utilMethodProvider: UtilMethodProvider
         get() = if (generateUtilClassFile) {

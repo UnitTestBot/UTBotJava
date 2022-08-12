@@ -150,13 +150,6 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
 }
 
 /**
- * This provider represents an util class file that is located in the library.
- * Source code of the library can be found in the module `utbot-codegen-utils`.
- */
-@Suppress("unused")
-internal object LibraryUtilMethodProvider : UtilMethodProvider(utUtilsClassId)
-
-/**
  * This provider represents an util class file that is generated and put into the user's test module.
  * The generated class is UtUtils (its id is defined at [utUtilsClassId]).
  *

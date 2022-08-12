@@ -833,7 +833,7 @@ private fun getArrayLength(visibility: Visibility, language: CodegenLanguage) =
     }
 
 internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
-    // if util methods come from codegen utils library and not from the test class,
+    // if util methods come from a separate UtUtils class and not from the test class,
     // then we don't need to import any other methods, hence we return from method
     val utilMethodProvider = utilMethodProvider as? TestClassUtilMethodProvider ?: return
     for (classId in utilMethodProvider.regularImportsByUtilMethod(id, codegenLanguage)) {

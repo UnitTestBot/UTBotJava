@@ -119,7 +119,7 @@ class CodeGenerator(
  */
 data class CodeGenerationResult(
     val generatedCode: String,
-    // null if no util class needed, e.g. when we are using a library or generating utils directly into test class
+    // null if no util class needed, e.g. when we are generating utils directly into test class
     val utilClassKind: UtilClassKind?,
     val testsGenerationReport: TestsGenerationReport,
     val mockFrameworkUsed: Boolean = false
@@ -173,9 +173,8 @@ sealed class UtilClassKind(
     companion object {
         /**
          * Check if an util class is required, and if so, what kind.
-         * @return null if [CgContext.utilMethodProvider] is not [UtilClassFileMethodProvider],
-         * because it means that util methods will be taken from some other provider (e.g. utbot-codegen-utils library)
-         * or they will be generated directly into the test class (in this case provider will be [TestClassUtilMethodProvider])
+         * @return `null` if [CgContext.utilMethodProvider] is not [UtilClassFileMethodProvider],
+         * because it means that util methods will be taken from some other provider (e.g. [TestClassUtilMethodProvider]).
          */
         internal fun fromCgContextOrNull(context: CgContext): UtilClassKind? {
             if (context.requiredUtilMethods.isEmpty()) return null

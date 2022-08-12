@@ -33,7 +33,7 @@ internal class CgRendererContext(
                 importedClasses = context.importedClasses,
                 importedStaticMethods = context.importedStaticMethods,
                 classPackageName = context.testClassPackageName,
-                generatedClass = context.currentTestClass,
+                generatedClass = context.outerMostTestClass,
                 utilMethodProvider = context.utilMethodProvider,
                 codegenLanguage = context.codegenLanguage,
                 mockFrameworkUsed = context.mockFrameworkUsed,

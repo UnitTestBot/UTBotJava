@@ -269,11 +269,11 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         runBlocking {
             corMutex.withLock {
                 if (alive) {
-                    logger.catch {
-                        logger.trace("doing close")
+                    logger.trace("doing close")
+                    try {
                         processInstance?.request(Protocol.StopProcessCommand())
-                        processInstance = null
-                    }
+                    } catch (_: Exception) {}
+                    processInstance = null
                 }
                 def.terminate()
             }

@@ -4,8 +4,6 @@ import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.TestClassContext
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner

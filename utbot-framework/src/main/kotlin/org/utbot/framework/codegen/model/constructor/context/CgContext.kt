@@ -32,7 +32,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.UtilClassFileMethod
 import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.TestClassContext
 import org.utbot.framework.codegen.model.constructor.TestClassModel
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
@@ -330,12 +329,6 @@ internal interface CgContextOwner {
      */
     val utilsClassId: ClassId
         get() = utilMethodProvider.utilClassId
-
-    /**
-     * Check whether a method is an util method of the current class
-     */
-    val MethodId.isUtil: Boolean
-        get() = this in outerMostTestClass.possibleUtilMethodIds
 
     /**
      * Checks is it our util reflection field getter method.

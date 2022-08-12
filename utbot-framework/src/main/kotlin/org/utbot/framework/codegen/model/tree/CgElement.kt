@@ -154,7 +154,9 @@ class CgRegularClass(
     override val annotations: List<CgAnnotation>,
     override val superclass: ClassId?,
     override val interfaces: List<ClassId>,
-    override val body: CgRegularClassBody
+    override val body: CgRegularClassBody,
+    override val isStatic: Boolean,
+    override val isNested: Boolean
 ) : AbstractCgClass<CgRegularClassBody>()
 
 data class CgTestClass(

@@ -37,8 +37,10 @@ class CgRegularClassBuilder : CgBuilder<CgRegularClass> {
     var superclass: ClassId? = null
     val interfaces: MutableList<ClassId> = mutableListOf()
     lateinit var body: CgRegularClassBody
+    var isStatic: Boolean = false
+    var isNested: Boolean = false
 
-    override fun build() = CgRegularClass(id, annotations, superclass, interfaces, body)
+    override fun build() = CgRegularClass(id, annotations, superclass, interfaces, body, isStatic, isNested)
 }
 
 fun buildRegularClass(init: CgRegularClassBuilder.() -> Unit) = CgRegularClassBuilder().apply(init).build()

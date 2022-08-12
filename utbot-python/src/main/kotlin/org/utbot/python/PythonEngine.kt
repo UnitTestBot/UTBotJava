@@ -7,6 +7,7 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.providers.defaultPythonModelProvider
+import org.utbot.python.typing.PythonClassIdInfo
 import org.utbot.python.typing.PythonTypesStorage
 
 class PythonEngine(
@@ -17,7 +18,7 @@ class PythonEngine(
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
     private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>
 ) {
-    fun fuzzing(): Sequence<PythonResult> = sequence {
+    fun fuzzing(): Sequence<UtResult> = sequence {
         val types = methodUnderTest.arguments.map {
             selectedTypeMap[it.name] ?: pythonAnyClassId
         }
@@ -35,54 +36,59 @@ class PythonEngine(
         val pythonTypes = selectedTypeMap.values.map { it.name }
 
         fuzz(methodUnderTestDescription, defaultPythonModelProvider).forEach { values ->
-            val modelList = values.map { it.model }
+            val parameterValues = values.map { it.model }
+
+            val (thisObject, modelList) =
+                if (methodUnderTest.containingPythonClassId == null)
+                    Pair(null, parameterValues)
+                else
+                    Pair(parameterValues[0], parameterValues.drop(1))
+
             val evalResult = PythonEvaluation.evaluate(
                 methodUnderTest,
-                modelList,
+                parameterValues,
                 directoriesForSysPath,
                 moduleToImport,
                 pythonPath,
                 pythonTypes
             )
-            if (evalResult is EvaluationError)
-                return@sequence
+            if (evalResult is EvaluationError) {
+                yield(UtError("EvaluationError", Throwable())) // TODO: make better error description
+            }
 
             val (resultJSON, isException) = evalResult as EvaluationSuccess
 
-            if (isException) {
-                yield(PythonError(UtError(resultJSON.output.toString(), Throwable()), modelList, pythonTypes))
-            } else {
-
-                val resultAsModel = PythonTreeModel(
-                    resultJSON.output,
-                    resultJSON.type
-                )
-                val result = UtExecutionSuccess(resultAsModel)
-
-                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-                val testMethodName = try {
-                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
-                } catch (t: Throwable) {
-                    null
+            val result =
+                if (isException)
+                    UtExplicitlyThrownException(Throwable(resultJSON.output), false)
+                else {
+                    val outputType = PythonClassId(resultJSON.type)
+                    val resultAsModel = PythonDefaultModel(
+                        resultJSON.output,
+                        outputType
+                    )
+                    UtExecutionSuccess(resultAsModel)
                 }
 
-                yield(
-                    PythonExecution(
-                        UtExecution(
-                            stateBefore = EnvironmentModels(null, modelList, emptyMap()),
-                            stateAfter = EnvironmentModels(null, modelList, emptyMap()),
-                            result = result,
-                            instrumentation = emptyList(),
-                            path = mutableListOf(), // ??
-                            fullPath = emptyList(), // ??
-                            testMethodName = testMethodName?.testName,
-                            displayName = testMethodName?.displayName
-                        ),
-                        modelList,
-                        pythonTypes
-                    )
-                )
+            val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+            val testMethodName = try {
+                nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
+            } catch (t: Throwable) {
+                null
             }
+
+            yield(
+                UtExecution(
+                    stateBefore = EnvironmentModels(thisObject, modelList, emptyMap()),
+                    stateAfter = EnvironmentModels(thisObject, modelList, emptyMap()),
+                    result = result,
+                    instrumentation = emptyList(),
+                    path = mutableListOf(), // ??
+                    fullPath = emptyList(), // ??
+                    testMethodName = testMethodName?.testName,
+                    displayName = testMethodName?.displayName,
+                )
+            )
         }
     }
 }

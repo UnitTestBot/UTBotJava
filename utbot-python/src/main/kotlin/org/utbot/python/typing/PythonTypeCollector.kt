@@ -24,8 +24,8 @@ class PythonClassIdInfo(
     val pythonClassId: PythonClassId,
     val initSignature: List<NormalizedPythonAnnotation>?,
     val preprocessedInstances: List<String>?,
-    val methods: List<String>,
-    val fields: List<String>
+    val methods: Set<String>,
+    val fields: Set<String>
 )
 
 fun moduleOfType(typeName: String): String? {
@@ -102,8 +102,8 @@ object PythonTypesStorage {
                             classId.moduleName
                         ) },
                     fromPreprocessed?.instances,
-                    fromStub.methods.map { it.name },
-                    fromStub.fields.map { it.name },
+                    fromStub.methods.map { it.name }.toSet(),
+                    fromStub.fields.map { it.name }.toSet()
                 )
             } else {
                 projectClasses.find { it.name.name == classIdName } ?.let { projectClass ->

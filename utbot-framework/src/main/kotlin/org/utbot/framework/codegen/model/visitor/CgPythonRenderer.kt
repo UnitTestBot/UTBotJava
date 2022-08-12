@@ -11,7 +11,7 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.*
-import org.utbot.python.code.camelToSnakeCase
+import org.utbot.python.utils.camelToSnakeCase
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -350,13 +350,16 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgMethodCall) {
-        if (element.executableId.classId is PythonClassId) {
+        if (element.caller == null) {
             val module = (element.executableId.classId as PythonClassId).moduleName
             if (module != pythonBuiltinsModuleName) {
                 print("$module.")
             }
-            print(element.executableId.name)
+        } else {
+            element.caller.accept(this)
+            print(".")
         }
+        print(element.executableId.name)
 
         renderTypeParameters(element.typeParameters)
         renderExecutableCallArguments(element)

@@ -24,7 +24,7 @@ import org.utbot.python.*
 import java.util.*
 
 
-class PythonCode(private val body: Module, val filename: String? = null) {
+class PythonCode(private val body: Module, val filename: String? = null, val pythonModule: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.functionDefs.mapNotNull { functionDef ->
                 PythonMethodBody(functionDef, filename ?: "")
@@ -32,23 +32,26 @@ class PythonCode(private val body: Module, val filename: String? = null) {
 
     fun getToplevelClasses(): List<PythonClass> =
         body.classDefs.mapNotNull { classDef ->
-                PythonClass(classDef, filename)
+                PythonClass(classDef, filename, pythonModule)
             }
 
     companion object {
-        fun getFromString(code: String, filename: String? = null): PythonCode {
+        fun getFromString(code: String, filename: String? = null, pythonModule: String? = null): PythonCode {
             val ast = textToModule(code)
-            return PythonCode(ast, filename)
+            return PythonCode(ast, filename, pythonModule)
         }
     }
 }
 
-class PythonClass(private val ast: ClassDef, val filename: String? = null) {
+class PythonClass(private val ast: ClassDef, val filename: String? = null, val pythonModule: String? = null) {
     val name: String
         get() = ast.name.name
 
     val methods: List<PythonMethodBody>
-        get() = ast.functionDefs.map { PythonMethodBody(it, filename ?: "") }
+        get() = ast.functionDefs.map { PythonMethodBody(it, filename ?: "", pythonClassId) }
+
+    val pythonClassId: PythonClassId?
+        get() = pythonModule?.let { PythonClassId("$it.$name") }
 
     val initSignature: List<PythonArgument>?
         get() {
@@ -73,7 +76,11 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null) {
         get() = (ast.body as? Body)?.statements?.mapNotNull { it as? AnnAssign } ?: emptyList()
 }
 
-class PythonMethodBody(private val ast: FunctionDef, override val moduleFilename: String = ""): PythonMethod {
+class PythonMethodBody(
+    private val ast: FunctionDef,
+    override val moduleFilename: String = "",
+    override val containingPythonClassId: PythonClassId? = null
+): PythonMethod {
     override val name: String
         get() = ast.name.name
 

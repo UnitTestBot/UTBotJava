@@ -14,3 +14,10 @@ fun getLineOfFunction(code: String, functionName: String? = null): Int? {
     val trimmedCode = code.replaceIndent()
     return regex.find(trimmedCode)?.range?.first?.let { getLineNumber(trimmedCode, it) }
 }
+
+fun String.camelToSnakeCase(): String {
+    val camelRegex = "(?<=[a-zA-Z])[\\dA-Z]".toRegex()
+    return camelRegex.replace(this) {
+        "_${it.value}"
+    }.toLowerCase()
+}

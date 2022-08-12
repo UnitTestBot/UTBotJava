@@ -36,6 +36,7 @@ import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -111,9 +112,8 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
-        if (isUtil(methodId)) {
-            utilMethodProvider
-                .findExceptionTypesOf(methodId)
+        if (methodId is BuiltinMethodId) {
+            findExceptionTypesOf(methodId)
                 .forEach { addExceptionIfNeeded(it) }
             return
         }
@@ -363,5 +363,36 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
         return argumentsArrayVariable
+    }
+
+    //WARN: if you make changes in the following sets of exceptions,
+    //don't forget to change them in hardcoded [UtilMethods] as well
+    private fun findExceptionTypesOf(methodId: MethodId): Set<ClassId> {
+        // TODO: at the moment we treat BuiltinMethodIds that are not util method ids
+        // as if they have no exceptions. This should be fixed by storing exception types in BuiltinMethodId
+        // or allowing us to access actual java.lang.Class for classes from mockito and other libraries
+        // (this could be possibly solved by using user project's class loaders in UtContext)
+        if (methodId !in utilMethodProvider.utilMethodIds) return emptySet()
+
+        with(utilMethodProvider) {
+            return when (methodId) {
+                getEnumConstantByNameMethodId -> setOf(java.lang.IllegalAccessException::class.id)
+                getStaticFieldValueMethodId,
+                getFieldValueMethodId,
+                setStaticFieldMethodId,
+                setFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
+                createInstanceMethodId -> setOf(Exception::class.id)
+                getUnsafeInstanceMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.NoSuchFieldException::class.id, java.lang.IllegalAccessException::class.id)
+                createArrayMethodId -> setOf(java.lang.ClassNotFoundException::class.id)
+                deepEqualsMethodId,
+                arraysDeepEqualsMethodId,
+                iterablesDeepEqualsMethodId,
+                streamsDeepEqualsMethodId,
+                mapsDeepEqualsMethodId,
+                hasCustomEqualsMethodId,
+                getArrayLengthMethodId -> emptySet()
+                else -> error("Unknown util method $this")
+            }
+        }
     }
 }

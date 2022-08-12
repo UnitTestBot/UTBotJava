@@ -147,33 +147,6 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
             returnType = intClassId,
             arguments = arrayOf(objectClassId)
         )
-
-    //WARN: if you make changes in the following sets of exceptions,
-    //don't forget to change them in hardcoded [UtilMethods] as well
-    internal fun findExceptionTypesOf(methodId: MethodId): Set<ClassId> {
-        if (methodId !in utilMethodIds) return emptySet()
-
-        with(this) {
-            return when (methodId) {
-                getEnumConstantByNameMethodId -> setOf(java.lang.IllegalAccessException::class.id)
-                getStaticFieldValueMethodId,
-                getFieldValueMethodId,
-                setStaticFieldMethodId,
-                setFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
-                createInstanceMethodId -> setOf(Exception::class.id)
-                getUnsafeInstanceMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.NoSuchFieldException::class.id, java.lang.IllegalAccessException::class.id)
-                createArrayMethodId -> setOf(java.lang.ClassNotFoundException::class.id)
-                deepEqualsMethodId,
-                arraysDeepEqualsMethodId,
-                iterablesDeepEqualsMethodId,
-                streamsDeepEqualsMethodId,
-                mapsDeepEqualsMethodId,
-                hasCustomEqualsMethodId,
-                getArrayLengthMethodId -> emptySet()
-                else -> error("Unknown util method $this")
-            }
-        }
-    }
 }
 
 /**

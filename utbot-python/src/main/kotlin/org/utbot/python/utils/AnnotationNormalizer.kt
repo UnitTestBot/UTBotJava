@@ -18,7 +18,7 @@ object AnnotationNormalizer {
     private fun normalizeAnnotationFromProject(
         annotation: String,
         pythonPath: String,
-        projectRoot: String,
+        curPythonModule: String,
         fileOfAnnotation: String,
         filesToAddToSysPath: List<String>
     ): String {
@@ -28,7 +28,7 @@ object AnnotationNormalizer {
                 pythonPath,
                 scriptFile.path,
                 annotation,
-                projectRoot,
+                curPythonModule,
                 fileOfAnnotation,
             ) + filesToAddToSysPath,
         )
@@ -39,7 +39,7 @@ object AnnotationNormalizer {
     fun annotationFromProjectToClassId(
         annotation: String?,
         pythonPath: String,
-        projectRoot: String,
+        curPythonModule: String,
         fileOfAnnotation: String,
         filesToAddToSysPath: List<String>
     ): NormalizedPythonAnnotation =
@@ -51,7 +51,7 @@ object AnnotationNormalizer {
                     normalizeAnnotationFromProject(
                         annotation,
                         pythonPath,
-                        projectRoot,
+                        curPythonModule,
                         fileOfAnnotation,
                         filesToAddToSysPath
                     )

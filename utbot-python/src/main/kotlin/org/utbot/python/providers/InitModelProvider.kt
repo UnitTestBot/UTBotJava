@@ -22,7 +22,7 @@ object InitModelProvider: PythonModelProvider() {
                         description.concreteValues
                     )
 
-                    fuzz(constructor, nonRecursiveModelProvider).map { initValues ->
+                    fuzz(constructor, defaultPythonModelProvider).map { initValues ->
                         PythonInitObjectModel(classId.name, initValues.mapNotNull { it.model as? PythonModel })
                     }
                 }

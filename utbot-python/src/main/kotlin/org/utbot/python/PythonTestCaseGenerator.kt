@@ -7,14 +7,12 @@ import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
-import org.utbot.python.typing.PythonClassIdInfo
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 
 object PythonTestCaseGenerator {
     private lateinit var directoriesForSysPath: List<String>
-    private lateinit var moduleToImport: String
+    private lateinit var curModule: String
     private lateinit var pythonPath: String
-    private lateinit var projectRoot: String
     private lateinit var fileOfMethod: String
     private lateinit var isCancelled: () -> Boolean
 
@@ -24,14 +22,12 @@ object PythonTestCaseGenerator {
         directoriesForSysPath: List<String>,
         moduleToImport: String,
         pythonPath: String,
-        projectRoot: String,
         fileOfMethod: String,
         isCancelled: () -> Boolean
     ) {
         this.directoriesForSysPath = directoriesForSysPath
-        this.moduleToImport = moduleToImport
+        this.curModule = moduleToImport
         this.pythonPath = pythonPath
-        this.projectRoot = projectRoot
         this.fileOfMethod = fileOfMethod
         this.isCancelled = isCancelled
     }
@@ -45,7 +41,7 @@ object PythonTestCaseGenerator {
             annotationFromProjectToClassId(
                 it.annotation,
                 pythonPath,
-                projectRoot,
+                curModule,
                 fileOfMethod,
                 directoriesForSysPath
             )
@@ -72,7 +68,7 @@ object PythonTestCaseGenerator {
                 val engine = PythonEngine(
                     method,
                     directoriesForSysPath,
-                    moduleToImport,
+                    curModule,
                     pythonPath,
                     argInfoCollector.getConstants(),
                     annotations
@@ -115,7 +111,7 @@ object PythonTestCaseGenerator {
             argInfoCollector,
             method,
             existingAnnotations,
-            moduleToImport,
+            curModule,
             directoriesForSysPath,
             pythonPath,
             fileOfMethod,

@@ -125,7 +125,6 @@ object PythonDialogProcessor {
 
                     PythonTypesStorage.pythonPath = pythonPath
                     PythonTypesStorage.refreshProjectClassesList(
-                        model.project.basePath!!,
                         model.directoriesForSysPath
                     )
 
@@ -142,7 +141,6 @@ object PythonDialogProcessor {
                         model.directoriesForSysPath,
                         model.currentPythonModule,
                         pythonPath,
-                        model.project.basePath!!,
                         filePath
                     ) { indicator.isCanceled || (System.currentTimeMillis() - startTime) > model.timeout }
                 }

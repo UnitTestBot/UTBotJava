@@ -150,7 +150,6 @@ object PythonTypesStorage {
         File(path).toURI().relativize(fileWithClass.toURI()).path.removeSuffix(".py").toPath().joinToString(".")
 
     fun refreshProjectClassesList(
-        projectRoot: String,
         directoriesForSysPath: List<String>
     ) {
         val processedFiles = mutableSetOf<File>()
@@ -163,17 +162,17 @@ object PythonTypesStorage {
                 val code = PythonCode.getFromString(content, file.path)
                 code.getToplevelClasses().map { pyClass ->
                     val collector = ClassInfoCollector(pyClass)
+                    val module = getModuleName(path, file)
                     val initSignature = pyClass.initSignature
                         ?.map {
                             annotationFromProjectToClassId(
                                 it.annotation,
                                 pythonPath ?: error(PYTHON_NOT_SPECIFIED),
-                                projectRoot,
+                                module,
                                 pyClass.filename!!,
                                 directoriesForSysPath
                             )
                         }
-                    val module = getModuleName(path, file)
                     val fullClassName = module + "." + pyClass.name
                     ProjectClass(pyClass, collector.storage, initSignature, PythonClassId(fullClassName))
                 }

@@ -161,6 +161,7 @@ object PythonDialogProcessor {
                         message = "Cannot create tests for the following functions: " + functionNames.joinToString(),
                         title = "Python test generation error"
                     )
+                    return
                 }
 
                 val codeAsString = getContentFromPyFile(model.file)
@@ -178,7 +179,8 @@ object PythonDialogProcessor {
                     invokeLater {
                         messages.forEach { (funcName, message) ->
                             Notifications.Bus.notify(
-                                ShelfNotification("Mypy reports", "Mypy report (function $funcName)", message, NotificationType.WARNING)
+                                ShelfNotification("Mypy reports", "Mypy report (function $funcName)", message, NotificationType.WARNING),
+                                model.project
                             )
                         }
                     }
@@ -203,8 +205,8 @@ object PythonDialogProcessor {
                     )
                 }
                 val paramNames = notEmptyTests.associate { testSet ->
-                        methods[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
-                    }.toMutableMap()
+                    methods[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
+                }.toMutableMap()
 
                 val context = UtContext(this::class.java.classLoader)
                 withUtContext(context) {

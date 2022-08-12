@@ -19,7 +19,7 @@
 - [x] добавить обработку dataclass'ов
 - [ ] импорты в codegen
 - [x] `sys.path` в codegen
-- [ ] получение `sys.path` из настроек проекта
+- [x] получение `sys.path` из настроек проекта
 
 Проблемы могут быть с: `__getitem__`/`__class_getitem__`,
 `__add__/__radd__/__iadd__`

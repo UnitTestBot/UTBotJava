@@ -5,24 +5,14 @@ import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.between
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
 import org.utbot.testcheckers.withoutMinimization
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation SAT-1332
-internal class SetsTest : UtValueTestCaseChecker(
-    testClass = Sets::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+internal class SetsTest : UtValueTestCaseChecker(testClass = Sets::class) {
     @Test
     fun createTest() {
         check(

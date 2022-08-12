@@ -1,21 +1,11 @@
 package org.utbot.examples.collections
 
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.tests.infrastructure.atLeast
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation SAT-1332
-class ListAlgorithmsTest : UtValueTestCaseChecker(
-    testClass = ListAlgorithms::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+class ListAlgorithmsTest : UtValueTestCaseChecker(testClass = ListAlgorithms::class) {
 
     @Test
     fun testMergeLists() {

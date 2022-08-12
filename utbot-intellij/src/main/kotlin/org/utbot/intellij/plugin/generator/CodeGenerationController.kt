@@ -846,7 +846,7 @@ object CodeGenerationController {
                                 FqName(import.qualifiedName)
                             )
                         } else {
-                            ImportUtils.addStaticImport(import.qualifierClass, import.memberName, testClass)
+                            ImportUtils.addStaticImport(import.methodId.classId.canonicalName, import.methodId.name, testClass)
                         }
                     }
                     is RegularImport -> { }

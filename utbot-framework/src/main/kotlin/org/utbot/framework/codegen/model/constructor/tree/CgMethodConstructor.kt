@@ -222,7 +222,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
             val prevValue = newVar(
-                CgClassId(field.type, isNullable = !fieldAccessible),
+                CgClassId(field.fixedType, typeParameters = field.fixedType.typeParameters, isNullable = !fieldAccessible),
                 "prev${field.name.capitalize()}"
             ) {
                 if (fieldAccessible) {

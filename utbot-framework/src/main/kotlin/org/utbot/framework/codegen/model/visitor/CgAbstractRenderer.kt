@@ -731,6 +731,8 @@ internal abstract class CgAbstractRenderer(
 
     override fun toString(): String = printer.toString()
 
+    // Reorder imports to keep alphabetic and logical order if their names are post-processed by renderer
+    protected abstract fun <T: Import> reorderImports(imports: List<T>): List<T>
     protected abstract fun renderRegularImport(regularImport: RegularImport)
     protected abstract fun renderStaticImport(staticImport: StaticImport)
 
@@ -757,8 +759,8 @@ internal abstract class CgAbstractRenderer(
 
     protected abstract fun renderExceptionCatchVariable(exception: CgVariable)
 
-    protected fun getEscapedImportRendering(import: Import): String =
-        import.qualifiedName
+    protected fun getEscapedImportRendering(importName: String): String =
+        importName
             .split(".")
             .joinToString(".") { it.escapeNamePossibleKeyword() }
 
@@ -848,8 +850,8 @@ internal abstract class CgAbstractRenderer(
     }
 
     private fun renderClassFileImports(element: AbstractCgClassFile<*>) {
-        val regularImports = element.imports.filterIsInstance<RegularImport>()
-        val staticImports = element.imports.filterIsInstance<StaticImport>()
+        val regularImports = reorderImports(element.imports.filterIsInstance<RegularImport>())
+        val staticImports = reorderImports(element.imports.filterIsInstance<StaticImport>())
 
         for (import in regularImports) {
             renderRegularImport(import)

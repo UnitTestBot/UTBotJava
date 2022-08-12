@@ -4,23 +4,13 @@ import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.between
 import org.utbot.tests.infrastructure.isException
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
 import org.utbot.testcheckers.withPushingStateFromPathSelectorForConcrete
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation SAT-1332
-class MapEntrySetTest : UtValueTestCaseChecker(
-    testClass = MapEntrySet::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+class MapEntrySetTest : UtValueTestCaseChecker(testClass = MapEntrySet::class) {
     @Test
     @Disabled("JIRA:1443")
     fun testRemoveFromEntrySet() {

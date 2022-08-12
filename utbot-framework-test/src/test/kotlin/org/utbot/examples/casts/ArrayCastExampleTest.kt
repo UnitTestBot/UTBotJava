@@ -3,21 +3,11 @@ package org.utbot.examples.casts
 import org.junit.jupiter.api.Disabled
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation (generics) SAT-1332
 //TODO: SAT-1487 calculate coverage for all methods of this test class
-internal class ArrayCastExampleTest : UtValueTestCaseChecker(
-    testClass = ArrayCastExample::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+internal class ArrayCastExampleTest : UtValueTestCaseChecker(testClass = ArrayCastExample::class) {
     @Test
     fun testCastToAncestor() {
         check(

@@ -37,19 +37,26 @@ data class TestClassFile(val packageName: String, val imports: List<Import>, val
 
 sealed class Import(internal val order: Int) : Comparable<Import> {
     abstract val qualifiedName: String
+    abstract val classId: ClassId
 
     override fun compareTo(other: Import) = importComparator.compare(this, other)
 }
 
 private val importComparator = compareBy<Import> { it.order }.thenBy { it.qualifiedName }
 
-data class StaticImport(val qualifierClass: String, val memberName: String) : Import(1) {
-    override val qualifiedName: String = "$qualifierClass.$memberName"
+data class StaticImport(val methodId: MethodId) : Import(1) {
+    override val qualifiedName: String = "${methodId.classId.canonicalName}.${methodId.name}"
+    override val classId: ClassId
+        get() = methodId.classId
 }
 
-data class RegularImport(val packageName: String, val className: String) : Import(2) {
-    override val qualifiedName: String
-        get() = if (packageName.isNotEmpty()) "$packageName.$className" else className
+data class RegularImport(override val classId: ClassId) : Import(2) {
+    override val qualifiedName: String =
+        if (classId.packageName.isNotEmpty()) {
+            "${classId.packageName}.${classId.simpleNameWithEnclosings}"
+        } else {
+            classId.simpleNameWithEnclosings
+        }
 
     // TODO: check without equals() and hashCode()
     override fun equals(other: Any?): Boolean {
@@ -58,15 +65,14 @@ data class RegularImport(val packageName: String, val className: String) : Impor
 
         other as RegularImport
 
-        if (packageName != other.packageName) return false
-        if (className != other.className) return false
+        if (classId != other.classId) return false
 
         return true
     }
 
     override fun hashCode(): Int {
-        var result = packageName.hashCode()
-        result = 31 * result + className.hashCode()
+        var result = classId.hashCode()
+        result = 31 * result + qualifiedName.hashCode()
         return result
     }
 }

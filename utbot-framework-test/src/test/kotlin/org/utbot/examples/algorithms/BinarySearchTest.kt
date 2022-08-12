@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.DocRegularStmt
 import org.utbot.framework.plugin.api.DocStatement
 import org.junit.jupiter.api.Test
 
-class BinarySearchTest : UtValueTestCaseChecker(testClass = BinarySearch::class,) {
+class BinarySearchTest : UtValueTestCaseChecker(testClass = BinarySearch::class) {
     @Test
     fun testLeftBinarySearch() {
         val fullSummary = listOf<DocStatement>(

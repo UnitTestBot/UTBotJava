@@ -1,6 +1,5 @@
 package org.utbot.examples.collections
 
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
@@ -9,17 +8,8 @@ import org.utbot.tests.infrastructure.between
 import org.utbot.tests.infrastructure.isException
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation SAT-1332
-internal class ListsPart3Test : UtValueTestCaseChecker(
-    testClass = Lists::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+internal class ListsTest : UtValueTestCaseChecker(testClass = Lists::class) {
     @Test
     fun createTest() {
         check(

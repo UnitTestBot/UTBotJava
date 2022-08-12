@@ -62,12 +62,10 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.Instruction
-import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
@@ -154,7 +152,8 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
 
 class UtBotSymbolicEngine(
     private val controller: EngineController,
-    private val methodUnderTest: UtMethod<*>,
+    /** methodUnderTest is internal to use in [org.utbot.framework.plugin.api.processGenerics]. **/
+    internal val methodUnderTest: UtMethod<*>,
     classpath: String,
     dependencyPaths: String,
     mockStrategy: MockStrategy = NO_MOCKS,

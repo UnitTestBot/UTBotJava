@@ -38,7 +38,7 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
             "Can't cast $valueToConstructFrom to ${classId.jClass} in $this assemble constructor."
         }
 
-        modificationChain += if (!isPresent.call(valueToConstructFrom)) {
+        instantiationChain += if (!isPresent.call(valueToConstructFrom)) {
             UtExecutableCallModel(
                 instance = null,
                 emptyMethodId,

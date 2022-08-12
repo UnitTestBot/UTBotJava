@@ -10,7 +10,7 @@ import org.utbot.testcheckers.withoutConcrete
 import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.Compilation
 
-// TODO Kotlin compilation SAT-1332
+// TODO Kotlin compilation because of engine problems with analyzing Class<? extends List<?>> #281
 // Code generation executions fail due we cannot analyze strings properly for now
 internal class ClassWithClassRefTest : UtValueTestCaseChecker(
     testClass = ClassWithClassRef::class,

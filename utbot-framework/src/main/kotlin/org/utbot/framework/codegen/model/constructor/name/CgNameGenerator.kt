@@ -148,8 +148,9 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
     private fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
         CodegenLanguage.JAVA -> nextIndexedVarName(baseName)
         CodegenLanguage.KOTLIN -> {
+            val backticksBaseName = "`$baseName`"
             // use backticks for first variable with keyword name and use indexed names for all next such variables
-            if (baseName !in existingVariableNames) "`$baseName`" else nextIndexedVarName(baseName)
+            if (backticksBaseName !in existingVariableNames) backticksBaseName else nextIndexedVarName(baseName)
         }
     }
 

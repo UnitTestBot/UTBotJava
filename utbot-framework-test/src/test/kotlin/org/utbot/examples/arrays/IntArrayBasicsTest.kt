@@ -4,21 +4,11 @@ import org.junit.jupiter.api.Disabled
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.tests.infrastructure.isException
-import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.ge
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation SAT-1332
-internal class IntArrayBasicsTest : UtValueTestCaseChecker(
-    testClass = IntArrayBasics::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+internal class IntArrayBasicsTest : UtValueTestCaseChecker(testClass = IntArrayBasics::class) {
     @Test
     fun testIntArrayWithAssumeOrExecuteConcretely() {
         check(

@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flattenConcat
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.framework.UtSettings
 
@@ -71,6 +72,6 @@ class TestFlow internal constructor(block: TestFlow.() -> Unit) {
             }
             isSymbolicEngineEnabled -> engine.traverse()
             else -> emptyFlow()
-        }
+        }.map { processGenerics(it, engine.methodUnderTest.callable) }
     }
 }

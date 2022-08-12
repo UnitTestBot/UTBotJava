@@ -4,21 +4,11 @@ import org.junit.jupiter.api.Disabled
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
-import org.utbot.framework.plugin.api.CodegenLanguage
 import kotlin.math.min
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.tests.infrastructure.CodeGeneration
 
-// TODO failed Kotlin compilation (generics) SAT-1332
-internal class ListIteratorsTest : UtValueTestCaseChecker(
-    testClass = ListIterators::class,
-    testCodeGeneration = true,
-    languagePipelines = listOf(
-        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
-        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
-    )
-) {
+internal class ListIteratorsTest : UtValueTestCaseChecker(testClass = ListIterators::class) {
 
     @Test
     fun testIterate() {

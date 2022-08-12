@@ -67,4 +67,14 @@ enum class WorkaroundReason {
      * requires thorough [investigation](https://github.com/UnitTestBot/UTBotJava/issues/716).
      */
     IGNORE_STATICS_FROM_TRUSTED_LIBRARIES,
+
+    /**
+     * Special handling of collection constructors from other collections (for generics processing)
+     */
+    COLLECTION_CONSTRUCTOR_FROM_COLLECTION,
+
+    /**
+     * Assume that in calls to methods in modification chain always require the same type parameters as class has
+     */
+    MODIFICATION_CHAIN_GENERICS_FROM_CLASS,
 }

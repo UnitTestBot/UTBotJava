@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
+import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.isLanguageKeyword
@@ -55,6 +56,7 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.voidClassId
+import kotlin.reflect.KClass
 
 //TODO rewrite using KtPsiFactory?
 internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter = CgPrinterImpl()) : CgAbstractRenderer(context, printer) {
@@ -246,7 +248,6 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
             if (element.isSafetyCast) print(" as? ") else print(" as ")
             print(getKotlinClassString(element.targetType))
-            renderTypeParameters(element.targetType.typeParameters)
             val initNullable = element.type.isNullable
             if (element.targetType.isNullable || initNullable) print("?")
         }
@@ -259,13 +260,13 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override fun visit(element: CgGetJavaClass) {
         // TODO: check how it works on ref types, primitives, ref arrays, primitive arrays, etc.
-        print(getKotlinClassString(element.classId))
+        print(getKotlinClassString(element.classId, false))
         print("::class.java")
     }
 
     override fun visit(element: CgGetKotlinClass) {
         // TODO: check how it works on ref types, primitives, ref arrays, primitive arrays, etc.
-        print(getKotlinClassString(element.classId))
+        print(getKotlinClassString(element.classId, false))
         print("::class")
     }
 
@@ -313,19 +314,27 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun visit(element: CgConstructorCall) {
-        print(getKotlinClassString(element.executableId.classId))
+        print(getKotlinClassString(element.executableId.classId, false))
+        renderTypeParameters(element.executableId.typeParameters)
         print("(")
         element.arguments.renderSeparated()
         print(")")
     }
+    private fun builtInNameOrNull(classId: ClassId): String? = kotlinBuiltins[classId]?.qualifiedName
+
+    private fun Import.kotlinName() = builtInNameOrNull(classId) ?: qualifiedName
+
+    override fun <T : Import> reorderImports(imports: List<T>): List<T> {
+        return imports.sortedBy { it.kotlinName() }
+    }
 
     override fun renderRegularImport(regularImport: RegularImport) {
-        val escapedImport = getEscapedImportRendering(regularImport)
+        val escapedImport = getEscapedImportRendering(regularImport.kotlinName())
         println("import $escapedImport$statementEnding")
     }
 
     override fun renderStaticImport(staticImport: StaticImport) {
-        val escapedImport = getEscapedImportRendering(staticImport)
+        val escapedImport = getEscapedImportRendering(staticImport.kotlinName())
         println("import $escapedImport$statementEnding")
     }
 
@@ -385,7 +394,6 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         // TODO consider moving to getKotlinClassString
         print(": ")
         print(getKotlinClassString(element.variableType))
-        renderTypeParameters(element.variableType.typeParameters)
         val initNullable = element.initializer?.run { type.isNullable } ?: false
         if (element.variableType.isNullable || initNullable) print("?")
     }
@@ -475,7 +483,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     }
 
     override fun renderExceptionCatchVariable(exception: CgVariable) {
-        print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type.kClass.simpleName}")
+        print("${exception.name.escapeNamePossibleKeyword()}: ${exception.type.kClass.qualifiedName}")
     }
 
     override fun isAccessibleBySimpleNameImpl(classId: ClassId): Boolean {
@@ -502,29 +510,60 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
         }
     }
 
-    private fun getKotlinClassString(id: ClassId): String =
+    private val kotlinBuiltins: Map<ClassId, KClass<*>> = mapOf(
+        Pair(java.util.List::class.id, List::class),
+        Pair(java.util.Set::class.id, Set::class),
+        Pair(java.util.Map::class.id, Map::class),
+        Pair(java.util.Collection::class.id, Collection::class),
+        Pair(java.lang.Iterable::class.id, Iterable::class),
+    )
+
+    private fun getKotlinClassString(id: ClassId, printTypeParameters: Boolean = true, depth: Int = 0): String {
+        if (id is WildcardTypeParameter) return "*"
         if (id.isArray) {
-            getKotlinArrayClassOfString(id)
-        } else {
+            return getKotlinArrayClassOfString(id)
+        }
+        val classString =
             when (id.jvmName) {
-                "Ljava/lang/Object;" -> Any::class.simpleName!!
-                "B", "Ljava/lang/Byte;" -> Byte::class.simpleName!!
-                "S", "Ljava/lang/Short;" -> Short::class.simpleName!!
-                "C", "Ljava/lang/Character;" -> Char::class.simpleName!!
-                "I", "Ljava/lang/Integer;" -> Int::class.simpleName!!
-                "J", "Ljava/lang/Long;" -> Long::class.simpleName!!
-                "F", "Ljava/lang/Float;" -> Float::class.simpleName!!
-                "D", "Ljava/lang/Double;" -> Double::class.simpleName!!
-                "Z", "Ljava/lang/Boolean;" -> Boolean::class.simpleName!!
-                "Ljava/lang/CharSequence;" -> CharSequence::class.simpleName!!
-                "Ljava/lang/String;" -> String::class.simpleName!!
+                // TODO some kotlin names might be wrong
+                "Ljava/lang/Object;", "Lkotlin/Any;" -> Any::class.simpleName!!
+                "B", "Ljava/lang/Byte;", "Lkotlin/Byte;" -> Byte::class.simpleName!!
+                "S", "Ljava/lang/Short;", "Lkotlin/Short;" -> Short::class.simpleName!!
+                "C", "Ljava/lang/Character;", "Lkotlin/Char;" -> Char::class.simpleName!!
+                "I", "Ljava/lang/Integer;", "Lkotlin/Int;" -> Int::class.simpleName!!
+                "J", "Ljava/lang/Long;", "Lkotlin/Long;" -> Long::class.simpleName!!
+                "F", "Ljava/lang/Float;", "Lkotlin/Float;" -> Float::class.simpleName!!
+                "D", "Ljava/lang/Double;", "Lkotlin/Double;" -> Double::class.simpleName!!
+                "Z", "Ljava/lang/Boolean;", "Lkotlin/Boolean;" -> Boolean::class.simpleName!!
+                "Ljava/lang/CharSequence;", "Lkotlin/CharSequence;" -> CharSequence::class.simpleName!!
+                "Ljava/lang/Number;", "Lkotlin/Number;" -> Number::class.simpleName!!
+                "Ljava/lang/String;", "Lkotlin/String;" -> String::class.simpleName!!
                 else -> {
                     // we cannot access kClass for BuiltinClassId
                     // we cannot use simple name here because this class can be not imported
-                    if (id is BuiltinClassId) id.name else id.kClass.id.asString()
+                    buildString {
+                        append(builtInNameOrNull(id) ?: if (id is BuiltinClassId) id.name else id.kClass.id.asString())
+                        if (printTypeParameters) {
+                            if (id.typeParameters.parameters.isNotEmpty()) {
+                                append(
+                                    "<" +
+                                    id.typeParameters.parameters.joinToString(separator = ",")
+                                    { getKotlinClassString(it, depth = depth + 1) } +
+                                    ">"
+                                )
+                            }
+                        }
+                    }
                 }
             }
+
+        // for now all kotlin generic types are nullable
+        return if (depth > 0) {
+            "$classString?"
+        } else {
+            classString
         }
+    }
 
     private fun getKotlinArrayClassOfString(classId: ClassId): String =
         if (!classId.elementClassId!!.isPrimitive) {
@@ -555,11 +594,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
     override fun renderTypeParameters(typeParameters: TypeParameters) {
         if (typeParameters.parameters.isNotEmpty()) {
             print("<")
-            if (typeParameters is WildcardTypeParameter) {
-                print("*")
-            } else {
-                print(typeParameters.parameters.joinToString { getKotlinClassString(it)})
-            }
+            print(typeParameters.parameters.joinToString { getKotlinClassString(it, depth = 1)})
             print(">")
         }
     }

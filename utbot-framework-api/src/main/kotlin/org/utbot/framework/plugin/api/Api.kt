@@ -28,6 +28,7 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
+import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
 import org.utbot.framework.plugin.api.util.safeJField
 import org.utbot.framework.plugin.api.util.shortClassId
@@ -56,6 +57,7 @@ import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
+import kotlin.reflect.KType
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaType
@@ -152,7 +154,28 @@ abstract class UtExecution(
     var summary: List<DocStatement>? = null,
     var testMethodName: String? = null,
     var displayName: String? = null
-) : UtResult()
+) : UtResult() {
+    abstract fun copy(
+        stateBefore: EnvironmentModels = this.stateBefore,
+        stateAfter: EnvironmentModels = this.stateAfter,
+        result: UtExecutionResult = this.result,
+        coverage: Coverage? = this.coverage,
+        summary: List<DocStatement>? = this.summary,
+        testMethodName: String? = this.testMethodName,
+        displayName: String? = this.displayName,
+    ): UtExecution
+    // {
+//        return UtExecution(
+//            stateBefore,
+//            stateAfter,
+//            result,
+//            coverage,
+//            summary,
+//            testMethodName,
+//            displayName
+//        )
+//    }
+}
 
 /**
  * Symbolic execution.
@@ -207,8 +230,15 @@ class UtSymbolicExecution(
         appendOptional("instrumentation", instrumentation)
         append(")")
     }
-
-    fun copy(stateAfter: EnvironmentModels, result: UtExecutionResult, coverage: Coverage): UtResult {
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?,
+    ): UtSymbolicExecution {
         return UtSymbolicExecution(
             stateBefore,
             stateAfter,
@@ -243,7 +273,27 @@ class UtFailedExecution(
     summary: List<DocStatement>? = null,
     testMethodName: String? = null,
     displayName: String? = null
-) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName) {
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?
+    ): UtExecution {
+        // TODO possible problem?
+        return UtFailedExecution(
+            stateBefore,
+            result as UtExecutionFailure,
+            coverage,
+            summary,
+            testMethodName,
+            displayName
+        )
+    }
+}
 
 open class EnvironmentModels(
     val thisInstance: UtModel?,
@@ -699,9 +749,25 @@ val Type.classId: ClassId
 open class ClassId @JvmOverloads constructor(
     val name: String,
     val elementClassId: ClassId? = null,
-    // Treat simple class ids as non-nullable
-    open val isNullable: Boolean = false
+    // Treat simple class ids as non-nullable and having no type parameters
+    open val isNullable: Boolean = false,
+    /**
+     * This might cause problems in case of reusing the same [ClassId] for different models.
+     */
+    open val typeParameters: TypeParameters = TypeParameters()
 ) {
+    open fun copy(
+        name: String = this.name,
+        elementClassId: ClassId? = this.elementClassId,
+        isNullable: Boolean = this.isNullable,
+        typeParameters: TypeParameters = this.typeParameters,
+    ) : ClassId =
+        ClassId(
+            name,
+            elementClassId,
+            isNullable,
+            typeParameters,
+        )
 
     open val canonicalName: String
         get() = jClass.canonicalName ?: error("ClassId $name does not have canonical name")
@@ -780,9 +846,6 @@ open class ClassId @JvmOverloads constructor(
      */
     open val allConstructors: Sequence<ConstructorId>
         get() = jClass.declaredConstructors.asSequence().map { it.executableId }
-
-    open val typeParameters: TypeParameters
-        get() = TypeParameters()
 
     open val outerClass: Class<*>?
         get() = jClass.enclosingClass
@@ -925,6 +988,34 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
     open val type: ClassId
         get() = strategy.type
 
+    // required to store and update type parameters
+    // TODO check if by lazy works correctly in newer Kotlin (https://stackoverflow.com/questions/47638464/kotlin-lazy-var-throwing-classcastexception-kotlin-uninitialized-value)
+    // val fixedType: ClassId by lazy { type }
+    private var hiddenFixedType: ClassId? = null
+
+    val fixedType: ClassId
+        get() {
+            if (hiddenFixedType == null) {
+                hiddenFixedType = type
+            }
+            return hiddenFixedType!!
+        }
+
+    fun copy(
+        declaringClass: ClassId = this.declaringClass,
+        name: String = this.name,
+        hiddenFixedType: ClassId? = this.hiddenFixedType,
+    ): FieldId {
+        val newFieldId = FieldId(
+            declaringClass,
+            name
+        )
+
+        newFieldId.hiddenFixedType = hiddenFixedType
+
+        return newFieldId
+    }
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -1000,6 +1091,19 @@ sealed class ExecutableId : StatementId() {
     abstract val isProtected: Boolean
     abstract val isPrivate: Boolean
 
+    /**
+     * This might cause problems in case of reusing the same [ExecutableId] for different models.
+     */
+    abstract val typeParameters: TypeParameters
+
+    abstract fun copy(
+        classId: ClassId = this.classId,
+        name: String = this.name,
+        returnType: ClassId = this.returnType,
+        parameters: List<ClassId> = this.parameters,
+        typeParameters: TypeParameters = this.typeParameters
+    ) : ExecutableId
+
     val isPackagePrivate: Boolean
         get() = !(isPublic || isProtected || isPrivate)
 
@@ -1041,8 +1145,23 @@ open class MethodId(
     override val classId: ClassId,
     override val name: String,
     override val returnType: ClassId,
-    override val parameters: List<ClassId>
+    override val parameters: List<ClassId>,
+    override val typeParameters: TypeParameters = TypeParameters(),
 ) : ExecutableId() {
+    override fun copy(
+        classId: ClassId,
+        name: String,
+        returnType: ClassId,
+        parameters: List<ClassId>,
+        typeParameters: TypeParameters,
+    ): ExecutableId = MethodId(
+        classId,
+        name,
+        returnType,
+        parameters,
+        typeParameters
+    )
+
     open val isStatic: Boolean
         get() = Modifier.isStatic(method.modifiers)
 
@@ -1056,10 +1175,23 @@ open class MethodId(
         get() = Modifier.isPrivate(method.modifiers)
 }
 
-class ConstructorId(
+data class ConstructorId(
     override val classId: ClassId,
-    override val parameters: List<ClassId>
+    override val parameters: List<ClassId>,
+    override val typeParameters: TypeParameters = TypeParameters(),
 ) : ExecutableId() {
+    override fun copy(
+        classId: ClassId,
+        name: String,
+        returnType: ClassId,
+        parameters: List<ClassId>,
+        typeParameters: TypeParameters,
+    ): ConstructorId = ConstructorId(
+        classId,
+        parameters,
+        typeParameters,
+    )
+
     override val name: String = "<init>"
     override val returnType: ClassId = voidClassId
 
@@ -1078,16 +1210,67 @@ class BuiltinMethodId(
     name: String,
     returnType: ClassId,
     parameters: List<ClassId>,
+    typeParameters: TypeParameters = TypeParameters(),
     // by default we assume that the builtin method is non-static and public
     override val isStatic: Boolean = false,
     override val isPublic: Boolean = true,
     override val isProtected: Boolean = false,
     override val isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters)
+) : MethodId(classId, name, returnType, parameters, typeParameters) {
+    override fun copy(
+        classId: ClassId,
+        name: String,
+        returnType: ClassId,
+        parameters: List<ClassId>,
+        typeParameters: TypeParameters,
+    ): BuiltinMethodId = BuiltinMethodId(
+        classId,
+        name,
+        returnType,
+        parameters,
+        typeParameters,
+    )
+}
 
-open class TypeParameters(val parameters: List<ClassId> = emptyList())
+open class TypeParameters(val parameters: List<ClassId> = emptyList()) {
+    override fun hashCode(): Int = parameters.toTypedArray().contentHashCode()
 
-class WildcardTypeParameter : TypeParameters(emptyList())
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as TypeParameters
+
+        // structural equality
+        if (parameters != other.parameters) return false
+
+        return true
+    }
+}
+
+fun ClassId.copyTypeParametersFromKType(type: KType): ClassId {
+    if (type.arguments.isEmpty()) return this
+
+    val newTypeParameters = type.arguments.map {
+        when (val clazz = it.type?.classifier) {
+            is KClass<*> -> {
+                val classId = clazz.id
+                it.type?.let { t ->
+                    classId.copyTypeParametersFromKType(t)
+                } ?: error("")
+
+                classId
+            }
+            else -> objectClassId
+        }
+    }
+
+    return copy(
+        typeParameters = TypeParameters(newTypeParameters)
+    )
+}
+
+object WildcardTypeParameter: ClassId("org.utbot.framework.plugin.api.WildcardTypeParameter")
 
 interface CodeGenerationSettingItem {
     val displayName: String

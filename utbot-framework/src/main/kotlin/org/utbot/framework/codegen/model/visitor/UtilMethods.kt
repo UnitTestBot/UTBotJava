@@ -840,7 +840,7 @@ internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
         importIfNeeded(classId)
     }
     for (methodId in utilMethodProvider.staticImportsByUtilMethod(id)) {
-        collectedImports += StaticImport(methodId.classId.canonicalName, methodId.name)
+        collectedImports += StaticImport(methodId)
     }
 }
 

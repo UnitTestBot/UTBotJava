@@ -55,4 +55,26 @@ class UtFuzzedExecution(
         append(result)
         append(")")
     }
+
+    override fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+        summary: List<DocStatement>?,
+        testMethodName: String?,
+        displayName: String?,
+    ): UtFuzzedExecution {
+        return UtFuzzedExecution(
+            stateBefore,
+            stateAfter,
+            result,
+            coverage,
+            summary,
+            testMethodName,
+            displayName,
+            fuzzingValues,
+            fuzzedMethodDescription,
+        )
+    }
 }

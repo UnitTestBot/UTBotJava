@@ -87,8 +87,9 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()
         val constructorCall = if (this canBeCalledWith resolvedArgs) {
-            CgConstructorCall(this, resolvedArgs.guardedForDirectCallOf(this))
+            CgConstructorCall(this, resolvedArgs.guardedForDirectCallOf(this), typeParameters)
         } else {
+            // TODO typeParameters?
             callWithReflection(resolvedArgs)
         }
         newConstructorCall(this)
@@ -98,8 +99,9 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     override operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall {
         val resolvedArgs = args.resolve()
         val methodCall = if (method.canBeCalledWith(caller, resolvedArgs)) {
-            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method))
+            CgMethodCall(caller, method, resolvedArgs.guardedForDirectCallOf(method), method.typeParameters)
         } else {
+            // TODO typeParams?
             method.callWithReflection(caller, resolvedArgs)
         }
         newMethodCall(method)

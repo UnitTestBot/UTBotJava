@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.visitor
 
 import org.apache.commons.text.StringEscapeUtils
+import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.tree.AbstractCgClass
@@ -214,13 +215,15 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         renderExecutableCallArguments(element)
     }
 
+    override fun <T : Import> reorderImports(imports: List<T>): List<T> = imports
+
     override fun renderRegularImport(regularImport: RegularImport) {
-        val escapedImport = getEscapedImportRendering(regularImport)
+        val escapedImport = getEscapedImportRendering(regularImport.qualifiedName)
         println("import $escapedImport$statementEnding")
     }
 
     override fun renderStaticImport(staticImport: StaticImport) {
-        val escapedImport = getEscapedImportRendering(staticImport)
+        val escapedImport = getEscapedImportRendering(staticImport.qualifiedName)
         println("import static $escapedImport$statementEnding")
     }
 

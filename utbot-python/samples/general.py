@@ -4,6 +4,10 @@ from typing import *
 from dataclasses import dataclass
 
 
+def zero_division(x):
+    return x / 0
+
+
 def id_(x):
     return x
 

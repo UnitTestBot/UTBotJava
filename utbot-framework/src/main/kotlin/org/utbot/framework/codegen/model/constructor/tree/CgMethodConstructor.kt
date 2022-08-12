@@ -1028,6 +1028,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
+    private fun generatePythonTestComments(execution: UtExecution) {
+        when (execution.result) {
+            is UtExplicitlyThrownException ->
+                (execution.result as UtExplicitlyThrownException).exception.message?.let {
+                    emptyLineIfNeeded()
+                    comment("raises $it")
+                }
+            else -> {
+                // nothing
+            }
+        }
+    }
+
     fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
@@ -1060,6 +1073,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     generateResultAssertions()
                     rememberFinalEnvironmentState(modificationInfo)
                     generateFieldStateAssertions()
+                    if (executableId is PythonMethodId)
+                        generatePythonTestComments(execution)
                 }
 
                 val statics = currentExecution!!.stateBefore.statics

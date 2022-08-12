@@ -7,6 +7,9 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
+import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
+
+`import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
@@ -1791,7 +1794,9 @@ class Traverser(
     private fun isStaticFieldMeaningful(field: SootField) =
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields from library classes
-            !field.declaringClass.isFromTrustedLibrary()
+            workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
+                !ignoreStaticsFromTrustedLibraries || !field.declaringClass.isFromTrustedLibrary()
+            }
 
     /**
      * Locates object represents static fields of particular class.

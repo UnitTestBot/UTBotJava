@@ -389,6 +389,13 @@ object UtSettings {
      */
     var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
 
+    /**
+     * Flag that indicates whether should we branch on and set static fields from trusted libraries or not.
+     *
+     * @see [org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES]
+     */
+    var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
+
     override fun toString(): String =
         settingsValues
             .mapKeys { it.key.name }

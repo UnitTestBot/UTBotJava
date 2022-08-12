@@ -12,9 +12,8 @@ evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
-    implementation(project(":utbot-framework"))
+    api project(":utbot-framework")
     compile(project(':utbot-instrumentation'))
-    implementation(project(':utbot-summary'))
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
 
@@ -47,9 +46,7 @@ dependencies {
 }
 
 test {
-    useJUnitPlatform {
-        excludeTags 'Summary'
-    }
+    useJUnitPlatform()
 }
 
 processResources {

@@ -187,11 +187,7 @@ data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
     val staticDeclarationRegions: List<CgStaticsRegion>,
     val nestedClassRegions: List<CgRegion<CgTestClass>>
-) : AbstractCgClassBody() {
-
-    val regions: List<CgRegion<*>>
-        get() = testMethodRegions
-}
+) : AbstractCgClassBody()
 
 /**
  * A class representing the IntelliJ IDEA's regions.

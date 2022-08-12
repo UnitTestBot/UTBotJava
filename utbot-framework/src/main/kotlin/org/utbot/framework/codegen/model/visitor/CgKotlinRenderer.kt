@@ -117,7 +117,7 @@ internal class CgKotlinRenderer(context: CgRendererContext, printer: CgPrinter =
 
     override fun visit(element: CgTestClassBody) {
         // render regions for test methods
-        for ((i, region) in (element.testMethodRegions).withIndex()) {
+        for ((i, region) in (element.testMethodRegions + element.nestedClassRegions).withIndex()) {
             if (i != 0) println()
 
             region.accept(this)

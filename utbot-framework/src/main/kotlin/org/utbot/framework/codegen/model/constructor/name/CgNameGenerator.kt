@@ -23,6 +23,7 @@ internal interface CgNameGenerator {
      */
     fun nameFrom(id: ClassId): String =
             when {
+                id is NormalizedPythonAnnotation -> "var"
                 id is PythonClassId -> id.simpleName.decapitalize()
                 id.isAnonymous -> id.prettifiedName
                 id.isArray -> id.prettifiedName

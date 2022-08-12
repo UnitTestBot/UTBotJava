@@ -114,7 +114,7 @@ internal class PythonCgStatementConstructorImpl(context: CgContext) :
         }
     }
 
-    override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) {
+    override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) = withNameScope {
         currentBlock += buildCgForEachLoop(init)
     }
 

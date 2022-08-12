@@ -55,6 +55,7 @@ interface CgElement {
             is CgTryCatch -> visit(element)
             is CgInnerBlock -> visit(element)
             is CgForLoop -> visit(element)
+            is CgForEachLoop -> visit(element)
             is CgWhileLoop -> visit(element)
             is CgDoWhileLoop -> visit(element)
             is CgBreakStatement -> visit(element)
@@ -93,6 +94,12 @@ interface CgElement {
             is CgPythonIndex -> visit(element)
             is CgPythonAssertEquals -> visit(element)
             is CgPythonSysPath -> visit(element)
+            is CgPythonFunctionCall -> visit(element)
+            is CgPythonRange -> visit(element)
+            is CgPythonList -> visit(element)
+            is CgPythonSet -> visit(element)
+            is CgPythonDict -> visit(element)
+            is CgPythonTuple -> visit(element)
             else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
         }
     }
@@ -870,12 +877,11 @@ class CgPythonAssertEquals(
 ) : CgStatement
 
 class CgPythonFunctionCall(
-    override val executableId: ExecutableId,
-    override val arguments: List<CgExpression>,
-    override val typeParameters: TypeParameters,
-) : CgExecutableCall() {
-    override val type: ClassId = executableId.classId
-}
+    override val type: PythonClassId,
+    val name: String,
+    val parameters: List<CgExpression>,
+) : CgExpression
+
 
 class CgPythonIndex(
     override val type: PythonClassId,
@@ -886,3 +892,38 @@ class CgPythonIndex(
 class CgPythonSysPath(
     val newPath: String
 ) : CgStatement
+
+class CgPythonRange(
+    val start: Int,
+    val stop: Int,
+    val step: Int,
+) : CgValue {
+    override val type: PythonClassId
+        get() = pythonRangeClassId
+
+    constructor(stop: Int): this(0, stop , 1)
+}
+
+class CgPythonList(
+    val elements: List<CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonListClassId
+}
+
+class CgPythonTuple(
+    val elements: List<CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonTupleClassId
+}
+
+class CgPythonSet(
+    val elements: Set<CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonSetClassId
+}
+
+class CgPythonDict(
+    val elements: Map<CgValue, CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonDictClassId
+}

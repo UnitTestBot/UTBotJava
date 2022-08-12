@@ -71,7 +71,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgTripleSlashMultilineComment) {
-        for (line in element.lines) {
+        element.lines.forEach { line ->
             println("# $line")
         }
     }
@@ -259,7 +259,11 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderForLoopVarControl(element: CgForLoop) {
-        println("for ??? in ???:")
+        print("for ")
+        visit(element.condition)
+        print(" in ")
+        element.initialization.accept(this@CgPythonRenderer)
+        println(":")
     }
 
     override fun renderDeclarationLeftPart(element: CgDeclaration) {
@@ -337,16 +341,22 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         if (printNextLine) println()
     }
 
+    override fun visit(element: CgThisInstance) {
+        print("self")
+    }
+
     override fun visit(element: CgMethod) {
         visit(element.statements, printNextLine = true)
     }
 
     override fun visit(element: CgMethodCall) {
-        val module = (element.executableId.classId as PythonClassId).moduleName
-        if (module != pythonBuiltinsModuleName) {
-            print("$module.")
+        if (element.executableId.classId is PythonClassId) {
+            val module = (element.executableId.classId as PythonClassId).moduleName
+            if (module != pythonBuiltinsModuleName) {
+                print("$module.")
+            }
+            print(element.executableId.name)
         }
-        print(element.executableId.name)
 
         renderTypeParameters(element.typeParameters)
         renderExecutableCallArguments(element)
@@ -359,8 +369,16 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override fun visit(element: CgPythonIndex) {
         visit(element.obj)
         print("[")
-        visit(element.index)
+        element.index.accept(this)
         print("]")
+    }
+
+    override fun visit(element: CgPythonFunctionCall) {
+        print(element.name)
+        print("(")
+        val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
+        element.parameters.renderSeparated(newLinesNeeded)
+        print(")")
     }
 
     override fun visit(element: CgPythonAssertEquals) {
@@ -373,9 +391,68 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         println("sys.path.append('${element.newPath}')")
     }
 
+    override fun visit(element: CgPythonRange) {
+        print("range(")
+        print(listOf(element.start, element.stop, element.step).joinToString(", "))
+        print(")")
+    }
+
+    override fun visit(element: CgPythonList) {
+        print("[")
+        element.elements.renderSeparated()
+        print("]")
+    }
+
+    override fun visit(element: CgPythonTuple) {
+        print("(")
+        element.elements.renderSeparated()
+        print(")")
+    }
+
+    override fun visit(element: CgPythonSet) {
+        print("{")
+        element.elements.toList().renderSeparated()
+        print("}")
+    }
+
+    override fun visit(element: CgPythonDict) {
+        print("{")
+        element.elements.map { (key, value) ->
+            key.accept(this)
+            print(": ")
+            value.accept(this)
+            print(", ")
+        }
+        print("}")
+    }
+
+    override fun visit(element: CgForEachLoop) {
+        print("for ")
+        element.condition.accept(this)
+        print(" in ")
+        element.iterable.accept(this)
+        println(":")
+        withIndent { element.statements.forEach { it.accept(this) } }
+    }
+
+    override fun visit(element: CgLiteral) {
+        val value = with(element.value) {
+            when(this) {
+                is Int -> "$this"
+                is Float -> "$this"
+                is Byte -> "$this"
+                is String -> escapeCharacters()
+                is Boolean -> if (this) "True" else "False"
+                else -> "$this"
+            }
+        }
+        print(value)
+    }
+
     override fun String.escapeCharacters(): String =
-        StringEscapeUtils.escapeJava(this)
-        .replace("$", "\\$")
-        .replace("\\f", "\\u000C")
-        .replace("\\xxx", "\\\u0058\u0058\u0058")
+        StringEscapeUtils
+            .escapeJava(this)
+            .replace("'", "\\'")
+            .replace("\\f", "\\u000C")
+            .replace("\\xxx", "\\\u0058\u0058\u0058")
 }

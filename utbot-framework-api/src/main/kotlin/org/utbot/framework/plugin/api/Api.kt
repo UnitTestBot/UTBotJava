@@ -290,12 +290,17 @@ class PythonDefaultModel(
 }
 
 // none annotation can be used in code only since Python 3.10
-val pythonNoneClassId = NormalizedPythonAnnotation("types.NoneType")
+val pythonNoneClassId = PythonClassId("types.NoneType")
 val pythonAnyClassId = NormalizedPythonAnnotation("typing.Any")
-val pythonIntClassId = PythonClassId("builtins.int")
-val pythonFloatClassId = PythonClassId("builtins.float")
-val pythonStrClassId = PythonClassId("builtins.str")
-val pythonBoolClassId = PythonClassId("builtins.bool")
+val pythonIntClassId = PythonIntModel.classId
+val pythonFloatClassId = PythonFloatModel.classId
+val pythonStrClassId = PythonStrModel.classId
+val pythonBoolClassId = PythonBoolModel.classId
+val pythonRangeClassId = PythonClassId("builtins.range")
+val pythonListClassId = PythonListModel.classId
+val pythonTupleClassId = PythonTupleModel.classId
+val pythonDictClassId = PythonDictModel.classId
+val pythonSetClassId = PythonSetModel.classId
 
 class PythonIntModel(val value: BigInteger): PythonModel(classId) {
     override fun toString() = "$value"
@@ -352,6 +357,22 @@ class PythonListModel(
 
     companion object {
         val classId = PythonClassId("builtins.list")
+    }
+}
+
+class PythonTupleModel(
+    val length: Int = 0,
+    val stores: List<PythonModel>
+) : PythonModel(classId) {
+    override fun toString() = withToStringThreadLocalReentrancyGuard {
+        (0 until length).map { stores[it] }.joinToString(", ", "(", ")")
+    }
+
+    override val allContainingClassIds: Set<PythonClassId>
+        get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
+
+    companion object {
+        val classId = PythonClassId("builtins.tuple")
     }
 }
 

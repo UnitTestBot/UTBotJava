@@ -146,13 +146,13 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     private var processInstance: UtInstrumentationProcess? = null
 
     // this function is intended to be called under corMutex
-    private suspend fun regenerate() {
+    private suspend fun regenerate(): UtInstrumentationProcess {
         def.throwIfNotAlive()
-        val proc = processInstance
+        var proc : UtInstrumentationProcess? = processInstance
 
-        if (proc?.lifetime?.isAlive == false) {
+        if (proc == null || !proc.lifetime.isAlive) {
             def.createNested().terminateOnException {
-                processInstance = UtInstrumentationProcess(
+                proc = UtInstrumentationProcess(
                     it,
                     childProcessRunner,
                     instrumentation,
@@ -160,22 +160,29 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                     pathsToDependencyClasses,
                     classLoader
                 )
+                processInstance = proc
             }
         }
+
+        return proc!!
     }
 
     private suspend inline fun <T> withProcess(block: UtInstrumentationProcess.() -> T): T {
+        val proc: UtInstrumentationProcess
+
         corMutex.withLock {
-            regenerate()
+            proc = regenerate()
         }
 
-        return processInstance!!.block()
+        return proc.block()
     }
 
     private suspend inline fun <T> withProcessExclusively(block: UtInstrumentationProcess.() -> T): T {
+        val proc: UtInstrumentationProcess
+
         corMutex.withLock {
-            regenerate()
-            return processInstance!!.block()
+            proc = regenerate()
+            return proc.block()
         }
     }
 

@@ -65,7 +65,7 @@ class CodeGenerator(
     fun generateAsStringWithTestReport(
         testSets: Collection<UtMethodTestSet>,
         testClassCustomName: String? = null,
-    ): CodeGenerationResult {
+    ): CodeGeneratorResult {
         val cgTestSets = testSets.map { CgMethodTestSet(it) }.toList()
         return generateAsStringWithTestReport(cgTestSets, testClassCustomName)
     }
@@ -73,11 +73,11 @@ class CodeGenerator(
     private fun generateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
-    ): CodeGenerationResult = withCustomContext(testClassCustomName) {
+    ): CodeGeneratorResult = withCustomContext(testClassCustomName) {
         context.withTestClassFileScope {
             val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
             val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
-            CodeGenerationResult(
+            CodeGeneratorResult(
                 generatedCode = renderClassFile(testClassFile),
                 utilClassKind = UtilClassKind.fromCgContextOrNull(context),
                 testsGenerationReport = testClassFile.testsGenerationReport,
@@ -117,7 +117,7 @@ class CodeGenerator(
  * @property testsGenerationReport some info about test generation process
  * @property mockFrameworkUsed flag indicating whether any mock objects have been created during code generation ot not
  */
-data class CodeGenerationResult(
+data class CodeGeneratorResult(
     val generatedCode: String,
     // null if no util class needed, e.g. when we are generating utils directly into test class
     val utilClassKind: UtilClassKind?,

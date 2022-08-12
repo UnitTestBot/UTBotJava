@@ -10,6 +10,9 @@ import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.CodeGenerator
+import org.utbot.framework.codegen.model.CodeGeneratorResult
+import org.utbot.framework.codegen.model.UtilClassKind
+import org.utbot.framework.codegen.model.UtilClassKind.Companion.UT_UTILS_CLASS_NAME
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
@@ -19,6 +22,8 @@ import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
+import java.io.File
+import java.nio.file.Path
 import kotlin.reflect.KClass
 
 private val logger = KotlinLogging.logger {}
@@ -75,7 +80,8 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
             val codegenLanguage = testFrameworkConfiguration.codegenLanguage
             val parametrizedTestSource = testFrameworkConfiguration.parametrizedTestSource
 
-            val testClass = callToCodeGenerator(testSets, classUnderTest)
+            val codeGenerationResult = callToCodeGenerator(testSets, classUnderTest)
+            val testClass = codeGenerationResult.generatedCode
 
             // actual number of the tests in the generated testClass
             val generatedMethodsCount = testClass
@@ -149,16 +155,32 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
 
                 val testClassName = classPipeline.retrieveTestClassName("BrokenGeneratedTest")
                 val generatedTestFile = writeTest(testClass, testClassName, buildDirectory, codegenLanguage)
+                val generatedUtilClassFile = codeGenerationResult.utilClassKind?.writeUtilClassToFile(buildDirectory, codegenLanguage)
 
                 logger.error("Broken test has been written to the file: [$generatedTestFile]")
+                if (generatedUtilClassFile != null) {
+                    logger.error("Util class for the broken test has been written to the file: [$generatedUtilClassFile]")
+                }
                 logger.error("Failed configuration: $testFrameworkConfiguration")
 
                 throw it
             }
 
-            classPipeline.stageContext = copy(data = testClass, stages = stages + information.completeStage())
+            classPipeline.stageContext = copy(data = codeGenerationResult, stages = stages + information.completeStage())
         }
     }
+
+    private fun UtilClassKind.writeUtilClassToFile(buildDirectory: Path, language: CodegenLanguage): File {
+        val utilClassFile = File(buildDirectory.toFile(), "$UT_UTILS_CLASS_NAME${language.extension}")
+        val utilClassText = getUtilClassText(language)
+        return writeFile(utilClassText, utilClassFile)
+    }
+
+    private data class GeneratedTestClassInfo(
+        val testClassName: String,
+        val generatedTestFile: File,
+        val generatedUtilClassFile: File?
+    )
 
     @Suppress("UNCHECKED_CAST")
     private fun processCompilationStages(classesPipelines: List<ClassPipeline>) {
@@ -169,24 +191,34 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         val codegenLanguage = testFrameworkConfiguration.codegenLanguage
 
         val testClassesNamesToTestGeneratedTests = classesPipelines.map { classPipeline ->
-            val testClass = classPipeline.stageContext.data as String
+            val codeGeneratorResult = classPipeline.stageContext.data as CodeGeneratorResult//String
+            val testClass = codeGeneratorResult.generatedCode
+
             val testClassName = classPipeline.retrieveTestClassName("GeneratedTest")
             val generatedTestFile = writeTest(testClass, testClassName, buildDirectory, codegenLanguage)
+            val generatedUtilClassFile = codeGeneratorResult.utilClassKind?.writeUtilClassToFile(buildDirectory, codegenLanguage)
 
             logger.info("Test has been written to the file: [$generatedTestFile]")
+            if (generatedUtilClassFile != null) {
+                logger.info("Util class for the test has been written to the file: [$generatedUtilClassFile]")
+            }
 
-            testClassName to generatedTestFile
+            GeneratedTestClassInfo(testClassName, generatedTestFile, generatedUtilClassFile)
         }
 
+        val sourceFiles = mutableListOf<String>().apply {
+            this += testClassesNamesToTestGeneratedTests.map { it.generatedTestFile.absolutePath }
+            this += testClassesNamesToTestGeneratedTests.mapNotNull { it.generatedUtilClassFile?.absolutePath }
+        }
         compileTests(
             "$buildDirectory",
-            testClassesNamesToTestGeneratedTests.map { it.second.absolutePath },
+            sourceFiles,
             codegenLanguage
         )
 
-        testClassesNamesToTestGeneratedTests.zip(classesPipelines) { testClassNameToTest, classPipeline ->
+        testClassesNamesToTestGeneratedTests.zip(classesPipelines) { generatedTestClassInfo, classPipeline ->
             classPipeline.stageContext = classPipeline.stageContext.copy(
-                data = CompilationResult("$buildDirectory", testClassNameToTest.first),
+                data = CompilationResult("$buildDirectory", generatedTestClassInfo.testClassName),
                 stages = classPipeline.stageContext.stages + information.completeStage()
             )
         }
@@ -224,7 +256,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     private fun callToCodeGenerator(
         testSets: List<UtMethodTestSet>,
         classUnderTest: KClass<*>
-    ): String {
+    ): CodeGeneratorResult {
         val params = mutableMapOf<ExecutableId, List<String>>()
 
         val codeGenerator = with(testFrameworkConfiguration) {
@@ -244,7 +276,7 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
         }
         val testClassCustomName = "${classUnderTest.java.simpleName}GeneratedTest"
 
-        return codeGenerator.generateAsString(testSets, testClassCustomName)
+        return codeGenerator.generateAsStringWithTestReport(testSets, testClassCustomName)
     }
 
     private fun checkPipelinesResults(classesPipelines: List<ClassPipeline>) {

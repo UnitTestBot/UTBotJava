@@ -442,19 +442,21 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgLiteral) {
         val value = with(element.value) {
-            when(this) {
-                is Byte -> "$this"
-                is String -> {
-                    if (this.startsWith("\"\"") && this.endsWith("\"\"")) {
-                        "\"$this\""
-                    } else if (this.startsWith("\"") && this.endsWith("\"")) {
-                        "\"\"$this\"\""
-                    } else {
-                        "\"\"\"$this\"\"\""
+            when (element.type) {
+                pythonStrClassId ->
+                    when(this) {
+                        is String -> {
+                            if (this.startsWith("\"\"") && this.endsWith("\"\"")) {
+                                "\"$this\""
+                            } else if (this.startsWith("\"") && this.endsWith("\"")) {
+                                "\"\"$this\"\""
+                            } else {
+                                "\"\"\"$this\"\"\""
+                            }
+                        }
+                        else -> this.toString()
                     }
-                }
-                is Boolean -> if (this) "True" else "False"
-                else -> "$this"
+                else -> this.toString()
             }
         }
         print(value)

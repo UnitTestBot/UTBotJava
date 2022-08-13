@@ -12,6 +12,8 @@ import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.utils.camelToSnakeCase
+import java.math.BigDecimal
+import java.math.BigInteger
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -441,10 +443,16 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override fun visit(element: CgLiteral) {
         val value = with(element.value) {
             when(this) {
-                is Int -> "$this"
-                is Float -> "$this"
                 is Byte -> "$this"
-                is String -> escapeCharacters()
+                is String -> {
+                    if (this.startsWith("\"\"") && this.endsWith("\"\"")) {
+                        "\"$this\""
+                    } else if (this.startsWith("\"") && this.endsWith("\"")) {
+                        "\"\"$this\"\""
+                    } else {
+                        "\"\"\"$this\"\"\""
+                    }
+                }
                 is Boolean -> if (this) "True" else "False"
                 else -> "$this"
             }

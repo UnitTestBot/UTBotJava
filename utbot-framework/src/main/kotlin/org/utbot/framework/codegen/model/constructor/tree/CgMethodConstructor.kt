@@ -981,8 +981,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     PythonMethodId(
                         obj.type as PythonClassId,
                         "append",
-                        pythonNoneClassId,
-                        listOf(it.type as PythonClassId)
+                        NormalizedPythonAnnotation(pythonNoneClassId.name),
+                        listOf(it.type as RawPythonAnnotation)
                     ),
                     listOf(it)
                 ) }

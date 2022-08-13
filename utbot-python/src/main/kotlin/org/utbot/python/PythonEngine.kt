@@ -60,10 +60,10 @@ class PythonEngine(
 
             val result =
                 if (isException)
-                    UtExplicitlyThrownException(Throwable(resultJSON.output), false)
+                    UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false) // TODO:
                 else {
-                    val outputType = PythonClassId(resultJSON.type)
-                    val resultAsModel = PythonDefaultModel(
+                    val outputType = resultJSON.type
+                    val resultAsModel = PythonTreeModel(
                         resultJSON.output,
                         outputType
                     )

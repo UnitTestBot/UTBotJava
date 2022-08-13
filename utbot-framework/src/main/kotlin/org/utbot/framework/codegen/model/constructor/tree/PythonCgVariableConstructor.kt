@@ -21,6 +21,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
                 is PythonDictModel -> CgPythonRepr(model.classId, model.toString())
                 is PythonListModel -> CgPythonRepr(model.classId, model.toString())
                 is PythonSetModel -> CgPythonRepr(model.classId, model.toString())
+                is PythonTupleModel -> CgPythonRepr(model.classId, model.toString())
                 is PythonDefaultModel -> CgPythonRepr(model.classId, model.repr)
                 is PythonModel -> error("Unexpected PythonModel: ${model::class}")
                 else -> super.getOrCreateVariable(model, name)

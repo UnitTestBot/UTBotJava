@@ -178,10 +178,17 @@ object PythonDialogProcessor {
                 if (messages.isNotEmpty()) {
                     invokeLater {
                         messages.forEach { (funcName, message) ->
-                            Notifications.Bus.notify(
-                                ShelfNotification("Mypy reports", "Mypy report (function $funcName)", message, NotificationType.WARNING),
-                                model.project
-                            )
+                            if (message.isNotEmpty()) {
+                                Notifications.Bus.notify(
+                                    ShelfNotification(
+                                        "Mypy reports",
+                                        "Mypy report (function $funcName)",
+                                        message,
+                                        NotificationType.WARNING
+                                    ),
+                                    model.project
+                                )
+                            }
                         }
                     }
                 }

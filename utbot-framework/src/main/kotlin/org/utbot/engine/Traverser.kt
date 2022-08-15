@@ -1790,11 +1790,18 @@ class Traverser(
         return createdField
     }
 
+    /**
+     * For now the field is `meaningful` if it is safe to set, that is, it is not an internal system field nor a
+     * synthetic field. This filter is needed to prohibit changing internal fields, which can break up our own
+     * code and which are useless for the user.
+     *
+     * @return `true` if the field is meaningful, `false` otherwise.
+     */
     private fun isStaticFieldMeaningful(field: SootField) =
         !Modifier.isSynthetic(field.modifiers) &&
             // we don't want to set fields from library classes
-            workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
-                !ignoreStaticsFromTrustedLibraries || !field.declaringClass.isFromTrustedLibrary()
+            !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
+                ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
             }
 
     /**

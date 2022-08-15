@@ -129,23 +129,23 @@ fun textToModule(code: String): Module {
 }
 
 object AnnotationProcessor {
-    // get only types with modules in prefixes
-    fun getTypesFromAnnotation(annotation: String): Set<String> {
-        val annotationAST = textToModule(annotation)
+    fun getTypesFromAnnotation(annotation: NormalizedPythonAnnotation): Set<PythonClassId> {
+        val annotationAST = textToModule(annotation.name)
         val visitor = Visitor()
-        val result = mutableSetOf<String>()
+        val result = mutableSetOf<PythonClassId>()
         visitor.visitModule(annotationAST, result)
         return result
     }
 
-    private class Visitor: ModifierVisitor<MutableSet<String>>() {
-        override fun visitAtom(atom: Atom, param: MutableSet<String>): AST {
+    private class Visitor: ModifierVisitor<MutableSet<PythonClassId>>() {
+        override fun visitAtom(atom: Atom, param: MutableSet<PythonClassId>): AST {
             parse(
                 nameWithPrefixFromAtom(apply()),
                 onError = null,
                 atom
             ) { it } ?.let { typeName ->
-                param.add(typeName)
+                if (typeName != pythonAnyClassId.name)
+                    param.add(PythonClassId(typeName))
             }
 
             return super.visitAtom(atom, param)

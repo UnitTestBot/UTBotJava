@@ -6,9 +6,8 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
 import org.utbot.python.providers.defaultPythonModelProvider
-import org.utbot.python.typing.PythonClassIdInfo
-import org.utbot.python.typing.PythonTypesStorage
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -33,7 +32,9 @@ class PythonEngine(
             parameterNameMap = { index -> methodUnderTest.arguments.getOrNull(index)?.name }
         }
 
-        val pythonTypes = selectedTypeMap.values.map { it.name }
+        val additionalModules = selectedTypeMap.values.flatMap {
+            getTypesFromAnnotation(it).map { pythonClassId -> pythonClassId.moduleName }
+        }
 
         fuzz(methodUnderTestDescription, defaultPythonModelProvider).forEach { values ->
             val parameterValues = values.map { it.model }
@@ -50,7 +51,7 @@ class PythonEngine(
                 directoriesForSysPath,
                 moduleToImport,
                 pythonPath,
-                pythonTypes
+                additionalModules
             )
             if (evalResult is EvaluationError) {
                 yield(UtError("EvaluationError", Throwable())) // TODO: make better error description

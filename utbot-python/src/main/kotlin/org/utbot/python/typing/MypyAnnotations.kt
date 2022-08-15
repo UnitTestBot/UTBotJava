@@ -1,8 +1,6 @@
 package org.utbot.python.typing
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
@@ -31,7 +29,7 @@ object MypyAnnotations {
             method,
             emptyMap(),
             directoriesForSysPath,
-            moduleToImport.split(".").last(),
+            moduleToImport
         )
         FileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
 
@@ -65,7 +63,7 @@ object MypyAnnotations {
                 method,
                 annotationMap,
                 directoriesForSysPath,
-                moduleToImport.split(".").last(),
+                moduleToImport
             )
             FileManager.writeToAssignedFile(fileWithCode, codeWithAnnotations)
             val mypyOutput = runMypy(pythonPath, fileWithCode)

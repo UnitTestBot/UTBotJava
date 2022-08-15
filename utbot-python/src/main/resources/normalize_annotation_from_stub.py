@@ -14,11 +14,14 @@ def main(annotation: str, module_of_annotation: str):
             else:
                 name = mypy_type.name
 
-            modname = eval(name).__module__
-            result = f'{modname}.{name}'
+            if eval(name) is None:
+                result = "types.NoneType"
+            else:
+                modname = eval(name).__module__
+                result = f'{modname}.{name}'
+
         except Exception as e:
             result = 'typing.Any'
-            print(e)
 
         if len(mypy_type.args) != 0:
             arg_strs = [

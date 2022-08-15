@@ -30,6 +30,7 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrett
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.*
+import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
 import org.utbot.python.typing.PythonTypesStorage
 
 
@@ -119,25 +120,9 @@ object PythonCodeGenerator {
             )
         }
 
-        val additionalImport = additionalModules
-            .asSequence()
-            .map { it.split("[", "]", ",", "|") }
-            .flatten()
-            .map { it.trim() }
-            .mapNotNull {
-                if (it.contains(".")) {
-                    val module = it.split(".").dropLast(1).joinToString(".")
-                    Import(listOf(Alias(module)))
-                } else {
-                    null
-                }
-            }
-            .toSet().toList()
-
-        val mathImport = ImportFrom("math", listOf(Alias("*")))
-        val typingImport = ImportFrom("typing", listOf(Alias("*")))
+        val additionalImport = additionalModules.map { Import(listOf(Alias(it))) }
         val import = ImportFrom(functionPath, listOf(Alias("*")))
-        return listOf(systemImport) + systemCalls + additionalImport + listOf(typingImport, mathImport, import)
+        return listOf(systemImport) + systemCalls + additionalImport + listOf(import)
     }
 
     private fun generateFunctionCallForTopLevelFunction(method: PythonMethod): Expression {
@@ -246,7 +231,9 @@ object PythonCodeGenerator {
         val importStatements = generateImportFunctionCode(
             moduleToImport,
             directoriesForSysPath,
-            methodAnnotations.values.map { it.name }.toSet().toList(),
+            methodAnnotations.values.flatMap { annotation ->
+                getTypesFromAnnotation(annotation).map { it.moduleName }
+            }.toSet().toList() + listOf("typing"),
         )
 
         val parameters = Parameters(

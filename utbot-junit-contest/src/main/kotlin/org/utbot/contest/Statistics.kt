@@ -46,13 +46,13 @@ class GlobalStats {
         get() = statsForClasses.count { it.failedToCompile }
 
     val coveredInstructionsCount: Int
-        get() = statsForClasses.sumBy { it.coverage.getCoverageInfo(it.className).first }
+        get() = statsForClasses.sumBy { it.coverage.getCoverageInfo(it.className).covered }
 
     val coveredInstructionsCountByFuzzing: Int
-        get() = statsForClasses.sumBy { it.fuzzedCoverage.getCoverageInfo(it.className).first }
+        get() = statsForClasses.sumBy { it.fuzzedCoverage.getCoverageInfo(it.className).covered }
 
     val coveredInstructionsCountByConcolic: Int
-        get() = statsForClasses.sumBy { it.concolicCoverage.getCoverageInfo(it.className).first }
+        get() = statsForClasses.sumBy { it.concolicCoverage.getCoverageInfo(it.className).covered }
 
     val totalInstructionsCount: Int
         get() = statsForClasses.sumBy { it.coverage?.instructionsCount?.toInt() ?: 0 }
@@ -60,7 +60,7 @@ class GlobalStats {
     val avgCoverage: Double
         get() = statsForClasses
             .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
-            .map { it.coverage.getCoverageInfo(it.className).run { if (second == 0) 0.0 else 100.0 * first / second } }
+            .map { it.coverage.getCoverageInfo(it.className).run { if (total == 0) 0.0 else 100.0 * covered / total } }
             .average()
 
     override fun toString(): String = "\n<Global statistics> :" +
@@ -119,7 +119,7 @@ class StatsForClass(val className: String) {
     var concolicCoverage: Coverage? = null
 
     private fun Coverage?.prettyInfo(): String =
-        getCoverageInfo(className).run { "$first/$second" }
+        getCoverageInfo(className).run { "$covered/$total" }
 
     override fun toString(): String = "\n<StatsForClass> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
@@ -178,8 +178,13 @@ class FailReason(private val throwable: Throwable) {
 
 }
 
-private fun Coverage?.getCoverageInfo(className: String): Pair<Int, Int> = this?.run {
-    coveredInstructions.filter { instr ->
-        instr.className.startsWith(className)
-    }.toSet().size to (instructionsCount?.toInt() ?: 0)
-} ?: (0 to 0)
+data class CoverageStatistic(val covered: Int, val total: Int)
+
+private fun Coverage?.getCoverageInfo(className: String): CoverageStatistic = this?.run {
+    CoverageStatistic(
+        coveredInstructions.filter {
+            instr -> instr.className.startsWith(className)
+        }.toSet().size,
+        instructionsCount?.toInt() ?: 0
+    )
+} ?: CoverageStatistic(covered = 0, total = 0)

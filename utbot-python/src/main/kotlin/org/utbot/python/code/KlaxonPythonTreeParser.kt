@@ -27,6 +27,10 @@ object KlaxonPythonTreeParser {
             var repr = json.string("value")!!
             if (type == "builtins.complex") {
                 repr = "complex('$repr')"
+            } else if (repr == "nan") {
+                repr = "float('$repr')"
+            } else if (repr == "inf") {
+                repr = "float('$repr')"
             }
             PythonTree.PrimitiveNode(PythonClassId(type), repr)
         } else {

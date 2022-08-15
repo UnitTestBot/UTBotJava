@@ -1,3 +1,4 @@
+import collections
 import heapq
 import typing
 from typing import *
@@ -6,6 +7,19 @@ from dataclasses import dataclass
 
 def zero_division(x):
     return x / 0
+
+
+def repr_test(x):
+    x *= 100
+    return [1, x + 1, collections.UserList([1, 2, 3]), collections.Counter("flkafksdf"), collections.OrderedDict({1: 2, 4: "jflas"})]
+
+
+def str_test(x):  # generate bad test !!!
+    x += '1"23'
+    if len(x.split('.')) == 1:
+        return "12'3"
+    else:
+        return """100''500"""
 
 
 def id_(x):

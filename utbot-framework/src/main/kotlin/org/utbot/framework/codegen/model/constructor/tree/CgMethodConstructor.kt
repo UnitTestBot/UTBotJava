@@ -72,6 +72,7 @@ import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
+import kotlin.math.exp
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -915,12 +916,265 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 else -> {
                     when (expected) {
-                        is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
+                        is CgPythonTree -> pythonDeepEquals(expected, actual)
                         is CgPythonRepr -> testFrameworkManager.assertEquals(expected, actual)
+                        is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
                         else -> generateDeepEqualsOrNullAssertion(expected, actual)
                     }
                 }
+            }
+        }
+    }
+
+    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
+        return when (objectNode) {
+            is PythonTree.PrimitiveNode -> {
+                CgLiteral(objectNode.type, objectNode.repr)
+            }
+            is PythonTree.ListNode -> {
+                CgPythonList(
+                    objectNode.items.map { pythonBuildObject(it) }
+                )
+            }
+            is PythonTree.TupleNode -> {
+                CgPythonTuple(
+                    objectNode.items.map { pythonBuildObject(it) }
+                )
+            }
+            is PythonTree.SetNode -> {
+                CgPythonSet(
+                    objectNode.items.map { pythonBuildObject(it) }.toSet()
+                )
+            }
+            is PythonTree.DictNode -> {
+                CgPythonDict(
+                    objectNode.items.map { (key, value) ->
+                        pythonBuildObject(key) to pythonBuildObject(value)
+                    }.toMap()
+                )
+            }
+            is PythonTree.ReduceNode -> {
+                val initArgs = objectNode.args.map {
+                    pythonBuildObject(it)
+                }
+                val state = objectNode.state.map { (key, value) ->
+                    key to pythonBuildObject(value)
+                }.toMap()
+                val listitems = objectNode.listitems.map {
+                    pythonBuildObject(it)
+                }
+                val dictitems = objectNode.dictitems.map { (key, value) ->
+                    pythonBuildObject(key) to pythonBuildObject(value)
+                }
+
+                val obj = newVar(objectNode.type) { CgConstructorCall(
+                    ConstructorId(objectNode.type, initArgs.map { it.type }),
+                    initArgs
+                ) }
+                state.forEach { (key, value) ->
+                    val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
+                    fieldAccess `=` value
+                }
+                listitems.forEach { CgMethodCall(
+                    obj,
+                    PythonMethodId(
+                        obj.type as PythonClassId,
+                        "append",
+                        NormalizedPythonAnnotation(pythonNoneClassId.name),
+                        listOf(it.type as RawPythonAnnotation)
+                    ),
+                    listOf(it)
+                ) }
+                dictitems.forEach { (key, value) ->
+                    val index = CgPythonIndex(
+                        value.type as PythonClassId,
+                        obj,
+                        key
+                    )
+                    index `=` value
+                }
+
+                return obj
+            }
+            else -> { throw UnsupportedOperationException() }
+        }
+    }
+
+    private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {
+        require(expected is CgPythonTree) {
+            "Expected value have to be CgPythonTree but `${expected::class}` found"
+        }
+        val expectedValue = pythonBuildObject(expected.tree)
+        pythonDeepTreeEquals(expected.tree, expectedValue, actual)
+    }
+
+    private fun pythonDeepTreeEquals(
+        expectedNode: PythonTree.PythonTreeNode,
+        expected: CgValue,
+        actual: CgVariable
+    ) {
+        with(testFrameworkManager) {
+            when (expectedNode) {
+                is PythonTree.PrimitiveNode -> {
+                    testFrameworkManager.assertEquals(
+                        expected,
+                        actual,
+                    )
+                }
+                is PythonTree.ListNode -> {
+                    val lenValue = newVar(pythonIntClassId, "actual_length") {
+                        CgGetLength(actual)
+                    }
+
+                    emptyLine()
+                    testFrameworkManager.assertEquals(
+                        CgLiteral(pythonIntClassId, expectedNode.items.size),
+                        lenValue
+                    )
+                    emptyLine()
+
+                    val index = newVar(pythonIntClassId, "index") {
+                        CgLiteral(pythonIntClassId, 0)
+                    }
+                    forEachLoop {
+                        innerBlock {
+                            condition = index
+                            iterable = CgPythonRange(expectedNode.items.size)
+                            val indexActual = newVar(pythonAnyClassId, "actual_index") {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    actual,
+                                    index
+                                )
+                            }
+                            val indexExpected = newVar(pythonAnyClassId, "expected_index") {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    newVar(expected.type) {expected},
+                                    index
+                                )
+                            }
+                            testFrameworkManager.assertEquals(
+                                indexExpected, indexActual
+                            )
+                            statements = currentBlock
+                        }
+                    }
+                }
+                is PythonTree.TupleNode -> {
+                    val lenValue = newVar(pythonIntClassId, "actual_length") {
+                        CgGetLength(actual)
+                    }
+
+                    emptyLine()
+                    testFrameworkManager.assertEquals(
+                        CgLiteral(pythonIntClassId, expectedNode.items.size),
+                        lenValue
+                    )
+                    emptyLine()
+
+                    val index = newVar(pythonIntClassId, "index") {
+                        CgLiteral(pythonIntClassId, 0)
+                    }
+                    forEachLoop {
+                        innerBlock {
+                            condition = index
+                            iterable = CgPythonRange(expectedNode.items.size)
+                            val indexActual = newVar(pythonAnyClassId, "actual_index") {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    actual,
+                                    index
+                                )
+                            }
+                            val indexExpected = newVar(pythonAnyClassId, "expected_index") {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    newVar(expected.type) {expected},
+                                    index
+                                )
+                            }
+                            testFrameworkManager.assertEquals(
+                                indexExpected, indexActual
+                            )
+                            statements = currentBlock
+                        }
+                    }
+                }
+                is PythonTree.SetNode -> {
+                    testFrameworkManager.assertEquals(
+                        expected, actual
+                    )
+                }
+                is PythonTree.DictNode -> {
+                    val lenValue = newVar(pythonIntClassId, "actual_length") {
+                        CgGetLength(actual)
+                    }
+
+                    emptyLine()
+                    testFrameworkManager.assertEquals(
+                        CgLiteral(pythonIntClassId, expectedNode.items.size),
+                        lenValue
+                    )
+                    emptyLine()
+
+                    val key = newVar(pythonNoneClassId, "key") {
+                        CgLiteral(pythonNoneClassId, null)
+                    }
+                    forEachLoop {
+                        innerBlock {
+                            condition = key
+                            iterable = expected
+                            val valueActual = newVar(pythonAnyClassId, "actual_value") {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    actual,
+                                    key
+                                )
+                            }
+                            val valueExpected = newVar(pythonAnyClassId, "expected_value") {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    newVar(expected.type) {expected},
+                                    key
+                                )
+                            }
+                            testFrameworkManager.assertEquals(
+                                valueExpected, valueActual
+                            )
+                            statements = currentBlock
+                        }
+                    }
+                }
+                is PythonTree.ReduceNode -> {
+                    if (expectedNode.state.isNotEmpty()) {
+                        expectedNode.state.forEach { (field, value) ->
+                            val valueActual = newVar(value.type) {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    actual,
+                                    CgLiteral(pythonStrClassId, field)
+                                )
+                            }
+                            val valueExpected = newVar(value.type) {
+                                CgPythonIndex(
+                                    pythonIntClassId,
+                                    newVar(expected.type) {expected},
+                                    CgLiteral(pythonStrClassId, field)
+                                )
+                            }
+                            testFrameworkManager.assertEquals(
+                                valueExpected, valueActual
+                            )
+                        }
+                    } else {
+                        testFrameworkManager.assertEquals(
+                            expected, actual
+                        )
+                    }
+                }
+                else -> {}
             }
         }
     }
@@ -1403,6 +1657,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
     }
 
@@ -1434,6 +1689,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
     /**
@@ -1453,6 +1709,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
     }
 
@@ -1493,6 +1750,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
 
@@ -1548,6 +1806,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
     private fun testMethod(

@@ -30,9 +30,14 @@ import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrett
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.*
+import org.utbot.python.typing.PythonTypesStorage
 
 
 object PythonCodeGenerator {
+    private val pythonTreeSerializerCode = PythonCodeGenerator::class.java.getResource("/python_tree_serializer.py")
+        ?.readText(Charsets.UTF_8)
+        ?: error("Didn't find preprocessed_values.json")
+
     private fun toString(module: Module): String {
         val modulePrettyPrintVisitor = ModulePrettyPrintVisitor()
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
@@ -59,31 +64,12 @@ object PythonCodeGenerator {
             Body(listOf(
                 Assign(
                     listOf(Name("out")),
-                    Name("dict()")
-                ),
-                Assign(
-                    listOf(Name("out['output']")),
-                    Atom(Name("repr"), listOf(createArguments(listOf(Name(outputName)))))
-                ),
-                If(
-                    Name("$outputName != None"),
-                    Body(listOf(Assign(
-                        listOf(Name("out['type']")),
-                        Add(
-                            Name("type($outputName).__module__"),
-                            Add(
-                                Str("."),
-                                Atom(
-                                    Atom(
-                                        Name("type"),
-                                        listOf(createArguments(listOf(Name(outputName))))
-                                    ),
-                                    listOf(Attribute(Identifier("__name__")))
-                                ),
-                            )
-                        )
-                    ))),
-                    Body(listOf(Name("out['type'] = 'types.NoneType'")))
+                    Atom(
+                        Name(
+                            "_PythonTreeSerializer.serialize"
+                        ),
+                        listOf(createArguments(listOf(Name(outputName))))
+                    )
                 ),
                 Atom(
                     Name("print"),
@@ -244,7 +230,7 @@ object PythonCodeGenerator {
             listOf(createArguments())
         )
 
-        return toString(
+        return pythonTreeSerializerCode + "\n\n\n" + toString(
             Module(
                 importStatements + listOf(testFunction, runFunction)
             )

@@ -655,7 +655,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> jUnit4LibraryDescriptor(versionInProject)
             Junit5 -> jUnit5LibraryDescriptor(versionInProject)
             TestNg -> testNgLibraryDescriptor(versionInProject)
-            Pytest -> TODO("Not implemented yet")
+            Pytest -> throw UnsupportedOperationException()
+            Unittest -> throw UnsupportedOperationException()
         }
 
         selectedTestFramework.isInstalled = true

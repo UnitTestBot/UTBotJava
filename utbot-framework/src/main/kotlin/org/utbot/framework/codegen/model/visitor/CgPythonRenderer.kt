@@ -12,6 +12,8 @@ import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.utils.camelToSnakeCase
+import java.math.BigDecimal
+import java.math.BigInteger
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -71,7 +73,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgTripleSlashMultilineComment) {
-        for (line in element.lines) {
+        element.lines.forEach { line ->
             println("# $line")
         }
     }
@@ -237,13 +239,18 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
         print("(")
         val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
-        val selfParameter = CgParameterDeclaration("self", ClassId(""))
+        val selfParameter = CgThisInstance(pythonAnyClassId)
         (listOf(selfParameter) + element.parameters).renderSeparated(newLinesNeeded)
         print(")")
     }
 
     override fun renderMethodSignature(element: CgErrorTestMethod) {
-        print("def ${element.name.camelToSnakeCase()}(self)")
+        print("def ")
+        print(element.name.camelToSnakeCase())
+        print("(")
+        val selfParameter = CgThisInstance(pythonAnyClassId)
+        listOf(selfParameter).renderSeparated()
+        print(")")
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
@@ -259,7 +266,11 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderForLoopVarControl(element: CgForLoop) {
-        println("for ??? in ???:")
+        print("for ")
+        visit(element.condition)
+        print(" in ")
+        element.initialization.accept(this@CgPythonRenderer)
+        println(":")
     }
 
     override fun renderDeclarationLeftPart(element: CgDeclaration) {
@@ -337,6 +348,10 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         if (printNextLine) println()
     }
 
+    override fun visit(element: CgThisInstance) {
+        print("self")
+    }
+
     override fun visit(element: CgMethod) {
         visit(element.statements, printNextLine = true)
     }
@@ -361,6 +376,21 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         print(element.content)
     }
 
+    override fun visit(element: CgPythonIndex) {
+        visit(element.obj)
+        print("[")
+        element.index.accept(this)
+        print("]")
+    }
+
+    override fun visit(element: CgPythonFunctionCall) {
+        print(element.name)
+        print("(")
+        val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
+        element.parameters.renderSeparated(newLinesNeeded)
+        print(")")
+    }
+
     override fun visit(element: CgPythonAssertEquals) {
         print("${element.keyword} ")
         visit(element.expression)
@@ -371,9 +401,76 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         println("sys.path.append('${element.newPath}')")
     }
 
+    override fun visit(element: CgPythonRange) {
+        print("range(")
+        print(listOf(element.start, element.stop, element.step).joinToString(", "))
+        print(")")
+    }
+
+    override fun visit(element: CgPythonList) {
+        print("[")
+        element.elements.renderSeparated()
+        print("]")
+    }
+
+    override fun visit(element: CgPythonTuple) {
+        print("(")
+        element.elements.renderSeparated()
+        print(")")
+    }
+
+    override fun visit(element: CgPythonSet) {
+        print("{")
+        element.elements.toList().renderSeparated()
+        print("}")
+    }
+
+    override fun visit(element: CgPythonDict) {
+        print("{")
+        element.elements.map { (key, value) ->
+            key.accept(this)
+            print(": ")
+            value.accept(this)
+            print(", ")
+        }
+        print("}")
+    }
+
+    override fun visit(element: CgForEachLoop) {
+        print("for ")
+        element.condition.accept(this)
+        print(" in ")
+        element.iterable.accept(this)
+        println(":")
+        withIndent { element.statements.forEach { it.accept(this) } }
+    }
+
+    override fun visit(element: CgLiteral) {
+        val value = with(element.value) {
+            when (element.type) {
+                pythonStrClassId ->
+                    when(this) {
+                        is String -> {
+                            if (this.startsWith("\"\"") && this.endsWith("\"\"")) {
+                                "\"$this\""
+                            } else if (this.startsWith("\"") && this.endsWith("\"")) {
+                                "\"\"$this\"\""
+                            } else {
+                                "\"\"\"$this\"\"\""
+                            }
+                        }
+                        else -> this.toString()
+                    }
+                else -> this.toString()
+            }
+        }
+        print(value)
+    }
+
     override fun String.escapeCharacters(): String =
-        StringEscapeUtils.escapeJava(this)
-        .replace("$", "\\$")
-        .replace("\\f", "\\u000C")
-        .replace("\\xxx", "\\\u0058\u0058\u0058")
+        StringEscapeUtils
+            .escapeJava(this)
+            .replace("'", "\\'")
+            .replace("\\f", "\\u000C")
+            .replace("\\xxx", "\\\u0058\u0058\u0058")
 }

@@ -6,19 +6,7 @@ import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.DocClassLinkStmt
-import org.utbot.framework.plugin.api.DocCodeStmt
-import org.utbot.framework.plugin.api.DocMethodLinkStmt
-import org.utbot.framework.plugin.api.DocPreTagStatement
-import org.utbot.framework.plugin.api.DocRegularStmt
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -67,6 +55,7 @@ interface CgElement {
             is CgTryCatch -> visit(element)
             is CgInnerBlock -> visit(element)
             is CgForLoop -> visit(element)
+            is CgForEachLoop -> visit(element)
             is CgWhileLoop -> visit(element)
             is CgDoWhileLoop -> visit(element)
             is CgBreakStatement -> visit(element)
@@ -102,8 +91,15 @@ interface CgElement {
             is CgErrorWrapper -> visit(element)
             is CgEmptyLine -> visit(element)
             is CgPythonRepr -> visit(element)
+            is CgPythonIndex -> visit(element)
             is CgPythonAssertEquals -> visit(element)
             is CgPythonSysPath -> visit(element)
+            is CgPythonFunctionCall -> visit(element)
+            is CgPythonRange -> visit(element)
+            is CgPythonList -> visit(element)
+            is CgPythonSet -> visit(element)
+            is CgPythonDict -> visit(element)
+            is CgPythonTuple -> visit(element)
             else -> throw IllegalArgumentException("Can not visit element of type ${element::class}")
         }
     }
@@ -865,6 +861,11 @@ class CgClassId(
     ) : this(classId.name, classId.elementClassId, typeParameters, isNullable)
 }
 
+class CgPythonTree(
+    override val type: ClassId,
+    val tree: PythonTree.PythonTreeNode
+) : CgValue
+
 class CgPythonRepr(
     override val type: ClassId,
     val content: String
@@ -875,6 +876,54 @@ class CgPythonAssertEquals(
     val keyword: String = "assert",
 ) : CgStatement
 
+class CgPythonFunctionCall(
+    override val type: PythonClassId,
+    val name: String,
+    val parameters: List<CgExpression>,
+) : CgExpression
+
+
+class CgPythonIndex(
+    override val type: PythonClassId,
+    val obj: CgVariable,
+    val index: CgExpression,
+): CgValue
+
 class CgPythonSysPath(
     val newPath: String
 ) : CgStatement
+
+class CgPythonRange(
+    val start: Int,
+    val stop: Int,
+    val step: Int,
+) : CgValue {
+    override val type: PythonClassId
+        get() = pythonRangeClassId
+
+    constructor(stop: Int): this(0, stop , 1)
+}
+
+class CgPythonList(
+    val elements: List<CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonListClassId
+}
+
+class CgPythonTuple(
+    val elements: List<CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonTupleClassId
+}
+
+class CgPythonSet(
+    val elements: Set<CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonSetClassId
+}
+
+class CgPythonDict(
+    val elements: Map<CgValue, CgValue>
+) : CgValue {
+    override val type: PythonClassId = pythonDictClassId
+}

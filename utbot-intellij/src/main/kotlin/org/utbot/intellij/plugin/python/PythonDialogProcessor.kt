@@ -1,7 +1,5 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.notification.NotificationType
-import com.intellij.notification.Notifications
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
@@ -11,7 +9,6 @@ import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.vcs.changes.shelf.ShelfNotification
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -29,6 +26,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
+import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
@@ -39,8 +37,8 @@ import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.utils.getLineOfFunction
-import javax.swing.SwingUtilities.invokeLater
-
+import org.utbot.common.appendHtmlLine
+import org.utbot.python.PythonTestSet
 
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
@@ -162,28 +160,6 @@ object PythonDialogProcessor {
                     return
                 }
 
-                val codeAsString = getContentFromPyFile(model.file)
-
-                val messages = notEmptyTests.associate { testSet ->
-                    val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
-                    testSet.method.name to testSet.mypyReport.joinToString("") {
-                        if (lineOfFunction != null && it.line >= 0)
-                            ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-                        else
-                            "${it.type}: ${it.message}"
-                    }
-                }
-                if (messages.isNotEmpty()) {
-                    invokeLater {
-                        messages.forEach { (funcName, message) ->
-                            Notifications.Bus.notify(
-                                ShelfNotification("Mypy reports", "Mypy report (function $funcName)", message, NotificationType.WARNING),
-                                model.project
-                            )
-                        }
-                    }
-                }
-
                 val classId =
                     if (model.containingClass == null)
                         PythonClassId(model.currentPythonModule + ".TopLevelFunctions")
@@ -233,8 +209,30 @@ object PythonDialogProcessor {
                         }
                     }
                 }
+
+                showNotifications(notEmptyTests, model)
             }
         })
+    }
+
+    private fun showNotifications(notEmptyTests: List<PythonTestSet>, model: PythonTestsModel) {
+        val codeAsString = getContentFromPyFile(model.file)
+        val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
+            val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
+            val msgLines = testSet.mypyReport.map {
+                if (lineOfFunction != null && it.line >= 0)
+                    ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                else
+                    "${it.type}: ${it.message}"
+            }
+            if (msgLines.isNotEmpty()) {
+                acc.appendHtmlLine("MYPY REPORT (function ${testSet.method.name})")
+                msgLines.forEach { acc.appendHtmlLine(it) }
+            }
+            acc
+        }.toString()
+        if (mypyReport != "")
+            WarningTestsReportNotifier.notify(mypyReport)
     }
 }
 

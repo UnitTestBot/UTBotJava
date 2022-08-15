@@ -54,41 +54,41 @@ class PythonEngine(
             )
             if (evalResult is EvaluationError) {
                 yield(UtError("EvaluationError", Throwable())) // TODO: make better error description
-            }
+            } else {
+                val (resultJSON, isException) = evalResult as EvaluationSuccess
 
-            val (resultJSON, isException) = evalResult as EvaluationSuccess
+                val result =
+                    if (isException)
+                        UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false) // TODO:
+                    else {
+                        val outputType = resultJSON.type
+                        val resultAsModel = PythonTreeModel(
+                            resultJSON.output,
+                            outputType
+                        )
+                        UtExecutionSuccess(resultAsModel)
+                    }
 
-            val result =
-                if (isException)
-                    UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false) // TODO:
-                else {
-                    val outputType = resultJSON.type
-                    val resultAsModel = PythonTreeModel(
-                        resultJSON.output,
-                        outputType
-                    )
-                    UtExecutionSuccess(resultAsModel)
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
+                } catch (t: Throwable) {
+                    null
                 }
 
-            val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
-            val testMethodName = try {
-                nameSuggester.flatMap { it.suggest(methodUnderTestDescription, values, result) }.firstOrNull()
-            } catch (t: Throwable) {
-                null
-            }
-
-            yield(
-                UtExecution(
-                    stateBefore = EnvironmentModels(thisObject, modelList, emptyMap()),
-                    stateAfter = EnvironmentModels(thisObject, modelList, emptyMap()),
-                    result = result,
-                    instrumentation = emptyList(),
-                    path = mutableListOf(), // ??
-                    fullPath = emptyList(), // ??
-                    testMethodName = testMethodName?.testName,
-                    displayName = testMethodName?.displayName,
+                yield(
+                    UtExecution(
+                        stateBefore = EnvironmentModels(thisObject, modelList, emptyMap()),
+                        stateAfter = EnvironmentModels(thisObject, modelList, emptyMap()),
+                        result = result,
+                        instrumentation = emptyList(),
+                        path = mutableListOf(), // ??
+                        fullPath = emptyList(), // ??
+                        testMethodName = testMethodName?.testName,
+                        displayName = testMethodName?.displayName,
+                    )
                 )
-            )
+            }
         }
     }
 }

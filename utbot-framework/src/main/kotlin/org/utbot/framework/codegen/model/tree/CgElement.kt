@@ -891,7 +891,19 @@ class CgPythonIndex(
 
 class CgPythonSysPath(
     val newPath: String
-) : CgStatement
+) : CgStatement {
+    override fun equals(other: Any?): Boolean {
+        return if (other is CgPythonSysPath) {
+            newPath == other.newPath
+        } else {
+            false
+        }
+    }
+
+    override fun hashCode(): Int {
+        return newPath.hashCode()
+    }
+}
 
 class CgPythonRange(
     val start: Int,

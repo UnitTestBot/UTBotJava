@@ -416,6 +416,9 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override fun visit(element: CgPythonTuple) {
         print("(")
         element.elements.renderSeparated()
+        if (element.elements.size == 1) {
+            print(",")
+        }
         print(")")
     }
 

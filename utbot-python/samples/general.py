@@ -13,17 +13,26 @@ def zero_division(x):
     return x / 0
 
 
+def list_of_list(x: List[List[int]]):
+    return x
+
+
 def repr_test(x):
     x *= 100
     return [1, x + 1, collections.UserList([1, 2, 3]), collections.Counter("flkafksdf"), collections.OrderedDict({1: 2, 4: "jflas"})]
 
 
-def str_test(x):  # generate bad test !!!
+def str_test(x):
     x += '1"23'
+    x += "flskjd'jfslk"
     if len(x.split('.')) == 1:
-        return "12'3"
+        return '1"23'
     else:
         return """100''500"""
+
+
+def empty():
+    return 1
 
 
 def id_(x):

@@ -69,10 +69,10 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
+import org.utbot.python.typing.moduleOfType
 import org.utbot.summary.SummarySentenceConstants.TAB
 import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
-import kotlin.math.exp
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -928,6 +928,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
+        collectedImports += PythonImport(objectNode.type.moduleName)
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 CgLiteral(objectNode.type, objectNode.repr)
@@ -955,6 +956,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 )
             }
             is PythonTree.ReduceNode -> {
+                val constructorModule = moduleOfType(objectNode.constructor) ?: objectNode.constructor
+                collectedImports += PythonImport(constructorModule)
+
                 val initArgs = objectNode.args.map {
                     pythonBuildObject(it)
                 }
@@ -967,9 +971,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val dictitems = objectNode.dictitems.map { (key, value) ->
                     pythonBuildObject(key) to pythonBuildObject(value)
                 }
+                val constructor = ConstructorId(
+                    PythonClassId(objectNode.constructor),
+                    initArgs.map { it.type }
+                )
 
                 val obj = newVar(objectNode.type) { CgConstructorCall(
-                    ConstructorId(objectNode.type, initArgs.map { it.type }),
+                    constructor,
                     initArgs
                 ) }
                 state.forEach { (key, value) ->
@@ -1009,6 +1017,54 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         pythonDeepTreeEquals(expected.tree, expectedValue, actual)
     }
 
+    private fun pythonLenAssertConstructor(
+        actual: CgVariable,
+        expectedLength: Int,
+    ) {
+        val lenValue = newVar(pythonIntClassId, "actual_length") {
+            CgGetLength(actual)
+        }
+        testFrameworkManager.assertEquals(
+            CgLiteral(pythonIntClassId, expectedLength),
+            lenValue
+        )
+    }
+
+    private fun pythonAssertElementsByKey(
+        expected: CgVariable,
+        actual: CgVariable,
+        iterator: CgReferenceExpression,
+        keyName: String = "index",
+    ) {
+        val index = newVar(pythonIntClassId, keyName) {
+            CgLiteral(pythonIntClassId, 0)
+        }
+        forEachLoop {
+            innerBlock {
+                condition = index
+                iterable = iterator
+                val indexExpected = newVar(pythonAnyClassId, "expected_element") {
+                    CgPythonIndex(
+                        pythonIntClassId,
+                        expected,
+                        index
+                    )
+                }
+                val indexActual = newVar(pythonAnyClassId, "actual_element") {
+                    CgPythonIndex(
+                        pythonIntClassId,
+                        actual,
+                        index
+                    )
+                }
+                testFrameworkManager.assertEquals(
+                    indexExpected, indexActual
+                )
+                statements = currentBlock
+            }
+        }
+    }
+
     private fun pythonDeepTreeEquals(
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
@@ -1023,83 +1079,23 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     )
                 }
                 is PythonTree.ListNode -> {
-                    val lenValue = newVar(pythonIntClassId, "actual_length") {
-                        CgGetLength(actual)
-                    }
-
-                    emptyLine()
-                    testFrameworkManager.assertEquals(
-                        CgLiteral(pythonIntClassId, expectedNode.items.size),
-                        lenValue
-                    )
+                    val size = expectedNode.items.size
+                    pythonLenAssertConstructor(actual, size)
                     emptyLine()
 
-                    val index = newVar(pythonIntClassId, "index") {
-                        CgLiteral(pythonIntClassId, 0)
-                    }
-                    forEachLoop {
-                        innerBlock {
-                            condition = index
-                            iterable = CgPythonRange(expectedNode.items.size)
-                            val indexActual = newVar(pythonAnyClassId, "actual_index") {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    actual,
-                                    index
-                                )
-                            }
-                            val indexExpected = newVar(pythonAnyClassId, "expected_index") {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    newVar(expected.type) {expected},
-                                    index
-                                )
-                            }
-                            testFrameworkManager.assertEquals(
-                                indexExpected, indexActual
-                            )
-                            statements = currentBlock
-                        }
+                    if (size > 0) {
+                        val expectedList = newVar(expected.type, "expected_list") { expected }
+                        pythonAssertElementsByKey(expectedList, actual, CgPythonRange(size))
                     }
                 }
                 is PythonTree.TupleNode -> {
-                    val lenValue = newVar(pythonIntClassId, "actual_length") {
-                        CgGetLength(actual)
-                    }
-
-                    emptyLine()
-                    testFrameworkManager.assertEquals(
-                        CgLiteral(pythonIntClassId, expectedNode.items.size),
-                        lenValue
-                    )
+                    val size = expectedNode.items.size
+                    pythonLenAssertConstructor(actual, size)
                     emptyLine()
 
-                    val index = newVar(pythonIntClassId, "index") {
-                        CgLiteral(pythonIntClassId, 0)
-                    }
-                    forEachLoop {
-                        innerBlock {
-                            condition = index
-                            iterable = CgPythonRange(expectedNode.items.size)
-                            val indexActual = newVar(pythonAnyClassId, "actual_index") {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    actual,
-                                    index
-                                )
-                            }
-                            val indexExpected = newVar(pythonAnyClassId, "expected_index") {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    newVar(expected.type) {expected},
-                                    index
-                                )
-                            }
-                            testFrameworkManager.assertEquals(
-                                indexExpected, indexActual
-                            )
-                            statements = currentBlock
-                        }
+                    if (size > 0) {
+                        val expectedTuple = newVar(expected.type, "expected_tuple") { expected }
+                        pythonAssertElementsByKey(expectedTuple, actual, CgPythonRange(size))
                     }
                 }
                 is PythonTree.SetNode -> {
@@ -1108,43 +1104,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     )
                 }
                 is PythonTree.DictNode -> {
-                    val lenValue = newVar(pythonIntClassId, "actual_length") {
-                        CgGetLength(actual)
-                    }
-
-                    emptyLine()
-                    testFrameworkManager.assertEquals(
-                        CgLiteral(pythonIntClassId, expectedNode.items.size),
-                        lenValue
-                    )
+                    val size = expectedNode.items.size
+                    pythonLenAssertConstructor(actual, size)
                     emptyLine()
 
-                    val key = newVar(pythonNoneClassId, "key") {
-                        CgLiteral(pythonNoneClassId, null)
-                    }
-                    forEachLoop {
-                        innerBlock {
-                            condition = key
-                            iterable = expected
-                            val valueActual = newVar(pythonAnyClassId, "actual_value") {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    actual,
-                                    key
-                                )
-                            }
-                            val valueExpected = newVar(pythonAnyClassId, "expected_value") {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    newVar(expected.type) {expected},
-                                    key
-                                )
-                            }
-                            testFrameworkManager.assertEquals(
-                                valueExpected, valueActual
-                            )
-                            statements = currentBlock
-                        }
+                    if (size > 0) {
+                        val expectedDict = newVar(expected.type, "expected_dict") { expected }
+                        pythonAssertElementsByKey(expectedDict, actual, expected, "key")
                     }
                 }
                 is PythonTree.ReduceNode -> {

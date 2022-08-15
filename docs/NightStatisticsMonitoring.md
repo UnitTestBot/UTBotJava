@@ -14,12 +14,15 @@ Thus, we will do it every night when no one makes changes.
 ### Collecting statistics
 Collecting statistics StatisticsMonitoring.kt based on ContestEstimator.kt 
 that runs testcase generation on projects, then compile generated tests.
-We run it several times. Input arguments: `<output json> <run tries> <run timeout min>`.
+We run it several times. Input arguments: `<output json>`.
+
 More about statistic: Statistics.kt.
+
+More about monitoring settings: MonitoringSettings.kt
 
 Example input:
 ```
-stats.json 3 20
+stats.json
 ```
 Example output:
 ```json

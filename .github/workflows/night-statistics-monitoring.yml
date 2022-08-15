@@ -5,8 +5,7 @@ on:
      - cron: '0 0 * * *'
 
 env:
-  run_tries: 3
-  run_timeout_minutes: 20
+  monitoring_properties: monitoring/monitoring.properties
   output_stats: stats.json
   history_file: monitoring/history.json
   coverage_graph_file: monitoring/coverage_graph.png
@@ -38,8 +37,10 @@ jobs:
       - name: Build and run monitoring UTBot Java
         run: |
           gradle :utbot-junit-contest:monitoringJar
-          java -jar utbot-junit-contest/build/libs/monitoring.jar \
-            $output_stats $run_tries $run_timeout_minutes
+          java -jar \
+            -Dutbot.monitoring.settings.path=$monitoring_properties \
+            utbot-junit-contest/build/libs/monitoring.jar \
+            $output_stats
 
       - name: Update history and render graphs
         run: |

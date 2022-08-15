@@ -11,7 +11,6 @@ import org.utbot.contest.GlobalStats
 import org.utbot.contest.Paths
 import org.utbot.contest.Tool
 import org.utbot.contest.runEstimator
-import org.utbot.contest.toText
 import org.utbot.framework.JdkPathService
 import org.utbot.instrumentation.ConcreteExecutor
 import kotlin.system.exitProcess
@@ -20,22 +19,20 @@ private val javaHome = System.getenv("JAVA_HOME")
 private val logger = KotlinLogging.logger {}
 
 fun main(args: Array<String>) {
+    logger.info { "Monitoring Settings:\n$MonitoringSettings" }
+
     val methodFilter: String?
     val projectFilter: List<String>?
-    val processedClassesThreshold = 9999
+    val processedClassesThreshold = MonitoringSettings.processedClassesThreshold
     val tools: List<Tool> = listOf(Tool.UtBot)
-    val timeLimit = 20
-
-    require(args.size == 3) {
-        "Wrong arguments: <output json> <run tries> <run timeout min> expected, but got: ${args.toText()}"
-    }
+    val timeLimit = MonitoringSettings.timeLimitPerClass
 
     projectFilter = listOf("guava")
     methodFilter = null
 
-    val outputFile = File(args[0])
-    val runTries = args[1].toInt()
-    val runTimeout = TimeUnit.MINUTES.toMillis(args[2].toLong())
+    val outputFile = args.getOrNull(0)?.let { File(it) }
+    val runTries = MonitoringSettings.runTries
+    val runTimeout = TimeUnit.MINUTES.toMillis(MonitoringSettings.runTimeoutMinutes.toLong())
 
     val estimatorArgs: Array<String> = arrayOf(
         Paths.classesLists,
@@ -51,7 +48,7 @@ fun main(args: Array<String>) {
     val executor = ThreadBasedExecutor()
 
     repeat(runTries) { idx ->
-        logger.info().bracket("Run UTBot try number $idx") {
+        logger.info().bracket("Run UTBot try number ${idx + 1}") {
 
             executor.invokeWithTimeout(runTimeout) {
                 runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
@@ -69,7 +66,7 @@ fun main(args: Array<String>) {
     if (statistics.isEmpty())
         exitProcess(1)
 
-    outputFile.writeText(statistics.jsonString())
+    outputFile?.writeText(statistics.jsonString())
 }
 
 private fun StringBuilder.tab(tabs: Int) {

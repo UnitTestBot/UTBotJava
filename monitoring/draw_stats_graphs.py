@@ -8,9 +8,17 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 from matplotlib.dates import DayLocator, ConciseDateFormatter
 
+"""Settings.
+
+DPI : int
+    Resolution of output image. Dots per inch.
+WIDTH, HEIGHT: float
+    width and height in inches of output image.
+"""
 DPI = 108
 WIDTH = 10
 HEIGHT = 5
+
 MILLIS_IN_SEC = 1000
 
 

@@ -157,7 +157,8 @@ object PythonDialogProcessor {
                         message = "Cannot create tests for the following functions: " + functionNames.joinToString(),
                         title = "Python test generation error"
                     )
-                    return
+                    if (notEmptyTests.isEmpty())
+                        return
                 }
 
                 val classId =

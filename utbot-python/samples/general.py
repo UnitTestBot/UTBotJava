@@ -5,6 +5,10 @@ from typing import *
 from dataclasses import dataclass
 
 
+def empty():
+    pass
+
+
 def zero_division(x):
     return x / 0
 

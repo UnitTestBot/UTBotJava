@@ -45,12 +45,16 @@ sealed class CustomJavaDocTag(
     object ThrowsException :
         CustomJavaDocTag("utbot.throwsException", "Throws exception", CustomJavaDocComment::throwsException)
 
-    fun generateDocStatement(comment: CustomJavaDocComment): DocRegularStmt? {
-        val value = valueRetriever.invoke(comment)
-        return if (value is String) {
-            if (value.isNotEmpty()) DocRegularStmt("@$name $value\n") else null
-        } else if (value is List<*>) {
-            if (value.isNotEmpty()) DocRegularStmt("@$name ${value.joinToString(separator = ",\n")}\n") else null
-        } else null
-    }
+    fun generateDocStatement(comment: CustomJavaDocComment): DocRegularStmt? =
+        when (val value = valueRetriever.invoke(comment)) {
+            is String -> value.takeIf { it.isNotEmpty() }?.let {
+                DocRegularStmt("@$name $value\n")
+            }
+            is List<*> -> value.takeIf { it.isNotEmpty() }?.let {
+                val valueToString = value.joinToString(separator = ",\n", postfix = "\n")
+
+                DocRegularStmt("@$name $valueToString")
+            }
+            else -> null
+        }
 }

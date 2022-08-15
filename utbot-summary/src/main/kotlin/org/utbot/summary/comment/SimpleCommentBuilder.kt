@@ -42,15 +42,7 @@ open class SimpleCommentBuilder(
      */
     open fun buildString(currentMethod: SootMethod): String {
         val root = SimpleSentenceBlock(stringTemplates = stringTemplates)
-
-        val thrownException = traceTag.result.exceptionOrNull()
-        if (thrownException == null) {
-            root.exceptionThrow = traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
-        } else {
-            val exceptionName = thrownException.javaClass.simpleName
-            val reason = findExceptionReason(currentMethod, thrownException)
-            root.exceptionThrow = "$exceptionName $reason"
-        }
+        buildThrownExceptionInfo(root, currentMethod)
         skippedIterations()
         buildSentenceBlock(traceTag.rootStatementTag, root, currentMethod)
         var sentence = toSentence(root)
@@ -59,6 +51,20 @@ open class SimpleCommentBuilder(
         sentence = lastCommaToDot(sentence)
 
         return "<pre>\n$sentence</pre>".replace(CARRIAGE_RETURN, "")
+    }
+
+    private fun buildThrownExceptionInfo(
+        root: SimpleSentenceBlock,
+        currentMethod: SootMethod
+    ) {
+        val thrownException = traceTag.result.exceptionOrNull()
+        if (thrownException == null) {
+            root.exceptionThrow = traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
+        } else {
+            val exceptionName = thrownException.javaClass.simpleName
+            val reason = findExceptionReason(currentMethod, thrownException)
+            root.exceptionThrow = "$exceptionName $reason"
+        }
     }
 
     /**
@@ -79,15 +85,7 @@ open class SimpleCommentBuilder(
 
     private fun buildSentenceBlock(currentMethod: SootMethod): SimpleSentenceBlock {
         val rootSentenceBlock = SimpleSentenceBlock(stringTemplates = stringTemplates)
-
-        val thrownException = traceTag.result.exceptionOrNull()
-        if (thrownException == null) {
-            rootSentenceBlock.exceptionThrow = traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
-        } else {
-            val exceptionName = thrownException.javaClass.simpleName
-            val reason = findExceptionReason(currentMethod, thrownException)
-            rootSentenceBlock.exceptionThrow = "$exceptionName $reason"
-        }
+        buildThrownExceptionInfo(rootSentenceBlock, currentMethod)
         skippedIterations()
         buildSentenceBlock(traceTag.rootStatementTag, rootSentenceBlock, currentMethod)
         return rootSentenceBlock

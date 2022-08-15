@@ -49,6 +49,7 @@ class CustomJavaDocCommentBuilder(
             val reason = findExceptionReason(currentMethod, thrownException)
             "{@link $exceptionName} $reason"
         }
+
         if (exceptionThrow != null) {
             customJavaDocComment.throwsException = exceptionThrow
         }
@@ -64,9 +65,8 @@ class CustomJavaDocCommentBuilder(
         }
 
         // builds Invoke, Execute, Return sections
-        var currentBlock: SimpleSentenceBlock? = rootSentenceBlock
-        while (currentBlock != null) {
-            for (statement in currentBlock.stmtTexts) {
+        generateSequence(rootSentenceBlock) { it.nextBlock }.forEach {
+            for (statement in it.stmtTexts) {
                 when (statement.stmtType) {
                     StmtType.Invoke -> customJavaDocComment.invokes += "{@code ${statement.description}}"
                     StmtType.Condition -> customJavaDocComment.executesCondition += "{@code ${statement.description}}"
@@ -76,7 +76,6 @@ class CustomJavaDocCommentBuilder(
                     }
                 }
             }
-            currentBlock = currentBlock.nextBlock
         }
 
         return customJavaDocComment

@@ -6,12 +6,12 @@ import mu.KotlinLogging
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.bracket
 import org.utbot.common.info
-import org.utbot.contest.ContestEstimatorJdkPathProvider
+import org.utbot.contest.ContestEstimatorJdkInfoProvider
 import org.utbot.contest.GlobalStats
 import org.utbot.contest.Paths
 import org.utbot.contest.Tool
 import org.utbot.contest.runEstimator
-import org.utbot.framework.JdkPathService
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
 import kotlin.system.exitProcess
 
@@ -44,7 +44,7 @@ fun main(args: Array<String>) {
 
     val statistics = mutableListOf<GlobalStats>()
 
-    JdkPathService.jdkPathProvider = ContestEstimatorJdkPathProvider(javaHome)
+    JdkInfoService.jdkInfoProvider = ContestEstimatorJdkInfoProvider(javaHome)
     val executor = ThreadBasedExecutor()
 
     repeat(runTries) { idx ->

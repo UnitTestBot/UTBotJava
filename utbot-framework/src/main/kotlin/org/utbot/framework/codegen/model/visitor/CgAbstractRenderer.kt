@@ -316,9 +316,9 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgCustomTagStatement) {
-        if (element.content.all { it.isEmpty() }) return
+        if (element.statements.all { it.isEmpty() }) return
 
-        for (stmt in element.content) {
+        for (stmt in element.statements) {
             stmt.accept(this)
         }
     }

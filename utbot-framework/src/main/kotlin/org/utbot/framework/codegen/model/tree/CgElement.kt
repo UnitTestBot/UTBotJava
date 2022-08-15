@@ -337,14 +337,7 @@ class CgDocPreTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(co
     override fun hashCode(): Int = content.hashCode()
 }
 
-class CgCustomTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(content) {
-    override fun equals(other: Any?): Boolean =
-        if (other is CgCustomTagStatement) {
-            this.hashCode() == other.hashCode()
-        } else false
-
-    override fun hashCode(): Int = content.hashCode()
-}
+data class CgCustomTagStatement(val statements: List<CgDocStatement>) : CgDocTagStatement(statements)
 
 class CgDocCodeStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
@@ -392,7 +385,7 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
         }
         is DocCustomTagStatement -> {
             val stmts = stmt.content.map { convertDocToCg(it) }
-            CgCustomTagStatement(content = stmts)
+            CgCustomTagStatement(statements = stmts)
         }
         is DocRegularStmt -> CgDocRegularStmt(stmt = stmt.stmt)
         is DocClassLinkStmt -> CgDocClassLinkStmt(className = stmt.className)

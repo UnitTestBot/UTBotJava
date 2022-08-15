@@ -19,6 +19,9 @@ private const val LITERAL_TAG = "literal"
 private const val CODE_TAG = "code"
 private const val SYSTEM_PROPERTY_TAG = "systemProperty"
 private const val MESSAGE_SEPARATOR = ":"
+private const val PARAGRAPH_TAG = "<p>"
+private const val CODE_TAG_START = "<code>"
+private const val CODE_TAG_END = "</code>"
 
 private val logger = KotlinLogging.logger {}
 
@@ -53,7 +56,7 @@ class UtJavaDocInfoGenerator {
         utTag: UtCustomJavaDocTagProvider.UtCustomTagInfo
     ) {
         val tag = comment.findTagByName(utTag.name) ?: return
-        startHeaderSection(builder, utTag.getMessage()).append("<p>")
+        startHeaderSection(builder, utTag.getMessage()).append(PARAGRAPH_TAG)
         val sectionContent = buildString {
             generateValue(this, tag.dataElements)
             trim()
@@ -120,14 +123,16 @@ class UtJavaDocInfoGenerator {
     }
 
     private fun generateCodeValue(tag: PsiInlineDocTag, builder: StringBuilder) {
-        builder.append("<code>")
+        builder.append(CODE_TAG_START)
         val pos = builder.length
         generateLiteralValue(builder, tag)
-        builder.append("</code>")
-        if (builder[pos] == '\n') builder.insert(
-            pos,
-            ' '
-        ) // line break immediately after opening tag is ignored by JEditorPane
+        builder.append(CODE_TAG_END)
+        if (builder[pos] == '\n') {
+            builder.insert(
+                pos,
+                ' '
+            ) // line break immediately after opening tag is ignored by JEditorPane
+        }
     }
 
     private fun generateLiteralValue(builder: StringBuilder, tag: PsiDocTag) {
@@ -135,12 +140,16 @@ class UtJavaDocInfoGenerator {
             val children = tag.children
             for (i in 2 until children.size - 1) { // process all children except tag opening/closing elements
                 val child = children[i]
-                if (child is PsiDocToken && child.tokenType === JavaDocTokenType.DOC_COMMENT_LEADING_ASTERISKS) continue
+                if (child is PsiDocToken && child.tokenType === JavaDocTokenType.DOC_COMMENT_LEADING_ASTERISKS) {
+                    continue
+                }
+
                 var elementText = child.text
                 if (child is PsiWhiteSpace) {
                     val pos = elementText.lastIndexOf('\n')
-                    if (pos >= 0) elementText =
-                        elementText.substring(0, pos + 1) // skip whitespace before leading asterisk
+                    if (pos >= 0) {
+                        elementText = elementText.substring(0, pos + 1) // skip whitespace before leading asterisk
+                    }
                 }
                 appendPlainText(this, StringUtil.escapeXmlEntities(elementText))
             }
@@ -169,10 +178,12 @@ class UtJavaDocInfoGenerator {
         return buildString {
             for (i in tagElements.indices) {
                 val tagElement = tagElements[i]
-                if (tagElement.textOffset > offset) this.append(' ')
+                if (tagElement.textOffset > offset) {
+                    this.append(' ')
+                }
                 offset = tagElement.textOffset + tagElement.text.length
                 collectElementText(this, tagElement)
-                if (i < tagElements.size - 1) {
+                if (i < tagElements.lastIndex) {
                     this.append(' ')
                 }
             }

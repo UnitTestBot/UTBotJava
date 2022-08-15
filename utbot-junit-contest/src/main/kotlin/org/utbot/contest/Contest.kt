@@ -483,29 +483,26 @@ internal val Method.isVisibleFromGeneratedTest: Boolean
             && (this.modifiers and Modifier.NATIVE) == 0
 
 private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
-    coverage = coverage.update(newCoverage, isNewClass)
+    coverage.update(newCoverage, isNewClass)
     // other coverage type updates by empty coverage to respect new class
     val emptyCoverage = newCoverage.copy(
         coveredInstructions = emptyList()
     )
     if (fromFuzzing) {
-        fuzzedCoverage = fuzzedCoverage.update(newCoverage, isNewClass)
-        concolicCoverage = concolicCoverage.update(emptyCoverage, isNewClass)
+        fuzzedCoverage to concolicCoverage
     } else {
-        fuzzedCoverage = fuzzedCoverage.update(emptyCoverage, isNewClass)
-        concolicCoverage = concolicCoverage.update(newCoverage, isNewClass)
+        concolicCoverage to fuzzedCoverage
+    }.let { (targetSource, otherSource) ->
+        targetSource.update(newCoverage, isNewClass)
+        otherSource.update(emptyCoverage, isNewClass)
     }
 }
 
-private fun Coverage?.update(newCoverage: Coverage, isNewClass: Boolean) =
-    this?.let { oldCoverage ->
-        val instructionsCount = if (isNewClass && newCoverage.instructionsCount != null) {
-            newCoverage.instructionsCount!! + (oldCoverage.instructionsCount ?: 0)
-        } else {
-            oldCoverage.instructionsCount
+private fun CoverageInstructionsSet.update(newCoverage: Coverage, isNewClass: Boolean) {
+    if (isNewClass) {
+        newCoverage.instructionsCount?.let {
+            totalInstructions += it
         }
-        Coverage(
-            coveredInstructions = oldCoverage.coveredInstructions + newCoverage.coveredInstructions,
-            instructionsCount = instructionsCount
-        )
-    } ?: newCoverage
+    }
+    coveredInstructions.addAll(newCoverage.coveredInstructions)
+}

@@ -1,10 +1,10 @@
 package org.utbot.contest
 
+import java.io.File
 import org.utbot.common.MutableMultiset
 import org.utbot.common.mutableMultisetOf
+import org.utbot.framework.plugin.api.Instruction
 import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.Coverage
-import java.io.File
 
 private fun Double.format(digits: Int) = "%.${digits}f".format(this)
 
@@ -55,11 +55,11 @@ class GlobalStats {
         get() = statsForClasses.sumBy { it.concolicCoverage.getCoverageInfo(it.className).covered }
 
     val totalInstructionsCount: Int
-        get() = statsForClasses.sumBy { it.coverage?.instructionsCount?.toInt() ?: 0 }
+        get() = statsForClasses.sumBy { it.coverage.totalInstructions.toInt() }
 
     val avgCoverage: Double
         get() = statsForClasses
-            .filter { it.coverage?.instructionsCount?.let { cnt -> cnt != 0L } ?: false }
+            .filter { it.coverage.totalInstructions != 0L }
             .map { it.coverage.getCoverageInfo(it.className).run { if (total == 0) 0.0 else 100.0 * covered / total } }
             .average()
 
@@ -114,11 +114,11 @@ class StatsForClass(val className: String) {
     val methodsWithAtLeastOneException: Int get() = statsForMethods.count { it.failReasons.isNotEmpty() }
     val testcasesGenerated: Int get() = statsForMethods.sumBy { it.testsGeneratedCount }
 
-    var coverage: Coverage? = null
-    var fuzzedCoverage: Coverage? = null
-    var concolicCoverage: Coverage? = null
+    var coverage = CoverageInstructionsSet()
+    var fuzzedCoverage = CoverageInstructionsSet()
+    var concolicCoverage = CoverageInstructionsSet()
 
-    private fun Coverage?.prettyInfo(): String =
+    private fun CoverageInstructionsSet.prettyInfo(): String =
         getCoverageInfo(className).run { "$covered/$total" }
 
     override fun toString(): String = "\n<StatsForClass> :" +
@@ -178,13 +178,18 @@ class FailReason(private val throwable: Throwable) {
 
 }
 
+data class CoverageInstructionsSet(
+    val coveredInstructions: MutableSet<Instruction> = mutableSetOf(),
+    var totalInstructions: Long = 0
+)
+
 data class CoverageStatistic(val covered: Int, val total: Int)
 
-private fun Coverage?.getCoverageInfo(className: String): CoverageStatistic = this?.run {
+private fun CoverageInstructionsSet?.getCoverageInfo(className: String): CoverageStatistic = this?.run {
     CoverageStatistic(
         coveredInstructions.filter {
             instr -> instr.className.startsWith(className)
         }.toSet().size,
-        instructionsCount?.toInt() ?: 0
+        totalInstructions.toInt()
     )
 } ?: CoverageStatistic(covered = 0, total = 0)

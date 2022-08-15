@@ -15,7 +15,7 @@ object AnnotationFinder {
         methodUnderTest: PythonMethod,
         existingAnnotations: Map<String, NormalizedPythonAnnotation>,
         moduleToImport: String,
-        directoriesForSysPath: List<String>,
+        directoriesForSysPath: Set<String>,
         pythonPath: String,
         fileOfMethod: String,
         isCancelled: () -> Boolean,

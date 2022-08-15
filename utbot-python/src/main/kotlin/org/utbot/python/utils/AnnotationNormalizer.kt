@@ -20,7 +20,7 @@ object AnnotationNormalizer {
         pythonPath: String,
         curPythonModule: String,
         fileOfAnnotation: String,
-        filesToAddToSysPath: List<String>
+        filesToAddToSysPath: Set<String>
     ): String {
         val scriptFile = getFileWithScript("/normalize_annotation_from_project.py")
         val result = runCommand(
@@ -41,7 +41,7 @@ object AnnotationNormalizer {
         pythonPath: String,
         curPythonModule: String,
         fileOfAnnotation: String,
-        filesToAddToSysPath: List<String>
+        filesToAddToSysPath: Set<String>
     ): NormalizedPythonAnnotation =
         if (annotation == null)
             pythonAnyClassId

@@ -6,12 +6,12 @@ import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
+import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.providers.defaultPythonModelProvider
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
-    private val directoriesForSysPath: List<String>,
+    private val directoriesForSysPath: Set<String>,
     private val moduleToImport: String,
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
@@ -33,8 +33,8 @@ class PythonEngine(
         }
 
         val additionalModules = selectedTypeMap.values.flatMap {
-            getTypesFromAnnotation(it).map { pythonClassId -> pythonClassId.moduleName }
-        }
+            getModulesFromAnnotation(it)
+        }.toSet()
 
         fuzz(methodUnderTestDescription, defaultPythonModelProvider).forEach { values ->
             val parameterValues = values.map { it.model }

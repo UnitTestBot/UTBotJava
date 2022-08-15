@@ -28,11 +28,6 @@ class PythonClassIdInfo(
     val fields: Set<String>
 )
 
-fun moduleOfType(typeName: String): String? {
-    val lastIndex = typeName.lastIndexOf('.')
-    return if (lastIndex == -1) null else typeName.substring(0, lastIndex)
-}
-
 object PythonTypesStorage {
     private var projectClasses: List<ProjectClass> = emptyList()
     var pythonPath: String? = null
@@ -150,7 +145,7 @@ object PythonTypesStorage {
         File(path).toURI().relativize(fileWithClass.toURI()).path.removeSuffix(".py").toPath().joinToString(".")
 
     fun refreshProjectClassesList(
-        directoriesForSysPath: List<String>
+        directoriesForSysPath: Set<String>
     ) {
         val processedFiles = mutableSetOf<File>()
         projectClasses = directoriesForSysPath.flatMap { path ->

@@ -8,12 +8,9 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.Add
-import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.comparisons.Eq
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
-import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.If
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
@@ -24,14 +21,12 @@ import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.W
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Alias
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
-import io.github.danielnaczo.python3parser.model.stmts.smallStmts.Assert
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.Assign
 import io.github.danielnaczo.python3parser.visitors.prettyprint.IndentationPrettyPrint
 import io.github.danielnaczo.python3parser.visitors.prettyprint.ModulePrettyPrintVisitor
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.*
-import org.utbot.python.code.AnnotationProcessor.getTypesFromAnnotation
-import org.utbot.python.typing.PythonTypesStorage
+import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 
 
 object PythonCodeGenerator {
@@ -99,8 +94,8 @@ object PythonCodeGenerator {
 
     private fun generateImportFunctionCode(
         functionPath: String,
-        directoriesForSysPath: List<String>,
-        additionalModules: List<String> = emptyList(),
+        directoriesForSysPath: Set<String>,
+        additionalModules: Set<String> = emptySet(),
     ): List<Statement> {
         val systemImport = Import(listOf(
             Alias("sys"),
@@ -156,9 +151,9 @@ object PythonCodeGenerator {
         methodArguments: List<UtModel>,
         outputFilename: String,
         errorFilename: String,
-        directoriesForSysPath: List<String>,
+        directoriesForSysPath: Set<String>,
         moduleToImport: String,
-        additionalModules: List<String> = emptyList()
+        additionalModules: Set<String> = emptySet()
     ): String {
 
         val importStatements = generateImportFunctionCode(
@@ -225,15 +220,15 @@ object PythonCodeGenerator {
     fun generateMypyCheckCode(
         method: PythonMethod,
         methodAnnotations: Map<String, NormalizedPythonAnnotation>,
-        directoriesForSysPath: List<String>,
+        directoriesForSysPath: Set<String>,
         moduleToImport: String
     ): String {
         val importStatements = generateImportFunctionCode(
             moduleToImport,
             directoriesForSysPath,
             methodAnnotations.values.flatMap { annotation ->
-                getTypesFromAnnotation(annotation).map { it.moduleName }
-            }.toSet().toList() + listOf("typing"),
+                getModulesFromAnnotation(annotation)
+            }.toSet(),
         )
 
         val parameters = Parameters(

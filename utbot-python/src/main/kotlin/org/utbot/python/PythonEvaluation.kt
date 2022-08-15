@@ -23,10 +23,10 @@ object PythonEvaluation {
     fun evaluate(
         method: PythonMethod,
         methodArguments: List<UtModel>,
-        directoriesForSysPath: List<String>,
+        directoriesForSysPath: Set<String>,
         moduleToImport: String,
         pythonPath: String,
-        additionalModulesToImport: List<String> = emptyList()
+        additionalModulesToImport: Set<String> = emptySet()
     ): EvaluationResult {
         val outputFile = FileManager.assignTemporaryFile(tag = "output_" + method.name)
         val errorFile = FileManager.assignTemporaryFile(tag = "error_" + method.name)

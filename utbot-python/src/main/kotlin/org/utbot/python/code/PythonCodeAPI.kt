@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.CharStreams.fromString
 import org.antlr.v4.runtime.CommonTokenStream
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.*
+import org.utbot.python.utils.moduleOfType
 import java.util.*
 
 
@@ -129,23 +130,22 @@ fun textToModule(code: String): Module {
 }
 
 object AnnotationProcessor {
-    fun getTypesFromAnnotation(annotation: NormalizedPythonAnnotation): Set<PythonClassId> {
+    fun getModulesFromAnnotation(annotation: NormalizedPythonAnnotation): Set<String> {
         val annotationAST = textToModule(annotation.name)
         val visitor = Visitor()
-        val result = mutableSetOf<PythonClassId>()
+        val result = mutableSetOf<String>()
         visitor.visitModule(annotationAST, result)
         return result
     }
 
-    private class Visitor: ModifierVisitor<MutableSet<PythonClassId>>() {
-        override fun visitAtom(atom: Atom, param: MutableSet<PythonClassId>): AST {
+    private class Visitor: ModifierVisitor<MutableSet<String>>() {
+        override fun visitAtom(atom: Atom, param: MutableSet<String>): AST {
             parse(
                 nameWithPrefixFromAtom(apply()),
                 onError = null,
                 atom
             ) { it } ?.let { typeName ->
-                if (typeName != pythonAnyClassId.name)
-                    param.add(PythonClassId(typeName))
+                param.add(moduleOfType(typeName)!!)
             }
 
             return super.visitAtom(atom, param)

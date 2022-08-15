@@ -46,7 +46,7 @@ data class CgMethodTestSet private constructor(
     constructor(
         executableId_: ExecutableId,
         executions_: List<UtExecution> = emptyList(),
-        sysPaths_: List<String> = emptyList()
+        sysPaths_: Set<String> = emptySet()
     ) : this(executableId_, executions_) {
         sysPaths.addAll(sysPaths_)
     }

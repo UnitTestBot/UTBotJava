@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import com.beust.klaxon.Klaxon
+import org.utbot.python.utils.moduleOfType
 
 object StubFileFinder {
 

@@ -10,7 +10,7 @@ import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 
 object PythonTestCaseGenerator {
-    private lateinit var directoriesForSysPath: List<String>
+    private lateinit var directoriesForSysPath: Set<String>
     private lateinit var curModule: String
     private lateinit var pythonPath: String
     private lateinit var fileOfMethod: String
@@ -19,7 +19,7 @@ object PythonTestCaseGenerator {
     private const val maxTestCount = 30
 
     fun init(
-        directoriesForSysPath: List<String>,
+        directoriesForSysPath: Set<String>,
         moduleToImport: String,
         pythonPath: String,
         fileOfMethod: String,

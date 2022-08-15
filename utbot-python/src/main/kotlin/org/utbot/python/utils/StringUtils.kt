@@ -21,3 +21,8 @@ fun String.camelToSnakeCase(): String {
         "_${it.value}"
     }.toLowerCase()
 }
+
+fun moduleOfType(typeName: String): String? {
+    val lastIndex = typeName.lastIndexOf('.')
+    return if (lastIndex == -1) null else typeName.substring(0, lastIndex)
+}

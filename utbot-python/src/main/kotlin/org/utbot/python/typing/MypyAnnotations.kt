@@ -13,13 +13,20 @@ import java.io.File
 object MypyAnnotations {
     private const val mypyVersion = "0.971"
 
-    data class MypyReportLine(val line: Int, val type: String, val message: String)
+    const val TEMPORARY_MYPY_FILE = "<TEMPORARY MYPY FILE>"
+
+    data class MypyReportLine(
+        val line: Int,
+        val type: String,
+        val message: String,
+        val file: String
+    )
 
     fun getCheckedByMypyAnnotations(
         method: PythonMethod,
         functionArgAnnotations: Map<String, List<NormalizedPythonAnnotation>>,
         moduleToImport: String,
-        directoriesForSysPath: List<String>,
+        directoriesForSysPath: Set<String>,
         pythonPath: String,
         isCancelled: () -> Boolean,
         storageForMypyMessages: MutableList<MypyReportLine>? = null
@@ -33,14 +40,15 @@ object MypyAnnotations {
         )
         FileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
 
-        startMypyDaemon(pythonPath, directoriesForSysPath)
-        val defaultOutput = runMypy(pythonPath, fileWithCode)
+        val configFile = setConfigFile(directoriesForSysPath)
+        val defaultOutputAsString = runMypy(pythonPath, fileWithCode, configFile)
+        val defaultErrorsAndNotes = getErrorsAndNotes(defaultOutputAsString, codeWithoutAnnotations, fileWithCode)
 
         if (storageForMypyMessages != null) {
-            getErrorsAndNotes(defaultOutput, codeWithoutAnnotations).forEach { storageForMypyMessages.add(it) }
+            defaultErrorsAndNotes.forEach { storageForMypyMessages.add(it) }
         }
 
-        val defaultErrorNum = getErrorNumber(defaultOutput)
+        val defaultErrorNum = getErrorNumber(defaultErrorsAndNotes)
 
         val candidates = functionArgAnnotations.entries.map { (key, value) ->
             value.map {
@@ -49,16 +57,18 @@ object MypyAnnotations {
         }
         if (candidates.any { it.isEmpty() }) {
             fileWithCode.delete()
+            configFile.delete()
             return@sequence
         }
 
-        PriorityCartesianProduct(candidates).getSequence().forEach {
+        PriorityCartesianProduct(candidates).getSequence().forEach { generatedAnnotations ->
             if (isCancelled()) {
                 fileWithCode.delete()
+                configFile.delete()
                 return@sequence
             }
 
-            val annotationMap = it.toMap()
+            val annotationMap = generatedAnnotations.toMap()
             val codeWithAnnotations = generateMypyCheckCode(
                 method,
                 annotationMap,
@@ -66,8 +76,10 @@ object MypyAnnotations {
                 moduleToImport
             )
             FileManager.writeToAssignedFile(fileWithCode, codeWithAnnotations)
-            val mypyOutput = runMypy(pythonPath, fileWithCode)
+            val mypyOutputAsString = runMypy(pythonPath, fileWithCode, configFile)
+            val mypyOutput = getErrorsAndNotes(mypyOutputAsString, codeWithAnnotations, fileWithCode)
             val errorNum = getErrorNumber(mypyOutput)
+
             if (errorNum <= defaultErrorNum) {
                 yield(annotationMap.mapValues { entry ->
                     entry.value
@@ -76,43 +88,34 @@ object MypyAnnotations {
         }
 
         fileWithCode.delete()
+        configFile.delete()
     }
 
     private const val configFilename = "mypy.ini"
-    private val configFile = FileManager.assignTemporaryFile(configFilename)
+
+    private fun setConfigFile(directoriesForSysPath: Set<String>): File {
+        val file = FileManager.assignTemporaryFile(configFilename)
+        val configContent = "[mypy]\nmypy_path = ${directoriesForSysPath.joinToString(separator = ":")}"
+        FileManager.writeToAssignedFile(file, configContent)
+        return file
+    }
 
     private fun runMypy(
         pythonPath: String,
-        fileWithCode: File
+        fileWithCode: File,
+        configFile: File
     ): String {
         val result = runCommand(listOf(
             pythonPath,
             "-m",
             "mypy.dmypy",
             "run",
-            fileWithCode.path,
             "--",
+            fileWithCode.path,
             "--config-file",
             configFile.path
         ))
         return result.stdout
-    }
-
-    private fun startMypyDaemon(
-        pythonPath: String,
-        directoriesForSysPath: List<String>
-    ): String {
-        val configContent = "[mypy]\nmypy_path = ${directoriesForSysPath.joinToString(separator = ":")}"
-        FileManager.writeToAssignedFile(configFile, configContent)
-
-        val result = runCommand(listOf(pythonPath, "-m", "mypy.dmypy", "start"))
-        return result.stdout
-    }
-
-    private fun getErrorNumber(mypyOutput: String): Int {
-        val regex = Regex("Found ([0-9]*) error")
-        val match = regex.find(mypyOutput)
-        return match?.groupValues?.getOrNull(1)?.toInt() ?: 0
     }
 
     fun mypyInstalled(pythonPath: String): Boolean {
@@ -129,13 +132,18 @@ object MypyAnnotations {
         return result.exitValue
     }
 
-    fun getErrorsAndNotes(mypyOutput: String, mypyCode: String): List<MypyReportLine> {
-        val regex = Regex(":([0-9]*): (error|note): ([^\n]*)\n")
+    private fun getErrorNumber(mypyReport: List<MypyReportLine>) =
+        mypyReport.count { it.type == "error" && it.file == TEMPORARY_MYPY_FILE }
+
+    fun getErrorsAndNotes(mypyOutput: String, mypyCode: String, fileWithCode: File): List<MypyReportLine> {
+        val regex = Regex("(?m)^([^\n]*):([0-9]*): (error|note): ([^\n]*)\n")
         return regex.findAll(mypyOutput).toList().map { match ->
+            val file = match.groupValues[1]
             MypyReportLine(
-                match.groupValues[1].toInt() - getLineOfFunction(mypyCode)!!,
-                match.groupValues[2],
-                match.groupValues[3]
+                match.groupValues[2].toInt() - getLineOfFunction(mypyCode)!!,
+                match.groupValues[3],
+                match.groupValues[4],
+                if (file == fileWithCode.path) TEMPORARY_MYPY_FILE else file
             )
         }
     }

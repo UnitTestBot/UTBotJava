@@ -39,6 +39,7 @@ import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.utils.getLineOfFunction
 import org.utbot.common.appendHtmlLine
 import org.utbot.python.PythonTestSet
+import org.utbot.python.typing.MypyAnnotations.TEMPORARY_MYPY_FILE
 
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
@@ -221,7 +222,7 @@ object PythonDialogProcessor {
         val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
             val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
             val msgLines = testSet.mypyReport.map {
-                if (lineOfFunction != null && it.line >= 0)
+                if (lineOfFunction != null && it.line >= 0 && it.file == TEMPORARY_MYPY_FILE)
                     ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
                 else
                     "${it.type}: ${it.message}"
@@ -256,7 +257,7 @@ fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode {
 fun getDirectoriesForSysPath(
     srcModule: Module,
     file: PyFile
-): Pair<List<String>, String> {
+): Pair<Set<String>, String> {
     val sources = ModuleRootManager.getInstance(srcModule).getSourceRoots(false).toMutableList()
     val ancestor = ProjectFileIndex.SERVICE.getInstance(file.project).getContentRootForFile(file.virtualFile)
     if (ancestor != null && !sources.contains(ancestor))
@@ -267,7 +268,7 @@ fun getDirectoriesForSysPath(
         importPath += "."
 
     return Pair(
-        sources.map { it.path },
+        sources.map { it.path }.toSet(),
         "${importPath}${file.name}".removeSuffix(".py").toPath().joinToString(".")
     )
 }

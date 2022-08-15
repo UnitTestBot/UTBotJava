@@ -56,7 +56,7 @@ def update_stats_history(history_file, new_stats_file):
     history = load(history_file) or []
     new_stats = load(new_stats_file)
     if new_stats is None:
-        raise FileNotFoundError("File with new stats not exists!")
+        raise FileNotFoundError("File with new stats does not exist!")
     history.append(transform_and_combine_stats(new_stats))
     with open(history_file, "w") as f:
         json.dump(history, f, indent=4)

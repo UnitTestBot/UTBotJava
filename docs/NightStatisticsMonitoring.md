@@ -15,10 +15,11 @@ Thus, we will do it every night when no one makes changes.
 Collecting statistics StatisticsMonitoring.kt based on ContestEstimator.kt 
 that runs testcase generation on projects, then compile generated tests.
 We run it several times. Input arguments: `<output json>`.
+Output stats format: json, array of object with statistics after each running try.
 
 More about statistic: Statistics.kt.
 
-More about monitoring settings: MonitoringSettings.kt
+More about monitoring settings: MonitoringSettings.kt.
 
 Example input:
 ```
@@ -88,6 +89,8 @@ Then history updates by aggregated statistics and rendered into 2 pictures:
 
 Script: draw_stats_graphs.py.
 Input arguments: `<history file> <new stats file> <output coverage graph> <output quantitative graph>`.
+We use our repository as database for statistics history.
+History format file: json, array of objects with collected statistics.
 
 Example input:
 ```

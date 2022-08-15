@@ -132,14 +132,6 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
             return names.fold(reject()) { acc, elem -> or(acc, elem) }
         }
 
-        private fun getStr(str: String): String {
-            val res = str.removeSurrounding("\"")
-            return if (res.length == str.length)
-                str.removeSurrounding("\'")
-            else
-                res
-        }
-
         private fun <A> typedExpr(atom: Pattern<A, A, Expression>): Pattern<A, A, Expression> =
             opExpr(refl(atom), refl(name(drop())))
 
@@ -434,10 +426,10 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
         private fun getNumFuzzedValue(num: String, op: FuzzedOp = FuzzedOp.NONE): FuzzedConcreteValue? =
             try {
                 when (val x = NumberUtils.createNumber(num)) {
-                    is Int -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
-                    is Long -> FuzzedConcreteValue(PythonIntModel.classId, x.toBigInteger(), op)
-                    is BigInteger -> FuzzedConcreteValue(PythonIntModel.classId, x, op)
-                    else -> FuzzedConcreteValue(PythonFloatModel.classId, BigDecimal(num), op)
+                    is Int -> FuzzedConcreteValue(pythonIntClassId, x.toBigInteger(), op)
+                    is Long -> FuzzedConcreteValue(pythonIntClassId, x.toBigInteger(), op)
+                    is BigInteger -> FuzzedConcreteValue(pythonIntClassId, x, op)
+                    else -> FuzzedConcreteValue(pythonFloatClassId, BigDecimal(num), op)
                 }
             } catch (e: NumberFormatException) {
                 null
@@ -447,7 +439,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
             val pats = listOf<Pattern<(FuzzedConcreteValue?) -> A, A, N>>(
                 map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
                 map1(refl(str(apply()))) { x ->
-                    FuzzedConcreteValue(PythonStrModel.classId, getStr(x), op)
+                    FuzzedConcreteValue(pythonStrClassId, x, op)
                 },
                 map0(
                     refl(true_()),
@@ -471,8 +463,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
         }
 
         override fun visitStr(str: Str, param: MutableMap<String, ArgInfoStorage>?): AST {
-            constStorage.add(FuzzedConcreteValue(PythonStrModel.classId, getStr(str.s)))
-            generalStorage.types.add(Type(PythonStrModel.classId))
+            constStorage.add(FuzzedConcreteValue(pythonStrClassId, str.s))
+            generalStorage.types.add(Type(pythonStrClassId))
             return super.visitStr(str, param)
         }
 

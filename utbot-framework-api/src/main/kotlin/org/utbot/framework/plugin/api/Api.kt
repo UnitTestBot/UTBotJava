@@ -298,9 +298,9 @@ class PythonDefaultModel(
 // none annotation can be used in code only since Python 3.10
 val pythonNoneClassId = PythonClassId("types.NoneType")
 val pythonAnyClassId = NormalizedPythonAnnotation("typing.Any")
-val pythonIntClassId = PythonIntModel.classId
-val pythonFloatClassId = PythonFloatModel.classId
-val pythonStrClassId = PythonStrModel.classId
+val pythonIntClassId = PythonClassId("builtins.int")
+val pythonFloatClassId = PythonClassId("builtins.float")
+val pythonStrClassId = PythonClassId("builtins.str")
 val pythonBoolClassId = PythonBoolModel.classId
 val pythonRangeClassId = PythonClassId("builtins.range")
 val pythonListClassId = PythonListModel.classId
@@ -308,25 +308,11 @@ val pythonTupleClassId = PythonTupleModel.classId
 val pythonDictClassId = PythonDictModel.classId
 val pythonSetClassId = PythonSetModel.classId
 
-class PythonIntModel(val value: BigInteger): PythonModel(classId) {
+class PythonPrimitiveModel(
+    val value: Any,
+    classId: PythonClassId
+): PythonModel(classId) {
     override fun toString() = "$value"
-    companion object {
-        val classId = PythonClassId("builtins.int")
-    }
-}
-
-class PythonFloatModel(val value: BigDecimal): PythonModel(classId) {
-    override fun toString() = "$value"
-    companion object {
-        val classId = PythonClassId("builtins.float")
-    }
-}
-
-class PythonStrModel(val value: String): PythonModel(classId) {
-    override fun toString() = "\"\"\"" + value + "\"\"\""
-    companion object {
-        val classId = PythonClassId("builtins.str")
-    }
 }
 
 class PythonBoolModel(val value: Boolean): PythonModel(classId) {

@@ -13,9 +13,7 @@ class PythonCgVariableConstructor(context_: CgContext) : CgVariableConstructor(c
         return valueByModel.getOrPut(model) {
             when (model) {
                 is PythonBoolModel -> CgLiteral(model.classId, model.value)
-                is PythonStrModel -> CgLiteral(model.classId, model.value)
-                is PythonFloatModel -> CgLiteral(model.classId, model.value)
-                is PythonIntModel -> CgLiteral(model.classId, model.value)
+                is PythonPrimitiveModel -> CgLiteral(model.classId, model.value)
                 is PythonTreeModel -> CgPythonTree(model.classId, model.tree)
                 is PythonInitObjectModel -> constructInitObjectModel(model, baseName)
                 is PythonDictModel -> CgPythonRepr(model.classId, model.toString())

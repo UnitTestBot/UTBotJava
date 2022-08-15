@@ -20,8 +20,7 @@ object ConstantsModelProvider : ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         description.concreteValues
             .asSequence()
-            .filter { (classId, _) ->
-                classId.isPrimitive || classId == BigInteger::class.id || classId == BigDecimal::class.id }
+            .filter { (classId, _) -> classId.isPrimitive }
             .forEach { (_, value, op) ->
                 sequenceOf(
                     UtPrimitiveModel(value).fuzzed { summary = "%var% = $value" },
@@ -48,8 +47,6 @@ object ConstantsModelProvider : ModelProvider {
             is Long -> value + multiplier.toLong()
             is Float -> value + multiplier.toDouble()
             is Double -> value + multiplier.toDouble()
-            is BigInteger -> value + multiplier.toBigInteger()
-            is BigDecimal -> value + multiplier.toBigDecimal()
             else -> null
         }?.let { UtPrimitiveModel(it).fuzzed { summary = "%var% ${
             (if (op == FuzzedOp.EQ || op == FuzzedOp.LE || op == FuzzedOp.GE) {

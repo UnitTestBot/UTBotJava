@@ -446,25 +446,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgLiteral) {
-        val value = with(element.value) {
-            when (element.type) {
-                pythonStrClassId ->
-                    when(this) {
-                        is String -> {
-                            if (this.startsWith("\"\"") && this.endsWith("\"\"")) {
-                                "\"$this\""
-                            } else if (this.startsWith("\"") && this.endsWith("\"")) {
-                                "\"\"$this\"\""
-                            } else {
-                                "\"\"\"$this\"\"\""
-                            }
-                        }
-                        else -> this.toString()
-                    }
-                else -> this.toString()
-            }
-        }
-        print(value)
+        print(element.value.toString())
     }
 
     override fun String.escapeCharacters(): String =

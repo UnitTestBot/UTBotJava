@@ -1,9 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.Pytest
-import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
@@ -21,6 +18,7 @@ import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
+import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
@@ -223,6 +221,33 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
             CgEqualTo(actual, expected)
         )
     }
+}
+
+internal class UnittestManager(context: CgContext) : TestFrameworkManager(context) {
+    override fun expectException(exception: ClassId, block: () -> Unit) {
+        require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
+        block()
+    }
+
+    override fun disableTestMethod(reason: String) {
+        require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
+
+        collectedMethodAnnotations += CgMultipleArgsAnnotation(
+            skipAnnotationClassId,
+            mutableListOf(
+                CgNamedAnnotationArgument(
+                    name = "value",
+                    value = reason.resolve()
+                )
+            )
+        )
+    }
+
+    private val skipAnnotationClassId = BuiltinClassId(
+        name = "skip",
+        canonicalName = "unittest.skip",
+        simpleName = "skip"
+    )
 }
 
 internal class TestNgManager(context: CgContext) : TestFrameworkManager(context) {

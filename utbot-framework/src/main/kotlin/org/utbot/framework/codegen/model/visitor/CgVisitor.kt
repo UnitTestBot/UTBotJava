@@ -169,7 +169,17 @@ interface CgVisitor<R> {
 
     fun visit(element: CgPythonRepr): R
 
+    fun visit(element: CgPythonIndex): R
+
     fun visit(element: CgPythonAssertEquals): R
 
     fun visit(element: CgPythonSysPath): R
+
+    fun visit(element: CgPythonFunctionCall): R
+    fun visit(element: CgPythonRange): R
+    fun visit(element: CgForEachLoop): R
+    fun visit(element: CgPythonDict): R
+    fun visit(element: CgPythonTuple): R
+    fun visit(element: CgPythonList): R
+    fun visit(element: CgPythonSet): R
 }

@@ -405,6 +405,8 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         println()
     }
 
+    override fun visit(element: CgForEachLoop) {}
+
     override fun visit(element: CgWhileLoop) {
         print("while (")
         element.condition.accept(this)
@@ -614,6 +616,8 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgPythonRepr) {}
+
+    override fun visit(element: CgPythonIndex) {}
 
     override fun visit(element: CgPythonAssertEquals) {}
 
@@ -825,4 +829,12 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
          */
         private const val LARGE_CODE_BLOCK_SIZE: Int = 1000
     }
+
+    override fun visit(element: CgPythonFunctionCall) {}
+
+    override fun visit(element: CgPythonRange) {}
+    override fun visit(element: CgPythonDict) {}
+    override fun visit(element: CgPythonTuple) {}
+    override fun visit(element: CgPythonList) {}
+    override fun visit(element: CgPythonSet) {}
 }

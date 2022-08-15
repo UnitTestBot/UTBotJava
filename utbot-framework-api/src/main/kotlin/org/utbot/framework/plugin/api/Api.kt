@@ -251,6 +251,8 @@ class PythonClassId(
             val lastIndex = name.lastIndexOf('.')
             return if (lastIndex == -1) pythonBuiltinsModuleName else name.substring(0, lastIndex)
         }
+    override val packageName = moduleName
+    override val canonicalName = name
 }
 
 open class RawPythonAnnotation(

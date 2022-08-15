@@ -239,13 +239,18 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
         print("(")
         val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
-        val selfParameter = CgParameterDeclaration("self", ClassId(""))
+        val selfParameter = CgThisInstance(pythonAnyClassId)
         (listOf(selfParameter) + element.parameters).renderSeparated(newLinesNeeded)
         print(")")
     }
 
     override fun renderMethodSignature(element: CgErrorTestMethod) {
-        print("def ${element.name.camelToSnakeCase()}(self)")
+        print("def ")
+        print(element.name.camelToSnakeCase())
+        print("(")
+        val selfParameter = CgThisInstance(pythonAnyClassId)
+        listOf(selfParameter).renderSeparated()
+        print(")")
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {

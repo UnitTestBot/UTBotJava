@@ -6,31 +6,9 @@ import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClas
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodeGenerationSettingBox
-import org.utbot.framework.plugin.api.CodeGenerationSettingItem
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
-import org.utbot.framework.plugin.api.util.booleanArrayClassId
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.builtinMethodId
-import org.utbot.framework.plugin.api.util.builtinStaticMethodId
-import org.utbot.framework.plugin.api.util.byteArrayClassId
-import org.utbot.framework.plugin.api.util.charArrayClassId
-import org.utbot.framework.plugin.api.util.doubleArrayClassId
-import org.utbot.framework.plugin.api.util.doubleClassId
-import org.utbot.framework.plugin.api.util.floatArrayClassId
-import org.utbot.framework.plugin.api.util.floatClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.longArrayClassId
-import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.plugin.api.util.shortArrayClassId
-import org.utbot.framework.plugin.api.util.voidClassId
+import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.*
 import java.io.File
-import org.utbot.framework.plugin.api.util.longClassId
-import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import sun.text.normalizer.NormalizerImpl
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
@@ -114,6 +92,7 @@ fun testFrameworkByName(testFramework: String): TestFramework =
         "junit5" -> Junit5
         "testng" -> TestNg
         "pytest" -> Pytest
+        "unittest" -> Unittest
         else -> error("Unexpected test framework name: $testFramework")
     }
 
@@ -207,7 +186,7 @@ sealed class TestFramework(
     abstract val methodSourceAnnotationId: ClassId
     abstract val methodSourceAnnotationFqn: String
 
-    val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
+    open val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
     val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }
 
@@ -239,7 +218,7 @@ sealed class TestFramework(
 
     val assertNotEquals by lazy { assertionId("assertNotEquals", objectClassId, objectClassId) }
 
-    protected fun assertionId(name: String, vararg params: ClassId): MethodId =
+    protected open fun assertionId(name: String, vararg params: ClassId): MethodId =
         builtinStaticMethodId(assertionsClass, name, voidClassId, *params)
     private fun arrayAssertionId(name: String, vararg params: ClassId): MethodId =
             builtinStaticMethodId(arraysAssertionsClass, name, voidClassId, *params)
@@ -259,18 +238,14 @@ sealed class TestFramework(
     companion object : CodeGenerationSettingBox {
         override val defaultItem: TestFramework get() = Junit5
         override val allItems: List<TestFramework> get() = listOf(Junit4, Junit5, TestNg)
-        val pythonItems: List<TestFramework> get() = listOf(Pytest)
+        val pythonItems: List<TestFramework> get() = listOf(Unittest, Pytest)
         val parametrizedDefaultItem: TestFramework get() = Junit5
     }
 }
 
 object Pytest : TestFramework(displayName = "pytest") {
     override val mainPackage: String = "pytest"
-    override val assertionsClass: ClassId = BuiltinClassId(
-        name = "Asserts",
-        canonicalName = "Asserts",
-        simpleName = "Asserts"
-    )
+    override val assertionsClass: ClassId = pythonNoneClassId
     override val arraysAssertionsClass: ClassId = assertionsClass
     override val testAnnotation: String
         get() = TODO("Not yet implemented")
@@ -305,7 +280,50 @@ object Pytest : TestFramework(displayName = "pytest") {
         addAll(additionalArguments)
         add(mainPackage)
     }
+}
 
+object Unittest : TestFramework(displayName = "Unittest") {
+    override val mainPackage: String = "unittest"
+    override val assertionsClass: ClassId = PythonClassId(
+        "self"
+    )
+    override val arraysAssertionsClass: ClassId = assertionsClass
+    override val testAnnotation: String
+        get() = TODO("Not yet implemented")
+    override val testAnnotationId: ClassId = BuiltinClassId(
+        name = "Tests",
+        canonicalName = "Tests",
+        simpleName = "Tests"
+    )
+    override val testAnnotationFqn: String = "unittest"
+
+    override val parameterizedTestAnnotation: String
+        get() = TODO("Not yet implemented")
+    override val parameterizedTestAnnotationId: ClassId
+        get() = TODO("Not yet implemented")
+    override val parameterizedTestAnnotationFqn: String
+        get() = TODO("Not yet implemented")
+    override val methodSourceAnnotation: String
+        get() = TODO("Not yet implemented")
+    override val methodSourceAnnotationId: ClassId
+        get() = TODO("Not yet implemented")
+    override val methodSourceAnnotationFqn: String
+        get() = TODO("Not yet implemented")
+
+    override fun getRunTestsCommand(
+        executionInvoke: String,
+        classPath: String,
+        classesNames: List<String>,
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> {
+        TODO("Not yet implemented")
+    }
+
+    override val assertEquals by lazy { assertionId("assertEqual", objectClassId, objectClassId) }
+
+    override fun assertionId(name: String, vararg params: ClassId): MethodId =
+        methodId(assertionsClass, name, voidClassId, *params)
 }
 
 object TestNg : TestFramework(displayName = "TestNG") {

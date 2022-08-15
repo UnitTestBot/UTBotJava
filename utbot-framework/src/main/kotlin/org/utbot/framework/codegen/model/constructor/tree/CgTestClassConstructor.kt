@@ -3,6 +3,8 @@ package org.utbot.framework.codegen.model.constructor.tree
 import org.utbot.common.appendHtmlLine
 import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
+import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.Unittest
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
@@ -13,6 +15,7 @@ import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.kClass
@@ -37,6 +40,10 @@ internal class CgTestClassConstructor(val context: CgContext) :
             testClass = buildTestClass {
                 // TODO: obtain test class from plugin
                 id = currentTestClass
+                if (testFramework is Unittest) {
+                    superclass = PythonClassId("unittest.TestCase")
+                    imports += PythonImport("unittest")
+                }
                 body = buildTestClassBody {
                     cgDataProviderMethods.clear()
                     for (testSet in testSets) {
@@ -82,9 +89,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
-                        runCatching {
+//                        runCatching {
                             currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-                        }.onFailure { e -> processFailure(testSet, e) }
+//                        }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content

@@ -6,10 +6,7 @@ import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.PythonMethodId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.exceptions
 
 internal class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
@@ -23,7 +20,7 @@ internal class PythonCgCallableAccessManagerImpl(val context: CgContext) : CgCal
         CgIncompleteMethodCall(methodId, this)
 
     override fun ClassId.get(staticMethodId: MethodId): CgIncompleteMethodCall =
-        CgIncompleteMethodCall(staticMethodId, null)
+        CgIncompleteMethodCall(staticMethodId, CgThisInstance(pythonAnyClassId))
 
     override fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall {
         val resolvedArgs = args.resolve()

@@ -14,12 +14,14 @@ fun TestFramework.patterns(): Patterns {
         Junit5 -> junit5ModulePatterns
         TestNg -> testNgModulePatterns
         Pytest -> emptyList()
+        Unittest -> emptyList()
     }
     val libraryPatterns = when (this) {
         Junit4 -> junit4Patterns
         Junit5 -> junit5Patterns
         TestNg -> testNgPatterns
         Pytest -> emptyList()
+        Unittest -> emptyList()
     }
 
     return Patterns(moduleLibraryPatterns, libraryPatterns)

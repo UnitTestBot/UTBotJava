@@ -1,9 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.util
 
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
-import org.utbot.framework.codegen.Pytest
-import org.utbot.framework.codegen.TestNg
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
 import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
@@ -30,6 +27,7 @@ internal object CgComponents {
         callableAccessManagers.getOrPut(context) {
             when (context.testFramework) {
                 is Pytest -> PythonCgCallableAccessManagerImpl(context)
+                is Unittest -> PythonCgCallableAccessManagerImpl(context)
                 else -> CgCallableAccessManagerImpl(context)
             }
         }
@@ -38,6 +36,7 @@ internal object CgComponents {
         statementConstructors.getOrPut(context) {
             when (context.testFramework) {
                 is Pytest -> PythonCgStatementConstructorImpl(context)
+                is Unittest -> PythonCgStatementConstructorImpl(context)
                 else -> CgStatementConstructorImpl(context)
             }
         }
@@ -47,6 +46,7 @@ internal object CgComponents {
         is Junit5 -> testFrameworkManagers.getOrPut(context) { Junit5Manager(context) }
         is TestNg -> testFrameworkManagers.getOrPut(context) { TestNgManager(context) }
         is Pytest -> testFrameworkManagers.getOrPut(context) { PytestManager(context) }
+        is Unittest -> testFrameworkManagers.getOrPut(context) { UnittestManager(context) }
     }
 
     fun getMockFrameworkManagerBy(context: CgContext) =

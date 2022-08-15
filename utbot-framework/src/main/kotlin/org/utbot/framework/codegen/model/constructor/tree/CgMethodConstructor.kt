@@ -1657,6 +1657,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
     }
 
@@ -1688,6 +1689,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
     /**
@@ -1707,6 +1709,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
     }
 
@@ -1747,6 +1750,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
 
@@ -1802,6 +1806,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             )
             Junit4 -> error("Parameterized tests are not supported for JUnit4")
             Pytest -> error("Parameterized tests are not supported for Pytest (yet)")
+            Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
     private fun testMethod(

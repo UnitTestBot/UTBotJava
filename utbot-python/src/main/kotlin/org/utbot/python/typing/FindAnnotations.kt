@@ -35,74 +35,79 @@ object AnnotationFinder {
         )
     }
 
-    private const val INF = 1000
-
-    private fun increaseValue(map: MutableMap<NormalizedPythonAnnotation, Int>, key: NormalizedPythonAnnotation) {
-        if (map[key] == INF || key == pythonAnyClassId)
+    private fun increaseValue(
+        map: MutableMap<NormalizedPythonAnnotation, Double>,
+        key: NormalizedPythonAnnotation,
+        by: Double
+    ) {
+        if (key == pythonAnyClassId)
             return
-        map[key] = (map[key] ?: 0) + 1
+        map[key] = (map[key] ?: 0.0) + by
     }
 
-    private fun getInitCandidateMap(): MutableMap<NormalizedPythonAnnotation, Int> {
-        val candidates = mutableMapOf<NormalizedPythonAnnotation, Int>() // key: type, value: priority
+    private fun getInitCandidateMap(): MutableMap<NormalizedPythonAnnotation, Double> {
+        val candidates = mutableMapOf<NormalizedPythonAnnotation, Double>()  // key: type, value: priority
         PythonTypesStorage.builtinTypes.associateByTo(
             destination = candidates,
             { AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(PythonClassId("builtins.$it")) },
-            { 0 }
+            { 0.0 }
         )
         return candidates
     }
 
-    private fun candidatesMapToRating(candidates: Map<NormalizedPythonAnnotation, Int>) =
+    private fun candidatesMapToRating(candidates: Map<NormalizedPythonAnnotation, Double>) =
         candidates.toList().sortedByDescending { it.second }.map { it.first }
 
-    private fun increaseForProjectClasses(candidates: MutableMap<NormalizedPythonAnnotation, Int>) {
+    private fun increaseForProjectClasses(candidates: MutableMap<NormalizedPythonAnnotation, Double>, by: Double) {
         candidates.keys.forEach { typeName ->
             if (PythonTypesStorage.isClassFromProject(typeName))
-                increaseValue(candidates, typeName)
+                increaseValue(candidates, typeName, by)
         }
     }
 
-    private fun increaseForGenerics(candidates: MutableMap<NormalizedPythonAnnotation, Int>) {
+    private fun increaseForGenerics(candidates: MutableMap<NormalizedPythonAnnotation, Double>, by: Double) {
         candidates.keys.forEach { typeName ->
             if (isGeneric(typeName))
-                increaseValue(candidates, typeName)
+                increaseValue(candidates, typeName, by)
         }
     }
+
+    private fun calcAdd(foundCandidates: Int): Double =
+        if (foundCandidates == 0) 0.0 else 1.0 / foundCandidates
+
+    const val EPS = 1e-6
 
     private fun getFirstLevelCandidates(
         hints: List<ArgInfoCollector.Hint>?
     ): List<NormalizedPythonAnnotation> {
         val candidates = getInitCandidateMap()
         hints?.forEach { hint ->
-            when (hint) {
-                is ArgInfoCollector.Type ->
-                    candidates[AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(hint.type)] = INF
-                is ArgInfoCollector.Method -> {
-                    val typesWithMethod = PythonTypesStorage.findTypeWithMethod(hint.name)
-                    typesWithMethod.forEach { increaseValue(candidates, it) }
-
-                    if (hint.name == "__iter__")
-                        increaseForGenerics(candidates)
+            var isIter = false
+            val foundCandidates : Set<NormalizedPythonAnnotation> =
+                when (hint) {
+                    is ArgInfoCollector.Type ->
+                        setOf(AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(hint.type))
+                    is ArgInfoCollector.Method -> {
+                        if (hint.name == "__iter__")
+                            isIter = true
+                        PythonTypesStorage.findTypeWithMethod(hint.name)
+                    }
+                    is ArgInfoCollector.Field -> PythonTypesStorage.findTypeWithField(hint.name)
+                    is ArgInfoCollector.FunctionArg -> {
+                        PythonTypesStorage.findTypeByFunctionWithArgumentPosition(
+                            hint.name,
+                            argumentPosition = hint.index
+                        )
+                    }
+                    is ArgInfoCollector.FunctionRet -> PythonTypesStorage.findTypeByFunctionReturnValue(hint.name)
+                    else -> emptySet()
                 }
-                is ArgInfoCollector.Field -> {
-                    val typesWithField = PythonTypesStorage.findTypeWithField(hint.name)
-                    typesWithField.forEach { increaseValue(candidates, it) }
-                }
-                is ArgInfoCollector.FunctionArg -> {
-                    PythonTypesStorage.findTypeByFunctionWithArgumentPosition(
-                        hint.name,
-                        argumentPosition = hint.index
-                    ).forEach { increaseValue(candidates, it) }
-                }
-                is ArgInfoCollector.FunctionRet -> {
-                    PythonTypesStorage.findTypeByFunctionReturnValue(
-                        hint.name
-                    ).forEach { increaseValue(candidates, it) }
-                }
-            }
+            val add = calcAdd(foundCandidates.size)
+            foundCandidates.forEach { increaseValue(candidates, it, add) }
+            if (isIter)
+                increaseForGenerics(candidates, EPS)
         }
-        increaseForProjectClasses(candidates)
+        increaseForProjectClasses(candidates, EPS)
         return candidatesMapToRating(candidates)
     }
 
@@ -111,28 +116,23 @@ object AnnotationFinder {
     ): List<NormalizedPythonAnnotation> {
         val candidates = getInitCandidateMap()
         argInfoCollector.getAllGeneralHints().map { hint ->
-            when (hint) {
-                is ArgInfoCollector.Type ->
-                    increaseValue(candidates, AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(hint.type))
-                is ArgInfoCollector.Function -> {
-                    listOf(
-                        PythonTypesStorage.findTypeByFunctionReturnValue(hint.name),
-                        PythonTypesStorage.findTypeByFunctionWithArgumentPosition(hint.name)
-                    ).flatten().forEach { increaseValue(candidates, it) }
+            val foundCandidates: Set<NormalizedPythonAnnotation> =
+                when (hint) {
+                    is ArgInfoCollector.Type ->
+                        setOf(AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(hint.type))
+                    is ArgInfoCollector.Function ->
+                        listOf(
+                            PythonTypesStorage.findTypeByFunctionReturnValue(hint.name),
+                            PythonTypesStorage.findTypeByFunctionWithArgumentPosition(hint.name)
+                        ).flatten().toSet()
+                    is ArgInfoCollector.Method -> PythonTypesStorage.findTypeWithMethod(hint.name)
+                    is ArgInfoCollector.Field -> PythonTypesStorage.findTypeWithField(hint.name)
+                    else -> emptySet()
                 }
-                is ArgInfoCollector.Method -> {
-                    PythonTypesStorage.findTypeWithMethod(hint.name).forEach {
-                        increaseValue(candidates, it)
-                    }
-                }
-                is ArgInfoCollector.Field -> {
-                    PythonTypesStorage.findTypeWithField(hint.name).forEach {
-                        increaseValue(candidates, it)
-                    }
-                }
-            }
+            val add = calcAdd(foundCandidates.size)
+            foundCandidates.forEach { increaseValue(candidates, it, add) }
         }
-        increaseForProjectClasses(candidates)
+        increaseForProjectClasses(candidates, EPS)
         return candidatesMapToRating(candidates)
     }
 

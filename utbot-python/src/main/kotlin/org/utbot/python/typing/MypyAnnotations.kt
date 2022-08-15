@@ -132,7 +132,7 @@ object MypyAnnotations {
     }
 
     fun getErrorsAndNotes(mypyOutput: String, mypyCode: String): List<MypyReportLine> {
-        val regex = Regex(":([0-9]*): (error|note): ([^\n]*\n)")
+        val regex = Regex(":([0-9]*): (error|note): ([^\n]*)\n")
         return regex.findAll(mypyOutput).toList().map { match ->
             MypyReportLine(
                 match.groupValues[1].toInt() - getLineOfFunction(mypyCode)!!,

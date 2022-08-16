@@ -1017,52 +1017,90 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         pythonDeepTreeEquals(expected.tree, expectedValue, actual)
     }
 
-    private fun pythonLenAssertConstructor(
-        actual: CgVariable,
-        expectedLength: Int,
-    ) {
-        val lenValue = newVar(pythonIntClassId, "actual_length") {
+    private fun pythonLenAssertConstructor(expected: CgVariable, actual: CgVariable): CgVariable {
+        val expectedValue = newVar(pythonIntClassId, "expected_length") {
+            CgGetLength(expected)
+        }
+        val actualValue = newVar(pythonIntClassId, "actual_length") {
             CgGetLength(actual)
         }
-        testFrameworkManager.assertEquals(
-            CgLiteral(pythonIntClassId, expectedLength),
-            lenValue
-        )
+        testFrameworkManager.assertEquals(expectedValue, actualValue)
+        return expectedValue
     }
 
     private fun pythonAssertElementsByKey(
+        expectedNode: PythonTree.PythonTreeNode,
         expected: CgVariable,
         actual: CgVariable,
         iterator: CgReferenceExpression,
         keyName: String = "index",
     ) {
-        val index = newVar(pythonIntClassId, keyName) {
-            CgLiteral(pythonIntClassId, 0)
+        val elements = when(expectedNode) {
+            is PythonTree.ListNode -> expectedNode.items
+            is PythonTree.TupleNode -> expectedNode.items
+            is PythonTree.DictNode -> expectedNode.items.values
+            else -> throw UnsupportedOperationException()
         }
-        forEachLoop {
-            innerBlock {
-                condition = index
-                iterable = iterator
-                val indexExpected = newVar(pythonAnyClassId, "expected_element") {
-                    CgPythonIndex(
-                        pythonIntClassId,
-                        expected,
-                        index
-                    )
+        if (elements.isNotEmpty()) {
+            val elementsHaveSameStructure = PythonTree.allElementsHaveSameStructure(elements)
+            val firstChildren = elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
+
+            emptyLine()
+            if (elementsHaveSameStructure) {
+                val index = newVar(pythonNoneClassId, keyName) {
+                    CgLiteral(pythonNoneClassId, "None")
                 }
-                val indexActual = newVar(pythonAnyClassId, "actual_element") {
-                    CgPythonIndex(
-                        pythonIntClassId,
-                        actual,
-                        index
-                    )
+                forEachLoop {
+                    innerBlock {
+                        condition = index
+                        iterable = iterator
+                        val indexExpected = newVar(pythonAnyClassId, "expected_element") {
+                            CgPythonIndex(
+                                pythonIntClassId,
+                                expected,
+                                index
+                            )
+                        }
+                        val indexActual = newVar(pythonAnyClassId, "actual_element") {
+                            CgPythonIndex(
+                                pythonIntClassId,
+                                actual,
+                                index
+                            )
+                        }
+                        pythonDeepTreeEquals(firstChildren, indexExpected, indexActual)
+                        statements = currentBlock
+                    }
                 }
-                testFrameworkManager.assertEquals(
-                    indexExpected, indexActual
-                )
-                statements = currentBlock
+            }
+            else {
+                testFrameworkManager.assertEquals(expected, actual)
             }
         }
+    }
+
+    private fun pythonAssertBuiltinsCollection(
+        expectedNode: PythonTree.PythonTreeNode,
+        expected: CgValue,
+        actual: CgVariable,
+        expectedName: String,
+        elementName: String = "index",
+    ) {
+        val expectedCollection = newVar(expected.type, expectedName) { expected }
+
+        val length = pythonLenAssertConstructor(expectedCollection, actual)
+
+        val iterator = if (expectedNode is PythonTree.DictNode) expected else CgPythonRange(length)
+        pythonAssertElementsByKey(expectedNode, expectedCollection, actual, iterator, elementName)
+    }
+
+    private fun pythonAssertBuiltinsCollection(
+        expected: CgValue,
+        actual: CgVariable,
+    ) {
+        testFrameworkManager.assertEquals(
+            expected, actual
+        )
     }
 
     private fun pythonDeepTreeEquals(
@@ -1070,78 +1108,71 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expected: CgValue,
         actual: CgVariable
     ) {
-        with(testFrameworkManager) {
-            when (expectedNode) {
-                is PythonTree.PrimitiveNode -> {
-                    testFrameworkManager.assertEquals(
-                        expected,
-                        actual,
-                    )
-                }
-                is PythonTree.ListNode -> {
-                    val size = expectedNode.items.size
-                    pythonLenAssertConstructor(actual, size)
-                    emptyLine()
-
-                    if (size > 0) {
-                        val expectedList = newVar(expected.type, "expected_list") { expected }
-                        pythonAssertElementsByKey(expectedList, actual, CgPythonRange(size))
+        when (expectedNode) {
+            is PythonTree.PrimitiveNode -> {
+                testFrameworkManager.assertEquals(
+                    expected,
+                    actual,
+                )
+            }
+            is PythonTree.ListNode -> {
+                pythonAssertBuiltinsCollection(
+                    expectedNode,
+                    expected,
+                    actual,
+                    "expected_list"
+                )
+            }
+            is PythonTree.TupleNode -> {
+                pythonAssertBuiltinsCollection(
+                    expectedNode,
+                    expected,
+                    actual,
+                    "expected_tuple"
+                )
+            }
+            is PythonTree.SetNode -> {
+                testFrameworkManager.assertEquals(
+                    expected, actual
+                )
+            }
+            is PythonTree.DictNode -> {
+                pythonAssertBuiltinsCollection(
+                    expectedNode,
+                    expected,
+                    actual,
+                    "expected_dict",
+                    "key"
+                )
+            }
+            is PythonTree.ReduceNode -> {
+                if (expectedNode.state.isNotEmpty()) {
+                    expectedNode.state.forEach { (field, value) ->
+                        val valueActual = newVar(value.type) {
+                            CgPythonIndex(
+                                pythonIntClassId,
+                                actual,
+                                CgLiteral(pythonStrClassId, field)
+                            )
+                        }
+                        val valueExpected = newVar(value.type) {
+                            CgPythonIndex(
+                                pythonIntClassId,
+                                newVar(expected.type) {expected},
+                                CgLiteral(pythonStrClassId, field)
+                            )
+                        }
+                        testFrameworkManager.assertEquals(
+                            valueExpected, valueActual
+                        )
                     }
-                }
-                is PythonTree.TupleNode -> {
-                    val size = expectedNode.items.size
-                    pythonLenAssertConstructor(actual, size)
-                    emptyLine()
-
-                    if (size > 0) {
-                        val expectedTuple = newVar(expected.type, "expected_tuple") { expected }
-                        pythonAssertElementsByKey(expectedTuple, actual, CgPythonRange(size))
-                    }
-                }
-                is PythonTree.SetNode -> {
+                } else {
                     testFrameworkManager.assertEquals(
                         expected, actual
                     )
                 }
-                is PythonTree.DictNode -> {
-                    val size = expectedNode.items.size
-                    pythonLenAssertConstructor(actual, size)
-                    emptyLine()
-
-                    if (size > 0) {
-                        val expectedDict = newVar(expected.type, "expected_dict") { expected }
-                        pythonAssertElementsByKey(expectedDict, actual, expected, "key")
-                    }
-                }
-                is PythonTree.ReduceNode -> {
-                    if (expectedNode.state.isNotEmpty()) {
-                        expectedNode.state.forEach { (field, value) ->
-                            val valueActual = newVar(value.type) {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    actual,
-                                    CgLiteral(pythonStrClassId, field)
-                                )
-                            }
-                            val valueExpected = newVar(value.type) {
-                                CgPythonIndex(
-                                    pythonIntClassId,
-                                    newVar(expected.type) {expected},
-                                    CgLiteral(pythonStrClassId, field)
-                                )
-                            }
-                            testFrameworkManager.assertEquals(
-                                valueExpected, valueActual
-                            )
-                        }
-                    } else {
-                        testFrameworkManager.assertEquals(
-                            expected, actual
-                        )
-                    }
-                }
-                else -> {}
             }
+            else -> {}
         }
     }
 
@@ -1283,6 +1314,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         val name = paramNames[executableId]?.get(index)
                         if (param is PythonModel) {
                             param.allContainingClassIds.forEach {
+                                existingVariableNames += it.moduleName
                                 collectedImports += PythonImport(it.moduleName)
                             }
                         }

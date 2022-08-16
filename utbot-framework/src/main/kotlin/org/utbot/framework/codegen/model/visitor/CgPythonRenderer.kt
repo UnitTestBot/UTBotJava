@@ -403,7 +403,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgPythonRange) {
         print("range(")
-        print(listOf(element.start, element.stop, element.step).joinToString(", "))
+        listOf(element.start, element.stop, element.step).renderSeparated()
         print(")")
     }
 

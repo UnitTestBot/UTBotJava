@@ -906,14 +906,24 @@ class CgPythonSysPath(
 }
 
 class CgPythonRange(
-    val start: Int,
-    val stop: Int,
-    val step: Int,
+    val start: CgValue,
+    val stop: CgValue,
+    val step: CgValue,
 ) : CgValue {
     override val type: PythonClassId
         get() = pythonRangeClassId
 
-    constructor(stop: Int): this(0, stop , 1)
+    constructor(stop: Int): this(
+        CgLiteral(pythonIntClassId, 0),
+        CgLiteral(pythonIntClassId, stop),
+        CgLiteral(pythonIntClassId, 1),
+    )
+
+    constructor(stop: CgValue): this(
+        CgLiteral(pythonIntClassId, 0),
+        stop,
+        CgLiteral(pythonIntClassId, 1),
+    )
 }
 
 class CgPythonList(

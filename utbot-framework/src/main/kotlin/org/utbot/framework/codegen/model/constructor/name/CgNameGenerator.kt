@@ -64,7 +64,7 @@ internal interface CgNameGenerator {
  * Class that generates names for methods and variables
  * To avoid name collisions it uses existing names information from CgContext
  */
-internal class CgNameGeneratorImpl(private val context: CgContext)
+internal open class CgNameGeneratorImpl(private val context: CgContext)
     : CgNameGenerator, CgContextOwner by context {
 
     override fun variableName(base: String, isMock: Boolean): String {
@@ -133,7 +133,7 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
      *
      * @param skipOne shows if we add "1" to first method name or not
      */
-    private fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
+    fun nextIndexedMethodName(base: String, skipOne: Boolean = false): String =
         infiniteInts()
             .map { if (skipOne && it == 1) base else "$base$it" }
             .first { it !in existingMethodNames }
@@ -147,7 +147,7 @@ internal class CgNameGeneratorImpl(private val context: CgContext)
         CodegenLanguage.PYTHON -> nextIndexedVarName(baseName)
     }
 
-    private fun createExecutableName(executableId: ExecutableId): String {
+    fun createExecutableName(executableId: ExecutableId): String {
         return when (executableId) {
             is ConstructorId -> executableId.classId.prettifiedName // TODO: maybe we need some suffix e.g. "Ctor"?
             is MethodId -> executableId.name

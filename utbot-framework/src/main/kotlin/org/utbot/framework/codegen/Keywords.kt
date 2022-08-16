@@ -19,9 +19,13 @@ private val kotlinHardKeywords = setOf(
 private val pythonKeywords = setOf(
     "True", "False", "None", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else",
     "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not",
-    "or", "pass", "raise", "return", "try", "while", "with", "yield", "self",
     "or", "pass", "raise", "return", "try", "while", "with", "yield", "list", "int", "str", "float", "bool", "bytes", "frozenset",
     "dict", "set", "tuple",
+    "abs", "aiter", "all", "any", "anext", "ascii", "bool", "breakpoint", "bytearray", "callable", "chr", "classmethod", "compile",
+    "complex", "delattr", "dir", "divmod", "enumerate", "eval", "exec", "filter", "format", "getattr", "globals", "hasattr",
+    "hash", "help", "hex", "id", "input", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max",
+    "memoryview", "min", "next", "object", "oct", "open", "ord", "pow", "print", "property", "range", "repr", "reversed",
+    "round", "set", "setattr", "slice", "sorted", "staticmethod", "sum", "super", "type", "vars", "zip",
 )
 
 @Suppress("unused")

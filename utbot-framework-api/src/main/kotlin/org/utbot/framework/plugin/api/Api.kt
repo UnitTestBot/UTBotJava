@@ -14,6 +14,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
 import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
+import org.utbot.framework.plugin.api.python.util.moduleOfType
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
@@ -248,8 +249,7 @@ class PythonClassId(
     override val simpleName: String = name.split(".").last()
     val moduleName: String
         get() {
-            val lastIndex = name.lastIndexOf('.')
-            return if (lastIndex == -1) pythonBuiltinsModuleName else name.substring(0, lastIndex)
+            return moduleOfType(name) ?: pythonBuiltinsModuleName
         }
     override val packageName = moduleName
     override val canonicalName = name

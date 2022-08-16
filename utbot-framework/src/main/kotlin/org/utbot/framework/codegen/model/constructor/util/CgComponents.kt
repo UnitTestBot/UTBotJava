@@ -4,6 +4,7 @@ import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.name.CgNameGenerator
 import org.utbot.framework.codegen.model.constructor.name.CgNameGeneratorImpl
+import org.utbot.framework.codegen.model.constructor.name.PythonCgNameGenerator
 import org.utbot.framework.codegen.model.constructor.tree.*
 import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl
 import org.utbot.framework.codegen.model.constructor.tree.CgFieldStateManager
@@ -21,7 +22,13 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 
 // TODO: probably rewrite it to delegates so that we could write 'val testFrameworkManager by CgComponents' etc.
 internal object CgComponents {
-    fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) { CgNameGeneratorImpl(context) }
+    fun getNameGeneratorBy(context: CgContext) = nameGenerators.getOrPut(context) {
+        when(context.testFramework) {
+            is Pytest -> PythonCgNameGenerator(context)
+            is Unittest -> PythonCgNameGenerator(context)
+            else -> CgNameGeneratorImpl(context)
+        }
+    }
 
     fun getCallableAccessManagerBy(context: CgContext) =
         callableAccessManagers.getOrPut(context) {

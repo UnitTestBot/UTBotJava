@@ -5,6 +5,13 @@ object PythonTree {
         val type: PythonClassId,
     ) {
         open val children: List<PythonTreeNode> = emptyList()
+
+        open fun typeEquals(other: Any?): Boolean {
+            return if (other is PythonTreeNode)
+                type == other.type
+            else
+                false
+        }
     }
 
     class PrimitiveNode(
@@ -17,6 +24,14 @@ object PythonTree {
     ): PythonTreeNode(PythonClassId("builtins.list")) {
         override val children: List<PythonTreeNode>
             get() = items
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is ListNode)
+                items.zip(other.items).all {
+                    it.first.typeEquals(it.second)
+                }
+            else false
+        }
     }
 
     class DictNode(
@@ -24,6 +39,15 @@ object PythonTree {
     ): PythonTreeNode(PythonClassId("builtins.dict")) {
         override val children: List<PythonTreeNode>
             get() = items.values + items.keys
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is DictNode) {
+                items.keys.size == other.items.keys.size && items.keys.all {
+                    items[it]?.typeEquals(other.items[it]) ?: false
+                }
+
+            } else false
+        }
     }
 
     class SetNode(
@@ -31,6 +55,19 @@ object PythonTree {
     ): PythonTreeNode(PythonClassId("builtins.set")) {
         override val children: List<PythonTreeNode>
             get() = items.toList()
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is SetNode) {
+                items.size == other.items.size && (
+                        items.isEmpty() || items.all {
+                            items.first().typeEquals(it)
+                        } && other.items.all {
+                            items.first().typeEquals(it)
+                        })
+            } else {
+                false
+            }
+        }
     }
 
     class TupleNode(
@@ -38,6 +75,16 @@ object PythonTree {
     ): PythonTreeNode(PythonClassId("builtins.tuple")) {
         override val children: List<PythonTreeNode>
             get() = items
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is TupleNode) {
+                items.size == other.items.size && items.zip(other.items).all {
+                    it.first.typeEquals(it.second)
+                }
+            } else {
+                false
+            }
+        }
     }
 
     class ReduceNode(
@@ -47,8 +94,25 @@ object PythonTree {
         val state: Map<String, PythonTreeNode>,
         val listitems: List<PythonTreeNode>,
         val dictitems: Map<PythonTreeNode, PythonTreeNode>,
-    ): PythonTreeNode(type)  {
+    ): PythonTreeNode(type) {
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys
+
+        override fun typeEquals(other: Any?): Boolean {
+            return if (other is ReduceNode)
+                type == other.type
+            else false
+        }
+    }
+
+    fun allElementsHaveSameStructure(elements: Collection<PythonTreeNode>): Boolean {
+        return if (elements.isEmpty()) {
+            true
+        } else {
+            val firstElement = elements.first()
+            elements.drop(1).all {
+                it.typeEquals(firstElement)
+            }
+        }
     }
 }

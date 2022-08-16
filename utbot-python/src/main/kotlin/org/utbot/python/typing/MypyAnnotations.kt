@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
+import org.utbot.python.Cleaner
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
@@ -31,7 +32,7 @@ object MypyAnnotations {
         isCancelled: () -> Boolean,
         storageForMypyMessages: MutableList<MypyReportLine>? = null
     ) = sequence {
-        val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy")
+        val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy.py")
         val codeWithoutAnnotations = generateMypyCheckCode(
             method,
             emptyMap(),
@@ -39,8 +40,10 @@ object MypyAnnotations {
             moduleToImport
         )
         FileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
-
         val configFile = setConfigFile(directoriesForSysPath)
+
+        Cleaner.addFunction { stopMypy(pythonPath) }
+
         val defaultOutputAsString = runMypy(pythonPath, fileWithCode, configFile)
         val defaultErrorsAndNotes = getErrorsAndNotes(defaultOutputAsString, codeWithoutAnnotations, fileWithCode)
 
@@ -56,15 +59,11 @@ object MypyAnnotations {
             }
         }
         if (candidates.any { it.isEmpty() }) {
-            fileWithCode.delete()
-            configFile.delete()
             return@sequence
         }
 
         PriorityCartesianProduct(candidates).getSequence().forEach { generatedAnnotations ->
             if (isCancelled()) {
-                fileWithCode.delete()
-                configFile.delete()
                 return@sequence
             }
 
@@ -86,9 +85,6 @@ object MypyAnnotations {
                 })
             }
         }
-
-        fileWithCode.delete()
-        configFile.delete()
     }
 
     private const val configFilename = "mypy.ini"
@@ -98,6 +94,11 @@ object MypyAnnotations {
         val configContent = "[mypy]\nmypy_path = ${directoriesForSysPath.joinToString(separator = ":")}"
         FileManager.writeToAssignedFile(file, configContent)
         return file
+    }
+
+    private fun stopMypy(pythonPath: String): Int {
+        val result = runCommand(listOf(pythonPath, "-m", "mypy.dmypy", "stop"))
+        return result.exitValue
     }
 
     private fun runMypy(

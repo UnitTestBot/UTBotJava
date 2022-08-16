@@ -130,7 +130,8 @@ object PythonDialogProcessor {
                             }
                         }
                     },
-                    processMypyWarnings = { WarningTestsReportNotifier.notify(it) }
+                    processMypyWarnings = { WarningTestsReportNotifier.notify(it) },
+                    startedCleaningAction = { indicator.text = "Cleaning up..." }
                 )
             }
         })

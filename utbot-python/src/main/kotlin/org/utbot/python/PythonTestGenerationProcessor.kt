@@ -35,118 +35,120 @@ object PythonTestGenerationProcessor {
         startedTestGenerationAction: () -> Unit = {},
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
         generatedFileWithTestsAction: (File) -> Unit = {},
-        processMypyWarnings: (String) -> Unit = {}
+        processMypyWarnings: (String) -> Unit = {},
+        startedCleaningAction: () -> Unit = {}
     ) {
-        val startTime = System.currentTimeMillis()
+        Cleaner.restart()
 
-        FileManager.assignTestSourceRoot(testSourceRoot)
+        try {
+            FileManager.assignTestSourceRoot(testSourceRoot)
 
-        if (!MypyAnnotations.mypyInstalled(pythonPath) && !isCanceled()) {
-            startedMypyInstallationAction()
-            MypyAnnotations.installMypy(pythonPath)
-            if (!MypyAnnotations.mypyInstalled(pythonPath))
-                couldNotInstallMypyAction()
-        }
+            if (!MypyAnnotations.mypyInstalled(pythonPath) && !isCanceled()) {
+                startedMypyInstallationAction()
+                MypyAnnotations.installMypy(pythonPath)
+                if (!MypyAnnotations.mypyInstalled(pythonPath))
+                    couldNotInstallMypyAction()
+            }
 
-        if (isCanceled())
-            return
+            startedLoadingPythonTypesAction()
+            PythonTypesStorage.pythonPath = pythonPath
+            PythonTypesStorage.refreshProjectClassesList(directoriesForSysPath)
+            StubFileFinder
 
-        startedLoadingPythonTypesAction()
-        PythonTypesStorage.pythonPath = pythonPath
-        PythonTypesStorage.refreshProjectClassesList(directoriesForSysPath)
-        StubFileFinder
+            startedTestGenerationAction()
+            val startTime = System.currentTimeMillis()
 
-        if (isCanceled())
-            return
+            val testCaseGenerator = PythonTestCaseGenerator.apply {
+                init(
+                    directoriesForSysPath,
+                    currentPythonModule,
+                    pythonPath,
+                    pythonFilePath
+                ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
+            }
 
-        startedTestGenerationAction()
+            val tests = pythonMethods.map { method ->
+                testCaseGenerator.generate(method)
+            }
 
-        val testCaseGenerator = PythonTestCaseGenerator.apply {
-            init(
-                directoriesForSysPath,
-                currentPythonModule,
-                pythonPath,
-                pythonFilePath
-            ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
-        }
+            val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
 
-        val tests = pythonMethods.map { method ->
-            testCaseGenerator.generate(method)
-        }
+            if (isCanceled())
+                return
 
-        val (notEmptyTests, emptyTestSets) = tests.partition { it.executions.isNotEmpty() }
+            if (emptyTestSets.isNotEmpty()) {
+                notGeneratedTestsAction(emptyTestSets.map { it.method.name })
+            }
 
-        if (isCanceled())
-            return
+            if (notEmptyTests.isEmpty())
+                return
 
-        if (emptyTestSets.isNotEmpty()) {
-            notGeneratedTestsAction(emptyTestSets.map { it.method.name })
-        }
-
-        if (notEmptyTests.isEmpty())
-            return
-
-        val classId =
-            if (containingClassName == null)
-                PythonClassId("$currentPythonModule.TopLevelFunctions")
-            else
-                PythonClassId("$currentPythonModule.$containingClassName")
-
-        val methodIds = notEmptyTests.associate {
-            it.method to PythonMethodId(
-                classId,
-                it.method.name,
-                RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
-                it.method.arguments.map { argument ->
-                    argument.annotation?.let { annotation ->
-                        RawPythonAnnotation(annotation)
-                    } ?: pythonAnyClassId
-                }
-            )
-        }
-
-        val paramNames = notEmptyTests.associate { testSet ->
-            methodIds[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
-        }.toMutableMap()
-
-        val context = UtContext(this::class.java.classLoader)
-        withUtContext(context) {
-            val codegen = CodeGenerator(
-                classId,
-                paramNames = paramNames,
-                testFramework = testFramework,
-                codegenLanguage = codegenLanguage,
-                testClassPackageName = "",
-            )
-            val testCode = codegen.generateAsStringWithTestReport(
-                notEmptyTests.map { testSet ->
-                    CgMethodTestSet(
-                        methodIds[testSet.method] as ExecutableId,
-                        testSet.executions,
-                        directoriesForSysPath,
-                    )
-                }
-            ).generatedCode
-            val testFile = FileManager.createPermanentFile(outputFilename, testCode)
-            generatedFileWithTestsAction(testFile)
-        }
-
-        val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
-            val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
-            val msgLines = testSet.mypyReport.map {
-                if (lineOfFunction != null && it.line >= 0 && it.file == MypyAnnotations.TEMPORARY_MYPY_FILE)
-                    ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+            val classId =
+                if (containingClassName == null)
+                    PythonClassId("$currentPythonModule.TopLevelFunctions")
                 else
-                    "${it.type}: ${it.message}"
-            }
-            if (msgLines.isNotEmpty()) {
-                acc.appendHtmlLine("MYPY REPORT (function ${testSet.method.name})")
-                msgLines.forEach { acc.appendHtmlLine(it) }
-            }
-            acc
-        }.toString()
+                    PythonClassId("$currentPythonModule.$containingClassName")
 
-        if (mypyReport != "")
-            processMypyWarnings(mypyReport)
+            val methodIds = notEmptyTests.associate {
+                it.method to PythonMethodId(
+                    classId,
+                    it.method.name,
+                    RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
+                    it.method.arguments.map { argument ->
+                        argument.annotation?.let { annotation ->
+                            RawPythonAnnotation(annotation)
+                        } ?: pythonAnyClassId
+                    }
+                )
+            }
+
+            val paramNames = notEmptyTests.associate { testSet ->
+                methodIds[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
+            }.toMutableMap()
+
+            val context = UtContext(this::class.java.classLoader)
+            withUtContext(context) {
+                val codegen = CodeGenerator(
+                    classId,
+                    paramNames = paramNames,
+                    testFramework = testFramework,
+                    codegenLanguage = codegenLanguage,
+                    testClassPackageName = "",
+                )
+                val testCode = codegen.generateAsStringWithTestReport(
+                    notEmptyTests.map { testSet ->
+                        CgMethodTestSet(
+                            methodIds[testSet.method] as ExecutableId,
+                            testSet.executions,
+                            directoriesForSysPath,
+                        )
+                    }
+                ).generatedCode
+                val testFile = FileManager.createPermanentFile(outputFilename, testCode)
+                generatedFileWithTestsAction(testFile)
+            }
+
+            val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
+                val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
+                val msgLines = testSet.mypyReport.map {
+                    if (lineOfFunction != null && it.line >= 0 && it.file == MypyAnnotations.TEMPORARY_MYPY_FILE)
+                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                    else
+                        "${it.type}: ${it.message}"
+                }
+                if (msgLines.isNotEmpty()) {
+                    acc.appendHtmlLine("MYPY REPORT (function ${testSet.method.name})")
+                    msgLines.forEach { acc.appendHtmlLine(it) }
+                }
+                acc
+            }.toString()
+
+            if (mypyReport != "")
+                processMypyWarnings(mypyReport)
+
+        } finally {
+            startedCleaningAction()
+            Cleaner.doCleaning()
+        }
     }
 }

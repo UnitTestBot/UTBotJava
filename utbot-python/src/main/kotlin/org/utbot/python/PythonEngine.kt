@@ -8,6 +8,7 @@ import org.utbot.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.providers.defaultPythonModelProvider
+import org.utbot.python.utils.camelToSnakeCase
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -85,7 +86,7 @@ class PythonEngine(
                         instrumentation = emptyList(),
                         path = mutableListOf(), // ??
                         fullPath = emptyList(), // ??
-                        testMethodName = testMethodName?.testName,
+                        testMethodName = testMethodName?.testName?.camelToSnakeCase(),
                         displayName = testMethodName?.displayName,
                     )
                 )

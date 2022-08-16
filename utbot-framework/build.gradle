@@ -12,8 +12,6 @@ configurations {
 
 dependencies {
 
-    api project(':utbot-python')
-
     api project(':utbot-core')
     api project(':utbot-instrumentation')
     api project(':utbot-summary')

@@ -190,7 +190,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgGetJavaClass) {
         // TODO: check how it works on ref types, primitives, ref arrays, primitive arrays, etc.
-        print(getKotlinClassString(element.type))
+        print(getKotlinClassString(CgClassType(element.classId)))
         print("::class.java")
     }
 

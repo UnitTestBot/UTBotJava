@@ -977,6 +977,8 @@ class ConstructorExecutableId(override val methodId: MethodId) : ExecutableId(),
         get() = methodId.classId
     override val name: String
         get() = methodId.name
+
+    override fun toString(): String = methodId.signature
 }
 
 class MethodExecutableId(override val methodId: MethodId) : ExecutableId(), MethodId by methodId {
@@ -984,6 +986,8 @@ class MethodExecutableId(override val methodId: MethodId) : ExecutableId(), Meth
         get() = methodId.classId
     override val name: String
         get() = methodId.name
+
+    override fun toString(): String = "MethodExecutableId: ${methodId.signature}"
 }
 
 
@@ -1081,6 +1085,13 @@ class BuiltinParameterId(val parameterType: ClassId): MethodParameterId {
     override suspend fun type() = parameterType
 }
 
+val ClassId.jvmName: String
+    get() = when {
+        isArray -> "[${(this as ArrayClassId).underlyingType.jvmName}"
+        isPrimitive -> primitiveTypeJvmNameOrNull()!!
+        else -> name.toReferenceTypeBytecodeSignature()
+    }
+
 class BuiltinMethodId(
     override val classId: ClassId,
     override val name: String,
@@ -1090,7 +1101,7 @@ class BuiltinMethodId(
     // by default we assume that the builtin method is non-static and public
 ) : MethodId {
 
-    override suspend fun access() = if (isStatic) Opcodes.ACC_PUBLIC and Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC
+    override suspend fun access() = if (isStatic) Opcodes.ACC_PUBLIC or Opcodes.ACC_STATIC else Opcodes.ACC_PUBLIC
 
     override suspend fun annotations() = emptyList<AnnotationId>()
     override suspend fun parameterIds() = parameters.map { BuiltinParameterId(it) }
@@ -1105,10 +1116,29 @@ class BuiltinMethodId(
 
     override suspend fun resolution() = Raw
 
-    override suspend fun returnType() = returnType
-
     override suspend fun signature(internalNames: Boolean): String {
-        TODO("Not yet implemented")
+        val args = parameters.joinToString(separator = "") { it.jvmName }
+        val retType = returnType.jvmName
+        return "$name($args)$retType"
+    }
+
+    override suspend fun returnType() = returnType
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as BuiltinMethodId
+
+        if (name != other.name) return false
+        if (signature != other.signature) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + signature.hashCode()
+        return result
     }
 }
 

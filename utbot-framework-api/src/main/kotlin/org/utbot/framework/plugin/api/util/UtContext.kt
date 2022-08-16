@@ -12,6 +12,7 @@ import org.utbot.jcdb.jcdb
 import java.io.Closeable
 import java.net.URL
 import java.net.URLClassLoader
+import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.coroutines.CoroutineContext
 
@@ -50,6 +51,8 @@ class UtContext(val classLoader: ClassLoader, val provider: JCDBProvider, val cl
         private set
 
     constructor(classLoader: ClassLoader) : this(classLoader, SingletonJCDB, classLoader.asClasspath(SingletonJCDB))
+
+    constructor(classLoader: ClassLoader, buildDir: Path) : this(classLoader, SingletonJCDB, buildDir.asClasspath(SingletonJCDB))
 
     constructor(classLoader: ClassLoader, stopWatch: StopWatch) : this(classLoader) {
         this.stopWatch = stopWatch
@@ -111,11 +114,25 @@ class UtContext(val classLoader: ClassLoader, val provider: JCDBProvider, val cl
             }
         }
 
-        private fun ClassLoader.asClasspath(provider: JCDBProvider): ClasspathSet = runBlocking {
-            val files = urls?.map { Paths.get(it.toURI()).toFile() }
-                ?: throw IllegalStateException("Can't grab classpath from ${this@asClasspath}")
-            DelegatingClasspathSet(provider.jcdb.classpathSet(files))
+        private fun Path.asClasspath(provider: JCDBProvider): ClasspathSet = runBlocking {
+            val file = toFile()
+            DelegatingClasspathSet(provider.jcdb.classpathSet(listOf(file)))
         }
+
+        private var previousClassLoader: ClassLoader? = null
+        private var previousClasspathSet: ClasspathSet? = null
+
+        private fun ClassLoader.asClasspath(provider: JCDBProvider): ClasspathSet =
+            previousClasspathSet.takeIf { previousClassLoader == this }
+                ?: runBlocking {
+                    val files = urls?.map { Paths.get(it.toURI()).toFile() }
+                        ?: throw IllegalStateException("Can't grab classpath from ${this@asClasspath}")
+                    DelegatingClasspathSet(provider.jcdb.classpathSet(files))
+                }.also { classpathSet ->
+                    previousClassLoader = this
+                    previousClasspathSet = classpathSet
+                }
+
     }
 
     override val key: CoroutineContext.Key<UtContext> get() = Key

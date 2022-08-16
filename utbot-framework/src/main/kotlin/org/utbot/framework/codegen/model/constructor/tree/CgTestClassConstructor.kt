@@ -113,7 +113,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
     private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
-            .merge(failure.description, 1, Int::plus)
+            .merge(failure.stackTraceToString(), 1, Int::plus)
     }
 
     private fun createParametrizedTestAndDataProvider(
@@ -150,10 +150,10 @@ internal class CgTestClassConstructor(val context: CgContext) :
             val method = requiredUtilMethods.first()
             requiredUtilMethods.remove(method)
             if (method.name !in existingMethodNames) {
-                utilMethods += CgUtilMethod(method)
-                importUtilMethodDependencies(method)
+                utilMethods += CgUtilMethod(method.methodId)
+                importUtilMethodDependencies(method.methodId)
                 existingMethodNames += method.name
-                requiredUtilMethods += method.dependencies().map { it.asExecutableMethod() }
+                requiredUtilMethods += method.methodId.dependencies().map { it.asExecutableMethod() }
             }
         }
         return utilMethods

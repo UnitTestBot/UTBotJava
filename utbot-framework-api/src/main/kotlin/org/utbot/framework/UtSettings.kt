@@ -151,7 +151,7 @@ object UtSettings {
      *
      * False by default, set it to true if debug visualization is needed.
      */
-    var useDebugVisualization by getBooleanProperty(true)
+    var useDebugVisualization by getBooleanProperty(false)
 
     /**
      * Set the value to true if you want to automatically copy the path of the
@@ -223,7 +223,7 @@ object UtSettings {
      *
      * True by default.
      */
-    var useConcreteExecution by getBooleanProperty(true)
+    var useConcreteExecution by getBooleanProperty(false)
 
     /**
      * Enable check of full coverage for methods with code generations tests.

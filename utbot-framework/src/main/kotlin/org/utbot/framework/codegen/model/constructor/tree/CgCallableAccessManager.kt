@@ -122,7 +122,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         if (!isUtil) return emptySet()
 
         with(currentTestClass) {
-            return when (this@findExceptionTypes) {
+            return when (this@findExceptionTypes.methodId) {
                 getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
                 getStaticFieldValueMethodId,
                 getFieldValueMethodId,

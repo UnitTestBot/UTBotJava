@@ -10,6 +10,7 @@ repositories {
 //noinspection GroovyAssignabilityCheck
 configurations {
     z3native
+    fetchInstrumentationJar
 }
 
 dependencies {
@@ -59,6 +60,8 @@ dependencies {
     z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3_version, ext: 'zip'
     z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3_version, ext: 'zip'
     z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3_version, ext: 'zip'
+
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 }
 
 processResources {
@@ -66,6 +69,9 @@ processResources {
         from(zipTree(artifact.getFile())) {
             into "lib/x64"
         }
+    }
+    from(configurations.fetchInstrumentationJar) {
+        into "lib"
     }
 }
 

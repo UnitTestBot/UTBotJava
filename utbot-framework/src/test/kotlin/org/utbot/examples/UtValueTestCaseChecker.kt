@@ -49,7 +49,7 @@ abstract class UtValueTestCaseChecker(
     // contains already analyzed by the engine methods
     private val analyzedMethods: MutableMap<MethodWithMockStrategy, MethodResult> = mutableMapOf()
 
-    val searchDirectory: Path = Paths.get("../utbot-sample/src/main/java")
+    open val searchDirectory: Path = Paths.get("../utbot-sample/src/main/java")
 
     init {
         UtSettings.checkSolverTimeoutMillis = 0

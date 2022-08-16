@@ -145,7 +145,7 @@ object AnnotationProcessor {
                 onError = null,
                 atom
             ) { it } ?.let { typeName ->
-                param.add(moduleOfType(typeName)!!)
+                moduleOfType(typeName)?.let { param.add(it) }
             }
 
             return super.visitAtom(atom, param)

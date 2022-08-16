@@ -5,7 +5,7 @@ from typing import *
 from dataclasses import dataclass
 
 
-def empty():
+def empty_():
     pass
 
 

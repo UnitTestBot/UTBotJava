@@ -148,8 +148,8 @@ object PythonDialogProcessor {
                     testCaseGenerator.generate(method)
                 }
 
-                val notEmptyTests = tests.filter { it.executions.isNotEmpty() || it.errors.isNotEmpty() }
-                val emptyTestSets = tests.filter { it.executions.isEmpty() && it.errors.isEmpty() }
+                val notEmptyTests = tests.filter { it.executions.isNotEmpty() }
+                val emptyTestSets = tests.filter { it.executions.isEmpty() }
 
                 if (emptyTestSets.isNotEmpty() && !indicator.isCanceled) {
                     val functionNames = emptyTestSets.map { it.method.name }

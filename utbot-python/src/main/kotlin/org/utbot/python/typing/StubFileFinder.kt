@@ -9,7 +9,6 @@ object StubFileFinder {
     private val builtinFields: List<StubFileStructures.FieldIndex>
     private val builtinFunctions: List<StubFileStructures.FunctionIndex>
     private val builtinClasses: List<StubFileStructures.ClassInfo>
-    var isInitialized = false
 
     init {
         val methodResource = StubFileFinder::class.java.getResourceAsStream("/method_annotations.json")
@@ -25,7 +24,6 @@ object StubFileFinder {
         builtinFunctions = Klaxon().parseArray(functionResource) ?: emptyList()
         builtinFields = Klaxon().parseArray(fieldResource) ?: emptyList()
         builtinClasses = Klaxon().parseArray(classResource) ?: emptyList()
-        isInitialized = true
     }
 
     val methodToTypeMap: Map<String, List<StubFileStructures.FunctionInfo>> by lazy {

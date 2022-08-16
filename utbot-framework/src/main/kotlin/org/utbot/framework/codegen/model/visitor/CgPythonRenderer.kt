@@ -11,9 +11,6 @@ import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.*
-import org.utbot.python.utils.camelToSnakeCase
-import java.math.BigDecimal
-import java.math.BigInteger
 
 internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrinterImpl()) :
     CgAbstractRenderer(context, printer) {
@@ -235,7 +232,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun renderMethodSignature(element: CgTestMethod) {
         print("def ")
-        print(element.name.camelToSnakeCase())
+        print(element.name)
 
         print("(")
         val newLinesNeeded = element.parameters.size > maxParametersAmountInOneLine
@@ -246,7 +243,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun renderMethodSignature(element: CgErrorTestMethod) {
         print("def ")
-        print(element.name.camelToSnakeCase())
+        print(element.name)
         print("(")
         val selfParameter = CgThisInstance(pythonAnyClassId)
         listOf(selfParameter).renderSeparated()

@@ -957,6 +957,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             }
             is PythonTree.ReduceNode -> {
                 val constructorModule = moduleOfType(objectNode.constructor) ?: objectNode.constructor
+                existingVariableNames += constructorModule
                 collectedImports += PythonImport(constructorModule)
 
                 val initArgs = objectNode.args.map {

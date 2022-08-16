@@ -122,7 +122,7 @@ fun astToString(stmt: Statement): String {
 }
 
 fun textToModule(code: String): Module {
-    val lexer = Python3Lexer(fromString(code))
+    val lexer = Python3Lexer(fromString(code + "\n"))
     val tokens = CommonTokenStream(lexer)
     val parser = Python3Parser(tokens)
     val moduleVisitor = ModuleVisitor()

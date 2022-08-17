@@ -6,7 +6,6 @@ import org.utbot.engine.selectors.NNRewardGuidedSelectorWithRecalculationFactory
 import org.utbot.engine.selectors.NNRewardGuidedSelectorWithoutRecalculationFactory
 import org.utbot.framework.NNRewardGuidedSelectorType
 import org.utbot.framework.UtSettings
-import java.util.PriorityQueue
 
 /**
  * Class that stores all objects that need for work analytics module during symbolic execution
@@ -29,14 +28,9 @@ object EngineAnalyticsContext {
         NNRewardGuidedSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
     }
 
-    @kotlin.jvm.JvmField
-    var stateRewardPredictorFactory: MutableMap<Int, StateRewardPredictorFactory> = mutableMapOf()
-
-    init {
-        stateRewardPredictorFactory[0] = object : StateRewardPredictorFactory {
+    var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {
             override fun invoke(): StateRewardPredictor {
                 error("NNStateRewardPredictor factory wasn't provided")
             }
         }
-    }
 }

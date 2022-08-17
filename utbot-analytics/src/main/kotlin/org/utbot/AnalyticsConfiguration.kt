@@ -5,10 +5,16 @@ import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
 import org.utbot.predictors.StateRewardPredictorFactoryImpl
 
+/**
+ * The basic configuration of the utbot-analytics module used in utbot-intellij and (as planned) in utbot-cli
+ * to implement the hidden configuration initialization to avoid direct calls of this configuration and usage of utbot-analytics imports.
+ *
+ * @see
+ */
 object AnalyticsConfiguration {
     init {
         EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
         EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-        EngineAnalyticsContext.stateRewardPredictorFactory[1] = StateRewardPredictorFactoryImpl()
+        EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
     }
 }

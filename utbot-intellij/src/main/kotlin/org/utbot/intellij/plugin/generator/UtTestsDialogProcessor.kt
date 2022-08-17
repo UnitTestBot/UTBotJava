@@ -268,7 +268,7 @@ object UtTestsDialogProcessor {
         }
         // TODO: if could not be load switch on the simplest path selector
         if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
-            Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory[1]!!.invoke()
+            Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
         }
 
         logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }

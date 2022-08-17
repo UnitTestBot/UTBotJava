@@ -29,8 +29,8 @@ object EngineAnalyticsContext {
     }
 
     var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {
-            override fun invoke(): StateRewardPredictor {
-                error("NNStateRewardPredictor factory wasn't provided")
-            }
+        override fun invoke(): StateRewardPredictor {
+            error("NNStateRewardPredictor factory wasn't provided")
         }
+    }
 }

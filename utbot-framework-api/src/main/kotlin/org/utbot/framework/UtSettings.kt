@@ -123,7 +123,7 @@ object UtSettings {
     /**
      * Type of path selector
      */
-    var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.NN_REWARD_GUIDED_SELECTOR)
+    var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
 
     /**
      * Type of nnRewardGuidedSelector

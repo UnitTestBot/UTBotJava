@@ -12,8 +12,33 @@ object AnnotationNormalizer {
             ?.readText()
             ?: error("Didn't find $resourceName")
 
-        return FileManager.createTemporaryFile(scriptContent, tag = "normalize_annotation")
+        return FileManager.createTemporaryFile(scriptContent, tag = "normalize_annotation.py")
     }
+
+    // TODO: remove copy-paste
+    private var normalizeAnnotationFromProjectScript_: File? = null
+    private val normalizeAnnotationFromProjectScript: File
+        get() {
+            val result = normalizeAnnotationFromProjectScript_
+            if (result == null || !result.exists()) {
+                val result1 = getFileWithScript("/normalize_annotation_from_project.py")
+                normalizeAnnotationFromProjectScript_ = result1
+                return result1
+            }
+            return result
+        }
+
+    private var normalizeAnnotationFromStubScript_: File? = null
+    private val normalizeAnnotationFromStubScript: File
+        get() {
+            val result = normalizeAnnotationFromStubScript_
+            if (result == null || !result.exists()) {
+                val result1 = getFileWithScript("/normalize_annotation_from_stub.py")
+                normalizeAnnotationFromStubScript_ = result1
+                return result1
+            }
+            return result
+        }
 
     private fun normalizeAnnotationFromProject(
         annotation: String,
@@ -22,17 +47,15 @@ object AnnotationNormalizer {
         fileOfAnnotation: String,
         filesToAddToSysPath: Set<String>
     ): String {
-        val scriptFile = getFileWithScript("/normalize_annotation_from_project.py")
         val result = runCommand(
             listOf(
                 pythonPath,
-                scriptFile.path,
+                normalizeAnnotationFromProjectScript.path,
                 annotation,
                 curPythonModule,
                 fileOfAnnotation,
             ) + filesToAddToSysPath,
         )
-        scriptFile.delete()
         return if (result.exitValue == 0) result.stdout else annotation
     }
 
@@ -69,14 +92,12 @@ object AnnotationNormalizer {
         if (cached != null)
             return cached
 
-        val scriptFile = getFileWithScript("/normalize_annotation_from_stub.py")
         val result = runCommand(listOf(
             pythonPath,
-            scriptFile.path,
+            normalizeAnnotationFromStubScript.path,
             annotation,
             moduleOfAnnotation
         ))
-        scriptFile.delete()
 
         val ret = NormalizedPythonAnnotation(
             substituteTypes(

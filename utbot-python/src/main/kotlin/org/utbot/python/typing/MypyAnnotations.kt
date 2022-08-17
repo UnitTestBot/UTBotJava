@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
+import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.FileManager
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.PythonCodeGenerator.generateMypyCheckCode
@@ -31,7 +32,7 @@ object MypyAnnotations {
         isCancelled: () -> Boolean,
         storageForMypyMessages: MutableList<MypyReportLine>? = null
     ) = sequence {
-        val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy")
+        val fileWithCode = FileManager.assignTemporaryFile(tag = "mypy.py")
         val codeWithoutAnnotations = generateMypyCheckCode(
             method,
             emptyMap(),
@@ -39,9 +40,10 @@ object MypyAnnotations {
             moduleToImport
         )
         FileManager.writeToAssignedFile(fileWithCode, codeWithoutAnnotations)
-
         val configFile = setConfigFile(directoriesForSysPath)
-        val defaultOutputAsString = runMypy(pythonPath, fileWithCode, configFile)
+        Cleaner.addFunction { stopMypy(pythonPath) }
+
+        val defaultOutputAsString = mypyCheck(pythonPath, fileWithCode, configFile)
         val defaultErrorsAndNotes = getErrorsAndNotes(defaultOutputAsString, codeWithoutAnnotations, fileWithCode)
 
         if (storageForMypyMessages != null) {
@@ -56,15 +58,11 @@ object MypyAnnotations {
             }
         }
         if (candidates.any { it.isEmpty() }) {
-            fileWithCode.delete()
-            configFile.delete()
             return@sequence
         }
 
         PriorityCartesianProduct(candidates).getSequence().forEach { generatedAnnotations ->
             if (isCancelled()) {
-                fileWithCode.delete()
-                configFile.delete()
                 return@sequence
             }
 
@@ -76,7 +74,7 @@ object MypyAnnotations {
                 moduleToImport
             )
             FileManager.writeToAssignedFile(fileWithCode, codeWithAnnotations)
-            val mypyOutputAsString = runMypy(pythonPath, fileWithCode, configFile)
+            val mypyOutputAsString = mypyCheck(pythonPath, fileWithCode, configFile)
             val mypyOutput = getErrorsAndNotes(mypyOutputAsString, codeWithAnnotations, fileWithCode)
             val errorNum = getErrorNumber(mypyOutput)
 
@@ -86,25 +84,33 @@ object MypyAnnotations {
                 })
             }
         }
-
-        fileWithCode.delete()
-        configFile.delete()
     }
 
     private const val configFilename = "mypy.ini"
 
     private fun setConfigFile(directoriesForSysPath: Set<String>): File {
         val file = FileManager.assignTemporaryFile(configFilename)
-        val configContent = "[mypy]\nmypy_path = ${directoriesForSysPath.joinToString(separator = ":")}"
+        val configContent = """
+            [mypy]
+            mypy_path = ${directoriesForSysPath.joinToString(separator = ":")}
+            strict_optional = True
+            show_none_errors = True
+            """.trimIndent()
         FileManager.writeToAssignedFile(file, configContent)
         return file
     }
 
-    private fun runMypy(
-        pythonPath: String,
-        fileWithCode: File,
-        configFile: File
-    ): String {
+    private fun stopMypy(pythonPath: String): Int {
+        val result = runCommand(listOf(
+            pythonPath,
+            "-m",
+            "mypy.dmypy",
+            "stop"
+        ))
+        return result.exitValue
+    }
+
+    private fun mypyCheck(pythonPath: String, fileWithCode: File, configFile: File): String {
         val result = runCommand(listOf(
             pythonPath,
             "-m",

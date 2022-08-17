@@ -39,47 +39,29 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    private fun createOutputBlock(outputName: String, outputFilename: String, outputFileAlias: String): With {
-        return With(
-            listOf(
-                WithItem(
+    private fun createOutputBlock(outputName: String, status: String): List<Statement> {
+        return listOf(
+            Assign(
+                listOf(Name("out")),
                 Atom(
-                    Name("open"),
-                    listOf(
-                        createArguments(
-                            listOf(
-                                Str(outputFilename),
-                                Str("w")
-                            )
-                        )
-                    )
-                ),
-                Name(outputFileAlias)
-            )
+                    Name(
+                        "_PythonTreeSerializer.serialize"
+                    ),
+                    listOf(createArguments(listOf(Name(outputName))))
+                )
             ),
-            Body(listOf(
-                Assign(
-                    listOf(Name("out")),
-                    Atom(
-                        Name(
-                            "_PythonTreeSerializer.serialize"
-                        ),
-                        listOf(createArguments(listOf(Name(outputName))))
-                    )
-                ),
-                Atom(
-                    Name("print"),
-                    listOf(
-                        createArguments(
-                            listOf(Name("json.dumps(out)")),
-                            listOf(
-                                Keyword(Name("file"), Name(outputFileAlias)),
-                                Keyword(Name("end"), Str(""))
-                            ),
+            Atom(
+                Name("print"),
+                listOf(
+                    createArguments(
+                        listOf(Str("'$status'"), Name("json.dumps(out)")),
+                        listOf(
+                            Keyword(Name("end"), Str("''")),
+                            Keyword(Name("sep"), Str("'\\n'"))
                         )
                     )
                 )
-            ))
+            )
         )
     }
 
@@ -146,11 +128,12 @@ object PythonCodeGenerator {
         )
     }
 
+    const val successStatus = "success"
+    const val failStatus = "fail"
+
     fun generateRunFunctionCode(
         method: PythonMethod,
         methodArguments: List<UtModel>,
-        outputFilename: String,
-        errorFilename: String,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         additionalModules: Set<String> = emptySet()
@@ -181,25 +164,20 @@ object PythonCodeGenerator {
                     generateMethodCall(method)
             )
 
-        val outputFileAlias = "fout"
-        val withOpenResultFile = createOutputBlock(
+        val okOutputBlock = createOutputBlock(
             resultName,
-            outputFilename,
-            outputFileAlias
+            successStatus
         )
 
-        val errorFileAlias = "ferr"
         val exceptionName = "e"
-
-        val withOpenErrorFile = createOutputBlock(
+        val failOutputBlock = createOutputBlock(
             exceptionName,
-            errorFilename,
-            errorFileAlias
+            failStatus
         )
 
-        val tryBody = Body(parameters + listOf(functionCall, withOpenResultFile))
+        val tryBody = Body(parameters + listOf(functionCall) + okOutputBlock)
         val tryHandler = ExceptHandler("Exception", exceptionName)
-        val tryBlock = Try(tryBody, listOf(tryHandler), listOf(withOpenErrorFile))
+        val tryBlock = Try(tryBody, listOf(tryHandler), listOf(Body(failOutputBlock)))
 
         testFunction.addStatement(
             tryBlock

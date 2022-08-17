@@ -420,9 +420,13 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgPythonSet) {
-        print("{")
-        element.elements.toList().renderSeparated()
-        print("}")
+        if (element.elements.isEmpty())
+            print("set()")
+        else {
+            print("{")
+            element.elements.toList().renderSeparated()
+            print("}")
+        }
     }
 
     override fun visit(element: CgPythonDict) {

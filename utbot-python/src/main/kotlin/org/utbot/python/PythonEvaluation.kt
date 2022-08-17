@@ -28,42 +28,32 @@ object PythonEvaluation {
         pythonPath: String,
         additionalModulesToImport: Set<String> = emptySet()
     ): EvaluationResult {
-        val outputFile = FileManager.assignTemporaryFile(tag = "output_" + method.name)
-        val errorFile = FileManager.assignTemporaryFile(tag = "error_" + method.name)
         val runCode = PythonCodeGenerator.generateRunFunctionCode(
             method,
             methodArguments,
-            outputFile.path,
-            errorFile.path,
             directoriesForSysPath,
             moduleToImport,
             additionalModulesToImport
         )
-        val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + method.name)
+        val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + method.name + ".py")
         val result = runCommand(listOf(pythonPath, fileWithCode.path))
-        var failedEvaluation = result.exitValue != 0
 
-        var outputAsString = ""
-        var isSuccess = false
-
-        if (outputFile.exists()) {
-            outputAsString = outputFile.readText()
-            outputFile.delete()
-            isSuccess = true
-        } else {
-            if (errorFile.exists()) {
-                outputAsString = errorFile.readText()
-                errorFile.delete()
-            } else {
-                failedEvaluation = true
-            }
-        }
-        fileWithCode.delete()
-
-        if (failedEvaluation)
+        if (result.exitValue != 0)
             return EvaluationError
 
-        val pythonTree = KlaxonPythonTreeParser.parseJsonToPythonTree(outputAsString)
+        val output = result.stdout.split('\n')
+
+        if (output.size != 2)
+            return EvaluationError
+
+        val status = output[0]
+
+        if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
+            return EvaluationError
+
+        val isSuccess = status == PythonCodeGenerator.successStatus
+
+        val pythonTree = KlaxonPythonTreeParser.parseJsonToPythonTree(output[1])
 
         return EvaluationSuccess(
             OutputData(pythonTree, pythonTree.type),

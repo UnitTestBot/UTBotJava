@@ -59,6 +59,13 @@ class PythonEngine(
             } else {
                 val (resultJSON, isException) = evalResult as EvaluationSuccess
 
+                val prohibitedExceptions = listOf(
+                    "builtins.AttributeError",
+                    "builtins.TypeError"
+                )
+                if (isException && (resultJSON.type.name in prohibitedExceptions))
+                    return@forEach
+
                 val result =
                     if (isException)
                         UtExplicitlyThrownException(Throwable(resultJSON.output.type.toString()), false) // TODO:

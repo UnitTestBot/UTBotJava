@@ -18,10 +18,13 @@ object FileManager {
             tmpFolder.mkdir()
     }
 
-    fun assignTemporaryFile(fileName_: String? = null, tag: String? = null): File {
-        val fileName = fileName_ ?: ("${nextId++}." + (tag ?: ""))
+    fun assignTemporaryFile(fileName_: String? = null, tag: String? = null, addToCleaner: Boolean = true): File {
+        val fileName = fileName_ ?: ("${nextId++}_" + (tag ?: ""))
         val fullpath = Paths.get(testSourceRoot, tmpFolderName, fileName)
-        return fullpath.toFile()
+        val result = fullpath.toFile()
+        if (addToCleaner)
+            Cleaner.addFunction { result.delete() }
+        return result
     }
 
     fun writeToAssignedFile(file: File, content: String) {
@@ -29,8 +32,13 @@ object FileManager {
         file.createNewFile()
     }
 
-    fun createTemporaryFile(content: String, fileName: String? = null, tag: String? = null): File {
-        val file = assignTemporaryFile(fileName, tag)
+    fun createTemporaryFile(
+        content: String,
+        fileName: String? = null,
+        tag: String? = null,
+        addToCleaner: Boolean = true
+    ): File {
+        val file = assignTemporaryFile(fileName, tag, addToCleaner)
         writeToAssignedFile(file, content)
         return file
     }

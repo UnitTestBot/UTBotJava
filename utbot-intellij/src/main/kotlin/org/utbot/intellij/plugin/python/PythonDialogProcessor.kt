@@ -18,11 +18,6 @@ import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
-import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.testModule
@@ -30,16 +25,8 @@ import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
-import org.utbot.python.PythonTestCaseGenerator
-import org.utbot.python.typing.MypyAnnotations
-import org.utbot.python.typing.PythonTypesStorage
-import org.utbot.python.typing.StubFileFinder
-import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.camelToSnakeCase
-import org.utbot.python.utils.getLineOfFunction
-import org.utbot.common.appendHtmlLine
-import org.utbot.python.PythonTestSet
-import org.utbot.python.typing.MypyAnnotations.TEMPORARY_MYPY_FILE
+import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
@@ -104,137 +91,50 @@ object PythonDialogProcessor {
         }
     }
 
+    private fun getOutputFilName(model: PythonTestsModel) =
+        "test_${model.currentPythonModule.camelToSnakeCase().replace('.', '_')}.py"
+
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
-                val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
-                val testSourceRoot = model.testSourceRoot!!.path
-                val filePath = model.file.virtualFile.path
-                FileManager.assignTestSourceRoot(testSourceRoot)
-
-                if (!MypyAnnotations.mypyInstalled(pythonPath) && !indicator.isCanceled) {
-                    indicator.text = "Installing mypy"
-                    MypyAnnotations.installMypy(pythonPath)
-                    if (!MypyAnnotations.mypyInstalled(pythonPath))
-                        error("Something wrong with mypy")
-                }
-
-                if (!indicator.isCanceled) {
-                    indicator.text = "Loading information about Python types"
-
-                    PythonTypesStorage.pythonPath = pythonPath
-                    PythonTypesStorage.refreshProjectClassesAndModulesLists(
-                        model.directoriesForSysPath
-                    )
-
-                    while (!StubFileFinder.isInitialized);
-
-                    indicator.text = "Generating tests"
-                }
-                val startTime = System.currentTimeMillis()
-
-                val pythonMethods = findSelectedPythonMethods(model)
-
-                val testCaseGenerator = PythonTestCaseGenerator.apply {
-                    init(
-                        model.directoriesForSysPath,
-                        model.currentPythonModule,
-                        pythonPath,
-                        filePath
-                    ) { indicator.isCanceled || (System.currentTimeMillis() - startTime) > model.timeout }
-                }
-
-                val tests = pythonMethods.map { method ->
-                    testCaseGenerator.generate(method)
-                }
-
-                val notEmptyTests = tests.filter { it.executions.isNotEmpty() }
-                val emptyTestSets = tests.filter { it.executions.isEmpty() }
-
-                if (emptyTestSets.isNotEmpty() && !indicator.isCanceled) {
-                    val functionNames = emptyTestSets.map { it.method.name }
-                    showErrorDialogLater(
-                        project,
-                        message = "Cannot create tests for the following functions: " + functionNames.joinToString(),
-                        title = "Python test generation error"
-                    )
-                    if (notEmptyTests.isEmpty())
-                        return
-                }
-
-                val classId =
-                    if (model.containingClass == null)
-                        PythonClassId(model.currentPythonModule + ".TopLevelFunctions")
-                    else
-                        PythonClassId(model.currentPythonModule + "." + model.containingClass.name)
-
-                val methods = notEmptyTests.associate {
-                    it.method to PythonMethodId(
-                        classId,
-                        it.method.name,
-                        RawPythonAnnotation(it.method.returnAnnotation ?: pythonNoneClassId.name),
-                        it.method.arguments.map { argument ->
-                            argument.annotation?.let { annotation ->
-                                RawPythonAnnotation(annotation)
-                            } ?: pythonAnyClassId
+                processTestGeneration(
+                    pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter"),
+                    testSourceRoot = model.testSourceRoot!!.path,
+                    pythonFilePath = model.file.virtualFile.path,
+                    pythonFileContent = getContentFromPyFile(model.file),
+                    directoriesForSysPath = model.directoriesForSysPath,
+                    currentPythonModule = model.currentPythonModule,
+                    pythonMethods = findSelectedPythonMethods(model),
+                    containingClassName = model.containingClass?.name,
+                    timeout = model.timeout,
+                    testFramework = model.testFramework,
+                    codegenLanguage = model.codegenLanguage,
+                    outputFilename = getOutputFilName(model),
+                    isCanceled = { indicator.isCanceled },
+                    startedMypyInstallationAction = { indicator.text = "Installing mypy" },
+                    couldNotInstallMypyAction = { error("Something wrong with mypy") },  // TODO: show notification
+                    startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
+                    startedTestGenerationAction = { indicator.text = "Generating tests" },
+                    notGeneratedTestsAction = {
+                        showErrorDialogLater(
+                            project,
+                            message = "Cannot create tests for the following functions: " + it.joinToString(),
+                            title = "Python test generation error"
+                        )
+                    },
+                    generatedFileWithTestsAction = {
+                        val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(it)
+                        if (virtualFile != null) {
+                            invokeAndWaitIfNeeded {
+                                OpenFileDescriptor(model.project, virtualFile).navigate(true)
+                            }
                         }
-                    )
-                }
-                val paramNames = notEmptyTests.associate { testSet ->
-                    methods[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
-                }.toMutableMap()
-
-                val context = UtContext(this::class.java.classLoader)
-                withUtContext(context) {
-                    val codegen = CodeGenerator(
-                        classId,
-                        paramNames = paramNames,
-                        testFramework = model.testFramework,
-                        codegenLanguage = model.codegenLanguage,
-                        testClassPackageName = "",
-                    )
-                    val testCode = codegen.generateAsStringWithTestReport(
-                        notEmptyTests.map { testSet ->
-                            CgMethodTestSet(
-                                methods[testSet.method] as ExecutableId,
-                                testSet.executions,
-                                model.directoriesForSysPath,
-                            )
-                        }
-                    ).generatedCode
-                    val fileName = "test_${classId.moduleName.camelToSnakeCase()}.py"
-                    val testFile = FileManager.createPermanentFile(fileName, testCode)
-                    val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(testFile)
-                    if (virtualFile != null) {
-                        invokeAndWaitIfNeeded {
-                            OpenFileDescriptor(model.project, virtualFile).navigate(true)
-                        }
-                    }
-                }
-
-                showNotifications(notEmptyTests, model)
+                    },
+                    processMypyWarnings = { WarningTestsReportNotifier.notify(it) },
+                    startedCleaningAction = { indicator.text = "Cleaning up..." }
+                )
             }
         })
-    }
-
-    private fun showNotifications(notEmptyTests: List<PythonTestSet>, model: PythonTestsModel) {
-        val codeAsString = getContentFromPyFile(model.file)
-        val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
-            val lineOfFunction = getLineOfFunction(codeAsString, testSet.method.name)
-            val msgLines = testSet.mypyReport.map {
-                if (lineOfFunction != null && it.line >= 0 && it.file == TEMPORARY_MYPY_FILE)
-                    ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-                else
-                    "${it.type}: ${it.message}"
-            }
-            if (msgLines.isNotEmpty()) {
-                acc.appendHtmlLine("MYPY REPORT (function ${testSet.method.name})")
-                msgLines.forEach { acc.appendHtmlLine(it) }
-            }
-            acc
-        }.toString()
-        if (mypyReport != "")
-            WarningTestsReportNotifier.notify(mypyReport)
     }
 }
 

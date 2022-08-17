@@ -9,8 +9,6 @@ object StubFileFinder {
     val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = emptyMap<String, MutableSet<StubFileStructures.FieldInfo>>().toMutableMap()
     val nameToClassMap: MutableMap<String, StubFileStructures.ClassInfo> = emptyMap<String, StubFileStructures.ClassInfo>().toMutableMap()
 
-    var isInitialized: Boolean = false
-
     private fun parseJson(json: String): StubFileStructures.JsonData? {
         return Klaxon().parse<StubFileStructures.JsonData>(json)
     }
@@ -25,7 +23,6 @@ object StubFileFinder {
             updateFunctions(jsonData.function_annotations)
             updateClasses(jsonData.class_annotations)
         }
-        isInitialized = true
     }
 
     private fun updateMethods(newMethods: List<StubFileStructures.MethodIndex>) {

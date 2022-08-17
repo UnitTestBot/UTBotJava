@@ -3,16 +3,15 @@ package org.utbot.python.typing
 import com.beust.klaxon.Klaxon
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
-import org.apache.commons.io.filefilter.DirectoryFileFilter
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.io.filefilter.NameFileFilter
-import org.apache.commons.io.filefilter.RegexFileFilter
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.code.ClassInfoCollector
 import org.utbot.python.code.PythonClass
 import org.utbot.python.code.PythonCode
+import org.utbot.python.code.PythonModule
 import org.utbot.python.utils.AnnotationNormalizer
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromStubToClassId
@@ -30,6 +29,7 @@ class PythonClassIdInfo(
 
 object PythonTypesStorage {
     private var projectClasses: List<ProjectClass> = emptyList()
+    private var projectModules: List<PythonModule> = emptyList()
     var pythonPath: String? = null
     private const val PYTHON_NOT_SPECIFIED = "PythonPath in PythonTypeCollector not specified"
 
@@ -144,36 +144,56 @@ object PythonTypesStorage {
     private fun getModuleName(path: String, fileWithClass: File): String =
         File(path).toURI().relativize(fileWithClass.toURI()).path.removeSuffix(".py").toPath().joinToString(".")
 
-    fun refreshProjectClassesList(
+    fun refreshProjectClassesAndModulesLists(
         directoriesForSysPath: Set<String>
     ) {
         val processedFiles = mutableSetOf<File>()
-        projectClasses = directoriesForSysPath.flatMap { path ->
-            getPythonFiles(path).flatMap inner@{ file ->
-                if (processedFiles.contains(file))
-                    return@inner emptyList()
-                processedFiles.add(file)
-                val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
-                val code = PythonCode.getFromString(content, file.path)
-                code.getToplevelClasses().map { pyClass ->
-                    val collector = ClassInfoCollector(pyClass)
-                    val module = getModuleName(path, file)
-                    val initSignature = pyClass.initSignature
-                        ?.map {
-                            annotationFromProjectToClassId(
-                                it.annotation,
-                                pythonPath ?: error(PYTHON_NOT_SPECIFIED),
-                                module,
-                                pyClass.filename!!,
-                                directoriesForSysPath
-                            )
-                        }
-                    val fullClassName = module + "." + pyClass.name
-                    ProjectClass(pyClass, collector.storage, initSignature, PythonClassId(fullClassName))
+        val projectClassesSet = mutableSetOf<ProjectClass>()
+        val projectModulesSet = mutableSetOf(PythonModule("builtins"))
+
+        directoriesForSysPath.forEach { path ->
+            getPythonFiles(path).forEach { file ->
+                if (!processedFiles.contains(file)) {
+                    processedFiles.add(file)
+                    val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
+                    val code = PythonCode.getFromString(content, file.path)
+                    projectClassesSet += code.getToplevelClasses().map { pyClass ->
+                        val collector = ClassInfoCollector(pyClass)
+                        val module = getModuleName(path, file)
+                        val initSignature = pyClass.initSignature
+                            ?.map {
+                                annotationFromProjectToClassId(
+                                    it.annotation,
+                                    pythonPath ?: error(PYTHON_NOT_SPECIFIED),
+                                    module,
+                                    pyClass.filename!!,
+                                    directoriesForSysPath
+                                )
+                            }
+                        val fullClassName = module + "." + pyClass.name
+                        ProjectClass(pyClass, collector.storage, initSignature, PythonClassId(fullClassName))
+                    }
+                    projectModulesSet += code.getToplevelModules()
                 }
             }
         }
+        projectClasses = projectClassesSet.toList()
+
+        val newModules = projectModulesSet - projectModules.toSet()
+        updateStubFiles(newModules.map { it.name } .toList())
+        projectModules = projectModulesSet.toList()
     }
+
+    private fun updateStubFiles(newModules: List<String>) {
+        if (newModules.isNotEmpty()) {
+            val jsonData = StubFileReader.getStubInfo(
+                newModules,
+                pythonPath ?: error(PYTHON_NOT_SPECIFIED),
+            )
+            StubFileFinder.updateStubs(jsonData)
+        }
+    }
+
 
     private data class PreprocessedValueFromJSON(
         val name: String,

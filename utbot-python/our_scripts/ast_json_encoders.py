@@ -6,47 +6,6 @@ import astor.code_gen  # type: ignore
 from typeshed_client import OverloadedName  # type: ignore
 
 
-class AstNodeEncoder(json.JSONEncoder):
-    def default(self, o):
-        json_dump = {
-            '_type': o.__class__.__name__
-        }
-        for attr in dir(o):
-            if attr.startswith('_'):
-                continue
-            if any(key in attr for key in {'col_', 'lineno', 'ctx', 'type_comment'}):
-                continue
-
-            value = getattr(o, attr)
-
-            if value is None:
-                json_dump[attr] = value
-            elif isinstance(value, (int, float, bool, str, bytes, bytearray)):
-                json_dump[attr] = value
-            elif isinstance(value, complex):
-                json_dump[attr] = ComplexEncoder().encode(value)
-            elif isinstance(value, list):
-                json_dump[attr] = [
-                    self.default(element) for element in value
-                ]
-            elif isinstance(value, type(Ellipsis)):
-                json_dump[attr] = '...'
-            elif isinstance(value, ast.AST):
-                json_dump[attr] = self.default(value)
-            else:
-                raise Exception(f'Unknown type: {o}')
-        return json_dump
-
-
-class ComplexEncoder(json.JSONEncoder):
-    def default(self, o):
-        return {
-            '_type': 'complex',
-            'real': o.real,
-            'imag': o.imag,
-        }
-
-
 class AstClassEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ast.ClassDef):

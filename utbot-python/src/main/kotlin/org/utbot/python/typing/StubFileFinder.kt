@@ -4,60 +4,61 @@ import com.beust.klaxon.Klaxon
 import org.utbot.python.utils.moduleOfType
 
 object StubFileFinder {
+    val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = emptyMap<String, MutableSet<StubFileStructures.FunctionInfo>>().toMutableMap()
+    val functionToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = emptyMap<String, MutableSet<StubFileStructures.FunctionInfo>>().toMutableMap()
+    val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = emptyMap<String, MutableSet<StubFileStructures.FieldInfo>>().toMutableMap()
+    val nameToClassMap: MutableMap<String, StubFileStructures.ClassInfo> = emptyMap<String, StubFileStructures.ClassInfo>().toMutableMap()
 
-    private val builtinMethods: List<StubFileStructures.MethodIndex>
-    private val builtinFields: List<StubFileStructures.FieldIndex>
-    private val builtinFunctions: List<StubFileStructures.FunctionIndex>
-    private val builtinClasses: List<StubFileStructures.ClassInfo>
-    var isInitialized = false
+    var isInitialized: Boolean = false
 
-    init {
-        val methodResource = StubFileFinder::class.java.getResourceAsStream("/method_annotations.json")
-            ?: error("Didn't find method_annotations.json")
-        val fieldResource = StubFileFinder::class.java.getResourceAsStream("/field_annotations.json")
-            ?: error("Didn't find fields_annotations.json")
-        val functionResource = StubFileFinder::class.java.getResourceAsStream("/function_annotations.json")
-            ?: error("Didn't find function_annotations.json")
-        val classResource = StubFileFinder::class.java.getResourceAsStream("/class_annotations.json")
-            ?: error("Didn't find class_annotations.json")
+    private fun parseJson(json: String): StubFileStructures.JsonData? {
+        return Klaxon().parse<StubFileStructures.JsonData>(json)
+    }
 
-        builtinMethods = Klaxon().parseArray(methodResource) ?: emptyList()
-        builtinFunctions = Klaxon().parseArray(functionResource) ?: emptyList()
-        builtinFields = Klaxon().parseArray(fieldResource) ?: emptyList()
-        builtinClasses = Klaxon().parseArray(classResource) ?: emptyList()
+    fun updateStubs(
+        json: String
+    ) {
+        val jsonData = parseJson(json)
+        if (jsonData != null) {
+            updateMethods(jsonData.method_annotations)
+            updateFields(jsonData.field_annotations)
+            updateFunctions(jsonData.function_annotations)
+            updateClasses(jsonData.class_annotations)
+        }
         isInitialized = true
     }
 
-    val methodToTypeMap: Map<String, List<StubFileStructures.FunctionInfo>> by lazy {
-        val result = mutableMapOf<String, List<StubFileStructures.FunctionInfo>>()
-        builtinMethods.forEach { function ->
-            result[function.name] = function.definitions
+    private fun updateMethods(newMethods: List<StubFileStructures.MethodIndex>) {
+        newMethods.forEach { function ->
+            if (!methodToTypeMap.containsKey(function.name))
+                methodToTypeMap[function.name] = function.definitions.toMutableSet()
+            else
+                methodToTypeMap[function.name]?.addAll(function.definitions)
         }
-        result
     }
 
-    val functionToTypeMap: Map<String, List<StubFileStructures.FunctionInfo>> by lazy {
-        val result = mutableMapOf<String, List<StubFileStructures.FunctionInfo>>()
-        builtinFunctions.forEach { function ->
-            result[function.name] = function.definitions
+    private fun updateFunctions(newFunctions: List<StubFileStructures.FunctionIndex>) {
+        newFunctions.forEach { function ->
+            if (!functionToTypeMap.containsKey(function.name))
+                functionToTypeMap[function.name] = function.definitions.toMutableSet()
+            else
+                functionToTypeMap[function.name]?.addAll(function.definitions)
         }
-        result
     }
 
-    val fieldToTypeMap: Map<String, List<StubFileStructures.FieldInfo>> by lazy {
-        val result = mutableMapOf<String, List<StubFileStructures.FieldInfo>>()
-        builtinFields.forEach { field ->
-            result[field.name] = field.definitions
+    private fun updateFields(newFields: List<StubFileStructures.FieldIndex>) {
+        newFields.forEach { field ->
+            if (!fieldToTypeMap.containsKey(field.name))
+                fieldToTypeMap[field.name] = field.definitions.toMutableSet()
+            else
+                fieldToTypeMap[field.name]?.addAll(field.definitions)
         }
-        result
     }
 
-    val nameToClassMap: Map<String, StubFileStructures.ClassInfo> by lazy {
-        val result = mutableMapOf<String, StubFileStructures.ClassInfo>()
-        builtinClasses.forEach { pyClass ->
-            result[pyClass.className] = pyClass
+    private fun updateClasses(newClasses: List<StubFileStructures.ClassInfo>) {
+        newClasses.forEach { pyClass ->
+            nameToClassMap[pyClass.className] = pyClass
         }
-        result
     }
 
     data class SearchResult(val typeName: String, val module: String)

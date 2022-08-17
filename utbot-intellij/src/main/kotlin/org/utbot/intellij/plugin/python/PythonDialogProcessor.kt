@@ -123,7 +123,7 @@ object PythonDialogProcessor {
                     indicator.text = "Loading information about Python types"
 
                     PythonTypesStorage.pythonPath = pythonPath
-                    PythonTypesStorage.refreshProjectClassesList(
+                    PythonTypesStorage.refreshProjectClassesAndModulesLists(
                         model.directoriesForSysPath
                     )
 

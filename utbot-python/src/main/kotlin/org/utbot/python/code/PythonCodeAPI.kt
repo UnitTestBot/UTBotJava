@@ -12,6 +12,8 @@ import io.github.danielnaczo.python3parser.model.stmts.Statement
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.ClassDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.FunctionDef
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameter
+import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
+import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
 import io.github.danielnaczo.python3parser.model.stmts.smallStmts.assignStmts.AnnAssign
 import io.github.danielnaczo.python3parser.visitors.ast.ModuleVisitor
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
@@ -36,6 +38,17 @@ class PythonCode(private val body: Module, val filename: String? = null, val pyt
                 PythonClass(classDef, filename, pythonModule)
             }
 
+    fun getToplevelModules(): List<PythonModule> =
+        body.statements.flatMap { statement ->
+            when (statement) {
+                is Import -> statement.names.map { it.name.name }
+                is ImportFrom -> listOf(statement.module.get().name)
+                else -> emptyList()
+            }
+        }.toSet().map {
+            PythonModule(it)
+        }
+
     companion object {
         fun getFromString(code: String, filename: String? = null, pythonModule: String? = null): PythonCode {
             val ast = textToModule(code)
@@ -43,6 +56,10 @@ class PythonCode(private val body: Module, val filename: String? = null, val pyt
         }
     }
 }
+
+data class PythonModule(
+    val name: String,
+)
 
 class PythonClass(private val ast: ClassDef, val filename: String? = null, val pythonModule: String? = null) {
     val name: String

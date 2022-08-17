@@ -5,19 +5,32 @@ on:
      - cron: '0 0 * * *'
 
 env:
+  data_branch: monitoring-data
+  data_path: monitoring/data
+  aggregated_data_branch: monitoring-aggregated-data
+  aggregated_data_path: monitoring/aggregated_data
   monitoring_properties: monitoring/monitoring.properties
   output_stats: stats.json
-  history_file: monitoring/history.json
-  coverage_graph_file: monitoring/coverage_graph.png
-  quantitative_graph_file: monitoring/quantitative_graph.png
   KOTLIN_HOME: /usr
 
 jobs:
   build_and_run_monitoring:
     runs-on: ubuntu-20.04
     steps:
-      - name: Checkout repository
+      - name: Checkout main
         uses: actions/checkout@v3
+
+      - name: Checkout monitoring data
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.data_branch }}
+          path: ${{ env.data_path }}
+
+      - name: Checkout aggregated monitoring data
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.aggregated_data_branch }}
+          path: ${{ env.aggregated_data_path }}
 
       - uses: actions/setup-java@v3
         with:
@@ -30,9 +43,6 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          cache: 'pip'
-      - name: Install matplotlib
-        run: pip install matplotlib
 
       - name: Build and run monitoring UTBot Java
         run: |
@@ -42,23 +52,56 @@ jobs:
             utbot-junit-contest/build/libs/monitoring.jar \
             $output_stats
 
-      - name: Update history and render graphs
-        run: |
-          python monitoring/draw_stats_graphs.py \
-            $history_file \
-            $output_stats \
-            $coverage_graph_file \
-            $quantitative_graph_file
-
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%d-%m-%Y')"
+        run: |
+          echo "::set-output name=date::$(date +'%Y-%m-%d')"
+          echo "::set-output name=timestamp::$(date +%s)"
+          echo "::set-output name=last_month::$(date --date='last month' +%s)"
 
-      - name: Commit and push graphs and statistics
+      - name: Get commit hash
+        id: metadata
+        run: |
+          echo "::set-output name=commit::$(git rev-parse HEAD)"
+          echo "::set-output name=branch::$(git name-rev --name-only HEAD)"
+          echo "::set-output name=build::$(date +'%Y.%-m')"
+
+      - name: Insert metadata
+        run: |
+          python monitoring/insert_metadata.py \
+            $output_stats "$data_path/data-$branch-$date-$timestamp-$commit.json" \
+            "$commit" "$build"
+        env:
+          date: ${{ steps.date.outputs.date }}
+          timestamp: ${{ steps.date.outputs.timestamp }}
+          commit: ${{ steps.metadata.outputs.commit }}
+          branch: ${{ steps.metadata.outputs.branch }}
+          build: ${{ steps.metadata.outputs.build }}
+
+      - name: Build aggregated data (last month)
+        run: |
+          python monitoring/build_aggregated_data.py \
+            $data_path $aggregated_data_path/aggregated-data-$date.json \
+            $timestamp_from $timestamp
+        env:
+          date: ${{ steps.date.outputs.date }}
+          timestamp: ${{ steps.date.outputs.timestamp }}
+          timestamp_from: ${{ steps.date.outputs.last_month }}
+
+      - name: Commit and push statistics
         uses: actions-js/push@master
         with:
+          branch: ${{ env.data_branch }}
           message: 'night-monitoring-${{ steps.date.outputs.date }}'
-          directory: './monitoring'
+          directory: ${{ env.data_path }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push aggregated statistics
+        uses: actions-js/push@master
+        with:
+          branch: ${{ env.aggregated_data_branch }}
+          message: 'night-monitoring-${{ steps.date.outputs.date }}'
+          directory: ${{ env.aggregated_data_path }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload logs
@@ -67,10 +110,3 @@ jobs:
         with:
           name: logs
           path: logs/utbot.log
-
-      - name: Upload statistics
-        if: ${{ success() }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: statistics
-          path: ${{ env.output_stats }}

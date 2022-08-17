@@ -1,12 +1,14 @@
 package org.utbot.engine
 
 import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
+import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
+import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
 import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
@@ -112,6 +114,7 @@ import soot.DoubleType
 import soot.FloatType
 import soot.IntType
 import soot.LongType
+import soot.Modifier
 import soot.PrimType
 import soot.RefLikeType
 import soot.RefType
@@ -560,7 +563,7 @@ class Traverser(
         }
 
         val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
-            initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
+            initializedStaticFields = staticFields.map { it.first.fieldId }.toPersistentSet(),
             meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet(),
             symbolicEnumValues = enumConstantSymbolicValues.toPersistentList()
         )
@@ -596,7 +599,7 @@ class Traverser(
 
         // Collects memory updates
         val initializedFieldUpdate =
-            MemoryUpdate(initializedStaticFields = persistentHashMapOf(fieldId to concreteValue))
+            MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
         val objectUpdate = objectUpdate(
             instance = findOrCreateStaticObject(declaringClass.type),
@@ -823,7 +826,7 @@ class Traverser(
                 val staticFieldMemoryUpdate = StaticFieldMemoryUpdateInfo(fieldId, value)
                 val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
                 queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
-                if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+                if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(left.field)) {
                     queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
                 }
             }
@@ -1780,12 +1783,26 @@ class Traverser(
         queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
 
         // TODO filter enum constant static fields JIRA:1681
-        if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+        if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(field)) {
             queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
         }
 
         return createdField
     }
+
+    /**
+     * For now the field is `meaningful` if it is safe to set, that is, it is not an internal system field nor a
+     * synthetic field. This filter is needed to prohibit changing internal fields, which can break up our own
+     * code and which are useless for the user.
+     *
+     * @return `true` if the field is meaningful, `false` otherwise.
+     */
+    private fun isStaticFieldMeaningful(field: SootField) =
+        !Modifier.isSynthetic(field.modifiers) &&
+            // we don't want to set fields from library classes
+            !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
+                ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
+            }
 
     /**
      * Locates object represents static fields of particular class.
@@ -3321,10 +3338,11 @@ class Traverser(
         val updatedFields = staticFieldsUpdates.mapTo(mutableSetOf()) { it.fieldId }
         val objectUpdates = mutableListOf<UtNamedStore>()
 
-        // we assign unbounded symbolic variables for every non-final field of the class
+        // we assign unbounded symbolic variables for every non-final meaningful field of the class
+        // fields from predefined library classes are excluded, because there are not meaningful
         typeResolver
             .findFields(declaringClass.type)
-            .filter { !it.isFinal && it.fieldId in updatedFields }
+            .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
             .forEach {
                 // remove updates from clinit, because we'll replace those values
                 // with new unbounded symbolic variable

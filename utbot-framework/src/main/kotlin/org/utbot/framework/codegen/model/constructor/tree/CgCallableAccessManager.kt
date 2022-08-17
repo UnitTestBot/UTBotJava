@@ -160,7 +160,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
         if (!this.isUtil) return emptySet()
 
-        with(currentTestClass) {
+        with(outerMostTestClass) {
             return when (this@findExceptionTypes) {
                 getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
                 getStaticFieldValueMethodId,
@@ -185,7 +185,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private infix fun CgExpression?.canBeReceiverOf(executable: MethodId): Boolean =
         when {
             // TODO: rewrite by using CgMethodId, etc.
-            currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
+            outerMostTestClass == executable.classId && this isThisInstanceOf outerMostTestClass -> true
             executable.isStatic -> true
             else -> this?.type?.isSubtypeOf(executable.classId) ?: false
         }

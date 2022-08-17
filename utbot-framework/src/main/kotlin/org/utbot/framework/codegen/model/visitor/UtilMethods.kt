@@ -818,10 +818,10 @@ fun getArrayLength(codegenLanguage: CodegenLanguage) =
     }
 
 internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
-    for (classId in currentTestClass.regularImportsByUtilMethod(id, codegenLanguage)) {
+    for (classId in outerMostTestClass.regularImportsByUtilMethod(id, codegenLanguage)) {
         importIfNeeded(classId)
     }
-    for (methodId in currentTestClass.staticImportsByUtilMethod(id)) {
+    for (methodId in outerMostTestClass.staticImportsByUtilMethod(id)) {
         collectedImports += StaticImport(methodId.classId.canonicalName, methodId.name)
     }
 }

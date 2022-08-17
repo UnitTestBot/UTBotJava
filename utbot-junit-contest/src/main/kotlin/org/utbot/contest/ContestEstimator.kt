@@ -34,7 +34,7 @@ import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.system.exitProcess
-import org.utbot.framework.JdkPathService
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.predictors.StateRewardPredictorFactoryImpl
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
@@ -300,7 +300,7 @@ fun main(args: Array<String>) {
         tools = listOf(Tool.UtBot)
     }
 
-    JdkPathService.jdkPathProvider = ContestEstimatorJdkPathProvider(javaHome)
+    JdkInfoService.jdkInfoProvider = ContestEstimatorJdkInfoProvider(javaHome)
     runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
 }
 

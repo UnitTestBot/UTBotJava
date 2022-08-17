@@ -1,16 +1,16 @@
 package org.utbot.intellij.plugin.util
 
 import org.utbot.common.PathUtil.toPath
-import org.utbot.framework.JdkPathDefaultProvider
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ProjectRootManager
-import java.nio.file.Path
+import org.utbot.framework.plugin.services.JdkInfo
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 
-class PluginJdkPathProvider(
+class PluginJdkInfoProvider(
     private val project: Project
-) : JdkPathDefaultProvider() {
+) : JdkInfoDefaultProvider() {
 
     private val sdk: Sdk?
         get() {
@@ -28,9 +28,9 @@ class PluginJdkPathProvider(
             return ProjectRootManager.getInstance(project).projectSdk
         }
 
-    override val jdkPath: Path
-        get() = sdk?.let { it.homePath?.toPath() } ?: super.jdkPath // Return default JDK in case of failure
-
-    override val jdkVersion: String
-        get() = sdk?.versionString ?: super.jdkVersion // Return default JDK in case of failure
+    override val info: JdkInfo
+        get() = JdkInfo(
+            sdk?.homePath?.toPath() ?: super.info.path, // Return default JDK in case of failure
+            sdk?.versionString ?: super.info.version // Return default JDK in case of failure
+        )
 }

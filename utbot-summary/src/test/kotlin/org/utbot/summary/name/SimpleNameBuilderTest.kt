@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.mockito.Mockito
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.tag.TraceTag
@@ -20,19 +21,19 @@ class SimpleNameBuilderTest {
 
     @BeforeAll
     fun setUp() {
-        traceTag = Mockito.mock(TraceTag::class.java)
-        sootMethod = Mockito.mock(SootMethod::class.java)
-        jimpleToASTMap = Mockito.mock(JimpleToASTMap::class.java)
+        traceTag = mock(TraceTag::class.java)
+        sootMethod = mock(SootMethod::class.java)
+        jimpleToASTMap = mock(JimpleToASTMap::class.java)
         sootToAst = mutableMapOf()
 
-        Mockito.`when`(traceTag.result).thenReturn(UtOverflowFailure(Throwable()))
+        `when`(traceTag.result).thenReturn(UtOverflowFailure(Throwable()))
 
         sootToAst[sootMethod] = jimpleToASTMap
     }
 
     @Test
     fun `method name should start with test`() {
-        Mockito.`when`(sootMethod.name).thenReturn("methodName")
+        `when`(sootMethod.name).thenReturn("methodName")
 
         val simpleNameBuilder = SimpleNameBuilder(traceTag, sootToAst, sootMethod)
         val methodName = simpleNameBuilder.name
@@ -41,7 +42,7 @@ class SimpleNameBuilderTest {
 
     @Test
     fun `creates a name pair with a candidate with a bigger index`() {
-        Mockito.`when`(sootMethod.name).thenReturn("")
+        `when`(sootMethod.name).thenReturn("")
 
         val simpleNameBuilder = SimpleNameBuilder(traceTag, sootToAst, sootMethod)
         val fromCandidateName = DisplayNameCandidate("fromCandidate", UniquenessTag.Unique, 3)
@@ -57,7 +58,7 @@ class SimpleNameBuilderTest {
 
     @Test
     fun `returns null if candidates are equal`() {
-        Mockito.`when`(sootMethod.name).thenReturn("")
+        `when`(sootMethod.name).thenReturn("")
 
         val simpleNameBuilder = SimpleNameBuilder(traceTag, sootToAst, sootMethod)
         val fromCandidateName = DisplayNameCandidate("candidate", UniquenessTag.Unique, 0)

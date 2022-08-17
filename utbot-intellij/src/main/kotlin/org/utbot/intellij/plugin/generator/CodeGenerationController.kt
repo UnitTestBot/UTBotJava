@@ -22,6 +22,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.JavaDirectoryService
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiClassOwner
+import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiDirectory
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
@@ -49,6 +50,7 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
+import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.common.allNestedClasses
@@ -159,33 +161,18 @@ object CodeGenerationController {
 
         run(EDT_LATER) {
             waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
-                val project = model.project
-                val language = model.codegenLanguage
-                val testModule = model.testModule
-
-                val existingUtilClass = language.getUtilClassOrNull(project, testModule)
-
                 val utilClassKind = utilClassListener.requiredUtilClassKind
                     ?: return@waitForCountDown // no util class needed
 
-                val utilClassExists = existingUtilClass != null
-                val mockFrameworkNotUsed = !utilClassListener.mockFrameworkUsed
-
-                if (utilClassExists && mockFrameworkNotUsed) {
-                    // If util class already exists and mock framework is not used,
-                    // then existing util class is enough, and we don't need to generate a new one.
-                    // That's because both regular and mock versions of util class can work
-                    // with tests that do not use mocks, so we do not have to worry about
-                    // version of util class that we have at the moment.
-                    return@waitForCountDown
+                val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
+                if (shouldCreateOrUpdateUtilClass(existingUtilClass, utilClassListener)) {
+                    createOrUpdateUtilClass(
+                        testDirectory = baseTestDirectory,
+                        utilClassKind = utilClassKind,
+                        existingUtilClass = existingUtilClass,
+                        model = model
+                    )
                 }
-
-                createOrUpdateUtilClass(
-                    testDirectory = baseTestDirectory,
-                    utilClassKind = utilClassKind,
-                    existingUtilClass = existingUtilClass,
-                    model = model
-                )
             }
         }
 
@@ -214,6 +201,39 @@ object CodeGenerationController {
                 }
             }
         }
+    }
+
+    private fun shouldCreateOrUpdateUtilClass(existingUtilClass: PsiFile?, utilClassListener: UtilClassListener): Boolean {
+        val existingUtilClassVersion = existingUtilClass?.utilClassVersionOrNull
+        // TODO: here should be the current version of UTBot
+        val newUtilClassVersion = "1.0-SNAPSHOT"
+        val versionIsUpdated = existingUtilClassVersion != newUtilClassVersion
+
+        val mockFrameworkNotUsed = !utilClassListener.mockFrameworkUsed
+
+        val utilClassExists = existingUtilClass != null
+
+        if (!utilClassExists) {
+            // If no util class exists, then we should create a new one.
+            return true
+        }
+
+        if (versionIsUpdated) {
+            // If an existing util class is out of date,
+            // then we must overwrite it with a newer version.
+            return true
+        }
+
+        if (mockFrameworkNotUsed) {
+            // If util class already exists and mock framework is not used,
+            // then existing util class is enough, and we don't need to generate a new one.
+            // That's because both regular and mock versions of util class can work
+            // with tests that do not use mocks, so we do not have to worry about
+            // version of util class that we have at the moment.
+            return false
+        }
+
+        return true
     }
 
     /**
@@ -319,6 +339,25 @@ object CodeGenerationController {
 
         return utUtilsFile
     }
+
+    /**
+     * Util class must have a comment that specifies the version of UTBot it was generated with.
+     * This property represents the version specified by this comment if it exists. Otherwise, the property is `null`.
+     */
+    private val PsiFile.utilClassVersionOrNull: String?
+        get() = runReadAction {
+            childrenOfType<PsiComment>()
+                .map { comment -> comment.text }
+                .firstOrNull { text -> UTBOT_VERSION_PREFIX in text }
+                ?.substringAfterLast(UTBOT_VERSION_PREFIX)
+                ?.trim()
+        }
+
+    /**
+     * Util class must have a comment that specifies the version of UTBot it was generated with.
+     * This prefix is the start of this comment. The version of UTBot goes after it in the comment.
+     */
+    private const val UTBOT_VERSION_PREFIX = "UTBot version:"
 
     /**
      * @param srcClass class under test

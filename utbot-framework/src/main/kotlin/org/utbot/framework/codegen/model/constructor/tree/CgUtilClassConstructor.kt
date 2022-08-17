@@ -4,6 +4,7 @@ import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
 import org.utbot.framework.codegen.model.tree.CgRegularClassFile
+import org.utbot.framework.codegen.model.tree.CgSingleLineComment
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildRegularClass
 import org.utbot.framework.codegen.model.tree.buildRegularClassBody
@@ -22,6 +23,8 @@ internal object CgUtilClassConstructor {
             declaredClass = buildRegularClass {
                 id = utUtilsClassId
                 body = buildRegularClassBody {
+                    // TODO: get actual UTBot version and use it instead of the hardcoded one
+                    content += CgSingleLineComment("UTBot version: 1.0-SNAPSHOT")
                     content += utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) }
                 }
             }

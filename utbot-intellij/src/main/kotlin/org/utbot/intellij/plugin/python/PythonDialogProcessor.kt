@@ -91,7 +91,7 @@ object PythonDialogProcessor {
         }
     }
 
-    private fun getOutputFilName(model: PythonTestsModel) =
+    private fun getOutputFileName(model: PythonTestsModel) =
         "test_${model.currentPythonModule.camelToSnakeCase().replace('.', '_')}.py"
 
     private fun createTests(project: Project, model: PythonTestsModel) {
@@ -109,7 +109,7 @@ object PythonDialogProcessor {
                     timeout = model.timeout,
                     testFramework = model.testFramework,
                     codegenLanguage = model.codegenLanguage,
-                    outputFilename = getOutputFilName(model),
+                    outputFilename = getOutputFileName(model),
                     isCanceled = { indicator.isCanceled },
                     startedMypyInstallationAction = { indicator.text = "Installing mypy" },
                     couldNotInstallMypyAction = { error("Something wrong with mypy") },  // TODO: show notification

@@ -40,7 +40,6 @@ import org.utbot.framework.plugin.api.util.withStaticsSubstitutionRequired
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
-import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
 import org.utbot.intellij.plugin.ui.utils.isGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -55,16 +54,12 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
-import org.utbot.common.filterWhen
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
-import org.utbot.framework.plugin.api.testFlow
+import org.utbot.framework.PathSelectorType
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.settings.Settings
-import org.utbot.intellij.plugin.ui.utils.isGradle
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.isAbstract
-import org.utbot.intellij.plugin.ui.utils.testModules
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -268,12 +263,15 @@ object UtTestsDialogProcessor {
             }
     }
 
+    /**
+     * Configures utbot-analytics models for the better path selection.
+     */
     private fun configureML() {
         val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
         try {
             Class.forName(analyticsConfigurationClassPath)
         } catch (e: ClassNotFoundException) {
-            logger.error { "Configuration of the predictors from the utbot-analytics module described in the class: ${analyticsConfigurationClassPath} is not found!" }
+            logger.error { "Configuration of the predictors from the utbot-analytics module described in the class: $analyticsConfigurationClassPath is not found!" }
         }
         // TODO: if could not be load switch on the simplest path selector
         if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {

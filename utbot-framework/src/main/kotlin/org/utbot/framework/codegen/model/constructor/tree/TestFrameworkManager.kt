@@ -18,9 +18,7 @@ import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.byteArrayClassId
 import org.utbot.framework.plugin.api.util.charArrayClassId
@@ -205,6 +203,8 @@ internal abstract class TestFrameworkManager(val context: CgContext)
             } else {
                 statementConstructor.newVar(classCgClassId) { Class::class.id[forName](name) }
             }
+
+    open fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {}
 }
 
 internal class PytestManager(context: CgContext) : TestFrameworkManager(context) {
@@ -219,6 +219,22 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
     override fun assertEquals(expected: CgValue, actual: CgValue) {
         +CgPythonAssertEquals(
             CgEqualTo(actual, expected)
+        )
+    }
+
+    override fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
+        +CgPythonAssertEquals(
+            CgPythonFunctionCall(
+                pythonBoolClassId,
+                "isinstance",
+                listOf(
+                    actual,
+                    if (types.size == 1)
+                        CgLiteral(pythonAnyClassId, types[0].name)
+                    else
+                        CgPythonTuple(types.map { CgLiteral(pythonAnyClassId, it.name) })
+                ),
+            ),
         )
     }
 }
@@ -248,6 +264,22 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         canonicalName = "unittest.skip",
         simpleName = "skip"
     )
+
+    override fun assertIsinstance(types: List<ClassId>, actual: CgVariable) {
+        +assertions[assertTrue](
+            CgPythonFunctionCall(
+                pythonBoolClassId,
+                "isinstance",
+                listOf(
+                    actual,
+                    if (types.size == 1)
+                        CgLiteral(pythonAnyClassId, types[0].name)
+                    else
+                        CgPythonTuple(types.map { CgLiteral(pythonAnyClassId, it.name) })
+                ),
+            ),
+        )
+    }
 }
 
 internal class TestNgManager(context: CgContext) : TestFrameworkManager(context) {

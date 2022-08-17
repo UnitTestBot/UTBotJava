@@ -1095,25 +1095,22 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         pythonAssertElementsByKey(expectedNode, expectedCollection, actual, iterator, elementName)
     }
 
-    private fun pythonAssertBuiltinsCollection(
-        expected: CgValue,
-        actual: CgVariable,
-    ) {
-        testFrameworkManager.assertEquals(
-            expected, actual
-        )
-    }
-
     private fun pythonDeepTreeEquals(
         expectedNode: PythonTree.PythonTreeNode,
         expected: CgValue,
         actual: CgVariable
     ) {
+        if (expectedNode.comparable) {
+            testFrameworkManager.assertEquals(
+                expected,
+                actual,
+            )
+            return
+        }
         when (expectedNode) {
             is PythonTree.PrimitiveNode -> {
-                testFrameworkManager.assertEquals(
-                    expected,
-                    actual,
+                testFrameworkManager.assertIsinstance(
+                    listOf(expected.type), actual
                 )
             }
             is PythonTree.ListNode -> {
@@ -1149,27 +1146,27 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             is PythonTree.ReduceNode -> {
                 if (expectedNode.state.isNotEmpty()) {
                     expectedNode.state.forEach { (field, value) ->
-                        val valueActual = newVar(value.type) {
-                            CgPythonIndex(
-                                pythonIntClassId,
-                                actual,
-                                CgLiteral(pythonStrClassId, field)
+                        val fieldActual = newVar(pythonAnyClassId, "actual_$field") {
+                            CgFieldAccess(
+                                actual, FieldId(
+                                    value.type,
+                                    field
+                                )
                             )
                         }
-                        val valueExpected = newVar(value.type) {
-                            CgPythonIndex(
-                                pythonIntClassId,
-                                newVar(expected.type) {expected},
-                                CgLiteral(pythonStrClassId, field)
+                        val fieldExpected = newVar(pythonAnyClassId, "expected_$field") {
+                            CgFieldAccess(
+                                expected, FieldId(
+                                    value.type,
+                                    field
+                                )
                             )
                         }
-                        testFrameworkManager.assertEquals(
-                            valueExpected, valueActual
-                        )
+                        pythonDeepTreeEquals(value, fieldExpected, fieldActual)
                     }
                 } else {
-                    testFrameworkManager.assertEquals(
-                        expected, actual
+                    testFrameworkManager.assertIsinstance(
+                        listOf(expected.type), actual
                     )
                 }
             }

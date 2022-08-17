@@ -3,10 +3,10 @@ package org.utbot.python.typing
 object StubFileStructures {
 
     data class JsonData(
-        val class_annotations: List<ClassInfo>,
-        val field_annotations: List<FieldIndex>,
-        val function_annotations: List<FunctionIndex>,
-        val method_annotations: List<MethodIndex>,
+        val classAnnotations: List<ClassInfo>,
+        val fieldAnnotations: List<FieldIndex>,
+        val functionAnnotations: List<FunctionIndex>,
+        val methodAnnotations: List<MethodIndex>,
     )
 
     data class FieldIndex(

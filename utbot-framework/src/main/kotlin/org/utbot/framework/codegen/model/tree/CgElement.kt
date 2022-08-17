@@ -872,7 +872,7 @@ class CgPythonRepr(
 ) : CgValue
 
 class CgPythonAssertEquals(
-    val expression: CgEqualTo,
+    val expression: CgExpression,
     val keyword: String = "assert",
 ) : CgStatement
 

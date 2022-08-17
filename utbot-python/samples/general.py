@@ -1,6 +1,7 @@
 import collections
 import heapq
 import typing
+from socket import socket
 from typing import *
 from dataclasses import dataclass
 
@@ -25,6 +26,10 @@ def str_test(x):
         return '1"23'
     else:
         return """100''500"""
+
+
+def return_socket(x: int):
+    return socket()
 
 
 def empty():

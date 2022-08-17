@@ -1,6 +1,6 @@
 package org.utbot.summary.comment
 
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -45,13 +45,18 @@ class SimpleClusterCommentBuilderTest {
     }
 
     @Test
-    fun `throws throwable if execution result is null`() {
+    fun `builds empty comment if execution result is null`() {
         val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
         val comment = commentBuilder.buildString(sootMethod)
-        val expectedComment = "<pre>\n" +
-                "Test throws Throwable \n" +
-                "</pre>"
-        Assertions.assertEquals(expectedComment, comment)
+        assertEquals(" ", comment)
+    }
+
+    @Test
+    fun `builds empty doc statement if execution result is null`() {
+        val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
+        val statements = commentBuilder.buildDocStmts(sootMethod)
+        assertEquals(statements.size, 1)
+        assertEquals(statements[0].toString(), " ")
     }
 
 }

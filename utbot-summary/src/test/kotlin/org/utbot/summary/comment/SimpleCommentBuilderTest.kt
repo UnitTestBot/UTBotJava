@@ -54,4 +54,14 @@ class SimpleCommentBuilderTest {
         assertEquals(expectedComment, comment)
     }
 
+    @Test
+    fun `builds one doc statement`() {
+        val commentBuilder = SimpleCommentBuilder(traceTag, sootToAst)
+        val statements = commentBuilder.buildDocStmts(sootMethod)
+        val expectedDocStatement = "Test \n" +
+                "throws Throwable \n"
+        assertEquals(statements.size, 1)
+        assertEquals(statements[0].toString(), expectedDocStatement)
+    }
+
 }

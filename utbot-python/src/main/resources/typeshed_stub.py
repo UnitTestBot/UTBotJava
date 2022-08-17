@@ -198,7 +198,6 @@ def defaultdict_to_array(dataset):
 
 def parse_submodule(module_name, collector_):
     collector_.create_module_table(module_name)
-    print(collector_.visited_modules)
     try:
         submodules = [
             f'{module_name}.{submodule}' if module_name != 'builtins' else submodule

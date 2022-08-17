@@ -201,8 +201,3 @@ class _PythonTreeSerializer:
                 first = [[element[0][0], element[1][0]] for element in elements]
                 second = [[element[0][1], element[1][1]] for element in elements]
         return first, cast_second(second)
-
-
-if __name__ == '__main__':
-    x = _PythonTreeSerializer.serialize([float('inf'), 101, UserList([1, 2, 3]), Counter("flkafksdf"), OrderedDict({1: 2, 4: "jflas"})])
-    print(x[0]['comparable'])

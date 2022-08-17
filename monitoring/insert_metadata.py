@@ -1,4 +1,5 @@
 import json
+import re
 import subprocess
 from collections import defaultdict
 from os import environ
@@ -44,10 +45,20 @@ def transform_and_combine_stats(stats_list):
 
 def try_get_output(*args):
     try:
-        return subprocess.check_output(args, stderr=subprocess.STDOUT).decode()
+        return subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True).decode()
     except Exception as e:
         print(f'Error in command "{" ".join(args)}":\n\t{e}')
         return None
+
+
+def parse_gradle_version(s):
+    if s is None:
+        return None
+    regex = re.compile(r'^\s*(Gradle [.\d]+)\s*$', re.MULTILINE)
+    result = regex.search(s)
+    if result is None:
+        return None
+    return result.group(1)
 
 
 def build_environment_data():
@@ -56,7 +67,7 @@ def build_environment_data():
         'host': uname_result.node,
         'OS': f'{uname_result.system} version {uname_result.version}',
         'java_version': try_get_output('java', '-version'),
-        'gradle_version': try_get_output('gradle', '--version'),
+        'gradle_version': parse_gradle_version(try_get_output('gradle', '--version')),
         'JAVA_HOME': environ.get('JAVA_HOME'),
         'KOTLIN_HOME': environ.get('KOTLIN_HOME'),
         'PATH': environ.get('PATH'),

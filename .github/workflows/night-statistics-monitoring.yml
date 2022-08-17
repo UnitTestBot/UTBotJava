@@ -63,18 +63,20 @@ jobs:
         id: metadata
         run: |
           echo "::set-output name=commit::$(git rev-parse HEAD)"
+          echo "::set-output name=short_commit::$(git rev-parse --short HEAD)"
           echo "::set-output name=branch::$(git name-rev --name-only HEAD)"
           echo "::set-output name=build::$(date +'%Y.%-m')"
 
       - name: Insert metadata
         run: |
           python monitoring/insert_metadata.py \
-            $output_stats "$data_path/data-$branch-$date-$timestamp-$commit.json" \
+            $output_stats "$data_path/data-$branch-$date-$timestamp-$short_commit.json" \
             "$commit" "$build"
         env:
           date: ${{ steps.date.outputs.date }}
           timestamp: ${{ steps.date.outputs.timestamp }}
           commit: ${{ steps.metadata.outputs.commit }}
+          short_commit: ${{ steps.metadata.outputs.short_commit }}
           branch: ${{ steps.metadata.outputs.branch }}
           build: ${{ steps.metadata.outputs.build }}
 

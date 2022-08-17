@@ -1,31 +1,40 @@
 # Night Statistics Monitoring
 
-## The problem
-We want to develop and improve our product and, of course, 
-there are some changes and its combinations 
-which, according to some statistics, can make UTBot worse.
+## What is the problem?
 
-## Monitoring
-The main idea is collecting statistics after made changes.
-But it takes too long to collect statistics on a huge project
-to do it after each push into master. 
-Thus, we will do it every night when no one makes changes.
+As UnitTestBot contributors, we'd like to constantly improve our product. There are many of us introducing code changes simultaneously — unfortunately, some changes or combinations of them may lead to reduced plugin efficiency. To avoid such an unlucky result we need to monitor statistics on test generation performance.
+
+## Why monitor nightly?
+
+It would be great to collect statistics as soon as the contributor changes the code. In case you have a huge project it takes too long to run the monitoring system after each push into master.
+Thus, we decided to do it every night when (hopefully!) no one makes changes.
+
+## How do we collect statistics?
+
+To find the algorithm you can refer to StatisticsMonitoring.kt. Shortly speaking, it is based on ContestEstimator.kt, which runs test generation on the sample projects and then compile the resulting tests. We repeat the whole process several times to reduce measurement error.
+
+## Statistics monitoring usage
 
 ### Collecting statistics
-Collecting statistics StatisticsMonitoring.kt based on ContestEstimator.kt 
-that runs testcase generation on projects, then compile generated tests.
-We run it several times. Input arguments: `<output json>`.
-Output stats format: json, array of object with statistics after each running try.
 
-More about statistic: Statistics.kt.
+To run statistics monitoring you have to specify the name of the json output file.
+
+Input arguments: `<output json>`.
+
+Output format: you get the json file, which contains an array of objects with statistics on each run.
+
+More about each statistic: Statistics.kt.
 
 More about monitoring settings: MonitoringSettings.kt.
 
-Example input:
+Input example:
+
 ```
 stats.json
 ```
-Example output:
+
+Output example (the result of three runs during one night):
+
 ```json
 [
   {
@@ -79,24 +88,71 @@ Example output:
 ]
 ```
 
-### Transforming, aggregating and rendering statistics
-Transforming adds total coverage statistics and timestamp.
-After that all collected statistics are aggregated by average function.
-Then history updates by aggregated statistics and rendered into 2 pictures:
-- coverage graph - graph with coverage statistics.
-- quantitative graph - graph with other quantitative statistics.
+### Metadata and summarising
 
+We can summarise collected statistics by averaging to get statistics more precisely. 
 
-Script: draw_stats_graphs.py.
-Input arguments: `<history file> <new stats file> <output coverage graph> <output quantitative graph>`.
-We use our repository as database for statistics history.
-History format file: json, array of objects with collected statistics.
+In addition, we need more information about the environment and versions used to collect statistics for better interpretation and analysis.
 
-Example input:
+You can find script insert_metadata.py to do tasks described before.
+
+Input arguments: `<stats file> <output file> <commit hash> <build number>`.
+
+Output format: you get the json file, which contains object with summarised statistics and metadata.
+
+Input example:
 ```
-monitoring/history.json stats.json monitoring/coverage_graph.png monitoring/quantitative_graph.png
+stats.json data/data-main-2022-08-17-1660740407-66a1aeb6.json 66a1aeb6 2022.8
 ```
-Example output:
+
+Output example:
+```json
+{
+  "classes_for_generation": 20.0,
+  "testcases_generated": 1764.3333333333333,
+  "classes_without_problems": 12.333333333333334,
+  "classes_canceled_by_timeout": 2.0,
+  "total_methods_for_generation": 519.0,
+  "methods_with_at_least_one_testcase_generated": 394.3333333333333,
+  "methods_with_exceptions": 45.333333333333336,
+  "suspicious_methods": 55.333333333333336,
+  "test_classes_failed_to_compile": 0.0,
+  "avg_coverage": 62.480721428256736,
+  "total_coverage": 56.84739152087949,
+  "total_coverage_by_fuzzing": 41.60749728061026,
+  "total_coverage_by_concolic": 44.420096905766805,
+  "metadata": {
+    "commit_hash": "66a1aeb6",
+    "build_number": "2022.8",
+    "environment": {
+      "host": "host",
+      "OS": "Windows version 10.0.19043",
+      "java_version": "openjdk version \"1.8.0_322\"\r\nOpenJDK Runtime Environment Corretto-8.322.06.1 (build 1.8.0_322-b06)\r\nOpenJDK 64-Bit Server VM Corretto-8.322.06.1 (build 25.322-b06, mixed mode)\r\n",
+      "gradle_version": "Gradle 7.4",
+      "JAVA_HOME": "D:\\Java\\jdk",
+      "KOTLIN_HOME": "D:\\Kotlin\\kotlinc",
+      "PATH": "D:\\gradle-7.4\\bin;D:\\Java\\jre\\bin;"
+    }
+  }
+}
+```
+
+### Aggregating
+
+Script build_aggregated_data.py creates a file with an array of statistics collected during specified period. It can be needed for visualisation or analyzing some statistics as max, min, median etc.
+
+Input arguments: `<input data dir> <output file> <timestamp from> <timestamp to>`.
+
+Required name format of file with data: `*-<timestamp>-<commit hash>.json`.
+
+Output format: you get the json file, which contains an array of objects with statistics collected during specified period.
+
+Input example:
+```
+./data aggregated_data.json 0 1660740407
+```
+
+Output example:
 ```json
 [
     {
@@ -113,11 +169,21 @@ Example output:
         "total_coverage": 56.84739152087949,
         "total_coverage_by_fuzzing": 41.60749728061026,
         "total_coverage_by_concolic": 44.420096905766805,
-        "timestamp": 1660202621883
+        "timestamp": 1660740407
     }
 ]
 ```
 
-### Grafana
+### Datastorage structure
+
+Our repository is used as database for collected statistics.
+
+There are 2 branches: monitoring-data, monitoring-aggregated-data.
+
+monitoring-data branch is used as a storage for raw collected statistics with metadata. Filename format: `data-<branch>-<yyyy>-<mm>-<dd>-<timestamp>-<short commit hash>.json`
+
+monitoring-aggregated-data branch is used as a storage for aggregated statistics. Specified period is one month. Filename format: `aggregated-data-<yyyy>-<mm>-<dd>.json`
+
+### Grafana (TODO: in process)
 Also, we can use [Grafana](https://monitoring.utbot.org) for more dynamic and detailed statistics visualization.
 Grafana pulls data from our repository automatically by GitHub API.

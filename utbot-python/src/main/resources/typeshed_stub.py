@@ -58,7 +58,7 @@ class AstAnnAssignEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def find_init_method(function_ast: ast.ClassDef) -> Optional[ast.FunctionDef]:
+def find_init_method(function_ast):
     for statement in function_ast.body:
         if isinstance(statement, ast.FunctionDef) and statement.name == '__init__':
             return statement
@@ -84,7 +84,7 @@ class AstFunctionDefEncoder(json.JSONEncoder):
             return json_dump
 
 
-def function_is_property(function: Union[ast.FunctionDef, ast.AsyncFunctionDef]) -> bool:
+def function_is_property(function):
     return any(
         'property' == astor.code_gen.to_source(decorator).strip()
         for decorator in function.decorator_list
@@ -113,22 +113,22 @@ class AstConstantEncoder(json.JSONEncoder):
             return None
 
 
-def transform_annotation(annotation: Optional[ast.expr]) -> Optional[str]:
+def transform_annotation(annotation):
     return '' if annotation is None else astor.code_gen.to_source(annotation).strip()
 
 
 class StubFileCollector:
-    def __init__(self, python_version: tuple[int, int]):
-        self.methods_dataset: dict[str, Any] = defaultdict(list)
-        self.fields_dataset: dict[str, Any] = defaultdict(list)
-        self.functions_dataset: dict[str, Any] = defaultdict(list)
-        self.classes_dataset: list[Any] = []
-        self.assigns_dataset: dict[str, Any] = defaultdict(list)
-        self.ann_assigns_dataset: dict[str, Any] = defaultdict(list)
+    def __init__(self, python_version):
+        self.methods_dataset = defaultdict(list)
+        self.fields_dataset = defaultdict(list)
+        self.functions_dataset = defaultdict(list)
+        self.classes_dataset = []
+        self.assigns_dataset = defaultdict(list)
+        self.ann_assigns_dataset = defaultdict(list)
         self.python_version = python_version
-        self.visited_modules: list[str] = []
+        self.visited_modules = []
 
-    def create_module_table(self, module_name: str):
+    def create_module_table(self, module_name):
         self.visited_modules.append(module_name)
 
         stub = get_stub_names(
@@ -136,7 +136,7 @@ class StubFileCollector:
             search_context=get_search_context(version=self.python_version)
         )
 
-        def _ast_handler(ast_: ast.AST):
+        def _ast_handler(ast_):
             if isinstance(ast_, OverloadedName):
                 for definition in ast_.definitions:
                     _ast_handler(definition)
@@ -145,35 +145,27 @@ class StubFileCollector:
                     json_data = AstClassEncoder().default(ast_)
                     class_name = f'{module_name}.{ast_.name}'
                     json_data['className'] = class_name
-                    json_data['methods'] = [
-                        method | {'className': class_name}
-                        for method in json_data['methods']
-                    ]
-                    json_data['fields'] = [
-                        field | {'className': class_name}
-                        for field in json_data['fields']
-                    ]
-
                     self.classes_dataset.append(json_data)
 
                     for method in json_data['methods']:
+                        method['className'] = class_name
                         self.methods_dataset[method['name']].append(method)
 
                     for field in json_data['fields']:
+                        field['className'] = class_name
                         self.fields_dataset[field['name']].append(field)
 
             elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 json_data = AstFunctionDefEncoder().default(ast_)
                 function_name = f'{module_name}.{ast_.name}'
                 json_data['name'] = function_name
-                self.functions_dataset[ast_.name].append(
-                    json_data | {'className': None}
-                )
+                json_data['className'] = None
+                self.functions_dataset[ast_.name].append(json_data)
 
             else:
                 pass
 
-        ast_nodes: set[str] = set()
+        ast_nodes = set()
 
         if stub is None:
             return
@@ -204,7 +196,7 @@ def defaultdict_to_array(dataset):
     ]
 
 
-def parse_submodule(module_name: str, collector_: StubFileCollector):
+def parse_submodule(module_name, collector_):
     collector_.create_module_table(module_name)
     print(collector_.visited_modules)
     try:

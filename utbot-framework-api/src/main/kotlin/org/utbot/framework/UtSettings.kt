@@ -365,6 +365,11 @@ object UtSettings {
     var rewardModelPath by getStringProperty("../models/0")
 
     /**
+     * Full class name of the class containing the configuration for the ML models to solve path selection task.
+     */
+    var analyticsConfigurationClassPath by getStringProperty("org.utbot.AnalyticsConfiguration")
+
+    /**
      * Number of model iterations that will be used during ContestEstimator
      */
     var iterations by getIntProperty(1)

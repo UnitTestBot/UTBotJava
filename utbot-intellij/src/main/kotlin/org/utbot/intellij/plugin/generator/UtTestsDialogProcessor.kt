@@ -260,27 +260,13 @@ object UtTestsDialogProcessor {
     }
 
     private fun configureML() {
-       // EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
-       // EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-       // EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
+        val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
         try {
-            val analatics = Class.forName("Analatics")?.newInstance()
-        } catch (e: Exception) {
-
+            Class.forName(analyticsConfigurationClassPath)
+        } catch (e: ClassNotFoundException) {
+            logger.error { "Configuration of the predictors from the utbot-analytics module described in the class: ${analyticsConfigurationClassPath} is not found!" }
         }
-
-        try {
-            val analatics2 = Class.forName("org.utbot.AnalyticsSetUp")?.newInstance()
-        } catch (e: Exception) {
-
-        }
-
-        try {
-            val analatics3 = Class.forName("org.utbot.AnalyticsSetUp2")?.newInstance()
-        } catch (e: Exception) {
-
-        }
-
+        // TODO: if could not be load switch on the simplest path selector
         if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
             Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory[1]!!.invoke()
         }

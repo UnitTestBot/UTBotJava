@@ -5,7 +5,6 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtClusterInfo
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionCluster
-import org.utbot.framework.plugin.api.UtExecutionCreator
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
@@ -29,7 +28,6 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.summary.UtSummarySettings.USE_CUSTOM_JAVADOC_TAGS
 import org.utbot.summary.comment.CustomJavaDocCommentBuilder
 import soot.SootMethod
 

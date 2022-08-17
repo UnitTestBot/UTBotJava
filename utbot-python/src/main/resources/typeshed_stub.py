@@ -181,8 +181,8 @@ class StubFileCollector:
             'functionAnnotations': defaultdict_to_array(self.functions_dataset),
             'methodAnnotations': defaultdict_to_array(self.methods_dataset),
         },
-            sort_keys=True,
-            indent=True
+            # sort_keys=True,
+            # indent=True
         )
 
 
@@ -235,7 +235,7 @@ def main():
         for module in modules:
             parse_submodule(module, collector)
     result = collector.save_method_annotations()
-    print(result, end='')
+    sys.stdout.write(result)
 
 
 if __name__ == '__main__':

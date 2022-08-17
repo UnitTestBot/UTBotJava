@@ -32,7 +32,6 @@ dependencies {
     api project(':utbot-api')
     api project(':utbot-fuzzers')
 
-
     testImplementation project(':utbot-summary')
     testImplementation project(':utbot-sample')
     testImplementation project(':utbot-analytics')

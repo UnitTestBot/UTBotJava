@@ -16,7 +16,7 @@ fun runCommand(command: List<String>): CmdResult {
     var stdout = ""
     var line: String? = ""
     while (line != null) {
-        stdout += line
+        stdout += "$line\n"
         line = reader.readLine()
     }
     process.waitFor()

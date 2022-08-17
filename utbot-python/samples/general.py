@@ -10,12 +10,12 @@ def empty_():
 
 
 def zero_division(x):
-    return x / 0
+    return x / x
 
 
 def repr_test(x):
     x *= 100
-    return [1, x + [1], collections.UserList([1, 2, 3]), collections.Counter("flkafksdf"), collections.OrderedDict({1: 2, 4: "jflas"})]
+    return [1, x + 1, collections.UserList([1, 2, 3]), collections.Counter("flkafksdf"), collections.OrderedDict({1: 2, 4: "jflas"})]
 
 
 def str_test(x):

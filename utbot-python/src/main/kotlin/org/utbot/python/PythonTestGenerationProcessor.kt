@@ -53,7 +53,7 @@ object PythonTestGenerationProcessor {
 
             startedLoadingPythonTypesAction()
             PythonTypesStorage.pythonPath = pythonPath
-            PythonTypesStorage.refreshProjectClassesList(directoriesForSysPath)
+            PythonTypesStorage.refreshProjectClassesAndModulesLists(directoriesForSysPath)
             StubFileFinder
 
             startedTestGenerationAction()

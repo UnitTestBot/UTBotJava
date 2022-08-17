@@ -9,7 +9,8 @@ import org.utbot.predictors.StateRewardPredictorFactoryImpl
  * The basic configuration of the utbot-analytics module used in utbot-intellij and (as planned) in utbot-cli
  * to implement the hidden configuration initialization to avoid direct calls of this configuration and usage of utbot-analytics imports.
  *
- * @see
+ * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/725">
+ *     Issue: Enable utbot-analytics module in utbot-intellij module</a>
  */
 object AnalyticsConfiguration {
     init {

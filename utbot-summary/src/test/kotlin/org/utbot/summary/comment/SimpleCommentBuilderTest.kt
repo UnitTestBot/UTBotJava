@@ -64,4 +64,21 @@ class SimpleCommentBuilderTest {
         assertEquals(statements[0].toString(), expectedDocStatement)
     }
 
+    @Test
+    fun `builds inline link for method`() {
+        val commentBuilder = SimpleCommentBuilder(traceTag, sootToAst)
+        val methodReference = commentBuilder.invokeDescription("org.utbot.ClassName", "methodName", listOf())
+        val expectedMethodReference = "{@link org.utbot.ClassName#methodName()}"
+        assertEquals(methodReference, expectedMethodReference)
+    }
+
+    @Test
+    fun `builds inline link for method in nested class`() {
+        val commentBuilder = SimpleCommentBuilder(traceTag, sootToAst)
+        val methodReference =
+            commentBuilder.invokeDescription("org.utbot.ClassName\$NestedClassName", "methodName", listOf())
+        val expectedMethodReference = "{@link org.utbot.ClassName.NestedClassName#methodName()}"
+        assertEquals(methodReference, expectedMethodReference)
+    }
+
 }

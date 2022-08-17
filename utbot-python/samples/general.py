@@ -35,12 +35,11 @@ def id_(x):
     return x
 
 
-def f(x, y, z, a, b, c, d, e, g, h):
+def f(x, y, z, a, c, d, e, g, h, i):
     if y % 2 == 0:
         x = 1 + y
     z += "aba"
-    a += [1] + list("str")
-    b = (1, [1, 2])
+    a += [2] + list("str") + i
     A = c < "abc"
     B = "abc" == d
     e = {1, 2, 3}
@@ -87,7 +86,7 @@ def inv(x):
 
 
 def b(x, y):
-    y = len(x)  # for now we don't consider that len returns int
+    y = len(x)
     return bytes(x, 'utf-8')
 
 
@@ -104,6 +103,7 @@ def k(x: typing.Any):
         return x
 
 
+#  interesting case with sets
 def set_small_data_labels(dates):
     if all(x.hour == 0 and x.minute == 0 for x in dates):
         return [x.strftime('%Y-%m-%d') for x in dates]

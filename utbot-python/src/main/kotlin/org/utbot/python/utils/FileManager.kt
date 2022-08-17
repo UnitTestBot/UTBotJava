@@ -1,9 +1,5 @@
 package org.utbot.python.utils
 
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.DirectoryFileFilter
-import org.apache.commons.io.filefilter.FileFileFilter
-import org.utbot.python.Cleaner
 import java.io.File
 import java.nio.file.Paths
 

@@ -3,7 +3,6 @@ package org.utbot.python.utils
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
-import org.utbot.python.Cleaner
 import java.io.File
 
 

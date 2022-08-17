@@ -1,4 +1,4 @@
-package org.utbot.python
+package org.utbot.python.utils
 
 object Cleaner {
     private var clean: () -> Unit = {}

@@ -10,6 +10,7 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
+import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
@@ -130,8 +131,10 @@ object PythonTestGenerationProcessor {
 
             val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
                 val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
-                val msgLines = testSet.mypyReport.map {
-                    if (lineOfFunction != null && it.line >= 0 && it.file == MypyAnnotations.TEMPORARY_MYPY_FILE)
+                val msgLines = testSet.mypyReport.mapNotNull {
+                    if (it.file != MypyAnnotations.TEMPORARY_MYPY_FILE)
+                        null
+                    else if (lineOfFunction != null && it.line >= 0)
                         ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
                     else
                         "${it.type}: ${it.message}"

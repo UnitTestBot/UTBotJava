@@ -160,8 +160,8 @@ object AnnotationFinder {
             result.add(value)
             bfsQueue.addLast(curIter)
 
-            val asGeneric = parseGeneric(value) ?: continue
-            if (!asGeneric.args.any { it == pythonAnyClassId })
+            val asGeneric = parseGeneric(value)
+            if (asGeneric == null || !asGeneric.args.any { it == pythonAnyClassId })
                 continue
 
             val argCandidates = asGeneric.args.map {
@@ -179,7 +179,7 @@ object AnnotationFinder {
             val nextGenericCandidates = PriorityCartesianProduct(argCandidates).getSequence().map {
                 NormalizedPythonAnnotation(toAnnotation(it).toString())
             }
-            bfsQueue.add(nextGenericCandidates.iterator())
+            bfsQueue.addFirst(nextGenericCandidates.iterator())
         }
         return result
     }

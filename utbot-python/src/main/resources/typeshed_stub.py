@@ -184,10 +184,10 @@ class StubFileCollector:
 
     def save_method_annotations(self):
         return json.dumps({
-            'class_annotations': self.classes_dataset,
-            'field_annotations': defaultdict_to_array(self.fields_dataset),
-            'function_annotations': defaultdict_to_array(self.functions_dataset),
-            'method_annotations': defaultdict_to_array(self.methods_dataset),
+            'classAnnotations': self.classes_dataset,
+            'fieldAnnotations': defaultdict_to_array(self.fields_dataset),
+            'functionAnnotations': defaultdict_to_array(self.functions_dataset),
+            'methodAnnotations': defaultdict_to_array(self.methods_dataset),
         },
             sort_keys=True,
             indent=True

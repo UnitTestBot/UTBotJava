@@ -3,6 +3,7 @@ package org.utbot.framework.plugin.api
 object PythonTree {
     open class PythonTreeNode(
         val type: PythonClassId,
+        var comparable: Boolean = true
     ) {
         open val children: List<PythonTreeNode> = emptyList()
 

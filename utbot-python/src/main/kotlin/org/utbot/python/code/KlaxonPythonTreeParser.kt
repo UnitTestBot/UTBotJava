@@ -15,15 +15,15 @@ object KlaxonPythonTreeParser {
     private fun parseJsonString(jsonString: String): JsonObject {
         val parser: Parser = Parser.default()
         val stringBuilder: StringBuilder = StringBuilder(jsonString)
-        println()
         return parser.parse(stringBuilder) as JsonObject
     }
 
     private fun parseToPythonTree(json: JsonObject): PythonTree.PythonTreeNode {
         val type = json.string("type")!!
         val strategy = json.string("strategy")!!
+        val comparable = json.boolean("comparable")!!
 
-        return if (strategy == "repr") {
+        val result = if (strategy == "repr") {
             var repr = json.string("value")!!
             if (type == "builtins.complex") {
                 repr = "complex('$repr')"
@@ -42,6 +42,8 @@ object KlaxonPythonTreeParser {
                 else -> parseReduce(type, json.obj("value")!!)
             }
         }
+        result.comparable = comparable
+        return result
     }
 
     private fun parseReduce(type: String, value: JsonObject): PythonTree.PythonTreeNode {

@@ -18,10 +18,10 @@ object StubFileFinder {
     ) {
         val jsonData = parseJson(json)
         if (jsonData != null) {
-            updateMethods(jsonData.method_annotations)
-            updateFields(jsonData.field_annotations)
-            updateFunctions(jsonData.function_annotations)
-            updateClasses(jsonData.class_annotations)
+            updateMethods(jsonData.methodAnnotations)
+            updateFields(jsonData.fieldAnnotations)
+            updateFunctions(jsonData.functionAnnotations)
+            updateClasses(jsonData.classAnnotations)
         }
     }
 

@@ -54,7 +54,7 @@ object PythonCodeGenerator {
                 Name("print"),
                 listOf(
                     createArguments(
-                        listOf(Str("'$status'"), Name("json.dumps(out)")),
+                        listOf(Str("'$status'"), Name("json.dumps(out[0])")),
                         listOf(
                             Keyword(Name("end"), Str("''")),
                             Keyword(Name("sep"), Str("'\\n'"))

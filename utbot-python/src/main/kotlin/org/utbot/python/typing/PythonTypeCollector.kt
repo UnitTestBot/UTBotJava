@@ -15,6 +15,8 @@ import org.utbot.python.code.PythonModule
 import org.utbot.python.utils.AnnotationNormalizer
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromStubToClassId
+import org.utbot.python.utils.getModuleName
+import org.utbot.python.utils.getModuleNameWithoutCheck
 import java.io.File
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
@@ -127,9 +129,9 @@ object PythonTypesStorage {
         val name: PythonClassId
     )
 
-    private fun getPythonFiles(dirPath: String): Collection<File> =
+    private fun getPythonFiles(directory: File): Collection<File> =
         FileUtils.listFiles(
-            File(dirPath),
+            directory,
             /* fileFilter = */ FileFilterUtils.and(
                 FileFilterUtils.suffixFileFilter(".py"),
                 FileFilterUtils.notFileFilter(
@@ -141,9 +143,6 @@ object PythonTypesStorage {
             )
         )
 
-    private fun getModuleName(path: String, fileWithClass: File): String =
-        File(path).toURI().relativize(fileWithClass.toURI()).path.removeSuffix(".py").toPath().joinToString(".")
-
     fun refreshProjectClassesAndModulesLists(
         directoriesForSysPath: Set<String>
     ) {
@@ -152,14 +151,15 @@ object PythonTypesStorage {
         val projectModulesSet = mutableSetOf(PythonModule("builtins"))
 
         directoriesForSysPath.forEach { path ->
-            getPythonFiles(path).forEach { file ->
+            val pathFile = File(path)
+            getPythonFiles(pathFile).forEach { file ->
                 if (!processedFiles.contains(file)) {
                     processedFiles.add(file)
                     val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
                     val code = PythonCode.getFromString(content, file.path)
                     projectClassesSet += code.getToplevelClasses().map { pyClass ->
                         val collector = ClassInfoCollector(pyClass)
-                        val module = getModuleName(path, file)
+                        val module = getModuleNameWithoutCheck(pathFile, file)
                         val initSignature = pyClass.initSignature
                             ?.map {
                                 annotationFromProjectToClassId(

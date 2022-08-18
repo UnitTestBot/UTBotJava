@@ -32,13 +32,16 @@ object PythonTestGenerationProcessor {
         outputFilename: String, // without path, just name
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
-        requirementsAreNotInstalledAction: () -> Unit = {},
+        requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
+            MissingRequirementsActionResult.NOT_INSTALLED
+        },
         startedLoadingPythonTypesAction: () -> Unit = {},
         startedTestGenerationAction: () -> Unit = {},
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
         generatedFileWithTestsAction: (File) -> Unit = {},
         processMypyWarnings: (String) -> Unit = {},
-        startedCleaningAction: () -> Unit = {}
+        startedCleaningAction: () -> Unit = {},
+        finishedAction: () -> Unit = {}
     ) {
         Cleaner.restart()
 
@@ -47,8 +50,9 @@ object PythonTestGenerationProcessor {
 
             checkingRequirementsAction()
             if (!requirementsAreInstalled(pythonPath)) {
-                requirementsAreNotInstalledAction()
-                return
+                val result = requirementsAreNotInstalledAction()
+                if (result == MissingRequirementsActionResult.NOT_INSTALLED)
+                    return
             }
 
             startedLoadingPythonTypesAction()
@@ -153,5 +157,11 @@ object PythonTestGenerationProcessor {
             startedCleaningAction()
             Cleaner.doCleaning()
         }
+
+        finishedAction()
+    }
+
+    enum class MissingRequirementsActionResult {
+        INSTALLED, NOT_INSTALLED
     }
 }

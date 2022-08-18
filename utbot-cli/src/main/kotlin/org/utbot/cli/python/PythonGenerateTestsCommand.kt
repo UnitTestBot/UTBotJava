@@ -2,6 +2,7 @@ package org.utbot.cli.python
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.split
@@ -9,8 +10,10 @@ import mu.KotlinLogging
 import org.utbot.framework.codegen.Unittest
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.python.PythonMethod
+import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.code.PythonCode
+import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.getModuleName
 import java.io.File
 
@@ -45,6 +48,11 @@ class PythonGenerateTestsCommand: CliktCommand(
         "-o", "--output",
         help = "File for generated tests"
     ).required()
+
+    private val installRequirementsIfMissing by option(
+        "-r", "--install-requirements",
+        help = "Install requirements if missing"
+    ).flag(default = false)
 
     private fun findCurrentPythonModule(): Either<String> {
         directoriesForSysPath.forEach { path ->
@@ -85,13 +93,27 @@ class PythonGenerateTestsCommand: CliktCommand(
         }
     }
 
+    private fun processMissingRequirements(): PythonTestGenerationProcessor.MissingRequirementsActionResult {
+        if (installRequirementsIfMissing) {
+            logger.info("Installing requirements...")
+            val result = installRequirements(pythonPath)
+            if (result.exitValue == 0)
+                return PythonTestGenerationProcessor.MissingRequirementsActionResult.INSTALLED
+            println(result.stderr)
+            logger.error("Failed to install requirements.")
+        } else {
+            logger.error("Missing some requirements. Please add --install-requirements flag or install them manually.")
+        }
+        return PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
+    }
+
     override fun run() {
         val outputFile = File(output)
         val testSourceRoot = outputFile.parentFile.path
         val outputFilename = outputFile.name
         val status = calculateValues()
         if (status is Fail) {
-            println(status.message)
+            logger.error(status.message)
             return
         }
 
@@ -111,9 +133,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
             },
-            requirementsAreNotInstalledAction = {
-                logger.error("Requirements are not installed")
-            },
+            requirementsAreNotInstalledAction = ::processMissingRequirements,
             startedLoadingPythonTypesAction = {
                 logger.info("Loading information about Python Types...")
             },
@@ -124,6 +144,9 @@ class PythonGenerateTestsCommand: CliktCommand(
                 logger.warn(
                     "Couldn't generate tests for the following functions: ${it.joinToString()}"
                 )
+            },
+            finishedAction = {
+                logger.info("Finished")
             }
         )
     }

@@ -5,6 +5,7 @@ object RequirementsUtils {
         RequirementsUtils::class.java.getResource("/requirements.txt")
             ?.readText()
             ?.split('\n')
+            ?.filter { it.isNotEmpty() }
             ?: error("Didn't find /requirements.txt")
 
     private val requirementsScriptContent: String =
@@ -21,5 +22,17 @@ object RequirementsUtils {
             ) + requirements
         )
         return result.exitValue == 0
+    }
+
+    fun installRequirements(pythonPath: String): CmdResult {
+        val result = runCommand(
+            listOf(
+                pythonPath,
+                "-m",
+                "pip",
+                "install"
+            ) + requirements
+        )
+        return result
     }
 }

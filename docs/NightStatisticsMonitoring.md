@@ -11,21 +11,21 @@ Thus, we decided to do it every night when (hopefully!) no one makes changes.
 
 ## How do we collect statistics?
 
-To find the algorithm you can refer to StatisticsMonitoring.kt. Shortly speaking, it is based on ContestEstimator.kt, which runs test generation on the sample projects and then compile the resulting tests. We repeat the whole process several times to reduce measurement error.
+To find the algorithm you can refer to `StatisticsMonitoring.kt`. Shortly speaking, it is based on `ContestEstimator.kt`, which runs test generation on the sample projects and then compile the resulting tests. We repeat the whole process several times to reduce measurement error.
 
 ## Statistics monitoring usage
 
 ### Collecting statistics
 
-To run statistics monitoring you have to specify the name of the json output file.
+To run statistics monitoring you have to specify the name of the JSON output file.
 
 Input arguments: `<output json>`.
 
-Output format: you get the json file, which contains an array of objects with statistics on each run.
+Output format: you get the JSON file, which contains an array of objects with statistics on each run.
 
-More about each statistic: Statistics.kt.
+More about each statistic: `Statistics.kt`.
 
-More about monitoring settings: MonitoringSettings.kt.
+More about monitoring settings: `MonitoringSettings.kt`.
 
 Input example:
 
@@ -90,22 +90,27 @@ Output example (the result of three runs during one night):
 
 ### Metadata and summarising
 
-We can summarise collected statistics by averaging to get statistics more precisely. 
+To get rid of measurement errors and get a general understanding of UnitTestBot efficiency we average the statistics over the runs during one night.
 
-In addition, we need more information about the environment and versions used to collect statistics for better interpretation and analysis.
+Our main goal is to find code changes or run conditions related to the reduced UnitTestBot performance. Thus, we collect metadata about each run: the commit hash, the UnitTestBot build number, and also information about the environment (including JDK and build system versions, and other parameters).
 
-You can find script insert_metadata.py to do tasks described before.
+The `insert_metadata.py` script is responsible for doing this. To run it you have to specify the following arguments.
 
 Input arguments: `<stats file> <output file> <commit hash> <build number>`.
 
-Output format: you get the json file, which contains object with summarised statistics and metadata.
+Please notice, that the `<output file>` must look like:
+
+`*-<timestamp>-<commit hash>.json`
+
+
+Output format: you get the JSON file, containing summarised statistics and metadata.
 
 Input example:
 ```
 stats.json data/data-main-2022-08-17-1660740407-66a1aeb6.json 66a1aeb6 2022.8
 ```
 
-Output example:
+Output example (an average for each statistic over the three runs followed by metadata):
 ```json
 {
   "classes_for_generation": 20.0,
@@ -139,20 +144,26 @@ Output example:
 
 ### Aggregating
 
-Script build_aggregated_data.py creates a file with an array of statistics collected during specified period. It can be needed for visualisation or analyzing some statistics as max, min, median etc.
+The `build_aggregated_data.py` script gathers the results for several nights. The summarised results for each of the nights are put together into one array. You can specify the period for aggregating. It is useful for visualising or finding statistical characteristics of UnitTestBot performance, e.g. the median or max/min values.
+
+To run aggregating you should provide the input.
 
 Input arguments: `<input data dir> <output file> <timestamp from> <timestamp to>`.
 
-Required name format of file with data: `*-<timestamp>-<commit hash>.json`.
+Please notice that the `<input data dir>` must contain the files which look like `*-<timestamp>-<commit hash>.json`. You (probably) have already named them properly during summarisation.
 
-Output format: you get the json file, which contains an array of objects with statistics collected during specified period.
+Output format: you get the JSON file, which contains an array of summarised results for each of the nights during the specified period.
 
 Input example:
+
 ```
 ./data aggregated_data.json 0 1660740407
 ```
 
 Output example:
+
+(You'll get an array of several summarised outputs without metadata. The following example is just one element of such an array.)
+
 ```json
 [
     {
@@ -176,14 +187,16 @@ Output example:
 
 ### Datastorage structure
 
-Our repository is used as database for collected statistics.
+We store the collected statistics in our repository. You can find two special branches: `monitoring-data` and `monitoring-aggregated-data`.
 
-There are 2 branches: monitoring-data, monitoring-aggregated-data.
+The `monitoring-data` branch is a storage for raw statistics data as well as metadata.
 
-monitoring-data branch is used as a storage for raw collected statistics with metadata. Filename format: `data-<branch>-<yyyy>-<mm>-<dd>-<timestamp>-<short commit hash>.json`
+The filename format: `data-<branch>-<yyyy>-<mm>-<dd>-<timestamp>-<short commit hash>.json`
 
-monitoring-aggregated-data branch is used as a storage for aggregated statistics. Specified period is one month. Filename format: `aggregated-data-<yyyy>-<mm>-<dd>.json`
+The `monitoring-aggregated-data` branch is a storage for aggregated statistics. The aggregating period is set to one month by default.
 
-### Grafana (TODO: in process)
-Also, we can use [Grafana](https://monitoring.utbot.org) for more dynamic and detailed statistics visualization.
-Grafana pulls data from our repository automatically by GitHub API.
+The filename format: `aggregated-data-<yyyy>-<mm>-<dd>.json`
+
+### Grafana (in process)
+
+We can use [Grafana](https://monitoring.utbot.org) for more dynamic and detailed statistics visualisation. Grafana pulls data from our repository automatically by means of GitHub API.

@@ -140,6 +140,8 @@ internal class PythonCgStatementConstructorImpl(context: CgContext) :
         return this.copy(finally = finallyBlock)
     }
 
+    override fun CgExpression.isInstance(value: CgExpression): CgIsInstance = TODO("Not yet implemented")
+
     override fun innerBlock(init: () -> Unit): CgInnerBlock =
         CgInnerBlock(block(init)).also {
             currentBlock += it

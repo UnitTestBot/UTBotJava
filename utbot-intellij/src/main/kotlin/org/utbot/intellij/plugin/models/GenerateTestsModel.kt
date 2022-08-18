@@ -24,7 +24,7 @@ import org.utbot.intellij.plugin.ui.utils.jdkVersion
 class GenerateTestsModel(
     project: Project,
     srcModule: Module,
-    val potentialTestModules: List<Module>,
+    potentialTestModules: List<Module>,
     var srcClasses: Set<PsiClass>,
     var selectedMethods: Set<MemberInfo>?,
     var timeout:Long,
@@ -35,21 +35,8 @@ class GenerateTestsModel(
     srcModule,
     potentialTestModules
 ) {
-    // GenerateTestsModel is supposed to be created with non-empty list of potentialTestModules.
-    // Otherwise, the error window is supposed to be shown earlier.
-    var testModule: Module = potentialTestModules.firstOrNull() ?: error("Empty list of test modules in model")
-
-    var testSourceRoot: VirtualFile? = null
-    fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
-        requireNotNull(newTestSourceRoot)
-        testSourceRoot = newTestSourceRoot
-        testModule = ModuleUtil.findModuleForFile(newTestSourceRoot, project)
-            ?: error("Could not find module for $newTestSourceRoot")
-    }
-
-    var testPackageName: String? = null
-    override var testSourceRoot: VirtualFile? = null
     override var testPackageName: String? = null
+    override var testSourceRoot: VirtualFile? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
     var mockFramework: MockFramework? = null

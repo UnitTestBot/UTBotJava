@@ -296,6 +296,10 @@ object Pytest : TestFramework(displayName = "pytest") {
         get() = TODO("Not yet implemented")
     override val methodSourceAnnotationFqn: String
         get() = TODO("Not yet implemented")
+    override val nestedClassesShouldBeStatic: Boolean
+        get() = TODO("Not yet implemented")
+    override val argListClassId: ClassId
+        get() = TODO("Not yet implemented")
 
     @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
@@ -337,6 +341,10 @@ object Unittest : TestFramework(displayName = "Unittest") {
     override val methodSourceAnnotationId: ClassId
         get() = TODO("Not yet implemented")
     override val methodSourceAnnotationFqn: String
+        get() = TODO("Not yet implemented")
+    override val nestedClassesShouldBeStatic: Boolean
+        get() = TODO("Not yet implemented")
+    override val argListClassId: ClassId
         get() = TODO("Not yet implemented")
 
     override fun getRunTestsCommand(

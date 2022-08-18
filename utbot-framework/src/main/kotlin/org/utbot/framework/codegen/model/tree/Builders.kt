@@ -13,8 +13,8 @@ interface CgBuilder<T : CgElement> {
 // Code entities
 
 class CgTestClassFileBuilder : CgBuilder<CgTestClassFile> {
-    val imports: MutableList<Import> = mutableListOf()
-    val sysPaths: MutableSet<CgPythonSysPath> = mutableSetOf()
+    var imports: MutableList<Import> = mutableListOf()
+    var sysPaths: MutableSet<CgPythonSysPath> = mutableSetOf()
     lateinit var testClass: CgTestClass
     lateinit var testsGenerationReport: TestsGenerationReport
 

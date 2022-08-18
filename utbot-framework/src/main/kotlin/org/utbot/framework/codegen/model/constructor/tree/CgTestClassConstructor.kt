@@ -48,7 +48,8 @@ internal class CgTestClassConstructor(val context: CgContext) :
     fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
             this.testClass = withTestClassScope { constructTestClass(testClassModel) }
-            imports += context.collectedImports
+            imports.addAll(context.collectedImports)
+            sysPaths.addAll(context.collectedSysPaths.map { CgPythonSysPath(it) })
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }
@@ -57,8 +58,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         return buildTestClass {
             id = currentTestClass
             if (testFramework is Unittest) {
-                superclass = PythonClassId("unittest.TestCase")
-                imports += PythonImport("unittest")
+                context.collectedImports.add(PythonImport("unittest"))
             }
 
             if (currentTestClass != outerMostTestClass) {
@@ -86,7 +86,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
                 for (testSet in testClassModel.methodTestSets) {
                     updateCurrentExecutable(testSet.executableId)
-                    sysPaths += testSet.sysPaths.map { CgPythonSysPath(it) }
+                    context.collectedSysPaths.addAll(testSet.sysPaths)
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
                     val executableUnderTestCluster = CgExecutableUnderTestCluster(
                         "Test suites for executable $currentExecutable",
@@ -111,11 +111,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
             // all methods are generated so that all necessary info is already present in the context
             with (currentTestClassContext) {
                 annotations += collectedTestClassAnnotations
-                superclass = testClassSuperclass
+                superclass = if (testFramework is Unittest) PythonClassId("unittest.TestCase") else testClassSuperclass
                 interfaces += collectedTestClassInterfaces
             }
-            sysPaths += context.collectedSysPaths.map { CgPythonSysPath(it) }
-            imports += context.collectedImports
         }
     }
 

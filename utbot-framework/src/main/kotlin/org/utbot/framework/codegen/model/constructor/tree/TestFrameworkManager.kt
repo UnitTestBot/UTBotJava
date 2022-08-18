@@ -266,14 +266,12 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
         TODO("Not yet implemented")
     }
 
-    override fun addTestDescription(description: String) {
-        TODO("Not yet implemented")
-    }
+    override fun addTestDescription(description: String) = Unit
 
     override fun disableTestMethod(reason: String) {
     }
 
-    override val dataProviderMethodsHolder: Unresolved type for TestClassContext
+    override val dataProviderMethodsHolder: TestClassContext get() = TODO()
     override val annotationForNestedClasses: CgAnnotation?
         get() = TODO("Not yet implemented")
     override val annotationForOuterClasses: CgAnnotation?
@@ -303,7 +301,8 @@ internal class PytestManager(context: CgContext) : TestFrameworkManager(context)
 }
 
 internal class UnittestManager(context: CgContext) : TestFrameworkManager(context) {
-    override val dataProviderMethodsHolder: Unresolved type for TestClassContext
+    override val dataProviderMethodsHolder: TestClassContext
+        get() = TODO()
     override val annotationForNestedClasses: CgAnnotation?
         get() = TODO("Not yet implemented")
     override val annotationForOuterClasses: CgAnnotation?
@@ -330,9 +329,7 @@ internal class UnittestManager(context: CgContext) : TestFrameworkManager(contex
         TODO("Not yet implemented")
     }
 
-    override fun addTestDescription(description: String) {
-        TODO("Not yet implemented")
-    }
+    override fun addTestDescription(description: String) = Unit
 
     override fun disableTestMethod(reason: String) {
         require(testFramework is Unittest) { "According to settings, Unittest was expected, but got: $testFramework" }
@@ -533,6 +530,7 @@ internal class Junit4Manager(context: CgContext) : TestFrameworkManager(context)
                     when (codegenLanguage) {
                         CodegenLanguage.JAVA   -> CgGetJavaClass(it)
                         CodegenLanguage.KOTLIN -> CgGetKotlinClass(it)
+                        CodegenLanguage.PYTHON -> CgGetPythonClass(it)
                     }
                 }
             )

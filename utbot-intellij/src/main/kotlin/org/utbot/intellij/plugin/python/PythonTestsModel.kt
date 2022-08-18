@@ -11,7 +11,7 @@ import org.utbot.intellij.plugin.models.BaseTestsModel
 class PythonTestsModel(
     project: Project,
     srcModule: Module,
-    testModule: Module,
+    potentialTestModules: List<Module>,
     val functionsToDisplay: Set<PyFunction>,
     val containingClass: PyClass?,
     val focusedMethod: Set<PyFunction>?,
@@ -22,7 +22,7 @@ class PythonTestsModel(
 ): BaseTestsModel(
     project,
     srcModule,
-    testModule
+    potentialTestModules
 ) {
      lateinit var testFramework: TestFramework
      lateinit var selectedFunctions: Set<PyFunction>

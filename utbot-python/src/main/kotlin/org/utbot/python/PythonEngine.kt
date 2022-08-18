@@ -4,11 +4,11 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.names.MethodBasedNameSuggester
-import org.utbot.fuzzer.names.ModelBasedNameSuggester
 import org.utbot.python.code.AnnotationProcessor.getModulesFromAnnotation
 import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
+import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
+import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -90,9 +90,6 @@ class PythonEngine(
                         stateBefore = EnvironmentModels(thisObject, modelList, emptyMap()),
                         stateAfter = EnvironmentModels(thisObject, modelList, emptyMap()),
                         result = result,
-                        instrumentation = emptyList(),
-                        path = mutableListOf(), // ??
-                        fullPath = emptyList(), // ??
                         testMethodName = testMethodName?.testName?.camelToSnakeCase(),
                         displayName = testMethodName?.displayName,
                     )

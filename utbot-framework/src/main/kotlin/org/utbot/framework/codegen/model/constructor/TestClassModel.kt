@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.constructor
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.util.enclosingClass
 
 // TODO: seems like this class needs to be renamed
@@ -28,7 +29,7 @@ data class TestClassModel(
 
             for (classId in classesWithMethodsUnderTest) {
                 var currentClass = classId
-                var enclosingClass = currentClass.enclosingClass
+                var enclosingClass = if (classId is PythonClassId) classId else currentClass.enclosingClass
                 // while we haven't reached the top of nested class hierarchy or the main class under test
                 while (enclosingClass != null && currentClass != classUnderTest) {
                     class2nestedClasses.getOrPut(enclosingClass) { mutableListOf() } += currentClass

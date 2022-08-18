@@ -20,8 +20,8 @@ import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
-import org.utbot.intellij.plugin.ui.utils.testModule
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
+import org.utbot.intellij.plugin.ui.utils.testModules
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
@@ -53,14 +53,14 @@ object PythonDialogProcessor {
         file: PyFile
     ): PythonDialogWindow {
         val srcModule = findSrcModule(functionsToShow)
-        val testModule = srcModule.testModule(project)
+        val testModules = srcModule.testModules(project)
         val (directoriesForSysPath, moduleToImport) = getDirectoriesForSysPath(srcModule, file)
 
         return PythonDialogWindow(
             PythonTestsModel(
                 project,
                 srcModule,
-                testModule,
+                testModules,
                 functionsToShow,
                 containingClass,
                 if (focusedMethod != null) setOf(focusedMethod) else null,

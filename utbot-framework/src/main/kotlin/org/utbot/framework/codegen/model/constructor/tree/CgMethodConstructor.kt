@@ -184,7 +184,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             instrumentation
                 .filterIsInstance<UtStaticMethodInstrumentation>()
                 .groupBy { it.methodId.classId }
-                .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
+                .forEach { (classId, methodMocks) ->
+                    mockFrameworkManager.mockStaticMethodsOfClass(
+                        classId,
+                        methodMocks
+                    )
+                }
 
             if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
                 // warn user about forced using static mocks
@@ -403,7 +408,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
     }
 
-    private fun String.escapeControlChars() : String {
+    private fun String.escapeControlChars(): String {
         return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
     }
 
@@ -878,7 +883,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
-        // Can directly access field only if it is declared in variable class (or in its ancestors)
+    // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
         if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
@@ -1053,10 +1058,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     initArgs.map { it.type }
                 )
 
-                val obj = newVar(objectNode.type) { CgConstructorCall(
-                    constructor,
-                    initArgs
-                ) }
+                val obj = newVar(objectNode.type) {
+                    CgConstructorCall(
+                        constructor,
+                        initArgs
+                    )
+                }
                 context.memoryObjects[id] = obj
 
                 val state = objectNode.state.map { (key, value) ->
@@ -1073,16 +1080,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
                     fieldAccess `=` value
                 }
-                listitems.forEach { CgMethodCall(
-                    obj,
-                    PythonMethodId(
-                        obj.type as PythonClassId,
-                        "append",
-                        NormalizedPythonAnnotation(pythonNoneClassId.name),
-                        listOf(it.type as RawPythonAnnotation)
-                    ),
-                    listOf(it)
-                ) }
+                listitems.forEach {
+                    CgMethodCall(
+                        obj,
+                        PythonMethodId(
+                            obj.type as PythonClassId,
+                            "append",
+                            NormalizedPythonAnnotation(pythonNoneClassId.name),
+                            listOf(it.type as RawPythonAnnotation)
+                        ),
+                        listOf(it)
+                    )
+                }
                 dictitems.forEach { (key, value) ->
                     val index = CgPythonIndex(
                         value.type as PythonClassId,
@@ -1094,7 +1103,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 return obj
             }
-            else -> { throw UnsupportedOperationException() }
+            else -> {
+                throw UnsupportedOperationException()
+            }
         }
     }
 
@@ -1124,7 +1135,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         iterator: CgReferenceExpression,
         keyName: String = "index",
     ) {
-        val elements = when(expectedNode) {
+        val elements = when (expectedNode) {
             is PythonTree.ListNode -> expectedNode.items
             is PythonTree.TupleNode -> expectedNode.items
             is PythonTree.DictNode -> expectedNode.items.values
@@ -1132,7 +1143,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
         if (elements.isNotEmpty()) {
             val elementsHaveSameStructure = PythonTree.allElementsHaveSameStructure(elements)
-            val firstChildren = elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
+            val firstChildren =
+                elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
 
             emptyLine()
             if (elementsHaveSameStructure) {
@@ -1161,8 +1173,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         statements = currentBlock
                     }
                 }
-            }
-            else {
+            } else {
                 testFrameworkManager.assertEquals(expected, actual)
             }
         }
@@ -1388,7 +1399,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 rememberInitialStaticFields(statics)
                 context.memoryObjects.clear()
 
-                rememberInitialStaticFields()
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
@@ -1491,17 +1501,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     parameterized = true,
                     dataProviderMethodName
                 ) {
-                    if (containsFailureExecution(testSet)) {
-                        +tryBlock(mainBody)
-                            .catch(Throwable::class.java.id) { e ->
-                                val pseudoExceptionVarName = when (codegenLanguage) {
-                                    CodegenLanguage.JAVA -> "${expectedErrorVarName}.isInstance(${e.name.decapitalize()})"
-                                    CodegenLanguage.KOTLIN -> "${expectedErrorVarName}!!.isInstance(${e.name.decapitalize()})"
-                                    CodegenLanguage.PYTHON -> TODO()
-                                }
-
-                                testFrameworkManager.assertBoolean(CgVariable(pseudoExceptionVarName, booleanClassId))
-                            }
                     rememberInitialStaticFields(statics)
                     substituteStaticFields(statics, isParametrized = true)
 
@@ -1886,7 +1885,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return testMethod
     }
 
-    private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
+    private fun dataProviderMethod(
+        dataProviderMethodName: String,
+        body: () -> Unit
+    ): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
             returnType = testFramework.argListClassId
@@ -1934,7 +1936,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val pureJvmReportPath = jvmReportPath.substringAfter("# ")
 
         // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
+        return PathUtil.toHtmlLinkTag(
+            PathUtil.replaceSeparator(pureJvmReportPath),
+            fileName = "JVM crash report"
+        ) + "\n"
     }
 
     private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =

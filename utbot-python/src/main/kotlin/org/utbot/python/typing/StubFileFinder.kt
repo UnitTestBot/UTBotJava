@@ -1,7 +1,8 @@
 package org.utbot.python.typing
 
-import com.beust.klaxon.Klaxon
 import org.utbot.python.utils.moduleOfType
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
 object StubFileFinder {
     val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = emptyMap<String, MutableSet<StubFileStructures.FunctionInfo>>().toMutableMap()
@@ -9,8 +10,11 @@ object StubFileFinder {
     val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = emptyMap<String, MutableSet<StubFileStructures.FieldInfo>>().toMutableMap()
     val nameToClassMap: MutableMap<String, StubFileStructures.ClassInfo> = emptyMap<String, StubFileStructures.ClassInfo>().toMutableMap()
 
+    private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+    private val jsonAdapter = moshi.adapter(StubFileStructures.JsonData::class.java)
+
     private fun parseJson(json: String): StubFileStructures.JsonData? {
-        return Klaxon().parse<StubFileStructures.JsonData>(json)
+        return jsonAdapter.fromJson(json)
     }
 
     fun updateStubs(

@@ -25,6 +25,7 @@ import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonCode.Companion.getFromString
 import org.utbot.python.PythonMethod
+import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 
@@ -118,6 +119,7 @@ object PythonDialogProcessor {
                             message = "Requirements are not installed",
                             title = "Python test generation error"
                         )
+                        PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                     },
                     startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
                     startedTestGenerationAction = { indicator.text = "Generating tests" },

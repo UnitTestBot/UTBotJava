@@ -10,5 +10,7 @@ dependencies {
 
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
 
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
+
     testImplementation("org.junit.jupiter:junit-jupiter:$junit5_version")
 }

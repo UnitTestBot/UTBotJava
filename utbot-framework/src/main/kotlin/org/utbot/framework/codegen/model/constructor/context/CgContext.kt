@@ -26,16 +26,6 @@ import org.utbot.framework.codegen.model.constructor.tree.Block
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.util.createTestClassName
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.MockFramework
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtReferenceModel
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -46,6 +36,7 @@ import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -417,6 +408,7 @@ data class CgContext(
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
+    var memoryObjects: MutableMap<PythonId, CgVariable> = emptyMap<PythonId, CgVariable>().toMutableMap()
 
     override val currentTestClass: ClassId by lazy {
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""

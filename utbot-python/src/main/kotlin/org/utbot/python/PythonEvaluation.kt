@@ -53,7 +53,7 @@ object PythonEvaluation {
 
         val isSuccess = status == PythonCodeGenerator.successStatus
 
-        val pythonTree = KlaxonPythonTreeParser.parseJsonToPythonTree(output[1])
+        val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
 
         return EvaluationSuccess(
             OutputData(pythonTree, pythonTree.type),

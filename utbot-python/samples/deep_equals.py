@@ -39,3 +39,36 @@ def comparable_list(length: int):
 
 def bad_list(length: int):
     return [BadClass(x) for x in range(max(length, 10))]
+
+
+class Node:
+    def __init__(self, name):
+        self.name = name
+        self.children = []
+
+    def __str__(self):
+        return f'<Node: {self.name}>'
+
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return self.name == other.name
+        else:
+            return False
+
+
+def cycle(x: str):
+    a = Node(x + '_a')
+    b = Node(x + '_b')
+    a.children.append(b)
+    b.children.append(a)
+    return a
+
+
+def cycle2(x: str):
+    a = Node(x + '_a')
+    b = Node(x + '_b')
+    c = Node(x + '_c')
+    a.children.append(b)
+    b.children.append(c)
+    c.children.append(a)
+    return a

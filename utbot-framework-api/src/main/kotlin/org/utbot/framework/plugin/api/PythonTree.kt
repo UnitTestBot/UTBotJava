@@ -1,5 +1,7 @@
 package org.utbot.framework.plugin.api
 
+typealias PythonId = Long
+
 object PythonTree {
     open class PythonTreeNode(
         val type: PythonClassId,
@@ -89,13 +91,21 @@ object PythonTree {
     }
 
     class ReduceNode(
+        val id: PythonId,
         type: PythonClassId,
         val constructor: String,
         val args: List<PythonTreeNode>,
-        val state: Map<String, PythonTreeNode>,
-        val listitems: List<PythonTreeNode>,
-        val dictitems: Map<PythonTreeNode, PythonTreeNode>,
+        var state: Map<String, PythonTreeNode>,
+        var listitems: List<PythonTreeNode>,
+        var dictitems: Map<PythonTreeNode, PythonTreeNode>,
     ): PythonTreeNode(type) {
+        constructor(
+            id: PythonId,
+            type: PythonClassId,
+            constructor: String,
+            args: List<PythonTreeNode>,
+        ): this(id, type, constructor, args, emptyMap(), emptyList(), emptyMap())
+
         override val children: List<PythonTreeNode>
             get() = args + state.values + listitems + dictitems.values + dictitems.keys
 

@@ -4,18 +4,34 @@ import com.beust.klaxon.JsonArray
 import com.beust.klaxon.JsonObject
 import com.beust.klaxon.Parser
 import org.utbot.framework.plugin.api.PythonClassId
+import org.utbot.framework.plugin.api.PythonId
 import org.utbot.framework.plugin.api.PythonTree
 
-object KlaxonPythonTreeParser {
-    fun parseJsonToPythonTree(jsonString: String): PythonTree.PythonTreeNode {
-        val json = parseJsonString(jsonString)
-        return parseToPythonTree(json)
+class KlaxonPythonTreeParser(
+    jsonString: String
+) {
+    private val jsonObject = parseJsonString(jsonString)
+    private val rawMemory = jsonObject.obj("memory")!!.map {
+        it.key.toLong() to it.value as JsonObject
+    }.toMap()
+    private val memory = emptyMap<PythonId, PythonTree.PythonTreeNode>().toMutableMap()
+
+    fun parseJsonToPythonTree(): PythonTree.PythonTreeNode {
+        return parseToPythonTree(jsonObject.obj("json")!!)
     }
 
     private fun parseJsonString(jsonString: String): JsonObject {
         val parser: Parser = Parser.default()
         val stringBuilder: StringBuilder = StringBuilder(jsonString)
         return parser.parse(stringBuilder) as JsonObject
+    }
+
+    private fun findInMemory(id: PythonId): PythonTree.PythonTreeNode {
+        return if (memory.containsKey(id))
+            memory[id]!!
+        else {
+            return parseReduce(rawMemory[id]!!)
+        }
     }
 
     private fun parseToPythonTree(json: JsonObject): PythonTree.PythonTreeNode {
@@ -39,24 +55,28 @@ object KlaxonPythonTreeParser {
                 "builtins.set" -> parsePythonSet(json.array("value")!!)
                 "builtins.tuple" -> parsePythonTuple(json.array("value")!!)
                 "builtins.dict" -> parsePythonDict(json.array("value")!!)
-                else -> parseReduce(type, json.obj("value")!!)
+                else -> findInMemory(json.long("value")!!)
             }
         }
         result.comparable = comparable
         return result
     }
 
-    private fun parseReduce(type: String, value: JsonObject): PythonTree.PythonTreeNode {
-        return PythonTree.ReduceNode(
-            PythonClassId(type),
+    private fun parseReduce(value: JsonObject): PythonTree.PythonTreeNode {
+        val id = value.long("id")!!
+        val initObject = PythonTree.ReduceNode(
+            id,
+            PythonClassId(value.string("type")!!),
             value.string("constructor")!!,
             parsePythonList(value.array("args")!!).items,
-            parsePythonDict(value.array("state")!!).items.map {
-                (it.key as PythonTree.PrimitiveNode).repr to it.value
-            }.toMap(),
-            parsePythonList(value.array("listitems")!!).items,
-            parsePythonDict(value.array("dictitems")!!).items,
         )
+        memory[id] = initObject
+        initObject.state = parsePythonDict(value.array("state")!!).items.map {
+            (it.key as PythonTree.PrimitiveNode).repr to it.value
+        }.toMap()
+        initObject.listitems = parsePythonList(value.array("listitems")!!).items
+        initObject.dictitems = parsePythonDict(value.array("dictitems")!!).items
+        return initObject
     }
 
     private fun parsePythonList(items: JsonArray<JsonObject>): PythonTree.ListNode {

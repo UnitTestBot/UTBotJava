@@ -45,7 +45,7 @@ object PythonCodeGenerator {
                 listOf(Name("out")),
                 Atom(
                     Name(
-                        "_PythonTreeSerializer.serialize"
+                        "_PythonTreeSerializer().dumps"
                     ),
                     listOf(createArguments(listOf(Name(outputName))))
                 )
@@ -54,7 +54,7 @@ object PythonCodeGenerator {
                 Name("print"),
                 listOf(
                     createArguments(
-                        listOf(Str("'$status'"), Name("json.dumps(out[0])")),
+                        listOf(Str("'$status'"), Name("json.dumps(out)")),
                         listOf(
                             Keyword(Name("end"), Str("''")),
                             Keyword(Name("sep"), Str("'\\n'"))

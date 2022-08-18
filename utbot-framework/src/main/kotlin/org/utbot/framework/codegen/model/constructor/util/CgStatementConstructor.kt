@@ -57,9 +57,17 @@ import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import fj.data.Either
+import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
+import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredField
+import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgIsInstance
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.classClassId
+import org.utbot.framework.plugin.api.util.isPrimitive
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -112,6 +120,19 @@ interface CgStatementConstructor {
     fun whileLoop(condition: CgExpression, statements: () -> Unit)
     fun doWhileLoop(condition: CgExpression, statements: () -> Unit)
     fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit)
+
+    /**
+     * Create a variable of type [java.lang.reflect.Field] by the given [FieldId].
+     */
+    fun createFieldVariable(fieldId: FieldId): CgVariable
+
+
+    /**
+     * Given an [executableId] that represents method or constructor and a list of arguments for it,
+     * create a variable of type [java.lang.reflect.Method] or [java.lang.reflect.Constructor].
+     * This created variable is returned.
+     */
+    fun createExecutableVariable(executableId: ExecutableId, arguments: List<CgExpression>): CgVariable
 
     fun tryBlock(init: () -> Unit): CgTryCatch
     fun tryBlock(init: () -> Unit, resources: List<CgDeclaration>?): CgTryCatch
@@ -282,6 +303,46 @@ internal class CgStatementConstructorImpl(context: CgContext) :
 
     override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) = withNameScope {
         currentBlock += buildCgForEachLoop(init)
+    }
+
+    override fun createFieldVariable(fieldId: FieldId): CgVariable {
+        val declaringClass = newVar(Class::class.id) { Class::class.id[forName](fieldId.declaringClass.name) }
+        val name = fieldId.name + "Field"
+        return newVar(java.lang.reflect.Field::class.id, name) {
+            declaringClass[getDeclaredField](fieldId.name)
+        }
+    }
+
+    override fun createExecutableVariable(executableId: ExecutableId, arguments: List<CgExpression>): CgVariable {
+        val declaringClass = newVar(Class::class.id) { Class::class.id[forName](executableId.classId.name) }
+        val argTypes = (arguments zip executableId.parameters).map { (argument, parameterType) ->
+            val baseName = when (argument) {
+                is CgVariable -> "${argument.name}Type"
+                else -> "${parameterType.prettifiedName.decapitalize()}Type"
+            }
+            newVar(classCgClassId, baseName) {
+                if (parameterType.isPrimitive) {
+                    CgGetJavaClass(parameterType)
+                } else {
+                    Class::class.id[forName](parameterType.name)
+                }
+            }
+        }
+
+        return when (executableId) {
+            is MethodId -> {
+                val name = executableId.name + "Method"
+                newVar(java.lang.reflect.Method::class.id, name) {
+                    declaringClass[getDeclaredMethod](executableId.name, *argTypes.toTypedArray())
+                }
+            }
+            is ConstructorId -> {
+                val name = executableId.classId.prettifiedName.decapitalize() + "Constructor"
+                newVar(java.lang.reflect.Constructor::class.id, name) {
+                    declaringClass[getDeclaredConstructor](*argTypes.toTypedArray())
+                }
+            }
+        }
     }
 
     override fun tryBlock(init: () -> Unit): CgTryCatch = tryBlock(init, null)

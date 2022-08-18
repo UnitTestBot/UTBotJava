@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.ExecutableId
  *
  * @param packageName name of the package we check accessibility from
  */
-fun ExecutableId.isAccessibleFrom(packageName: String): Boolean {
+infix fun ExecutableId.isAccessibleFrom(packageName: String): Boolean {
     val isAccessibleFromPackageByModifiers = isPublic || (classId.packageName == packageName && (isPackagePrivate || isProtected))
 
     return classId.isAccessibleFrom(packageName) && isAccessibleFromPackageByModifiers

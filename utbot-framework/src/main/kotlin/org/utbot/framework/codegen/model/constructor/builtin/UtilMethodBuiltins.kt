@@ -69,7 +69,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
         get() = utilClassId.utilMethodId(
             name = "setField",
             returnType = voidClassId,
-            arguments = arrayOf(objectClassId, stringClassId, objectClassId)
+            arguments = arrayOf(objectClassId, stringClassId, stringClassId, objectClassId)
         )
 
     val setStaticFieldMethodId: MethodId
@@ -83,7 +83,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
         get() = utilClassId.utilMethodId(
             name = "getFieldValue",
             returnType = objectClassId,
-            arguments = arrayOf(objectClassId, stringClassId)
+            arguments = arrayOf(objectClassId, stringClassId, stringClassId)
         )
 
     val getStaticFieldValueMethodId: MethodId

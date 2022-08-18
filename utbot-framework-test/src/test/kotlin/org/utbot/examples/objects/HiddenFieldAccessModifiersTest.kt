@@ -7,8 +7,7 @@ import org.utbot.testcheckers.eq
 internal class HiddenFieldAccessModifiersTest : UtValueTestCaseChecker(testClass = HiddenFieldAccessModifiersExample::class) {
     @Test
     fun testCheckSuperFieldEqualsOne() {
-        // TODO: currently, codegen can't handle tests with field hiding (see #646)
-        withEnabledTestingCodeGeneration(testCodeGeneration = false) {
+        withEnabledTestingCodeGeneration(testCodeGeneration = true) {
             check(
                 HiddenFieldAccessModifiersExample::checkSuperFieldEqualsOne,
                 eq(3),

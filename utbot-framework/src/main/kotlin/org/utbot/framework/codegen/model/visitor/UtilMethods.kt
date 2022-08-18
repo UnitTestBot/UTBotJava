@@ -152,47 +152,31 @@ private fun getFieldValue(visibility: Visibility, language: CodegenLanguage): St
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static Object getFieldValue(Object obj, String fieldName) throws IllegalAccessException, NoSuchFieldException {
-                Class<?> clazz = obj.getClass();
-                java.lang.reflect.Field field;
-                do {
-                    try {
-                        field = clazz.getDeclaredField(fieldName);
-                        field.setAccessible(true);
-                        java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
-                        modifiersField.setAccessible(true);
-                        modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
-                        
-                        return field.get(obj);
-                    } catch (NoSuchFieldException e) {
-                        clazz = clazz.getSuperclass();
-                    }
-                } while (clazz != null);
-        
-                throw new NoSuchFieldException("Field '" + fieldName + "' not found on class " + obj.getClass());
+            ${visibility by language}static Object getFieldValue(Object obj, String fieldClassName, String fieldName) throws ClassNotFoundException, IllegalAccessException, NoSuchFieldException {
+                Class<?> clazz = Class.forName(fieldClassName);
+                java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
+                
+                field.setAccessible(true);
+                java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
+                modifiersField.setAccessible(true);
+                modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
+                
+                return field.get(obj);
             }
         """
         }
         CodegenLanguage.KOTLIN -> {
             """
-            ${visibility by language}fun getFieldValue(any: kotlin.Any, fieldName: String): kotlin.Any? {
-                var clazz: Class<*>? = any.javaClass
-                var field: java.lang.reflect.Field
-                do {
-                    try {
-                        field = clazz!!.getDeclaredField(fieldName)
-                        field.isAccessible = true
-                        val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
-                        modifiersField.isAccessible = true
-                        modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
-                        
-                        return field.get(any)
-                    } catch (e: NoSuchFieldException) {
-                        clazz = clazz!!.superclass
-                    }
-                } while (clazz != null)
+            ${visibility by language}fun getFieldValue(any: kotlin.Any, fieldClassName: String, fieldName: String): kotlin.Any? {
+                val clazz: Class<*> = Class.forName(fieldClassName)
+                val field: java.lang.reflect.Field = clazz.getDeclaredField(fieldName)
                 
-                throw NoSuchFieldException("Field '" + fieldName + "' not found on class " + any.javaClass)
+                field.isAccessible = true
+                val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
+                modifiersField.isAccessible = true
+                modifiersField.setInt(field, field.modifiers and java.lang.reflect.Modifier.FINAL.inv())
+                
+                return field.get(any)
             }
         """
         }
@@ -253,18 +237,9 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            ${visibility by language}static void setField(Object object, String fieldName, Object fieldValue) throws NoSuchFieldException, IllegalAccessException {
-                Class<?> clazz = object.getClass();
-                java.lang.reflect.Field field;
-    
-                do {
-                    try {
-                        field = clazz.getDeclaredField(fieldName);
-                    } catch (Exception e) {
-                        clazz = clazz.getSuperclass();
-                        field = null;
-                    }
-                } while (field == null);
+            ${visibility by language}static void setField(Object object, String fieldClassName, String fieldName, Object fieldValue) throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
+                Class<?> clazz = Class.forName(fieldClassName);
+                java.lang.reflect.Field field = clazz.getDeclaredField(fieldName);
                 
                 java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
                 modifiersField.setAccessible(true);
@@ -277,17 +252,9 @@ private fun setField(visibility: Visibility, language: CodegenLanguage): String 
         }
         CodegenLanguage.KOTLIN -> {
             """
-            ${visibility by language}fun setField(any: kotlin.Any, fieldName: String, fieldValue: kotlin.Any?) {
-                var clazz: Class<*> = any.javaClass
-                var field: java.lang.reflect.Field?
-                do {
-                    try {
-                        field = clazz.getDeclaredField(fieldName)
-                    } catch (e: Exception) {
-                        clazz = clazz.superclass
-                        field = null
-                    }
-                } while (field == null)
+            ${visibility by language}fun setField(any: kotlin.Any, fieldClassName: String, fieldName: String, fieldValue: kotlin.Any?) {
+                val clazz: Class<*> = Class.forName(fieldClassName)
+                val field: java.lang.reflect.Field = clazz.getDeclaredField(fieldName)
         
                 val modifiersField: java.lang.reflect.Field = java.lang.reflect.Field::class.java.getDeclaredField("modifiers")
                 modifiersField.isAccessible = true

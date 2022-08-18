@@ -8,14 +8,15 @@ import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
+import org.utbot.framework.codegen.model.constructor.builtin.getMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManagerImpl.FieldAccessorSuitability.*
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.isUtil
@@ -25,10 +26,11 @@ import org.utbot.framework.codegen.model.tree.CgAssignment
 import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
+import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.codegen.model.tree.CgSpread
 import org.utbot.framework.codegen.model.tree.CgStatement
+import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
@@ -36,17 +38,19 @@ import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
+import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.util.exceptions
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
-import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isSubtypeOf
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -69,6 +73,12 @@ interface CgCallableAccessManager {
     operator fun ConstructorId.invoke(vararg args: Any?): CgExecutableCall
 
     operator fun CgIncompleteMethodCall.invoke(vararg args: Any?): CgMethodCall
+
+    // non-static fields
+    operator fun CgExpression.get(fieldId: FieldId): CgExpression
+
+    // static fields
+    operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess
 }
 
 internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableAccessManager,
@@ -104,6 +114,26 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
         newMethodCall(method)
         return methodCall
+    }
+
+    override operator fun CgExpression.get(fieldId: FieldId): CgExpression {
+        return when (val suitability = fieldId.accessSuitability(this)) {
+            // receiver (a.k.a. caller) is suitable, so we access field directly
+            is Suitable -> CgFieldAccess(this, fieldId)
+            // receiver has to be type cast, and then we can access the field
+            is RequiresTypeCast -> {
+                CgFieldAccess(
+                    caller = typeCast(suitability.targetType, this),
+                    fieldId
+                )
+            }
+            // we can access the field only via reflection
+            is ReflectionOnly -> fieldId.accessWithReflection(this)
+        }
+    }
+
+    override operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
+        return CgStaticFieldAccess(fieldId)
     }
 
     private fun newMethodCall(methodId: MethodId) {
@@ -142,13 +172,15 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
     }
 
-    private infix fun CgExpression?.canBeReceiverOf(executable: MethodId): Boolean =
-        when {
-            // TODO: rewrite by using CgMethodId, etc.
-            outerMostTestClass == executable.classId && this isThisInstanceOf outerMostTestClass -> true
-            executable.isStatic -> true
-            else -> this?.type?.isSubtypeOf(executable.classId) ?: false
+    private infix fun CgExpression.canBeReceiverOf(executable: MethodId): Boolean {
+        return when {
+            // method of the current test class can be called on its 'this' instance
+            currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
+            // method of a class can be called on an object of this class or any of its subtypes
+            this.type isSubtypeOf executable.classId -> true
+            else -> false
         }
+    }
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
         // TODO: SAT-1210 support generics so that we wouldn't need to check specific cases such as this one
@@ -224,10 +256,115 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     /**
      * @return true if a method can be called with the given arguments without reflection
      */
-    private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean =
-        (isUtil(this) || isAccessibleFrom(testClassPackageName))
-                && caller canBeReceiverOf this
-                && args canBeArgsOf this
+    private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean {
+        // check method accessibility
+        if (!isAccessibleFrom(testClassPackageName)) {
+            return false
+        }
+
+        // check arguments suitability
+        if (!(args canBeArgsOf this)) {
+            return false
+        }
+
+        // If method is static, then it must not have a caller.
+        if (this.isStatic) {
+            require(caller == null) { "Caller expression of a static method call must be null" }
+            return true
+        }
+
+        // If method is from current test class, then it may or may not have a caller
+        if (this.classId == currentTestClass) {
+            return caller?.canBeReceiverOf(this) ?: true
+        }
+
+        requireNotNull(caller) { "Method must have a caller, unless it is the method of the current test class or a static method" }
+        return caller canBeReceiverOf this
+    }
+
+    private fun FieldId.accessSuitability(accessor: CgExpression?): FieldAccessorSuitability {
+        // if field is static
+        if (this.isStatic) {
+            require(accessor == null) { "Accessor expression of a static field access must be null" }
+            return Suitable
+        }
+
+        // if field is declared in the current test class
+        if (this.declaringClass == currentTestClass) {
+            return when {
+                // field of the current class can be accessed without explicit accessor
+                accessor == null -> Suitable
+                // field of the current class can be accessed with `this` reference
+                accessor isThisInstanceOf currentTestClass -> Suitable
+                // field of the current class can be accessed by the instance of this class
+                accessor.type isSubtypeOf currentTestClass -> Suitable
+                // in any other case, we have to use reflection
+                else -> ReflectionOnly
+            }
+        }
+
+        requireNotNull(accessor) {
+            "Field access must have a non-null accessor, unless it is the field of the current test class or a static field"
+        }
+
+        if (this.declaringClass == accessor.type) {
+            // if the field was declared in class `T`, and the accessor is __exactly__ of this type (not a subtype),
+            // then we can safely access the field
+            return Suitable
+        }
+
+        val fieldDeclaringClassType = this.declaringClass
+        val accessorType = accessor.type
+
+        if (fieldDeclaringClassType is BuiltinClassId || accessorType is BuiltinClassId) {
+            // The rest of the logic of this method processes hidden fields.
+            // We cannot check the fields of builtin classes, so we assume that we work correctly with them,
+            // because they are well known library classes (e.g. Mockito) that are unlikely to have hidden fields.
+            return Suitable
+        }
+
+        val fieldName = this.name
+
+        if (accessorType isSubtypeOf fieldDeclaringClassType || fieldDeclaringClassType isSubtypeOf accessorType) {
+            if (fieldName.isNameOfFieldsInBothClasses(accessorType, fieldDeclaringClassType)) {
+                // classes are in an inheritance relation, and they both have a field with the same name,
+                // which means that field shadowing is found
+                return when {
+                    // if we can access the declaring class of field,
+                    // then we can use a type cast the accessor to it
+                    fieldDeclaringClassType isAccessibleFrom testClassPackageName -> {
+                        RequiresTypeCast(fieldDeclaringClassType)
+                    }
+                    // otherwise, we can only use reflection
+                    else -> ReflectionOnly
+                }
+            }
+            // if no field shadowing is found, we can just access the field directly
+            return Suitable
+        }
+
+        // Accessor type is not subtype or supertype of the field's declaring class.
+        // So the only remaining option to access the field is to use reflection.
+        return ReflectionOnly
+    }
+
+    /**
+     * Determine if each of the classes [left] and [right] has their own field with name specified by the [String] receiver.
+     */
+    private fun String.isNameOfFieldsInBothClasses(left: ClassId, right: ClassId): Boolean {
+        // make sure that non-builtin class ids are passed to this method
+        require(left !is BuiltinClassId && right !is BuiltinClassId) {
+            "The given class ids must not be builtin, because this method works with their jClass"
+        }
+
+        val leftClass = left.jClass
+        val rightClass = right.jClass
+
+        val leftField = leftClass.declaredFields.find { it.name == this }
+        val rightField = rightClass.declaredFields.find { it.name == this }
+
+        return leftField != null && rightField != null
+    }
 
     /**
      * @return true if a constructor can be called with the given arguments without reflection
@@ -268,38 +405,6 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             if (ancestors.isNotEmpty()) typeCast(targetType, arg) else arg
         }
 
-    private fun ExecutableId.toExecutableVariable(args: List<CgExpression>): CgVariable {
-        val declaringClass = statementConstructor.newVar(Class::class.id) { classId[forName](classId.name) }
-        val argTypes = (args zip parameters).map { (arg, paramType) ->
-            val baseName = when (arg) {
-                is CgVariable -> "${arg.name}Type"
-                else -> "${paramType.prettifiedName.decapitalize()}Type"
-            }
-            statementConstructor.newVar(classCgClassId, baseName) {
-                if (paramType.isPrimitive) {
-                    CgGetJavaClass(paramType)
-                } else {
-                    Class::class.id[forName](paramType.name)
-                }
-            }
-        }
-
-        return when (this) {
-            is MethodId -> {
-                val name = this.name + "Method"
-                statementConstructor.newVar(java.lang.reflect.Method::class.id, name) {
-                    declaringClass[getDeclaredMethod](this.name, *argTypes.toTypedArray())
-                }
-            }
-            is ConstructorId -> {
-                val name = this.classId.prettifiedName.decapitalize() + "Constructor"
-                statementConstructor.newVar(java.lang.reflect.Constructor::class.id, name) {
-                    declaringClass[getDeclaredConstructor](*argTypes.toTypedArray())
-                }
-            }
-        }
-    }
-
     /**
      * Receives a list of [CgExpression].
      * Transforms it into a list of [CgExpression] where:
@@ -318,14 +423,18 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             }
         }
 
-    private fun MethodId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
-        containsReflectiveCall = true
-        val method = declaredExecutableRefs[this]
-            ?: toExecutableVariable(args).also {
-                declaredExecutableRefs = declaredExecutableRefs.put(this, it)
+    private fun FieldId.accessWithReflection(accessor: CgExpression?): CgMethodCall {
+        val field = declaredFieldRefs[this]
+            ?: statementConstructor.createFieldVariable(this).also {
+                declaredFieldRefs = declaredFieldRefs.put(this, it)
                 +it[setAccessible](true)
             }
+        return field[getMethodId](accessor)
+    }
 
+    private fun MethodId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
+        containsReflectiveCall = true
+        val method = getExecutableRefVariable(args)
         val arguments = args.guardedForReflectiveCall().toTypedArray()
         val argumentsArrayVariable = convertVarargToArray(method, arguments)
 
@@ -334,16 +443,19 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private fun ConstructorId.callWithReflection(args: List<CgExpression>): CgExecutableCall {
         containsReflectiveCall = true
-        val constructor = declaredExecutableRefs[this]
-            ?: this.toExecutableVariable(args).also {
-                declaredExecutableRefs = declaredExecutableRefs.put(this, it)
-                +it[setAccessible](true)
-            }
-
+        val constructor = getExecutableRefVariable(args)
         val arguments = args.guardedForReflectiveCall().toTypedArray()
         val argumentsArrayVariable = convertVarargToArray(constructor, arguments)
 
         return constructor[newInstance](argumentsArrayVariable)
+    }
+
+    private fun ExecutableId.getExecutableRefVariable(arguments: List<CgExpression>): CgVariable {
+        return declaredExecutableRefs[this]
+            ?: statementConstructor.createExecutableVariable(this, arguments).also {
+                declaredExecutableRefs = declaredExecutableRefs.put(this, it)
+                +it[setAccessible](true)
+            }
     }
 
     private fun convertVarargToArray(reflectionCallVariable: CgVariable, arguments: Array<CgExpression>): CgVariable {
@@ -378,9 +490,9 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return when (methodId) {
                 getEnumConstantByNameMethodId -> setOf(java.lang.IllegalAccessException::class.id)
                 getStaticFieldValueMethodId,
+                setStaticFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
                 getFieldValueMethodId,
-                setStaticFieldMethodId,
-                setFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
+                setFieldMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
                 createInstanceMethodId -> setOf(Exception::class.id)
                 getUnsafeInstanceMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.NoSuchFieldException::class.id, java.lang.IllegalAccessException::class.id)
                 createArrayMethodId -> setOf(java.lang.ClassNotFoundException::class.id)
@@ -394,5 +506,33 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
                 else -> error("Unknown util method $this")
             }
         }
+    }
+
+    /**
+     * This sealed class describes different extents of suitability (or matching)
+     * between an expression (in the role of a field accessor) and a field.
+     *
+     * In other words, this class and its inheritors describe if a given object (accessor)
+     * can be used to access a field, and if so, then are there any additional actions required (like type cast).
+     */
+    private sealed class FieldAccessorSuitability {
+        /**
+         * Field can be accessed by a given accessor directly
+         */
+        object Suitable : FieldAccessorSuitability()
+
+        /**
+         * Field can be accessed by a given accessor, but it has to be type cast to the [targetType]
+         */
+        class RequiresTypeCast(val targetType: ClassId) : FieldAccessorSuitability()
+
+        /**
+         * Field can only be accessed by a given accessor via reflection.
+         * For example, if the accessor's type is inaccessible from the current package,
+         * so we cannot declare a variable of this type or perform a type cast.
+         * But there may be other cases. For example, we also cannot use
+         * anonymous classes' names in the code, so reflection may be required.
+         */
+        object ReflectionOnly : FieldAccessorSuitability()
     }
 }

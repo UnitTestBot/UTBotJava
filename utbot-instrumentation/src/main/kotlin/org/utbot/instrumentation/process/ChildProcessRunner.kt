@@ -21,16 +21,11 @@ private var processSeqN = 0
 
 class ChildProcessRunner {
     private val cmds: List<String> by lazy {
-        val debugCmd = if (Settings.runChildProcessWithDebug) {
-            listOf(DEBUG_RUN_CMD)
-        } else {
-            emptyList()
-        }
-
-        listOf(
-            JdkInfoService.provide().path.resolve("bin${File.separatorChar}java").toString(),
-            "-javaagent:$jarFile", "-ea", "-jar", "$jarFile"
-        ) + debugCmd
+        val pathToJava = JdkInfoService.provide().path
+        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug })
+        listOf(pathToJava.resolve("bin${File.separatorChar}java").toString()) +
+            debugCmd +
+            listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
     }
 
     var errorLogFile: File = NULL_FILE

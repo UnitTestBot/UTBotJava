@@ -185,6 +185,9 @@ data class CoverageInstructionsSet(
 
 data class CoverageStatistic(val covered: Int, val total: Int)
 
+/**
+ * Compute coverage of class named [className] with its anonymous, nested and inner classes.
+ */
 private fun CoverageInstructionsSet?.getCoverageInfo(className: String): CoverageStatistic = this?.run {
     CoverageStatistic(
         coveredInstructions.filter {

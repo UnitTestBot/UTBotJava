@@ -59,7 +59,7 @@ jobs:
           echo "::set-output name=timestamp::$(date +%s)"
           echo "::set-output name=last_month::$(date --date='last month' +%s)"
 
-      - name: Get commit hash
+      - name: Get metadata
         id: metadata
         run: |
           echo "::set-output name=commit::$(git rev-parse HEAD)"

@@ -11,7 +11,6 @@ import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import mu.KotlinLogging
-import org.utbot.framework.plugin.api.Instruction
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType
@@ -43,7 +42,6 @@ import soot.jimple.internal.JNeExpr
 import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
-import kotlin.math.pow
 
 private val logger = KotlinLogging.logger {}
 
@@ -253,22 +251,3 @@ private fun sootIfToFuzzedOp(unit: JIfStmt) = when (unit.condition) {
 }
 
 private fun nextDirectUnit(graph: ExceptionalUnitGraph, unit: Unit): Unit? = graph.getSuccsOf(unit).takeIf { it.size == 1 }?.first()
-
-fun findNextMutatedValue(
-    frequencyRandom: FrequencyRandom,
-    coverage: LinkedHashMap<Trie.Node<Instruction>, List<FuzzedValue>>,
-    description: FuzzedMethodDescription,
-): List<FuzzedValue>? {
-    if (coverage.isEmpty()) return null
-    frequencyRandom.prepare(coverage.map { it.key.count }) { 1 / it.toDouble().pow(2) }
-    val values = coverage.values.drop(frequencyRandom.nextIndex()).firstOrNull()
-    if (values != null) {
-        val mutatedValue = defaultMutators().fold(values) { v, mut ->
-            mut.mutate(description, v, frequencyRandom.random)
-        }
-        if (mutatedValue != values) {
-            return mutatedValue
-        }
-    }
-    return null
-}

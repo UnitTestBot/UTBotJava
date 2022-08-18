@@ -5,18 +5,13 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelMutator
+import org.utbot.fuzzer.flipCoin
 import kotlin.random.Random
 
 /**
  * Mutates string by adding and/or removal symbol at random position.
- *
- * Adding or removal can be applied with a given [probability].
  */
-class StringRandomMutator(override val probability: Int = 50) : ModelMutator {
-
-    init {
-        check(probability in 0 .. 100) { "Probability must be in range 0..100" }
-    }
+object StringRandomMutator : ModelMutator {
 
     override fun mutate(
         description: FuzzedMethodDescription,
@@ -39,10 +34,10 @@ class StringRandomMutator(override val probability: Int = 50) : ModelMutator {
         // we can miss some mutation for a purpose
         val position = random.nextInt(string.length + 1)
         var result: String = string
-        if (random.nextInt(1, 101) <= probability) {
+        if (random.flipCoin(probability = 50)) {
             result = tryRemoveChar(random, result, position) ?: string
         }
-        if (random.nextInt(1, 101) <= probability) {
+        if (random.flipCoin(probability = 50)) {
             result = tryAddChar(random, result, position)
         }
         return result
@@ -52,21 +47,24 @@ class StringRandomMutator(override val probability: Int = 50) : ModelMutator {
         val charToMutate = if (value.isNotEmpty()) {
             value[random.nextInt(value.length)]
         } else {
-            random.nextInt(1, 65536).toChar()
+            // use any meaningful character from the ascii table
+            random.nextInt(33, 127).toChar()
         }
         return buildString {
             append(value.substring(0, position))
+            // try to change char to some that is close enough to origin char
+            val charTableSpread = 64
             if (random.nextBoolean()) {
-                append(charToMutate - random.nextInt(1, 128))
+                append(charToMutate - random.nextInt(1, charTableSpread))
             } else {
-                append(charToMutate + random.nextInt(1, 128))
+                append(charToMutate + random.nextInt(1, charTableSpread))
             }
             append(value.substring(position, value.length))
         }
     }
 
     private fun tryRemoveChar(random: Random, value: String, position: Int): String? {
-        if (value.isEmpty() || position >= value.length) return null
+        if (position >= value.length) return null
         val toRemove = random.nextInt(value.length)
         return buildString {
             append(value.substring(0, toRemove))

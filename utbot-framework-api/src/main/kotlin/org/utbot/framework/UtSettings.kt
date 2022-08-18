@@ -277,13 +277,6 @@ object UtSettings {
     var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE)
 
     /**
-     * Fuzzing tries to mutate values using this factor.
-     *
-     * If any mutation is successful then counter is reset.
-     */
-    var fuzzingRandomMutationsFactor: Int by getIntProperty(10_000)
-
-    /**
      * Fuzzer tries to generate and run tests during this time.
      */
     var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)

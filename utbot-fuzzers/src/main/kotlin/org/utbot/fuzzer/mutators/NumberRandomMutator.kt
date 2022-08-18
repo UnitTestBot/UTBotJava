@@ -4,16 +4,13 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelMutator
+import org.utbot.fuzzer.invertBit
 import kotlin.random.Random
 
 /**
  * Mutates any [Number] changing random bit.
  */
-class NumberRandomMutator(override val probability: Int) : ModelMutator {
-
-    init {
-        check(probability in 0 .. 100) { "Probability must be in range 0..100" }
-    }
+object NumberRandomMutator : ModelMutator {
 
     override fun mutate(
         description: FuzzedMethodDescription,
@@ -21,7 +18,6 @@ class NumberRandomMutator(override val probability: Int) : ModelMutator {
         value: FuzzedValue,
         random: Random
     ): FuzzedValue? {
-        if (random.nextInt(1, 101) <= probability) return null
         val model = value.model
         return if (model is UtPrimitiveModel && model.value is Number) {
             val newValue = changeRandomBit(random, model.value as Number)
@@ -49,7 +45,7 @@ class NumberRandomMutator(override val probability: Int) : ModelMutator {
             else -> error("Unknown type: ${number.javaClass}")
         }
         val bitIndex = random.nextInt(size)
-        val mutated = invertBit(asLong, bitIndex)
+        val mutated = asLong.invertBit(bitIndex)
         return when (number) {
             is Byte -> mutated.toByte()
             is Short -> mutated.toShort()
@@ -59,12 +55,6 @@ class NumberRandomMutator(override val probability: Int) : ModelMutator {
             is Double -> Double.fromBits(mutated)
             else -> error("Unknown type: ${number.javaClass}")
         }
-    }
-
-    private fun invertBit(value: Long, bitIndex: Int): Long {
-        val b = ((value shr bitIndex) and 1).inv()
-        val mask = 1L shl bitIndex
-        return value and mask.inv() or (b shl bitIndex and mask)
     }
 }
 

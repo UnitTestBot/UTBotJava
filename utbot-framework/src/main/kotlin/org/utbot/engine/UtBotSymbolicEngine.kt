@@ -83,16 +83,18 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FallbackModelProvider
-import org.utbot.fuzzer.FrequencyRandom
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.Trie
+import org.utbot.fuzzer.TrieBasedFuzzerStatistics
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.withMutations
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
-import org.utbot.fuzzer.findNextMutatedValue
+import org.utbot.fuzzer.defaultModelMutators
+import org.utbot.fuzzer.flipCoin
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
@@ -394,6 +396,7 @@ class UtBotSymbolicEngine(
         val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
+        val random = Random(0)
         val thisInstance = when {
             methodUnderTest.isStatic -> null
             methodUnderTest.isConstructor -> if (
@@ -407,7 +410,7 @@ class UtBotSymbolicEngine(
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
                     FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues)
-                ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
+                ).take(10).shuffled(random).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
                     }
@@ -438,35 +441,10 @@ class UtBotSymbolicEngine(
             fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
                 limitValuesCreatedByFieldAccessors = 500
             })
-        }
-
-        val frequencyRandom = FrequencyRandom(Random(221))
-        val factor = maxOf(0, UtSettings.fuzzingRandomMutationsFactor)
-        val fuzzedValueSequence: Sequence<List<FuzzedValue>> = sequence {
-            val fvi = fuzzedValues.iterator()
-            while (fvi.hasNext()) {
-                yield(fvi.next())
-                // if we stuck switch to "next + several mutations" mode
-                if ((attempts + 1) % (factor / 100) == 0 && coveredInstructionValues.isNotEmpty()) {
-                    for (i in 0 until (factor / 100)) {
-                        findNextMutatedValue(frequencyRandom, coveredInstructionValues, methodUnderTestDescription)?.let { yield(it) }
-                    }
-                }
-            }
-            // try mutations if fuzzer tried all combinations
-            var tryLocal = factor
-            while (tryLocal-- >= 0) {
-                val value = findNextMutatedValue(frequencyRandom, coveredInstructionValues, methodUnderTestDescription)
-                if (value != null) {
-                    val before = coveredInstructionValues.size
-                    yield(value)
-                    if (coveredInstructionValues.size != before) {
-                        tryLocal = factor
-                    }
-                }
-            }
-        }
-        fuzzedValueSequence.forEach { values ->
+        }.withMutations(
+            TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()
+        )
+        fuzzedValues.forEach { values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
                 return@flow
@@ -510,7 +488,7 @@ class UtBotSymbolicEngine(
                     }
                     // Update the seeded values sometimes
                     // This is necessary because some values cannot do a good values in mutation in any case
-                    if (frequencyRandom.random.nextInt(1, 101) <= 50) {
+                    if (random.flipCoin(probability = 50)) {
                         coveredInstructionValues[coverageKey] = values
                     }
                     return@forEach

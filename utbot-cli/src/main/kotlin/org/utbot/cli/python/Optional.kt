@@ -1,19 +1,19 @@
 package org.utbot.cli.python
 
-sealed class Either<A>
-class Fail<A>(val message: String): Either<A>()
-class Success<A>(val value: A): Either<A>()
+sealed class Optional<A>
+class Fail<A>(val message: String): Optional<A>()
+class Success<A>(val value: A): Optional<A>()
 
-fun <A, B> go(
-    value: Either<A>,
-    f: (A) -> Either<B>
-): Either<B> =
+fun <A, B> bind(
+    value: Optional<A>,
+    f: (A) -> Optional<B>
+): Optional<B> =
     when (value) {
         is Fail -> Fail(value.message)
         is Success -> f(value.value)
     }
 
-fun pack(vararg values: Either<out Any>): Either<List<Any>> {
+fun pack(vararg values: Optional<out Any>): Optional<List<Any>> {
     val result = mutableListOf<Any>()
     for (elem in values) {
         when (elem) {

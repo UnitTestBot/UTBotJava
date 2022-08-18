@@ -16,6 +16,7 @@ import org.utbot.python.code.PythonCode
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.getModuleName
 import java.io.File
+import java.nio.file.Paths
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 
@@ -54,7 +55,7 @@ class PythonGenerateTestsCommand: CliktCommand(
         help = "Install requirements if missing"
     ).flag(default = false)
 
-    private fun findCurrentPythonModule(): Either<String> {
+    private fun findCurrentPythonModule(): Optional<String> {
         directoriesForSysPath.forEach { path ->
             val module = getModuleName(path, sourceFile)
             if (module != null)
@@ -63,14 +64,21 @@ class PythonGenerateTestsCommand: CliktCommand(
         return Fail("Couldn't find path for $sourceFile in --python-path option. Please, specify it.")
     }
 
-    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Either<List<PythonMethod>> {
+    private val forbiddenMethods = listOf("__init__", "__new__")
+
+    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
         val code = PythonCode.getFromString(sourceCodeContent, pythonModule = currentModule)
         if (pythonClass == null)
             return Success(code.getToplevelFunctions())
 
-        code.getToplevelClasses().forEach {
-            if (it.name == pythonClass)
-                return Success(it.methods)
+        code.getToplevelClasses().forEach { curClass ->
+            if (curClass.name == pythonClass) {
+                val methods = curClass.methods.filter { it.name !in forbiddenMethods }
+                return if (methods.isNotEmpty())
+                    Success(methods)
+                else
+                    Fail("No methods in definition of class $pythonClass to test.")
+            }
         }
 
         return Fail("Couldn't find class $pythonClass in file $output.")
@@ -79,14 +87,19 @@ class PythonGenerateTestsCommand: CliktCommand(
     private lateinit var currentPythonModule: String
     private lateinit var pythonMethods: List<PythonMethod>
     private lateinit var sourceFileContent: String
+    private lateinit var testSourceRoot: String
+    private lateinit var outputFilename: String
 
     @Suppress("UNCHECKED_CAST")
-    private fun calculateValues(): Either<Unit> {
+    private fun calculateValues(): Optional<Unit> {
+        val outputFile = File(output.toAbsolutePath())
+        testSourceRoot = outputFile.parentFile.path
+        outputFilename = outputFile.name
         val currentPythonModuleE = findCurrentPythonModule()
         sourceFileContent = File(sourceFile).readText()
-        val pythonMethodsE = go(currentPythonModuleE) { getPythonMethods(sourceFileContent, it) }
+        val pythonMethodsE = bind(currentPythonModuleE) { getPythonMethods(sourceFileContent, it) }
 
-        return go(pack(currentPythonModuleE, pythonMethodsE)) {
+        return bind(pack(currentPythonModuleE, pythonMethodsE)) {
             currentPythonModule = it[0] as String
             pythonMethods = it[1] as List<PythonMethod>
             Success(Unit)
@@ -108,9 +121,6 @@ class PythonGenerateTestsCommand: CliktCommand(
     }
 
     override fun run() {
-        val outputFile = File(output)
-        val testSourceRoot = outputFile.parentFile.path
-        val outputFilename = outputFile.name
         val status = calculateValues()
         if (status is Fail) {
             logger.error(status.message)
@@ -118,11 +128,11 @@ class PythonGenerateTestsCommand: CliktCommand(
         }
 
         processTestGeneration(
-            pythonPath = pythonPath,
+            pythonPath = pythonPath.toAbsolutePath(),
             testSourceRoot = testSourceRoot,
-            pythonFilePath = sourceFile,
+            pythonFilePath = sourceFile.toAbsolutePath(),
             pythonFileContent = sourceFileContent,
-            directoriesForSysPath = directoriesForSysPath.toSet(),
+            directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
             currentPythonModule = currentPythonModule,
             pythonMethods = pythonMethods,
             containingClassName = pythonClass,
@@ -141,13 +151,16 @@ class PythonGenerateTestsCommand: CliktCommand(
                 logger.info("Generating tests...")
             },
             notGeneratedTestsAction = {
-                logger.warn(
+                logger.error(
                     "Couldn't generate tests for the following functions: ${it.joinToString()}"
                 )
             },
             finishedAction = {
-                logger.info("Finished")
+                logger.info("Finished test generation for the following functions: ${it.joinToString()}")
             }
         )
     }
+
+    private fun String.toAbsolutePath(): String =
+        Paths.get(this).toAbsolutePath().toString()
 }

@@ -41,7 +41,7 @@ object PythonTestGenerationProcessor {
         generatedFileWithTestsAction: (File) -> Unit = {},
         processMypyWarnings: (String) -> Unit = {},
         startedCleaningAction: () -> Unit = {},
-        finishedAction: () -> Unit = {}
+        finishedAction: (List<String>) -> Unit = {}  // take names of functions with generated tests
     ) {
         Cleaner.restart()
 
@@ -153,12 +153,12 @@ object PythonTestGenerationProcessor {
             if (mypyReport != "")
                 processMypyWarnings(mypyReport)
 
+            finishedAction(notEmptyTests.map { it.method.name })
+
         } finally {
             startedCleaningAction()
             Cleaner.doCleaning()
         }
-
-        finishedAction()
     }
 
     enum class MissingRequirementsActionResult {

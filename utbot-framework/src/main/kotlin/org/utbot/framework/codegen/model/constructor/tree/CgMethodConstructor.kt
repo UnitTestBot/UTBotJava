@@ -956,21 +956,16 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 )
             }
             is PythonTree.ReduceNode -> {
+                val id = objectNode.id
+                if (context.memoryObjects.containsKey(id)) {
+                    return context.memoryObjects[id]!!
+                }
                 val constructorModule = moduleOfType(objectNode.constructor) ?: objectNode.constructor
                 existingVariableNames += constructorModule
                 collectedImports += PythonImport(constructorModule)
 
                 val initArgs = objectNode.args.map {
                     pythonBuildObject(it)
-                }
-                val state = objectNode.state.map { (key, value) ->
-                    key to pythonBuildObject(value)
-                }.toMap()
-                val listitems = objectNode.listitems.map {
-                    pythonBuildObject(it)
-                }
-                val dictitems = objectNode.dictitems.map { (key, value) ->
-                    pythonBuildObject(key) to pythonBuildObject(value)
                 }
                 val constructor = ConstructorId(
                     PythonClassId(objectNode.constructor),
@@ -981,6 +976,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     constructor,
                     initArgs
                 ) }
+                context.memoryObjects[id] = obj
+
+                val state = objectNode.state.map { (key, value) ->
+                    key to pythonBuildObject(value)
+                }.toMap()
+                val listitems = objectNode.listitems.map {
+                    pythonBuildObject(it)
+                }
+                val dictitems = objectNode.dictitems.map { (key, value) ->
+                    pythonBuildObject(key) to pythonBuildObject(value)
+                }
+
                 state.forEach { (key, value) ->
                     val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
                     fieldAccess `=` value

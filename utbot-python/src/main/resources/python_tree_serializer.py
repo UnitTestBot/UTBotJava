@@ -2,10 +2,22 @@ import types
 from itertools import zip_longest
 import copyreg
 import importlib
-from collections import *
 
 
 class _PythonTreeSerializer:
+    class MemoryObj:
+        def __init__(self, json):
+            self.json = json
+            self.deserialized_obj = None
+            self.comparable = False
+            self.is_draft = True
+
+    def __init__(self):
+        self.memory = {}
+
+    def memory_view(self):
+        return ' | '.join(f'{id_}: {obj.deserialized_obj}' for id_, obj in self.memory.items())
+
     @staticmethod
     def get_type(py_object):
         if py_object is None:
@@ -36,8 +48,15 @@ class _PythonTreeSerializer:
             except TypeError:
                 return False
 
-    @staticmethod
-    def get_reduce(py_object):
+    def save_to_memory(self, id_, py_json, deserialized_obj):
+        mem_obj = _PythonTreeSerializer.MemoryObj(py_json)
+        mem_obj.deserialized_obj = deserialized_obj
+        self.memory[id_] = mem_obj
+        return mem_obj
+
+    def get_reduce(self, py_object):
+        id_ = id(py_object)
+
         py_object_reduce = py_object.__reduce__()
         reduce_value = [
             default if obj is None else obj
@@ -47,32 +66,41 @@ class _PythonTreeSerializer:
                 fillvalue=None
             )
         ]
+
         constructor = _PythonTreeSerializer.get_type_name(reduce_value[0])
         args, deserialized_args = _PythonTreeSerializer.unzip_list([
-            _PythonTreeSerializer.serialize(arg)
+            self.serialize(arg)
             for arg in reduce_value[1]
         ])
-        state, deserialized_state = _PythonTreeSerializer.unzip_dict([
-            (attr, _PythonTreeSerializer.serialize(value))
+        json_obj = {
+            'id': id_,
+            'type': _PythonTreeSerializer.get_type(py_object),
+            'constructor': constructor,
+            'args': args,
+            'state': [],
+            'listitems': [],
+            'dictitems': [],
+        }
+        deserialized_obj = reduce_value[0](*deserialized_args)
+        memory_obj = self.save_to_memory(id_, json_obj, deserialized_obj)
+
+        state, deserialized_state = self.unzip_dict([
+            (attr, self.serialize(value))
             for attr, value in reduce_value[2].items()
         ], skip_first=True)
-        listitems, deserialized_listitems = _PythonTreeSerializer.unzip_list([
-            _PythonTreeSerializer.serialize(item)
+        listitems, deserialized_listitems = self.unzip_list([
+            self.serialize(item)
             for item in reduce_value[3]
         ])
         dictitems, deserialized_dictitems = _PythonTreeSerializer.unzip_dict([
-            (_PythonTreeSerializer.serialize(key), _PythonTreeSerializer.serialize(value))
+            (self.serialize(key), self.serialize(value))
             for key, value in reduce_value[4]
         ])
 
-        json_obj = {
-            'constructor': constructor,
-            'args': args,
-            'state': state,
-            'listitems': listitems,
-            'dictitems': dictitems,
-        }
-        deserialized_obj = reduce_value[0](*deserialized_args)
+        memory_obj.json['state'] = state
+        memory_obj.json['listitems'] = listitems
+        memory_obj.json['dictitems'] = dictitems
+
         for key, value in deserialized_state.items():
             setattr(deserialized_obj, key, value)
         for item in deserialized_listitems:
@@ -80,99 +108,55 @@ class _PythonTreeSerializer:
         for key, value in deserialized_dictitems.items():
             deserialized_obj[key] = value
 
-        return json_obj, deserialized_obj
+        memory_obj.deserialized_obj = deserialized_obj
+        memory_obj.is_draft = False
 
-    @staticmethod
-    def get_module(name):
-        return '.'.join(name.split('.')[:-1])
+        return id_, deserialized_obj
 
-    # @staticmethod
-    # def import_module(name):
-    #     module_spec = importlib.util.find_spec(name)
-    #     if module_spec is not None:
-    #         module = importlib.util.module_from_spec(module_spec)
-    #         module_spec.loader.exec_module(module)
-
-    # @staticmethod
-    # def deserialize_object(py_object):
-    #     _PythonTreeSerializer.import_module(_PythonTreeSerializer.get_module(py_json['type']))
-    #
-    #     strategy = py_json['strategy']
-    #     if strategy == 'repr':
-    #         return
-    #     elif strategy == 'generic':
-    #         type_ = py_json['type']
-    #         if type_ in 'builtins.list':
-    #             return list(_PythonTreeSerializer.deserialize(element) for element in py_json['value'])
-    #         elif type_ == 'builtins.tuple':
-    #             return tuple(_PythonTreeSerializer.deserialize(element) for element in py_json['value'])
-    #         elif type_ == 'builtins.set':
-    #             return set(_PythonTreeSerializer.deserialize(element) for element in py_json['value'])
-    #         elif type_ == 'builtins.dict':
-    #             return dict(
-    #                 (_PythonTreeSerializer.deserialize(element[0]), _PythonTreeSerializer.deserialize(element[0]))
-    #                 for element in py_json['value']
-    #             )
-    #         else:
-    #             return None
-    #     else:
-    #         obj_json = py_json['value']
-    #
-    #         _PythonTreeSerializer.import_module(_PythonTreeSerializer.get_module(obj_json['constructor']))
-    #
-    #         constuctor = eval(obj_json['constructor'])
-    #         init_args = [_PythonTreeSerializer.deserialize(arg) for arg in obj_json['args']]
-    #         state = {
-    #             key: _PythonTreeSerializer.deserialize(value)
-    #             for (key, value) in obj_json['state']
-    #         }
-    #         listitems = [_PythonTreeSerializer.deserialize(item) for item in obj_json['listitems']]
-    #         dictitems = {
-    #             _PythonTreeSerializer.deserialize(key): _PythonTreeSerializer.deserialize(value)
-    #             for (key, value) in obj_json['dictitems']
-    #         }
-    #
-    #         obj = constuctor(init_args)
-    #
-    #         for key, value in state.items():
-    #             setattr(obj, key, value)
-    #         for item in listitems:
-    #             obj.append(item)
-    #         for key, value in dictitems.items():
-    #             obj[key] = value
-    #
-    #         return obj
-
-    @staticmethod
-    def serialize(py_object):
+    def serialize(self, py_object):
         type_ = _PythonTreeSerializer.get_type(py_object)
+        id_ = id(py_object)
+        skip_comparable = False
 
-        if isinstance(py_object, type):
+        if id_ in self.memory:
+            value = id_
+            strategy = 'memory'
+            skip_comparable = True
+            deserialized_obj = self.memory[id_].deserialized_obj
+            if not self.memory[id_].is_draft:
+                self.memory[id_].comparable = py_object == deserialized_obj
+        elif isinstance(py_object, type):
             value = _PythonTreeSerializer.get_type_name(py_object)
             strategy = 'repr'
             deserialized_obj = py_object
         elif any(type(py_object) == t for t in (list, set, tuple)):
             elements = [
-                _PythonTreeSerializer.serialize(element) for element in py_object
+                self.serialize(element) for element in py_object
             ]
             value, deserialized_obj = _PythonTreeSerializer.unzip_list(elements, type(py_object))
             strategy = 'generic'
         elif type(py_object) == dict:
             elements = [
-                [_PythonTreeSerializer.serialize(key), _PythonTreeSerializer.serialize(value)]
+                [self.serialize(key), self.serialize(value)]
                 for key, value in py_object.items()
             ]
             value, deserialized_obj = _PythonTreeSerializer.unzip_dict(elements)
             strategy = 'generic'
         elif _PythonTreeSerializer.has_reduce(py_object):
-            value, deserialized_obj = _PythonTreeSerializer.get_reduce(py_object)
-            strategy = 'reduce'
+            value, deserialized_obj = self.get_reduce(py_object)
+            strategy = 'memory'
         else:
             value = repr(py_object)
             deserialized_obj = py_object
             strategy = 'repr'
 
-        comparable = py_object == deserialized_obj
+        if not skip_comparable:
+            try:
+                comparable = py_object == deserialized_obj
+            except Exception:
+                comparable = False
+        else:
+            comparable = False
 
         return {
             'type': type_,
@@ -201,3 +185,14 @@ class _PythonTreeSerializer:
                 first = [[element[0][0], element[1][0]] for element in elements]
                 second = [[element[0][1], element[1][1]] for element in elements]
         return first, cast_second(second)
+
+    def dumps(self, obj):
+        return {
+            'json': self.serialize(obj)[0],
+            'memory': {
+                key: value.json
+                for key, value in self.memory.items()
+            }
+        }
+
+

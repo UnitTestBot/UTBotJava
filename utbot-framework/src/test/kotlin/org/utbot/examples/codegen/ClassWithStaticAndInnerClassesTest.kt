@@ -98,6 +98,15 @@ internal class ClassWithStaticAndInnerClassesTest : UtValueTestCaseChecker(testC
     }
 
     @Test
+    fun testGetValueFromPublicFieldWithPrivateType() {
+        check(
+            ClassWithStaticAndInnerClasses::getValueFromPublicFieldWithPrivateType,
+            eq(2),
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
     fun testPublicStaticClassWithPrivateField_DeepNestedStatic_g() {
         checkAllCombinations(
             ClassWithStaticAndInnerClasses.PublicStaticClassWithPrivateField.DeepNestedStatic::g,

@@ -2,13 +2,14 @@ package org.utbot.sarif
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import org.junit.Test
+import org.mockito.Mockito
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.junit.Test
-import org.mockito.Mockito
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 class SarifReportTest {
 
@@ -236,8 +237,8 @@ class SarifReportTest {
     fun testMinimizationDoesNotRemoveResultsWithDifferentLocations() {
         mockUtMethodNames()
 
-        val mockUtExecution1 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
-        val mockUtExecution2 = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution1 = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+        val mockUtExecution2 = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
 
         // the same ruleId's
         Mockito.`when`(mockUtExecution1.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
@@ -300,7 +301,7 @@ class SarifReportTest {
 
     private val mockUtMethod = Mockito.mock(UtMethod::class.java, Mockito.RETURNS_DEEP_STUBS)
 
-    private val mockUtExecution = Mockito.mock(UtExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
+    private val mockUtExecution = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
 
     private val testSet = UtMethodTestSet(mockUtMethod, listOf(mockUtExecution))
 

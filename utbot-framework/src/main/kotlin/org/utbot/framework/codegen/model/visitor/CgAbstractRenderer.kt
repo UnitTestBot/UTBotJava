@@ -8,7 +8,75 @@ import org.utbot.framework.codegen.PythonImport
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
+import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
+import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
+import org.utbot.framework.codegen.model.tree.CgAssignment
+import org.utbot.framework.codegen.model.tree.CgBreakStatement
+import org.utbot.framework.codegen.model.tree.CgComment
+import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
+import org.utbot.framework.codegen.model.tree.CgComparison
+import org.utbot.framework.codegen.model.tree.CgContinueStatement
+import org.utbot.framework.codegen.model.tree.CgDeclaration
+import org.utbot.framework.codegen.model.tree.CgDecrement
+import org.utbot.framework.codegen.model.tree.CgDoWhileLoop
+import org.utbot.framework.codegen.model.tree.CgDocClassLinkStmt
+import org.utbot.framework.codegen.model.tree.CgDocCodeStmt
+import org.utbot.framework.codegen.model.tree.CgDocMethodLinkStmt
+import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
+import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
+import org.utbot.framework.codegen.model.tree.CgDocumentationComment
+import org.utbot.framework.codegen.model.tree.CgElement
+import org.utbot.framework.codegen.model.tree.CgEmptyLine
+import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
+import org.utbot.framework.codegen.model.tree.CgErrorTestMethod
+import org.utbot.framework.codegen.model.tree.CgErrorWrapper
+import org.utbot.framework.codegen.model.tree.CgExecutableCall
+import org.utbot.framework.codegen.model.tree.CgExecutableUnderTestCluster
+import org.utbot.framework.codegen.model.tree.CgExpression
+import org.utbot.framework.codegen.model.tree.CgFieldAccess
+import org.utbot.framework.codegen.model.tree.CgForLoop
+import org.utbot.framework.codegen.model.tree.CgGreaterThan
+import org.utbot.framework.codegen.model.tree.CgIfStatement
+import org.utbot.framework.codegen.model.tree.CgIncrement
+import org.utbot.framework.codegen.model.tree.CgInnerBlock
+import org.utbot.framework.codegen.model.tree.CgIsInstance
+import org.utbot.framework.codegen.model.tree.CgLessThan
+import org.utbot.framework.codegen.model.tree.CgLiteral
+import org.utbot.framework.codegen.model.tree.CgLogicalAnd
+import org.utbot.framework.codegen.model.tree.CgLogicalOr
+import org.utbot.framework.codegen.model.tree.CgLoop
+import org.utbot.framework.codegen.model.tree.CgMethod
+import org.utbot.framework.codegen.model.tree.CgMethodCall
+import org.utbot.framework.codegen.model.tree.CgMultilineComment
+import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
+import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
+import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
+import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
+import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
+import org.utbot.framework.codegen.model.tree.CgRegion
+import org.utbot.framework.codegen.model.tree.CgReturnStatement
+import org.utbot.framework.codegen.model.tree.CgSimpleRegion
+import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
+import org.utbot.framework.codegen.model.tree.CgSingleLineComment
+import org.utbot.framework.codegen.model.tree.CgSpread
+import org.utbot.framework.codegen.model.tree.CgStatement
+import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
+import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
+import org.utbot.framework.codegen.model.tree.CgStaticRunnable
+import org.utbot.framework.codegen.model.tree.CgStaticsRegion
+import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.framework.codegen.model.tree.CgTestClassBody
+import org.utbot.framework.codegen.model.tree.CgTestClassFile
+import org.utbot.framework.codegen.model.tree.CgTestMethod
+import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
+import org.utbot.framework.codegen.model.tree.CgThisInstance
+import org.utbot.framework.codegen.model.tree.CgThrowStatement
+import org.utbot.framework.codegen.model.tree.CgTripleSlashMultilineComment
+import org.utbot.framework.codegen.model.tree.CgTryCatch
+import org.utbot.framework.codegen.model.tree.CgUtilMethod
+import org.utbot.framework.codegen.model.tree.CgVariable
+import org.utbot.framework.codegen.model.tree.CgWhileLoop
 import org.utbot.framework.codegen.model.util.CgPrinter
 import org.utbot.framework.codegen.model.util.CgPrinterImpl
 import org.utbot.framework.plugin.api.ClassId
@@ -54,7 +122,8 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     private val MethodId.accessibleByName: Boolean
-        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
+        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.outerMostTestClass
+
     override fun visit(element: CgElement) {
         val error =
             "CgRenderer has reached the top of Cg elements hierarchy and did not find a method for ${element::class}"
@@ -69,7 +138,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgTestClassBody) {
         // render regions for test methods and utils
-        for ((i, region) in (element.regions + element.utilsRegion).withIndex()) {
+        for ((i, region) in (element.regions + element.nestedClassRegions + element.utilsRegion).withIndex()) {
             if (i != 0) println()
 
             region.accept(this)
@@ -128,7 +197,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgUtilMethod) {
-        context.currentTestClass
+        context.outerMostTestClass
                 .utilMethodById(element.id, context)
                 .split("\n")
                 .forEach { line -> println(line) }
@@ -353,6 +422,15 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgDecrement) {
         print("${element.variable.name}--")
+    }
+
+    // isInstance check
+
+    override fun visit(element: CgIsInstance) {
+        element.classExpression.accept(this)
+        print(".isInstance(")
+        element.value.accept(this)
+        print(")")
     }
 
     // Try-catch

@@ -10,6 +10,7 @@ import org.utbot.examples.singleValue
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
+import java.util.*
 
 class OptionalsTest : UtValueTestCaseChecker(
     Optionals::class,
@@ -67,7 +68,7 @@ class OptionalsTest : UtValueTestCaseChecker(
         checkStatics(
             Optionals::createNullable,
             eq(2),
-            { value, statics, result -> value == null && result === statics.singleValue() },
+            { value, _, result -> value == null && result === Optional.empty<Int>() },
             { value, _, result -> value != null && result!!.get() == value },
             coverage = DoNotCalculate
         )
@@ -78,7 +79,7 @@ class OptionalsTest : UtValueTestCaseChecker(
         checkStatics(
             Optionals::createEmpty,
             eq(1),
-            { statics, result -> result === statics.singleValue() },
+            { _, result -> result === Optional.empty<Int>() },
             coverage = DoNotCalculate
         )
     }
@@ -88,7 +89,7 @@ class OptionalsTest : UtValueTestCaseChecker(
         checkStatics(
             Optionals::createIntEmpty,
             eq(1),
-            { statics, result -> result === statics.singleValue() },
+            { _, result -> result === OptionalInt.empty() },
             coverage = DoNotCalculate
         )
     }
@@ -98,7 +99,7 @@ class OptionalsTest : UtValueTestCaseChecker(
         checkStatics(
             Optionals::createLongEmpty,
             eq(1),
-            { statics, result -> result === statics.singleValue() },
+            { _, result -> result === OptionalLong.empty() },
             coverage = DoNotCalculate
         )
     }
@@ -108,7 +109,7 @@ class OptionalsTest : UtValueTestCaseChecker(
         checkStatics(
             Optionals::createDoubleEmpty,
             eq(1),
-            { statics, result -> result === statics.singleValue() },
+            { _, result -> result === OptionalDouble.empty() },
             coverage = DoNotCalculate
         )
     }
@@ -119,7 +120,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::getValue,
             eq(3),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional != null && optional === statics.singleValue() && result == null },
+            { optional, _, result -> optional != null && optional === Optional.empty<Int>() && result == null },
             { optional, _, result -> optional != null && result == optional.get() },
             coverage = DoNotCalculate
         )
@@ -131,7 +132,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::getIntValue,
             eq(3),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional != null && optional === statics.singleValue() && result == null },
+            { optional, _, result -> optional != null && optional === OptionalInt.empty() && result == null },
             { optional, _, result -> optional != null && result == optional.asInt },
             coverage = DoNotCalculate
         )
@@ -143,7 +144,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::getLongValue,
             eq(3),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional != null && optional === statics.singleValue() && result == null },
+            { optional, _, result -> optional != null && optional === OptionalLong.empty() && result == null },
             { optional, _, result -> optional != null && result == optional.asLong },
             coverage = DoNotCalculate
         )
@@ -155,7 +156,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::getDoubleValue,
             eq(3),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional != null && optional === statics.singleValue() && result == null },
+            { optional, _, result -> optional != null && optional === OptionalDouble.empty() && result == null },
             { optional, _, result -> optional != null && result == optional.asDouble },
             coverage = DoNotCalculate
         )
@@ -167,7 +168,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::getWithIsPresent,
             eq(3),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result == null },
+            { optional, _, result -> optional === Optional.empty<Int>() && result == null },
             { optional, _, result -> optional.get() == result },
             coverage = DoNotCalculate
         )
@@ -179,7 +180,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::countIfPresent,
             eq(3),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result == 0 },
+            { optional, _, result -> optional === Optional.empty<Int>() && result == 0 },
             { optional, _, result -> optional.get() == result },
             coverage = DoNotCalculate
         )
@@ -191,7 +192,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::countIntIfPresent,
             ignoreExecutionsNumber,
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result == 0 },
+            { optional, _, result -> optional === OptionalInt.empty() && result == 0 },
             { optional, _, result -> optional.asInt == result },
         )
     }
@@ -202,7 +203,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::countLongIfPresent,
             ignoreExecutionsNumber,
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result == 0L },
+            { optional, _, result -> optional === OptionalLong.empty() && result == 0L },
             { optional, _, result -> optional.asLong == result },
         )
     }
@@ -213,7 +214,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::countDoubleIfPresent,
             ignoreExecutionsNumber,
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result == 0.0 },
+            { optional, _, result -> optional === OptionalDouble.empty() && result == 0.0 },
             { optional, _, result -> optional.asDouble == result },
         )
     }
@@ -224,9 +225,9 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::filterLessThanZero,
             eq(4),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result === optional },
+            { optional, _, result -> optional === Optional.empty<Int>() && result === optional },
             { optional, _, result -> optional.get() >= 0 && result == optional },
-            { optional, statics, result -> optional.get() < 0 && result === statics.singleValue() },
+            { optional, _, result -> optional.get() < 0 && result === Optional.empty<Int>() },
             coverage = DoNotCalculate
         )
     }
@@ -237,7 +238,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::absNotNull,
             eq(4),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result === optional },
+            { optional, _, result -> optional === Optional.empty<Int>() && result === optional },
             { optional, _, result -> optional.get() < 0 && result!!.get() == -optional.get() },
             { optional, _, result -> optional.get() >= 0 && result == optional },
             coverage = DoNotCalculate
@@ -250,8 +251,8 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::mapLessThanZeroToNull,
             eq(4),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result === optional },
-            { optional, statics, result -> optional.get() < 0 && result === statics.singleValue() },
+            { optional, _, result -> optional === Optional.empty<Int>() && result === optional },
+            { optional, _, result -> optional.get() < 0 && result === Optional.empty<Int>() },
             { optional, _, result -> optional.get() >= 0 && result == optional },
             coverage = DoNotCalculate
         )
@@ -263,7 +264,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::flatAbsNotNull,
             eq(4),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result === optional },
+            { optional, _, result -> optional === Optional.empty<Int>() && result === optional },
             { optional, _, result -> optional.get() < 0 && result!!.get() == -optional.get() },
             { optional, _, result -> optional.get() >= 0 && result == optional },
             coverage = DoNotCalculate
@@ -276,8 +277,8 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::flatMapWithNull,
             eq(5),
             { optional, _, _ -> optional == null },
-            { optional, statics, result -> optional === statics.singleValue() && result === optional },
-            { optional, statics, result -> optional.get() < 0 && result === statics.singleValue() },
+            { optional, _, result -> optional === Optional.empty<Int>() && result === optional },
+            { optional, _, result -> optional.get() < 0 && result === Optional.empty<Int>() },
             { optional, _, result -> optional.get() > 0 && result == optional },
             { optional, _, result -> optional.get() == 0 && result == null },
             coverage = DoNotCalculate
@@ -290,7 +291,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftOrElseRight,
             eq(3),
             { left, _, _, _ -> left == null },
-            { left, right, statics, result -> left === statics.singleValue() && result == right },
+            { left, right, _, result -> left === Optional.empty<Int>() && result == right },
             { left, _, _, result -> left.isPresent && result == left.get() },
             coverage = DoNotCalculate
         )
@@ -302,7 +303,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftIntOrElseRight,
             eq(3),
             { left, _, _, _ -> left == null },
-            { left, right, statics, result -> left === statics.singleValue() && result == right },
+            { left, right, _, result -> left === OptionalInt.empty() && result == right },
             { left, _, _, result -> left.isPresent && result == left.asInt },
             coverage = DoNotCalculate
         )
@@ -315,7 +316,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftLongOrElseRight,
             eq(3),
             { left, _, _, _ -> left == null },
-            { left, right, statics, result -> left === statics.singleValue() && result == right },
+            { left, right, _, result -> left === OptionalLong.empty() && result == right },
             { left, _, _, result -> left.isPresent && result == left.asLong },
             coverage = DoNotCalculate
         )
@@ -328,7 +329,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftDoubleOrElseRight,
             eq(3),
             { left, _, _, _ -> left == null },
-            { left, right, statics, result -> left === statics.singleValue() && (result == right || result!!.isNaN() && right.isNaN()) },
+            { left, right, _, result -> left === OptionalDouble.empty() && (result == right || result!!.isNaN() && right.isNaN()) },
             { left, _, _, result -> left.isPresent && (result == left.asDouble || result!!.isNaN() && left.asDouble.isNaN()) },
             coverage = DoNotCalculate
         )
@@ -341,7 +342,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftOrElseGetOne,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == 1 },
+            { left, _, result -> left === Optional.empty<Int>() && result == 1 },
             { left, _, result -> left.isPresent && result == left.get() },
             coverage = DoNotCalculate
         )
@@ -353,7 +354,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftIntOrElseGetOne,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == 1 },
+            { left, _, result -> left === OptionalInt.empty() && result == 1 },
             { left, _, result -> left.isPresent && result == left.asInt },
             coverage = DoNotCalculate
         )
@@ -365,7 +366,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftLongOrElseGetOne,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == 1L },
+            { left, _, result -> left === OptionalLong.empty() && result == 1L },
             { left, _, result -> left.isPresent && result == left.asLong },
             coverage = DoNotCalculate
         )
@@ -377,7 +378,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftDoubleOrElseGetOne,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == 1.0 },
+            { left, _, result -> left === OptionalDouble.empty() && result == 1.0 },
             { left, _, result -> left.isPresent && result == left.asDouble },
             coverage = DoNotCalculate
         )
@@ -389,7 +390,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftOrElseThrow,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == null },
+            { left, _, result -> left === Optional.empty<Int>() && result == null },
             { left, _, result -> left.isPresent && result == left.get() },
             coverage = DoNotCalculate
         )
@@ -401,7 +402,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftIntOrElseThrow,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == null },
+            { left, _, result -> left === OptionalInt.empty() && result == null },
             { left, _, result -> left.isPresent && result == left.asInt },
             coverage = DoNotCalculate
         )
@@ -413,7 +414,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftLongOrElseThrow,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == null },
+            { left, _, result -> left === OptionalLong.empty() && result == null },
             { left, _, result -> left.isPresent && result == left.asLong },
             coverage = DoNotCalculate
         )
@@ -425,7 +426,7 @@ class OptionalsTest : UtValueTestCaseChecker(
             Optionals::leftDoubleOrElseThrow,
             eq(3),
             { left, _, _ -> left == null },
-            { left, statics, result -> left === statics.singleValue() && result == null },
+            { left, _, result -> left === OptionalDouble.empty() && result == null },
             { left, _, result -> left.isPresent && result == left.asDouble },
             coverage = DoNotCalculate
         )

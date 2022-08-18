@@ -9,6 +9,7 @@ import org.utbot.common.FileUtil.clearTempDirectory
 import org.utbot.common.FileUtil.findPathToClassFiles
 import org.utbot.common.FileUtil.locateClass
 import org.utbot.engine.prettify
+import org.utbot.examples.codegen.ClassWithStaticAndInnerClassesTest
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
@@ -52,7 +53,10 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.enclosingClass
 import org.utbot.framework.plugin.api.util.executableId
+import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.kClass
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.toValueTestCase
@@ -2247,7 +2251,13 @@ abstract class UtValueTestCaseChecker(
 
     //endregion
 
-    fun checkAllCombinations(method: KFunction<*>) {
+    /**
+     * @param method method under test
+     * @param generateWithNested a flag indicating if we need to generate nested test classes
+     * or just generate one top-level test class
+     * @see [ClassWithStaticAndInnerClassesTest]
+     */
+    fun checkAllCombinations(method: KFunction<*>, generateWithNested: Boolean = false) {
         val failed = mutableListOf<TestFrameworkConfiguration>()
         val succeeded = mutableListOf<TestFrameworkConfiguration>()
 
@@ -2255,7 +2265,7 @@ abstract class UtValueTestCaseChecker(
             .filterNot { it.isDisabled }
             .forEach { config ->
                 runCatching {
-                    internalCheckForCodeGeneration(method, config)
+                    internalCheckForCodeGeneration(method, config, generateWithNested)
                 }.onFailure {
                     failed += config
                 }.onSuccess {
@@ -2278,7 +2288,8 @@ abstract class UtValueTestCaseChecker(
     @Suppress("ControlFlowWithEmptyBody", "UNUSED_VARIABLE")
     private fun internalCheckForCodeGeneration(
         method: KFunction<*>,
-        testFrameworkConfiguration: TestFrameworkConfiguration
+        testFrameworkConfiguration: TestFrameworkConfiguration,
+        generateWithNested: Boolean
     ) {
         withSettingsFromTestFrameworkConfiguration(testFrameworkConfiguration) {
             with(testFrameworkConfiguration) {
@@ -2308,13 +2319,19 @@ abstract class UtValueTestCaseChecker(
                         // TODO JIRA:1407
                     }
 
-                    val testClass = testSet.method.clazz
+                    val methodUnderTestOwner = testSet.method.clazz
+                    val classUnderTest = if (generateWithNested) {
+                        generateSequence(methodUnderTestOwner.id) { clazz -> clazz.enclosingClass }.last().kClass
+                    } else {
+                        methodUnderTestOwner
+                    }
+
                     val stageStatusCheck = StageStatusCheck(
                         firstStage = CodeGeneration,
                         lastStage = TestExecution,
                         status = ExecutionStatus.SUCCESS
                     )
-                    val classStages = listOf(ClassStages(testClass, stageStatusCheck, listOf(testSet)))
+                    val classStages = listOf(ClassStages(classUnderTest, stageStatusCheck, listOf(testSet)))
 
                     TestCodeGeneratorPipeline(testFrameworkConfiguration).runClassesCodeGenerationTests(classStages)
                 }

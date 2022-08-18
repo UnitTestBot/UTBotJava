@@ -1,14 +1,14 @@
 package org.utbot.summary.clustering
 
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.summary.UtSummarySettings
 import org.utbot.summary.clustering.dbscan.DBSCANTrainer
 import org.utbot.summary.clustering.dbscan.neighbor.LinearRangeQuery
 
-class MatrixUniqueness(executions: List<UtExecution>) {
+class MatrixUniqueness(executions: List<UtSymbolicExecution>) {
 
-    private var methodExecutions: List<UtExecution> = executions
+    private var methodExecutions: List<UtSymbolicExecution> = executions
     private val allSteps = mutableListOf<Step>()
     private val matrix: List<IntArray>
 
@@ -80,10 +80,10 @@ class MatrixUniqueness(executions: List<UtExecution>) {
     companion object {
         /** Returns map: cluster identifier, List<executions>. */
         fun dbscanClusterExecutions(
-            methodExecutions: List<UtExecution>,
+            methodExecutions: List<UtSymbolicExecution>,
             minPts: Int = UtSummarySettings.MIN_EXEC_DBSCAN,
             radius: Float = UtSummarySettings.RADIUS_DBSCAN
-        ): Map<Int, List<UtExecution>> {
+        ): Map<Int, List<UtSymbolicExecution>> {
 
             val executionPaths = methodExecutions.map { it.path.asIterable() }.toTypedArray()
 

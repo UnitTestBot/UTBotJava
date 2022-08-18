@@ -212,8 +212,6 @@ object UtSettings {
     /**
      * Activate or deactivate substituting static fields values set in static initializer
      * with symbolic variable to try to set them another value than in initializer.
-     *
-     * We should not try to substitute in parametrized tests, for example
      */
     var substituteStaticsWithSymbolicVariable by getBooleanProperty(true)
 
@@ -390,6 +388,13 @@ object UtSettings {
      * Flag that indicates whether tests for synthetic methods (values, valueOf in enums) should be generated, or not
      */
     var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
+
+    /**
+     * Flag that indicates whether should we branch on and set static fields from trusted libraries or not.
+     *
+     * @see [org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES]
+     */
+    var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
 
     override fun toString(): String =
         settingsValues

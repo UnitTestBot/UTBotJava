@@ -14,8 +14,9 @@ internal interface CgNameGenerator {
     /**
      * Generate a variable name given a [base] name.
      * @param isMock denotes whether a variable represents a mock object or not
+     * @param isStatic denotes whether a variable represents a static variable or not
      */
-    fun variableName(base: String, isMock: Boolean = false): String
+    fun variableName(base: String, isMock: Boolean = false, isStatic: Boolean = false): String
 
     /**
      * Convert a given class id to a string that can serve
@@ -67,8 +68,12 @@ internal interface CgNameGenerator {
 internal open class CgNameGeneratorImpl(private val context: CgContext)
     : CgNameGenerator, CgContextOwner by context {
 
-    override fun variableName(base: String, isMock: Boolean): String {
-        val baseName = if (isMock) base + "Mock" else base
+    override fun variableName(base: String, isMock: Boolean, isStatic: Boolean): String {
+        val baseName = when {
+            isMock -> base + "Mock"
+            isStatic -> base + "Static"
+            else -> base
+        }
         return when {
             baseName in existingVariableNames -> nextIndexedVarName(baseName)
             isLanguageKeyword(baseName, codegenLanguage) -> createNameFromKeyword(baseName)

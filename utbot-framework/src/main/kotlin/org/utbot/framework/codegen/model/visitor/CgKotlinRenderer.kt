@@ -72,6 +72,9 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
+        if (!element.isStatic && element.isNested) {
+            print("inner ")
+        }
         print("class ")
         print(element.simpleName)
         if (element.superclass != null || element.interfaces.isNotEmpty()) {

@@ -2,7 +2,7 @@ package org.utbot.summary
 
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
@@ -80,7 +80,7 @@ class TagGenerator {
 /**
  * @return list of TraceTag created from executions and splitsSteps
  */
-private fun generateExecutionTags(executions: List<UtExecution>, splitSteps: SplitSteps): List<TraceTag> =
+private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSteps: SplitSteps): List<TraceTag> =
     executions.map { TraceTag(it, splitSteps) }
 
 /**
@@ -95,7 +95,7 @@ private fun generateExecutionTags(executions: List<UtExecution>, splitSteps: Spl
  * @return clustered executions
  */
 private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
-    val methodExecutions = testSet.executions
+    val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
     val commentPostfix = "for method ${testSet.method.displayName}"
 
@@ -157,18 +157,18 @@ private fun UtExecutionResult.clusterKind() = when (this) {
 /**
  * Structure used to represent execution cluster with header
  */
-private sealed class ExecutionCluster(var header: String, val executions: List<UtExecution>)
+private sealed class ExecutionCluster(var header: String, val executions: List<UtSymbolicExecution>)
 
 /**
  * Represents successful execution cluster
  */
-private class SuccessfulExecutionCluster(header: String, executions: List<UtExecution>) :
+private class SuccessfulExecutionCluster(header: String, executions: List<UtSymbolicExecution>) :
     ExecutionCluster(header, executions)
 
 /**
  * Represents failed execution cluster
  */
-private class FailedExecutionCluster(header: String, executions: List<UtExecution>) :
+private class FailedExecutionCluster(header: String, executions: List<UtSymbolicExecution>) :
     ExecutionCluster(header, executions)
 
 /**

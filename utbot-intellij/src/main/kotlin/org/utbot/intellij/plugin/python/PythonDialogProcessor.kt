@@ -111,8 +111,14 @@ object PythonDialogProcessor {
                     codegenLanguage = model.codegenLanguage,
                     outputFilename = getOutputFileName(model),
                     isCanceled = { indicator.isCanceled },
-                    startedMypyInstallationAction = { indicator.text = "Installing mypy" },
-                    couldNotInstallMypyAction = { error("Something wrong with mypy") },  // TODO: show notification
+                    checkingRequirementsAction = { indicator.text = "Checking requirements" },
+                    requirementsAreNotInstalledAction = {
+                        showErrorDialogLater(
+                            project,
+                            message = "Requirements are not installed",
+                            title = "Python test generation error"
+                        )
+                    },
                     startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
                     startedTestGenerationAction = { indicator.text = "Generating tests" },
                     notGeneratedTestsAction = {

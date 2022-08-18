@@ -12,6 +12,7 @@ import mu.KotlinLogging
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.config.Configurator
 import org.slf4j.event.Level
+import org.utbot.cli.python.PythonGenerateTestsCommand
 
 private val logger = KotlinLogging.logger {}
 

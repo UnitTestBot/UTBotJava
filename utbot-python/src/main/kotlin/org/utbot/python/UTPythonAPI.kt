@@ -17,8 +17,6 @@ interface PythonMethod {
     val containingPythonClassId: PythonClassId?
 }
 
-sealed class PythonResult(val parameters: List<UtModel>, val types: List<String>)
-
 data class PythonTestSet(
     val method: PythonMethod,
     val executions: List<UtExecution>,

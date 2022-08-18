@@ -1,4 +1,4 @@
-package org.utbot.cli
+package org.utbot.cli.python
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -17,30 +17,6 @@ import java.io.File
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 
 private val logger = KotlinLogging.logger {}
-
-sealed class Either<A>
-class Fail<A>(val message: String): Either<A>()
-class Success<A>(val value: A): Either<A>()
-
-fun <A, B> go(
-    value: Either<A>,
-    f: (A) -> Either<B>
-): Either<B> =
-    when (value) {
-        is Fail -> Fail(value.message)
-        is Success -> f(value.value)
-    }
-
-fun pack(vararg values: Either<out Any>): Either<List<Any>> {
-    val result = mutableListOf<Any>()
-    for (elem in values) {
-        when (elem) {
-            is Fail -> return Fail(elem.message)
-            is Success -> result.add(elem.value)
-        }
-    }
-    return Success(result)
-}
 
 class PythonGenerateTestsCommand: CliktCommand(
     name = "generate_python",
@@ -132,6 +108,12 @@ class PythonGenerateTestsCommand: CliktCommand(
             testFramework = Unittest,
             codegenLanguage = CodegenLanguage.PYTHON,
             outputFilename = outputFilename,
+            checkingRequirementsAction = {
+                logger.info("Checking requirements...")
+            },
+            requirementsAreNotInstalledAction = {
+                logger.error("Requirements are not installed")
+            },
             startedLoadingPythonTypesAction = {
                 logger.info("Loading information about Python Types...")
             },

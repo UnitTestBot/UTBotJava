@@ -12,6 +12,7 @@ import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 
@@ -30,8 +31,8 @@ object PythonTestGenerationProcessor {
         codegenLanguage: CodegenLanguage,
         outputFilename: String, // without path, just name
         isCanceled: () -> Boolean = { false },
-        startedMypyInstallationAction: () -> Unit = {},
-        couldNotInstallMypyAction: () -> Unit = {},
+        checkingRequirementsAction: () -> Unit = {},
+        requirementsAreNotInstalledAction: () -> Unit = {},
         startedLoadingPythonTypesAction: () -> Unit = {},
         startedTestGenerationAction: () -> Unit = {},
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
@@ -44,11 +45,10 @@ object PythonTestGenerationProcessor {
         try {
             FileManager.assignTestSourceRoot(testSourceRoot)
 
-            if (!MypyAnnotations.mypyInstalled(pythonPath) && !isCanceled()) {
-                startedMypyInstallationAction()
-                MypyAnnotations.installMypy(pythonPath)
-                if (!MypyAnnotations.mypyInstalled(pythonPath))
-                    couldNotInstallMypyAction()
+            checkingRequirementsAction()
+            if (!requirementsAreInstalled(pythonPath)) {
+                requirementsAreNotInstalledAction()
+                return
             }
 
             startedLoadingPythonTypesAction()

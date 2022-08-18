@@ -55,9 +55,20 @@ class Node:
         else:
             return False
 
+
 def cycle(x: str):
     a = Node(x + '_a')
     b = Node(x + '_b')
     a.children.append(b)
     b.children.append(a)
+    return a
+
+
+def cycle2(x: str):
+    a = Node(x + '_a')
+    b = Node(x + '_b')
+    c = Node(x + '_c')
+    a.children.append(b)
+    b.children.append(c)
+    c.children.append(a)
     return a

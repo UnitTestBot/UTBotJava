@@ -1303,6 +1303,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             // TODO: remove this line when SAT-1273 is completed
             execution.displayName = execution.displayName?.let { "${executableId.name}: $it" }
             testMethod(testMethodName, execution.displayName) {
+                context.memoryObjects.clear()
+
                 rememberInitialStaticFields()
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()

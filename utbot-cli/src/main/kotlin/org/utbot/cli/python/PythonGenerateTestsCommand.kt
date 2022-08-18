@@ -2,11 +2,12 @@ package org.utbot.cli.python
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.options.flag
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
-import com.github.ajalt.clikt.parameters.options.split
+import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.long
 import mu.KotlinLogging
+import org.utbot.framework.codegen.Pytest
+import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.Unittest
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.python.PythonMethod
@@ -55,6 +56,23 @@ class PythonGenerateTestsCommand: CliktCommand(
         help = "Install requirements if missing"
     ).flag(default = false)
 
+    private val timeout by option(
+        "-t", "--timeout",
+        help = "Specifies the maximum time in milliseconds used to generate tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)"
+    ).long().default(DEFAULT_TIMEOUT_IN_MILLIS)
+
+    private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used")
+        .choice(Pytest.toString(), Unittest.toString())
+        .default(Unittest.toString())
+
+    private val testFramework: TestFramework
+        get() =
+            when (testFrameworkAsString) {
+                Unittest.toString() -> Unittest
+                Pytest.toString() -> Pytest
+                else -> error("Not reachable")
+            }
+
     private fun findCurrentPythonModule(): Optional<String> {
         directoriesForSysPath.forEach { path ->
             val module = getModuleName(path, sourceFile)
@@ -68,8 +86,10 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
         val code = PythonCode.getFromString(sourceCodeContent, pythonModule = currentModule)
-        if (pythonClass == null)
-            return Success(code.getToplevelFunctions())
+        if (pythonClass == null) {
+            val functions = code.getToplevelFunctions()
+            return if (functions.isNotEmpty()) Success(functions) else Fail("No top-level functions in file to test.")
+        }
 
         code.getToplevelClasses().forEach { curClass ->
             if (curClass.name == pythonClass) {
@@ -136,8 +156,8 @@ class PythonGenerateTestsCommand: CliktCommand(
             currentPythonModule = currentPythonModule,
             pythonMethods = pythonMethods,
             containingClassName = pythonClass,
-            timeout = DEFAULT_TIMEOUT_IN_MILLIS,
-            testFramework = Unittest,
+            timeout = timeout,
+            testFramework = testFramework,
             codegenLanguage = CodegenLanguage.PYTHON,
             outputFilename = outputFilename,
             checkingRequirementsAction = {

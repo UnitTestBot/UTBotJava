@@ -12,8 +12,6 @@ import java.io.File
 
 
 object MypyAnnotations {
-    private const val mypyVersion = "0.971"
-
     const val TEMPORARY_MYPY_FILE = "<TEMPORARY MYPY FILE>"
 
     data class MypyReportLine(
@@ -124,24 +122,10 @@ object MypyAnnotations {
         return result.stdout
     }
 
-    fun mypyInstalled(pythonPath: String): Boolean {
-        val result = runCommand(listOf(pythonPath, "-m", "pip", "show", "mypy"))
-        if (result.exitValue != 0)
-            return false
-        val regex = Regex("Version: ([0-9.]*)")
-        val version = regex.find(result.stdout)?.groupValues?.getOrNull(1) ?: return false
-        return version == mypyVersion
-    }
-
-    fun installMypy(pythonPath: String): Int {
-        val result = runCommand(listOf(pythonPath, "-m", "pip", "install", "mypy==$mypyVersion"))
-        return result.exitValue
-    }
-
     private fun getErrorNumber(mypyReport: List<MypyReportLine>) =
         mypyReport.count { it.type == "error" && it.file == TEMPORARY_MYPY_FILE }
 
-    fun getErrorsAndNotes(mypyOutput: String, mypyCode: String, fileWithCode: File): List<MypyReportLine> {
+    private fun getErrorsAndNotes(mypyOutput: String, mypyCode: String, fileWithCode: File): List<MypyReportLine> {
         val regex = Regex("(?m)^([^\n]*):([0-9]*): (error|note): ([^\n]*)\n")
         return regex.findAll(mypyOutput).toList().map { match ->
             val file = match.groupValues[1]

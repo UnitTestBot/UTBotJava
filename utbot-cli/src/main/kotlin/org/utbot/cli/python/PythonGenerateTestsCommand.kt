@@ -1,7 +1,8 @@
-package org.utbot.cli
+package org.utbot.cli.python
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.options.split
@@ -9,38 +10,17 @@ import mu.KotlinLogging
 import org.utbot.framework.codegen.Unittest
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.python.PythonMethod
+import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.code.PythonCode
+import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.getModuleName
 import java.io.File
+import java.nio.file.Paths
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 
 private val logger = KotlinLogging.logger {}
-
-sealed class Either<A>
-class Fail<A>(val message: String): Either<A>()
-class Success<A>(val value: A): Either<A>()
-
-fun <A, B> go(
-    value: Either<A>,
-    f: (A) -> Either<B>
-): Either<B> =
-    when (value) {
-        is Fail -> Fail(value.message)
-        is Success -> f(value.value)
-    }
-
-fun pack(vararg values: Either<out Any>): Either<List<Any>> {
-    val result = mutableListOf<Any>()
-    for (elem in values) {
-        when (elem) {
-            is Fail -> return Fail(elem.message)
-            is Success -> result.add(elem.value)
-        }
-    }
-    return Success(result)
-}
 
 class PythonGenerateTestsCommand: CliktCommand(
     name = "generate_python",
@@ -70,7 +50,12 @@ class PythonGenerateTestsCommand: CliktCommand(
         help = "File for generated tests"
     ).required()
 
-    private fun findCurrentPythonModule(): Either<String> {
+    private val installRequirementsIfMissing by option(
+        "-r", "--install-requirements",
+        help = "Install requirements if missing"
+    ).flag(default = false)
+
+    private fun findCurrentPythonModule(): Optional<String> {
         directoriesForSysPath.forEach { path ->
             val module = getModuleName(path, sourceFile)
             if (module != null)
@@ -79,14 +64,21 @@ class PythonGenerateTestsCommand: CliktCommand(
         return Fail("Couldn't find path for $sourceFile in --python-path option. Please, specify it.")
     }
 
-    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Either<List<PythonMethod>> {
+    private val forbiddenMethods = listOf("__init__", "__new__")
+
+    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
         val code = PythonCode.getFromString(sourceCodeContent, pythonModule = currentModule)
         if (pythonClass == null)
             return Success(code.getToplevelFunctions())
 
-        code.getToplevelClasses().forEach {
-            if (it.name == pythonClass)
-                return Success(it.methods)
+        code.getToplevelClasses().forEach { curClass ->
+            if (curClass.name == pythonClass) {
+                val methods = curClass.methods.filter { it.name !in forbiddenMethods }
+                return if (methods.isNotEmpty())
+                    Success(methods)
+                else
+                    Fail("No methods in definition of class $pythonClass to test.")
+            }
         }
 
         return Fail("Couldn't find class $pythonClass in file $output.")
@@ -95,36 +87,52 @@ class PythonGenerateTestsCommand: CliktCommand(
     private lateinit var currentPythonModule: String
     private lateinit var pythonMethods: List<PythonMethod>
     private lateinit var sourceFileContent: String
+    private lateinit var testSourceRoot: String
+    private lateinit var outputFilename: String
 
     @Suppress("UNCHECKED_CAST")
-    private fun calculateValues(): Either<Unit> {
+    private fun calculateValues(): Optional<Unit> {
+        val outputFile = File(output.toAbsolutePath())
+        testSourceRoot = outputFile.parentFile.path
+        outputFilename = outputFile.name
         val currentPythonModuleE = findCurrentPythonModule()
         sourceFileContent = File(sourceFile).readText()
-        val pythonMethodsE = go(currentPythonModuleE) { getPythonMethods(sourceFileContent, it) }
+        val pythonMethodsE = bind(currentPythonModuleE) { getPythonMethods(sourceFileContent, it) }
 
-        return go(pack(currentPythonModuleE, pythonMethodsE)) {
+        return bind(pack(currentPythonModuleE, pythonMethodsE)) {
             currentPythonModule = it[0] as String
             pythonMethods = it[1] as List<PythonMethod>
             Success(Unit)
         }
     }
 
+    private fun processMissingRequirements(): PythonTestGenerationProcessor.MissingRequirementsActionResult {
+        if (installRequirementsIfMissing) {
+            logger.info("Installing requirements...")
+            val result = installRequirements(pythonPath)
+            if (result.exitValue == 0)
+                return PythonTestGenerationProcessor.MissingRequirementsActionResult.INSTALLED
+            println(result.stderr)
+            logger.error("Failed to install requirements.")
+        } else {
+            logger.error("Missing some requirements. Please add --install-requirements flag or install them manually.")
+        }
+        return PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
+    }
+
     override fun run() {
-        val outputFile = File(output)
-        val testSourceRoot = outputFile.parentFile.path
-        val outputFilename = outputFile.name
         val status = calculateValues()
         if (status is Fail) {
-            println(status.message)
+            logger.error(status.message)
             return
         }
 
         processTestGeneration(
-            pythonPath = pythonPath,
+            pythonPath = pythonPath.toAbsolutePath(),
             testSourceRoot = testSourceRoot,
-            pythonFilePath = sourceFile,
+            pythonFilePath = sourceFile.toAbsolutePath(),
             pythonFileContent = sourceFileContent,
-            directoriesForSysPath = directoriesForSysPath.toSet(),
+            directoriesForSysPath = directoriesForSysPath.map { it.toAbsolutePath() } .toSet(),
             currentPythonModule = currentPythonModule,
             pythonMethods = pythonMethods,
             containingClassName = pythonClass,
@@ -132,6 +140,10 @@ class PythonGenerateTestsCommand: CliktCommand(
             testFramework = Unittest,
             codegenLanguage = CodegenLanguage.PYTHON,
             outputFilename = outputFilename,
+            checkingRequirementsAction = {
+                logger.info("Checking requirements...")
+            },
+            requirementsAreNotInstalledAction = ::processMissingRequirements,
             startedLoadingPythonTypesAction = {
                 logger.info("Loading information about Python Types...")
             },
@@ -139,10 +151,16 @@ class PythonGenerateTestsCommand: CliktCommand(
                 logger.info("Generating tests...")
             },
             notGeneratedTestsAction = {
-                logger.warn(
+                logger.error(
                     "Couldn't generate tests for the following functions: ${it.joinToString()}"
                 )
+            },
+            finishedAction = {
+                logger.info("Finished test generation for the following functions: ${it.joinToString()}")
             }
         )
     }
+
+    private fun String.toAbsolutePath(): String =
+        Paths.get(this).toAbsolutePath().toString()
 }

@@ -12,6 +12,7 @@ import org.utbot.python.typing.PythonTypesStorage
 import org.utbot.python.typing.StubFileFinder
 import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 
@@ -30,25 +31,28 @@ object PythonTestGenerationProcessor {
         codegenLanguage: CodegenLanguage,
         outputFilename: String, // without path, just name
         isCanceled: () -> Boolean = { false },
-        startedMypyInstallationAction: () -> Unit = {},
-        couldNotInstallMypyAction: () -> Unit = {},
+        checkingRequirementsAction: () -> Unit = {},
+        requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
+            MissingRequirementsActionResult.NOT_INSTALLED
+        },
         startedLoadingPythonTypesAction: () -> Unit = {},
         startedTestGenerationAction: () -> Unit = {},
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
         generatedFileWithTestsAction: (File) -> Unit = {},
         processMypyWarnings: (String) -> Unit = {},
-        startedCleaningAction: () -> Unit = {}
+        startedCleaningAction: () -> Unit = {},
+        finishedAction: (List<String>) -> Unit = {}  // take names of functions with generated tests
     ) {
         Cleaner.restart()
 
         try {
             FileManager.assignTestSourceRoot(testSourceRoot)
 
-            if (!MypyAnnotations.mypyInstalled(pythonPath) && !isCanceled()) {
-                startedMypyInstallationAction()
-                MypyAnnotations.installMypy(pythonPath)
-                if (!MypyAnnotations.mypyInstalled(pythonPath))
-                    couldNotInstallMypyAction()
+            checkingRequirementsAction()
+            if (!requirementsAreInstalled(pythonPath)) {
+                val result = requirementsAreNotInstalledAction()
+                if (result == MissingRequirementsActionResult.NOT_INSTALLED)
+                    return
             }
 
             startedLoadingPythonTypesAction()
@@ -149,9 +153,15 @@ object PythonTestGenerationProcessor {
             if (mypyReport != "")
                 processMypyWarnings(mypyReport)
 
+            finishedAction(notEmptyTests.map { it.method.name })
+
         } finally {
             startedCleaningAction()
             Cleaner.doCleaning()
         }
+    }
+
+    enum class MissingRequirementsActionResult {
+        INSTALLED, NOT_INSTALLED
     }
 }

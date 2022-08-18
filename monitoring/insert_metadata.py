@@ -43,11 +43,11 @@ def transform_and_combine_stats(stats_list):
     return new_stats
 
 
-def try_get_output(*args):
+def try_get_output(args):
     try:
         return subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True).decode()
     except Exception as e:
-        print(f'Error in command "{" ".join(args)}":\n\t{e}')
+        print(f'Error in command "{args}":\n\t{e}')
         return None
 
 
@@ -66,8 +66,8 @@ def build_environment_data():
     environment = {
         'host': uname_result.node,
         'OS': f'{uname_result.system} version {uname_result.version}',
-        'java_version': try_get_output('java', '-version'),
-        'gradle_version': parse_gradle_version(try_get_output('gradle', '--version')),
+        'java_version': try_get_output('java -version'),
+        'gradle_version': parse_gradle_version(try_get_output('gradle --version')),
         'JAVA_HOME': environ.get('JAVA_HOME'),
         'KOTLIN_HOME': environ.get('KOTLIN_HOME'),
         'PATH': environ.get('PATH'),

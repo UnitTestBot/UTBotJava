@@ -346,7 +346,12 @@ object CodeGenerationController {
      */
     private val PsiFile.utilClassVersionOrNull: String?
         get() = runReadAction {
-            childrenOfType<PsiComment>()
+            val utilClass = (this as? PsiClassOwner)
+                ?.classes
+                ?.firstOrNull()
+                ?: return@runReadAction null
+
+            utilClass.childrenOfType<PsiComment>()
                 .map { comment -> comment.text }
                 .firstOrNull { text -> UTBOT_VERSION_PREFIX in text }
                 ?.substringAfterLast(UTBOT_VERSION_PREFIX)

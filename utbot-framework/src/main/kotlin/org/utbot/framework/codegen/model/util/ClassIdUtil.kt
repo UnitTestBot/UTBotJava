@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.util
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isArray
 
 /**
  * For now we will count class accessible if it is:
@@ -13,13 +14,16 @@ import org.utbot.framework.plugin.api.util.id
  * @param packageName name of the package we check accessibility from
  */
 infix fun ClassId.isAccessibleFrom(packageName: String): Boolean {
+    val isContainedElementsClassAccessible = elementClassId?.isAccessibleFrom(packageName) ?: true
+
+    // TODO: isNested checks that jClass.enclosingClass != null, outerClass returns jClass.enclosingClass, maybe simplify this?
     val isOuterClassAccessible = if (isNested) {
         outerClass!!.id.isAccessibleFrom(packageName)
     } else {
         true
     }
 
-    val isAccessibleFromPackageByModifiers = isPublic || (this.packageName == packageName && (isPackagePrivate || isProtected))
+    val isAccessibleFromPackageByModifiers = isArray || isPublic || (this.packageName == packageName && (isPackagePrivate || isProtected))
 
-    return isOuterClassAccessible && isAccessibleFromPackageByModifiers && !isLocal && !isSynthetic
+    return isContainedElementsClassAccessible && isOuterClassAccessible && isAccessibleFromPackageByModifiers && !isLocal && !isSynthetic
 }

@@ -8,6 +8,18 @@ import logging
 import datetime
 
 
+class A:
+    x = 4
+    y = 5
+
+    def func(self):
+        n = 0
+        for i in range(self.x):
+            n += self.y
+        return n
+
+
+
 def empty_():
     pass
 

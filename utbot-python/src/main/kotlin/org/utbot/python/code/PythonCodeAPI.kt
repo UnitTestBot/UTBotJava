@@ -102,6 +102,9 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
                     )
                 }
             }
+            if (ast.decorators.isEmpty() && (ast.arguments == null || !ast.arguments.isPresent)){
+                return emptyList()
+            }
             return null
         }
 

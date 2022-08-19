@@ -30,4 +30,11 @@ object MonitoringSettings : AbstractSettings(
      * One running generation for all projects timeout in minutes.
      */
     val runTimeoutMinutes by getIntProperty(180)
+
+    /**
+     * Target project to generate tests.
+     *
+     * TODO: change it into list and group GlobalStats by projects.
+     */
+    val project by getStringProperty("guava")
 }

@@ -22,12 +22,11 @@ fun main(args: Array<String>) {
     logger.info { "Monitoring Settings:\n$MonitoringSettings" }
 
     val methodFilter: String?
-    val projectFilter: List<String>?
     val processedClassesThreshold = MonitoringSettings.processedClassesThreshold
     val tools: List<Tool> = listOf(Tool.UtBot)
     val timeLimit = MonitoringSettings.timeLimitPerClass
 
-    projectFilter = listOf("guava")
+    val project = MonitoringSettings.project
     methodFilter = null
 
     val outputFile = args.getOrNull(0)?.let { File(it) }
@@ -51,7 +50,10 @@ fun main(args: Array<String>) {
         logger.info().bracket("Run UTBot try number ${idx + 1}") {
 
             executor.invokeWithTimeout(runTimeout) {
-                runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
+                runEstimator(
+                    estimatorArgs, methodFilter,
+                    listOf(project), processedClassesThreshold, tools
+                )
             }
                 ?.onSuccess { statistics.add(it as GlobalStats) }
                 ?.onFailure { logger.error(it) { "Run failure!" } }
@@ -87,6 +89,9 @@ private fun GlobalStats.jsonString(baseTabs: Int = 0) =
         appendLine("{")
 
         val tabs = baseTabs + 1
+        addValue("target", MonitoringSettings.project, tabs)
+        addValue("timelimit_per_class", MonitoringSettings.timeLimitPerClass, tabs)
+        addValue("run_timeout_minutes", MonitoringSettings.runTimeoutMinutes, tabs)
         addValue("classes_for_generation", classesForGeneration, tabs)
         addValue("testcases_generated", testCasesGenerated, tabs)
         addValue("classes_without_problems", classesWithoutProblems, tabs)

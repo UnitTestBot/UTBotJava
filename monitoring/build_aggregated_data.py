@@ -1,69 +1,107 @@
+import argparse
 import json
-import re
+from collections import defaultdict
 from os import listdir
 from os.path import isfile, join
-from sys import argv
+from time import time
 
-"""
-Input files data requires names format *-<timestamp>-<commit>.json
-"""
-FILE_FORMAT_REGEXP = re.compile(r'.+-(\d+)-[^-]+\.json')
+from monitoring_settings import JSON_VERSION
 
 
-def get_file_timestamp(filename):
-    result = FILE_FORMAT_REGEXP.fullmatch(filename)
-    if result is None:
-        return None
-    return int(result.group(1))
-
-
-def check_timestamp(timestamp, timestamp_from, timestamp_to):
-    return timestamp is not None and timestamp_from <= timestamp <= timestamp_to
-
-
-def get_file_seq(input_data_dir, timestamp_from, timestamp_to):
+def get_file_seq(input_data_dir):
     for filename in listdir(input_data_dir):
         path = join(input_data_dir, filename)
         if isfile(path):
-            timestamp = get_file_timestamp(filename)
-            if check_timestamp(timestamp, timestamp_from, timestamp_to):
-                yield path, timestamp
+            yield path
 
 
-def get_stats_seq(input_data_dir, timestamp_from, timestamp_to):
-    for file, timestamp in get_file_seq(input_data_dir, timestamp_from, timestamp_to):
+def check_stats(stats, args):
+    timestamp = stats["metadata"]["timestamp"]
+    timestamp_match = args.timestamp_from <= timestamp <= args.timestamp_to
+    json_version_match = stats["json_version"] == JSON_VERSION
+    return timestamp_match and json_version_match
+
+
+def get_stats_seq(args):
+    for file in get_file_seq(args.input_data_dir):
         with open(file, "r") as f:
             stats = json.load(f)
-        yield stats, timestamp
+        if check_stats(stats, args):
+            yield stats
 
 
-def transform_stats(stats, timestamp):
-    del stats['metadata']
-    stats['timestamp'] = timestamp
+def transform_and_combine_target(stats_list, timestamp):
+    new_stats = defaultdict(lambda: 0.0)
+
+    # calculate average by all keys
+    for n, stats in enumerate(stats_list, start=1):
+        transformed = transform_target(stats)
+        for key in transformed:
+            new_stats[key] = new_stats[key] + (transformed[key] - new_stats[key]) / n
+
+    new_stats['timestamp'] = timestamp
+
+    return new_stats
+
+
+def transform_target(stats):
+    common_prefix = "covered_instructions_count"
+    denum = stats["total_instructions_count"]
+
+    nums_keys = [(key, key.removeprefix(common_prefix)) for key in stats.keys() if key.startswith(common_prefix)]
+
+    for (key, by) in nums_keys:
+        num = stats[key]
+        stats["total_coverage" + by] = 100 * num / denum if denum != 0 else 0
+        del stats[key]
+
+    del stats["total_instructions_count"]
+
     return stats
 
 
 def aggregate_stats(stats_seq):
-    result = []
-    for stats, timestamp in stats_seq:
-        result.append(transform_stats(stats, timestamp))
+    result = defaultdict(lambda: [])
+
+    for stats in stats_seq:
+        targets = stats["targets"]
+        timestamp = stats["metadata"]["timestamp"]
+        for target in targets:
+            result[target].append(
+                transform_and_combine_target(targets[target], timestamp)
+            )
+
     return result
 
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--input_data_dir', required=True,
+        help='input directory with data', type=str
+    )
+    parser.add_argument(
+        '--output_file', required=True,
+        help='output file', type=str
+    )
+    parser.add_argument(
+        '--timestamp_from', help='timestamp started collection from',
+        type=int, default=0
+    )
+    parser.add_argument(
+        '--timestamp_to', help='timestamp finished collection to',
+        type=int, default=int(time())
+    )
+
+    args = parser.parse_args()
+    return args
+
+
 def main():
-    args = argv[1:]
-    if len(args) != 4:
-        raise RuntimeError(
-            f"Expected <input data dir> <output file> "
-            f"<timestamp from> <timestamp to> "
-            f"but got {' '.join(args)}"
-        )
-    (input_data_dir, output_file, timestamp_from, timestamp_to) = args
-    timestamp_from = int(timestamp_from)
-    timestamp_to = int(timestamp_to)
-    stats_seq = get_stats_seq(input_data_dir, timestamp_from, timestamp_to)
+    args = get_args()
+    stats_seq = get_stats_seq(args)
     result = aggregate_stats(stats_seq)
-    with open(output_file, "w") as f:
+    with open(args.output_file, "w") as f:
         json.dump(result, f, indent=4)
 
 

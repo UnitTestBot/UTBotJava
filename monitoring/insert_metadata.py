@@ -1,3 +1,4 @@
+import argparse
 import json
 import re
 import subprocess
@@ -5,7 +6,9 @@ from collections import defaultdict
 from os import environ
 from os.path import exists
 from platform import uname
-from sys import argv
+from time import time
+
+from monitoring_settings import JSON_VERSION
 
 
 def load(json_file):
@@ -13,34 +16,6 @@ def load(json_file):
         with open(json_file, "r") as f:
             return json.load(f)
     return None
-
-
-def transform_stats(stats):
-    common_prefix = "covered_instructions_count"
-    denum = stats["total_instructions_count"]
-
-    nums_keys = [(key, key.removeprefix(common_prefix)) for key in stats.keys() if key.startswith(common_prefix)]
-
-    for (key, by) in nums_keys:
-        num = stats[key]
-        stats["total_coverage" + by] = 100 * num / denum if denum != 0 else 0
-        del stats[key]
-
-    del stats["total_instructions_count"]
-
-    return stats
-
-
-def transform_and_combine_stats(stats_list):
-    new_stats = defaultdict(lambda: 0.0)
-
-    # calculate average by all keys
-    for n, stats in enumerate(stats_list, start=1):
-        transformed = transform_stats(stats)
-        for key in transformed:
-            new_stats[key] = new_stats[key] + (transformed[key] - new_stats[key]) / n
-
-    return new_stats
 
 
 def try_get_output(args):
@@ -75,35 +50,70 @@ def build_environment_data():
     return environment
 
 
-def build_metadata(commit, build):
+def build_metadata(args):
     metadata = {
-        'commit_hash': commit,
-        'build_number': build,
+        'source': args.source,
+        'commit_hash': args.commit,
+        'build_number': args.build,
+        'timestamp': args.timestamp,
         'environment': build_environment_data()
     }
     return metadata
 
 
-def transform_and_insert_metadata(stats_file, commit, build):
-    stats = load(stats_file)
-    if stats is None:
+def build_targets(stats_array):
+    result = defaultdict(lambda: [])
+    for stats in stats_array:
+        target = stats['target']
+        del stats['target']
+        result[target].append(stats)
+    return result
+
+
+def insert_metadata(args):
+    stats_array = load(args.stats_file)
+    if stats_array is None:
         raise FileNotFoundError("File with stats does not exist!")
-    stats = transform_and_combine_stats(stats)
-    stats['metadata'] = build_metadata(commit, build)
-    return stats
+    result = {
+        'json_version': JSON_VERSION,
+        'targets': build_targets(stats_array),
+        'metadata': build_metadata(args)
+    }
+    return result
+
+
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--stats_file', required=True,
+        help='file with statistics', type=str
+    )
+    parser.add_argument(
+        '--commit', help='commit hash', type=str
+    )
+    parser.add_argument(
+        '--build', help='build number', type=str
+    )
+    parser.add_argument(
+        '--output_file', help='output file',
+        type=str, required=True
+    )
+    parser.add_argument(
+        '--timestamp', help='statistics timestamp',
+        type=int, default=int(time())
+    )
+    parser.add_argument(
+        '--source', help='source of metadata', type=str
+    )
+
+    args = parser.parse_args()
+    return args
 
 
 def main():
-    args = argv[1:]
-    if len(args) != 4:
-        raise RuntimeError(
-            f"Expected <stats file> <output file> "
-            f"<commit hash> <build number> "
-            f"but got {' '.join(args)}"
-        )
-    (stats_file, output_file, commit, build) = args
-    stats = transform_and_insert_metadata(stats_file, commit, build)
-    with open(output_file, "w") as f:
+    args = get_args()
+    stats = insert_metadata(args)
+    with open(args.output_file, "w") as f:
         json.dump(stats, f, indent=4)
 
 

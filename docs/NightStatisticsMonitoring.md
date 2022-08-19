@@ -38,6 +38,9 @@ Output example (the result of three runs during one night):
 ```json
 [
   {
+    "target": "guava",
+    "timelimit_per_class": 20,
+    "run_timeout_minutes": 20,
     "classes_for_generation": 20,
     "testcases_generated": 1651,
     "classes_without_problems": 12,
@@ -54,6 +57,9 @@ Output example (the result of three runs during one night):
     "avg_coverage": 62.885408034613
   },
   {
+    "target": "guava",
+    "timelimit_per_class": 20,
+    "run_timeout_minutes": 20,
     "classes_for_generation": 20,
     "testcases_generated": 1872,
     "classes_without_problems": 12,
@@ -70,6 +76,9 @@ Output example (the result of three runs during one night):
     "avg_coverage": 62.966064315865275
   },
   {
+    "target": "guava",
+    "timelimit_per_class": 20,
+    "run_timeout_minutes": 20,
     "classes_for_generation": 20,
     "testcases_generated": 1770,
     "classes_without_problems": 13,
@@ -88,76 +97,120 @@ Output example (the result of three runs during one night):
 ]
 ```
 
-### Metadata and summarising
-
-To get rid of measurement errors and get a general understanding of UnitTestBot efficiency we average the statistics over the runs during one night.
+### Metadata
 
 Our main goal is to find code changes or run conditions related to the reduced UnitTestBot performance. Thus, we collect metadata about each run: the commit hash, the UnitTestBot build number, and also information about the environment (including JDK and build system versions, and other parameters).
 
 The `insert_metadata.py` script is responsible for doing this. To run it you have to specify the following arguments.
 
-Input arguments: `<stats file> <output file> <commit hash> <build number>`.
+To get more information about input arguments call script with option `--help`.
 
-Please notice, that the `<output file>` must look like:
-
-`*-<timestamp>-<commit hash>.json`
-
-
-Output format: you get the JSON file, containing summarised statistics and metadata.
+Output format: you get the JSON file, containing statistics grouped by target project and metadata.
 
 Input example:
 ```
-stats.json data/data-main-2022-08-17-1660740407-66a1aeb6.json 66a1aeb6 2022.8
+--stats_file stats.json --output_file data/meta-stats.json
+--commit 66a1aeb6 --build 2022.8 
+--timestamp 1660905157 --source github-action-2141
 ```
 
 Output example (an average for each statistic over the three runs followed by metadata):
 ```json
 {
-  "classes_for_generation": 20.0,
-  "testcases_generated": 1764.3333333333333,
-  "classes_without_problems": 12.333333333333334,
-  "classes_canceled_by_timeout": 2.0,
-  "total_methods_for_generation": 519.0,
-  "methods_with_at_least_one_testcase_generated": 394.3333333333333,
-  "methods_with_exceptions": 45.333333333333336,
-  "suspicious_methods": 55.333333333333336,
-  "test_classes_failed_to_compile": 0.0,
-  "avg_coverage": 62.480721428256736,
-  "total_coverage": 56.84739152087949,
-  "total_coverage_by_fuzzing": 41.60749728061026,
-  "total_coverage_by_concolic": 44.420096905766805,
+  "json_version": "1.0",
+  "targets": {
+    "guava": [
+      {
+        "timelimit_per_class": 20,
+        "run_timeout_minutes": 20,
+        "classes_for_generation": 20,
+        "testcases_generated": 1651,
+        "classes_without_problems": 12,
+        "classes_canceled_by_timeout": 2,
+        "total_methods_for_generation": 519,
+        "methods_with_at_least_one_testcase_generated": 365,
+        "methods_with_exceptions": 46,
+        "suspicious_methods": 85,
+        "test_classes_failed_to_compile": 0,
+        "covered_instructions_count": 5753,
+        "covered_instructions_count_by_fuzzing": 4375,
+        "covered_instructions_count_by_concolic": 4069,
+        "total_instructions_count": 10182,
+        "avg_coverage": 62.885408034613
+      },
+      {
+        "timelimit_per_class": 20,
+        "run_timeout_minutes": 20,
+        "classes_for_generation": 20,
+        "testcases_generated": 1872,
+        "classes_without_problems": 12,
+        "classes_canceled_by_timeout": 2,
+        "total_methods_for_generation": 519,
+        "methods_with_at_least_one_testcase_generated": 413,
+        "methods_with_exceptions": 46,
+        "suspicious_methods": 38,
+        "test_classes_failed_to_compile": 0,
+        "covered_instructions_count": 6291,
+        "covered_instructions_count_by_fuzzing": 4470,
+        "covered_instructions_count_by_concolic": 5232,
+        "total_instructions_count": 11011,
+        "avg_coverage": 62.966064315865275
+      },
+      {
+        "timelimit_per_class": 20,
+        "run_timeout_minutes": 20,
+        "classes_for_generation": 20,
+        "testcases_generated": 1770,
+        "classes_without_problems": 13,
+        "classes_canceled_by_timeout": 2,
+        "total_methods_for_generation": 519,
+        "methods_with_at_least_one_testcase_generated": 405,
+        "methods_with_exceptions": 44,
+        "suspicious_methods": 43,
+        "test_classes_failed_to_compile": 0,
+        "covered_instructions_count": 6266,
+        "covered_instructions_count_by_fuzzing": 4543,
+        "covered_instructions_count_by_concolic": 5041,
+        "total_instructions_count": 11011,
+        "avg_coverage": 61.59069193429194
+      }
+    ]
+  },
   "metadata": {
+    "source": "github-action-2141",
     "commit_hash": "66a1aeb6",
     "build_number": "2022.8",
+    "timestamp": 1660905157,
     "environment": {
-      "host": "host",
-      "OS": "Windows version 10.0.19043",
-      "java_version": "openjdk version \"1.8.0_322\"\r\nOpenJDK Runtime Environment Corretto-8.322.06.1 (build 1.8.0_322-b06)\r\nOpenJDK 64-Bit Server VM Corretto-8.322.06.1 (build 25.322-b06, mixed mode)\r\n",
-      "gradle_version": "Gradle 7.4",
-      "JAVA_HOME": "D:\\Java\\jdk",
-      "KOTLIN_HOME": "D:\\Kotlin\\kotlinc",
-      "PATH": "D:\\gradle-7.4\\bin;D:\\Java\\jre\\bin;"
+      "host": "fv-az377-887",
+      "OS": "Linux version #20~20.04.1-Ubuntu SMP Fri Aug 5 12:16:53 UTC 2022",
+      "java_version": "openjdk version \"1.8.0_345\"\nOpenJDK Runtime Environment (Zulu 8.64.0.19-CA-linux64) (build 1.8.0_345-b01)\nOpenJDK 64-Bit Server VM (Zulu 8.64.0.19-CA-linux64) (build 25.345-b01, mixed mode)\n",
+      "gradle_version": "Gradle 6.8",
+      "JAVA_HOME": "/opt/hostedtoolcache/Java_Zulu_jdk+fx/8.0.345-1/x64",
+      "KOTLIN_HOME": "/usr",
+      "PATH": "/opt/hostedtoolcache/Python/3.9.13/x64/bin:/opt/hostedtoolcache/Python/3.9.13/x64:/home/runner/gradle-installations/installs/gradle-6.8/bin:/opt/hostedtoolcache/Java_Zulu_jdk+fx/8.0.345-1/x64/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
     }
   }
 }
 ```
 
-### Aggregating
+### Aggregating and summarising
+
+To get rid of measurement errors and get a general understanding of UnitTestBot efficiency we average the statistics over the runs during one night.
 
 The `build_aggregated_data.py` script gathers the results for several nights. The summarised results for each of the nights are put together into one array. You can specify the period for aggregating. It is useful for visualising or finding statistical characteristics of UnitTestBot performance, e.g. the median or max/min values.
 
 To run aggregating you should provide the input.
 
-Input arguments: `<input data dir> <output file> <timestamp from> <timestamp to>`.
+To get more information about input arguments call script with option `--help`.
 
-Please notice that the `<input data dir>` must contain the files which look like `*-<timestamp>-<commit hash>.json`. You (probably) have already named them properly during summarisation.
-
-Output format: you get the JSON file, which contains an array of summarised results for each of the nights during the specified period.
+Output format: you get the JSON file, which contains arrays of summarised results for each of the nights during the specified period grouped by target.
 
 Input example:
 
 ```
-./data aggregated_data.json 0 1660740407
+--input_data_dir ./data --output_file aggregated_data.json 
+--timestamp_from 0 --timestamp_to 1660905157
 ```
 
 Output example:
@@ -165,24 +218,28 @@ Output example:
 (You'll get an array of several summarised outputs without metadata. The following example is just one element of such an array.)
 
 ```json
-[
+{
+  "guava": [
     {
-        "classes_for_generation": 20.0,
-        "testcases_generated": 1764.3333333333333,
-        "classes_without_problems": 12.333333333333334,
-        "classes_canceled_by_timeout": 2.0,
-        "total_methods_for_generation": 519.0,
-        "methods_with_at_least_one_testcase_generated": 394.3333333333333,
-        "methods_with_exceptions": 45.333333333333336,
-        "suspicious_methods": 55.333333333333336,
-        "test_classes_failed_to_compile": 0.0,
-        "avg_coverage": 62.480721428256736,
-        "total_coverage": 56.84739152087949,
-        "total_coverage_by_fuzzing": 41.60749728061026,
-        "total_coverage_by_concolic": 44.420096905766805,
-        "timestamp": 1660740407
+      "timelimit_per_class": 20.0,
+      "run_timeout_minutes": 20.0,
+      "classes_for_generation": 20.0,
+      "testcases_generated": 1764.3333333333333,
+      "classes_without_problems": 12.333333333333334,
+      "classes_canceled_by_timeout": 2.0,
+      "total_methods_for_generation": 519.0,
+      "methods_with_at_least_one_testcase_generated": 394.3333333333333,
+      "methods_with_exceptions": 45.333333333333336,
+      "suspicious_methods": 55.333333333333336,
+      "test_classes_failed_to_compile": 0.0,
+      "avg_coverage": 62.480721428256736,
+      "total_coverage": 56.84739152087949,
+      "total_coverage_by_fuzzing": 41.60749728061026,
+      "total_coverage_by_concolic": 44.420096905766805,
+      "timestamp": 1660905157
     }
-]
+  ]
+}
 ```
 
 ### Datastorage structure

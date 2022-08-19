@@ -164,12 +164,11 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
 }
 
 /**
- * Creates a model provider for [ObjectModelProvider] that generates values for object constructor.
+ * Creates a model provider consisting of providers that do not make recursive calls inside them
  */
-fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
+fun nonRecursiveProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
     return ModelProvider.of(
         CollectionModelProvider(idGenerator),
-        ArrayModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
         StringConstantModelProvider,
         RegexModelProvider,
@@ -177,6 +176,16 @@ fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Model
         ConstantsModelProvider,
         PrimitiveDefaultsModelProvider,
         PrimitiveWrapperModelProvider,
+    )
+}
+
+/**
+ * Creates a model provider consisting of providers that will make no more than [recursion] nested recursive calls.
+ */
+fun recursiveModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>, recursion: Int): ModelProvider {
+    return ModelProvider.of(
+        ObjectModelProvider(idGenerator, recursion),
+        ArrayModelProvider(idGenerator, recursion)
     )
 }
 

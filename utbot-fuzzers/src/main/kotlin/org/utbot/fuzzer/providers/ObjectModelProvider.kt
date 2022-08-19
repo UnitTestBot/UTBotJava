@@ -14,18 +14,14 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
-import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.TooManyCombinationsException
-import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.objectModelProviders
 import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
@@ -39,25 +35,20 @@ private val logger by lazy { KotlinLogging.logger {} }
  * Creates [UtAssembleModel] for objects which have public constructors with primitives types and String as parameters.
  */
 class ObjectModelProvider(
-    private val idGenerator: IdentityPreservingIdGenerator<Int>,
-    private val limit: Int = Int.MAX_VALUE,
-    private val recursion: Int = 1
-) : ModelProvider {
+    idGenerator: IdentityPreservingIdGenerator<Int>,
+    recursion: Int = 1,
+) : RecursiveModelProvider(idGenerator, recursion) {
 
-    var modelProvider: ModelProvider = objectModelProviders(idGenerator)
+    // TODO: can we make it private val (maybe depending on recursion)?
     var limitValuesCreatedByFieldAccessors: Int = 100
         set(value) {
             field = maxOf(0, value)
         }
 
-    private val nonRecursiveModelProvider: ModelProvider
-        get() {
-            val modelProviderWithoutRecursion = modelProvider.exceptIsInstance<ObjectModelProvider>()
-            return if (recursion > 0) {
-                ObjectModelProvider(idGenerator, limit = 1, recursion - 1).with(modelProviderWithoutRecursion)
-            } else {
-                modelProviderWithoutRecursion.withFallback(NullModelProvider)
-            }
+    private val limit: Int =
+        when(recursion) {
+            1 -> Int.MAX_VALUE
+            else -> 1
         }
 
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
@@ -74,14 +65,14 @@ class ObjectModelProvider(
                 .associateWith { constructorId ->
                     fuzzParameters(
                         constructorId,
-                        nonRecursiveModelProvider
+                        generateRecursiveProvider()
                     )
                 }
                 .asSequence()
                 .flatMap { (constructorId, fuzzedParameters) ->
                     if (constructorId.parameters.isEmpty()) {
                         sequenceOf(assembleModel(idGenerator.createId(), constructorId, emptyList())) +
-                                generateModelsWithFieldsInitialization(constructorId, description, concreteValues)
+                                generateModelsWithFieldsInitialization(constructorId, description)
                     }
                     else {
                         fuzzedParameters.map { params ->
@@ -98,20 +89,18 @@ class ObjectModelProvider(
         }
     }
 
-    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
+    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription): Sequence<FuzzedValue> {
         if (limitValuesCreatedByFieldAccessors == 0) return emptySequence()
         val fields = findSuitableFields(constructorId.classId, description)
-        val syntheticClassFieldsSetterMethodDescription = FuzzedMethodDescription(
-            "${constructorId.classId.simpleName}<syntheticClassFieldSetter>",
-            voidClassId,
-            fields.map { it.classId },
-            concreteValues
-        ).apply {
-            packageName = description.packageName
-        }
 
-        return fuzz(syntheticClassFieldsSetterMethodDescription, nonRecursiveModelProvider)
-            .take(limitValuesCreatedByFieldAccessors) // limit the number of fuzzed values in this particular case
+        val fieldValuesSets = fuzzValuesRecursively(
+            types = fields.map { it.classId },
+            baseMethodDescription = description,
+            modelProvider = generateRecursiveProvider(),
+            generatedValuesName = "${constructorId.classId.simpleName} fields"
+        ).take(limitValuesCreatedByFieldAccessors) // limit the number of fuzzed values in this particular case
+
+        return fieldValuesSets
             .map { fieldValues ->
                 val fuzzedModel = assembleModel(idGenerator.createId(), constructorId, emptyList())
                 val assembleModel = fuzzedModel.model as? UtAssembleModel ?: error("Expected UtAssembleModel but ${fuzzedModel.model::class.java} found")

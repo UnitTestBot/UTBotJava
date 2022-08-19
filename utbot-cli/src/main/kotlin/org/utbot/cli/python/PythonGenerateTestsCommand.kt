@@ -207,6 +207,7 @@ class PythonGenerateTestsCommand: CliktCommand(
                     "Couldn't generate tests for the following functions: ${it.joinToString()}"
                 )
             },
+            processMypyWarnings = { messages -> messages.forEach { println(it) } },
             finishedAction = {
                 logger.info("Finished test generation for the following functions: ${it.joinToString()}")
             }

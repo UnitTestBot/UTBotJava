@@ -20,6 +20,7 @@ import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
+import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
@@ -139,7 +140,10 @@ object PythonDialogProcessor {
                             }
                         }
                     },
-                    processMypyWarnings = { WarningTestsReportNotifier.notify(it) },
+                    processMypyWarnings = {
+                        val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
+                        WarningTestsReportNotifier.notify(message.toString())
+                    },
                     startedCleaningAction = { indicator.text = "Cleaning up..." }
                 )
             }

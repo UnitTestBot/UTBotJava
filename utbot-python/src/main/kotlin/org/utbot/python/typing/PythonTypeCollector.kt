@@ -156,7 +156,7 @@ object PythonTypesStorage {
                 if (!processedFiles.contains(file)) {
                     processedFiles.add(file)
                     val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
-                    val code = PythonCode.getFromString(content, file.path)
+                    val code = PythonCode.getFromString(content, file.path) ?: return@forEach
                     projectClassesSet += code.getToplevelClasses().map { pyClass ->
                         val collector = ClassInfoCollector(pyClass)
                         val module = getModuleNameWithoutCheck(pathFile, file)

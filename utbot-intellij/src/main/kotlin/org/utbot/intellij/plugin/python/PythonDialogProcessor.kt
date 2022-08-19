@@ -17,6 +17,7 @@ import com.jetbrains.python.psi.PyFunction
 import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
+import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
@@ -28,6 +29,7 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.utils.RequirementsUtils.requirements
 
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
@@ -114,9 +116,14 @@ object PythonDialogProcessor {
                     isCanceled = { indicator.isCanceled },
                     checkingRequirementsAction = { indicator.text = "Checking requirements" },
                     requirementsAreNotInstalledAction = {
+                        val message = """
+                            Some requirements are not installed.
+                            Requirements: ${requirements.joinToString()}
+                            Please install them manually.
+                        """.trimIndent()
                         showErrorDialogLater(
                             project,
-                            message = "Requirements are not installed",
+                            message = message,
                             title = "Python test generation error"
                         )
                         PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
@@ -159,7 +166,7 @@ fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
 fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode {
     val content = getContentFromPyFile(file)
-    return getFromString(content, pythonModule = pythonModule)
+    return getFromString(content, pythonModule = pythonModule)!!
 }
 
 fun getDirectoriesForSysPath(

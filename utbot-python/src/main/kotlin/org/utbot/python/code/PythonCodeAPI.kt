@@ -50,9 +50,13 @@ class PythonCode(private val body: Module, val filename: String? = null, val pyt
         }
 
     companion object {
-        fun getFromString(code: String, filename: String? = null, pythonModule: String? = null): PythonCode {
-            val ast = textToModule(code)
-            return PythonCode(ast, filename, pythonModule)
+        fun getFromString(code: String, filename: String? = null, pythonModule: String? = null): PythonCode? {
+            try {
+                val ast = textToModule(code)
+                return PythonCode(ast, filename, pythonModule)
+            } catch (_: Throwable) {
+                return null
+            }
         }
     }
 }

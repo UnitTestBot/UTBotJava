@@ -157,11 +157,11 @@ object PythonTypesStorage {
 
         directoriesForSysPath.forEach { path ->
             val pathFile = File(path)
-            getPythonFiles(pathFile).forEach { file ->
+            getPythonFiles(pathFile).forEach inner@{ file ->
                 if (!processedFiles.contains(file)) {
                     processedFiles.add(file)
                     val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
-                    val code = PythonCode.getFromString(content, file.path) ?: return@forEach
+                    val code = PythonCode.getFromString(content, file.path) ?: return@inner
                     projectClassesSet += code.getToplevelClasses().map { pyClass ->
                         val collector = ClassInfoCollector(pyClass)
                         val module = getModuleNameWithoutCheck(pathFile, file)

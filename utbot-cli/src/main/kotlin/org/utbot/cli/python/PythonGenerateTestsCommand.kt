@@ -36,6 +36,11 @@ class PythonGenerateTestsCommand: CliktCommand(
         help = "Specify top-level class under test"
     )
 
+    private val mathods by option(
+        "-m", "--methods",
+        help = "Specify methods under test"
+    ).split(",")
+
     private val directoriesForSysPath by option(
         "-sp", "--sys-path",
         help = "Directories to add to sys.path"
@@ -86,22 +91,47 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
         val code = PythonCode.getFromString(sourceCodeContent, pythonModule = currentModule)
-        if (pythonClass == null) {
-            val functions = code.getToplevelFunctions()
-            return if (functions.isNotEmpty()) Success(functions) else Fail("No top-level functions in file to test.")
-        }
 
-        code.getToplevelClasses().forEach { curClass ->
-            if (curClass.name == pythonClass) {
-                val methods = curClass.methods.filter { it.name !in forbiddenMethods }
-                return if (methods.isNotEmpty())
-                    Success(methods)
-                else
-                    Fail("No methods in definition of class $pythonClass to test.")
+        val topLevelFunctions = code.getToplevelFunctions()
+        val selectedMethods = mathods
+        if (pythonClass == null && mathods == null) {
+            return if (topLevelFunctions.isNotEmpty())
+                Success(topLevelFunctions)
+            else
+                Fail("No top-level functions in the source file to test.")
+        } else if (pythonClass == null && selectedMethods != null) {
+            val pythonMethodsOpt = selectedMethods.map { functionName ->
+                topLevelFunctions
+                    .find { it.name == functionName }
+                    ?.let { Success(it) }
+                    ?: Fail("Couldn't find top-level function $functionName in the source file.")
             }
+            return pack(*pythonMethodsOpt.toTypedArray())
         }
 
-        return Fail("Couldn't find class $pythonClass in file $output.")
+        val pythonClassFromSources = code.getToplevelClasses().find { it.name == pythonClass }
+            ?.let { Success(it) }
+            ?: Fail("Couldn't find class $pythonClass in the source file.")
+
+        val methods = bind(pythonClassFromSources) {
+            val fineMethods: List<PythonMethod> = it.methods.filter { method -> method.name !in forbiddenMethods }
+            if (fineMethods.isNotEmpty())
+                Success(fineMethods)
+            else
+                Fail("No methods in definition of class $pythonClass to test.")
+        }
+
+        if (selectedMethods == null)
+            return methods
+
+        return bind(methods) { classFineMethods ->
+            pack(
+                *(selectedMethods.map { methodName ->
+                    classFineMethods.find { it.name == methodName } ?.let { Success(it) }
+                        ?: Fail("Couldn't find method $methodName of class $pythonClass")
+                }).toTypedArray()
+            )
+        }
     }
 
     private lateinit var currentPythonModule: String
@@ -115,11 +145,11 @@ class PythonGenerateTestsCommand: CliktCommand(
         val outputFile = File(output.toAbsolutePath())
         testSourceRoot = outputFile.parentFile.path
         outputFilename = outputFile.name
-        val currentPythonModuleE = findCurrentPythonModule()
+        val currentPythonModuleOpt = findCurrentPythonModule()
         sourceFileContent = File(sourceFile).readText()
-        val pythonMethodsE = bind(currentPythonModuleE) { getPythonMethods(sourceFileContent, it) }
+        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, it) }
 
-        return bind(pack(currentPythonModuleE, pythonMethodsE)) {
+        return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
             currentPythonModule = it[0] as String
             pythonMethods = it[1] as List<PythonMethod>
             Success(Unit)

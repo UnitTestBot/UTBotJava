@@ -13,8 +13,8 @@ fun <A, B> bind(
         is Success -> f(value.value)
     }
 
-fun pack(vararg values: Optional<out Any>): Optional<List<Any>> {
-    val result = mutableListOf<Any>()
+fun <A> pack(vararg values: Optional<out A>): Optional<List<A>> {
+    val result = mutableListOf<A>()
     for (elem in values) {
         when (elem) {
             is Fail -> return Fail(elem.message)

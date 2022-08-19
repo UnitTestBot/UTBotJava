@@ -91,7 +91,8 @@ class PythonGenerateTestsCommand: CliktCommand(
     private val forbiddenMethods = listOf("__init__", "__new__")
 
     private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
-        val code = PythonCode.getFromString(sourceCodeContent, sourceFile, pythonModule = currentModule)!!
+        val code = PythonCode.getFromString(sourceCodeContent, sourceFile, pythonModule = currentModule)
+            ?: return Fail("Couldn't parse source file. Maybe it contains syntax error?")
 
         val topLevelFunctions = code.getToplevelFunctions()
         val selectedMethods = methods

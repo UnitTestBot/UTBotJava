@@ -77,8 +77,8 @@ object PythonDialogProcessor {
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod> {
-        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule)
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
+        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule) ?: return null
 
         val shownFunctions: Set<PythonMethod> =
             if (model.containingClass == null) {
@@ -104,6 +104,15 @@ object PythonDialogProcessor {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
                 val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
+                val methods = findSelectedPythonMethods(model)
+                if (methods == null) {
+                    showErrorDialogLater(
+                        project,
+                        message = "Couldn't parse file. Maybe it contains syntax error?",
+                        title = "Python test generation error"
+                    )
+                    return
+                }
                 processTestGeneration(
                     pythonPath = pythonPath,
                     testSourceRoot = model.testSourceRoot!!.path,
@@ -111,7 +120,7 @@ object PythonDialogProcessor {
                     pythonFileContent = getContentFromPyFile(model.file),
                     directoriesForSysPath = model.directoriesForSysPath,
                     currentPythonModule = model.currentPythonModule,
-                    pythonMethods = findSelectedPythonMethods(model),
+                    pythonMethods = methods,
                     containingClassName = model.containingClass?.name,
                     timeout = model.timeout,
                     testFramework = model.testFramework,
@@ -195,9 +204,9 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
-fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode {
+fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode? {
     val content = getContentFromPyFile(file)
-    return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)!!
+    return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)
 }
 
 fun getDirectoriesForSysPath(

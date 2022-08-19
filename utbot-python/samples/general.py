@@ -19,7 +19,6 @@ class A:
         return n
 
 
-
 def empty_():
     pass
 

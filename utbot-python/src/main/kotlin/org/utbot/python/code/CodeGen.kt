@@ -4,10 +4,13 @@ import io.github.danielnaczo.python3parser.model.Identifier
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
+import io.github.danielnaczo.python3parser.model.expr.atoms.None
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
+import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
+import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
@@ -16,8 +19,6 @@ import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStm
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.ExceptHandler
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.Try
-import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.With
-import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.WithItem
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Alias
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
@@ -39,7 +40,7 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    private fun createOutputBlock(outputName: String, status: String): List<Statement> {
+    private fun createOutputBlock(outputName: String, status: String, coverageName: String): List<Statement> {
         return listOf(
             Assign(
                 listOf(Name("out")),
@@ -54,7 +55,7 @@ object PythonCodeGenerator {
                 Name("print"),
                 listOf(
                     createArguments(
-                        listOf(Str("'$status'"), Name("json.dumps(out)")),
+                        listOf(Str("'$status'"), Name("json.dumps(out)"), Name(coverageName)),
                         listOf(
                             Keyword(Name("end"), Str("''")),
                             Keyword(Name("sep"), Str("'\\n'"))
@@ -83,7 +84,6 @@ object PythonCodeGenerator {
             Alias("sys"),
             Alias("typing"),
             Alias("json"),
-            Alias("builtins"),
             Alias("inspect"),
         ))
         val systemCalls = directoriesForSysPath.map { path ->
@@ -155,27 +155,42 @@ object PythonCodeGenerator {
             )
         }
         val resultName = "result"
+        val coverageLines = "coverage_lines"
+
         val functionCall =
+            if (method.containingPythonClassId == null)
+                generateFunctionCallForTopLevelFunction(method)
+            else
+                generateMethodCall(method)
+
+        val functionCoverageDef = coverageCollectorCode()
+
+        val functionCallWithCoverage =
             Assign(
-                listOf(Name(resultName)),
-                if (method.containingPythonClassId == null)
-                    generateFunctionCallForTopLevelFunction(method)
-                else
-                    generateMethodCall(method)
+                listOf(Tuple(listOf(Name(resultName), Name(coverageLines)))),
+                Atom(
+                    Name(coverageCollectorName),
+                    listOf(createArguments(
+                        listOf(Str(method.moduleFilename), functionCall),
+                        method.arguments.map { Keyword(Name(it.name), Name(it.name))}
+                    ))
+                )
             )
 
         val okOutputBlock = createOutputBlock(
             resultName,
-            successStatus
+            successStatus,
+            coverageLines
         )
 
         val exceptionName = "e"
         val failOutputBlock = createOutputBlock(
             exceptionName,
-            failStatus
+            failStatus,
+            ""
         )
 
-        val tryBody = Body(parameters + listOf(functionCall) + okOutputBlock)
+        val tryBody = Body(parameters + listOf(functionCallWithCoverage) + okOutputBlock)
         val tryHandler = ExceptHandler("Exception", exceptionName)
         val tryBlock = Try(tryBody, listOf(tryHandler), listOf(Body(failOutputBlock)))
 
@@ -188,7 +203,7 @@ object PythonCodeGenerator {
             listOf(createArguments())
         )
 
-        return pythonTreeSerializerCode + "\n\n\n" + toString(
+        return pythonTreeSerializerCode + "\n\n\n" + functionCoverageDef + "\n\n\n" + toString(
             Module(
                 importStatements + listOf(testFunction, runFunction)
             )
@@ -228,4 +243,25 @@ object PythonCodeGenerator {
             )
         )
     }
+
+    private const val coverageCollectorName: String = "coverage_collector"
+    private fun coverageCollectorCode(): String = """
+    def ${this.coverageCollectorName}(fullpath, function, **kwargs):
+        import inspect
+        from coverage import Coverage
+
+        def get_function_line_numbers(func):
+            rows, start_row = inspect.getsourcelines(func)
+            return start_row, start_row + len(rows)
+
+        cov = Coverage()
+        cov.start()
+
+        result = function(**kwargs)
+
+        cov.stop()
+        coverage_lines = cov.get_data().lines(fullpath)
+        first, last = get_function_line_numbers(func)
+        return result, [line for line in coverage_lines if first <= line < last]
+    """.trimIndent()
 }

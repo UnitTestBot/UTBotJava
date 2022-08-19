@@ -89,8 +89,8 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private val forbiddenMethods = listOf("__init__", "__new__")
 
-    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
-        val code = PythonCode.getFromString(sourceCodeContent, pythonModule = currentModule)
+    private fun getPythonMethods(sourceCodeContent: String, filename: String, currentModule: String): Optional<List<PythonMethod>> {
+        val code = PythonCode.getFromString(sourceCodeContent, filename, currentModule)
 
         val topLevelFunctions = code.getToplevelFunctions()
         val selectedMethods = methods
@@ -147,7 +147,7 @@ class PythonGenerateTestsCommand: CliktCommand(
         outputFilename = outputFile.name
         val currentPythonModuleOpt = findCurrentPythonModule()
         sourceFileContent = File(sourceFile).readText()
-        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, it) }
+        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, outputFile.absolutePath, it) }
 
         return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
             currentPythonModule = it[0] as String

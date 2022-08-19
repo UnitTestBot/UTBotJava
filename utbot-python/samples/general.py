@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import logging
 
 
-def empty_():
-    pass
+def test_call(x):
+    return repr_test(x)
 
 
 def zero_division(x):

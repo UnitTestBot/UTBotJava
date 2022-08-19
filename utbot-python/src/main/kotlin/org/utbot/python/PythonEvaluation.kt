@@ -1,8 +1,7 @@
 package org.utbot.python
 
-import org.utbot.framework.plugin.api.PythonClassId
-import org.utbot.framework.plugin.api.PythonTree
-import org.utbot.framework.plugin.api.UtModel
+import com.beust.klaxon.Klaxon
+import org.utbot.framework.plugin.api.*
 import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator
 import org.utbot.python.typing.PythonClassIdInfo
@@ -12,9 +11,14 @@ import org.utbot.python.utils.runCommand
 
 sealed class EvaluationResult
 object EvaluationError : EvaluationResult()
-class EvaluationSuccess(val output: OutputData, val isException: Boolean): EvaluationResult() {
+class EvaluationSuccess(
+    private val output: OutputData,
+    private val isException: Boolean,
+    private val coverage: Coverage,
+): EvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
+    operator fun component3() = coverage
 }
 
 data class OutputData(val output: PythonTree.PythonTreeNode, val type: PythonClassId)
@@ -54,10 +58,19 @@ object PythonEvaluation {
         val isSuccess = status == PythonCodeGenerator.successStatus
 
         val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
+        val coverage = Coverage(Klaxon().parseArray<Int>(output[2])!!.map {
+            Instruction(
+                method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                method.methodSignature(),
+                it,
+                it.toLong()
+            )
+        })
 
         return EvaluationSuccess(
             OutputData(pythonTree, pythonTree.type),
-            !isSuccess
+            !isSuccess,
+            coverage,
         )
     }
 }

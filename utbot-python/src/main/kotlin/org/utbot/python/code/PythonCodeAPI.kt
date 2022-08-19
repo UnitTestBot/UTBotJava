@@ -27,10 +27,10 @@ import org.utbot.python.utils.moduleOfType
 import java.util.*
 
 
-class PythonCode(private val body: Module, val filename: String? = null, val pythonModule: String? = null) {
+class PythonCode(private val body: Module, val filename: String, val pythonModule: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
         body.functionDefs.mapNotNull { functionDef ->
-                PythonMethodBody(functionDef, filename ?: "")
+                PythonMethodBody(functionDef, filename)
             }
 
     fun getToplevelClasses(): List<PythonClass> =
@@ -56,7 +56,7 @@ class PythonCode(private val body: Module, val filename: String? = null, val pyt
         }
 
     companion object {
-        fun getFromString(code: String, filename: String? = null, pythonModule: String? = null): PythonCode {
+        fun getFromString(code: String, filename: String, pythonModule: String? = null): PythonCode {
             val ast = textToModule(code)
             return PythonCode(ast, filename, pythonModule)
         }

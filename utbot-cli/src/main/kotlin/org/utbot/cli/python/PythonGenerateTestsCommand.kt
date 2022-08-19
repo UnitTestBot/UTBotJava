@@ -25,7 +25,7 @@ private val logger = KotlinLogging.logger {}
 
 class PythonGenerateTestsCommand: CliktCommand(
     name = "generate_python",
-    help = "Generates tests for specified Python class or top-level functions from specified file"
+    help = "Generate tests for specified Python class or top-level functions from specified file"
 ) {
     private val sourceFile by argument(
         help = "File with Python code to generate tests for"
@@ -36,7 +36,7 @@ class PythonGenerateTestsCommand: CliktCommand(
         help = "Specify top-level class under test"
     )
 
-    private val mathods by option(
+    private val methods by option(
         "-m", "--methods",
         help = "Specify methods under test"
     ).split(",")
@@ -63,7 +63,7 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private val timeout by option(
         "-t", "--timeout",
-        help = "Specifies the maximum time in milliseconds used to generate tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)"
+        help = "Specify the maximum time in milliseconds used to generate tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)"
     ).long().default(DEFAULT_TIMEOUT_IN_MILLIS)
 
     private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used")
@@ -93,8 +93,8 @@ class PythonGenerateTestsCommand: CliktCommand(
         val code = PythonCode.getFromString(sourceCodeContent, pythonModule = currentModule)
 
         val topLevelFunctions = code.getToplevelFunctions()
-        val selectedMethods = mathods
-        if (pythonClass == null && mathods == null) {
+        val selectedMethods = methods
+        if (pythonClass == null && methods == null) {
             return if (topLevelFunctions.isNotEmpty())
                 Success(topLevelFunctions)
             else

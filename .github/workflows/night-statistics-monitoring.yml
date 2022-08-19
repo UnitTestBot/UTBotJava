@@ -70,8 +70,12 @@ jobs:
       - name: Insert metadata
         run: |
           python monitoring/insert_metadata.py \
-            $output_stats "$data_path/data-$branch-$date-$timestamp-$short_commit.json" \
-            "$commit" "$build"
+            --stats_file $output_stats \
+            --output_file "$data_path/data-$branch-$date-$timestamp-$short_commit.json" \
+            --commit $commit \
+            --build "$build" \
+            --timestamp $timestamp \
+            --source "github-action-$run_id"
         env:
           date: ${{ steps.date.outputs.date }}
           timestamp: ${{ steps.date.outputs.timestamp }}
@@ -79,12 +83,15 @@ jobs:
           short_commit: ${{ steps.metadata.outputs.short_commit }}
           branch: ${{ steps.metadata.outputs.branch }}
           build: ${{ steps.metadata.outputs.build }}
+          run_id: ${{ github.run_id }}
 
       - name: Build aggregated data (last month)
         run: |
           python monitoring/build_aggregated_data.py \
-            $data_path $aggregated_data_path/aggregated-data-$date.json \
-            $timestamp_from $timestamp
+            --input_data_dir $data_path \
+            --output_file $aggregated_data_path/aggregated-data-$date.json \
+            --timestamp_from $timestamp_from \
+            --timestamp_to $timestamp
         env:
           date: ${{ steps.date.outputs.date }}
           timestamp: ${{ steps.date.outputs.timestamp }}

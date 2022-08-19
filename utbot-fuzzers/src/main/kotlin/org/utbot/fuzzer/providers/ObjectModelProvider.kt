@@ -77,6 +77,7 @@ class ObjectModelProvider(
                         nonRecursiveModelProvider
                     )
                 }
+                .asSequence()
                 .flatMap { (constructorId, fuzzedParameters) ->
                     if (constructorId.parameters.isEmpty()) {
                         sequenceOf(assembleModel(idGenerator.createId(), constructorId, emptyList())) +

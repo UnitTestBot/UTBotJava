@@ -11,9 +11,10 @@ import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -336,15 +337,21 @@ class SarifReport(
      * Returns the number of the last line in the execution path.
      */
     private fun getLastLineNumber(utExecution: UtExecution): Int? {
-        val lastPathLine = try {
-            utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
-        } catch (t: Throwable) {
-            null
-        }
         // if for some reason we can't extract the last line from the path
         val lastCoveredInstruction =
             utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
-        return lastPathLine ?: lastCoveredInstruction
+
+        return if (utExecution is UtSymbolicExecution) {
+            val lastPathLine = try {
+                utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
+            } catch (t: Throwable) {
+                null
+            }
+
+            lastPathLine ?: lastCoveredInstruction
+        } else {
+            lastCoveredInstruction
+        }
     }
 
     private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {

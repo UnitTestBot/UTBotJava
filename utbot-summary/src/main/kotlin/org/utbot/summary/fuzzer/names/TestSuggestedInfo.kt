@@ -1,4 +1,4 @@
-package org.utbot.fuzzer.names
+package org.utbot.summary.fuzzer.names
 
 /**
  * Information that can be used to generate test names.

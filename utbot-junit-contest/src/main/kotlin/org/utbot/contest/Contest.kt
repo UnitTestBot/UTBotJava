@@ -27,16 +27,8 @@ import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.junitByVersion
 import org.utbot.framework.codegen.model.CodeGenerator
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.instrumentation.ConcreteExecutor
@@ -62,6 +54,13 @@ import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 import org.utbot.common.filterWhen
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.TestCaseGenerator
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.util.isKnownSyntheticMethod
 
 internal const val junitVersion = 4

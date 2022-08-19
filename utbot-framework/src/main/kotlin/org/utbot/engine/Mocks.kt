@@ -168,7 +168,13 @@ class Mocker(
     fun shouldMock(
         type: RefType,
         mockInfo: UtMockInfo,
-    ): Boolean = checkIfShouldMock(type, mockInfo).also { if (it) mockListenerController?.onShouldMock(strategy, mockInfo) }
+    ): Boolean = checkIfShouldMock(type, mockInfo).also {
+        //[utbotSuperClasses] are not involved in code generation, so
+        //we shouldn't listen events that such mocks happened
+        if (it && type.id !in utbotSuperClasses.map { it.id }) {
+            mockListenerController?.onShouldMock(strategy, mockInfo)
+        }
+    }
 
     private fun checkIfShouldMock(
         type: RefType,

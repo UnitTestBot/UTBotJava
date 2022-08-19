@@ -9,7 +9,7 @@ import org.utbot.examples.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_CLASSES
 import org.junit.jupiter.api.Test
 
-internal class MockFinalClassTest : UtValueTestCaseChecker(testClass = MockReturnObjectExample::class) {
+internal class MockFinalClassTest : UtValueTestCaseChecker(testClass = MockFinalClassExample::class) {
     @Test
     fun testFinalClass() {
         checkMocks(

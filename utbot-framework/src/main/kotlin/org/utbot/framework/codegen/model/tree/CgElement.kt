@@ -7,6 +7,20 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.DocClassLinkStmt
+import org.utbot.framework.plugin.api.DocCodeStmt
+import org.utbot.framework.plugin.api.DocMethodLinkStmt
+import org.utbot.framework.plugin.api.DocPreTagStatement
+import org.utbot.framework.plugin.api.DocRegularStmt
+import org.utbot.framework.plugin.api.DocStatement
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.TypeParameters
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -63,6 +77,7 @@ interface CgElement {
             is CgDeclaration -> visit(element)
             is CgAssignment -> visit(element)
             is CgTypeCast -> visit(element)
+            is CgIsInstance -> visit(element)
             is CgThisInstance -> visit(element)
             is CgNotNullAssertion -> visit(element)
             is CgVariable -> visit(element)
@@ -120,6 +135,8 @@ data class CgTestClass(
     val superclass: ClassId?,
     val interfaces: List<ClassId>,
     val body: CgTestClassBody,
+    val isStatic: Boolean,
+    val isNested: Boolean
 ) : CgElement {
     val packageName = id.packageName
     val simpleName = id.simpleName
@@ -127,7 +144,8 @@ data class CgTestClass(
 
 data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
-    val utilsRegion: List<CgRegion<CgElement>>
+    val utilsRegion: List<CgRegion<CgElement>>,
+    val nestedClassRegions: List<CgRegion<CgTestClass>>
 ) : CgElement {
     val regions: List<CgRegion<*>>
         get() = testMethodRegions
@@ -536,6 +554,16 @@ class CgTypeCast(
     override val type: ClassId = targetType
 }
 
+/**
+ * Represents [java.lang.Class.isInstance] method.
+ */
+class CgIsInstance(
+    val classExpression: CgExpression,
+    val value: CgExpression,
+): CgExpression {
+    override val type: ClassId = booleanClassId
+}
+
 // Value
 
 // TODO in general CgLiteral is not CgReferenceExpression because it can hold primitive values
@@ -630,6 +658,7 @@ data class CgParameterDeclaration(
 sealed class CgParameterKind {
     object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
+    data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()
     object ExpectedException : CgParameterKind()
 }

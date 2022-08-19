@@ -1,7 +1,7 @@
 package org.utbot.summary.tag
 
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.summary.clustering.SplitSteps
 import soot.jimple.Stmt
@@ -19,7 +19,7 @@ open class TraceTagWithoutExecution(val path: List<Step>, val result: UtExecutio
     val noIterationCall = mutableListOf<Set<Stmt>>()
     var returnsToNumber: Map<JReturnStmt, Int>? = null
 
-    constructor(execution: UtExecution, splitSteps: SplitSteps) : this(execution.path, execution.result, splitSteps)
+    constructor(execution: UtSymbolicExecution, splitSteps: SplitSteps) : this(execution.path, execution.result, splitSteps)
 
     /*
     *  If stmt is already contained in the previously registered iteration, it is not registered a second time.

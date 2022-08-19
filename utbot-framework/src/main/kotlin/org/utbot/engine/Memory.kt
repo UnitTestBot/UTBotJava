@@ -56,6 +56,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
+import org.utbot.framework.plugin.api.classId
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -123,7 +124,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     private val concrete: PersistentMap<UtAddrExpression, Concrete> = persistentHashMapOf(),
     private val mockInfos: PersistentList<MockInfoEnriched> = persistentListOf(),
     private val staticInstanceStorage: PersistentMap<ClassId, ObjectValue> = persistentHashMapOf(),
-    private val initializedStaticFields: PersistentMap<FieldId, Any?> = persistentHashMapOf(),
+    private val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val staticFieldsStates: PersistentMap<FieldId, FieldStates> = persistentHashMapOf(),
     private val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
@@ -147,7 +148,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     private val speculativelyNotNullAddresses: UtArrayExpressionBase = UtConstArrayExpression(
         UtFalse,
         UtArraySort(UtAddrSort, UtBoolSort)
-    )
+    ),
+    private val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     val chunkIds: Set<ChunkId>
         get() = initial.keys
@@ -288,7 +290,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             concrete = concrete.putAll(update.concrete),
             mockInfos = mockInfos.mergeWithUpdate(update.mockInfos),
             staticInstanceStorage = staticInstanceStorage.putAll(update.staticInstanceStorage),
-            initializedStaticFields = initializedStaticFields.putAll(update.initializedStaticFields),
+            initializedStaticFields = initializedStaticFields.addAll(update.initializedStaticFields),
             staticFieldsStates = previousMemoryStates.toPersistentMap().putAll(updatedStaticFields),
             meaningfulStaticFields = meaningfulStaticFields.addAll(update.meaningfulStaticFields),
             addrToArrayType = addrToArrayType.putAll(update.addrToArrayType),
@@ -297,7 +299,8 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             visitedValues = updVisitedValues,
             touchedAddresses = updTouchedAddresses,
             instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads),
-            speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses
+            speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses,
+            symbolicEnumValues = symbolicEnumValues.addAll(update.symbolicEnumValues)
         )
     }
 
@@ -306,7 +309,6 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      * Execution can continue to collect updates for particular piece of code.
      */
     fun memoryForNestedMethod(): Memory = this.copy(updates = MemoryUpdate())
-
 
     /**
      * Returns copy of queued [updates] which consists only of updates of static fields.
@@ -350,6 +352,9 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun findStaticInstanceOrNull(id: ClassId): ObjectValue? = staticInstanceStorage[id]
 
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
+
+    fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
+        symbolicEnumValues.filter { it.type.classId == classId }
 }
 
 /**
@@ -958,7 +963,7 @@ data class MemoryUpdate(
     val concrete: PersistentMap<UtAddrExpression, Concrete> = persistentHashMapOf(),
     val mockInfos: PersistentList<MockInfoEnriched> = persistentListOf(),
     val staticInstanceStorage: PersistentMap<ClassId, ObjectValue> = persistentHashMapOf(),
-    val initializedStaticFields: PersistentMap<FieldId, Any?> = persistentHashMapOf(),
+    val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val staticFieldsUpdates: PersistentList<StaticFieldMemoryUpdateInfo> = persistentListOf(),
     val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
@@ -967,7 +972,8 @@ data class MemoryUpdate(
     val touchedAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
     val classIdToClearStatics: ClassId? = null,
     val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
-    val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf()
+    val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
+    val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =
         this.copy(
@@ -976,7 +982,7 @@ data class MemoryUpdate(
             concrete = concrete.putAll(other.concrete),
             mockInfos = mockInfos.mergeWithUpdate(other.mockInfos),
             staticInstanceStorage = staticInstanceStorage.putAll(other.staticInstanceStorage),
-            initializedStaticFields = initializedStaticFields.putAll(other.initializedStaticFields),
+            initializedStaticFields = initializedStaticFields.addAll(other.initializedStaticFields),
             staticFieldsUpdates = staticFieldsUpdates.addAll(other.staticFieldsUpdates),
             meaningfulStaticFields = meaningfulStaticFields.addAll(other.meaningfulStaticFields),
             addrToArrayType = addrToArrayType.putAll(other.addrToArrayType),
@@ -986,7 +992,11 @@ data class MemoryUpdate(
             classIdToClearStatics = other.classIdToClearStatics,
             instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads),
             speculativelyNotNullAddresses = speculativelyNotNullAddresses.addAll(other.speculativelyNotNullAddresses),
+            symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
+
+    fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
+        symbolicEnumValues.filter { it.type.classId == classId }
 }
 
 // array - Java Array

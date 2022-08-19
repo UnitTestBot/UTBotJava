@@ -105,7 +105,7 @@ object FileUtil {
         return tempDir
     }
 
-    private fun URI.extractJarName(): URI = URI(this.schemeSpecificPart.substringBefore("!"))
+    private fun URI.extractJarName(): URI = URI(this.schemeSpecificPart.substringBefore("!").replace(" ", "%20"))
 
     private fun extractClassFromArchive(archiveFile: Path, clazz: KClass<*>, destPath: Path) {
         val classFilePath = clazz.toClassFilePath()

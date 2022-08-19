@@ -13,6 +13,12 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.visitor.CgAbstractRenderer
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.codegen.model.constructor.TestClassModel
 
 class CodeGenerator(
     val classUnderTest: ClassId,
@@ -62,8 +68,9 @@ class CodeGenerator(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
-        context.withClassScope {
-            val testClassFile = CgTestClassConstructor(context).construct(cgTestSets)
+        context.withTestClassFileScope {
+            val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
+            val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
             TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
         }
     }
@@ -77,8 +84,8 @@ class CodeGenerator(
         val prevContext = context
         return try {
             context = prevContext.copy(
-                shouldOptimizeImports = true,
-                testClassCustomName = testClassCustomName
+                    shouldOptimizeImports = true,
+                    testClassCustomName = testClassCustomName
             )
             block()
         } finally {

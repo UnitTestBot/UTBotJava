@@ -42,7 +42,13 @@ class PythonCode(private val body: Module, val filename: String? = null, val pyt
         body.statements.flatMap { statement ->
             when (statement) {
                 is Import -> statement.names.map { it.name.name }
-                is ImportFrom -> listOf(statement.module.get().name)
+                is ImportFrom -> {
+                    try {
+                        listOf(statement.module.get().name)
+                    } catch (e: NoSuchElementException) {
+                        emptyList()
+                    }
+                }
                 else -> emptyList()
             }
         }.toSet().map {

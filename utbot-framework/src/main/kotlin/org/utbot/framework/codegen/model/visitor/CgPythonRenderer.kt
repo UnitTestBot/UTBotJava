@@ -383,7 +383,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgPythonAssertEquals) {
         print("${element.keyword} ")
-        visit(element.expression)
+        element.expression.accept(this)
         println()
     }
 

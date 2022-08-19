@@ -1,6 +1,5 @@
 package org.utbot.instrumentation.instrumentation
 
-import org.utbot.instrumentation.util.Protocol
 import java.lang.instrument.ClassFileTransformer
 
 /**
@@ -24,16 +23,6 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
         arguments: ArgumentList,
         parameters: Any? = null
     ): TInvocationInstrumentation
-
-    /**
-     * This function will be called from the child process loop every time it receives [Protocol.InstrumentationCommand] from the main process.
-     *
-     * @return Handles [cmd] and returns command which should be sent back to the [org.utbot.instrumentation.ConcreteExecutor].
-     * If returns `null`, nothing will be sent.
-     */
-    fun <T : Protocol.InstrumentationCommand> handle(cmd: T): Protocol.Command? {
-        return null
-    }
 
     /**
      * Will be called in the very beginning in the child process.

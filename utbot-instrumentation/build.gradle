@@ -2,6 +2,7 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
     api project(':utbot-framework-api')
+    implementation project(':utbot-rd')
 
     implementation group: 'org.ow2.asm', name: 'asm', version: asm_version
     implementation group: 'org.ow2.asm', name: 'asm-commons', version: asm_version
@@ -9,6 +10,10 @@ dependencies {
     // this is necessary for serialization of some collections
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryo_serializers_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+
 
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'

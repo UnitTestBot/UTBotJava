@@ -20,6 +20,9 @@ dependencies {
     //implementation 'junit:junit:4.13.1'
     api project(':utbot-framework-api')
 
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
 
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version

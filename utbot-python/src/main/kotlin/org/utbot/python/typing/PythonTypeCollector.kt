@@ -136,10 +136,15 @@ object PythonTypesStorage {
                 FileFilterUtils.suffixFileFilter(".py"),
                 FileFilterUtils.notFileFilter(
                     FileFilterUtils.prefixFileFilter("test")
-                )
+                ),
             ),
-            /* dirFilter = */ FileFilterUtils.notFileFilter(
-                NameFileFilter("test")
+            /* dirFilter = */ FileFilterUtils.and(
+                FileFilterUtils.notFileFilter(
+                    NameFileFilter("test")
+                ),
+                FileFilterUtils.notFileFilter(
+                    FileFilterUtils.suffixFileFilter("venv")
+                )
             )
         )
 

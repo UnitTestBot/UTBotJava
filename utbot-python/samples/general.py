@@ -19,6 +19,20 @@ class A:
         return n
 
 
+def conditions(x):
+    if x % 100 == 0:
+        return 1
+    elif x + 100 < 400:
+        return 2
+    else:
+        if x == complex(1, 2):
+            return x.real
+        elif len(str(x)) > 3:
+            return 3
+        else:
+            return 4
+
+
 def test_call(x):
     return repr_test(x)
 

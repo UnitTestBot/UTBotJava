@@ -39,7 +39,7 @@ object PythonTestGenerationProcessor {
         startedTestGenerationAction: () -> Unit = {},
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
         generatedFileWithTestsAction: (File) -> Unit = {},
-        processMypyWarnings: (String) -> Unit = {},
+        processMypyWarnings: (List<String>) -> Unit = {},
         startedCleaningAction: () -> Unit = {},
         finishedAction: (List<String>) -> Unit = {}  // take names of functions with generated tests
     ) {
@@ -133,7 +133,7 @@ object PythonTestGenerationProcessor {
                 generatedFileWithTestsAction(testFile)
             }
 
-            val mypyReport = notEmptyTests.fold(StringBuilder()) { acc, testSet ->
+            val mypyReport = notEmptyTests.flatMap { testSet ->
                 val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
                 val msgLines = testSet.mypyReport.mapNotNull {
                     if (it.file != MypyAnnotations.TEMPORARY_MYPY_FILE)
@@ -144,13 +144,13 @@ object PythonTestGenerationProcessor {
                         "${it.type}: ${it.message}"
                 }
                 if (msgLines.isNotEmpty()) {
-                    acc.appendHtmlLine("MYPY REPORT (function ${testSet.method.name})")
-                    msgLines.forEach { acc.appendHtmlLine(it) }
+                    listOf("MYPY REPORT (function ${testSet.method.name})") + msgLines
+                } else {
+                    emptyList()
                 }
-                acc
-            }.toString()
+            }
 
-            if (mypyReport != "")
+            if (mypyReport.isNotEmpty())
                 processMypyWarnings(mypyReport)
 
             finishedAction(notEmptyTests.map { it.method.name })

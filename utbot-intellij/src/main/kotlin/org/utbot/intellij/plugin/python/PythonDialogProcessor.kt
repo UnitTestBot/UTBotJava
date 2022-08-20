@@ -1,6 +1,7 @@
 package org.utbot.intellij.plugin.python
 
 import com.intellij.openapi.application.invokeAndWaitIfNeeded
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
@@ -9,6 +10,7 @@ import com.intellij.openapi.progress.Task.Backgroundable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -18,6 +20,7 @@ import com.jetbrains.python.psi.PyClass
 import org.jetbrains.kotlin.idea.util.module
 import org.jetbrains.kotlin.idea.util.projectStructure.sdk
 import org.utbot.common.PathUtil.toPath
+import org.utbot.common.appendHtmlLine
 import org.utbot.framework.UtSettings
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
@@ -28,6 +31,8 @@ import org.utbot.python.PythonMethod
 import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
+import org.utbot.python.utils.RequirementsUtils.installRequirements
+import org.utbot.python.utils.RequirementsUtils.requirements
 
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
@@ -72,8 +77,8 @@ object PythonDialogProcessor {
         )
     }
 
-    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod> {
-        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule)
+    private fun findSelectedPythonMethods(model: PythonTestsModel): List<PythonMethod>? {
+        val code = getPyCodeFromPyFile(model.file, model.currentPythonModule) ?: return null
 
         val shownFunctions: Set<PythonMethod> =
             if (model.containingClass == null) {
@@ -98,14 +103,24 @@ object PythonDialogProcessor {
     private fun createTests(project: Project, model: PythonTestsModel) {
         ProgressManager.getInstance().run(object : Backgroundable(project, "Generate python tests") {
             override fun run(indicator: ProgressIndicator) {
+                val pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter")
+                val methods = findSelectedPythonMethods(model)
+                if (methods == null) {
+                    showErrorDialogLater(
+                        project,
+                        message = "Couldn't parse file. Maybe it contains syntax error?",
+                        title = "Python test generation error"
+                    )
+                    return
+                }
                 processTestGeneration(
-                    pythonPath = model.srcModule.sdk?.homePath ?: error("Couldn't find Python interpreter"),
+                    pythonPath = pythonPath,
                     testSourceRoot = model.testSourceRoot!!.path,
                     pythonFilePath = model.file.virtualFile.path,
                     pythonFileContent = getContentFromPyFile(model.file),
                     directoriesForSysPath = model.directoriesForSysPath,
                     currentPythonModule = model.currentPythonModule,
-                    pythonMethods = findSelectedPythonMethods(model),
+                    pythonMethods = methods,
                     containingClassName = model.containingClass?.name,
                     timeout = model.timeout,
                     testFramework = model.testFramework,
@@ -114,11 +129,7 @@ object PythonDialogProcessor {
                     isCanceled = { indicator.isCanceled },
                     checkingRequirementsAction = { indicator.text = "Checking requirements" },
                     requirementsAreNotInstalledAction = {
-                        showErrorDialogLater(
-                            project,
-                            message = "Requirements are not installed",
-                            title = "Python test generation error"
-                        )
+                        askAndInstallRequirementsLater(model.project, pythonPath)
                         PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
                     },
                     startedLoadingPythonTypesAction = { indicator.text = "Loading information about Python types" },
@@ -138,11 +149,47 @@ object PythonDialogProcessor {
                             }
                         }
                     },
-                    processMypyWarnings = { WarningTestsReportNotifier.notify(it) },
+                    processMypyWarnings = {
+                        val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
+                        WarningTestsReportNotifier.notify(message.toString())
+                    },
                     startedCleaningAction = { indicator.text = "Cleaning up..." }
                 )
             }
         })
+    }
+
+    private fun askAndInstallRequirementsLater(project: Project, pythonPath: String) {
+        val message = """
+            Some requirements are not installed.
+            Requirements: ${requirements.joinToString()}
+            Install them?
+        """.trimIndent()
+        invokeLater {
+            val result = Messages.showYesNoDialog(
+                project,
+                message,
+                "Requirements error",
+                null,
+                null
+            )
+            if (result == Messages.NO)
+                return@invokeLater
+
+            ProgressManager.getInstance().run(object : Backgroundable(project, "Installing requirements") {
+                override fun run(indicator: ProgressIndicator) {
+                    val installResult = installRequirements(pythonPath)
+
+                    if (installResult.exitValue != 0) {
+                        showErrorDialogLater(
+                            project,
+                            "Requirements installing failed",
+                            "Requirements error"
+                        )
+                    }
+                }
+            })
+        }
     }
 }
 
@@ -157,7 +204,7 @@ fun findSrcModule(functions: Collection<PyFunction>): Module {
 
 fun getContentFromPyFile(file: PyFile) = file.viewProvider.contents.toString()
 
-fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode {
+fun getPyCodeFromPyFile(file: PyFile, pythonModule: String): PythonCode? {
     val content = getContentFromPyFile(file)
     return getFromString(content, file.virtualFile.path, pythonModule = pythonModule)
 }

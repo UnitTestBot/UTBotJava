@@ -15,6 +15,7 @@ import org.utbot.python.PythonTestGenerationProcessor
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.code.PythonCode
 import org.utbot.python.utils.RequirementsUtils.installRequirements
+import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.getModuleName
 import java.io.File
 import java.nio.file.Paths
@@ -89,8 +90,9 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private val forbiddenMethods = listOf("__init__", "__new__")
 
-    private fun getPythonMethods(sourceCodeContent: String, filename: String, currentModule: String): Optional<List<PythonMethod>> {
-        val code = PythonCode.getFromString(sourceCodeContent, filename, currentModule)
+    private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
+        val code = PythonCode.getFromString(sourceCodeContent, sourceFile, pythonModule = currentModule)
+            ?: return Fail("Couldn't parse source file. Maybe it contains syntax error?")
 
         val topLevelFunctions = code.getToplevelFunctions()
         val selectedMethods = methods
@@ -147,7 +149,7 @@ class PythonGenerateTestsCommand: CliktCommand(
         outputFilename = outputFile.name
         val currentPythonModuleOpt = findCurrentPythonModule()
         sourceFileContent = File(sourceFile).readText()
-        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, outputFile.absolutePath, it) }
+        val pythonMethodsOpt = bind(currentPythonModuleOpt) { getPythonMethods(sourceFileContent, it) }
 
         return bind(pack(currentPythonModuleOpt, pythonMethodsOpt)) {
             currentPythonModule = it[0] as String
@@ -162,11 +164,12 @@ class PythonGenerateTestsCommand: CliktCommand(
             val result = installRequirements(pythonPath)
             if (result.exitValue == 0)
                 return PythonTestGenerationProcessor.MissingRequirementsActionResult.INSTALLED
-            println(result.stderr)
+            System.err.println(result.stderr)
             logger.error("Failed to install requirements.")
         } else {
             logger.error("Missing some requirements. Please add --install-requirements flag or install them manually.")
         }
+        logger.info("Requirements: ${requirements.joinToString()}")
         return PythonTestGenerationProcessor.MissingRequirementsActionResult.NOT_INSTALLED
     }
 
@@ -195,7 +198,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             },
             requirementsAreNotInstalledAction = ::processMissingRequirements,
             startedLoadingPythonTypesAction = {
-                logger.info("Loading information about Python Types...")
+                logger.info("Loading information about Python types...")
             },
             startedTestGenerationAction = {
                 logger.info("Generating tests...")
@@ -205,6 +208,7 @@ class PythonGenerateTestsCommand: CliktCommand(
                     "Couldn't generate tests for the following functions: ${it.joinToString()}"
                 )
             },
+            processMypyWarnings = { messages -> messages.forEach { println(it) } },
             finishedAction = {
                 logger.info("Finished test generation for the following functions: ${it.joinToString()}")
             }

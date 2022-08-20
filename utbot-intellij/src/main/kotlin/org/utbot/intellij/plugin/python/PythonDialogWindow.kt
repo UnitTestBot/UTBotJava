@@ -1,21 +1,11 @@
 package org.utbot.intellij.plugin.python
 
-import com.intellij.openapi.fileChooser.FileChooser.chooseFiles
-import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.ScrollingUtil
-import com.intellij.ui.ToolbarDecorator
-import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.JBList
-import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.Panel
 import com.intellij.ui.layout.CellBuilder
 import com.intellij.ui.layout.Row
@@ -35,7 +25,6 @@ import java.util.concurrent.TimeUnit
 import javax.swing.*
 
 
-private const val SAME_PACKAGE_LABEL = "same as for sources"
 private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {

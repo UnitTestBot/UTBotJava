@@ -25,7 +25,9 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.python.*
 import org.utbot.python.utils.moduleOfType
 import java.util.*
+import mu.KotlinLogging
 
+private val logger = KotlinLogging.logger {}
 
 class PythonCode(private val body: Module, val filename: String, val pythonModule: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
@@ -34,12 +36,12 @@ class PythonCode(private val body: Module, val filename: String, val pythonModul
             }
 
     fun getToplevelClasses(): List<PythonClass> =
-        body.classDefs.mapNotNull { classDef ->
+        body.classDefs?.mapNotNull { classDef ->
                 PythonClass(classDef, filename, pythonModule)
-            }
+            } ?: emptyList()
 
     fun getToplevelModules(): List<PythonModule> =
-        body.statements.flatMap { statement ->
+        body.statements?.flatMap { statement ->
             when (statement) {
                 is Import -> statement.names.map { it.name.name }
                 is ImportFrom -> {
@@ -51,14 +53,19 @@ class PythonCode(private val body: Module, val filename: String, val pythonModul
                 }
                 else -> emptyList()
             }
-        }.toSet().map {
+        }?.toSet()?.map {
             PythonModule(it)
-        }
+        } ?: emptyList()
 
     companion object {
-        fun getFromString(code: String, filename: String, pythonModule: String? = null): PythonCode {
-            val ast = textToModule(code)
-            return PythonCode(ast, filename, pythonModule)
+        fun getFromString(code: String, filename: String, pythonModule: String? = null): PythonCode? {
+            logger.debug("Parsing file $filename")
+            return try {
+                val ast = textToModule(code)
+                if (ast.statements == null) null else PythonCode(ast, filename, pythonModule)
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 }
@@ -72,14 +79,16 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
         get() = ast.name.name
 
     val methods: List<PythonMethodBody>
-        get() = ast.functionDefs.map { PythonMethodBody(it, filename ?: "", pythonClassId) }
+        get() = ast.functionDefs?.map {
+            PythonMethodBody(it, filename ?: "", pythonClassId)
+        } ?: emptyList()
 
     val pythonClassId: PythonClassId?
         get() = pythonModule?.let { PythonClassId("$it.$name") }
 
     val initSignature: List<PythonArgument>?
         get() {
-            val ordinary = ast.functionDefs.find { it.name.name == "__init__" } ?.let {
+            val ordinary = ast.functionDefs?.find { it.name.name == "__init__" } ?.let {
                 PythonMethodBody(it, filename ?: "")
             }
             if (ordinary != null) {
@@ -92,6 +101,9 @@ class PythonClass(private val ast: ClassDef, val filename: String? = null, val p
                         astToString(it.annotation).trim()
                     )
                 }
+            }
+            if (ast.decorators.isEmpty() && (ast.arguments == null || !ast.arguments.isPresent)){
+                return emptyList()
             }
             return null
         }

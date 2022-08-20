@@ -91,8 +91,7 @@ object MypyAnnotations {
         val configContent = """
             [mypy]
             mypy_path = ${directoriesForSysPath.joinToString(separator = ":")}
-            strict_optional = True
-            show_none_errors = True
+            show_absolute_path = True
             """.trimIndent()
         FileManager.writeToAssignedFile(file, configContent)
         return file

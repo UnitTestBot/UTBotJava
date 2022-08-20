@@ -286,8 +286,7 @@ object PythonCodeGenerator {
     private const val getCoverageLinesName: String = "__get_coverage_lines"
     private val getCoverageLines: String = """
         def ${this.getCoverageLinesName}(function, coverage_lines):
-            rows, start_row = inspect.getsourcelines(function)
-            first, last = start_row, start_row + len(rows)
-            return [line for line in coverage_lines if first <= line < last]
+            start_row = inspect.getsourcelines(function)[1]
+            return coverage_lines + [start_row]
     """.trimIndent()
 }

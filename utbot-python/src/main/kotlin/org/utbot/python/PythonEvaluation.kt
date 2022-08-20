@@ -47,7 +47,7 @@ object PythonEvaluation {
 
         val output = result.stdout.split('\n')
 
-        if (output.size != 2)
+        if (output.size != 3)
             return EvaluationError
 
         val status = output[0]

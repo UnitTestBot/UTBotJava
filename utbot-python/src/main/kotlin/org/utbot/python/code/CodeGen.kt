@@ -4,12 +4,10 @@ import io.github.danielnaczo.python3parser.model.Identifier
 import io.github.danielnaczo.python3parser.model.expr.Expression
 import io.github.danielnaczo.python3parser.model.expr.atoms.Atom
 import io.github.danielnaczo.python3parser.model.expr.atoms.Name
-import io.github.danielnaczo.python3parser.model.expr.atoms.None
 import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
-import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.subscripts.Index
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
@@ -102,7 +100,7 @@ object PythonCodeGenerator {
         return listOf(systemImport) + systemCalls + additionalImport + listOf(import)
     }
 
-    private fun generateFunctionCallForTopLevelFunction(method: PythonMethod): Expression {
+    private fun generateFunctionCallForTopLevelFunction(method: PythonMethod): Atom {
         val keywords = method.arguments.map {
             Keyword(Name(it.name), Name(it.name))
         }
@@ -114,7 +112,7 @@ object PythonCodeGenerator {
         )
     }
 
-    private fun generateMethodCall(method: PythonMethod): Expression {
+    private fun generateMethodCall(method: PythonMethod): Atom {
         assert(method.containingPythonClassId != null)
         val keywords = method.arguments.drop(1).map {
             Keyword(Name(it.name), Name(it.name))
@@ -142,7 +140,7 @@ object PythonCodeGenerator {
         val importStatements = generateImportFunctionCode(
             moduleToImport,
             directoriesForSysPath,
-            additionalModules
+            additionalModules + setOf("coverage")
         )
 
         val testFunctionName = "__run_${method.name}"
@@ -154,8 +152,17 @@ object PythonCodeGenerator {
                 Name(model.toString())
             )
         }
-        val resultName = "result"
-        val coverageLines = "coverage_lines"
+
+        val resultName = Name("__result")
+        val coverageLinesName = Name("__coverage_lines")
+        val visitedLinesName = Name("__visited_lines")
+        val coverageName = Name("__cov")
+        val fullpathName = Name("__fullpath")
+
+        val fullpath = Assign(
+            listOf(fullpathName),
+            Str(method.moduleFilename)
+        )
 
         val functionCall =
             if (method.containingPythonClassId == null)
@@ -163,34 +170,66 @@ object PythonCodeGenerator {
             else
                 generateMethodCall(method)
 
-        val functionCoverageDef = coverageCollectorCode()
+        val coverage = Assign(
+            listOf(coverageName),
+            Name("coverage.Coverage()")
+        )
+        val startCoverage = Atom(
+            coverageName,
+            listOf(Attribute(Identifier("start")), createArguments())
+        )
 
-        val functionCallWithCoverage =
-            Assign(
-                listOf(Tuple(listOf(Name(resultName), Name(coverageLines)))),
-                Atom(
-                    Name(coverageCollectorName),
-                    listOf(createArguments(
-                        listOf(Str(method.moduleFilename), functionCall),
-                        method.arguments.map { Keyword(Name(it.name), Name(it.name))}
-                    ))
-                )
+        val result = Assign(
+                listOf(resultName),
+                functionCall
             )
 
+        val stopCoverage = Atom(
+            coverageName,
+            listOf(Attribute(Identifier("stop")), createArguments())
+        )
+        val coverageLines = Assign(
+            listOf(coverageLinesName),
+            Atom(
+                Atom(
+                    coverageName,
+                    listOf(Attribute(Identifier("get_data")), createArguments())
+                ),
+                listOf(Attribute(Identifier("lines")), createArguments(listOf(fullpathName)))
+            )
+        )
+        val visitedLines = Assign(
+            listOf(visitedLinesName),
+            Atom(
+                Name(getCoverageLinesName),
+                listOf(createArguments(listOf(functionCall.atomElement, coverageLinesName)))
+            )
+        )
+
         val okOutputBlock = createOutputBlock(
-            resultName,
+            resultName.id.name,
             successStatus,
-            coverageLines
+            visitedLinesName.id.name
         )
 
         val exceptionName = "e"
         val failOutputBlock = createOutputBlock(
             exceptionName,
             failStatus,
-            ""
+            "[]"
         )
 
-        val tryBody = Body(parameters + listOf(functionCallWithCoverage) + okOutputBlock)
+        val tryBody = Body(
+            parameters + listOf(
+                fullpath,
+                coverage,
+                startCoverage,
+                result,
+                stopCoverage,
+                coverageLines,
+                visitedLines,
+            ) + okOutputBlock
+        )
         val tryHandler = ExceptHandler("Exception", exceptionName)
         val tryBlock = Try(tryBody, listOf(tryHandler), listOf(Body(failOutputBlock)))
 
@@ -203,7 +242,7 @@ object PythonCodeGenerator {
             listOf(createArguments())
         )
 
-        return pythonTreeSerializerCode + "\n\n\n" + functionCoverageDef + "\n\n\n" + toString(
+        return pythonTreeSerializerCode + "\n\n\n" + getCoverageLines + "\n\n\n" + toString(
             Module(
                 importStatements + listOf(testFunction, runFunction)
             )
@@ -244,24 +283,11 @@ object PythonCodeGenerator {
         )
     }
 
-    private const val coverageCollectorName: String = "coverage_collector"
-    private fun coverageCollectorCode(): String = """
-    def ${this.coverageCollectorName}(fullpath, function, **kwargs):
-        import inspect
-        from coverage import Coverage
-
-        def get_function_line_numbers(func):
-            rows, start_row = inspect.getsourcelines(func)
-            return start_row, start_row + len(rows)
-
-        cov = Coverage()
-        cov.start()
-
-        result = function(**kwargs)
-
-        cov.stop()
-        coverage_lines = cov.get_data().lines(fullpath)
-        first, last = get_function_line_numbers(func)
-        return result, [line for line in coverage_lines if first <= line < last]
+    private const val getCoverageLinesName: String = "__get_coverage_lines"
+    private val getCoverageLines: String = """
+        def ${this.getCoverageLinesName}(function, coverage_lines):
+            rows, start_row = inspect.getsourcelines(function)
+            first, last = start_row, start_row + len(rows)
+            return [line for line in coverage_lines if first <= line < last]
     """.trimIndent()
 }

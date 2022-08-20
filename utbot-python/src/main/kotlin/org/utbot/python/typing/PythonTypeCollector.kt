@@ -144,6 +144,9 @@ object PythonTypesStorage {
                 ),
                 FileFilterUtils.notFileFilter(
                     FileFilterUtils.suffixFileFilter("venv")
+                ),
+                FileFilterUtils.notFileFilter(
+                    FileFilterUtils.prefixFileFilter(".")
                 )
             )
         )

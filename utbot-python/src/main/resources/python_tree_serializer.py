@@ -1,3 +1,4 @@
+import copy
 import types
 from itertools import zip_longest
 import copyreg
@@ -122,6 +123,7 @@ class _PythonTreeSerializer:
             value = id_
             strategy = 'memory'
             skip_comparable = True
+            comparable = False
             deserialized_obj = self.memory[id_].deserialized_obj
             if not self.memory[id_].is_draft:
                 self.memory[id_].comparable = py_object == deserialized_obj
@@ -147,7 +149,12 @@ class _PythonTreeSerializer:
             strategy = 'memory'
         else:
             value = repr(py_object)
-            deserialized_obj = py_object
+            try:
+                deserialized_obj = copy.deepcopy(py_object)
+            except Exception:
+                deserialized_obj = py_object
+                skip_comparable = True
+                comparable = False
             strategy = 'repr'
 
         if not skip_comparable:
@@ -155,8 +162,6 @@ class _PythonTreeSerializer:
                 comparable = py_object == deserialized_obj
             except Exception:
                 comparable = False
-        else:
-            comparable = False
 
         return {
             'type': type_,
@@ -194,5 +199,3 @@ class _PythonTreeSerializer:
                 for key, value in self.memory.items()
             }
         }
-
-

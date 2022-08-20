@@ -162,7 +162,9 @@ object PythonDialogProcessor {
     private fun askAndInstallRequirementsLater(project: Project, pythonPath: String) {
         val message = """
             Some requirements are not installed.
-            Requirements: ${requirements.joinToString()}
+            Requirements: <br>
+            ${requirements.joinToString("<br>")}
+            <br>
             Install them?
         """.trimIndent()
         invokeLater {

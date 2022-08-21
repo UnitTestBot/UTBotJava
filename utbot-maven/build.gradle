@@ -1,16 +1,18 @@
+//noinspection GroovyAssignabilityCheck
 plugins {
-    id 'maven'
+    id 'maven-publish'
 }
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     mavenEmbedder // it is used to run maven tasks from gradle
 }
 
 dependencies {
     // `compile` because `api` dependencies are not included in pom.xml by `install` task
-    compile project(':utbot-framework')
+    implementation project(':utbot-framework')
 
     implementation "org.apache.maven:maven-core:$maven_plugin_api_version"
     implementation "org.apache.maven:maven-plugin-api:$maven_plugin_api_version"
@@ -90,15 +92,16 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     outputs.file pluginDescriptorFile
 
     workingDir projectDir
-    main = 'org.apache.maven.cli.MavenCli'
+    mainClass.set('org.apache.maven.cli.MavenCli')
     classpath = configurations.mavenEmbedder
+    //noinspection GroovyAssignabilityCheck
     systemProperties['maven.multiModuleProjectDirectory'] = projectDir
     args = [
-        '--errors',
-        '--batch-mode',
-        '--file', "${pomFile.path}",
-        'org.apache.maven.plugins:maven-plugin-plugin:3.6.0:descriptor',
-        '-Dproject.build.sourceEncoding=UTF-8'
+            '--errors',
+            '--batch-mode',
+            '--file', "${pomFile.path}",
+            'org.apache.maven.plugins:maven-plugin-plugin:3.6.0:descriptor',
+            '-Dproject.build.sourceEncoding=UTF-8'
     ]
 
     doLast {
@@ -107,6 +110,6 @@ task generatePluginDescriptor(type: JavaExec, dependsOn: generatePomFile) {
     }
 }
 
-project.install.dependsOn(generatePluginDescriptor)
+project.publishToMavenLocal.dependsOn(generatePluginDescriptor)
 
 // Please, use `utbot-maven/other/install` task for publishing

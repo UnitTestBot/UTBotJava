@@ -1,5 +1,6 @@
 package org.utbot.examples.arrays
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.ge
@@ -219,6 +220,7 @@ internal class IntArrayBasicsTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("Java 11 transition -- Sergei is looking into it")
     fun testArraysEqualsExample() {
         check(
             IntArrayBasics::arrayEqualsExample,

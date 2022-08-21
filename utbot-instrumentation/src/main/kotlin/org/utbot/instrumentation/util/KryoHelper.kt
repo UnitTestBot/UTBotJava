@@ -1,25 +1,19 @@
 package org.utbot.instrumentation.util
 
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.Serializer
-import com.esotericsoftware.kryo.SerializerFactory
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
-import com.esotericsoftware.kryo.serializers.JavaSerializer
-import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy
+import com.esotericsoftware.kryo.kryo5.Kryo
+import com.esotericsoftware.kryo.kryo5.Serializer
+import com.esotericsoftware.kryo.kryo5.SerializerFactory
+import com.esotericsoftware.kryo.kryo5.io.Input
+import com.esotericsoftware.kryo.kryo5.io.Output
+import com.esotericsoftware.kryo.kryo5.objenesis.instantiator.ObjectInstantiator
+import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy
+import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
+import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
 import org.utbot.framework.plugin.api.TimeoutException
-import de.javakaffee.kryoserializers.GregorianCalendarSerializer
-import de.javakaffee.kryoserializers.JdkProxySerializer
-import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer
-import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer
 import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.InputStream
 import java.io.OutputStream
-import java.lang.reflect.InvocationHandler
-import java.util.GregorianCalendar
-import org.objenesis.instantiator.ObjectInstantiator
-import org.objenesis.strategy.StdInstantiatorStrategy
 
 /**
  * Helpful class for working with the kryo.
@@ -112,11 +106,8 @@ internal class TunedKryo : Kryo() {
             }
         }
 
-        register(GregorianCalendar::class.java, GregorianCalendarSerializer())
-        register(InvocationHandler::class.java, JdkProxySerializer())
+        this.setOptimizedGenerics(false)
         register(TimeoutException::class.java, TimeoutExceptionSerializer())
-        UnmodifiableCollectionsSerializer.registerSerializers(this)
-        SynchronizedCollectionsSerializer.registerSerializers(this)
 
         // TODO: JIRA:1492
         addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializer())

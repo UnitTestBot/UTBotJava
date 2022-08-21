@@ -7,6 +7,7 @@ import com.intellij.openapi.projectRoots.Sdk
 import com.intellij.openapi.roots.ProjectRootManager
 import org.utbot.framework.plugin.services.JdkInfo
 import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.plugin.services.fetchJavaVersion
 
 class PluginJdkInfoProvider(
     private val project: Project
@@ -31,6 +32,6 @@ class PluginJdkInfoProvider(
     override val info: JdkInfo
         get() = JdkInfo(
             sdk?.homePath?.toPath() ?: super.info.path, // Return default JDK in case of failure
-            sdk?.versionString ?: super.info.version // Return default JDK in case of failure
+            fetchJavaVersion(sdk?.versionString!!) // Return default JDK in case of failure
         )
 }

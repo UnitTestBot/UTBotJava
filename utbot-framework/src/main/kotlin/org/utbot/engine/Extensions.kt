@@ -73,7 +73,7 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.tagkit.ArtificialEntityTag
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+import java.lang.reflect.ParameterizedType
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -113,7 +113,6 @@ fun SootMethod.canRetrieveBody() =
  */
 fun SootMethod.jimpleBody(): JimpleBody {
     declaringClass.adjustLevel(BODIES)
-    require(canRetrieveBody()) { "Can't retrieve body for $this"}
     return retrieveActiveBody() as JimpleBody
 }
 
@@ -419,7 +418,7 @@ val Type.baseType: Type
     get() = if (this is ArrayType) this.baseType else this
 
 val java.lang.reflect.Type.rawType: java.lang.reflect.Type
-    get() = if (this is ParameterizedTypeImpl) rawType else this
+    get() = if (this is ParameterizedType) rawType else this
 
 /**
  * Returns true if the addr belongs to “this” value, false otherwise.

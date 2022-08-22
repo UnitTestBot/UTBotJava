@@ -40,7 +40,7 @@ class CodeGenerator(
         testFramework = testFramework,
         mockFramework = mockFramework ?: MockFramework.MOCKITO,
         codegenLanguage = codegenLanguage,
-        parameterizedTestSource = parameterizedTestSource,
+        parametrizedTestSource = parameterizedTestSource,
         staticsMocking = staticsMocking,
         forceStaticMocking = forceStaticMocking,
         generateWarningsForStaticMocking = generateWarningsForStaticMocking,

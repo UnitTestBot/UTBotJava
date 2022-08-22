@@ -139,7 +139,7 @@ internal interface CgContextOwner {
 
     val codegenLanguage: CodegenLanguage
 
-    val parameterizedTestSource: ParametrizedTestSource
+    val parametrizedTestSource: ParametrizedTestSource
 
     // flag indicating whether a mock framework is used in the generated code
     var mockFrameworkUsed: Boolean
@@ -213,6 +213,8 @@ internal interface CgContextOwner {
     val enableTestsTimeout: Boolean
 
     var statesCache: EnvironmentFieldStateCache
+
+    var allExecutions: List<UtExecution>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -407,7 +409,7 @@ internal data class CgContext(
     override val forceStaticMocking: ForceStaticMocking,
     override val generateWarningsForStaticMocking: Boolean,
     override val codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    override val parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
+    override val parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
     override var mockFrameworkUsed: Boolean = false,
     override var currentBlock: PersistentList<CgStatement> = persistentListOf(),
     override var existingVariableNames: PersistentSet<String> = persistentSetOf(),
@@ -427,6 +429,7 @@ internal data class CgContext(
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
+    override lateinit var allExecutions: List<UtExecution>
 
     /**
      * This property cannot be accessed outside of test class file scope

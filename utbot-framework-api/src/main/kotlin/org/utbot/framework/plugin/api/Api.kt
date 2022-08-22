@@ -282,12 +282,12 @@ sealed class UtReferenceModel(
 ) : UtModel(classId)
 
 /**
- * Checks if [UtModel] is a null.
+ * Checks if [UtModel] is a [UtNullModel].
  */
 fun UtModel.isNull() = this is UtNullModel
 
 /**
- * Checks if [UtModel] is not a null.
+ * Checks if [UtModel] is not a [UtNullModel].
  */
 fun UtModel.isNotNull() = !isNull()
 

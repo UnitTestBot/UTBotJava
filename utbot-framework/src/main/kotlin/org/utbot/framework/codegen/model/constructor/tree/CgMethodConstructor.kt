@@ -37,7 +37,6 @@ import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgIsInstance
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgMethodCall
@@ -111,9 +110,10 @@ import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isNotNull
+import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -144,7 +144,6 @@ import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
-import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -167,6 +166,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private lateinit var resultModel: UtModel
 
     private lateinit var methodType: CgTestMethodType
+
+    private val fieldsOfExecutionResults = mutableMapOf<Pair<FieldId, Int>, MutableList<UtModel>>()
 
     private fun setupInstrumentation() {
         if (currentExecution is UtSymbolicExecution) {
@@ -445,7 +446,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             val expectedExpression = CgNotNullAssertion(expectedVariable)
 
                             assertEquality(expectedExpression, actual)
-                            println()
                         }
                     }
                     .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
@@ -537,7 +537,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 doubleDelta
                             )
                         expectedModel.value is Boolean -> {
-                            when (parameterizedTestSource) {
+                            when (parametrizedTestSource) {
                                 ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
                                     if (expectedModel.value as Boolean) {
                                         assertions[assertTrue](actual)
@@ -842,6 +842,25 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             return
         }
 
+        when (parametrizedTestSource) {
+            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                traverseField(fieldId, fieldModel, expected, actual, depth, visitedModels)
+            }
+
+            ParametrizedTestSource.PARAMETRIZE -> {
+                traverseFieldForParametrizedTest(fieldId, fieldModel, expected, actual, depth, visitedModels)
+            }
+        }
+    }
+
+    private fun traverseField(
+        fieldId: FieldId,
+        fieldModel: UtModel,
+        expected: CgVariable,
+        actual: CgVariable,
+        depth: Int,
+        visitedModels: MutableSet<UtModel>
+    ) {
         // fieldModel is not visited and will be marked in assertDeepEquals call
         val fieldName = fieldId.name
         var expectedVariable: CgVariable? = null
@@ -864,6 +883,140 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             visitedModels,
         )
         emptyLineIfNeeded()
+    }
+
+    private fun traverseFieldForParametrizedTest(
+        fieldId: FieldId,
+        fieldModel: UtModel,
+        expected: CgVariable,
+        actual: CgVariable,
+        depth: Int,
+        visitedModels: MutableSet<UtModel>
+    ) {
+        val fieldResultModels = fieldsOfExecutionResults[fieldId to depth]
+        val nullResultModelInExecutions = fieldResultModels?.find { it.isNull() }
+        val notNullResultModelInExecutions = fieldResultModels?.find { it.isNotNull() }
+
+        val hasNullResultModel = nullResultModelInExecutions != null
+        val hasNotNullResultModel = notNullResultModelInExecutions != null
+
+        val needToSubstituteFieldModel = fieldModel is UtNullModel && hasNotNullResultModel
+
+        val fieldModelForAssert = if (needToSubstituteFieldModel) notNullResultModelInExecutions!! else fieldModel
+
+        // fieldModel is not visited and will be marked in assertDeepEquals call
+        val fieldName = fieldId.name
+        var expectedVariable: CgVariable? = null
+
+        val needExpectedDeclaration = needExpectedDeclaration(fieldModelForAssert)
+        if (needExpectedDeclaration) {
+            val expectedFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, expected, fieldName)
+
+            currentBlock += expectedFieldDeclaration
+            expectedVariable = expectedFieldDeclaration.variable
+        }
+
+        val actualFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, actual, fieldName)
+        currentBlock += actualFieldDeclaration
+
+        if (needExpectedDeclaration && hasNullResultModel) {
+            ifStatement(
+                CgEqualTo(expectedVariable!!, nullLiteral()),
+                trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actualFieldDeclaration.variable).toStatement() },
+                falseBranch = {
+                    assertDeepEquals(
+                        fieldModelForAssert,
+                        expectedVariable,
+                        actualFieldDeclaration.variable,
+                        depth + 1,
+                        visitedModels,
+                    )
+                }
+            )
+        } else {
+            assertDeepEquals(
+                fieldModelForAssert,
+                expectedVariable,
+                actualFieldDeclaration.variable,
+                depth + 1,
+                visitedModels,
+            )
+        }
+        emptyLineIfNeeded()
+    }
+
+    private fun collectExecutionsResultFields() {
+        val successfulExecutionsModels = allExecutions
+            .filter {
+                it.result is UtExecutionSuccess
+            }.map {
+                (it.result as UtExecutionSuccess).model
+            }
+
+        for (model in successfulExecutionsModels) {
+            when (model) {
+                is UtCompositeModel -> {
+                    for ((fieldId, fieldModel) in model.fields) {
+                        collectExecutionsResultFieldsRecursively(fieldId, fieldModel, 0)
+                    }
+                }
+
+                is UtAssembleModel -> {
+                    model.origin?.let {
+                        for ((fieldId, fieldModel) in it.fields) {
+                            collectExecutionsResultFieldsRecursively(fieldId, fieldModel, 0)
+                        }
+                    }
+                }
+
+                is UtNullModel,
+                is UtPrimitiveModel,
+                is UtArrayModel,
+                is UtClassRefModel,
+                is UtEnumConstantModel,
+                is UtVoidModel -> {
+                    // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
+                }
+            }
+        }
+    }
+
+    private fun collectExecutionsResultFieldsRecursively(
+        fieldId: FieldId,
+        fieldModel: UtModel,
+        depth: Int,
+    ) {
+        if (depth >= DEEP_EQUALS_MAX_DEPTH) {
+            return
+        }
+
+        val fieldKey = fieldId to depth
+        fieldsOfExecutionResults.getOrPut(fieldKey) { mutableListOf() } += fieldModel
+
+        when (fieldModel) {
+            is UtCompositeModel -> {
+                for ((id, model) in fieldModel.fields) {
+                    collectExecutionsResultFieldsRecursively(id, model, depth + 1)
+                }
+            }
+
+            is UtAssembleModel -> {
+                fieldModel.origin?.let {
+                    for ((id, model) in it.fields) {
+                        collectExecutionsResultFieldsRecursively(id, model, depth + 1)
+                    }
+                }
+            }
+
+            is UtNullModel,
+            is UtPrimitiveModel,
+            is UtArrayModel,
+            is UtClassRefModel,
+            is UtEnumConstantModel,
+            is UtVoidModel -> {
+                // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
+            }
+        }
     }
 
     @Suppress("UNUSED_ANONYMOUS_PARAMETER")
@@ -999,7 +1152,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 expected == nullLiteral() -> testFrameworkManager.assertNull(actual)
                 expected is CgLiteral && expected.value is Boolean -> {
-                    when (parameterizedTestSource) {
+                    when (parametrizedTestSource) {
                         ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
                             testFrameworkManager.assertBoolean(expected.value, actual)
                         ParametrizedTestSource.PARAMETRIZE ->
@@ -1054,15 +1207,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expected: CgValue,
         actual: CgVariable,
     ) {
-        when (parameterizedTestSource) {
+        when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> generateDeepEqualsAssertion(expected, actual)
-            ParametrizedTestSource.PARAMETRIZE -> when {
-                actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
-                else -> ifStatement(
-                    CgEqualTo(expected, nullLiteral()),
-                    trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
-                    falseBranch = { generateDeepEqualsAssertion(expected, actual) }
-                )
+            ParametrizedTestSource.PARAMETRIZE -> {
+                collectExecutionsResultFields()
+
+                when {
+                    actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
+                    else -> ifStatement(
+                        CgEqualTo(expected, nullLiteral()),
+                        trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
+                        falseBranch = { generateDeepEqualsAssertion(expected, actual) }
+                    )
+                }
             }
         }
     }

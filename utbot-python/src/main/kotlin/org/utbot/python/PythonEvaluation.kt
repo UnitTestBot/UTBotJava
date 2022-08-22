@@ -13,7 +13,7 @@ object EvaluationError : EvaluationResult()
 class EvaluationSuccess(
     private val output: OutputData,
     private val isException: Boolean,
-    private val coverage: Coverage,
+    private val coverage: PythonCoverage
 ): EvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
@@ -47,7 +47,7 @@ object PythonEvaluation {
 
         val output = result.stdout.split('\n')
 
-        if (output.size != 3)
+        if (output.size != 4)
             return EvaluationError
 
         val status = output[0]
@@ -58,19 +58,32 @@ object PythonEvaluation {
         val isSuccess = status == PythonCodeGenerator.successStatus
 
         val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
-        val coverage = Coverage(Klaxon().parseArray<Int>(output[2])!!.map {
-            Instruction(
-                method.containingPythonClassId?.name ?: pythonAnyClassId.name,
-                method.methodSignature(),
-                it,
-                it.toLong()
-            )
-        })
+        val stmts = Klaxon().parseArray<Int>(output[2])!!
+        val missed = Klaxon().parseArray<Int>(output[3])!!
+        val covered = stmts.filter { it !in missed }
+        val coverage = PythonCoverage(
+            covered.map {
+                Instruction(
+                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                    method.methodSignature(),
+                    it,
+                    it.toLong()
+                )
+            },
+            missed.map {
+                Instruction(
+                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                    method.methodSignature(),
+                    it,
+                    it.toLong()
+                )
+            }
+        )
 
         return EvaluationSuccess(
             OutputData(pythonTree, pythonTree.type),
             !isSuccess,
-            coverage,
+            coverage
         )
     }
 }

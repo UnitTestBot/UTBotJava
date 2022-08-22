@@ -18,7 +18,6 @@ import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.getModuleName
 import java.io.File
-import java.nio.file.Paths
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 private const val DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS = 2000L
@@ -61,6 +60,11 @@ class PythonGenerateTestsCommand: CliktCommand(
     private val installRequirementsIfMissing by option(
         "-r", "--install-requirements",
         help = "Install requirements if missing"
+    ).flag(default = false)
+
+    private val doNotMinimize by option(
+        "--do-not-minimize",
+        help = "Do not try to minimize the number of generated tests"
     ).flag(default = false)
 
     private val timeout by option(
@@ -204,6 +208,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             codegenLanguage = CodegenLanguage.PYTHON,
             outputFilename = outputFilename,
             timeoutForRun = timeoutForRun,
+            withMinimization = !doNotMinimize,
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
             },

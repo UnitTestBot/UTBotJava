@@ -1,5 +1,7 @@
 package org.utbot.python
 
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
@@ -30,6 +32,7 @@ object PythonTestGenerationProcessor {
         codegenLanguage: CodegenLanguage,
         outputFilename: String, // without path, just name
         timeoutForRun: Long,
+        withMinimization: Boolean = true,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
         requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
@@ -40,6 +43,7 @@ object PythonTestGenerationProcessor {
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
         generatedFileWithTestsAction: (File) -> Unit = {},
         processMypyWarnings: (List<String>) -> Unit = {},
+        processCoverageInfo: (String) -> Unit = {},
         startedCleaningAction: () -> Unit = {},
         finishedAction: (List<String>) -> Unit = {}  // take names of functions with generated tests
     ) {
@@ -69,7 +73,8 @@ object PythonTestGenerationProcessor {
                     currentPythonModule,
                     pythonPath,
                     pythonFilePath,
-                    timeoutForRun
+                    timeoutForRun,
+                    withMinimization
                 ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
             }
 
@@ -134,23 +139,10 @@ object PythonTestGenerationProcessor {
                 generatedFileWithTestsAction(testFile)
             }
 
-            val mypyReport = notEmptyTests.flatMap { testSet ->
-                val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
-                val msgLines = testSet.mypyReport.mapNotNull {
-                    if (it.file != MypyAnnotations.TEMPORARY_MYPY_FILE)
-                        null
-                    else if (lineOfFunction != null && it.line >= 0)
-                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-                    else
-                        "${it.type}: ${it.message}"
-                }
-                if (msgLines.isNotEmpty()) {
-                    listOf("MYPY REPORT (function ${testSet.method.name})") + msgLines
-                } else {
-                    emptyList()
-                }
-            }
+            val coverageInfo = getCoverageInfo(notEmptyTests)
+            processCoverageInfo(coverageInfo)
 
+            val mypyReport = getMypyReport(notEmptyTests, pythonFileContent)
             if (mypyReport.isNotEmpty())
                 processMypyWarnings(mypyReport)
 
@@ -164,5 +156,67 @@ object PythonTestGenerationProcessor {
 
     enum class MissingRequirementsActionResult {
         INSTALLED, NOT_INSTALLED
+    }
+
+    private fun getMypyReport(notEmptyTests: List<PythonTestSet>, pythonFileContent: String): List<String> =
+        notEmptyTests.flatMap { testSet ->
+            val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
+            val msgLines = testSet.mypyReport.mapNotNull {
+                if (it.file != MypyAnnotations.TEMPORARY_MYPY_FILE)
+                    null
+                else if (lineOfFunction != null && it.line >= 0)
+                    ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                else
+                    "${it.type}: ${it.message}"
+            }
+            if (msgLines.isNotEmpty()) {
+                listOf("MYPY REPORT (function ${testSet.method.name})") + msgLines
+            } else {
+                emptyList()
+            }
+        }
+
+    data class InstructionSet(
+        val start: Int,
+        val end: Int
+    )
+
+    data class CoverageInfo(
+        val covered: List<InstructionSet>,
+        val notCovered: List<InstructionSet>
+    )
+
+    private val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+    private val jsonAdapter = moshi.adapter(CoverageInfo::class.java)
+
+    private fun getInstructionSetList(instructions: Collection<Int>): List<InstructionSet> =
+        instructions.sorted().fold(emptyList()) { acc, lineNumber ->
+            if (acc.isEmpty())
+                return@fold listOf(InstructionSet(lineNumber, lineNumber))
+            val elem = acc.last()
+            if (elem.end + 1 == lineNumber)
+                acc.dropLast(1) + listOf(InstructionSet(elem.start, lineNumber))
+            else
+                acc + listOf(InstructionSet(lineNumber, lineNumber))
+        }
+
+    private fun getCoverageInfo(testSets: List<PythonTestSet>): String {
+        val covered = mutableSetOf<Int>()
+        val missed = mutableSetOf<Set<Int>>()
+        testSets.forEach { testSet ->
+            testSet.executions.forEach inner@{ execution ->
+                val coverage = execution.coverage as? PythonCoverage ?: return@inner
+                coverage.coveredInstructions.forEach { covered.add(it.lineNumber) }
+                missed.add(coverage.missedInstructions.map { it.lineNumber } .toSet())
+            }
+        }
+        val coveredInstructionSets = getInstructionSetList(covered)
+        val missedInstructionSets =
+            if (missed.isEmpty())
+                emptyList()
+            else
+                getInstructionSetList(missed.reduce { a, b -> a intersect b })
+
+        return jsonAdapter.toJson(CoverageInfo(coveredInstructionSets, missedInstructionSets))
     }
 }

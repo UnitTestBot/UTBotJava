@@ -10,6 +10,7 @@ from time import time
 from datetime import datetime
 
 from monitoring_settings import JSON_VERSION
+from utils import postprocess_targets
 
 
 def load(json_file):
@@ -73,7 +74,7 @@ def build_targets(stats_array):
         target = stats['target']
         del stats['target']
         result[target].append(stats)
-    return result
+    return postprocess_targets(result)
 
 
 def insert_metadata(args):

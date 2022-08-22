@@ -121,68 +121,72 @@ Input example:
 Output example (an average for each statistic over the three runs followed by metadata):
 ```json
 {
-  "json_version": 1,
-  "targets": {
-    "guava": [
-      {
-        "class_timeout_ms": 20,
-        "run_timeout_min": 20,
-        "duration_ms": 604225,
-        "classes_for_generation": 20,
-        "testcases_generated": 1651,
-        "classes_without_problems": 12,
-        "classes_canceled_by_timeout": 2,
-        "total_methods_for_generation": 519,
-        "methods_with_at_least_one_testcase_generated": 365,
-        "methods_with_exceptions": 46,
-        "suspicious_methods": 85,
-        "test_classes_failed_to_compile": 0,
-        "covered_instructions_count": 5753,
-        "covered_instructions_count_by_fuzzing": 4375,
-        "covered_instructions_count_by_concolic": 4069,
-        "total_instructions_count": 10182,
-        "avg_coverage": 62.885408034613
-      },
-      {
-        "class_timeout_ms": 20,
-        "run_timeout_min": 20,
-        "duration_ms": 633713,
-        "classes_for_generation": 20,
-        "testcases_generated": 1872,
-        "classes_without_problems": 12,
-        "classes_canceled_by_timeout": 2,
-        "total_methods_for_generation": 519,
-        "methods_with_at_least_one_testcase_generated": 413,
-        "methods_with_exceptions": 46,
-        "suspicious_methods": 38,
-        "test_classes_failed_to_compile": 0,
-        "covered_instructions_count": 6291,
-        "covered_instructions_count_by_fuzzing": 4470,
-        "covered_instructions_count_by_concolic": 5232,
-        "total_instructions_count": 11011,
-        "avg_coverage": 62.966064315865275
-      },
-      {
-        "class_timeout_ms": 20,
-        "run_timeout_min": 20,
-        "duration_ms": 660421,
-        "classes_for_generation": 20,
-        "testcases_generated": 1770,
-        "classes_without_problems": 13,
-        "classes_canceled_by_timeout": 2,
-        "total_methods_for_generation": 519,
-        "methods_with_at_least_one_testcase_generated": 405,
-        "methods_with_exceptions": 44,
-        "suspicious_methods": 43,
-        "test_classes_failed_to_compile": 0,
-        "covered_instructions_count": 6266,
-        "covered_instructions_count_by_fuzzing": 4543,
-        "covered_instructions_count_by_concolic": 5041,
-        "total_instructions_count": 11011,
-        "avg_coverage": 61.59069193429194
-      }
-    ]
-  },
+  "version": 1,
+  "targets": [
+    {
+      "id": "guava",
+      "version": "0",
+      "metrics": [
+        {
+          "class_timeout_ms": 20,
+          "run_timeout_min": 20,
+          "duration_ms": 604225,
+          "classes_for_generation": 20,
+          "testcases_generated": 1651,
+          "classes_without_problems": 12,
+          "classes_canceled_by_timeout": 2,
+          "total_methods_for_generation": 519,
+          "methods_with_at_least_one_testcase_generated": 365,
+          "methods_with_exceptions": 46,
+          "suspicious_methods": 85,
+          "test_classes_failed_to_compile": 0,
+          "covered_instructions_count": 5753,
+          "covered_instructions_count_by_fuzzing": 4375,
+          "covered_instructions_count_by_concolic": 4069,
+          "total_instructions_count": 10182,
+          "avg_coverage": 62.885408034613
+        },
+        {
+          "class_timeout_ms": 20,
+          "run_timeout_min": 20,
+          "duration_ms": 633713,
+          "classes_for_generation": 20,
+          "testcases_generated": 1872,
+          "classes_without_problems": 12,
+          "classes_canceled_by_timeout": 2,
+          "total_methods_for_generation": 519,
+          "methods_with_at_least_one_testcase_generated": 413,
+          "methods_with_exceptions": 46,
+          "suspicious_methods": 38,
+          "test_classes_failed_to_compile": 0,
+          "covered_instructions_count": 6291,
+          "covered_instructions_count_by_fuzzing": 4470,
+          "covered_instructions_count_by_concolic": 5232,
+          "total_instructions_count": 11011,
+          "avg_coverage": 62.966064315865275
+        },
+        {
+          "class_timeout_ms": 20,
+          "run_timeout_min": 20,
+          "duration_ms": 660421,
+          "classes_for_generation": 20,
+          "testcases_generated": 1770,
+          "classes_without_problems": 13,
+          "classes_canceled_by_timeout": 2,
+          "total_methods_for_generation": 519,
+          "methods_with_at_least_one_testcase_generated": 405,
+          "methods_with_exceptions": 44,
+          "suspicious_methods": 43,
+          "test_classes_failed_to_compile": 0,
+          "covered_instructions_count": 6266,
+          "covered_instructions_count_by_fuzzing": 4543,
+          "covered_instructions_count_by_concolic": 5041,
+          "total_instructions_count": 11011,
+          "avg_coverage": 61.59069193429194
+        }
+      ]
+    }
+  ],
   "metadata": {
     "source": {
       "type": "github-action",
@@ -196,8 +200,8 @@ Output example (an average for each statistic over the three runs followed by me
     "environment": {
       "host": "fv-az377-887",
       "OS": "Linux version #20~20.04.1-Ubuntu SMP Fri Aug 5 12:16:53 UTC 2022",
-      "java_version": "openjdk version \"1.8.0_345\"\nOpenJDK Runtime Environment (Zulu 8.64.0.19-CA-linux64) (build 1.8.0_345-b01)\nOpenJDK 64-Bit Server VM (Zulu 8.64.0.19-CA-linux64) (build 25.345-b01, mixed mode)\n",
-      "gradle_version": "Gradle 6.8",
+      "java_version": "openjdk version \"11.0.16\" 2022-07-19 LTS\nOpenJDK Runtime Environment Zulu11.58+15-CA (build 11.0.16+8-LTS)\nOpenJDK 64-Bit Server VM Zulu11.58+15-CA (build 11.0.16+8-LTS, mixed mode)\n",
+      "gradle_version": "Gradle 7.4.2",
       "JAVA_HOME": "/opt/hostedtoolcache/Java_Zulu_jdk+fx/8.0.345-1/x64",
       "KOTLIN_HOME": "/usr",
       "PATH": "/opt/hostedtoolcache/Python/3.9.13/x64/bin:/opt/hostedtoolcache/Python/3.9.13/x64:/home/runner/gradle-installations/installs/gradle-6.8/bin:/opt/hostedtoolcache/Java_Zulu_jdk+fx/8.0.345-1/x64/bin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
@@ -223,72 +227,73 @@ Input example:
 --timestamp_from 0 --timestamp_to 1660905157
 ```
 
-Output example:
-
-(You'll get an array of several summarised outputs without metadata. The following example is just one element of such an array.)
-
+Output example (You'll get an array of several outputs without metadata):
 ```json
-{
-  "guava": [
-    {
-      "class_timeout_ms": 20,
-      "run_timeout_min": 20,
-      "duration_ms": 604225,
-      "classes_for_generation": 20,
-      "testcases_generated": 1651,
-      "classes_without_problems": 12,
-      "classes_canceled_by_timeout": 2,
-      "total_methods_for_generation": 519,
-      "methods_with_at_least_one_testcase_generated": 365,
-      "methods_with_exceptions": 46,
-      "suspicious_methods": 85,
-      "test_classes_failed_to_compile": 0,
-      "avg_coverage": 62.885408034613,
-      "total_coverage": 56.50166961304262,
-      "total_coverage_by_fuzzing": 42.967982714594385,
-      "total_coverage_by_concolic": 39.96267923787075,
-      "timestamp": 1661153691
-    },
-    {
-      "class_timeout_ms": 20,
-      "run_timeout_min": 20,
-      "duration_ms": 633713,
-      "classes_for_generation": 20,
-      "testcases_generated": 1872,
-      "classes_without_problems": 12,
-      "classes_canceled_by_timeout": 2,
-      "total_methods_for_generation": 519,
-      "methods_with_at_least_one_testcase_generated": 413,
-      "methods_with_exceptions": 46,
-      "suspicious_methods": 38,
-      "test_classes_failed_to_compile": 0,
-      "avg_coverage": 62.966064315865275,
-      "total_coverage": 57.133775315593496,
-      "total_coverage_by_fuzzing": 40.595767868495145,
-      "total_coverage_by_concolic": 47.51612024339297,
-      "timestamp": 1661153691
-    },
-    {
-      "class_timeout_ms": 20,
-      "run_timeout_min": 20,
-      "duration_ms": 660421,
-      "classes_for_generation": 20,
-      "testcases_generated": 1770,
-      "classes_without_problems": 13,
-      "classes_canceled_by_timeout": 2,
-      "total_methods_for_generation": 519,
-      "methods_with_at_least_one_testcase_generated": 405,
-      "methods_with_exceptions": 44,
-      "suspicious_methods": 43,
-      "test_classes_failed_to_compile": 0,
-      "avg_coverage": 61.59069193429194,
-      "total_coverage": 56.90672963400236,
-      "total_coverage_by_fuzzing": 41.25874125874126,
-      "total_coverage_by_concolic": 45.78149123603669,
-      "timestamp": 1661153691
-    }
-  ]
-}
+[
+  {
+    "id": "guava",
+    "version": "0",
+    "metrics": [
+      {
+        "class_timeout_ms": 20,
+        "run_timeout_min": 20,
+        "duration_ms": 604225,
+        "classes_for_generation": 20,
+        "testcases_generated": 1651,
+        "classes_without_problems": 12,
+        "classes_canceled_by_timeout": 2,
+        "total_methods_for_generation": 519,
+        "methods_with_at_least_one_testcase_generated": 365,
+        "methods_with_exceptions": 46,
+        "suspicious_methods": 85,
+        "test_classes_failed_to_compile": 0,
+        "avg_coverage": 62.885408034613,
+        "total_coverage": 56.50166961304262,
+        "total_coverage_by_fuzzing": 42.967982714594385,
+        "total_coverage_by_concolic": 39.96267923787075,
+        "timestamp": 1661158455
+      },
+      {
+        "class_timeout_ms": 20,
+        "run_timeout_min": 20,
+        "duration_ms": 633713,
+        "classes_for_generation": 20,
+        "testcases_generated": 1872,
+        "classes_without_problems": 12,
+        "classes_canceled_by_timeout": 2,
+        "total_methods_for_generation": 519,
+        "methods_with_at_least_one_testcase_generated": 413,
+        "methods_with_exceptions": 46,
+        "suspicious_methods": 38,
+        "test_classes_failed_to_compile": 0,
+        "avg_coverage": 62.966064315865275,
+        "total_coverage": 57.133775315593496,
+        "total_coverage_by_fuzzing": 40.595767868495145,
+        "total_coverage_by_concolic": 47.51612024339297,
+        "timestamp": 1661158455
+      },
+      {
+        "class_timeout_ms": 20,
+        "run_timeout_min": 20,
+        "duration_ms": 660421,
+        "classes_for_generation": 20,
+        "testcases_generated": 1770,
+        "classes_without_problems": 13,
+        "classes_canceled_by_timeout": 2,
+        "total_methods_for_generation": 519,
+        "methods_with_at_least_one_testcase_generated": 405,
+        "methods_with_exceptions": 44,
+        "suspicious_methods": 43,
+        "test_classes_failed_to_compile": 0,
+        "avg_coverage": 61.59069193429194,
+        "total_coverage": 56.90672963400236,
+        "total_coverage_by_fuzzing": 41.25874125874126,
+        "total_coverage_by_concolic": 45.78149123603669,
+        "timestamp": 1661158455
+      }
+    ]
+  }
+]
 ```
 
 ### Datastorage structure

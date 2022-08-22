@@ -6,6 +6,7 @@ from os.path import isfile, join
 from time import time
 
 from monitoring_settings import JSON_VERSION
+from utils import postprocess_targets
 
 
 def get_file_seq(input_data_dir):
@@ -57,12 +58,14 @@ def aggregate_stats(stats_seq):
         targets = stats["targets"]
         timestamp = stats["metadata"]["timestamp"]
         for target in targets:
-            for target_stats in targets[target]:
-                result[target].append(
+            full_name = f'{target["id"]}-{target["version"]}'
+            metrics = target["metrics"]
+            for target_stats in metrics:
+                result[full_name].append(
                     transform_target_stats(target_stats, timestamp)
                 )
 
-    return result
+    return postprocess_targets(result)
 
 
 def get_args():

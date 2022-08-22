@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
-import org.utbot.framework.plugin.api.util.Patterns
+import org.utbot.framework.codegen.model.util.Patterns
 
 fun findFrameworkLibrary(
     project: Project,

@@ -30,6 +30,7 @@ object PythonTestGenerationProcessor {
         codegenLanguage: CodegenLanguage,
         outputFilename: String, // without path, just name
         timeoutForRun: Long,
+        withMinimization: Boolean = true,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
         requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
@@ -69,7 +70,8 @@ object PythonTestGenerationProcessor {
                     currentPythonModule,
                     pythonPath,
                     pythonFilePath,
-                    timeoutForRun
+                    timeoutForRun,
+                    withMinimization
                 ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
             }
 
@@ -134,23 +136,7 @@ object PythonTestGenerationProcessor {
                 generatedFileWithTestsAction(testFile)
             }
 
-            val mypyReport = notEmptyTests.flatMap { testSet ->
-                val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
-                val msgLines = testSet.mypyReport.mapNotNull {
-                    if (it.file != MypyAnnotations.TEMPORARY_MYPY_FILE)
-                        null
-                    else if (lineOfFunction != null && it.line >= 0)
-                        ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
-                    else
-                        "${it.type}: ${it.message}"
-                }
-                if (msgLines.isNotEmpty()) {
-                    listOf("MYPY REPORT (function ${testSet.method.name})") + msgLines
-                } else {
-                    emptyList()
-                }
-            }
-
+            val mypyReport = getMypyReport(notEmptyTests, pythonFileContent)
             if (mypyReport.isNotEmpty())
                 processMypyWarnings(mypyReport)
 
@@ -165,4 +151,22 @@ object PythonTestGenerationProcessor {
     enum class MissingRequirementsActionResult {
         INSTALLED, NOT_INSTALLED
     }
+
+    private fun getMypyReport(notEmptyTests: List<PythonTestSet>, pythonFileContent: String): List<String> =
+        notEmptyTests.flatMap { testSet ->
+            val lineOfFunction = getLineOfFunction(pythonFileContent, testSet.method.name)
+            val msgLines = testSet.mypyReport.mapNotNull {
+                if (it.file != MypyAnnotations.TEMPORARY_MYPY_FILE)
+                    null
+                else if (lineOfFunction != null && it.line >= 0)
+                    ":${it.line + lineOfFunction}: ${it.type}: ${it.message}"
+                else
+                    "${it.type}: ${it.message}"
+            }
+            if (msgLines.isNotEmpty()) {
+                listOf("MYPY REPORT (function ${testSet.method.name})") + msgLines
+            } else {
+                emptyList()
+            }
+        }
 }

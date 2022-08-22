@@ -88,6 +88,7 @@ object AnnotationNormalizer {
         pythonPath: String,
         moduleOfAnnotation: String
     ): NormalizedPythonAnnotation {
+//        return NormalizedPythonAnnotation(annotation)
         val cached = stubAnnotationCache[annotation]
         if (cached != null)
             return cached

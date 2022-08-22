@@ -4,12 +4,50 @@ import json
 import sys
 import os
 
+import mypy.fastparse
+
 from contextlib import contextmanager
 from collections import defaultdict
-from typing import Any, Union, Optional
 
 import astor
-from typeshed_client import get_stub_names, get_search_context, OverloadedName, ImportedName
+from typeshed_client import get_stub_names, get_search_context, OverloadedName
+
+
+def normalize_annotation(annotation, module_of_annotation):
+    def walk_mypy_type(mypy_type):
+        try:
+            prefix = f'{module_of_annotation}.' if len(module_of_annotation) > 0 else ''
+
+            if mypy_type.name[:len(prefix)] == prefix:
+                name = mypy_type.name[len(prefix):]
+            else:
+                name = mypy_type.name
+
+            if eval(name) is None:
+                result = "types.NoneType"
+            else:
+                modname = eval(name).__module__
+                result = f'{modname}.{name}'
+
+        except Exception as e:
+            result = 'typing.Any'
+
+        if hasattr(mypy_type, 'args') and len(mypy_type.args) != 0:
+            arg_strs = [
+                walk_mypy_type(arg)
+                for arg in mypy_type.args
+            ]
+            result += f"[{', '.join(arg_strs)}]"
+
+        return result
+
+    mod = importlib.import_module(module_of_annotation)
+
+    for name in dir(mod):
+        globals()[name] = getattr(mod, name)
+
+    mypy_type_ = mypy.fastparse.parse_type_string(annotation, annotation, -1, -1)
+    return walk_mypy_type(mypy_type_)
 
 
 class AstClassEncoder(json.JSONEncoder):
@@ -117,6 +155,42 @@ def transform_annotation(annotation):
     return '' if annotation is None else astor.code_gen.to_source(annotation).strip()
 
 
+def recursive_normalize_annotations(json_data, module_name):
+    if 'annotation' in json_data:
+        json_data['annotation'] = normalize_annotation(
+            annotation=json_data['annotation'],
+            module_of_annotation=module_name
+        )
+    elif 'returns' in json_data:
+        json_data['returns'] = normalize_annotation(
+            annotation=json_data['returns'],
+            module_of_annotation=module_name
+        )
+        json_data['args'] = [
+            recursive_normalize_annotations(arg, module_name)
+            for arg in json_data['args']
+        ]
+        json_data['kwonlyargs'] = [
+            recursive_normalize_annotations(arg, module_name)
+            for arg in json_data['kwonlyargs']
+        ]
+    elif 'className' in json_data:
+        for key, value in json_data.items():
+            if key in {'methods', 'fields'}:
+                json_data[key] = [
+                    recursive_normalize_annotations(elem, module_name)
+                    for elem in value
+                ]
+    else:
+        for key, value in json_data.items():
+            json_data[key] = [
+                recursive_normalize_annotations(elem, module_name)
+                for elem in value
+            ]
+
+    return json_data
+
+
 class StubFileCollector:
     def __init__(self, python_version):
         self.methods_dataset = defaultdict(list)
@@ -140,30 +214,35 @@ class StubFileCollector:
             if isinstance(ast_, OverloadedName):
                 for definition in ast_.definitions:
                     _ast_handler(definition)
-            elif isinstance(ast_, ast.ClassDef):
-                if not ast_.name.startswith('_'):
-                    json_data = AstClassEncoder().default(ast_)
-                    class_name = f'{module_name}.{ast_.name}'
-                    json_data['className'] = class_name
-                    self.classes_dataset.append(json_data)
-
-                    for method in json_data['methods']:
-                        method['className'] = class_name
-                        self.methods_dataset[method['name']].append(method)
-
-                    for field in json_data['fields']:
-                        field['className'] = class_name
-                        self.fields_dataset[field['name']].append(field)
-
-            elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                json_data = AstFunctionDefEncoder().default(ast_)
-                function_name = f'{module_name}.{ast_.name}'
-                json_data['name'] = function_name
-                json_data['className'] = None
-                self.functions_dataset[ast_.name].append(json_data)
-
             else:
-                pass
+                if isinstance(ast_, ast.ClassDef):
+                    json_data = AstClassEncoder().default(ast_)
+                    recursive_normalize_annotations(json_data, module_name)
+
+                    if not ast_.name.startswith('_'):
+                        class_name = f'{module_name}.{ast_.name}'
+                        json_data['className'] = class_name
+                        self.classes_dataset.append(json_data)
+
+                        for method in json_data['methods']:
+                            method['className'] = class_name
+                            self.methods_dataset[method['name']].append(method)
+
+                        for field in json_data['fields']:
+                            field['className'] = class_name
+                            self.fields_dataset[field['name']].append(field)
+
+                elif isinstance(ast_, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    json_data = AstFunctionDefEncoder().default(ast_)
+                    recursive_normalize_annotations(json_data, module_name)
+
+                    function_name = f'{module_name}.{ast_.name}'
+                    json_data['name'] = function_name
+                    json_data['className'] = None
+                    self.functions_dataset[ast_.name].append(json_data)
+
+                else:
+                    pass
 
         ast_nodes = set()
 
@@ -180,10 +259,7 @@ class StubFileCollector:
             'fieldAnnotations': defaultdict_to_array(self.fields_dataset),
             'functionAnnotations': defaultdict_to_array(self.functions_dataset),
             'methodAnnotations': defaultdict_to_array(self.methods_dataset),
-        },
-            # sort_keys=True,
-            # indent=True
-        )
+        })
 
 
 def defaultdict_to_array(dataset):

@@ -1,14 +1,14 @@
 import sys
 import importlib
 import mypy.fastparse
-import typing
 from typing import *
 
 
-def main(annotation: str, module_of_annotation: str):
-    def walk_mypy_type(mypy_type) -> str:
+def main(annotation, module_of_annotation):
+    def walk_mypy_type(mypy_type):
         try:
-            prefix = module_of_annotation + "."
+            prefix = f'{module_of_annotation}.' if len(module_of_annotation) > 0 else ''
+
             if mypy_type.name[:len(prefix)] == prefix:
                 name = mypy_type.name[len(prefix):]
             else:
@@ -43,7 +43,7 @@ def main(annotation: str, module_of_annotation: str):
 
 def get_args():
     annotation = sys.argv[1]
-    module_of_annotation = sys.argv[2]
+    module_of_annotation = sys.argv[2] if len(sys.argv) == 3 else None
     return annotation, module_of_annotation
 
 

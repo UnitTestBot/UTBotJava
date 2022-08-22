@@ -170,6 +170,16 @@ object PythonCodeGenerator {
             else
                 generateMethodCall(method)
 
+        val fullFunctionName = Name((
+            listOf((functionCall.atomElement as Name).id.name) + functionCall.trailers.mapNotNull {
+                if (it is Attribute) {
+                    it.attr.name
+                } else {
+                    null
+                }
+            }).joinToString(".")
+        )
+
         val coverage = Assign(
             listOf(coverageName),
             Name("coverage.Coverage()")
@@ -180,9 +190,9 @@ object PythonCodeGenerator {
         )
 
         val result = Assign(
-                listOf(resultName),
-                functionCall
-            )
+            listOf(resultName),
+            functionCall
+        )
 
         val stopCoverage = Atom(
             coverageName,
@@ -202,7 +212,10 @@ object PythonCodeGenerator {
             listOf(visitedLinesName),
             Atom(
                 Name(getCoverageLinesName),
-                listOf(createArguments(listOf(functionCall.atomElement, coverageLinesName)))
+                listOf(createArguments(listOf(
+                    fullFunctionName,
+                    coverageLinesName
+                )))
             )
         )
 

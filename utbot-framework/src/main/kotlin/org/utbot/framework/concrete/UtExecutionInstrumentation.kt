@@ -42,7 +42,7 @@ import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
-import jdk.internal.org.objectweb.asm.Type
+import org.objectweb.asm.Type
 import kotlin.reflect.jvm.javaMethod
 
 /**

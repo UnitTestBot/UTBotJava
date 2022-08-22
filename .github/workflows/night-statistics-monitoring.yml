@@ -11,11 +11,11 @@ env:
   aggregated_data_path: monitoring/aggregated_data
   monitoring_properties: monitoring/monitoring.properties
   output_stats: stats.json
-  KOTLIN_HOME: /usr
 
 jobs:
   build_and_run_monitoring:
     runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
       - name: Checkout main
         uses: actions/checkout@v3
@@ -32,14 +32,6 @@ jobs:
           ref: ${{ env.aggregated_data_branch }}
           path: ${{ env.aggregated_data_path }}
 
-      - uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'zulu'
-          java-package: jdk+fx
-      - uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 7.4.2
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'

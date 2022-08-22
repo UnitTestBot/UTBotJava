@@ -24,7 +24,7 @@ class GlobalStats {
         get() = statsForClasses.size
 
     val testCasesGenerated: Int
-        get() = statsForClasses.sumBy { it.testcasesGenerated }
+        get() = statsForClasses.sumOf { it.testcasesGenerated }
 
     val classesWithoutProblems: Int
         get() = statsForClasses.count { !it.canceledByTimeout && it.methodsWithAtLeastOneException == 0 }
@@ -33,31 +33,31 @@ class GlobalStats {
         get() = statsForClasses.count { it.canceledByTimeout }
 
     val totalMethodsForGeneration: Int
-        get() = statsForClasses.sumBy { it.methodsCount }
+        get() = statsForClasses.sumOf { it.methodsCount }
 
     val methodsWithAtLeastOneTestCaseGenerated: Int
-        get() = statsForClasses.sumBy { it.statsForMethods.count { it.testsGeneratedCount > 0 } }
+        get() = statsForClasses.sumOf { it.statsForMethods.count { it.testsGeneratedCount > 0 } }
 
     val methodsWithExceptions: Int
-        get() = statsForClasses.sumBy { clazz -> clazz.statsForMethods.count { it.failReasons.isNotEmpty() } }
+        get() = statsForClasses.sumOf { clazz -> clazz.statsForMethods.count { it.failReasons.isNotEmpty() } }
 
     val suspiciousMethods: Int
-        get() = statsForClasses.sumBy { it.statsForMethods.count { it.isSuspicious } }
+        get() = statsForClasses.sumOf { it.statsForMethods.count { it.isSuspicious } }
 
     val testClassesFailedToCompile: Int
         get() = statsForClasses.count { it.failedToCompile }
 
-    val coveredInstructionsCount: Int
-        get() = statsForClasses.sumBy { it.coverage.getCoverageInfo(it.className).covered }
+    val coveredInstructions: Int
+        get() = statsForClasses.sumOf { it.coverage.getCoverageInfo(it.className).covered }
 
-    val coveredInstructionsCountByFuzzing: Int
-        get() = statsForClasses.sumBy { it.fuzzedCoverage.getCoverageInfo(it.className).covered }
+    val coveredInstructionsByFuzzing: Int
+        get() = statsForClasses.sumOf { it.fuzzedCoverage.getCoverageInfo(it.className).covered }
 
-    val coveredInstructionsCountByConcolic: Int
-        get() = statsForClasses.sumBy { it.concolicCoverage.getCoverageInfo(it.className).covered }
+    val coveredInstructionsByConcolic: Int
+        get() = statsForClasses.sumOf { it.concolicCoverage.getCoverageInfo(it.className).covered }
 
-    val totalInstructionsCount: Int
-        get() = statsForClasses.sumBy { it.coverage.totalInstructions.toInt() }
+    val totalInstructions: Int
+        get() = statsForClasses.sumOf { it.coverage.totalInstructions.toInt() }
 
     val avgCoverage: Double
         get() = statsForClasses
@@ -87,17 +87,17 @@ class GlobalStats {
                 .take(10)
                 .printMultiline { (reason, names) -> " ${names.joinToString()}\n-->> In ${names.size} method(s) :: $reason" } +
             "\n----------------------------------------" +
-            totalInstructionsCount.let { denum ->
+            totalInstructions.let { denum ->
                 "\n\tTotal coverage: \n\t\t" +
-                coveredInstructionsCount.let { num ->
+                coveredInstructions.let { num ->
                     "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
                 } +
                 "\n\tTotal fuzzed coverage: \n\t\t" +
-                coveredInstructionsCountByFuzzing.let { num ->
+                coveredInstructionsByFuzzing.let { num ->
                     "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
                 } +
                 "\n\tTotal concolic coverage: \n\t\t" +
-                coveredInstructionsCountByConcolic.let { num ->
+                coveredInstructionsByConcolic.let { num ->
                     "$num/$denum (${(100.0 * num / denum).format(PRECISION)} %)"
                 }
             } +
@@ -114,7 +114,7 @@ class StatsForClass(val className: String) {
     var testClassFile: File? = null
 
     val methodsWithAtLeastOneException: Int get() = statsForMethods.count { it.failReasons.isNotEmpty() }
-    val testcasesGenerated: Int get() = statsForMethods.sumBy { it.testsGeneratedCount }
+    val testcasesGenerated: Int get() = statsForMethods.sumOf { it.testsGeneratedCount }
 
     var coverage = CoverageInstructionsSet()
     var fuzzedCoverage = CoverageInstructionsSet()

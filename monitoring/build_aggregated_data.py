@@ -35,8 +35,8 @@ def get_stats_seq(args):
 
 
 def transform_target_stats(stats, timestamp):
-    common_prefix = "covered_instructions_count"
-    denum = stats["total_instructions_count"]
+    common_prefix = "covered_instructions"
+    denum = stats["total_instructions"]
 
     nums_keys = [(key, key.removeprefix(common_prefix)) for key in stats.keys() if key.startswith(common_prefix)]
 
@@ -45,7 +45,7 @@ def transform_target_stats(stats, timestamp):
         stats["total_coverage" + by] = 100 * num / denum if denum != 0 else 0
         del stats[key]
 
-    del stats["total_instructions_count"]
+    del stats["total_instructions"]
     stats["timestamp"] = timestamp
 
     return stats

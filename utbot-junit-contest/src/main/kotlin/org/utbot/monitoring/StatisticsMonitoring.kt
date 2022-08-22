@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
     val methodFilter: String?
     val processedClassesThreshold = MonitoringSettings.processedClassesThreshold
     val tools: List<Tool> = listOf(Tool.UtBot)
-    val timeLimit = MonitoringSettings.classTimeoutMillis
+    val timeLimit = MonitoringSettings.classTimeoutSeconds
 
     val project = MonitoringSettings.project
     methodFilter = null
@@ -95,7 +95,7 @@ private fun GlobalStats.jsonString(baseTabs: Int = 0) =
 
         val tabs = baseTabs + 1
         addValue("target", MonitoringSettings.project, tabs)
-        addValue("class_timeout_ms", MonitoringSettings.classTimeoutMillis, tabs)
+        addValue("class_timeout_sec", MonitoringSettings.classTimeoutSeconds, tabs)
         addValue("run_timeout_min", MonitoringSettings.runTimeoutMinutes, tabs)
         duration?.let {
             addValue("duration_ms", it, tabs)
@@ -109,10 +109,10 @@ private fun GlobalStats.jsonString(baseTabs: Int = 0) =
         addValue("methods_with_exceptions", methodsWithExceptions, tabs)
         addValue("suspicious_methods", suspiciousMethods, tabs)
         addValue("test_classes_failed_to_compile", testClassesFailedToCompile, tabs)
-        addValue("covered_instructions_count", coveredInstructionsCount, tabs)
-        addValue("covered_instructions_count_by_fuzzing", coveredInstructionsCountByFuzzing, tabs)
-        addValue("covered_instructions_count_by_concolic", coveredInstructionsCountByConcolic, tabs)
-        addValue("total_instructions_count", totalInstructionsCount, tabs)
+        addValue("covered_instructions", coveredInstructions, tabs)
+        addValue("covered_instructions_by_fuzzing", coveredInstructionsByFuzzing, tabs)
+        addValue("covered_instructions_by_concolic", coveredInstructionsByConcolic, tabs)
+        addValue("total_instructions", totalInstructions, tabs)
         addValue("avg_coverage", avgCoverage, tabs, needComma = false)
 
         tab(baseTabs)

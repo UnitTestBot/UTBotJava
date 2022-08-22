@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.tree
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
+import org.utbot.framework.codegen.model.constructor.tree.CgUtilClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgRendererContext
@@ -149,6 +150,18 @@ sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
         get() = id.simpleName
 }
 
+/**
+ * This class represents any class that we may want to generate other than the test class.
+ * At the moment the only such case is the generation of util class UtUtils.
+ *
+ * The difference with [CgTestClass] is in the body.
+ * The structure of a test class body is fixed (we know what it should contain),
+ * whereas an arbitrary class could contain anything.
+ * For example, the body of UtUtils class contains a comment with information
+ * about the version of UTBot it was generated with, and all the util methods.
+ *
+ * @see CgUtilClassConstructor
+ */
 class CgRegularClass(
     override val id: ClassId,
     override val annotations: List<CgAnnotation>,

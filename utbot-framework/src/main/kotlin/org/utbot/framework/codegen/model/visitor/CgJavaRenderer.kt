@@ -86,14 +86,6 @@ internal class CgJavaRenderer(context: CgRendererContext, printer: CgPrinter = C
         println("}")
     }
 
-    override fun visit(element: CgRegularClass) {
-        visit(element as AbstractCgClass<*>)
-    }
-
-    override fun visit(element: CgTestClass) {
-        visit(element as AbstractCgClass<*>)
-    }
-
     override fun visit(element: CgTestClassBody) {
         // render regions for test methods and utils
         val allRegions = element.testMethodRegions + element.nestedClassRegions + element.staticDeclarationRegions

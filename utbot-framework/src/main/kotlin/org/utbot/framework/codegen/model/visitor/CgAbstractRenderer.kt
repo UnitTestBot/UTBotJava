@@ -59,6 +59,7 @@ import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgRegion
+import org.utbot.framework.codegen.model.tree.CgRegularClass
 import org.utbot.framework.codegen.model.tree.CgRegularClassBody
 import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
@@ -71,6 +72,7 @@ import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
+import org.utbot.framework.codegen.model.tree.CgTestClass
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
@@ -149,6 +151,14 @@ internal abstract class CgAbstractRenderer(
 
     override fun visit(element: CgTestClassFile) {
         visit(element as AbstractCgClassFile<*>)
+    }
+
+    override fun visit(element: CgRegularClass) {
+        visit(element as AbstractCgClass<*>)
+    }
+
+    override fun visit(element: CgTestClass) {
+        visit(element as AbstractCgClass<*>)
     }
 
     override fun visit(element: AbstractCgClassBody) {

@@ -83,6 +83,7 @@ object PythonCodeGenerator {
             Alias("typing"),
             Alias("json"),
             Alias("inspect"),
+            Alias("builtins"),
         ))
         val systemCalls = directoriesForSysPath.map { path ->
             Atom(

@@ -169,7 +169,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
         useSynthesis: Boolean = false,
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
-        scoringStrategy: ScoringStrategyBuilder = ScoringStrategyBuilder()
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(
             controller,
@@ -179,7 +178,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             executionTimeEstimator,
             useSynthesis,
             postConditionConstructor,
-            scoringStrategy
         )
         return createDefaultFlow(engine)
     }
@@ -192,7 +190,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
         executionTimeEstimator: ExecutionTimeEstimator,
         useSynthesis: Boolean,
         postConditionConstructor: PostConditionConstructor,
-        scoringStrategy: ScoringStrategyBuilder
     ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $sootMethod  --$mockStrategy--")
@@ -207,7 +204,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
             solverTimeoutInMillis = executionTimeEstimator.updatedSolverCheckTimeoutMillis,
             useSynthesis = useSynthesis,
             postConditionConstructor = postConditionConstructor,
-            scoringStrategy = scoringStrategy
         )
     }
 
@@ -288,7 +284,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                                 executionTimeEstimator,
                                 enableSynthesis,
                                 EmptyPostCondition,
-                                ScoringStrategyBuilder()
                             )
                         ).collect {
                             when (it) {
@@ -392,7 +387,6 @@ object UtBotTestCaseGenerator : TestCaseGenerator {
                     mockStrategy,
                     useSynthesis = false,
                     postConditionConstructor = postConditionConstructor,
-                    scoringStrategy = scoringStrategy
                 ).collect {
                     when (it) {
                         is UtExecution -> executions += it

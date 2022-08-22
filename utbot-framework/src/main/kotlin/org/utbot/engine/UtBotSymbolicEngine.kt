@@ -86,6 +86,7 @@ import org.utbot.engine.selectors.*
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
 import org.utbot.engine.selectors.strategies.GraphViz
 import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
+import org.utbot.engine.selectors.strategies.defaultScoringStrategy
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.SymbolicState
@@ -233,7 +234,6 @@ var nextDefaultModelId = 1500_000_000
 private fun pathSelector(
     graph: InterProceduralUnitGraph,
     typeRegistry: TypeRegistry,
-    scoringStrategy: ScoringStrategyBuilder,
 ) = when (pathSelectorType) {
     PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
         withStepsLimit(pathSelectorStepsLimit)
@@ -259,7 +259,7 @@ private fun pathSelector(
     PathSelectorType.RANDOM_PATH_SELECTOR -> randomPathSelector(graph, StrategyOption.DISTANCE) {
         withStepsLimit(pathSelectorStepsLimit)
     }
-    PathSelectorType.SCORING_PATH_SELECTOR -> scoringPathSelector(graph, scoringStrategy.build(graph, typeRegistry)) {
+    PathSelectorType.SCORING_PATH_SELECTOR -> scoringPathSelector(graph, defaultScoringStrategy.build(graph, typeRegistry)) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 }
@@ -275,14 +275,13 @@ class UtBotSymbolicEngine(
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
     private val useSynthesis: Boolean = enableSynthesis,
     private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
-    scoringStrategy: ScoringStrategyBuilder = ScoringStrategyBuilder()
 ) : UtContextInitializer() {
 
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val visitedStmts: MutableSet<Stmt> = mutableSetOf()
     private val globalGraph = InterProceduralUnitGraph(graph)
     internal val typeRegistry: TypeRegistry = TypeRegistry()
-    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry, scoringStrategy)
+    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
 
     private val classLoader: ClassLoader
         get() = utContext.classLoader

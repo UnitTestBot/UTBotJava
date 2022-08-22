@@ -91,7 +91,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             if (module != null)
                 return Success(module)
         }
-        return Fail("Couldn't find path for $sourceFile in --python-path option. Please, specify it.")
+        return Fail("Couldn't find path for $sourceFile in --sys-path option. Please, specify it.")
     }
 
     private val forbiddenMethods = listOf("__init__", "__new__")

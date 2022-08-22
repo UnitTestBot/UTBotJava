@@ -62,7 +62,9 @@ object PythonTestCaseGenerator {
             initialArgumentTypes[0] = NormalizedPythonAnnotation(method.containingPythonClassId!!.name)
         }
 
+        logger.debug("Collecting hints about arguments")
         val argInfoCollector = ArgInfoCollector(method, initialArgumentTypes)
+        logger.debug("Collected.")
         val annotationSequence = getAnnotations(method, initialArgumentTypes, argInfoCollector, isCancelled)
 
         val executions = mutableListOf<UtExecution>()
@@ -74,6 +76,10 @@ object PythonTestCaseGenerator {
             annotationSequence.forEach { annotations ->
                 if (isCancelled())
                     return@breaking
+
+                logger.debug("Found annotations: ${
+                    annotations.map { "${it.key}: ${it.value}" }.joinToString(" ")
+                }")
 
                 val engine = PythonEngine(
                     method,

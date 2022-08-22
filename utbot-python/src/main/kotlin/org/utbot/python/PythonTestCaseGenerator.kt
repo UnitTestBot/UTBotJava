@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
@@ -10,6 +11,7 @@ import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 
 object PythonTestCaseGenerator {
+    private var withMinimization: Boolean = true
     private lateinit var directoriesForSysPath: Set<String>
     private lateinit var curModule: String
     private lateinit var pythonPath: String
@@ -25,12 +27,14 @@ object PythonTestCaseGenerator {
         pythonPath: String,
         fileOfMethod: String,
         timeoutForRun: Long,
+        withMinimization: Boolean = true,
         isCancelled: () -> Boolean
     ) {
         this.directoriesForSysPath = directoriesForSysPath
         this.curModule = moduleToImport
         this.pythonPath = pythonPath
         this.fileOfMethod = fileOfMethod
+        this.withMinimization = withMinimization
         this.isCancelled = isCancelled
         this.timeoutForRun = timeoutForRun
     }
@@ -95,7 +99,12 @@ object PythonTestCaseGenerator {
             }
         }
 
-        return PythonTestSet(method, executions, errors, storageForMypyMessages)
+        return PythonTestSet(
+            method,
+            if (withMinimization) minimizeExecutions(executions) else executions,
+            errors,
+            storageForMypyMessages
+        )
     }
 
     private fun getAnnotations(

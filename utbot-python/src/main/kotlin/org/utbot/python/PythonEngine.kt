@@ -59,7 +59,7 @@ class PythonEngine(
             if (evalResult is EvaluationError) {
                 yield(UtError("EvaluationError", Throwable())) // TODO: make better error description
             } else {
-                val (resultJSON, isException) = evalResult as EvaluationSuccess
+                val (resultJSON, isException, coverage) = evalResult as EvaluationSuccess
 
                 val prohibitedExceptions = listOf(
                     "builtins.AttributeError",
@@ -92,6 +92,7 @@ class PythonEngine(
                         stateBefore = EnvironmentModels(thisObject, modelList, emptyMap()),
                         stateAfter = EnvironmentModels(thisObject, modelList, emptyMap()),
                         result = result,
+                        coverage = coverage,
                         testMethodName = testMethodName?.testName?.camelToSnakeCase(),
                         displayName = testMethodName?.displayName,
                     )

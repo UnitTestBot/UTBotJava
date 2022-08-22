@@ -29,11 +29,11 @@ import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-class PythonCode(private val body: Module, val filename: String? = null, val pythonModule: String? = null) {
+class PythonCode(private val body: Module, val filename: String, val pythonModule: String? = null) {
     fun getToplevelFunctions(): List<PythonMethodBody> =
-        body.functionDefs?.mapNotNull { functionDef ->
-                PythonMethodBody(functionDef, filename ?: "")
-            } ?: emptyList()
+        body.functionDefs.mapNotNull { functionDef ->
+                PythonMethodBody(functionDef, filename)
+            }
 
     fun getToplevelClasses(): List<PythonClass> =
         body.classDefs?.mapNotNull { classDef ->

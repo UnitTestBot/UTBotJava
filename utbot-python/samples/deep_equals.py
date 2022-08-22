@@ -34,15 +34,15 @@ def primitive_dict(x: str, y: int):
 
 
 def comparable_list(length: int):
-    return [ComparableClass(x) for x in range(max(length, 10))]
+    return [ComparableClass(x) for x in range(min(length, 10))]
 
 
 def bad_list(length: int):
-    return [BadClass(x) for x in range(max(length, 10))]
+    return [BadClass(x) for x in range(min(length, 10))]
 
 
 class Node:
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
         self.children = []
 

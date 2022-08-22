@@ -15,6 +15,9 @@ interface PythonMethod {
     fun asString(): String
     fun ast(): FunctionDef
     val containingPythonClassId: PythonClassId?
+    fun methodSignature(): String = "$name(" + arguments.joinToString(", ") {
+        "${it.name}: ${it.annotation ?: pythonAnyClassId.name}"
+    } + ")"
 }
 
 data class PythonTestSet(

@@ -1,5 +1,6 @@
 package org.utbot.python.typing
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
@@ -8,7 +9,11 @@ import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.utils.*
 import java.io.File
 
+private val logger = KotlinLogging.logger {}
+
 object AnnotationFinder {
+
+    private const val MAX_CANDIDATES_FOR_PARAM = 100
 
     fun findAnnotations(
         argInfoCollector: ArgInfoCollector,
@@ -22,7 +27,9 @@ object AnnotationFinder {
         storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine>
     ): Sequence<Map<String, NormalizedPythonAnnotation>> {
 
+        logger.debug("Finding candidates...")
         val annotationsToCheck = findTypeCandidates(argInfoCollector, existingAnnotations)
+        logger.debug("Found")
 
         return MypyAnnotations.getCheckedByMypyAnnotations(
             methodUnderTest,
@@ -108,7 +115,7 @@ object AnnotationFinder {
                 increaseForGenerics(candidates)
         }
         increaseForProjectClasses(candidates)
-        return candidatesMapToRating(candidates)
+        return candidatesMapToRating(candidates).take(MAX_CANDIDATES_FOR_PARAM)
     }
 
     private fun getGeneralTypeRating(
@@ -133,10 +140,8 @@ object AnnotationFinder {
             foundCandidates.forEach { increaseValue(candidates, it, add) }
         }
         increaseForProjectClasses(candidates)
-        return candidatesMapToRating(candidates)
+        return candidatesMapToRating(candidates).take(MAX_CANDIDATES_FOR_PARAM / 2)
     }
-
-    private const val MAX_CANDIDATES_FOR_PARAM = 100
 
     private fun getArgCandidates(
         generalTypeRating: List<NormalizedPythonAnnotation>,

@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import mu.KotlinLogging
 import org.utbot.framework.minimization.minimizeExecutions
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.UtError
@@ -9,6 +10,8 @@ import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+
+private val logger = KotlinLogging.logger {}
 
 object PythonTestCaseGenerator {
     private var withMinimization: Boolean = true
@@ -59,7 +62,9 @@ object PythonTestCaseGenerator {
             initialArgumentTypes[0] = NormalizedPythonAnnotation(method.containingPythonClassId!!.name)
         }
 
+        logger.debug("Collecting hints about arguments")
         val argInfoCollector = ArgInfoCollector(method, initialArgumentTypes)
+        logger.debug("Collected.")
         val annotationSequence = getAnnotations(method, initialArgumentTypes, argInfoCollector, isCancelled)
 
         val executions = mutableListOf<UtExecution>()
@@ -71,6 +76,10 @@ object PythonTestCaseGenerator {
             annotationSequence.forEach { annotations ->
                 if (isCancelled())
                     return@breaking
+
+                logger.debug("Found annotations: ${
+                    annotations.map { "${it.key}: ${it.value}" }.joinToString(" ")
+                }")
 
                 val engine = PythonEngine(
                     method,
@@ -86,8 +95,14 @@ object PythonTestCaseGenerator {
                     if (isCancelled())
                         return@breaking
                     when (it) {
-                        is UtExecution -> executions += it
-                        is UtError -> errors += it
+                        is UtExecution -> {
+                            logger.debug("Added execution")
+                            executions += it
+                        }
+                        is UtError -> {
+                            logger.debug("Failed evaluation")
+                            errors += it
+                        }
                     }
                     testsGenerated += 1
                     if (testsGenerated >= maxTestCount)

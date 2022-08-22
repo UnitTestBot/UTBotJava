@@ -31,9 +31,16 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
-    private val timeoutSpinner =
+    private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
+            MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
+            Int.MAX_VALUE,
+            MINIMUM_TIMEOUT_VALUE_IN_SECONDS
+        )
+    private val timeoutSpinnerForOneRun =
+        JBIntSpinner(
+            TimeUnit.MILLISECONDS.toSeconds(DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS).toInt(),
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS,
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
@@ -71,7 +78,10 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                 scrollPane(functionsTable)
             }
             row("Timeout for all selected functions:") {
-                component(timeoutSpinner)
+                component(timeoutSpinnerForTotalTimeout)
+            }
+            row("Timeout for one function run:") {
+                component(timeoutSpinnerForOneRun)
             }
         }
 
@@ -139,7 +149,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.testFramework = testFrameworks.item
         model.codegenLanguage = CodegenLanguage.PYTHON
-        model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinner.number.toLong())
+        model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
+        model.timeoutForRun = TimeUnit.SECONDS.toMillis(timeoutSpinnerForOneRun.number.toLong())
 
         super.doOKAction()
     }

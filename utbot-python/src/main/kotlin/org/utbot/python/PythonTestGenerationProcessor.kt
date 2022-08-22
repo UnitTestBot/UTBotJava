@@ -1,6 +1,5 @@
 package org.utbot.python
 
-import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet

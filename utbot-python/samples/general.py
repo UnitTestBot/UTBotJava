@@ -148,6 +148,8 @@ def k(x: typing.Any):
 
 #  interesting case with sets
 def set_small_data_labels(dates):
+    if len(dates) == 0:
+        return None
     if all(x.hour == 0 and x.minute == 0 for x in dates):
         return [x.strftime('%Y-%m-%d') for x in dates]
     else:

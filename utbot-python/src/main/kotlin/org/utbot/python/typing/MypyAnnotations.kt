@@ -1,5 +1,6 @@
 package org.utbot.python.typing
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.python.utils.Cleaner
 import org.utbot.python.utils.FileManager
@@ -10,6 +11,7 @@ import org.utbot.python.utils.getLineOfFunction
 import org.utbot.python.utils.runCommand
 import java.io.File
 
+private val logger = KotlinLogging.logger {}
 
 object MypyAnnotations {
     const val TEMPORARY_MYPY_FILE = "<TEMPORARY MYPY FILE>"
@@ -41,6 +43,7 @@ object MypyAnnotations {
         val configFile = setConfigFile(directoriesForSysPath)
         Cleaner.addFunction { stopMypy(pythonPath) }
 
+        logger.debug("First mypy run")
         val defaultOutputAsString = mypyCheck(pythonPath, fileWithCode, configFile)
         val defaultErrorsAndNotes = getErrorsAndNotes(defaultOutputAsString, codeWithoutAnnotations, fileWithCode)
 
@@ -63,6 +66,10 @@ object MypyAnnotations {
             if (isCancelled()) {
                 return@sequence
             }
+
+            logger.debug("Checking annotations: ${
+                generatedAnnotations.joinToString { "${it.first}: ${it.second}" }
+            }")
 
             val annotationMap = generatedAnnotations.toMap()
             val codeWithAnnotations = generateMypyCheckCode(

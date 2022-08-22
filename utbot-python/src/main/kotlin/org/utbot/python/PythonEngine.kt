@@ -1,5 +1,6 @@
 package org.utbot.python
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
@@ -9,6 +10,8 @@ import org.utbot.python.providers.defaultPythonModelProvider
 import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
+
+private val logger = KotlinLogging.logger {}
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,
@@ -65,8 +68,12 @@ class PythonEngine(
                     "builtins.AttributeError",
                     "builtins.TypeError"
                 )
-                if (isException && (resultJSON.type.name in prohibitedExceptions))  // wrong type (sometimes mypy fails)
+                if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
+                    logger.debug("Evaluation with prohibited exception. Substituted types: ${
+                        types.joinToString { it.name } 
+                    }")
                     return@sequence
+                }
 
                 val result =
                     if (isException)

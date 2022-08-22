@@ -39,8 +39,9 @@ Output example (the result of three runs during one night):
 [
   {
     "target": "guava",
-    "timelimit_per_class": 20,
-    "run_timeout_minutes": 20,
+    "class_timeout_ms": 20,
+    "run_timeout_min": 20,
+    "duration_ms": 604225,
     "classes_for_generation": 20,
     "testcases_generated": 1651,
     "classes_without_problems": 12,
@@ -58,8 +59,9 @@ Output example (the result of three runs during one night):
   },
   {
     "target": "guava",
-    "timelimit_per_class": 20,
-    "run_timeout_minutes": 20,
+    "class_timeout_ms": 20,
+    "run_timeout_min": 20,
+    "duration_ms": 633713,
     "classes_for_generation": 20,
     "testcases_generated": 1872,
     "classes_without_problems": 12,
@@ -77,8 +79,9 @@ Output example (the result of three runs during one night):
   },
   {
     "target": "guava",
-    "timelimit_per_class": 20,
-    "run_timeout_minutes": 20,
+    "class_timeout_ms": 20,
+    "run_timeout_min": 20,
+    "duration_ms": 660421,
     "classes_for_generation": 20,
     "testcases_generated": 1770,
     "classes_without_problems": 13,
@@ -110,19 +113,21 @@ Output format: you get the JSON file, containing statistics grouped by target pr
 Input example:
 ```
 --stats_file stats.json --output_file data/meta-stats.json
---commit 66a1aeb6 --build 2022.8 
---timestamp 1660905157 --source github-action-2141
+--commit 66a1aeb6 --branch main
+--build 2022.8 --timestamp 1660905157 
+--source_type github-action --source_id 2902082973
 ```
 
 Output example (an average for each statistic over the three runs followed by metadata):
 ```json
 {
-  "json_version": "1.0",
+  "json_version": 1,
   "targets": {
     "guava": [
       {
-        "timelimit_per_class": 20,
-        "run_timeout_minutes": 20,
+        "class_timeout_ms": 20,
+        "run_timeout_min": 20,
+        "duration_ms": 604225,
         "classes_for_generation": 20,
         "testcases_generated": 1651,
         "classes_without_problems": 12,
@@ -139,8 +144,9 @@ Output example (an average for each statistic over the three runs followed by me
         "avg_coverage": 62.885408034613
       },
       {
-        "timelimit_per_class": 20,
-        "run_timeout_minutes": 20,
+        "class_timeout_ms": 20,
+        "run_timeout_min": 20,
+        "duration_ms": 633713,
         "classes_for_generation": 20,
         "testcases_generated": 1872,
         "classes_without_problems": 12,
@@ -157,8 +163,9 @@ Output example (an average for each statistic over the three runs followed by me
         "avg_coverage": 62.966064315865275
       },
       {
-        "timelimit_per_class": 20,
-        "run_timeout_minutes": 20,
+        "class_timeout_ms": 20,
+        "run_timeout_min": 20,
+        "duration_ms": 660421,
         "classes_for_generation": 20,
         "testcases_generated": 1770,
         "classes_without_problems": 13,
@@ -177,10 +184,15 @@ Output example (an average for each statistic over the three runs followed by me
     ]
   },
   "metadata": {
-    "source": "github-action-2141",
+    "source": {
+      "type": "github-action",
+      "id": "2902082973"
+    },
     "commit_hash": "66a1aeb6",
+    "branch": "main",
     "build_number": "2022.8",
-    "timestamp": 1660905157,
+    "timestamp": 1661153691,
+    "date": "2022-08-22T07:34:51",
     "environment": {
       "host": "fv-az377-887",
       "OS": "Linux version #20~20.04.1-Ubuntu SMP Fri Aug 5 12:16:53 UTC 2022",
@@ -194,11 +206,9 @@ Output example (an average for each statistic over the three runs followed by me
 }
 ```
 
-### Aggregating and summarising
+### Aggregating
 
-To get rid of measurement errors and get a general understanding of UnitTestBot efficiency we average the statistics over the runs during one night.
-
-The `build_aggregated_data.py` script gathers the results for several nights. The summarised results for each of the nights are put together into one array. You can specify the period for aggregating. It is useful for visualising or finding statistical characteristics of UnitTestBot performance, e.g. the median or max/min values.
+The `build_aggregated_data.py` script gathers the results for several nights. The collected results for each of the nights are put together into one array. You can specify the period for aggregating. It is useful for visualising or finding statistical characteristics of UnitTestBot performance, e.g. the median or max/min values.
 
 To run aggregating you should provide the input.
 
@@ -221,22 +231,61 @@ Output example:
 {
   "guava": [
     {
-      "timelimit_per_class": 20.0,
-      "run_timeout_minutes": 20.0,
-      "classes_for_generation": 20.0,
-      "testcases_generated": 1764.3333333333333,
-      "classes_without_problems": 12.333333333333334,
-      "classes_canceled_by_timeout": 2.0,
-      "total_methods_for_generation": 519.0,
-      "methods_with_at_least_one_testcase_generated": 394.3333333333333,
-      "methods_with_exceptions": 45.333333333333336,
-      "suspicious_methods": 55.333333333333336,
-      "test_classes_failed_to_compile": 0.0,
-      "avg_coverage": 62.480721428256736,
-      "total_coverage": 56.84739152087949,
-      "total_coverage_by_fuzzing": 41.60749728061026,
-      "total_coverage_by_concolic": 44.420096905766805,
-      "timestamp": 1660905157
+      "class_timeout_ms": 20,
+      "run_timeout_min": 20,
+      "duration_ms": 604225,
+      "classes_for_generation": 20,
+      "testcases_generated": 1651,
+      "classes_without_problems": 12,
+      "classes_canceled_by_timeout": 2,
+      "total_methods_for_generation": 519,
+      "methods_with_at_least_one_testcase_generated": 365,
+      "methods_with_exceptions": 46,
+      "suspicious_methods": 85,
+      "test_classes_failed_to_compile": 0,
+      "avg_coverage": 62.885408034613,
+      "total_coverage": 56.50166961304262,
+      "total_coverage_by_fuzzing": 42.967982714594385,
+      "total_coverage_by_concolic": 39.96267923787075,
+      "timestamp": 1661153691
+    },
+    {
+      "class_timeout_ms": 20,
+      "run_timeout_min": 20,
+      "duration_ms": 633713,
+      "classes_for_generation": 20,
+      "testcases_generated": 1872,
+      "classes_without_problems": 12,
+      "classes_canceled_by_timeout": 2,
+      "total_methods_for_generation": 519,
+      "methods_with_at_least_one_testcase_generated": 413,
+      "methods_with_exceptions": 46,
+      "suspicious_methods": 38,
+      "test_classes_failed_to_compile": 0,
+      "avg_coverage": 62.966064315865275,
+      "total_coverage": 57.133775315593496,
+      "total_coverage_by_fuzzing": 40.595767868495145,
+      "total_coverage_by_concolic": 47.51612024339297,
+      "timestamp": 1661153691
+    },
+    {
+      "class_timeout_ms": 20,
+      "run_timeout_min": 20,
+      "duration_ms": 660421,
+      "classes_for_generation": 20,
+      "testcases_generated": 1770,
+      "classes_without_problems": 13,
+      "classes_canceled_by_timeout": 2,
+      "total_methods_for_generation": 519,
+      "methods_with_at_least_one_testcase_generated": 405,
+      "methods_with_exceptions": 44,
+      "suspicious_methods": 43,
+      "test_classes_failed_to_compile": 0,
+      "avg_coverage": 61.59069193429194,
+      "total_coverage": 56.90672963400236,
+      "total_coverage_by_fuzzing": 41.25874125874126,
+      "total_coverage_by_concolic": 45.78149123603669,
+      "timestamp": 1661153691
     }
   ]
 }

@@ -16,6 +16,8 @@ class GlobalStats {
         const val PRECISION: Int = 2
     }
 
+    var duration: Long? = null
+
     val statsForClasses = mutableListOf<StatsForClass>()
 
     val classesForGeneration: Int

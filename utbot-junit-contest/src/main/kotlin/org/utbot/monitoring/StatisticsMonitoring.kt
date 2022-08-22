@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
     val methodFilter: String?
     val processedClassesThreshold = MonitoringSettings.processedClassesThreshold
     val tools: List<Tool> = listOf(Tool.UtBot)
-    val timeLimit = MonitoringSettings.timeLimitPerClass
+    val timeLimit = MonitoringSettings.classTimeoutMillis
 
     val project = MonitoringSettings.project
     methodFilter = null
@@ -48,6 +48,7 @@ fun main(args: Array<String>) {
 
     repeat(runTries) { idx ->
         logger.info().bracket("Run UTBot try number ${idx + 1}") {
+            val start = System.nanoTime()
 
             executor.invokeWithTimeout(runTimeout) {
                 runEstimator(
@@ -55,7 +56,11 @@ fun main(args: Array<String>) {
                     listOf(project), processedClassesThreshold, tools
                 )
             }
-                ?.onSuccess { statistics.add(it as GlobalStats) }
+                ?.onSuccess {
+                    it as GlobalStats
+                    it.duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start)
+                    statistics.add(it)
+                }
                 ?.onFailure { logger.error(it) { "Run failure!" } }
                 ?: run {
                     logger.info { "Run timeout!" }
@@ -90,8 +95,11 @@ private fun GlobalStats.jsonString(baseTabs: Int = 0) =
 
         val tabs = baseTabs + 1
         addValue("target", MonitoringSettings.project, tabs)
-        addValue("timelimit_per_class", MonitoringSettings.timeLimitPerClass, tabs)
-        addValue("run_timeout_minutes", MonitoringSettings.runTimeoutMinutes, tabs)
+        addValue("class_timeout_ms", MonitoringSettings.classTimeoutMillis, tabs)
+        addValue("run_timeout_min", MonitoringSettings.runTimeoutMinutes, tabs)
+        duration?.let {
+            addValue("duration_ms", it, tabs)
+        }
         addValue("classes_for_generation", classesForGeneration, tabs)
         addValue("testcases_generated", testCasesGenerated, tabs)
         addValue("classes_without_problems", classesWithoutProblems, tabs)

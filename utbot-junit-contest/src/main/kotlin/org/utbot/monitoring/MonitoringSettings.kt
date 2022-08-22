@@ -14,7 +14,7 @@ object MonitoringSettings : AbstractSettings(
     /**
      * Test generation for one class timeout.
      */
-    val timeLimitPerClass by getIntProperty(20)
+    val classTimeoutMillis by getIntProperty(20)
 
     /**
      * Bound of classes for generation.

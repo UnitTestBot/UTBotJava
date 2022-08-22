@@ -16,10 +16,13 @@ def get_file_seq(input_data_dir):
 
 
 def check_stats(stats, args):
-    timestamp = stats["metadata"]["timestamp"]
-    timestamp_match = args.timestamp_from <= timestamp <= args.timestamp_to
-    json_version_match = stats["json_version"] == JSON_VERSION
-    return timestamp_match and json_version_match
+    try:
+        timestamp = stats["metadata"]["timestamp"]
+        timestamp_match = args.timestamp_from <= timestamp <= args.timestamp_to
+        json_version_match = stats["version"] == JSON_VERSION
+        return timestamp_match and json_version_match
+    except:
+        return False
 
 
 def get_stats_seq(args):
@@ -30,21 +33,7 @@ def get_stats_seq(args):
             yield stats
 
 
-def transform_and_combine_target(stats_list, timestamp):
-    new_stats = defaultdict(lambda: 0.0)
-
-    # calculate average by all keys
-    for n, stats in enumerate(stats_list, start=1):
-        transformed = transform_target(stats)
-        for key in transformed:
-            new_stats[key] = new_stats[key] + (transformed[key] - new_stats[key]) / n
-
-    new_stats['timestamp'] = timestamp
-
-    return new_stats
-
-
-def transform_target(stats):
+def transform_target_stats(stats, timestamp):
     common_prefix = "covered_instructions_count"
     denum = stats["total_instructions_count"]
 
@@ -56,6 +45,7 @@ def transform_target(stats):
         del stats[key]
 
     del stats["total_instructions_count"]
+    stats["timestamp"] = timestamp
 
     return stats
 
@@ -67,9 +57,10 @@ def aggregate_stats(stats_seq):
         targets = stats["targets"]
         timestamp = stats["metadata"]["timestamp"]
         for target in targets:
-            result[target].append(
-                transform_and_combine_target(targets[target], timestamp)
-            )
+            for target_stats in targets[target]:
+                result[target].append(
+                    transform_target_stats(target_stats, timestamp)
+                )
 
     return result
 

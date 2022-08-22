@@ -73,9 +73,11 @@ jobs:
             --stats_file $output_stats \
             --output_file "$data_path/data-$branch-$date-$timestamp-$short_commit.json" \
             --commit $commit \
+            --branch $branch \
             --build "$build" \
             --timestamp $timestamp \
-            --source "github-action-$run_id"
+            --source_type "github-action" \
+            --source_id $run_id
         env:
           date: ${{ steps.date.outputs.date }}
           timestamp: ${{ steps.date.outputs.timestamp }}

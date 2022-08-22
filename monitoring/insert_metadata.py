@@ -7,6 +7,7 @@ from os import environ
 from os.path import exists
 from platform import uname
 from time import time
+from datetime import datetime
 
 from monitoring_settings import JSON_VERSION
 
@@ -52,10 +53,15 @@ def build_environment_data():
 
 def build_metadata(args):
     metadata = {
-        'source': args.source,
+        'source': {
+            'type': args.source_type,
+            'id': args.source_id
+        },
         'commit_hash': args.commit,
+        'branch': args.branch,
         'build_number': args.build,
         'timestamp': args.timestamp,
+        'date': datetime.fromtimestamp(args.timestamp).strftime('%Y-%m-%dT%H:%M:%S'),
         'environment': build_environment_data()
     }
     return metadata
@@ -75,7 +81,7 @@ def insert_metadata(args):
     if stats_array is None:
         raise FileNotFoundError("File with stats does not exist!")
     result = {
-        'json_version': JSON_VERSION,
+        'version': JSON_VERSION,
         'targets': build_targets(stats_array),
         'metadata': build_metadata(args)
     }
@@ -103,7 +109,14 @@ def get_args():
         type=int, default=int(time())
     )
     parser.add_argument(
-        '--source', help='source of metadata', type=str
+        '--source_type', help='source type of metadata',
+        type=str, default="Manual"
+    )
+    parser.add_argument(
+        '--source_id', help='source id of metadata', type=str
+    )
+    parser.add_argument(
+        '--branch', help='branch name', type=str
     )
 
     args = parser.parse_args()

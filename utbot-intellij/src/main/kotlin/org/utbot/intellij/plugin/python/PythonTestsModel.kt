@@ -18,7 +18,8 @@ class PythonTestsModel(
     val file: PyFile,
     val directoriesForSysPath: Set<String>,
     val currentPythonModule: String,
-    var timeout: Long
+    var timeout: Long,
+    var timeoutForRun: Long
 ): BaseTestsModel(
     project,
     srcModule,

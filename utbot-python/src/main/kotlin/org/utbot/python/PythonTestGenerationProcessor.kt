@@ -30,6 +30,7 @@ object PythonTestGenerationProcessor {
         testFramework: TestFramework,
         codegenLanguage: CodegenLanguage,
         outputFilename: String, // without path, just name
+        timeoutForRun: Long,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
         requirementsAreNotInstalledAction: () -> MissingRequirementsActionResult = {
@@ -68,7 +69,8 @@ object PythonTestGenerationProcessor {
                     directoriesForSysPath,
                     currentPythonModule,
                     pythonPath,
-                    pythonFilePath
+                    pythonFilePath,
+                    timeoutForRun
                 ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
             }
 

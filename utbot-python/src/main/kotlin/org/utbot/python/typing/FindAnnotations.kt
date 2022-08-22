@@ -55,27 +55,27 @@ object AnnotationFinder {
         return candidates
     }
 
+    private const val EPS = 1e-6
+
     private fun candidatesMapToRating(candidates: Map<NormalizedPythonAnnotation, Double>) =
         candidates.toList().sortedByDescending { it.second }.map { it.first }
 
-    private fun increaseForProjectClasses(candidates: MutableMap<NormalizedPythonAnnotation, Double>, by: Double) {
+    private fun increaseForProjectClasses(candidates: MutableMap<NormalizedPythonAnnotation, Double>) {
         candidates.keys.forEach { typeName ->
             if (PythonTypesStorage.isClassFromProject(typeName))
-                increaseValue(candidates, typeName, by)
+                increaseValue(candidates, typeName, EPS)
         }
     }
 
-    private fun increaseForGenerics(candidates: MutableMap<NormalizedPythonAnnotation, Double>, by: Double) {
+    private fun increaseForGenerics(candidates: MutableMap<NormalizedPythonAnnotation, Double>) {
         candidates.keys.forEach { typeName ->
             if (isGeneric(typeName))
-                increaseValue(candidates, typeName, by)
+                increaseValue(candidates, typeName, EPS)
         }
     }
 
     private fun calcAdd(foundCandidates: Int): Double =
         if (foundCandidates == 0) 0.0 else 1.0 / foundCandidates
-
-    const val EPS = 1e-6
 
     private fun getFirstLevelCandidates(
         hints: List<ArgInfoCollector.Hint>?
@@ -105,9 +105,9 @@ object AnnotationFinder {
             val add = calcAdd(foundCandidates.size)
             foundCandidates.forEach { increaseValue(candidates, it, add) }
             if (isIter)
-                increaseForGenerics(candidates, EPS)
+                increaseForGenerics(candidates)
         }
-        increaseForProjectClasses(candidates, EPS)
+        increaseForProjectClasses(candidates)
         return candidatesMapToRating(candidates)
     }
 
@@ -132,7 +132,7 @@ object AnnotationFinder {
             val add = calcAdd(foundCandidates.size)
             foundCandidates.forEach { increaseValue(candidates, it, add) }
         }
-        increaseForProjectClasses(candidates, EPS)
+        increaseForProjectClasses(candidates)
         return candidatesMapToRating(candidates)
     }
 

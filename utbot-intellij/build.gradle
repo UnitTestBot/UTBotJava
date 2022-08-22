@@ -1,6 +1,5 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-// TODO remove when switch plugin baseline to 2020.3 or higher, with kotlin 1.4 inside
 compileKotlin {
     kotlinOptions {
         allWarningsAsErrors = false

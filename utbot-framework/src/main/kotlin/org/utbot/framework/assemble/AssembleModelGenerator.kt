@@ -5,6 +5,7 @@ import org.utbot.common.packageName
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
@@ -231,6 +232,11 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     }
                     if (fieldId.isFinal) {
                         throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
+                    }
+                    if (!fieldId.type.isAccessibleFrom(methodPackageName)) {
+                        throw AssembleException(
+                            "Field $fieldId can't be set in an object of the class $classId because its type is inaccessible"
+                        )
                     }
                     //fill field value if it hasn't been filled by constructor, and it is not default
                     if (fieldId in constructorInfo.affectedFields ||

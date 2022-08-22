@@ -1,5 +1,6 @@
 package org.utbot.examples.casts
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
@@ -160,6 +161,7 @@ internal class ArrayCastExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("Fix Traverser.findInvocationTargets to exclude non-exported classes / provide good classes")
     fun testCastFromIterableToCollection() {
         check(
             ArrayCastExample::castFromIterableToCollection,

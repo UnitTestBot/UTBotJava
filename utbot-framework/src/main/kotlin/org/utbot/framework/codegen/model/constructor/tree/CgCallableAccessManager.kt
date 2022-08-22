@@ -121,7 +121,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private fun MethodExecutableId.findExceptionTypes(): Set<ClassId> {
         if (!isUtil) return emptySet()
 
-        with(currentTestClass) {
+        with(outerMostTestClass) {
             return when (this@findExceptionTypes.methodId) {
                 getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
                 getStaticFieldValueMethodId,
@@ -146,7 +146,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private infix fun CgExpression?.canBeReceiverOf(executable: MethodExecutableId): Boolean =
         when {
             // TODO: rewrite by using CgMethodId, etc.
-            currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
+            outerMostTestClass == executable.classId && this isThisInstanceOf outerMostTestClass -> true
             executable.methodId.isStatic -> true
             else -> this?.type?.classId?.blockingIsSubtypeOf(executable.classId) ?: false
         }
@@ -321,6 +321,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
     private fun MethodExecutableId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
+        containsReflectiveCall = true
         val method = declaredExecutableRefs[this]
             ?: toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)
@@ -334,6 +335,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun ConstructorExecutableId.callWithReflection(args: List<CgExpression>): CgExecutableCall {
+        containsReflectiveCall = true
         val constructor = declaredExecutableRefs[this]
             ?: this.toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)

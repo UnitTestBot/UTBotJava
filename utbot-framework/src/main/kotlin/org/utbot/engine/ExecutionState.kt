@@ -18,7 +18,7 @@ import soot.SootMethod
 import soot.jimple.Stmt
 import java.util.Objects
 import org.utbot.engine.symbolic.Assumption
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 const val RETURN_DECISION_NUM = -1
 const val CALL_DECISION_NUM = -2

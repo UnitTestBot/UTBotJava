@@ -25,48 +25,81 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
     private val methodConstructor = CgComponents.getMethodConstructorBy(context)
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-
-    private val cgDataProviderMethods = mutableListOf<CgMethod>()
+    private val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
 
     private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
-     * Given a list of test sets constructs CgTestClass
+     * Given a testClass model  constructs CgTestClass
      */
-    fun construct(testSets: Collection<CgMethodTestSet>): CgTestClassFile {
+    fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
-            testClass = buildTestClass {
-                // TODO: obtain test class from plugin
-                id = currentTestClass
-                body = buildTestClassBody {
-                    cgDataProviderMethods.clear()
-                    for (testSet in testSets) {
-                        updateCurrentExecutable(testSet.executableId)
-                        val currentMethodUnderTestRegions = construct(testSet) ?: continue
-                        val executableUnderTestCluster = CgExecutableUnderTestCluster(
-                            "Test suites for executable $currentExecutable",
-                            currentMethodUnderTestRegions
-                        )
-                        testMethodRegions += executableUnderTestCluster
-                    }
-
-                    dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
-                        "Data providers and utils methods",
-                        cgDataProviderMethods + createUtilMethods()
-                    )
-                }
-                // It is important that annotations, superclass and interfaces assignment is run after
-                // all methods are generated so that all necessary info is already present in the context
-                annotations += context.collectedTestClassAnnotations
-                superclass = context.testClassSuperclass
-                interfaces += context.collectedTestClassInterfaces
-            }
+            this.testClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }
 
-    private fun construct(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
+        return buildTestClass {
+            id = currentTestClass
+
+            if (currentTestClass != outerMostTestClass) {
+                isNested = true
+                isStatic = testFramework.nestedClassesShouldBeStatic
+                testFrameworkManager.annotationForNestedClasses?.let {
+                    currentTestClassContext.collectedTestClassAnnotations += it
+                }
+            }
+            if (testClassModel.nestedClasses.isNotEmpty()) {
+                testFrameworkManager.annotationForOuterClasses?.let {
+                    currentTestClassContext.collectedTestClassAnnotations += it
+                }
+            }
+
+            body = buildTestClassBody {
+                for (nestedClass in testClassModel.nestedClasses) {
+                    nestedClassRegions += CgSimpleRegion(
+                        "Tests for ${nestedClass.classUnderTest.simpleName}",
+                        listOf(
+                            withNestedClassScope(nestedClass) { constructTestClass(nestedClass) }
+                        )
+                    )
+                }
+
+                for (testSet in testClassModel.methodTestSets) {
+                    updateCurrentExecutable(testSet.executableId)
+                    val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
+                    val executableUnderTestCluster = CgExecutableUnderTestCluster(
+                        "Test suites for executable $currentExecutable",
+                        currentMethodUnderTestRegions
+                    )
+                    testMethodRegions += executableUnderTestCluster
+                }
+
+                val utilMethods = if (currentTestClass == outerMostTestClass)
+                    createUtilMethods()
+                else
+                    emptyList()
+
+                val additionalMethods = currentTestClassContext.cgDataProviderMethods + utilMethods
+
+                dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
+                    "Data providers and utils methods",
+                    additionalMethods
+                )
+            }
+            // It is important that annotations, superclass and interfaces assignment is run after
+            // all methods are generated so that all necessary info is already present in the context
+            with (currentTestClassContext) {
+                annotations += collectedTestClassAnnotations
+                superclass = testClassSuperclass
+                interfaces += collectedTestClassInterfaces
+            }
+        }
+    }
+
+    private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }
@@ -95,8 +128,15 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
-                for (currentTestSet in testSet.splitExecutionsByResult()) {
-                    createParametrizedTestAndDataProvider(currentTestSet, requiredFields, regions, methodUnderTest)
+                for (splitByExecutionTestSet in testSet.splitExecutionsByResult()) {
+                    for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
+                        createParametrizedTestAndDataProvider(
+                            splitByChangedStaticsTestSet,
+                            requiredFields,
+                            regions,
+                            methodUnderTest
+                        )
+                    }
                 }
             }
         }
@@ -130,8 +170,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
             requiredFields += parameterizedTestMethod.requiredFields
 
-            cgDataProviderMethods +=
+            testFrameworkManager.addDataProvider(
                 methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+            )
 
             regions += CgSimpleRegion(
                 "Parameterized test for method ${methodUnderTest.displayName}",

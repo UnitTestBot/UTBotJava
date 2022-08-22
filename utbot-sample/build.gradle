@@ -29,8 +29,18 @@ java {
     targetCompatibility = JavaVersion.VERSION_11
 }
 
+compileJava {
+    dependsOn project(':utbot-api').tasks.jar
+}
+
 test {
+    minHeapSize = "128m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
 // To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
     //useJUnit()
-    useJUnitPlatform()
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
 }

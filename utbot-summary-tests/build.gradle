@@ -17,5 +17,11 @@ dependencies {
 }
 
 test {
-    useJUnitPlatform()
+    minHeapSize = "128m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
 }

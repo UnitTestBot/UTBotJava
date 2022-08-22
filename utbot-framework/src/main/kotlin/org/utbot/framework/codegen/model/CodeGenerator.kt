@@ -54,12 +54,13 @@ class CodeGenerator(
         return generateAsStringWithTestReport(cgTestSets, testClassCustomName)
     }
 
-    fun generateAsStringWithTestReport(
+    private fun generateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
-        context.withClassScope {
-            val testClassFile = CgTestClassConstructor(context).construct(cgTestSets)
+        context.withTestClassFileScope {
+            val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
+            val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
             TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
         }
     }

@@ -6,6 +6,7 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.*
 
@@ -57,6 +58,7 @@ interface CgElement {
             is CgDeclaration -> visit(element)
             is CgAssignment -> visit(element)
             is CgTypeCast -> visit(element)
+            is CgIsInstance -> visit(element)
             is CgThisInstance -> visit(element)
             is CgNotNullAssertion -> visit(element)
             is CgVariable -> visit(element)
@@ -103,6 +105,8 @@ data class CgTestClass(
     val superclass: ClassId?,
     val interfaces: List<ClassId>,
     val body: CgTestClassBody,
+    val isStatic: Boolean,
+    val isNested: Boolean
 ) : CgElement {
     val packageName = id.packageName
     val simpleName = id.simpleName
@@ -110,7 +114,8 @@ data class CgTestClass(
 
 data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
-    val utilsRegion: List<CgRegion<CgElement>>
+    val utilsRegion: List<CgRegion<CgElement>>,
+    val nestedClassRegions: List<CgRegion<CgTestClass>>
 ) : CgElement {
     val regions: List<CgRegion<*>>
         get() = testMethodRegions
@@ -522,6 +527,16 @@ class CgTypeCast(
     override val type: CgClassType = targetType
 }
 
+/**
+ * Represents [java.lang.Class.isInstance] method.
+ */
+class CgIsInstance(
+    val classExpression: CgExpression,
+    val value: CgExpression,
+): CgExpression {
+    override val type: ClassId = booleanClassId
+}
+
 // Value
 
 // TODO in general CgLiteral is not CgReferenceExpression because it can hold primitive values
@@ -611,6 +626,7 @@ data class CgParameterDeclaration(
 sealed class CgParameterKind {
     object ThisInstance : CgParameterKind()
     data class Argument(val index: Int) : CgParameterKind()
+    data class Statics(val model: UtModel) : CgParameterKind()
     object ExpectedResult : CgParameterKind()
     object ExpectedException : CgParameterKind()
 }

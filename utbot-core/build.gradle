@@ -1,5 +1,5 @@
 plugins {
-    id "com.github.johnrengelman.shadow" version "6.1.0"
+    id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
@@ -9,6 +9,19 @@ dependencies {
     implementation group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
 
     testImplementation group: 'junit', name: 'junit', version: junit4_version
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
+        allWarningsAsErrors = false
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 shadowJar {

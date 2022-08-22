@@ -1291,16 +1291,8 @@ public class UtBotJavaApiTest {
     private String getDependencyClassPath() {
 
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        URL[] urls = contextClassLoader instanceof URLClassLoader ?
-                ((URLClassLoader)contextClassLoader).getURLs() :
-                Arrays.stream(System.getProperty("java.class.path").split(File.pathSeparator)).map(path -> {
-                    try {
-                        return new File(path).toURL();
-                    } catch (MalformedURLException e) {
-                        throw new RuntimeException(e);
-                    }
+        URL[] urls = PathUtil.getUrlsFromClassLoader(contextClassLoader);
 
-                }).toArray(URL[]::new);
 
         return Arrays.stream(urls).map(url ->
         {

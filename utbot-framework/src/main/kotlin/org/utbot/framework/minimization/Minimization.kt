@@ -19,6 +19,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.UtVoidModel
 
+
 /**
  * Minimizes [executions] in each test suite independently. Test suite is computed with [executionToTestSuite] function.
  *

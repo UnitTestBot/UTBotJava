@@ -75,6 +75,8 @@ interface CgStatementConstructor {
     fun CgTryCatch.catch(exception: ClassId, init: (CgVariable) -> Unit): CgTryCatch
     fun CgTryCatch.finally(init: () -> Unit): CgTryCatch
 
+    fun CgExpression.isInstance(value: CgExpression): CgIsInstance
+
     fun innerBlock(init: () -> Unit): CgInnerBlock
 
 //    fun CgTryCatchBuilder.statements(init: () -> Unit)
@@ -259,6 +261,15 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     override fun CgTryCatch.finally(init: () -> Unit): CgTryCatch {
         val finallyBlock = block(init)
         return this.copy(finally = finallyBlock)
+    }
+
+    override fun CgExpression.isInstance(value: CgExpression): CgIsInstance {
+        require(this.type == classClassId) {
+            "isInstance method can be called on object with type $classClassId only, but actual type is ${this.type}"
+        }
+
+        //TODO: we should better process it as this[isInstanceMethodId](value) as it is a call
+        return CgIsInstance(this, value)
     }
 
     override fun innerBlock(init: () -> Unit): CgInnerBlock =

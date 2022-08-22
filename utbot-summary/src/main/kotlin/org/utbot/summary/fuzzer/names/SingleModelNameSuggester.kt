@@ -1,4 +1,4 @@
-package org.utbot.fuzzer.names
+package org.utbot.summary.fuzzer.names
 
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel

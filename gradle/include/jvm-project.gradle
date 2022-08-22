@@ -48,7 +48,9 @@ compileTestJava {
 test {
     // set heap size for the test JVM(s)
     minHeapSize = "128m"
-    maxHeapSize = "2048m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
 
     useJUnitPlatform() {
         excludeTags 'slow', 'IntegrationTest'

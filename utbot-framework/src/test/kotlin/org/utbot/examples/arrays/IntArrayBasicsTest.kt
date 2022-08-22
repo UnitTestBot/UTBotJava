@@ -220,7 +220,7 @@ internal class IntArrayBasicsTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("Sergei is looking into it")
+    @Disabled("Java 11 transition -- Sergei is looking into it")
     fun testArraysEqualsExample() {
         check(
             IntArrayBasics::arrayEqualsExample,

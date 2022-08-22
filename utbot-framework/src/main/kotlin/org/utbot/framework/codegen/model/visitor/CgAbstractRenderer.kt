@@ -45,7 +45,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     private val MethodExecutableId.accessibleByName: Boolean
-        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.currentTestClass
+        get() = (context.shouldOptimizeImports && this in context.importedStaticMethods) || classId == context.outerMostTestClass
 
     override fun visit(element: CgElement) {
         val error =
@@ -61,7 +61,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgTestClassBody) {
         // render regions for test methods and utils
-        for ((i, region) in (element.regions + element.utilsRegion).withIndex()) {
+        for ((i, region) in (element.regions + element.nestedClassRegions + element.utilsRegion).withIndex()) {
             if (i != 0) println()
 
             region.accept(this)
@@ -120,7 +120,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
 
     override fun visit(element: CgUtilMethod) {
-        context.currentTestClass
+        context.outerMostTestClass
                 .utilMethodById(element.id, context)
                 .split("\n")
                 .forEach { line -> println(line) }
@@ -345,6 +345,15 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
 
     override fun visit(element: CgDecrement) {
         print("${element.variable.name}--")
+    }
+
+    // isInstance check
+
+    override fun visit(element: CgIsInstance) {
+        element.classExpression.accept(this)
+        print(".isInstance(")
+        element.value.accept(this)
+        print(")")
     }
 
     // Try-catch

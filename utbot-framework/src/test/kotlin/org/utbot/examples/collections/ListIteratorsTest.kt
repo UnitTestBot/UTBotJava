@@ -58,7 +58,7 @@ internal class ListIteratorsTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled
+    @Disabled("Java 11 transition")
     fun testAddElements() {
         check(
             ListIterators::addElements,

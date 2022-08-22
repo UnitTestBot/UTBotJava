@@ -1,7 +1,7 @@
 package org.utbot.summary
 
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.getBasicTypeTag
@@ -36,7 +36,7 @@ fun List<Step>.invokeJimpleMethods(): List<SootMethod> =
             it.invokeExpr.method
         }
 
-fun stepsUpToDepth(executions: List<UtExecution>, depth: Int) {
+fun stepsUpToDepth(executions: List<UtSymbolicExecution>, depth: Int) {
     for (execution in executions) {
         execution.path.clear()
         execution.path.addAll(execution.fullPath.filter { it.depth <= depth })
@@ -46,13 +46,13 @@ fun stepsUpToDepth(executions: List<UtExecution>, depth: Int) {
 /*
 * from 0 to 100
 * */
-fun percentageDiverseExecutions(executions: List<UtExecution>): Int {
+fun percentageDiverseExecutions(executions: List<UtSymbolicExecution>): Int {
     if (executions.isEmpty()) return 100
     val diverseExecutions = numberDiverseExecutionsBasedOnPaths(executions)
     return 100 * diverseExecutions.size / executions.size
 }
 
-fun numberDiverseExecutionsBasedOnPaths(executions: List<UtExecution>) = executions.filter { current ->
+fun numberDiverseExecutionsBasedOnPaths(executions: List<UtSymbolicExecution>) = executions.filter { current ->
     executions.filter { it != current }.any { other ->
         current.path.isEqualPath(other.path)
     }.not()

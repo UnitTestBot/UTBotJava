@@ -953,7 +953,7 @@ val typesOfObjectsToRecreate = listOf(
     "java.lang.CharacterDataLatin1",
     "java.lang.CharacterData00",
     "[Ljava.lang.StackTraceElement",
-    "[Lsun.java2d.cmm.lcms.LcmsServiceProvider",
+    "sun.java2d.cmm.lcms.LcmsServiceProvider",
     PrintStream::class.qualifiedName,
     AccessControlContext::class.qualifiedName,
     ICC_ProfileRGB::class.qualifiedName,

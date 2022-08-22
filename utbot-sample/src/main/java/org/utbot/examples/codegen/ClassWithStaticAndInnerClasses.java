@@ -3,6 +3,9 @@ package org.utbot.examples.codegen;
 public class ClassWithStaticAndInnerClasses {
     public int z = 0;
 
+    // public field that exposes private type PrivateInnerClassWithPublicField
+    public PrivateInnerClassWithPublicField publicFieldWithPrivateType = new PrivateInnerClassWithPublicField(0);
+
     private static class PrivateStaticClassWithPublicField {
         public int x;
 
@@ -52,6 +55,18 @@ public class ClassWithStaticAndInnerClasses {
     }
 
     public static class PublicStaticClassWithPrivateField {
+
+        public static class DeepNestedStatic {
+            public int g(int x) {
+                return x + 1;
+            }
+        }
+
+        public class DeepNested {
+            public int h(int x) {
+                return x + 2;
+            }
+        }
         private int x;
 
         public PublicStaticClassWithPrivateField(int x) {
@@ -226,5 +241,9 @@ public class ClassWithStaticAndInnerClasses {
         PackagePrivateFinalInnerClassWithPackagePrivateField innerClass = classWithStaticAndInnerClasses.new PackagePrivateFinalInnerClassWithPackagePrivateField(x);
 
         return innerClass.createFromIncrement(x);
+    }
+
+    int getValueFromPublicFieldWithPrivateType() {
+        return publicFieldWithPrivateType.x;
     }
 }

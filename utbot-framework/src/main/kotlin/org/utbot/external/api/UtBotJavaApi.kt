@@ -1,7 +1,6 @@
 package org.utbot.external.api
 
 import org.utbot.common.FileUtil
-import org.utbot.common.packageName
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.CodeGenerator
@@ -221,7 +220,7 @@ object UtBotJavaApi {
             testInfo.utResult
         }
 
-        val utExecution = UtExecution(
+        val utExecution = UtSymbolicExecution(
             stateBefore = testInfo.initialState,
             stateAfter = testInfo.initialState, // it seems ok for concrete execution
             result = utExecutionResult,

@@ -42,6 +42,7 @@ import org.utbot.framework.codegen.model.tree.CgGreaterThan
 import org.utbot.framework.codegen.model.tree.CgIfStatement
 import org.utbot.framework.codegen.model.tree.CgIncrement
 import org.utbot.framework.codegen.model.tree.CgInnerBlock
+import org.utbot.framework.codegen.model.tree.CgIsInstance
 import org.utbot.framework.codegen.model.tree.CgLessThan
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgLogicalAnd
@@ -179,6 +180,9 @@ interface CgVisitor<R> {
 
     // Type cast
     fun visit(element: CgTypeCast): R
+
+    // isInstance check
+    fun visit(element: CgIsInstance): R
 
     // This instance
     fun visit(element: CgThisInstance): R

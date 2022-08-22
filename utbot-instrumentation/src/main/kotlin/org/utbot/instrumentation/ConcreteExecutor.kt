@@ -266,6 +266,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                                 }
 
                                 try {
+                                    // TODO: Java 11 transition -- Sergey will look
                                     readCommandsChannel.trySend(cmd).isSuccess
                                 } catch (e: CancellationException) {
                                     s.disposed = true

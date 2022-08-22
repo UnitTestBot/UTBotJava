@@ -92,17 +92,31 @@ class ValueConstructor {
         val (stateAfter, _) = constructState(execution.stateAfter)
         val returnValue = execution.result.map { construct(listOf(it)).single().value }
 
-        return UtValueExecution(
-            stateBefore,
-            stateAfter,
-            returnValue,
-            execution.path,
-            mocks,
-            execution.instrumentation,
-            execution.summary,
-            execution.testMethodName,
-            execution.displayName
-        )
+        if (execution is UtSymbolicExecution) {
+            return UtValueExecution(
+                stateBefore,
+                stateAfter,
+                returnValue,
+                execution.path,
+                mocks,
+                execution.instrumentation,
+                execution.summary,
+                execution.testMethodName,
+                execution.displayName
+            )
+        } else {
+            return UtValueExecution(
+                stateBefore,
+                stateAfter,
+                returnValue,
+                emptyList(),
+                mocks,
+                emptyList(),
+                execution.summary,
+                execution.testMethodName,
+                execution.displayName
+            )
+        }
     }
 
     private fun constructParamsAndMocks(

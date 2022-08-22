@@ -273,6 +273,12 @@ val java.lang.reflect.Type.id: ClassId
         else -> findClass(javaClass.name)
     }
 
+/**
+ * [java.lang.reflect.ParameterizedType.getRawType] now returns [Type] instead of [Class].
+ */
+val Type.id: ClassId
+    get() = TODO("Java 11 transition")
+
 val KClass<*>.id: ClassId
     get() = runBlocking {
         utContext.classpath.findClass(jvmName.jcdbName())

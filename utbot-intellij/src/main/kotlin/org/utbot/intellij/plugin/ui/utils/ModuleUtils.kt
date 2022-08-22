@@ -182,7 +182,7 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
             }
             // taking the source folder that has the maximum common prefix
             // with `testSourceRoot`, which was selected by the user
-            .maxBy { sourceFolder ->
+            .maxByOrNull { sourceFolder ->
                 val sourceFolderPath = sourceFolder.file?.path ?: ""
                 val testSourceRootPath = testSourceRoot?.path ?: ""
                 sourceFolderPath.commonPrefixWith(testSourceRootPath).length

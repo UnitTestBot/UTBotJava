@@ -957,6 +957,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Junit4 -> parametrizedTestSources.isEnabled = false
             Junit5,
             TestNg -> parametrizedTestSources.isEnabled = true
+            Pytest,
+            Unittest -> parametrizedTestSources.isEnabled = false
         }
     }
 

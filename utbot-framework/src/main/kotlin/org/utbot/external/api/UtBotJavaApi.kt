@@ -1,7 +1,6 @@
 package org.utbot.external.api
 
 import org.utbot.common.FileUtil
-import org.utbot.common.packageName
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit5

@@ -7,8 +7,6 @@ import org.utbot.examples.between
 import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
-import org.utbot.examples.isException
-import org.utbot.examples.withPushingStateFromPathSelectorForConcrete
 import org.utbot.examples.withoutMinimization
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -16,7 +14,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation ($ in names, generics) SAT-1220 SAT-1332
-internal class MapsTest : UtValueTestCaseChecker(
+internal class MapsPart1Test : UtValueTestCaseChecker(
     testClass = Maps::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
@@ -24,6 +22,40 @@ internal class MapsTest : UtValueTestCaseChecker(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Test
+    fun testPutElementIfAbsent() {
+        withoutMinimization { // TODO: JIRA:1506
+            check(
+                Maps::putElementIfAbsent,
+                ignoreExecutionsNumber,
+                { map, _, _, _ -> map == null },
+                { map, key, _, result -> map != null && key in map && result == map },
+                { map, key, value, result ->
+                    val valueWasPut = result!![key] == value && result.size == map.size + 1
+                    val otherValuesWerentTouched = result.entries.containsAll(map.entries)
+                    key !in map && valueWasPut && otherValuesWerentTouched
+                },
+                coverage = AtLeast(90) // unreachable else branch in MUT
+            )
+        }
+    }
+
+    @Test
+    fun testReplaceEntry() {
+        check(
+            Maps::replaceEntry,
+            between(3..6),
+            { map, _, _, _ -> map == null },
+            { map, key, _, result -> key !in map && result == map },
+            { map, key, value, result ->
+                val valueWasReplaced = result!![key] == value
+                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
+                key in map && valueWasReplaced && otherValuesWerentTouched
+            },
+            coverage = DoNotCalculate
+        )
+    }
+
     @Test
     fun createTest() {
         check(
@@ -255,110 +287,6 @@ internal class MapsTest : UtValueTestCaseChecker(
     }
 
     @Test
-    fun testPutElementIfAbsent() {
-        withoutMinimization { // TODO: JIRA:1506
-            check(
-                Maps::putElementIfAbsent,
-                ignoreExecutionsNumber,
-                { map, _, _, _ -> map == null },
-                { map, key, _, result -> map != null && key in map && result == map },
-                { map, key, value, result ->
-                    val valueWasPut = result!![key] == value && result.size == map.size + 1
-                    val otherValuesWerentTouched = result.entries.containsAll(map.entries)
-                    key !in map && valueWasPut && otherValuesWerentTouched
-                },
-                coverage = AtLeast(90) // unreachable else branch in MUT
-            )
-        }
-    }
-
-    @Test
-    fun testReplaceEntry() {
-        check(
-            Maps::replaceEntry,
-            between(3..6),
-            { map, _, _, _ -> map == null },
-            { map, key, _, result -> key !in map && result == map },
-            { map, key, value, result ->
-                val valueWasReplaced = result!![key] == value
-                val otherValuesWerentTouched = result.entries.all { it.key == key || it in map.entries }
-                key in map && valueWasReplaced && otherValuesWerentTouched
-            },
-            coverage = DoNotCalculate
-        )
-    }
-
-    @Test
-    fun testReplaceEntryWithValue() {
-        withPushingStateFromPathSelectorForConcrete {
-            check(
-                Maps::replaceEntryWithValue,
-                ge(6),
-                { map, _, _, _ -> map == null },
-                { map, key, value, result -> key !in map && value !in map.values && result == 0 },
-                { map, key, value, result -> key in map && value !in map.values && result == -1 },
-                { map, key, value, result -> key !in map && value in map.values && result == -2 },
-                { map, key, value, result -> key in map && map[key] == value && result == 3 },
-                { map, key, value, result -> key in map && value in map.values && map[key] != value && result == -3 },
-                coverage = DoNotCalculate
-            )
-        }
-    }
-
-    @Test
-    fun testMerge() {
-        withoutMinimization { // TODO: JIRA:1506
-            checkWithException(
-                Maps::merge,
-                ge(5),
-                { map, _, _, result -> map == null && result.isException<NullPointerException>() },
-                { map, _, value, result -> map != null && value == null && result.isException<NullPointerException>() },
-                { map, key, value, result ->
-                    val resultMap = result.getOrNull()!!
-                    val entryWasPut = resultMap.entries.all { it.key == key && it.value == value || it in map.entries }
-                    key !in map && value != null && entryWasPut
-                },
-                { map, key, value, result ->
-                    val resultMap = result.getOrNull()!!
-                    val valueInMapIsNull = key in map && map[key] == null
-                    val valueWasReplaced = resultMap[key] == value
-                    val otherValuesWerentTouched = resultMap.entries.all { it.key == key || it in map.entries }
-                    value != null && valueInMapIsNull && valueWasReplaced && otherValuesWerentTouched
-                },
-                { map, key, value, result ->
-                    val resultMap = result.getOrNull()!!
-                    val valueInMapIsNotNull = map[key] != null
-                    val valueWasMerged = resultMap[key] == map[key]!! + value
-                    val otherValuesWerentTouched = resultMap.entries.all { it.key == key || it in map.entries }
-                    value != null && valueInMapIsNotNull && valueWasMerged && otherValuesWerentTouched
-                },
-                coverage = DoNotCalculate
-            )
-        }
-    }
-
-    @Test
-    fun testPutAllEntries() {
-        withPushingStateFromPathSelectorForConcrete {
-            check(
-                Maps::putAllEntries,
-                ge(5),
-                { map, _, _ -> map == null },
-                { map, other, _ -> map != null && other == null },
-                { map, other, result -> map != null && other != null && map.keys.containsAll(other.keys) && result == 0 },
-                { map, other, result -> map != null && other != null && other.keys.all { it !in map.keys } && result == 1 },
-                { map, other, result ->
-                    val notNull = map != null && other != null
-                    val mapContainsAtLeastOneKeyOfOther = other.keys.any { it in map.keys }
-                    val mapDoesNotContainAllKeysOfOther = !map.keys.containsAll(other.keys)
-                    notNull && mapContainsAtLeastOneKeyOfOther && mapDoesNotContainAllKeysOfOther && result == 2
-                },
-                coverage = DoNotCalculate
-            )
-        }
-    }
-
-    @Test
     fun testReplaceAllEntries() {
         check(
             Maps::replaceAllEntries,
@@ -383,6 +311,4 @@ internal class MapsTest : UtValueTestCaseChecker(
             coverage = DoNotCalculate
         )
     }
-
-
 }

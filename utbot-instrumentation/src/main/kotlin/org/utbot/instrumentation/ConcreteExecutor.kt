@@ -27,13 +27,11 @@ import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 import kotlin.streams.toList
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
@@ -268,7 +266,8 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
                                 }
 
                                 try {
-                                    readCommandsChannel.offer(cmd)
+                                    // TODO: Java 11 transition -- Sergey will look
+                                    readCommandsChannel.trySend(cmd).isSuccess
                                 } catch (e: CancellationException) {
                                     s.disposed = true
 

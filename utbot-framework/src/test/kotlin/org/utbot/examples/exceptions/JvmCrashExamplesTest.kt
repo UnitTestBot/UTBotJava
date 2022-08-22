@@ -17,6 +17,7 @@ internal class JvmCrashExamplesTest : UtValueTestCaseChecker(testClass = JvmCras
     }
 
     @Test
+    @Disabled("Java 11 transition")
     fun testCrash() {
         check(
             JvmCrashExamples::crash,

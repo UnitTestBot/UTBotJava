@@ -4,7 +4,7 @@ import org.utbot.api.annotation.UtClassMock;
 
 @UtClassMock(target = java.lang.Boolean.class, internalUsage = true)
 public class Boolean {
-    @SuppressWarnings({"UnnecessaryBoxing", "BooleanConstructorCall", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Boolean valueOf(boolean x) {
         return new java.lang.Boolean(x);
     }

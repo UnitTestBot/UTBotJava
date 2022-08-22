@@ -1,13 +1,29 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+//noinspection GroovyAssignabilityCheck
 repositories {
     flatDir {
         dirs 'dist'
     }
 }
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     z3native
+}
+
+compileKotlin {
+    dependsOn project(':utbot-fuzzers').tasks.jar
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
+        allWarningsAsErrors = false
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 dependencies {
@@ -15,7 +31,7 @@ dependencies {
     api project(':utbot-core')
     api project(':utbot-instrumentation')
     api project(':utbot-summary')
-    implementation 'junit:junit:4.13.1'
+    //implementation 'junit:junit:4.13.1'
     api project(':utbot-framework-api')
 
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
@@ -24,9 +40,9 @@ dependencies {
     implementation group: 'org.sosy-lab', name: 'javasmt-solver-z3', version: javasmt_solver_z3_version
     implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: rgxgen_version
     implementation group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: log4j2_version
-    implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+    implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
     // we need this for construction mocks from composite models
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
     api project(':utbot-api')
@@ -34,14 +50,25 @@ dependencies {
 
     testImplementation project(':utbot-summary')
     testImplementation project(':utbot-sample')
-    testImplementation project(':utbot-analytics')
+//    testImplementation project(':utbot-analytics')
+
+    // To use JUnit4, comment out JUnit5 and uncomment JUnit4 dependencies here. Please also check "test" section
+//    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.7.0'
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.7.0'
 
     // used for testing code generation
+    testImplementation group: 'commons-io', name: 'commons-io', version: commons_io_version
     testImplementation group: 'junit', name: 'junit', version: junit4_version
     testImplementation group: 'org.junit.platform', name: 'junit-platform-console-standalone', version: junit4_platform_version
+    testImplementation group: 'org.antlr', name: 'antlr4', version: antlr_version
     testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     testImplementation group: 'org.testng', name: 'testng', version: testng_version
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
+    testImplementation group: 'com.google.guava', name: 'guava', version: guava_version
+
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version: mockito_inline_version
+    testImplementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
 
     z3native group: 'com.microsoft.z3', name: 'z3-native-win64', version: z3_version, ext: 'zip'
     z3native group: 'com.microsoft.z3', name: 'z3-native-linux64', version: z3_version, ext: 'zip'
@@ -57,13 +84,18 @@ processResources {
 }
 
 test {
+
+    minHeapSize = "128m"
+    maxHeapSize = "2048m"
+
+    jvmArgs '-XX:MaxHeapSize=2048m'
+
+    // To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
+    //useJUnit()
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
-    }
-}
-
-compileKotlin {
-    kotlinOptions {
-        freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
     }
 }

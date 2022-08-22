@@ -1,15 +1,6 @@
 package org.utbot.framework.util
 
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 import java.util.Collections
 import java.util.IdentityHashMap
 
@@ -41,6 +32,8 @@ abstract class UtModelVisitor<D> {
     protected abstract fun visit(element: UtArrayModel, data: D)
     protected abstract fun visit(element: UtAssembleModel, data: D)
     protected abstract fun visit(element: UtCompositeModel, data: D)
+
+    abstract fun visit(element: PythonModel, data: D)
 
     /**
      * Returns true when we can traverse the given model.

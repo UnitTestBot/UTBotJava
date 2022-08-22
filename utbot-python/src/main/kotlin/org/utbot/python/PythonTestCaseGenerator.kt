@@ -17,6 +17,7 @@ object PythonTestCaseGenerator {
     private lateinit var pythonPath: String
     private lateinit var fileOfMethod: String
     private lateinit var isCancelled: () -> Boolean
+    private var timeoutForRun: Long = 0
 
     private const val maxTestCount = 30
 
@@ -25,6 +26,7 @@ object PythonTestCaseGenerator {
         moduleToImport: String,
         pythonPath: String,
         fileOfMethod: String,
+        timeoutForRun: Long,
         withMinimization: Boolean = true,
         isCancelled: () -> Boolean
     ) {
@@ -34,6 +36,7 @@ object PythonTestCaseGenerator {
         this.fileOfMethod = fileOfMethod
         this.withMinimization = withMinimization
         this.isCancelled = isCancelled
+        this.timeoutForRun = timeoutForRun
     }
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()
@@ -75,7 +78,8 @@ object PythonTestCaseGenerator {
                     curModule,
                     pythonPath,
                     argInfoCollector.getConstants(),
-                    annotations
+                    annotations,
+                    timeoutForRun
                 )
 
                 engine.fuzzing().forEach {
@@ -103,7 +107,7 @@ object PythonTestCaseGenerator {
         )
     }
 
-    fun getAnnotations(
+    private fun getAnnotations(
         method: PythonMethod,
         initialArgumentTypes: List<NormalizedPythonAnnotation>,
         argInfoCollector: ArgInfoCollector,

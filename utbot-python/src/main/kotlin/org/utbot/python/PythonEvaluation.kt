@@ -30,6 +30,7 @@ object PythonEvaluation {
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
         pythonPath: String,
+        timeoutForRun: Long,
         additionalModulesToImport: Set<String> = emptySet()
     ): EvaluationResult {
         val runCode = PythonCodeGenerator.generateRunFunctionCode(
@@ -40,7 +41,7 @@ object PythonEvaluation {
             additionalModulesToImport
         )
         val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + method.name + ".py")
-        val result = runCommand(listOf(pythonPath, fileWithCode.path))
+        val result = runCommand(listOf(pythonPath, fileWithCode.path), timeoutForRun)
 
         if (result.exitValue != 0)
             return EvaluationError

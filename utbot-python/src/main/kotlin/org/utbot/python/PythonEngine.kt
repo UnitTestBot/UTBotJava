@@ -16,7 +16,8 @@ class PythonEngine(
     private val moduleToImport: String,
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
-    private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>
+    private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>,
+    private val timeoutForRun: Long
 ) {
     fun fuzzing(): Sequence<UtResult> = sequence {
         val types = methodUnderTest.arguments.map {
@@ -52,6 +53,7 @@ class PythonEngine(
                 directoriesForSysPath,
                 moduleToImport,
                 pythonPath,
+                timeoutForRun,
                 additionalModules
             )
             if (evalResult is EvaluationError) {
@@ -63,8 +65,8 @@ class PythonEngine(
                     "builtins.AttributeError",
                     "builtins.TypeError"
                 )
-                if (isException && (resultJSON.type.name in prohibitedExceptions))
-                    return@forEach
+                if (isException && (resultJSON.type.name in prohibitedExceptions))  // wrong type (sometimes mypy fails)
+                    return@sequence
 
                 val result =
                     if (isException)

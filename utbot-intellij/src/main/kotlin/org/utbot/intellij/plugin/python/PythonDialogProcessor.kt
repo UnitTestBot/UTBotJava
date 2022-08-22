@@ -34,6 +34,8 @@ import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 
+private val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
+
 object PythonDialogProcessor {
     fun createDialogAndGenerateTests(
         project: Project,
@@ -72,7 +74,8 @@ object PythonDialogProcessor {
                 file,
                 directoriesForSysPath,
                 moduleToImport,
-                UtSettings.utBotGenerationTimeoutInMillis
+                UtSettings.utBotGenerationTimeoutInMillis,
+                DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS
             )
         )
     }
@@ -126,6 +129,7 @@ object PythonDialogProcessor {
                     testFramework = model.testFramework,
                     codegenLanguage = model.codegenLanguage,
                     outputFilename = getOutputFileName(model),
+                    timeoutForRun = model.timeoutForRun,
                     isCanceled = { indicator.isCanceled },
                     checkingRequirementsAction = { indicator.text = "Checking requirements" },
                     requirementsAreNotInstalledAction = {

@@ -4,7 +4,6 @@ import com.beust.klaxon.Klaxon
 import org.utbot.framework.plugin.api.*
 import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator
-import org.utbot.python.typing.PythonClassIdInfo
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.runCommand
 

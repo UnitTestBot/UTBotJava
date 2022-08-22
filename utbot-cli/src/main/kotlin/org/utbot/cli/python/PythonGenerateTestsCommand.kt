@@ -21,6 +21,7 @@ import java.io.File
 import java.nio.file.Paths
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
+private const val DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS = 2000L
 
 private val logger = KotlinLogging.logger {}
 
@@ -43,7 +44,7 @@ class PythonGenerateTestsCommand: CliktCommand(
     ).split(",")
 
     private val directoriesForSysPath by option(
-        "-sp", "--sys-path",
+        "-s", "--sys-path",
         help = "Directories to add to sys.path"
     ).split(",").required()
 
@@ -64,8 +65,13 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private val timeout by option(
         "-t", "--timeout",
-        help = "Specify the maximum time in milliseconds used to generate tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)"
+        help = "Specify the maximum time in milliseconds to spend on generating tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)"
     ).long().default(DEFAULT_TIMEOUT_IN_MILLIS)
+
+    private val timeoutForRun by option(
+        "--timeout-for-run",
+        help = "Specify the maximum time in milliseconds to spend on one function run ($DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS by default)"
+    ).long().default(DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS)
 
     private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used")
         .choice(Pytest.toString(), Unittest.toString())
@@ -91,7 +97,11 @@ class PythonGenerateTestsCommand: CliktCommand(
     private val forbiddenMethods = listOf("__init__", "__new__")
 
     private fun getPythonMethods(sourceCodeContent: String, currentModule: String): Optional<List<PythonMethod>> {
-        val code = PythonCode.getFromString(sourceCodeContent, sourceFile, pythonModule = currentModule)
+        val code = PythonCode.getFromString(
+            sourceCodeContent,
+            sourceFile.toAbsolutePath(),
+            pythonModule = currentModule
+        )
             ?: return Fail("Couldn't parse source file. Maybe it contains syntax error?")
 
         val topLevelFunctions = code.getToplevelFunctions()
@@ -193,6 +203,7 @@ class PythonGenerateTestsCommand: CliktCommand(
             testFramework = testFramework,
             codegenLanguage = CodegenLanguage.PYTHON,
             outputFilename = outputFilename,
+            timeoutForRun = timeoutForRun,
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
             },
@@ -216,5 +227,5 @@ class PythonGenerateTestsCommand: CliktCommand(
     }
 
     private fun String.toAbsolutePath(): String =
-        Paths.get(this).toAbsolutePath().toString()
+        File(this).canonicalPath
 }

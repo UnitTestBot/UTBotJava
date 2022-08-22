@@ -27,3 +27,8 @@ data class PythonTestSet(
     val mypyReport: List<MypyAnnotations.MypyReportLine>,
     val classId: PythonClassId? = null,
 )
+
+class PythonCoverage(
+    val missedInstructions: List<Instruction>,
+    coveredInstructions: List<Instruction>
+): Coverage(coveredInstructions)

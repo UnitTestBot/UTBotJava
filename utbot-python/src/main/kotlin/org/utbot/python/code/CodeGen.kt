@@ -9,6 +9,7 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
+import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.Add
 import io.github.danielnaczo.python3parser.model.mods.Module
 import io.github.danielnaczo.python3parser.model.stmts.Body
 import io.github.danielnaczo.python3parser.model.stmts.Statement
@@ -38,7 +39,12 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    private fun createOutputBlock(outputName: String, status: String, coverageName: String): List<Statement> {
+    private fun createOutputBlock(
+        outputName: String,
+        status: String,
+        stmtsName: String,
+        missedName: String
+    ): List<Statement> {
         return listOf(
             Assign(
                 listOf(Name("out")),
@@ -53,7 +59,7 @@ object PythonCodeGenerator {
                 Name("print"),
                 listOf(
                     createArguments(
-                        listOf(Str("'$status'"), Name("json.dumps(out)"), Name(coverageName)),
+                        listOf(Str("'$status'"), Name("json.dumps(out)"), Name(stmtsName), Name(missedName)),
                         listOf(
                             Keyword(Name("end"), Str("''")),
                             Keyword(Name("sep"), Str("'\\n'"))
@@ -155,8 +161,13 @@ object PythonCodeGenerator {
         }
 
         val resultName = Name("__result")
-        val coverageLinesName = Name("__coverage_lines")
-        val visitedLinesName = Name("__visited_lines")
+        val startName = Name("__start")
+        val endName = Name("__end")
+        val sourcesName = Name("__sources")
+        val stmtsName = Name("__stmts")
+        val stmtsFilteredName = Name("__stmts_filtered")
+        val missedName = Name("__missed")
+        val missedFilteredName = Name("__missed_filtered")
         val coverageName = Name("__cov")
         val fullpathName = Name("__fullpath")
 
@@ -199,37 +210,63 @@ object PythonCodeGenerator {
             coverageName,
             listOf(Attribute(Identifier("stop")), createArguments())
         )
-        val coverageLines = Assign(
-            listOf(coverageLinesName),
+        val sourcesAndStart = Assign(
+            listOf(Tuple(listOf(sourcesName, startName))),
             Atom(
-                Atom(
-                    coverageName,
-                    listOf(Attribute(Identifier("get_data")), createArguments())
-                ),
-                listOf(Attribute(Identifier("lines")), createArguments(listOf(fullpathName)))
+                Name("inspect.getsourcelines"),
+                listOf(createArguments(listOf(fullFunctionName)))
             )
         )
-        val visitedLines = Assign(
-            listOf(visitedLinesName),
+        val end = Assign(
+            listOf(endName),
+            Add(
+                startName,
+                Atom(Name("len"), listOf(createArguments(listOf(sourcesName))))
+            )
+        )
+        val covAnalysis = Assign(
+            listOf(Tuple(listOf(
+                Name("_"),
+                stmtsName,
+                Name("_"),
+                missedName,
+                Name("_")
+            ))),
             Atom(
-                Name(getCoverageLinesName),
-                listOf(createArguments(listOf(
-                    fullFunctionName,
-                    coverageLinesName
-                )))
+                coverageName,
+                listOf(
+                    Attribute(Identifier("analysis2")),
+                    createArguments(listOf(fullpathName))
+                )
+            )
+        )
+        val stmtsFiltered = Assign(
+            listOf(stmtsFilteredName),
+            Atom(
+                Name(getLinesName),
+                listOf(createArguments(listOf(startName, endName, stmtsName)))
+            )
+        )
+        val missedFiltered = Assign(
+            listOf(missedFilteredName),
+            Atom(
+                Name(getLinesName),
+                listOf(createArguments(listOf(startName, endName, missedName)))
             )
         )
 
         val okOutputBlock = createOutputBlock(
             resultName.id.name,
             successStatus,
-            visitedLinesName.id.name
+            stmtsFilteredName.id.name,
+            missedFilteredName.id.name
         )
 
         val exceptionName = "e"
         val failOutputBlock = createOutputBlock(
             exceptionName,
             failStatus,
+            "[]",
             "[]"
         )
 
@@ -240,8 +277,11 @@ object PythonCodeGenerator {
                 startCoverage,
                 result,
                 stopCoverage,
-                coverageLines,
-                visitedLines,
+                sourcesAndStart,
+                end,
+                covAnalysis,
+                stmtsFiltered,
+                missedFiltered
             ) + okOutputBlock
         )
         val tryHandler = ExceptHandler("Exception", exceptionName)
@@ -256,7 +296,7 @@ object PythonCodeGenerator {
             listOf(createArguments())
         )
 
-        return pythonTreeSerializerCode + "\n\n\n" + getCoverageLines + "\n\n\n" + toString(
+        return pythonTreeSerializerCode + "\n\n\n" + getLines + "\n\n\n" + toString(
             Module(
                 importStatements + listOf(testFunction, runFunction)
             )
@@ -297,10 +337,9 @@ object PythonCodeGenerator {
         )
     }
 
-    private const val getCoverageLinesName: String = "__get_coverage_lines"
-    private val getCoverageLines: String = """
-        def ${this.getCoverageLinesName}(function, coverage_lines):
-            start_row = inspect.getsourcelines(function)[1]
-            return coverage_lines + [start_row]
+    private const val getLinesName: String = "__get_lines"
+    private val getLines: String = """
+        def ${this.getLinesName}(start, end, lines):
+            return list(filter(lambda x: x > start and x < end, lines))
     """.trimIndent()
 }

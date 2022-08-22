@@ -1,5 +1,7 @@
 package org.utbot.python
 
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
@@ -41,6 +43,7 @@ object PythonTestGenerationProcessor {
         notGeneratedTestsAction: (List<String>) -> Unit = {}, // take names of functions without tests
         generatedFileWithTestsAction: (File) -> Unit = {},
         processMypyWarnings: (List<String>) -> Unit = {},
+        processCoverageInfo: (String) -> Unit = {},
         startedCleaningAction: () -> Unit = {},
         finishedAction: (List<String>) -> Unit = {}  // take names of functions with generated tests
     ) {
@@ -136,6 +139,9 @@ object PythonTestGenerationProcessor {
                 generatedFileWithTestsAction(testFile)
             }
 
+            val coverageInfo = getCoverageInfo(notEmptyTests)
+            processCoverageInfo(coverageInfo)
+
             val mypyReport = getMypyReport(notEmptyTests, pythonFileContent)
             if (mypyReport.isNotEmpty())
                 processMypyWarnings(mypyReport)
@@ -169,4 +175,48 @@ object PythonTestGenerationProcessor {
                 emptyList()
             }
         }
+
+    data class InstructionSet(
+        val start: Int,
+        val end: Int
+    )
+
+    data class CoverageInfo(
+        val covered: List<InstructionSet>,
+        val notCovered: List<InstructionSet>
+    )
+
+    private val moshi: Moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
+    private val jsonAdapter = moshi.adapter(CoverageInfo::class.java)
+
+    private fun getInstructionSetList(instructions: Collection<Int>): List<InstructionSet> =
+        instructions.sorted().fold(emptyList()) { acc, lineNumber ->
+            if (acc.isEmpty())
+                return@fold listOf(InstructionSet(lineNumber, lineNumber))
+            val elem = acc.last()
+            if (elem.end + 1 == lineNumber)
+                acc.dropLast(1) + listOf(InstructionSet(elem.start, lineNumber))
+            else
+                acc + listOf(InstructionSet(lineNumber, lineNumber))
+        }
+
+    private fun getCoverageInfo(testSets: List<PythonTestSet>): String {
+        val covered = mutableSetOf<Int>()
+        val missed = mutableSetOf<Set<Int>>()
+        testSets.forEach { testSet ->
+            testSet.executions.forEach inner@{ execution ->
+                val coverage = execution.coverage as? PythonCoverage ?: return@inner
+                coverage.coveredInstructions.forEach { covered.add(it.lineNumber) }
+                missed.add(coverage.missedInstructions.map { it.lineNumber } .toSet())
+            }
+        }
+        val coveredInstructionSets = getInstructionSetList(covered)
+        val missedInstructionSets =
+            if (missed.isEmpty())
+                emptyList()
+            else
+                getInstructionSetList(missed.reduce { a, b -> a intersect b })
+
+        return jsonAdapter.toJson(CoverageInfo(coveredInstructionSets, missedInstructionSets))
+    }
 }

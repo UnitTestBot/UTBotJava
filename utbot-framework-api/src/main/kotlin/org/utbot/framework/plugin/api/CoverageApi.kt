@@ -25,6 +25,6 @@ data class Instruction(
  * @param coveredInstructions a list of the covered instructions in the order they are visited.
  *
  */
-class Coverage(
+open class Coverage(
     val coveredInstructions: List<Instruction> = emptyList()
 )

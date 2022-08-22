@@ -1,0 +1,60 @@
+{
+  "project": [
+    {
+      "PART_NAME": "composite",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.manual.*\" --tests \"org.utbot.examples.stream.*\" --tests \"org.utbot.engine.*\" --tests \"org.utbot.framework.*\" --tests \"org.utbot.sarif.*\"",
+    },
+    {
+      "PART_NAME": "collections-part1",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.CustomerExamplesTest\" --tests \"org.utbot.examples.collections.GenericListsExampleTest\" --tests \"org.utbot.examples.collections.LinkedListsTest\" --tests \"org.utbot.examples.collections.ListAlgorithmsTest\" --tests \"org.utbot.examples.collections.ListIteratorsTest\" --tests \"org.utbot.examples.collections.ListWrapperReturnsVoidTest\" --tests \"org.utbot.examples.collections.MapEntrySetTest\" --tests \"org.utbot.examples.collections.MapKeySetTest\"",
+    },
+    {
+      "PART_NAME": "collections-part2",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapValuesTest\" --tests \"org.utbot.examples.collections.OptionalsTest\" --tests \"org.utbot.examples.collections.SetIteratorsTest\"",
+    },
+    {
+      "PART_NAME": "collections-part3",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.SetsTest\"",
+    },
+    {
+      "PART_NAME": "examples-part1",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.algorithms.*\" --tests \"org.utbot.examples.annotations.*\" --tests \"org.utbot.examples.arrays.*\" --tests \"org.utbot.examples.casts.*\" --tests \"org.utbot.examples.codegen.*\" --tests \"org.utbot.examples.controlflow.*\" --tests \"org.utbot.examples.enums.*\"",
+    },
+    {
+      "PART_NAME": "examples-part2",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\"",
+    },
+    {
+      "PART_NAME": "examples-part3",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\" --tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\"",
+    },
+    {
+      "PART_NAME": "examples-part4",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.structures.*\" --tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\"",
+    },
+    {
+    "PART_NAME": "examples-lists-part1",
+    "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart1Test\"",
+    },
+    {
+      "PART_NAME": "examples-lists-part2",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart2Test\"",
+    },
+    {
+      "PART_NAME": "examples-lists-part3",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart3Test\"",
+    },
+    {
+      "PART_NAME": "examples-maps-part1",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapsPart1Test\"",
+    },
+    {
+      "PART_NAME": "examples-maps-part2",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapsPart2Test\"",
+    },
+    {
+      "PART_NAME": "examples-strings",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.strings.*\"",
+    }
+  ]
+}

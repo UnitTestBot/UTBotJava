@@ -1,13 +1,15 @@
 package org.utbot.framework.codegen
 
-import org.utbot.framework.codegen.model.util.checkFrameworkDependencies
-import java.io.File
-import java.net.URLClassLoader
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import org.utbot.common.PathUtil.getUrlsFromClassLoader
+import org.utbot.framework.codegen.model.util.checkFrameworkDependencies
+import java.io.File
 
+@Disabled
 class DependencyUtilsTests {
         @ParameterizedTest
         @MethodSource("provideDependencyPaths")
@@ -23,7 +25,7 @@ class DependencyUtilsTests {
 
         companion object {
             private val separator = File.pathSeparatorChar
-            private val jarUrls = (Thread.currentThread().contextClassLoader as URLClassLoader).urLs
+            private val jarUrls = getUrlsFromClassLoader(Thread.currentThread().contextClassLoader)
 
             private val mockito = jarUrls.firstOrNull { it.path.contains("mockito-core") }?.path ?: ""
             private val junit4 = jarUrls.firstOrNull { it.path.contains("junit-4") }?.path ?: ""

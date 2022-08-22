@@ -32,7 +32,7 @@ class TestCoverageInstrumentation {
             val coverageInfo = it.collectCoverage(ExampleClass::class.java)
 
             assertEquals(5, coverageInfo.visitedInstrs.size)
-            assertEquals(50..55, coverageInfo.methodToInstrRange[ExampleClass::kek2.signature])
+            assertEquals(43..48, coverageInfo.methodToInstrRange[ExampleClass::kek2.signature])
             assertTrue(res.exceptionOrNull() is ArrayIndexOutOfBoundsException)
         }
     }
@@ -48,14 +48,14 @@ class TestCoverageInstrumentation {
             it.execute(ExampleClass::bar, arrayOf(testObject, 2))
             val coverageInfo1 = it.collectCoverage(ExampleClass::class.java)
 
-            assertEquals(21, coverageInfo1.visitedInstrs.size)
-            assertEquals(13..49, coverageInfo1.methodToInstrRange[ExampleClass::bar.signature])
+            assertEquals(17, coverageInfo1.visitedInstrs.size)
+            assertEquals(14..42, coverageInfo1.methodToInstrRange[ExampleClass::bar.signature])
 
             it.execute(ExampleClass::bar, arrayOf(testObject, 0))
             val coverageInfo2 = it.collectCoverage(ExampleClass::class.java)
 
-            assertEquals(20, coverageInfo2.visitedInstrs.size)
-            assertEquals(13..49, coverageInfo2.methodToInstrRange[ExampleClass::bar.signature])
+            assertEquals(16, coverageInfo2.visitedInstrs.size)
+            assertEquals(14..42, coverageInfo2.methodToInstrRange[ExampleClass::bar.signature])
         }
     }
 
@@ -103,14 +103,14 @@ class TestCoverageInstrumentation {
             it.execute(ExampleClass::bar, arrayOf(testObject, 2))
             val coverageInfo1 = it.collectCoverage(ExampleClass::class.java)
 
-            assertEquals(21, coverageInfo1.visitedInstrs.size)
-            assertEquals(13..49, coverageInfo1.methodToInstrRange[ExampleClass::bar.signature])
+            assertEquals(17, coverageInfo1.visitedInstrs.size)
+            assertEquals(14..42, coverageInfo1.methodToInstrRange[ExampleClass::bar.signature])
 
             it.execute(ExampleClass::bar, arrayOf(testObject, 0))
             val coverageInfo2 = it.collectCoverage(ExampleClass::class.java)
 
-            assertEquals(20, coverageInfo2.visitedInstrs.size)
-            assertEquals(13..49, coverageInfo2.methodToInstrRange[ExampleClass::bar.signature])
+            assertEquals(16, coverageInfo2.visitedInstrs.size)
+            assertEquals(14..42, coverageInfo2.methodToInstrRange[ExampleClass::bar.signature])
         }
     }
 
@@ -127,13 +127,13 @@ class TestCoverageInstrumentation {
             val coverageInfo1 = it.collectCoverage(ExampleClass::class.java)
 
             assertEquals(19, coverageInfo1.visitedInstrs.size)
-            assertEquals(99..124, coverageInfo1.methodToInstrRange[ExampleClass::dependsOnField.signature])
+            assertEquals(90..115, coverageInfo1.methodToInstrRange[ExampleClass::dependsOnField.signature])
 
             it.execute(ExampleClass::dependsOnField, arrayOf(testObject))
             val coverageInfo2 = it.collectCoverage(ExampleClass::class.java)
 
             assertEquals(19, coverageInfo2.visitedInstrs.size)
-            assertEquals(99..124, coverageInfo2.methodToInstrRange[ExampleClass::dependsOnField.signature])
+            assertEquals(90..115, coverageInfo2.methodToInstrRange[ExampleClass::dependsOnField.signature])
         }
     }
 
@@ -149,8 +149,8 @@ class TestCoverageInstrumentation {
             val coverageInfo = it.collectCoverage(ExampleClass::class.java)
 
             assertEquals(1, res.getOrNull())
-            assertEquals(35, coverageInfo.visitedInstrs.size)
-            assertEquals(56..98, coverageInfo.methodToInstrRange[ExampleClass::foo.signature])
+            assertEquals(33, coverageInfo.visitedInstrs.size)
+            assertEquals(49..89, coverageInfo.methodToInstrRange[ExampleClass::foo.signature])
         }
     }
 

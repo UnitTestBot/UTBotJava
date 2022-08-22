@@ -1,6 +1,14 @@
 group 'org.utbot'
 
-apply plugin: 'java'
+apply plugin: 'java-library'
+
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilerExecutionStrategy
+
+tasks.withType(KotlinCompile)
+        .configureEach {
+            compilerExecutionStrategy.set(KotlinCompilerExecutionStrategy.IN_PROCESS)
+        }
 
 if (project.hasProperty('semVer')) {
     project.version = project.semVer
@@ -8,7 +16,9 @@ if (project.hasProperty('semVer')) {
     project.version = '1.0-SNAPSHOT'
 }
 
+//noinspection GroovyAssignabilityCheck
 buildscript {
+    //noinspection GroovyAssignabilityCheck
     repositories {
         mavenCentral()
     }
@@ -24,11 +34,12 @@ subprojects {
     version = rootProject.version
 
     apply plugin: 'base'
-    apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'maven-publish'
 
     publishing {
         publications {
+            //noinspection GroovyAssignabilityCheck
             jar(MavenPublication) {
                 from components.java
                 groupId 'org.utbot'
@@ -37,6 +48,7 @@ subprojects {
         }
     }
 
+    //noinspection GroovyAssignabilityCheck
     repositories {
         mavenCentral()
         maven { url 'https://jitpack.io' }
@@ -44,15 +56,16 @@ subprojects {
 }
 
 configure([
-    project(':utbot-api'),
-    project(':utbot-core'),
-    project(':utbot-framework'),
-    project(':utbot-framework-api'),
-    project(':utbot-fuzzers'),
-    project(':utbot-instrumentation'),
-    project(':utbot-summary')
+        project(':utbot-api'),
+        project(':utbot-core'),
+        project(':utbot-framework'),
+        project(':utbot-framework-api'),
+        project(':utbot-fuzzers'),
+        project(':utbot-instrumentation'),
+        project(':utbot-summary')
 ]) {
     publishing {
+        //noinspection GroovyAssignabilityCheck
         repositories {
             maven {
                 name = "GitHubPackages"

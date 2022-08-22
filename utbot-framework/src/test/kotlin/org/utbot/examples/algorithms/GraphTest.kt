@@ -11,14 +11,20 @@ internal class GraphTest : UtValueTestCaseChecker(testClass = GraphExample::clas
     @Test
     @Tag("slow")
     fun testRunFindCycle() {
-        check(
+        checkWithException(
             GraphExample::runFindCycle,
-            eq(1),
+            ignoreExecutionsNumber,
+            { e, r -> e == null && r.isException<NullPointerException>() },
+            { e, r -> e != null && e.contains(null) && r.isException<NullPointerException>() },
+            { e, r -> e != null && e.any { it.first < 0 || it.first >= 10 } && r.isException<ArrayIndexOutOfBoundsException>() },
+            { e, r -> e != null && e.any { it.second < 0 || it.second >= 10 } && r.isException<ArrayIndexOutOfBoundsException>() },
+            { e, r -> e != null && e.all { it != null } && r.isSuccess }
         )
     }
 
     @Test
     fun testDijkstra() {
+        // The graph is fixed, there should be exactly one execution path, so no matchers are necessary
         check(
             GraphExample::runDijkstra,
             eq(1)

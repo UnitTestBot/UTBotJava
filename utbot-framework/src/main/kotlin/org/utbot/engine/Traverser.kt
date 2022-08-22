@@ -191,11 +191,9 @@ import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.toolkits.graph.ExceptionalUnitGraph
-import sun.reflect.Reflection
-import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
-import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
-import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
+import java.lang.reflect.GenericArrayType
+import java.lang.reflect.TypeVariable
+import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
@@ -648,7 +646,8 @@ class Traverser(
     private fun extractConcreteValue(field: SootField): Any? =
         when (field.signature) {
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
-            FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
+            // todo change to class loading
+            //FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
             else -> {
                 val fieldId = field.fieldId
@@ -980,13 +979,13 @@ class Traverser(
         if (type is ParameterizedType) {
             val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
                 when (actualTypeArgument) {
-                    is WildcardTypeImpl -> {
+                    is WildcardType -> {
                         val upperBounds = actualTypeArgument.upperBounds
                         val lowerBounds = actualTypeArgument.lowerBounds
                         val allTypes = upperBounds + lowerBounds
 
-                        if (allTypes.any { it is GenericArrayTypeImpl }) {
-                            val errorTypes = allTypes.filterIsInstance<GenericArrayTypeImpl>()
+                        if (allTypes.any { it is GenericArrayType }) {
+                            val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
                             TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
                         }
 
@@ -995,23 +994,23 @@ class Traverser(
 
                         typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
                     }
-                    is TypeVariableImpl<*> -> { // it is a type variable for the whole class, not the function type variable
+                    is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
                         val upperBounds = actualTypeArgument.bounds
 
-                        if (upperBounds.any { it is GenericArrayTypeImpl }) {
-                            val errorTypes = upperBounds.filterIsInstance<GenericArrayTypeImpl>()
-                            TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
+                        if (upperBounds.any { it is GenericArrayType }) {
+                            val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
+                            TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
                         }
 
                         val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
 
                         typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
                     }
-                    is GenericArrayTypeImpl -> {
+                    is GenericArrayType -> {
                         // TODO bug with T[][], because there is no such time T JIRA:1446
                         typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
                     }
-                    is ParameterizedTypeImpl, is Class<*> -> {
+                    is ParameterizedType, is Class<*> -> {
                         val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
 
                         typeResolver.constructTypeStorage(sootType, useConcreteType = false)

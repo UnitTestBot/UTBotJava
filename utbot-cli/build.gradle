@@ -1,17 +1,20 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
 compileKotlin {
+    dependsOn project(':utbot-instrumentation').tasks.jar
     kotlinOptions {
         allWarningsAsErrors = false
     }
 }
 
 dependencies {
-    api project(":utbot-framework")
+    api project(':utbot-framework-api')
+    implementation project(':utbot-framework')
     api project(':utbot-summary')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
@@ -24,9 +27,10 @@ dependencies {
     implementation group: 'com.github.ajalt.clikt', name: 'clikt', version: clikt_version
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: junit5_version
     implementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: junit5_version
-    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
-    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2_version
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: log4j2_version
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4j2_version
     implementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+    //noinspection GroovyAssignabilityCheck
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
 }
 
@@ -40,6 +44,7 @@ task createProperties(dependsOn: processResources) {
     doLast {
         new File("$buildDir/resources/main/version.properties").withWriter { w ->
             Properties properties = new Properties()
+            //noinspection GroovyAssignabilityCheck
             properties['version'] = project.version.toString()
             properties.store w, null
         }
@@ -51,6 +56,9 @@ classes {
 }
 
 jar {
+    dependsOn project(':utbot-framework').tasks.jar
+    dependsOn project(':utbot-summary').tasks.jar
+
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli'
@@ -59,7 +67,7 @@ jar {
         attributes 'JAR-Type': 'Fat JAR'
     }
 
-    version project.version
+    archiveVersion.set(project.version as String)
 
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }

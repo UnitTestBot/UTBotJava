@@ -1,19 +1,18 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.UtValueTestCaseChecker
-import org.utbot.examples.DoNotCalculate
-import org.utbot.examples.eq
-import org.utbot.examples.ge
-import org.utbot.examples.ignoreExecutionsNumber
-import org.utbot.examples.between
-import org.utbot.examples.isException
 import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.UtValueTestCaseChecker
+import org.utbot.examples.DoNotCalculate
+import org.utbot.examples.eq
+import org.utbot.examples.ge
+import org.utbot.examples.between
+import org.utbot.examples.isException
 
 // TODO failed Kotlin compilation SAT-1332
-internal class ListsTest : UtValueTestCaseChecker(
+internal class ListsPart3Test : UtValueTestCaseChecker(
     testClass = Lists::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
@@ -21,6 +20,18 @@ internal class ListsTest : UtValueTestCaseChecker(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Test
+    fun createTest() {
+        check(
+            Lists::create,
+            eq(3),
+            { a, _ -> a == null },
+            { a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
+            { a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && a.toList() == r.also { println(r) } },
+            coverage = DoNotCalculate
+        )
+    }
+
     @Test
     fun testBigListFromParameters() {
         check(
@@ -40,40 +51,6 @@ internal class ListsTest : UtValueTestCaseChecker(
             { collection, r -> collection.isEmpty() && r == null },
             { collection, r -> collection.isNotEmpty() && collection == r },
             coverage = DoNotCalculate
-        )
-    }
-
-    @Test
-    fun createTest() {
-        check(
-            Lists::create,
-            eq(3),
-            { a, _ -> a == null },
-            { a, r -> a != null && a.isEmpty() && r!!.isEmpty() },
-            { a, r -> a != null && a.isNotEmpty() && r != null && r.isNotEmpty() && a.toList() == r.also { println(r) } },
-            coverage = DoNotCalculate
-        )
-    }
-
-    @Test
-    fun testIterableContains() {
-        check(
-            Lists::iterableContains,
-            ignoreExecutionsNumber,
-            { iterable, _ -> iterable == null },
-            { iterable, r -> 1 in iterable && r == true },
-            { iterable, r -> 1 !in iterable && r == false },
-        )
-    }
-
-    @Test
-    fun testCollectionContains() {
-        check(
-            Lists::collectionContains,
-            ignoreExecutionsNumber,
-            { collection, _ -> collection == null },
-            { collection, r -> 1 in collection && r == true },
-            { collection, r -> 1 !in collection && r == false },
         )
     }
 

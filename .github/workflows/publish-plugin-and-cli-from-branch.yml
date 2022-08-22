@@ -1,6 +1,14 @@
 name: "[M] Plugin and CLI: publish as archives"
 
 on: 
+  workflow_call:
+    inputs:
+        version-postfix:
+          type: string
+          description: "It adds postfix (alpha or beta) to version (optional)."
+          required: false
+          default: no-postfix
+
   workflow_dispatch:
     inputs:
         version-postfix:
@@ -12,25 +20,26 @@ on:
           - no-postfix
           - alpha
           - beta
-    
+
+env:
+  # Environment variable setting gradle options.
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+
 jobs:
     publish_plugin_and_cli:
       runs-on: ubuntu-20.04
+      container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
       
       steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-java@v2
-        with:
-          java-version: '8'
-          distribution: 'zulu'
-          java-package: jdk+fx
-          cache: gradle
-      - uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 6.8
-          
+      - name: Print environment variables
+        run: printenv
+
+      - uses: actions/checkout@v3
+
       - name: Set environment variables
         run: |
+          # "You can make an environment variable available to any subsequent steps in a workflow job by 
+          # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
           echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
           echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
           
@@ -38,30 +47,26 @@ jobs:
         if: ${{ (env.POSTFIX == 'alpha') || (env.POSTFIX == 'beta') }}
         run:
           echo "VERSION=${{ env.VERSION }}-${{ env.POSTFIX }}" >> $GITHUB_ENV
-          
+
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
-          export KOTLIN_HOME="/usr"
           gradle buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
           cd utbot-intellij/build/distributions
           unzip utbot-intellij-${{ env.VERSION }}.zip
           rm utbot-intellij-${{ env.VERSION }}.zip
-          
       - name: Archive UTBot IntelliJ IDEA plugin
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: utbot-intellij-${{ env.VERSION }}
           path: utbot-intellij/build/distributions/*
-          
+
       - name: Build UTBot CLI
         run: |
-          export KOTLIN_HOME="/usr"
           cd utbot-cli
-          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
-          cd build/libs
+          gradle build --no-daemon -PsemVer=${{ env.VERSION }}
           
       - name: Archive UTBot CLI
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: utbot-cli-${{ env.VERSION }}
           path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar

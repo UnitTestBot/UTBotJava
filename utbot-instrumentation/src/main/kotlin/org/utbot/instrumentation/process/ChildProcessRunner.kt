@@ -5,7 +5,6 @@ import org.utbot.common.bracket
 import org.utbot.common.debug
 import org.utbot.common.firstOrNullResourceIS
 import org.utbot.common.getCurrentProcessId
-import org.utbot.common.packageName
 import org.utbot.common.pid
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.common.utBotTempDirectory
@@ -21,10 +20,19 @@ private var processSeqN = 0
 
 class ChildProcessRunner {
     private val cmds: List<String> by lazy {
+        val debugCmd =
+            listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug} )
+
+        val javaVersionSpecificArguments =
+            listOf("--add-opens", "java.base/jdk.internal.misc=ALL-UNNAMED", "--illegal-access=warn")
+                .takeIf { JdkInfoService.provide().version > 8 }
+                ?: emptyList()
+
         val pathToJava = JdkInfoService.provide().path
-        val debugCmd = listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug })
+
         listOf(pathToJava.resolve("bin${File.separatorChar}java").toString()) +
             debugCmd +
+            javaVersionSpecificArguments +
             listOf("-javaagent:$jarFile", "-ea", "-jar", "$jarFile")
     }
 

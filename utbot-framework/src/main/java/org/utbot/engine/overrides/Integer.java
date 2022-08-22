@@ -12,7 +12,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Integer.class, internalUsage = true)
 public class Integer {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Integer valueOf(int x) {
         return new java.lang.Integer(x);
     }

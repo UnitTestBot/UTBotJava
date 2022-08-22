@@ -140,8 +140,9 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.ParameterizedType
+import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -311,6 +312,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         processExecutionFailure(currentExecution, exception)
                     }
             }
+            else -> {} // TODO: check this specific case
         }
     }
 
@@ -320,6 +322,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
+                    else -> {} // TODO: check this specific case
                 }
             }
         }
@@ -439,6 +442,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                     .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
             }
+            else -> {} // TODO: check this specific case
         }
     }
 
@@ -1093,6 +1097,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         thisInstance[executable](*methodArguments.toTypedArray())
                     }
                 }
+                else -> {} // TODO: check this specific case
             }
         }
     }
@@ -1279,7 +1284,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
-                    paramType is ParameterizedTypeImpl -> paramType.rawType.id
+                    paramType is ParameterizedType -> paramType.rawType.id
                     else -> ClassId(paramType.typeName)
                 }
 

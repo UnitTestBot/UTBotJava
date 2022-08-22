@@ -1,11 +1,12 @@
+//noinspection GroovyAssignabilityCheck
 plugins {
-    id 'java'
+    id 'java-library'
 }
 
 dependencies {
-    compile group: 'org.jetbrains', name: 'annotations', version: '16.0.2'
-    compile group: 'com.github.stephenc.findbugs', name: 'findbugs-annotations', version: '1.3.9-1'
-    compileOnly 'org.projectlombok:lombok:1.18.20'
+    implementation group: 'org.jetbrains', name: 'annotations', version: '16.0.2'
+    implementation group: 'com.github.stephenc.findbugs', name: 'findbugs-annotations', version: '1.3.9-1'
+    implementation 'org.projectlombok:lombok:1.18.20'
     annotationProcessor 'org.projectlombok:lombok:1.18.20'
     implementation(project(":utbot-api"))
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
@@ -20,6 +21,7 @@ dependencies {
 //    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.5.13'
 
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.0.0'
+    testImplementation "org.mockito:mockito-inline:+"
 }
 
 java {
@@ -27,8 +29,18 @@ java {
     targetCompatibility = JavaVersion.VERSION_1_8
 }
 
+compileJava {
+    dependsOn project(':utbot-api').tasks.jar
+}
+
 test {
+    minHeapSize = "128m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
 // To use JUnit4, comment out useJUnitPlatform and uncomment useJUnit. Please also check "dependencies" section
     //useJUnit()
-    useJUnitPlatform()
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
 }

@@ -41,7 +41,7 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
             getArrayLengthMethodId
         )
 
-    open val getUnsafeInstanceMethodId: MethodId
+    val getUnsafeInstanceMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "getUnsafeInstance",
             returnType = Unsafe::class.id,
@@ -50,98 +50,98 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
     /**
      * Method that creates instance using Unsafe
      */
-    open val createInstanceMethodId: MethodId
+    val createInstanceMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "createInstance",
             returnType = CgClassId(objectClassId, isNullable = true),
             arguments = arrayOf(stringClassId)
         )
 
-    open val createArrayMethodId: MethodId
+    val createArrayMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "createArray",
             returnType = Array<Any>::class.id,
             arguments = arrayOf(stringClassId, intClassId, Array<Any>::class.id)
         )
 
-    open val setFieldMethodId: MethodId
+    val setFieldMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "setField",
             returnType = voidClassId,
             arguments = arrayOf(objectClassId, stringClassId, objectClassId)
         )
 
-    open val setStaticFieldMethodId: MethodId
+    val setStaticFieldMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "setStaticField",
             returnType = voidClassId,
             arguments = arrayOf(Class::class.id, stringClassId, objectClassId)
         )
 
-    open val getFieldValueMethodId: MethodId
+    val getFieldValueMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "getFieldValue",
             returnType = objectClassId,
             arguments = arrayOf(objectClassId, stringClassId)
         )
 
-    open val getStaticFieldValueMethodId: MethodId
+    val getStaticFieldValueMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "getStaticFieldValue",
             returnType = objectClassId,
             arguments = arrayOf(Class::class.id, stringClassId)
         )
 
-    open val getEnumConstantByNameMethodId: MethodId
+    val getEnumConstantByNameMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "getEnumConstantByName",
             returnType = objectClassId,
             arguments = arrayOf(Class::class.id, stringClassId)
         )
 
-    open val deepEqualsMethodId: MethodId
+    val deepEqualsMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "deepEquals",
             returnType = booleanClassId,
             arguments = arrayOf(objectClassId, objectClassId)
         )
 
-    open val arraysDeepEqualsMethodId: MethodId
+    val arraysDeepEqualsMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "arraysDeepEquals",
             returnType = booleanClassId,
             arguments = arrayOf(objectClassId, objectClassId)
         )
 
-    open val iterablesDeepEqualsMethodId: MethodId
+    val iterablesDeepEqualsMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "iterablesDeepEquals",
             returnType = booleanClassId,
             arguments = arrayOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
         )
 
-    open val streamsDeepEqualsMethodId: MethodId
+    val streamsDeepEqualsMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "streamsDeepEquals",
             returnType = booleanClassId,
             arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
         )
 
-    open val mapsDeepEqualsMethodId: MethodId
+    val mapsDeepEqualsMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "mapsDeepEquals",
             returnType = booleanClassId,
             arguments = arrayOf(java.util.Map::class.id, java.util.Map::class.id)
         )
 
-    open val hasCustomEqualsMethodId: MethodId
+    val hasCustomEqualsMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "hasCustomEquals",
             returnType = booleanClassId,
             arguments = arrayOf(Class::class.id)
         )
 
-    open val getArrayLengthMethodId: MethodId
+    val getArrayLengthMethodId: MethodId
         get() = utilClassId.utilMethodId(
             name = "getArrayLength",
             returnType = intClassId,

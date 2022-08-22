@@ -1,11 +1,11 @@
 package org.utbot.examples.types
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.atLeast
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
-internal class TypeBordersTest : AbstractTestCaseGeneratorTest(testClass = TypeBorders::class) {
+internal class TypeBordersTest : UtValueTestCaseChecker(testClass = TypeBorders::class) {
     @Test
     fun testByteBorder() {
         check(

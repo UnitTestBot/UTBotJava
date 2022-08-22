@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test
 
 // TODO Kotlin compilation SAT-1332
 // Code generation executions fail due we cannot analyze strings properly for now
-internal class ClassWithClassRefTest : AbstractTestCaseGeneratorTest(
+internal class ClassWithClassRefTest : UtValueTestCaseChecker(
     testClass = ClassWithClassRef::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

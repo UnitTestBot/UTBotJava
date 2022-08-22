@@ -1,6 +1,6 @@
 package org.utbot.examples.structures
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.keyContain
@@ -14,7 +14,7 @@ import java.util.TreeMap
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class StandardStructuresTest : AbstractTestCaseGeneratorTest(testClass = StandardStructures::class) {
+internal class StandardStructuresTest : UtValueTestCaseChecker(testClass = StandardStructures::class) {
     @Test
     @Disabled("TODO down cast for object wrapper JIRA:1480")
     fun testGetList() {

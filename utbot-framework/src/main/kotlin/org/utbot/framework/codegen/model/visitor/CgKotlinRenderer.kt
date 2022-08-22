@@ -12,6 +12,7 @@ import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
+import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import org.utbot.framework.codegen.model.tree.CgComparison
 import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgDeclaration
@@ -27,7 +28,7 @@ import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
 import org.utbot.framework.codegen.model.tree.CgGetLength
 import org.utbot.framework.codegen.model.tree.CgInnerBlock
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
+import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgSpread
@@ -45,7 +46,6 @@ import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
@@ -71,6 +71,9 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override fun visit(element: CgTestClass) {
         for (annotation in element.annotations) {
             annotation.accept(this)
+        }
+        if (!element.isStatic && element.isNested) {
+            print("inner ")
         }
         print("class ")
         print(element.simpleName)
@@ -231,8 +234,9 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
         print("::class")
     }
 
-    override fun visit(element: CgNotNullVariable) {
-        print("${element.name.escapeNamePossibleKeyword()}!!")
+    override fun visit(element: CgNotNullAssertion) {
+        element.expression.accept(this)
+        print("!!")
     }
 
     override fun visit(element: CgAllocateArray) {
@@ -245,18 +249,26 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
-        val arrayModel = element.model
-        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
+        print(getKotlinClassString(element.type))
+        print("(${element.size})")
+        print(" {")
+        element.initializer.accept(this)
+        print(" }")
+    }
 
-        if (arrayModel.constModel is UtPrimitiveModel) {
-            val prefix = arrayModel.constModel.classId.name.toLowerCase()
+    override fun visit(element: CgArrayInitializer) {
+        val elementType = element.elementType
+        val elementsInLine = arrayElementsInLine(elementType)
+
+        if (elementType.isPrimitive) {
+            val prefix = elementType.name.toLowerCase()
             print("${prefix}ArrayOf(")
-            arrayModel.renderElements(element.size, elementsInLine)
+            element.values.renderElements(elementsInLine)
             print(")")
         } else {
-            print(getKotlinClassString(element.type))
+            print(getKotlinClassString(element.arrayType))
             print("(${element.size})")
-            if (!element.elementType.isPrimitive) print(" { null }")
+            print(" { null }")
         }
     }
 
@@ -301,8 +313,7 @@ internal class CgKotlinRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun renderMethodSignature(element: CgParameterizedTestDataProviderMethod) {
-        val returnType =
-            if (element.returnType.simpleName == "Array<Array<Any?>?>") "Array<Array<Any?>?>" else "${element.returnType}"
+        val returnType = getKotlinClassString(element.returnType)
         println("fun ${element.name}(): $returnType")
     }
 

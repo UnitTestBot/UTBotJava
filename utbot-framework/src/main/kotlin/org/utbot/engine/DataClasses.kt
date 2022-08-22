@@ -8,6 +8,7 @@ import org.utbot.engine.pc.UtIsExpression
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkOr
+import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.SymbolicStateUpdate
@@ -134,15 +135,17 @@ data class MethodResult(
         symbolicResult: SymbolicResult,
         hardConstraints: HardConstraint = HardConstraint(),
         softConstraints: SoftConstraint = SoftConstraint(),
+        assumption: Assumption = Assumption(),
         memoryUpdates: MemoryUpdate = MemoryUpdate()
-    ) : this(symbolicResult, SymbolicStateUpdate(hardConstraints, softConstraints, memoryUpdates))
+    ) : this(symbolicResult, SymbolicStateUpdate(hardConstraints, softConstraints, assumption, memoryUpdates))
 
     constructor(
         value: SymbolicValue,
         hardConstraints: HardConstraint = HardConstraint(),
         softConstraints: SoftConstraint = SoftConstraint(),
+        assumption: Assumption = Assumption(),
         memoryUpdates: MemoryUpdate = MemoryUpdate(),
-    ) : this(SymbolicSuccess(value), hardConstraints, softConstraints, memoryUpdates)
+    ) : this(SymbolicSuccess(value), hardConstraints, softConstraints, assumption, memoryUpdates)
 }
 
 /**
@@ -181,7 +184,7 @@ data class OverrideResult(
  * there is only one usage of it: to support instanceof for arrays we have to update them in the memory.
  *
  * @see UtInstanceOfExpression
- * @see UtBotSymbolicEngine.resolveIfCondition
+ * @see Traverser.resolveIfCondition
  */
 data class ResolvedCondition(
     val condition: UtBoolExpression,

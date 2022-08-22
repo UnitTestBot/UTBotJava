@@ -11,18 +11,37 @@ import kotlin.reflect.KProperty
 private val logger = KotlinLogging.logger {}
 
 /**
+ * Path to the utbot home folder.
+ */
+internal val utbotHomePath = "${System.getProperty("user.home")}/.utbot"
+
+/**
  * Default path for properties file
  */
-internal val defaultSettingsPath = "${System.getProperty("user.home")}/.utbot/settings.properties"
-internal const val defaultKeyForSettingsPath = "utbot.settings.path"
+private val defaultSettingsPath = "$utbotHomePath/settings.properties"
+private const val defaultKeyForSettingsPath = "utbot.settings.path"
 
-internal class SettingDelegate<T>(val initializer: () -> T) {
+/**
+ * Stores current values for each setting from [UtSettings].
+ */
+private val settingsValues: MutableMap<KProperty<*>, Any?> = mutableMapOf()
+
+internal class SettingDelegate<T>(val property: KProperty<*>, val initializer: () -> T) {
     private var value = initializer()
+
+    init {
+        updateSettingValue()
+    }
 
     operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
 
     operator fun setValue(thisRef: Any?, property: KProperty<*>, value: T) {
         this.value = value
+        updateSettingValue()
+    }
+
+    private fun updateSettingValue() {
+        settingsValues[property] = value
     }
 }
 
@@ -50,15 +69,13 @@ object UtSettings {
         defaultValue: T,
         converter: (String) -> T
     ): PropertyDelegateProvider<UtSettings, SettingDelegate<T>> {
-        return PropertyDelegateProvider { _, prop ->
-            SettingDelegate {
+        return PropertyDelegateProvider { _, property ->
+            SettingDelegate(property) {
                 try {
-                    properties.getProperty(prop.name)?.let(converter) ?: defaultValue
+                    properties.getProperty(property.name)?.let(converter) ?: defaultValue
                 } catch (e: Throwable) {
                     logger.info(e) { e.message }
                     defaultValue
-                } finally {
-                    properties.putIfAbsent(prop.name, defaultValue.toString())
                 }
             }
         }
@@ -70,7 +87,6 @@ object UtSettings {
     private fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
     private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
         getProperty(defaultValue) { enumValueOf(it) }
-
 
     /**
      * Setting to disable coroutines debug explicitly.
@@ -113,6 +129,11 @@ object UtSettings {
      * Type of nnRewardGuidedSelector
      */
     var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
+
+    /**
+     * Type of [StateRewardPredictor]
+     */
+    var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
 
     /**
      * Steps limit for path selector.
@@ -171,19 +192,26 @@ object UtSettings {
     var enableMachineLearningModule by getBooleanProperty(true)
 
     /**
-     * Options below regulate which NullPointerExceptions check should be performed.
+     * Options below regulate which [NullPointerException] check should be performed.
      *
      * Set an option in true if you want to perform NPE check in the corresponding situations, otherwise set false.
      */
     var checkNpeInNestedMethods by getBooleanProperty(true)
     var checkNpeInNestedNotPrivateMethods by getBooleanProperty(false)
-    var checkNpeForFinalFields by getBooleanProperty(false)
+
+    /**
+     * This option determines whether we should generate [NullPointerException] checks for final or non-public fields
+     * in non-application classes. Set by true, this option highly decreases test's readability in some cases
+     * because of using reflection API for setting final/non-public fields in non-application classes.
+     *
+     * NOTE: default false value loses some executions with NPE in system classes, but often most of these executions
+     * are not expected by user.
+     */
+    var maximizeCoverageUsingReflection by getBooleanProperty(false)
 
     /**
      * Activate or deactivate substituting static fields values set in static initializer
      * with symbolic variable to try to set them another value than in initializer.
-     *
-     * We should not try to substitute in parametrized tests, for example
      */
     var substituteStaticsWithSymbolicVariable by getBooleanProperty(true)
 
@@ -193,7 +221,7 @@ object UtSettings {
      *
      * True by default.
      */
-    var useConcreteExecution by getBooleanProperty(false)
+    var useConcreteExecution by getBooleanProperty(true)
 
     /**
      * Enable check of full coverage for methods with code generations tests.
@@ -241,12 +269,17 @@ object UtSettings {
     /**
      * Set to true to start fuzzing if symbolic execution haven't return anything
      */
-    var useFuzzing: Boolean by getBooleanProperty(false)
+    var useFuzzing: Boolean by getBooleanProperty(true)
 
     /**
      * Set the total attempts to improve coverage by fuzzer.
      */
-    var fuzzingMaxAttemps: Int by getIntProperty(Int.MAX_VALUE)
+    var fuzzingMaxAttempts: Int by getIntProperty(Int.MAX_VALUE)
+
+    /**
+     * Fuzzer tries to generate and run tests during this time.
+     */
+    var fuzzingTimeoutInMillis: Long by getLongProperty(3_000L)
 
     /**
      * Generate tests that treat possible overflows in arithmetic operations as errors
@@ -275,6 +308,14 @@ object UtSettings {
     )
 
     /**
+     * Determines whether should errors from a child process be written to a log file or suppressed.
+     * Note: being enabled, this option can highly increase disk usage when using ContestEstimator.
+     *
+     * False by default (for saving disk space).
+     */
+    var logConcreteExecutionErrors by getBooleanProperty(false)
+
+    /**
      * Number of branch instructions using for clustering executions in the test minimization phase.
      */
     var numberOfBranchInstructionsForClustering by getIntProperty(4)
@@ -293,6 +334,14 @@ object UtSettings {
      * False by default.
      */
     var enableUnsatCoreCalculationForHardConstraints by getBooleanProperty(false)
+
+    /**
+     * Enable it to process states with unknown solver status
+     * from the queue to concrete execution.
+     *
+     * True by default.
+     */
+    var processUnknownStatesDuringConcreteExecution by getBooleanProperty(true)
 
     /**
      * 2^{this} will be the length of observed subpath.
@@ -335,6 +384,18 @@ object UtSettings {
      */
     var singleSelector by getBooleanProperty(true)
 
+    /**
+     * Flag that indicates whether tests for synthetic methods (values, valueOf in enums) should be generated, or not
+     */
+    var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
+
+    /**
+     * Flag that indicates whether should we branch on and set static fields from trusted libraries or not.
+     *
+     * @see [org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES]
+     */
+    var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
+
 
     /**
      * Flag for enabling model synthesis
@@ -348,9 +409,10 @@ object UtSettings {
     var synthesisTimeoutInMillis by getLongProperty(60000L)
 
     override fun toString(): String =
-        properties
+        settingsValues
+            .mapKeys { it.key.name }
             .entries
-            .sortedBy { it.key.toString() }
+            .sortedBy { it.key }
             .joinToString(separator = System.lineSeparator()) { "\t${it.key}=${it.value}" }
 }
 
@@ -422,4 +484,24 @@ enum class NNRewardGuidedSelectorType {
      * [NNRewardGuidedSelectorWithoutRecalculation]
      */
     WITHOUT_RECALCULATION
+}
+
+/**
+ * Enum to specify [StateRewardPredictor], see implementations for details
+ */
+enum class StateRewardPredictorType {
+    /**
+     * [NNStateRewardPredictorBase]
+     */
+    BASE,
+
+    /**
+     * [StateRewardPredictorTorch]
+     */
+    TORCH,
+
+    /**
+     * [NNStateRewardPredictorBase]
+     */
+    LINEAR
 }

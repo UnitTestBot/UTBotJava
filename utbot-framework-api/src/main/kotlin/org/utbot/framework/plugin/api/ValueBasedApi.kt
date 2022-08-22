@@ -6,15 +6,12 @@
 
 package org.utbot.framework.plugin.api
 
-import kotlin.reflect.KClass
 import org.apache.commons.lang3.builder.RecursiveToStringStyle
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder
-import soot.jimple.JimpleBody
 
-data class UtValueTestCase<R>(
+data class UtMethodValueTestSet<R>(
     val method: UtMethod<out R>,
     val executions: List<UtValueExecution<out R>> = emptyList(),
-    val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
 )
 

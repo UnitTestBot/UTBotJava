@@ -1,6 +1,6 @@
 package org.utbot.examples.strings
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.atLeast
 import org.utbot.examples.between
@@ -15,8 +15,9 @@ import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.examples.withSolverTimeoutInMillis
 
-internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
+internal class StringExamplesTest : UtValueTestCaseChecker(
     testClass = StringExamples::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
@@ -25,14 +26,16 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
     )
 ) {
     @Test
-    @Disabled("Sometimes it freezes the execution for several hours JIRA:1453")
     fun testByteToString() {
-        check(
-            StringExamples::byteToString,
-            eq(2),
-            { a, b, r -> a > b && r == a.toString() },
-            { a, b, r -> a <= b && r == b.toString() },
-        )
+        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
+        withSolverTimeoutInMillis(5000) {
+            check(
+                StringExamples::byteToString,
+                eq(2),
+                { a, b, r -> a > b && r == a.toString() },
+                { a, b, r -> a <= b && r == b.toString() },
+            )
+        }
     }
 
     @Test
@@ -49,34 +52,43 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
 
     @Test
     fun testShortToString() {
-        check(
-            StringExamples::shortToString,
-            eq(2),
-            { a, b, r -> a > b && r == a.toString() },
-            { a, b, r -> a <= b && r == b.toString() },
-        )
+        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
+        withSolverTimeoutInMillis(5000) {
+            check(
+                StringExamples::shortToString,
+                eq(2),
+                { a, b, r -> a > b && r == a.toString() },
+                { a, b, r -> a <= b && r == b.toString() },
+            )
+        }
     }
 
 
     @Test
     fun testIntToString() {
-        check(
-            StringExamples::intToString,
-            ignoreExecutionsNumber,
-            { a, b, r -> a > b && r == a.toString() },
-            { a, b, r -> a <= b && r == b.toString() },
-        )
+        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
+        withSolverTimeoutInMillis(5000) {
+            check(
+                StringExamples::intToString,
+                ignoreExecutionsNumber,
+                { a, b, r -> a > b && r == a.toString() },
+                { a, b, r -> a <= b && r == b.toString() },
+            )
+        }
     }
 
 
     @Test
     fun testLongToString() {
-        check(
-            StringExamples::longToString,
-            ignoreExecutionsNumber,
-            { a, b, r -> a > b && r == a.toString() },
-            { a, b, r -> a <= b && r == b.toString() },
-        )
+        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
+        withSolverTimeoutInMillis(5000) {
+            check(
+                StringExamples::longToString,
+                ignoreExecutionsNumber,
+                { a, b, r -> a > b && r == a.toString() },
+                { a, b, r -> a <= b && r == b.toString() },
+            )
+        }
     }
 
     @Test
@@ -104,12 +116,15 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
 
     @Test
     fun testCharToString() {
-        check(
-            StringExamples::charToString,
-            eq(2),
-            { a, b, r -> a > b && r == a.toString() },
-            { a, b, r -> a <= b && r == b.toString() },
-        )
+        // TODO related to the https://github.com/UnitTestBot/UTBotJava/issues/131
+        withSolverTimeoutInMillis(5000) {
+            check(
+                StringExamples::charToString,
+                eq(2),
+                { a, b, r -> a > b && r == a.toString() },
+                { a, b, r -> a <= b && r == b.toString() },
+            )
+        }
     }
 
 
@@ -573,5 +588,15 @@ internal class StringExamplesTest : AbstractTestCaseGeneratorTest(
                 { s, r -> !"SUCCESS".equals(s, ignoreCase = true) && r == "failure" },
             )
         }
+    }
+
+    @Test
+    fun testListToString() {
+        check(
+            StringExamples::listToString,
+            eq(1),
+            { r -> r == "[a, b, c]"},
+            coverage = DoNotCalculate
+        )
     }
 }

@@ -44,6 +44,12 @@ abstract class SarifGradleExtension {
     abstract val markGeneratedTestsDirectoryAsTestSourcesRoot: Property<Boolean>
 
     /**
+     * Generate tests for private methods or not.
+     */
+    @get:Input
+    abstract val testPrivateMethods: Property<Boolean>
+
+    /**
      * Can be one of: 'junit4', 'junit5', 'testng'.
      */
     @get:Input
@@ -68,7 +74,7 @@ abstract class SarifGradleExtension {
     abstract val codegenLanguage: Property<String>
 
     /**
-     * Can be one of: 'do-not-mock', 'package-based', 'all-except-cut'.
+     * Can be one of: 'no-mocks', 'other-packages', 'other-classes'.
      */
     @get:Input
     abstract val mockStrategy: Property<String>
@@ -105,7 +111,7 @@ sarifReport {
     mockFramework = 'mockito'
     generationTimeout = 60 * 1000L
     codegenLanguage = 'java'
-    mockStrategy = 'do-not-mock'
+    mockStrategy = 'no-mocks'
     staticsMocking = 'do-not-mock-statics'
     forceStaticMocking = 'force'
     classesToMockAlways = ['org.utbot.api.mock.UtMock']

@@ -11,6 +11,7 @@ import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 fun List<UtInstrumentation>.singleStaticMethod(methodName: String) =
@@ -63,6 +64,8 @@ data class GeneratedSarif(val text: String) {
     fun hasCodeFlows(): Boolean = text.contains("codeFlows")
 
     fun codeFlowsIsNotEmpty(): Boolean = text.contains("threadFlows")
+
+    fun contains(value: String): Boolean = text.contains(value)
 }
 
 fun compileClassAndGetClassPath(classNameToSource: Pair<String, String>): Pair<String, ClassLoader> {
@@ -137,4 +140,25 @@ fun compileClassFile(className: String, snippet: Snippet): File {
     require(javacFinished) { "Javac can't complete in $timeout sec" }
 
     return File(workdir.toFile(), "${sourceCodeFile.nameWithoutExtension}.class")
+}
+
+enum class Conflict {
+    ForceMockHappened,
+    ForceStaticMockHappened,
+    TestFrameworkConflict,
+}
+
+class ConflictTriggers(
+    private val triggers: MutableMap<Conflict, Boolean> = EnumMap<Conflict, Boolean>(Conflict::class.java).also { map ->
+        Conflict.values().forEach { conflict -> map[conflict] = false }
+    }
+) : MutableMap<Conflict, Boolean> by triggers {
+    val triggered: Boolean
+        get() = triggers.values.any { it }
+
+    fun reset(vararg conflicts: Conflict) {
+        for (conflict in conflicts) {
+            triggers[conflict] = false
+        }
+    }
 }

@@ -6,6 +6,7 @@ import org.utbot.engine.ResolvedModels
 import org.utbot.engine.isPrivate
 import org.utbot.engine.isPublic
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
@@ -15,6 +16,7 @@ import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
+import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
 
 /**
@@ -231,9 +233,14 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                     if (fieldId.isFinal) {
                         throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
                     }
+                    if (!fieldId.type.isAccessibleFrom(methodPackageName)) {
+                        throw AssembleException(
+                            "Field $fieldId can't be set in an object of the class $classId because its type is inaccessible"
+                        )
+                    }
                     //fill field value if it hasn't been filled by constructor, and it is not default
                     if (fieldId in constructorInfo.affectedFields ||
-                        (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
+                            (fieldId !in constructorInfo.setFields && !fieldModel.hasDefaultValue())
                     ) {
                         val modifierCall = modifierCall(this, fieldId, assembleModel(fieldModel))
                         callChain.add(modifierCall)
@@ -334,14 +341,20 @@ class AssembleModelGenerator(private val methodPackageName: String) {
      */
     private fun findBestConstructorOrNull(compositeModel: UtCompositeModel): ConstructorId? {
         val classId = compositeModel.classId
-        if (!classId.isPublic || classId.isInner) return null
+        if (!classId.isVisible || classId.isInner) return null
 
         return classId.jClass.declaredConstructors
-            .filter { it.isPublic || !it.isPrivate && it.declaringClass.packageName.startsWith(methodPackageName) }
+            .filter { it.isVisible }
             .sortedByDescending { it.parameterCount }
             .map { it.executableId }
             .firstOrNull { constructorAnalyzer.isAppropriate(it) }
     }
+
+    private val ClassId.isVisible : Boolean
+        get() = this.isPublic || !this.isPrivate && this.packageName.startsWith(methodPackageName)
+
+    private val Constructor<*>.isVisible : Boolean
+        get() = this.isPublic || !this.isPrivate && this.declaringClass.packageName.startsWith(methodPackageName)
 
     /**
      * Creates setter or direct setter call to set a field.

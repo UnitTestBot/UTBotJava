@@ -4,7 +4,9 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isRefType
+import org.utbot.framework.plugin.api.util.jClass
 import soot.Scene
 import soot.SootMethod
 import soot.Type
@@ -248,7 +250,11 @@ class ConstructorAnalyzer {
      */
     private fun getParameterType(type: ClassId): Type? =
         try {
-            if (type.isRefType) scene.getRefType(type.name) else scene.getType(type.name)
+            when {
+                type.isRefType -> scene.getRefType(type.name)
+                type.isArray -> scene.getType(type.jClass.canonicalName)
+                else ->  scene.getType(type.name)
+            }
         } catch (e: Exception) {
             null
         }

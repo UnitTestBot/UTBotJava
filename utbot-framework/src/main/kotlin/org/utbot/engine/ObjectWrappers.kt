@@ -8,6 +8,7 @@ import org.utbot.engine.UtOptionalClass.UT_OPTIONAL
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_DOUBLE
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_INT
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_LONG
+import org.utbot.engine.UtStreamClass.UT_STREAM
 import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtHashMap
@@ -27,16 +28,16 @@ import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.util.nextModelName
+import soot.RefType
+import soot.Scene
+import soot.SootClass
+import soot.SootMethod
 import java.util.Optional
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import java.util.OptionalLong
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.reflect.KClass
-import soot.RefType
-import soot.Scene
-import soot.SootClass
-import soot.SootMethod
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -81,6 +82,10 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(java.util.AbstractMap::class, UtHashMap::class)
         putSootClass(java.util.LinkedHashMap::class, UtHashMap::class)
         putSootClass(java.util.HashMap::class, UtHashMap::class)
+
+        putSootClass(java.util.stream.BaseStream::class, UT_STREAM.className)
+        putSootClass(java.util.stream.Stream::class, UT_STREAM.className)
+        // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
     }
 
 /**
@@ -176,7 +181,12 @@ private val wrappers = mapOf(
     wrap(java.util.Map::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
     wrap(java.util.AbstractMap::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
     wrap(java.util.LinkedHashMap::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
-    wrap(java.util.HashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) }
+    wrap(java.util.HashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
+
+    // stream wrappers
+    wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
+    wrap(java.util.stream.Stream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
+    // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
 ).also {
     // check every `wrapped` class has a corresponding value in [classToWrapper]
     it.keys.all { key ->
@@ -187,14 +197,14 @@ private val wrappers = mapOf(
 private fun wrap(kClass: KClass<*>, implementation: (RefType, UtAddrExpression) -> ObjectValue) =
     kClass.id to implementation
 
-internal fun wrapper(type: RefType, addr: UtAddrExpression) =
+internal fun wrapper(type: RefType, addr: UtAddrExpression): ObjectValue? =
     wrappers[type.id]?.invoke(type, addr)
 
 interface WrapperInterface {
     /**
      * Returns list of invocation results
      */
-    operator fun UtBotSymbolicEngine.invoke(
+    operator fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -205,7 +215,7 @@ interface WrapperInterface {
 
 // TODO: perhaps we have to have wrapper around concrete value here
 data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
-    override fun UtBotSymbolicEngine.invoke(wrapper: ObjectValue, method: SootMethod, parameters: List<SymbolicValue>) =
+    override fun Traverser.invoke(wrapper: ObjectValue, method: SootMethod, parameters: List<SymbolicValue>) =
         workaround(MAKE_SYMBOLIC) {
             listOf(
                 MethodResult(

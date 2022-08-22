@@ -54,12 +54,12 @@ class GradleProjectWrapper(
     }
 
     /**
-     * SARIF report file containing results from all others reports from the [project].
+     * SARIF report file containing results from all other reports from the [project].
      */
     val sarifReportFile: File by lazy {
         Paths.get(
             generatedSarifDirectory.path,
-            "${project.name}-utbot.sarif"
+            sarifProperties.mergedSarifReportFileName ?: "${project.name}Report.sarif"
         ).toFile().apply {
             createNewFileWithParentDirectories()
         }

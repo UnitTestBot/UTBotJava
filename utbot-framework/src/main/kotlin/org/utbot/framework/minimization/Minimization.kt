@@ -3,6 +3,7 @@ package org.utbot.framework.minimization
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.*
 
+
 /**
  * Minimizes [executions] in each test suite independently. Test suite is computed with [executionToTestSuite] function.
  *

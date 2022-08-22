@@ -15,6 +15,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEquals
 import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
@@ -42,6 +43,7 @@ internal fun ClassId.utilMethodById(id: MethodId, context: CgContext): String =
             deepEqualsMethodId -> deepEquals(codegenLanguage, mockFrameworkUsed, mockFramework)
             arraysDeepEqualsMethodId -> arraysDeepEquals(codegenLanguage)
             iterablesDeepEqualsMethodId -> iterablesDeepEquals(codegenLanguage)
+            streamsDeepEqualsMethodId -> streamsDeepEquals(codegenLanguage)
             mapsDeepEqualsMethodId -> mapsDeepEquals(codegenLanguage)
             hasCustomEqualsMethodId -> hasCustomEquals(codegenLanguage)
             getArrayLengthMethodId -> getArrayLength(codegenLanguage)
@@ -150,7 +152,7 @@ fun getFieldValue(language: CodegenLanguage): String =
                         field.setAccessible(true);
                         java.lang.reflect.Field modifiersField = java.lang.reflect.Field.class.getDeclaredField("modifiers");
                         modifiersField.setAccessible(true);
-                        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+                        modifiersField.setInt(field, field.getModifiers() & ~java.lang.reflect.Modifier.FINAL);
                         
                         return field.get(obj);
                     } catch (NoSuchFieldException e) {
@@ -327,8 +329,7 @@ fun createInstance(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
             """
-            private static Object createInstance(String className) 
-                    throws ClassNotFoundException, NoSuchMethodException, NoSuchFieldException, IllegalAccessException, InvocationTargetException {
+            private static Object createInstance(String className) throws Exception {
                 Class<?> clazz = Class.forName(className);
                 return Class.forName("sun.misc.Unsafe").getDeclaredMethod("allocateInstance", Class.class)
                     .invoke(getUnsafeInstance(), clazz);
@@ -433,6 +434,18 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                 if (o2 instanceof Iterable) {
                     return false;
                 }
+                
+                if (o1 instanceof java.util.stream.Stream) {
+                    if (!(o2 instanceof java.util.stream.Stream)) {
+                        return false;
+                    }
+        
+                    return streamsDeepEquals((java.util.stream.Stream<?>) o1, (java.util.stream.Stream<?>) o2, visited);
+                }
+        
+                if (o2 instanceof java.util.stream.Stream) {
+                    return false;
+                }
         
                 if (o1 instanceof java.util.Map) {
                     if (!(o2 instanceof java.util.Map)) {
@@ -513,6 +526,12 @@ fun deepEquals(language: CodegenLanguage, mockFrameworkUsed: Boolean, mockFramew
                 }
                 
                 if (o2 is kotlin.collections.Iterable<*>) return false
+                
+                if (o1 is java.util.stream.Stream<*>) {
+                    return if (o2 !is java.util.stream.Stream<*>) false else streamsDeepEquals(o1, o2, visited)
+                }
+                
+                if (o2 is java.util.stream.Stream<*>) return false
         
                 if (o1 is kotlin.collections.Map<*, *>) {
                     return if (o2 !is kotlin.collections.Map<*, *>) false else mapsDeepEquals(o1, o2, visited)
@@ -646,6 +665,50 @@ fun iterablesDeepEquals(language: CodegenLanguage): String =
         }
     }
 
+fun streamsDeepEquals(language: CodegenLanguage): String =
+    when (language) {
+        CodegenLanguage.JAVA -> {
+            """
+            private boolean streamsDeepEquals(
+                java.util.stream.Stream<?> s1, 
+                java.util.stream.Stream<?> s2, 
+                java.util.Set<FieldsPair> visited
+            ) {
+                final java.util.Iterator<?> firstIterator = s1.iterator();
+                final java.util.Iterator<?> secondIterator = s2.iterator();
+                while (firstIterator.hasNext() && secondIterator.hasNext()) {
+                    if (!deepEquals(firstIterator.next(), secondIterator.next(), visited)) {
+                        return false;
+                    }
+                }
+        
+                if (firstIterator.hasNext()) {
+                    return false;
+                }
+        
+                return !secondIterator.hasNext();
+            }
+            """.trimIndent()
+        }
+        CodegenLanguage.KOTLIN -> {
+            """
+            private fun streamsDeepEquals(
+                s1: java.util.stream.Stream<*>, 
+                s2: java.util.stream.Stream<*>, 
+                visited: kotlin.collections.MutableSet<kotlin.Pair<kotlin.Any?, kotlin.Any?>>
+            ): Boolean {
+                val firstIterator = s1.iterator()
+                val secondIterator = s2.iterator()
+                while (firstIterator.hasNext() && secondIterator.hasNext()) {
+                    if (!deepEquals(firstIterator.next(), secondIterator.next(), visited)) return false
+                }
+        
+                return if (firstIterator.hasNext()) false else !secondIterator.hasNext()
+            }
+            """.trimIndent()
+        }
+    }
+
 fun mapsDeepEquals(language: CodegenLanguage): String =
     when (language) {
         CodegenLanguage.JAVA -> {
@@ -755,10 +818,10 @@ fun getArrayLength(codegenLanguage: CodegenLanguage) =
     }
 
 internal fun CgContextOwner.importUtilMethodDependencies(id: MethodId) {
-    for (classId in currentTestClass.regularImportsByUtilMethod(id, codegenLanguage)) {
+    for (classId in outerMostTestClass.regularImportsByUtilMethod(id, codegenLanguage)) {
         importIfNeeded(classId)
     }
-    for (methodId in currentTestClass.staticImportsByUtilMethod(id)) {
+    for (methodId in outerMostTestClass.staticImportsByUtilMethod(id)) {
         collectedImports += StaticImport(methodId.classId.canonicalName, methodId.name)
     }
 }
@@ -794,13 +857,17 @@ private fun ClassId.regularImportsByUtilMethod(id: MethodId, codegenLanguage: Co
         }
         iterablesDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Iterable::class.id, Iterator::class.id, Set::class.id)
-            CodegenLanguage.KOTLIN -> listOf()
+            CodegenLanguage.KOTLIN -> emptyList()
+        }
+        streamsDeepEqualsMethodId -> when (codegenLanguage) {
+            CodegenLanguage.JAVA -> listOf(java.util.stream.Stream::class.id, Set::class.id)
+            CodegenLanguage.KOTLIN -> emptyList()
         }
         mapsDeepEqualsMethodId -> when (codegenLanguage) {
             CodegenLanguage.JAVA -> listOf(Map::class.id, Iterator::class.id, Set::class.id)
-            CodegenLanguage.KOTLIN -> listOf()
+            CodegenLanguage.KOTLIN -> emptyList()
         }
-        hasCustomEqualsMethodId -> listOf()
+        hasCustomEqualsMethodId -> emptyList()
         getArrayLengthMethodId -> listOf(java.lang.reflect.Array::class.id)
         else -> error("Unknown util method for class $this: $id")
     }

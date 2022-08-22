@@ -4,10 +4,10 @@ import org.utbot.common.Reflection
 import org.utbot.engine.ValueConstructor
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtTestCase
-import org.utbot.framework.plugin.api.UtValueTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtMethodValueTestSet
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
@@ -17,7 +17,6 @@ import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
 import java.util.concurrent.atomic.AtomicInteger
 import soot.SootMethod
-import soot.jimple.JimpleBody
 
 
 @Suppress("DEPRECATION")
@@ -74,15 +73,15 @@ val instanceCounter = AtomicInteger(0)
 
 fun nextModelName(base: String): String = "$base${instanceCounter.incrementAndGet()}"
 
-fun UtTestCase.toValueTestCase(jimpleBody: JimpleBody? = null): UtValueTestCase<*> {
-    val valueExecutions = executions.map { ValueConstructor().construct(it) }
-    return UtValueTestCase(method, valueExecutions, jimpleBody, errors)
+fun UtMethodTestSet.toValueTestCase(): UtMethodValueTestSet<*> {
+    val valueExecutions = executions.map { ValueConstructor().construct(it) } // TODO: make something about UTExecution
+    return UtMethodValueTestSet(method, valueExecutions, errors)
 }
 
 fun UtModel.isUnit(): Boolean =
         this is UtVoidModel
 
-fun UtExecution.hasThisInstance(): Boolean = when {
+fun UtSymbolicExecution.hasThisInstance(): Boolean = when {
     stateBefore.thisInstance == null && stateAfter.thisInstance == null -> false
     stateBefore.thisInstance != null && stateAfter.thisInstance != null -> true
     stateAfter == MissingState -> false

@@ -64,17 +64,17 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
     private val charAtMethodSignature =
         overriddenClass.getMethodByName(UtString::charAtImpl.name).subSignature
 
-    private fun UtBotSymbolicEngine.getValueArray(addr: UtAddrExpression) =
+    private fun Traverser.getValueArray(addr: UtAddrExpression) =
         getArrayField(addr, overriddenClass, STRING_VALUE)
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
     ): List<InvokeResult>? {
-        when (method.subSignature) {
+        return when (method.subSignature) {
             toStringMethodSignature -> {
-                return listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
+                listOf(MethodResult(wrapper.copy(typeStorage = TypeStorage(method.returnType))))
             }
             matchesMethodSignature -> {
                 val arg = parameters[0] as ObjectValue
@@ -82,7 +82,8 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
 
                 if (!matchingLengthExpr.isConcrete) return null
 
-                val matchingValueExpr = selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
+                val matchingValueExpr =
+                    selectArrayExpressionFromMemory(getValueArray(arg.addr)).accept(RewritingVisitor())
                 val matchingLength = matchingLengthExpr.toConcrete() as Int
                 val matchingValue = CharArray(matchingLength)
 
@@ -124,7 +125,11 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
                 val inBoundsCondition = mkAnd(Le(0.toPrimitiveValue(), index), Lt(index, lengthExpr.toIntValue()))
                 val failMethodResult =
                     MethodResult(
-                        explicitThrown(StringIndexOutOfBoundsException(), findNewAddr(), isInNestedMethod()),
+                        explicitThrown(
+                            StringIndexOutOfBoundsException(),
+                            findNewAddr(),
+                            environment.state.isInNestedMethod()
+                        ),
                         hardConstraints = mkNot(inBoundsCondition).asHardConstraint()
                     )
 
@@ -195,7 +200,7 @@ private fun nextStringName() = "\$string${stringNameIndex++}"
 
 class UtNativeStringWrapper : WrapperInterface {
     private val valueDescriptor = NATIVE_STRING_VALUE_DESCRIPTOR
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -287,7 +292,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
     private val asStringBuilderMethodSignature =
         overriddenClass.getMethodByName("asStringBuilder").subSignature
 
-    override fun UtBotSymbolicEngine.overrideInvoke(
+    override fun Traverser.overrideInvoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -308,7 +313,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
 
         val arrayValuesChunkId = typeRegistry.arrayChunkId(charArrayType)
 
-        val valuesFieldChunkId = hierarchy.chunkIdForField(utStringClass.type, overriddenClass.valueField)
+        val valuesFieldChunkId = hierarchy.chunkIdForField(overriddenClass.type, overriddenClass.valueField)
         val valuesArrayAddrDescriptor = MemoryChunkDescriptor(valuesFieldChunkId, wrapper.type, charType)
         val valuesArrayAddr = findArray(valuesArrayAddrDescriptor, MemoryState.CURRENT).select(wrapper.addr)
 

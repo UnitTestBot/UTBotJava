@@ -3,9 +3,9 @@ package org.utbot.summary
 import com.github.javaparser.ast.body.MethodDeclaration
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.UtClusterInfo
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionCluster
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.summary.SummarySentenceConstants.NEW_LINE
 import org.utbot.summary.UtSummarySettings.GENERATE_CLUSTER_COMMENTS
@@ -23,11 +23,16 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
+import org.utbot.fuzzer.FuzzedMethodDescription
+import org.utbot.fuzzer.FuzzedValue
+import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
+import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
 import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
 
-fun UtTestCase.summarize(sourceFile: File?, searchDirectory: Path = Paths.get("")): UtTestCase {
+fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.get("")): UtMethodTestSet {
     if (!UtSettings.enableMachineLearningModule) return this
 
     return try {
@@ -43,14 +48,14 @@ fun UtTestCase.summarize(sourceFile: File?, searchDirectory: Path = Paths.get(""
             pos += clusterSize
             it.clusterInfo to indices
         }
-        this.copy(executions = updatedExecutions, clustersInfo = clustersInfo)
+        this.copy(executions = updatedExecutions, clustersInfo = clustersInfo) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
         logger.info(e) { "Summary generation error" }
         this
     }
 }
 
-fun UtTestCase.summarize(searchDirectory: Path): UtTestCase =
+fun UtMethodTestSet.summarize(searchDirectory: Path): UtMethodTestSet =
     this.summarize(Instrumenter.computeSourceFileByClass(this.method.clazz.java, searchDirectory), searchDirectory)
 
 
@@ -58,51 +63,100 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
     private val tagGenerator = TagGenerator()
     private val jimpleBodyAnalysis = ExecutionStructureAnalysis()
 
-    fun summary(testCase: UtTestCase): List<UtExecutionCluster> {
+    fun summary(testSet: UtMethodTestSet): List<UtExecutionCluster> {
         val namesCounter = mutableMapOf<String, Int>()
 
-        if (testCase.executions.isEmpty()) {
+        if (testSet.executions.isEmpty()) {
             logger.info {
                 "No execution traces found in test case " +
-                        "for method ${testCase.method.clazz.qualifiedName}, " + "${testCase.jimpleBody}"
+                        "for method ${testSet.method.clazz.qualifiedName}, " + "${testSet.jimpleBody}"
             }
-            return listOf(UtExecutionCluster(UtClusterInfo(), testCase.executions))
+            return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
         }
+
         // init
-        val sootToAST = sootToAST(testCase)
-        val jimpleBody = testCase.jimpleBody
-        val updatedExecutions = mutableListOf<UtExecution>()
+        val sootToAST = sootToAST(testSet)
+        val jimpleBody = testSet.jimpleBody
+        val updatedExecutions = mutableListOf<UtSymbolicExecution>()
         val clustersToReturn = mutableListOf<UtExecutionCluster>()
+
+        // handles tests produced by fuzzing
+        val executionsProducedByFuzzer = testSet.executions.filterIsInstance<UtFuzzedExecution>()
+
+        if (executionsProducedByFuzzer.isNotEmpty()) {
+            executionsProducedByFuzzer.forEach { utExecution ->
+
+                val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
+                val testMethodName = try {
+                    nameSuggester.flatMap { it.suggest(utExecution.fuzzedMethodDescription as FuzzedMethodDescription, utExecution.fuzzingValues as List<FuzzedValue>, utExecution.result) }.firstOrNull()
+                } catch (t: Throwable) {
+                    logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behavoiur
+                    null
+                }
+
+                utExecution.testMethodName = testMethodName?.testName
+                utExecution.displayName =  testMethodName?.displayName
+            }
+
+            clustersToReturn.add(
+                UtExecutionCluster(
+                    UtClusterInfo(), // TODO: add something https://github.com/UnitTestBot/UTBotJava/issues/430
+                    executionsProducedByFuzzer
+                )
+            )
+        }
+
+        // handles tests produced by symbolic engine, but with empty paths
+        val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
+
+        if (executionsWithEmptyPaths.isNotEmpty()) {
+            executionsWithEmptyPaths.forEach {
+                logger.info {
+                    "Test is created by Symbolic Engine. The path for test ${it.testMethodName} " +
+                            "for method ${testSet.method.clazz.qualifiedName} is empty and summaries could not be generated."
+                }
+            }
+
+            clustersToReturn.add(
+                UtExecutionCluster(
+                    UtClusterInfo(), // TODO: https://github.com/UnitTestBot/UTBotJava/issues/430
+                    executionsWithEmptyPaths
+                )
+            )
+        }
+
+        val testSetForAnalysis = prepareTestSetForByteCodeAnalysis(testSet)
 
         // analyze
         if (jimpleBody != null && sootToAST != null) {
             val methodUnderTest = jimpleBody.method
-            val clusteredTags = tagGenerator.testCaseToTags(testCase)
+            val clusteredTags = tagGenerator.testSetToTags(testSetForAnalysis)
             jimpleBodyAnalysis.traceStructuralAnalysis(jimpleBody, clusteredTags, methodUnderTest, invokeDescriptions)
             val numberOfSuccessfulClusters = clusteredTags.filter { it.isSuccessful }.size
             for (clusterTraceTags in clusteredTags) {
                 val clusterHeader = clusterTraceTags.summary.takeIf { GENERATE_CLUSTER_COMMENTS }
                 val clusterContent = if (
-                    GENERATE_CLUSTER_COMMENTS && clusterTraceTags.isSuccessful //add only for successful executions
-                    && numberOfSuccessfulClusters > 1 //there is more than one successful execution
-                    && clusterTraceTags.traceTags.size > 1 //add if there is more than 1 execution
+                    GENERATE_CLUSTER_COMMENTS && clusterTraceTags.isSuccessful // add only for successful executions
+                    && numberOfSuccessfulClusters > 1 // there is more than one successful execution
+                    && clusterTraceTags.traceTags.size > 1 // add if there is more than 1 execution
                 ) {
                     SimpleClusterCommentBuilder(clusterTraceTags.commonStepsTraceTag, sootToAST)
-                            .buildString(methodUnderTest)
-                            .takeIf { it.isNotBlank() }
-                            ?.let {
-                                buildString {
-                                    append("${NEW_LINE}Common steps:")
-                                    append("$NEW_LINE$it")
-                                }
+                        .buildString(methodUnderTest)
+                        .takeIf { it.isNotBlank() }
+                        ?.let {
+                            buildString {
+                                append("${NEW_LINE}Common steps:")
+                                append("$NEW_LINE$it")
                             }
+                        }
                 } else {
                     null
                 }
 
                 for (traceTags in clusterTraceTags.traceTags) {
                     if (GENERATE_COMMENTS) {
-                        traceTags.execution.summary = SimpleCommentBuilder(traceTags, sootToAST).buildDocStmts(methodUnderTest)
+                        traceTags.execution.summary =
+                            SimpleCommentBuilder(traceTags, sootToAST).buildDocStmts(methodUnderTest)
                     }
 
                     if (GENERATE_DISPLAY_NAMES || GENERATE_NAMES) {
@@ -141,23 +195,39 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         }
 
         // if there is no Jimple body or no AST, return one cluster with empty summary and all executions
-        return listOf(UtExecutionCluster(UtClusterInfo(), testCase.executions))
+        return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
     }
+
+    private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {
+        val executions =
+            testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isNotEmpty() }
+
+        return UtMethodTestSet(
+            method = testSet.method,
+            executions = executions,
+            jimpleBody = testSet.jimpleBody,
+            errors = testSet.errors,
+            clustersInfo = testSet.clustersInfo
+        )
+    }
+
+    private fun getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet: UtMethodTestSet) =
+        testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isEmpty() }
 
     /*
     * asts of invokes also included
     * */
     private fun sootToAST(
-        testCase: UtTestCase
+        testSet: UtMethodTestSet
     ): MutableMap<SootMethod, JimpleToASTMap>? {
         val sootToAST = mutableMapOf<SootMethod, JimpleToASTMap>()
-        val jimpleBody = testCase.jimpleBody
+        val jimpleBody = testSet.jimpleBody
         if (jimpleBody == null) {
             logger.info { "No jimple body of method under test" }
             return null
         }
         val methodUnderTestAST = sourceFile?.let {
-            SourceCodeParser(it, testCase).methodAST
+            SourceCodeParser(it, testSet).methodAST
         }
 
         if (methodUnderTestAST == null) {
@@ -173,15 +243,17 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
     }
 }
 
-private fun makeDiverseExecutions(testCase: UtTestCase) {
-    val maxDepth = testCase.executions.flatMap { it.path }.maxOfOrNull { it.depth } ?: 0
+private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
+    val symbolicExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
+
+    val maxDepth = symbolicExecutions.flatMap { it.path }.maxOfOrNull { it.depth } ?: 0
 
     if (maxDepth > 0) {
         logger.info { "Recursive function, max recursion: $maxDepth" }
         return
     }
 
-    var diversity = percentageDiverseExecutions(testCase.executions)
+    var diversity = percentageDiverseExecutions(symbolicExecutions)
     if (diversity >= 50) {
         logger.info { "Diversity execution path percentage: $diversity" }
         return
@@ -189,8 +261,8 @@ private fun makeDiverseExecutions(testCase: UtTestCase) {
 
     for (depth in 1..2) {
         logger.info { "Depth to add: $depth" }
-        stepsUpToDepth(testCase.executions, depth)
-        diversity = percentageDiverseExecutions(testCase.executions)
+        stepsUpToDepth(symbolicExecutions, depth)
+        diversity = percentageDiverseExecutions(symbolicExecutions)
 
         if (diversity >= 50) {
             logger.info { "Diversity execution path percentage: $diversity" }
@@ -199,8 +271,8 @@ private fun makeDiverseExecutions(testCase: UtTestCase) {
     }
 }
 
-private fun invokeDescriptions(testCase: UtTestCase, seachDirectory: Path): List<InvokeDescription> {
-    val sootInvokes = testCase.executions.flatMap { it.path.invokeJimpleMethods() }.toSet()
+private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path): List<InvokeDescription> {
+    val sootInvokes = testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path.invokeJimpleMethods() }.toSet()
     return sootInvokes
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }
@@ -208,7 +280,7 @@ private fun invokeDescriptions(testCase: UtTestCase, seachDirectory: Path): List
             val methodFile = Instrumenter.computeSourceFileByClass(
                 sootMethod.declaringClass.name,
                 sootMethod.declaringClass.javaPackageName.replace(".", File.separator),
-                seachDirectory
+                searchDirectory
             )
             val ast = methodFile?.let {
                 SourceCodeParser(sootMethod, it).methodAST

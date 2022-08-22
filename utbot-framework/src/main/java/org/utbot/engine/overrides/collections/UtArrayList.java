@@ -13,9 +13,13 @@ import java.util.RandomAccess;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
+
 import org.jetbrains.annotations.NotNull;
+import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.ResolverKt.MAX_LIST_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
@@ -24,7 +28,7 @@ import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 
 /**
- * Class represents hybrid implementation (java + engine instructions) of List interface for UtBotSymbolicEngine.
+ * Class represents hybrid implementation (java + engine instructions) of List interface for {@link org.utbot.engine.Traverser}.
  * <p>
  * Implementation is based on org.utbot.engine.overrides.collections.RangeModifiableArray.
  * Should behave similar to {@link java.util.ArrayList}.
@@ -59,6 +63,14 @@ public class UtArrayList<E> extends AbstractList<E>
         addAll(c);
     }
 
+    public UtArrayList(E[] data) {
+        visit(this);
+        int length = data.length;
+        elementData = new RangeModifiableUnlimitedArray<>();
+        elementData.setRange(0, data, 0, length);
+        elementData.end = length;
+    }
+
     /**
      * Precondition check is called only once by object,
      * if it was passed as parameter to method under test.
@@ -83,7 +95,7 @@ public class UtArrayList<E> extends AbstractList<E>
         int size = elementData.end;
         assume(elementData.begin == 0);
         assume(size >= 0);
-        assume(size <= MAX_LIST_SIZE);
+        assumeOrExecuteConcretely(size <= MAX_LIST_SIZE);
 
         visit(this);
     }
@@ -358,6 +370,28 @@ public class UtArrayList<E> extends AbstractList<E>
         for (int i = 0; i < elementData.end; i++) {
             elementData.set(i, operator.apply(elementData.get(i)));
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Stream<E> stream() {
+        preconditionCheck();
+
+        int size = elementData.end;
+        Object[] data = elementData.toArray(0, size);
+
+        return new UtStream<>((E[]) data, size);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Stream<E> parallelStream() {
+        preconditionCheck();
+
+        int size = elementData.end;
+        Object[] data = elementData.toArray(0, size);
+
+        return new UtStream<>((E[]) data, size);
     }
 
     /**

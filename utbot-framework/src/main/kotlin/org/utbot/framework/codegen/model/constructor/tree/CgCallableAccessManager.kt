@@ -26,6 +26,7 @@ import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
 import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -126,15 +127,12 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
         if (methodId is BuiltinMethodId) {
-            methodId.findExceptionTypes().forEach { addException(it) }
+            methodId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
             return
         }
-        //If [InvocationTargetException] is thrown manually in test, we need
-        // to add "throws Throwable" and other exceptions are not required so on.
+
         if (methodId == getTargetException) {
-            collectedExceptions.clear()
-            addException(Throwable::class.id)
-            return
+            addExceptionIfNeeded(Throwable::class.id)
         }
 
         val methodIsUnderTestAndThrowsExplicitly = methodId == currentExecutable
@@ -147,32 +145,35 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return
         }
 
-        methodId.method.exceptionTypes.forEach { addException(it.id) }
+        methodId.method.exceptionTypes.forEach { addExceptionIfNeeded(it.id) }
     }
 
     private fun newConstructorCall(constructorId: ConstructorId) {
         importIfNeeded(constructorId.classId)
         for (exception in constructorId.exceptions) {
-            addException(exception)
+            addExceptionIfNeeded(exception)
         }
     }
 
+    //WARN: if you make changes in the following sets of exceptions,
+    //don't forget to change them in hardcoded [UtilMethods] as well
     private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
         if (!this.isUtil) return emptySet()
 
-        with(currentTestClass) {
+        with(outerMostTestClass) {
             return when (this@findExceptionTypes) {
                 getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
                 getStaticFieldValueMethodId,
                 getFieldValueMethodId,
                 setStaticFieldMethodId,
-                setFieldMethodId,
-                createInstanceMethodId,
-                getUnsafeInstanceMethodId -> setOf(Exception::class.id)
+                setFieldMethodId -> setOf(IllegalAccessException::class.id, NoSuchFieldException::class.id)
+                createInstanceMethodId -> setOf(Exception::class.id)
+                getUnsafeInstanceMethodId -> setOf(ClassNotFoundException::class.id, NoSuchFieldException::class.id, IllegalAccessException::class.id)
                 createArrayMethodId -> setOf(ClassNotFoundException::class.id)
                 deepEqualsMethodId,
                 arraysDeepEqualsMethodId,
                 iterablesDeepEqualsMethodId,
+                streamsDeepEqualsMethodId,
                 mapsDeepEqualsMethodId,
                 hasCustomEqualsMethodId,
                 getArrayLengthMethodId -> emptySet()
@@ -184,7 +185,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     private infix fun CgExpression?.canBeReceiverOf(executable: MethodId): Boolean =
         when {
             // TODO: rewrite by using CgMethodId, etc.
-            currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
+            outerMostTestClass == executable.classId && this isThisInstanceOf outerMostTestClass -> true
             executable.isStatic -> true
             else -> this?.type?.isSubtypeOf(executable.classId) ?: false
         }
@@ -358,6 +359,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
     private fun MethodId.callWithReflection(caller: CgExpression?, args: List<CgExpression>): CgMethodCall {
+        containsReflectiveCall = true
         val method = declaredExecutableRefs[this]
             ?: toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)
@@ -371,6 +373,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun ConstructorId.callWithReflection(args: List<CgExpression>): CgExecutableCall {
+        containsReflectiveCall = true
         val constructor = declaredExecutableRefs[this]
             ?: this.toExecutableVariable(args).also {
                 declaredExecutableRefs = declaredExecutableRefs.put(this, it)

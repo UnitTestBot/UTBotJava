@@ -1,17 +1,17 @@
 package org.utbot.fuzzer.providers
 
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.ModelProvider
-import java.util.function.BiConsumer
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import kotlin.random.Random
 
 object StringConstantModelProvider : ModelProvider {
 
-    override fun generate(description: FuzzedMethodDescription, consumer: BiConsumer<Int, UtModel>) {
+    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         val random = Random(72923L)
         description.concreteValues
             .asSequence()
@@ -22,7 +22,7 @@ object StringConstantModelProvider : ModelProvider {
                     .filterNotNull()
                     .map { UtPrimitiveModel(it) }.forEach { model ->
                         description.parametersMap.getOrElse(model.classId) { emptyList() }.forEach { index ->
-                            consumer.accept(index, model)
+                            yieldValue(index, model.fuzzed { summary = "%var% = string" })
                         }
                     }
             }

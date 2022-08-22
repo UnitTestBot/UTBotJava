@@ -11,7 +11,7 @@ import org.utbot.common.PathUtil.toPath
 import org.utbot.engine.Mocker
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.sarif.SarifReport
@@ -21,6 +21,9 @@ import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
 import kotlin.reflect.KClass
 import mu.KotlinLogging
+import org.utbot.common.filterWhen
+import org.utbot.framework.UtSettings
+import org.utbot.framework.util.isKnownSyntheticMethod
 
 
 private val logger = KotlinLogging.logger {}
@@ -92,27 +95,33 @@ class GenerateTestsCommand :
 
             val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
             val targetMethods = classUnderTest.targetMethods()
-            initializeEngine(workingDirectory)
+                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+                .filterNot { it.callable.isAbstract }
+            val testCaseGenerator = initializeGenerator(workingDirectory)
 
-            // utContext is used in `generateTestCases`, `generateTest`, `generateReport`
+            if (targetMethods.isEmpty()) {
+                throw Exception("Nothing to process. No methods were provided")
+            }
+            // utContext is used in `generate`, `generateTest`, `generateReport`
             withUtContext(UtContext(targetMethods.first().clazz.java.classLoader)) {
 
                 val testClassName = output?.toPath()?.toFile()?.nameWithoutExtension
                     ?: "${classUnderTest.simpleName}Test"
-                val testCases = generateTestCases(
+                val testSets = generateTestSets(
+                    testCaseGenerator,
                     targetMethods,
                     Paths.get(sourceCodeFile),
                     searchDirectory = workingDirectory,
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
                         .mapTo(mutableSetOf()) { ClassId(it) }
                 )
-                val testClassBody = generateTest(classUnderTest, testClassName, testCases)
+                val testClassBody = generateTest(classUnderTest, testClassName, testSets)
 
                 if (printToStdOut) {
                     logger.info { testClassBody }
                 }
                 if (sarifReport != null) {
-                    generateReport(targetClassFqn, testCases, testClassBody)
+                    generateReport(targetClassFqn, testSets, testClassBody)
                 }
                 saveToFile(testClassBody, output)
             }
@@ -125,7 +134,7 @@ class GenerateTestsCommand :
         }
     }
 
-    private fun generateReport(classFqn: String, testCases: List<UtTestCase>, testClassBody: String) = try {
+    private fun generateReport(classFqn: String, testSets: List<UtMethodTestSet>, testClassBody: String) = try {
         // reassignments for smart casts
         val testsFilePath = output
         val projectRootPath = projectRoot
@@ -140,9 +149,9 @@ class GenerateTestsCommand :
             else -> {
                 val sourceFinding =
                     SourceFindingStrategyDefault(classFqn, sourceCodeFile, testsFilePath, projectRootPath)
-                val report = SarifReport(testCases, testClassBody, sourceFinding).createReport()
+                val report = SarifReport(testSets, testClassBody, sourceFinding).createReport()
                 saveToFile(report, sarifReport)
-                println("The report was saved to \"$sarifReport\". You can open it using the VS Code extension \"Sarif Viewer\".")
+                println("The report was saved to \"$sarifReport\".")
             }
         }
     } catch (t: Throwable) {

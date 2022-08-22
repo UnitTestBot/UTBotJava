@@ -1,32 +1,101 @@
 plugins {
     id 'java-gradle-plugin'
+    id 'com.gradle.plugin-publish' version '0.18.0'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-dependencies {
-    api project(":utbot-framework")
-
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+configurations {
+    fetchInstrumentationJar
 }
+
+dependencies {
+    shadow gradleApi()
+    shadow localGroovy()
+
+    implementation project(":utbot-framework")
+    implementation "io.github.microutils:kotlin-logging:$kotlin_logging_version"
+
+    testImplementation "org.mockito:mockito-core:$mockito_version"
+    testImplementation "org.mockito:mockito-inline:$mockito_version"
+
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
+}
+
+// needed to prevent inclusion of gradle-api into shadow JAR
+configurations.api.dependencies.remove dependencies.gradleApi()
 
 configurations.all {
     exclude group: "org.apache.logging.log4j", module: "log4j-slf4j-impl"
 }
 
-gradlePlugin {
-    plugins {
-        sarifReportPlugin {
-            id = 'org.utbot.gradle.plugin'
-            implementationClass = 'org.utbot.gradle.plugin.SarifGradlePlugin'
+configurations {
+    customCompile.extendsFrom api // then customCompile.setCanBeResolved == true
+}
+
+/**
+ * Shadow plugin unpacks the nested `utbot-instrumentation-<version>.jar`.
+ * But we need it to be packed. Workaround: double-nest the jar.
+ */
+task shadowBugWorkaround(type: Jar) {
+    destinationDirectory = layout.buildDirectory.dir('build/shadow-bug-workaround')
+    from(configurations.fetchInstrumentationJar) {
+        into "lib"
+    }
+}
+
+// Documentation: https://imperceptiblethoughts.com/shadow/
+shadowJar {
+    manifest {
+        // 'Fat JAR' is needed in org.utbot.framework.codegen.model.util.DependencyUtilsKt.checkDependencyIsFatJar
+        attributes 'JAR-Type': 'Fat JAR'
+        attributes 'Class-Path': project.configurations.customCompile.collect { it.getName() }.join(' ')
+    }
+    archiveClassifier.set('')
+    minimize()
+    from shadowBugWorkaround
+}
+
+// no module metadata => no dependency on the `utbot-framework`
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
+publishing {
+    publications {
+        pluginMaven(MavenPublication) {
+            pom.withXml {
+                // removing a dependency to `utbot-framework` from the list of dependencies
+                asNode().dependencies.dependency.each { dependency ->
+                    if (dependency.artifactId[0].value() == 'utbot-framework') {
+                        assert dependency.parent().remove(dependency)
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            url = layout.buildDirectory.dir('repo')
         }
     }
 }
 
-publishing {
-    repositories {
-        maven {
-            url = layout.buildDirectory.dir('repo')
+pluginBundle {
+    website = 'https://www.utbot.org/'
+    vcsUrl = 'https://github.com/UnitTestBot/UTBotJava/'
+    tags = ['java', 'unit-testing', 'tests-generation', 'sarif']
+}
+
+gradlePlugin {
+    plugins {
+        sarifReportPlugin {
+            version = '1.0.0-alpha' // last published version
+            id = 'org.utbot.gradle.plugin'
+            displayName = 'UnitTestBot gradle plugin'
+            description = 'The gradle plugin for generating tests and creating SARIF reports based on UnitTestBot'
+            implementationClass = 'org.utbot.gradle.plugin.SarifGradlePlugin'
         }
     }
 }

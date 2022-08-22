@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
 import kotlinx.collections.immutable.persistentListOf
+import org.utbot.engine.util.mockListeners.MockListenerController
 import soot.BooleanType
 import soot.RefType
 import soot.Scene
@@ -45,7 +46,7 @@ class UtMockInfoGenerator(private val generator: (UtAddrExpression) -> UtMockInf
  * Contains mock class id and mock address to work with object cache.
  *
  * Note: addr for static method mocks contains addr of the "host" object
- * received by [UtBotSymbolicEngine.locateStaticObject].
+ * received by [Traverser.locateStaticObject].
  *
  * @property classId classId of the object this mock represents.
  * @property addr address of the mock object.
@@ -89,9 +90,9 @@ data class UtObjectMockInfo(
 
 /**
  * Mock for the "host" object for static methods and fields with [classId] declaringClass.
- * [addr] is a value received by [UtBotSymbolicEngine.locateStaticObject].
+ * [addr] is a value received by [Traverser.locateStaticObject].
  *
- * @see UtBotSymbolicEngine.locateStaticObject
+ * @see Traverser.locateStaticObject
  */
 data class UtStaticObjectMockInfo(
     override val classId: ClassId,
@@ -114,12 +115,12 @@ data class UtNewInstanceMockInfo(
  * Represents mocks for static methods.
  * Contains the methodId.
  *
- * Used only in [UtBotSymbolicEngine.mockStaticMethod] method to pass information into [Mocker] about the method.
+ * Used only in [Traverser.mockStaticMethod] method to pass information into [Mocker] about the method.
  * All the executables will be stored in executables of the object with [UtStaticObjectMockInfo] and the same addr.
  *
  * Note: we use non null addr here because of [createMockObject] method. We have to know address of the object
  * that we want to make. Although static method doesn't have "caller", we still can use address of the object
- * received by [UtBotSymbolicEngine.locateStaticObject].
+ * received by [Traverser.locateStaticObject].
  */
 data class UtStaticMethodMockInfo(
     override val addr: UtAddrExpression,
@@ -133,7 +134,8 @@ class Mocker(
     private val strategy: MockStrategy,
     private val classUnderTest: ClassId,
     private val hierarchy: Hierarchy,
-    chosenClassesToMockAlways: Set<ClassId>
+    chosenClassesToMockAlways: Set<ClassId>,
+    internal val mockListenerController: MockListenerController? = null,
 ) {
     /**
      * Creates mocked instance of the [type] using mock info if it should be mocked by the mocker,
@@ -165,20 +167,40 @@ class Mocker(
      */
     fun shouldMock(
         type: RefType,
+        mockInfo: UtMockInfo,
+    ): Boolean = checkIfShouldMock(type, mockInfo).also {
+        //[utbotSuperClasses] are not involved in code generation, so
+        //we shouldn't listen events that such mocks happened
+        if (it && type.id !in utbotSuperClasses.map { it.id }) {
+            mockListenerController?.onShouldMock(strategy, mockInfo)
+        }
+    }
+
+    private fun checkIfShouldMock(
+        type: RefType,
         mockInfo: UtMockInfo
     ): Boolean {
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
+        if (isUtMockAssumeOrExecuteConcretely(mockInfo)) return false // never mock UtMock.assumeOrExecuteConcretely invocation
         if (isOverriddenClass(type)) return false  // never mock overriden classes
         if (isMakeSymbolic(mockInfo)) return true // support for makeSymbolic
         if (type.sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
-        //TODO: SAT-1496 verify that using SootClass here is correct
         if (!isEngineClass(type) && (type.sootClass.isInnerClass || type.sootClass.isLocal || type.sootClass.isAnonymous)) return false // there is no reason (and maybe no possibility) to mock such classes
         if (!isEngineClass(type) && type.sootClass.isPrivate) return false // could not mock private classes (even if it is in mock always list)
         if (mockAlways(type)) return true // always mock randoms and loggers
-        if (type.sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
         if (mockInfo is UtFieldMockInfo) {
+            val declaringClass = mockInfo.fieldId.declaringClass
+            val sootDeclaringClass = Scene.v().getSootClass(declaringClass.name)
+
+            if (sootDeclaringClass.isArtificialEntity || sootDeclaringClass.isOverridden) {
+                // Cannot load Java class for artificial classes, see BaseStreamExample::minExample for an example.
+                // Wrapper classes that override system classes ([org.utbot.engine.overrides] package) are also
+                // unavailable to the [UtContext] class loader used by the plugin.
+                return false
+            }
+
             return when {
-                mockInfo.fieldId.declaringClass.packageName.startsWith("java.lang") -> false
+                declaringClass.packageName.startsWith("java.lang") -> false
                 !mockInfo.fieldId.type.isRefType -> false  // mocks are allowed for ref fields only
                 else -> return strategy.eligibleToMock(mockInfo.fieldId.type, classUnderTest) // if we have a field with Integer type, we should not mock it
             }
@@ -196,6 +218,9 @@ class Mocker(
 
     private fun isUtMockAssume(mockInfo: UtMockInfo) =
         mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == assumeBytecodeSignature
+
+    private fun isUtMockAssumeOrExecuteConcretely(mockInfo: UtMockInfo) =
+        mockInfo is UtStaticMethodMockInfo && mockInfo.methodId.signature == assumeOrExecuteConcretelyBytecodeSignature
 
     private fun isEngineClass(type: RefType) = type.className in engineClasses
 
@@ -246,7 +271,7 @@ class UtMockWrapper(
     private val mockInfo: UtMockInfo
 ) : WrapperInterface {
 
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -304,6 +329,9 @@ internal val nonNullableMakeSymbolic: SootMethod
 internal val assumeMethod: SootMethod
     get() = utMockClass.getMethod(ASSUME_NAME, listOf(BooleanType.v()))
 
+internal val assumeOrExecuteConcretelyMethod: SootMethod
+    get() = utMockClass.getMethod(ASSUME_OR_EXECUTE_CONCRETELY_NAME, listOf(BooleanType.v()))
+
 val makeSymbolicBytecodeSignature: String
     get() = makeSymbolicMethod.executableId.signature
 
@@ -312,6 +340,9 @@ val nonNullableMakeSymbolicBytecodeSignature: String
 
 val assumeBytecodeSignature: String
     get() = assumeMethod.executableId.signature
+
+val assumeOrExecuteConcretelyBytecodeSignature: String
+    get() = assumeOrExecuteConcretelyMethod.executableId.signature
 
 internal val UTBOT_OVERRIDE_PACKAGE_NAME = UtOverrideMock::class.java.packageName
 
@@ -331,3 +362,4 @@ internal val utLogicMockIteMethodName = UtLogicMock::ite.name
 
 private const val MAKE_SYMBOLIC_NAME = "makeSymbolic"
 private const val ASSUME_NAME = "assume"
+private const val ASSUME_OR_EXECUTE_CONCRETELY_NAME = "assumeOrExecuteConcretely"

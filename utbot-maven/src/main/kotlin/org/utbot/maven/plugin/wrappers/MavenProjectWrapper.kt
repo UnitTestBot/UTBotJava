@@ -51,7 +51,7 @@ class MavenProjectWrapper(
     val sarifReportFile: File by lazy {
         Paths.get(
             generatedSarifDirectory.path,
-            "${mavenProject.name}-utbot.sarif"
+            "${mavenProject.name}Report.sarif"
         ).toFile().apply {
             createNewFileWithParentDirectories()
         }
@@ -125,23 +125,24 @@ class MavenProjectWrapper(
             classUnderTest,
             sourceCodeFile,
             createTestsCodeFile(classFqn),
-            createSarifReportFile(classFqn)
+            createSarifReportFile(classFqn),
+            sarifProperties.testPrivateMethods
         )
     }
 
     /**
      * Creates and returns a file for a future SARIF report.
-     * For example, ".../main/com/qwerty/Main-utbot.sarif".
+     * For example, ".../main/com/qwerty/MainReport.sarif".
      */
     private fun createSarifReportFile(classFqn: String): File {
-        val relativePath = "${PathUtil.classFqnToPath(classFqn)}-utbot.sarif"
+        val relativePath = "${PathUtil.classFqnToPath(classFqn)}Report.sarif"
         val absolutePath = Paths.get(generatedSarifDirectory.path, relativePath)
         return absolutePath.toFile().apply { createNewFileWithParentDirectories() }
     }
 
     /**
      * Creates and returns a file for future generated tests.
-     * For example, ".../java/main/com/qwerty/MainTest.java".
+     * For example, ".../com/qwerty/MainTest.java".
      */
     private fun createTestsCodeFile(classFqn: String): File {
         val fileExtension = sarifProperties.codegenLanguage.extension

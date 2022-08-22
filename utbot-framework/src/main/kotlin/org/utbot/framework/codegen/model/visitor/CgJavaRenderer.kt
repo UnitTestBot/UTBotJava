@@ -8,6 +8,7 @@ import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgAnonymousFunction
 import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
+import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import org.utbot.framework.codegen.model.tree.CgBreakStatement
 import org.utbot.framework.codegen.model.tree.CgConstructorCall
 import org.utbot.framework.codegen.model.tree.CgDeclaration
@@ -22,7 +23,7 @@ import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
 import org.utbot.framework.codegen.model.tree.CgGetLength
 import org.utbot.framework.codegen.model.tree.CgInnerBlock
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgNotNullVariable
+import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
@@ -61,7 +62,11 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         for (annotation in element.annotations) {
             annotation.accept(this)
         }
-        print("public class ")
+        print("public ")
+        if (element.isStatic) {
+            print("static ")
+        }
+        print("class ")
         print(element.simpleName)
         if (element.superclass != null) {
             print(" extends ${element.superclass.asString()}")
@@ -105,26 +110,31 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     }
 
     override fun visit(element: CgTypeCast) {
-        // TODO: check cases when element.expression is CgLiteral of primitive wrapper type and element.targetType is primitive
-        // TODO: example: (double) 1.0, (float) 1.0f, etc.
+        val expr = element.expression
+        val wrappedTargetType = wrapperByPrimitive.getOrDefault(element.targetType, element.targetType)
+        val exprTypeIsSimilar = expr.type == element.targetType || expr.type == wrappedTargetType
+
         // cast for null is mandatory in case of ambiguity - for example, readObject(Object) and readObject(Map)
-        if (element.expression.type == element.targetType && element.expression != nullLiteral()) {
+        if (exprTypeIsSimilar && expr != nullLiteral()) {
             element.expression.accept(this)
             return
         }
 
-        val elementTargetType = element.targetType
-        val targetType = wrapperByPrimitive.getOrDefault(elementTargetType, elementTargetType)
-
         print("(")
         print("(")
-        print(targetType.asString())
+        print(wrappedTargetType.asString())
         print(") ")
         element.expression.accept(this)
         print(")")
     }
 
     override fun visit(element: CgErrorWrapper) {
+        element.expression.accept(this)
+    }
+
+    // Not-null assertion
+
+    override fun visit(element: CgNotNullAssertion) {
         element.expression.accept(this)
     }
 
@@ -151,10 +161,6 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         error("KClass attempted to be used in the Java test class")
     }
 
-    override fun visit(element: CgNotNullVariable) {
-        print(element.name.escapeNamePossibleKeyword())
-    }
-
     override fun visit(element: CgAllocateArray) {
         // TODO: Arsen strongly required to rewrite later
         val typeName = element.type.canonicalName.substringBefore("[")
@@ -163,11 +169,21 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
     }
 
     override fun visit(element: CgAllocateInitializedArray) {
-        val arrayModel = element.model
-        val elementsInLine = arrayElementsInLine(arrayModel.constModel)
+        // TODO: same as in visit(CgAllocateArray): we should rewrite the typeName and otherDimensions variables declaration
+        // to avoid using substringBefore() and substringAfter() directly
+        val typeName = element.type.canonicalName.substringBefore("[")
+        val otherDimensions = element.type.canonicalName.substringAfter("]")
+        // we can't specify the size of the first dimension when using initializer,
+        // as opposed to CgAllocateArray where there is no initializer
+        print("new $typeName[]$otherDimensions")
+        element.initializer.accept(this)
+    }
+
+    override fun visit(element: CgArrayInitializer) {
+        val elementsInLine = arrayElementsInLine(element.elementType)
 
         print("{")
-        arrayModel.renderElements(element.size, elementsInLine)
+        element.values.renderElements(elementsInLine)
         print("}")
     }
 
@@ -214,7 +230,8 @@ internal class CgJavaRenderer(context: CgContext, printer: CgPrinter = CgPrinter
         //we do not have a good string representation for two-dimensional array, so this strange if-else is required
         val returnType =
             if (element.returnType.simpleName == "Object[][]") "java.lang.Object[][]" else "${element.returnType}"
-        print("public static $returnType ${element.name}() throws Exception")
+        print("public static $returnType ${element.name}()")
+        renderExceptions(element)
     }
 
     override fun visit(element: CgInnerBlock) {

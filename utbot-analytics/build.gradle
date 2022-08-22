@@ -1,22 +1,25 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-apply plugin: "java"
 
 configurations {
     mlmodels
 }
-
 
 def osName = System.getProperty('os.name').toLowerCase().split()[0]
 if (osName == "mac") osName = "macosx"
 String classifier = osName + "-x86_64"
 
 evaluationDependsOn(':utbot-framework')
+compileKotlin.dependsOn project(':utbot-instrumentation').tasks.jar
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
+    implementation(project(":utbot-api"))
+    implementation(project(":utbot-core"))
+    implementation(project(":utbot-summary"))
+    implementation(project(":utbot-framework-api"))
+    implementation(project(":utbot-fuzzers"))
+    implementation(project(":utbot-instrumentation"))
     implementation(project(":utbot-framework"))
-    implementation(project(':utbot-instrumentation'))
-    implementation(project(':utbot-summary'))
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
 
@@ -45,15 +48,19 @@ dependencies {
     implementation "ai.djl.pytorch:pytorch-engine:$djl_api_version"
     implementation "ai.djl.pytorch:pytorch-native-auto:$pytorch_native_version"
 
-    testCompile project(':utbot-framework').sourceSets.test.output
+    testImplementation project(':utbot-framework').sourceSets.test.output
 }
 
 test {
 
-    useJUnitPlatform {
-        excludeTags 'Summary'
-    }
+    minHeapSize = "128m"
+    maxHeapSize = "3072m"
 
+    jvmArgs '-XX:MaxHeapSize=3072m'
+
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest', 'Summary'
+    }
 }
 
 processResources {

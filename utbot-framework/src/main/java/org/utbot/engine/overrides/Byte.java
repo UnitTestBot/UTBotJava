@@ -7,12 +7,13 @@ import org.utbot.engine.overrides.strings.UtStringBuilder;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.less;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Byte.class, internalUsage = true)
 public class Byte {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Byte valueOf(byte x) {
         return new java.lang.Byte(x);
     }
@@ -34,7 +35,7 @@ public class Byte {
         if ((s.charAt(0) == '-' || s.charAt(0) == '+') && s.length() == 1) {
             throw new NumberFormatException();
         }
-        assume(s.length() <= 10);
+        assumeOrExecuteConcretely(s.length() <= 10);
         // we need two branches to add more options for concrete executor to find both branches
         if (s.charAt(0) == '-') {
             executeConcretely();

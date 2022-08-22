@@ -11,9 +11,10 @@ import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 
 /**
  * Used for the SARIF report creation by given test cases and generated tests code.
@@ -24,7 +25,7 @@ import org.utbot.framework.plugin.api.UtTestCase
  * [Sample report](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#example-with-minimum-required-properties)
  */
 class SarifReport(
-    private val testCases: List<UtTestCase>,
+    private val testSets: List<UtMethodTestSet>,
     private val generatedTestsCode: String,
     private val sourceFinding: SourceFindingStrategy
 ) {
@@ -66,18 +67,15 @@ class SarifReport(
      */
     private val relatedLocationId = 1 // for attaching link to generated test in related locations
 
-    private fun shouldProcessUncheckedException(result: UtExecutionResult) = (result is UtImplicitlyThrownException)
-            || ((result is UtOverflowFailure) && UtSettings.treatOverflowAsError)
-
     private fun constructSarif(): Sarif {
         val sarifResults = mutableListOf<SarifResult>()
         val sarifRules = mutableSetOf<SarifRule>()
 
-        for (testCase in testCases) {
-            for (execution in testCase.executions) {
-                if (shouldProcessUncheckedException(execution.result)) {
+        for (testSet in testSets) {
+            for (execution in testSet.executions) {
+                if (shouldProcessExecutionResult(execution.result)) {
                     val (sarifResult, sarifRule) = processUncheckedException(
-                        method = testCase.method,
+                        method = testSet.method,
                         utExecution = execution,
                         uncheckedException = execution.result as UtExecutionFailure
                     )
@@ -90,9 +88,43 @@ class SarifReport(
         return Sarif.fromRun(
             SarifRun(
                 SarifTool.fromRules(sarifRules.toList()),
-                sarifResults
+                minimizeResults(sarifResults)
             )
         )
+    }
+
+    /**
+     * Minimizes detected errors and removes duplicates.
+     *
+     * Between two [SarifResult]s with the same `ruleId` and `locations`
+     * it chooses the one with the shorter length of the execution trace.
+     *
+     * __Example:__
+     *
+     * The SARIF report for the code below contains only one unchecked exception in `methodB`.
+     * But without minimization, the report will contain two results: for `methodA` and for `methodB`.
+     *
+     * ```
+     * class Example {
+     *     int methodA(int a) {
+     *         return methodB(a);
+     *     }
+     *     int methodB(int b) {
+     *         return 1 / b;
+     *     }
+     * }
+     * ```
+     */
+    private fun minimizeResults(sarifResults: List<SarifResult>): List<SarifResult> {
+        val groupedResults = sarifResults.groupBy { sarifResult ->
+            Pair(sarifResult.ruleId, sarifResult.locations)
+        }
+        val minimizedResults = groupedResults.map { (_, sarifResultsGroup) ->
+            sarifResultsGroup.minByOrNull { sarifResult ->
+                sarifResult.totalCodeFlowLocations()
+            }!!
+        }
+        return minimizedResults
     }
 
     private fun processUncheckedException(
@@ -144,9 +176,9 @@ class SarifReport(
         if (classFqn == null)
             return listOf()
         val sourceRelativePath = sourceFinding.getSourceRelativePath(classFqn)
-        val sourceRegion = SarifRegion(
-            startLine = extractLineNumber(utExecution) ?: defaultLineNumber
-        )
+        val startLine = getLastLineNumber(utExecution) ?: defaultLineNumber
+        val sourceCode = sourceFinding.getSourceFile(classFqn)?.readText() ?: ""
+        val sourceRegion = SarifRegion.withStartLine(sourceCode, startLine)
         return listOf(
             SarifPhysicalLocationWrapper(
                 SarifPhysicalLocation(SarifArtifact(sourceRelativePath), sourceRegion)
@@ -155,14 +187,13 @@ class SarifReport(
     }
 
     private fun getRelatedLocations(utExecution: UtExecution): List<SarifRelatedPhysicalLocationWrapper> {
-        val lineNumber = generatedTestsCode.split('\n').indexOfFirst { line ->
-            utExecution.testMethodName?.let { testMethodName ->
-                line.contains(testMethodName)
-            } ?: false
-        }
-        val sourceRegion = SarifRegion(
-            startLine = if (lineNumber != -1) lineNumber + 1 else defaultLineNumber
-        )
+        val startLine = utExecution.testMethodName?.let { testMethodName ->
+            val neededLine = generatedTestsCode.split('\n').indexOfFirst { line ->
+                line.contains("$testMethodName(")
+            }
+            if (neededLine == -1) null else neededLine + 1 // to one-based
+        } ?: defaultLineNumber
+        val sourceRegion = SarifRegion.withStartLine(generatedTestsCode, startLine)
         return listOf(
             SarifRelatedPhysicalLocationWrapper(
                 relatedLocationId,
@@ -228,6 +259,7 @@ class SarifReport(
             return null
         val extension = stackTraceElement.fileName?.toPath()?.fileExtension
         val relativePath = sourceFinding.getSourceRelativePath(stackTraceElement.className, extension)
+        val sourceCode = sourceFinding.getSourceFile(stackTraceElement.className, extension)?.readText() ?: ""
         return SarifFlowLocationWrapper(
             SarifFlowLocation(
                 message = Message(
@@ -235,7 +267,7 @@ class SarifReport(
                 ),
                 physicalLocation = SarifPhysicalLocation(
                     SarifArtifact(relativePath),
-                    SarifRegion(lineNumber)
+                    SarifRegion.withStartLine(sourceCode, lineNumber)
                 )
             )
         )
@@ -252,19 +284,36 @@ class SarifReport(
         }
         if (testMethodStartsAt == -1)
             return null
+        /**
+         * ...
+         * public void testMethodName() { // <- `testMethodStartsAt`
+         *     ...
+         *     className.methodName(...) // <- needed `startLine`
+         *     ...
+         * }
+         */
 
         // searching needed method call
-        val methodCallLineNumber = testsBodyLines
+        val publicMethodCallPattern = "$methodName("
+        val privateMethodCallPattern = Regex("""$methodName.*\.invoke\(""") // using reflection
+        val methodCallShiftInTestMethod = testsBodyLines
             .drop(testMethodStartsAt + 1) // for search after it
             .indexOfFirst { line ->
-                line.contains("$methodName(")
+                line.contains(publicMethodCallPattern) || line.contains(privateMethodCallPattern)
             }
-        if (methodCallLineNumber == -1)
+        if (methodCallShiftInTestMethod == -1)
             return null
+
+        // `startLine` consists of:
+        //     shift to the testMethod call (+ testMethodStartsAt)
+        //     the line with testMethodName (+ 1)
+        //     shift to the method call     (+ methodCallShiftInTestMethod)
+        //     to one-based                 (+ 1)
+        val startLine = testMethodStartsAt + 1 + methodCallShiftInTestMethod + 1
 
         return SarifPhysicalLocation(
             SarifArtifact(sourceFinding.testsRelativePath),
-            SarifRegion(startLine = methodCallLineNumber + 1 + testMethodStartsAt + 1)
+            SarifRegion.withStartLine(generatedTestsCode, startLine)
         )
     }
 
@@ -284,10 +333,30 @@ class SarifReport(
         return "..."
     }
 
-    private fun extractLineNumber(utExecution: UtExecution): Int? =
-        try {
-            utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
-        } catch (t: Throwable) {
-            null
+    /**
+     * Returns the number of the last line in the execution path.
+     */
+    private fun getLastLineNumber(utExecution: UtExecution): Int? {
+        // if for some reason we can't extract the last line from the path
+        val lastCoveredInstruction =
+            utExecution.coverage?.coveredInstructions?.lastOrNull()?.lineNumber
+
+        return if (utExecution is UtSymbolicExecution) {
+            val lastPathLine = try {
+                utExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber
+            } catch (t: Throwable) {
+                null
+            }
+
+            lastPathLine ?: lastCoveredInstruction
+        } else {
+            lastCoveredInstruction
         }
+    }
+
+    private fun shouldProcessExecutionResult(result: UtExecutionResult): Boolean {
+        val implicitlyThrown = result is UtImplicitlyThrownException
+        val overflowFailure = result is UtOverflowFailure && UtSettings.treatOverflowAsError
+        return implicitlyThrown || overflowFailure
+    }
 }

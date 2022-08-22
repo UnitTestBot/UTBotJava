@@ -31,12 +31,12 @@ class TestGetSourceFileName {
     }
 
     @Test
-    fun testKotlinExample() {
-        assertEquals("ExampleClass.kt", Instrumenter.computeSourceFileName(ExampleClass::class.java))
+    fun testJavaExample1() {
+        assertEquals("ExampleClass.java", Instrumenter.computeSourceFileName(ExampleClass::class.java))
     }
 
     @Test
-    fun testJavaExample() {
+    fun testJavaExample2() {
         assertEquals(
             "ClassWithInnerClasses.java",
             Instrumenter.computeSourceFileName(ClassWithInnerClasses::class.java)

@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.singleValue
@@ -8,7 +8,7 @@ import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
-class ObjectWithFinalStaticTest : AbstractTestCaseGeneratorTest(
+class ObjectWithFinalStaticTest : UtValueTestCaseChecker(
     testClass = ObjectWithFinalStatic::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

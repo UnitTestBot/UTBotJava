@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.example</groupId>
+    <artifactId>project-to-test</artifactId>
+    <version>1.0</version>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <build>
+        <!-- relative to 'utbot-maven' -->
+        <sourceDirectory>build/resources/project-to-test/src/main/java</sourceDirectory>
+        <outputDirectory>build/resources/project-to-test/target/classes</outputDirectory>
+
+        <plugins>
+            <plugin>
+                <groupId>org.utbot</groupId>
+                <artifactId>utbot-maven</artifactId>
+                <version>1.0-SNAPSHOT</version>
+                <configuration>
+                    <targetClasses>
+                        <param>Main</param>
+                    </targetClasses>
+                    <projectRoot>build/resources/project-to-test</projectRoot>
+                    <generatedTestsRelativeRoot>target/generated/test</generatedTestsRelativeRoot>
+                    <sarifReportsRelativeRoot>target/generated/sarif</sarifReportsRelativeRoot>
+                    <markGeneratedTestsDirectoryAsTestSourcesRoot>true</markGeneratedTestsDirectoryAsTestSourcesRoot>
+                    <testPrivateMethods>true</testPrivateMethods>
+                    <testFramework>junit5</testFramework>
+                    <mockFramework>mockito</mockFramework>
+                    <generationTimeout>10000</generationTimeout>
+                    <codegenLanguage>java</codegenLanguage>
+                    <mockStrategy>other-packages</mockStrategy>
+                    <staticsMocking>mock-statics</staticsMocking>
+                    <forceStaticMocking>force</forceStaticMocking>
+                    <classesToMockAlways>
+                        <param>java.io.File</param>
+                    </classesToMockAlways>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

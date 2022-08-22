@@ -56,6 +56,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentMap
+import org.utbot.framework.plugin.api.classId
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -123,7 +124,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     private val concrete: PersistentMap<UtAddrExpression, Concrete> = persistentHashMapOf(),
     private val mockInfos: PersistentList<MockInfoEnriched> = persistentListOf(),
     private val staticInstanceStorage: PersistentMap<ClassId, ObjectValue> = persistentHashMapOf(),
-    private val initializedStaticFields: PersistentMap<FieldId, Any?> = persistentHashMapOf(),
+    private val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val staticFieldsStates: PersistentMap<FieldId, FieldStates> = persistentHashMapOf(),
     private val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     private val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
@@ -137,7 +138,18 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         UtFalse,
         UtArraySort(UtAddrSort, UtBoolSort)
     ),
-    private val instanceFieldReadOperations: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf()
+    private val instanceFieldReadOperations: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
+
+    /**
+     * Storage for addresses that we speculatively consider non-nullable (e.g., final fields of system classes).
+     * See [org.utbot.engine.UtBotSymbolicEngine.createFieldOrMock] for usage,
+     * and [docs/SpeculativeFieldNonNullability.md] for details.
+     */
+    private val speculativelyNotNullAddresses: UtArrayExpressionBase = UtConstArrayExpression(
+        UtFalse,
+        UtArraySort(UtAddrSort, UtBoolSort)
+    ),
+    private val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     val chunkIds: Set<ChunkId>
         get() = initial.keys
@@ -166,6 +178,11 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      * Returns symbolic information about whether [addr] has been touched during the analysis or not.
      */
     fun isTouched(addr: UtAddrExpression): UtArraySelectExpression = touchedAddresses.select(addr)
+
+    /**
+     * Returns symbolic information about whether [addr] corresponds to a final field known to be not null.
+     */
+    fun isSpeculativelyNotNull(addr: UtAddrExpression): UtArraySelectExpression = speculativelyNotNullAddresses.select(addr)
 
     /**
      * @return ImmutableCollection of the initial values for all the arrays we touched during the execution
@@ -223,12 +240,14 @@ data class Memory( // TODO: split purely symbolic memory and information about s
         val previousMemoryStates = staticFieldsStates.toMutableMap()
 
 
-        // sometimes we want to change initial memory states of fields of a certain class, so we erase all the
-        // information about previous states and update it with the current state. For now, this processing only takes
-        // place after receiving MethodResult from [STATIC_INITIALIZER] method call at the end of
-        // [UtBotSymbolicEngine.processStaticInitializer]. The value of `update.classIdToClearStatics` is equal to the
-        // class for which the static initialization has performed.
-        // TODO: JIRA:1610 -- refactor working with statics later
+        /**
+         * sometimes we want to change initial memory states of fields of a certain class, so we erase all the
+         * information about previous states and update it with the current state. For now, this processing only takes
+         * place after receiving MethodResult from [STATIC_INITIALIZER] method call at the end of
+         * [Traverser.processStaticInitializer]. The value of `update.classIdToClearStatics` is equal to the
+         * class for which the static initialization has performed.
+         * TODO: JIRA:1610 -- refactor working with statics later
+         */
         update.classIdToClearStatics?.let { classId ->
             Scene.v().getSootClass(classId.name).fields.forEach { sootField ->
                 previousMemoryStates.remove(sootField.fieldId)
@@ -260,6 +279,10 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             acc.store(addr, UtTrue)
         }
 
+        val updSpeculativelyNotNullAddresses = update.speculativelyNotNullAddresses.fold(speculativelyNotNullAddresses) { acc, addr ->
+            acc.store(addr, UtTrue)
+        }
+
         return this.copy(
             initial = updInitial,
             current = updCurrent,
@@ -267,7 +290,7 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             concrete = concrete.putAll(update.concrete),
             mockInfos = mockInfos.mergeWithUpdate(update.mockInfos),
             staticInstanceStorage = staticInstanceStorage.putAll(update.staticInstanceStorage),
-            initializedStaticFields = initializedStaticFields.putAll(update.initializedStaticFields),
+            initializedStaticFields = initializedStaticFields.addAll(update.initializedStaticFields),
             staticFieldsStates = previousMemoryStates.toPersistentMap().putAll(updatedStaticFields),
             meaningfulStaticFields = meaningfulStaticFields.addAll(update.meaningfulStaticFields),
             addrToArrayType = addrToArrayType.putAll(update.addrToArrayType),
@@ -275,7 +298,9 @@ data class Memory( // TODO: split purely symbolic memory and information about s
             updates = updates + update,
             visitedValues = updVisitedValues,
             touchedAddresses = updTouchedAddresses,
-            instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads)
+            instanceFieldReadOperations = instanceFieldReadOperations.addAll(update.instanceFieldReads),
+            speculativelyNotNullAddresses = updSpeculativelyNotNullAddresses,
+            symbolicEnumValues = symbolicEnumValues.addAll(update.symbolicEnumValues)
         )
     }
 
@@ -284,7 +309,6 @@ data class Memory( // TODO: split purely symbolic memory and information about s
      * Execution can continue to collect updates for particular piece of code.
      */
     fun memoryForNestedMethod(): Memory = this.copy(updates = MemoryUpdate())
-
 
     /**
      * Returns copy of queued [updates] which consists only of updates of static fields.
@@ -328,6 +352,9 @@ data class Memory( // TODO: split purely symbolic memory and information about s
     fun findStaticInstanceOrNull(id: ClassId): ObjectValue? = staticInstanceStorage[id]
 
     fun findTypeForArrayOrNull(addr: UtAddrExpression): ArrayType? = addrToArrayType[addr]
+
+    fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
+        symbolicEnumValues.filter { it.type.classId == classId }
 }
 
 /**
@@ -350,6 +377,11 @@ class TypeRegistry {
     private val typeToRating = mutableMapOf<RefType, Int>()
     private val typeToInheritorsTypes = mutableMapOf<RefType, Set<RefType>>()
     private val typeToAncestorsTypes = mutableMapOf<RefType, Set<RefType>>()
+
+    /**
+     * Contains types storages for type parameters of object by its address.
+     */
+    private val genericTypeStorageByAddr = mutableMapOf<UtAddrExpression, List<TypeStorage>>()
 
     // A BiMap containing bijection from every type to an address of the object
     // presenting its classRef and vise versa
@@ -431,7 +463,6 @@ class TypeRegistry {
 
     private val genericAddrToNumDimensionsArrays = mutableMapOf<Int, UtArrayExpressionBase>()
 
-    @Suppress("unused")
     private fun genericAddrToNumDimensions(i: Int) = genericAddrToNumDimensionsArrays.getOrPut(i) {
         mkArrayConst(
             "genericAddrToNumDimensions_$i",
@@ -513,17 +544,6 @@ class TypeRegistry {
         finalCost
     }
 
-    private val objectCounter = AtomicInteger(objectCounterInitialValue)
-    fun findNewAddr(insideStaticInitializer: Boolean): UtAddrExpression {
-        val newAddr = objectCounter.getAndIncrement()
-        // return negative address for objects created inside static initializer
-        // to make their address space be intersected with address space of
-        // parameters of method under symbolic execution
-        // @see ObjectWithFinalStaticTest::testParameterEqualsFinalStatic
-        val signedAddr = if (insideStaticInitializer) -newAddr else newAddr
-        return UtAddrExpression(signedAddr)
-    }
-
     private val classRefCounter = AtomicInteger(classRefAddrsInitialValue)
     private fun nextClassRefAddr() = UtAddrExpression(classRefCounter.getAndIncrement())
 
@@ -561,6 +581,8 @@ class TypeRegistry {
      * Returns symbolic representation for a number of dimensions corresponding to the given address
      */
     fun symNumDimensions(addr: UtAddrExpression) = addrToNumDimensions.select(addr)
+
+    fun genericNumDimensions(addr: UtAddrExpression, i: Int) = genericAddrToNumDimensions(i).select(addr)
 
     /**
      * Returns a constraint stating that number of dimensions for the given address is zero
@@ -700,7 +722,11 @@ class TypeRegistry {
         firstAddr: UtAddrExpression,
         secondAddr: UtAddrExpression,
         vararg indexInjection: Pair<Int, Int>
-    ) = UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(*indexInjection))
+    ): UtEqGenericTypeParametersExpression {
+        setParameterTypeStoragesEquality(firstAddr, secondAddr, indexInjection)
+
+        return UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(*indexInjection))
+    }
 
     /**
      * returns constraint representing that type parameters of an object with address [firstAddr] are equal to
@@ -711,7 +737,11 @@ class TypeRegistry {
         firstAddr: UtAddrExpression,
         secondAddr: UtAddrExpression,
         parameterSize: Int
-    ) = UtEqGenericTypeParametersExpression(firstAddr, secondAddr, (0 until parameterSize).associateWith { it })
+    ) : UtEqGenericTypeParametersExpression {
+        val injections = Array(parameterSize) { it to it }
+
+        return eqGenericTypeParametersConstraint(firstAddr, secondAddr, *injections)
+    }
 
     /**
      * returns constraint representing that the first type parameter of an object with address [firstAddr] are equal to
@@ -719,7 +749,46 @@ class TypeRegistry {
      * @see UtEqGenericTypeParametersExpression
      */
     fun eqGenericSingleTypeParameterConstraint(firstAddr: UtAddrExpression, secondAddr: UtAddrExpression) =
-        UtEqGenericTypeParametersExpression(firstAddr, secondAddr, mapOf(0 to 0))
+        eqGenericTypeParametersConstraint(firstAddr, secondAddr, 0 to 0)
+
+    /**
+     * Associates provided [typeStorages] with an object with the provided [addr].
+     */
+    fun saveObjectParameterTypeStorages(addr: UtAddrExpression, typeStorages: List<TypeStorage>) {
+        genericTypeStorageByAddr += addr to typeStorages
+    }
+
+    /**
+     * Retrieves parameter type storages of an object with the given [addr] if present, or null otherwise.
+     */
+    fun getTypeStoragesForObjectTypeParameters(addr: UtAddrExpression): List<TypeStorage>? = genericTypeStorageByAddr[addr]
+
+    /**
+     * Set types storages for [firstAddr]'s type parameters equal to type storages for [secondAddr]'s type parameters
+     * according to provided types injection represented by [indexInjection].
+     */
+    private fun setParameterTypeStoragesEquality(
+        firstAddr: UtAddrExpression,
+        secondAddr: UtAddrExpression,
+        indexInjection: Array<out Pair<Int, Int>>
+    ) {
+        val existingGenericTypes = genericTypeStorageByAddr[secondAddr] ?: return
+
+        val currentGenericTypes = mutableMapOf<Int, TypeStorage>()
+
+        indexInjection.forEach { (from, to) ->
+            require(from >= 0 && from < existingGenericTypes.size) {
+                "Type injection is out of bounds: should be in [0; ${existingGenericTypes.size}) but is $from"
+            }
+
+            currentGenericTypes[to] = existingGenericTypes[from]
+        }
+
+        genericTypeStorageByAddr[firstAddr] = currentGenericTypes
+            .entries
+            .sortedBy { it.key }
+            .mapTo(mutableListOf()) { it.value }
+    }
 
     /**
      * Returns constraint representing that an object with address [addr] has the same type as the type parameter
@@ -894,7 +963,7 @@ data class MemoryUpdate(
     val concrete: PersistentMap<UtAddrExpression, Concrete> = persistentHashMapOf(),
     val mockInfos: PersistentList<MockInfoEnriched> = persistentListOf(),
     val staticInstanceStorage: PersistentMap<ClassId, ObjectValue> = persistentHashMapOf(),
-    val initializedStaticFields: PersistentMap<FieldId, Any?> = persistentHashMapOf(),
+    val initializedStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val staticFieldsUpdates: PersistentList<StaticFieldMemoryUpdateInfo> = persistentListOf(),
     val meaningfulStaticFields: PersistentSet<FieldId> = persistentHashSetOf(),
     val addrToArrayType: PersistentMap<UtAddrExpression, ArrayType> = persistentHashMapOf(),
@@ -902,7 +971,9 @@ data class MemoryUpdate(
     val visitedValues: PersistentList<UtAddrExpression> = persistentListOf(),
     val touchedAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
     val classIdToClearStatics: ClassId? = null,
-    val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf()
+    val instanceFieldReads: PersistentSet<InstanceFieldReadOperation> = persistentHashSetOf(),
+    val speculativelyNotNullAddresses: PersistentList<UtAddrExpression> = persistentListOf(),
+    val symbolicEnumValues: PersistentList<ObjectValue> = persistentListOf()
 ) {
     operator fun plus(other: MemoryUpdate) =
         this.copy(
@@ -911,7 +982,7 @@ data class MemoryUpdate(
             concrete = concrete.putAll(other.concrete),
             mockInfos = mockInfos.mergeWithUpdate(other.mockInfos),
             staticInstanceStorage = staticInstanceStorage.putAll(other.staticInstanceStorage),
-            initializedStaticFields = initializedStaticFields.putAll(other.initializedStaticFields),
+            initializedStaticFields = initializedStaticFields.addAll(other.initializedStaticFields),
             staticFieldsUpdates = staticFieldsUpdates.addAll(other.staticFieldsUpdates),
             meaningfulStaticFields = meaningfulStaticFields.addAll(other.meaningfulStaticFields),
             addrToArrayType = addrToArrayType.putAll(other.addrToArrayType),
@@ -919,8 +990,13 @@ data class MemoryUpdate(
             visitedValues = visitedValues.addAll(other.visitedValues),
             touchedAddresses = touchedAddresses.addAll(other.touchedAddresses),
             classIdToClearStatics = other.classIdToClearStatics,
-            instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads)
+            instanceFieldReads = instanceFieldReads.addAll(other.instanceFieldReads),
+            speculativelyNotNullAddresses = speculativelyNotNullAddresses.addAll(other.speculativelyNotNullAddresses),
+            symbolicEnumValues = symbolicEnumValues.addAll(other.symbolicEnumValues),
         )
+
+    fun getSymbolicEnumValues(classId: ClassId): List<ObjectValue> =
+        symbolicEnumValues.filter { it.type.classId == classId }
 }
 
 // array - Java Array

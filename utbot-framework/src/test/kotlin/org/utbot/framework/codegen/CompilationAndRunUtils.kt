@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import java.io.File
 import java.nio.file.Path
 import mu.KotlinLogging
-import org.apache.commons.io.FileUtils
+import org.utbot.common.FileUtil
 
 data class ClassUnderTest(
     val testClassSimpleName: String,
@@ -29,7 +29,7 @@ fun writeTest(
     val targetDir = classUnderTest.generatedTestFile.parentFile
     targetDir.mkdirs()
     logger.info {
-        "File size for ${classUnderTest.testClassSimpleName}: ${FileUtils.byteCountToDisplaySize(testContents.length.toLong())}"
+        "File size for ${classUnderTest.testClassSimpleName}: ${FileUtil.byteCountToDisplaySize(testContents.length.toLong())}"
     }
     classUnderTest.generatedTestFile.writeText(testContents)
     return classUnderTest.generatedTestFile
@@ -56,8 +56,17 @@ fun runTests(
 ) {
     val classpath = System.getProperty("java.class.path") + File.pathSeparator + buildDirectory
     val executionInvoke = generatedLanguage.executorInvokeCommand
+    val additionalArguments = listOf(
+        "-ea", // Enable assertions
+    )
 
-    val command = testFramework.getRunTestsCommand(executionInvoke, classpath, testsNames, buildDirectory)
+    val command = testFramework.getRunTestsCommand(
+        executionInvoke,
+        classpath,
+        testsNames,
+        buildDirectory,
+        additionalArguments
+    )
 
     logger.trace { "Command to run test: [${command.joinToString(" ")}]" }
 

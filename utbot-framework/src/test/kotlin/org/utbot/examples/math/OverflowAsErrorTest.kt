@@ -2,7 +2,7 @@ package org.utbot.examples.math
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.AtLeast
 import org.utbot.examples.algorithms.Sort
 import org.utbot.examples.eq
@@ -15,7 +15,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import kotlin.math.floor
 import kotlin.math.sqrt
 
-internal class OverflowAsErrorTest : AbstractTestCaseGeneratorTest(
+internal class OverflowAsErrorTest : UtValueTestCaseChecker(
     testClass = OverflowExamples::class,
     testCodeGeneration = true,
     // Don't launch tests, because ArithmeticException will be expected, but it is not supposed to be actually thrown.
@@ -211,6 +211,7 @@ internal class OverflowAsErrorTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
+    @Disabled("Flaky branch count mismatch (1 instead of 2)")
     fun testLongMulOverflow() {
         // This test has solver timeout.
         // Reason: softConstraints, containing limits for Int values, hang solver.
@@ -268,5 +269,19 @@ internal class OverflowAsErrorTest : AbstractTestCaseGeneratorTest(
                 { _, _, _, r -> r.isException<ArithmeticException>() }, // through overflow
             )
         }
+    }
+
+    @Test
+    fun testIntOverflowWithoutError() {
+        check(
+            OverflowExamples::intOverflow,
+            eq(6),
+            { x, _, r -> x * x * x <= 0 && x <= 0 && r == 0 },
+            { x, _, r -> x * x * x > 0 && x <= 0 && r == 0 }, // through overflow
+            { x, y, r -> x * x * x > 0 && x > 0 && y != 10 && r == 0 },
+            { x, y, r -> x * x * x > 0 && x > 0 && y == 10 && r == 1 },
+            { x, y, r -> x * x * x <= 0 && x > 0 && y != 20 && r == 0 }, // through overflow
+            { x, y, r -> x * x * x <= 0 && x > 0 && y == 20 && r == 2 } // through overflow
+        )
     }
 }

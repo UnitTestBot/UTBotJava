@@ -70,8 +70,6 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
         hierarchy
             .ancestors(type.sootClass.id)
             .flatMap { it.fields }
-            .asReversed() // to take fields of the farthest parent in the distinctBy
-            .distinctBy { it.name } // TODO we lose hidden fields here JIRA:315
     }
 
     /**
@@ -110,12 +108,32 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
     fun constructTypeStorage(type: Type, possibleTypes: Collection<Type>): TypeStorage {
         val concretePossibleTypes = possibleTypes
             .map { (if (it is ArrayType) it.baseType else it) to it.numDimensions }
-            .filterNot { (baseType, _) -> baseType is RefType && baseType.sootClass.isInappropriate }
+            .filterNot { (baseType, numDimensions) -> isInappropriateOrArrayOfMocksOrLocals(numDimensions, baseType) }
             .mapTo(mutableSetOf()) { (baseType, numDimensions) ->
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }
 
         return TypeStorage(type, concretePossibleTypes).filterInappropriateClassesForCodeGeneration()
+    }
+
+    private fun isInappropriateOrArrayOfMocksOrLocals(numDimensions: Int, baseType: Type?): Boolean {
+        if (baseType !is RefType) {
+            return false
+        }
+
+        val baseSootClass = baseType.sootClass
+
+        if (numDimensions == 0 && baseSootClass.isInappropriate) {
+            // interface, abstract class, or local, or mock could not be constructed
+            return true
+        }
+
+        if (numDimensions > 0 && (baseSootClass.isLocal || baseSootClass.findMockAnnotationOrNull != null)) {
+            // array of mocks or locals could not be constructed, but array of interfaces or abstract classes could be
+            return true
+        }
+
+        return false
     }
 
     /**

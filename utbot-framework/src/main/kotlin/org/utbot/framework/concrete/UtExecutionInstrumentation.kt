@@ -3,7 +3,6 @@ package org.utbot.framework.concrete
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
-import org.utbot.common.withRemovedFinalModifier
 import org.utbot.framework.UtSettings
 import org.utbot.framework.assemble.AssembleModelGenerator
 import org.utbot.framework.plugin.api.Coverage
@@ -24,7 +23,7 @@ import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
@@ -179,7 +178,16 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     val stateAfterParametersWithThis = params.map { construct(it.value, it.clazz.id) }
                     val stateAfterStatics = (staticFields.keys/* + traceHandler.computePutStatics()*/)
                         .associateWith { fieldId ->
-                            fieldId.field.run { construct(withAccessibility { get(null) }, fieldId.type) }
+                            fieldId.jField.run {
+                                val computedValue = withAccessibility { get(null) }
+                                val knownModel = stateBefore.statics[fieldId]
+                                val knownValue = staticFields[fieldId]
+                                if (knownModel != null && knownValue != null && knownValue == computedValue) {
+                                    knownModel
+                                } else {
+                                    construct(computedValue, fieldId.type)
+                                }
+                            }
                         }
                     val (stateAfterThis, stateAfterParameters) = if (stateBefore.thisInstance == null) {
                         null to stateAfterParametersWithThis
@@ -214,8 +222,12 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             return UtTimeoutException(exception)
         }
         val instrs = traceHandler.computeInstructionList()
-        val isNested = instrs.first().callId != instrs.last().callId
-        return if (instrs.last().instructionData is ExplicitThrowInstruction) {
+        val isNested = if (instrs.isEmpty()) {
+            false
+        } else {
+            instrs.first().callId != instrs.last().callId
+        }
+        return if (instrs.isNotEmpty() && instrs.last().instructionData is ExplicitThrowInstruction) {
             UtExplicitlyThrownException(exception, isNested)
         } else {
             UtImplicitlyThrownException(exception, isNested)
@@ -255,8 +267,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         val savedFields = mutableMapOf<FieldId, Any?>()
         try {
             staticFields.forEach { (fieldId, value) ->
-                fieldId.field.run {
-                    withRemovedFinalModifier {
+                fieldId.jField.run {
+                    withAccessibility {
                         savedFields[fieldId] = get(null)
                         set(null, value)
                     }
@@ -265,8 +277,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
             return block()
         } finally {
             savedFields.forEach { (fieldId, value) ->
-                fieldId.field.run {
-                    withRemovedFinalModifier {
+                fieldId.jField.run {
+                    withAccessibility {
                         set(null, value)
                     }
                 }

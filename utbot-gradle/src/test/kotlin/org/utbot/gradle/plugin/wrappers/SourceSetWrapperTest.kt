@@ -30,6 +30,7 @@ class SourceSetWrapperTest {
             Mockito.`when`(sarifPropertiesMock.codegenLanguage).thenReturn(CodegenLanguage.JAVA)
             Mockito.`when`(sarifPropertiesMock.generatedTestsRelativeRoot).thenReturn("test")
             Mockito.`when`(sarifPropertiesMock.sarifReportsRelativeRoot).thenReturn("sarif")
+            Mockito.`when`(sarifPropertiesMock.testPrivateMethods).thenReturn(true)
 
             val gradleProject = GradleProjectWrapper(project, sarifPropertiesMock)
             val sourceSetWrapper = SourceSetWrapper(project.mainSourceSet, gradleProject)
@@ -47,6 +48,7 @@ class SourceSetWrapperTest {
             Mockito.`when`(sarifPropertiesMock.codegenLanguage).thenReturn(CodegenLanguage.JAVA)
             Mockito.`when`(sarifPropertiesMock.generatedTestsRelativeRoot).thenReturn("test")
             Mockito.`when`(sarifPropertiesMock.sarifReportsRelativeRoot).thenReturn("sarif")
+            Mockito.`when`(sarifPropertiesMock.testPrivateMethods).thenReturn(true)
 
             val gradleProject = GradleProjectWrapper(project, sarifPropertiesMock)
             val sourceSetWrapper = SourceSetWrapper(project.mainSourceSet, gradleProject)
@@ -66,6 +68,7 @@ class SourceSetWrapperTest {
 
             Mockito.`when`(sarifPropertiesMock.generatedTestsRelativeRoot).thenReturn("test")
             Mockito.`when`(sarifPropertiesMock.sarifReportsRelativeRoot).thenReturn("sarif")
+            Mockito.`when`(sarifPropertiesMock.testPrivateMethods).thenReturn(true)
 
             val gradleProject = GradleProjectWrapper(project, sarifPropertiesMock)
             val sourceSetWrapper = SourceSetWrapper(project.mainSourceSet, gradleProject)
@@ -79,6 +82,7 @@ class SourceSetWrapperTest {
 
             Mockito.`when`(sarifPropertiesMock.generatedTestsRelativeRoot).thenReturn("test")
             Mockito.`when`(sarifPropertiesMock.sarifReportsRelativeRoot).thenReturn("sarif")
+            Mockito.`when`(sarifPropertiesMock.testPrivateMethods).thenReturn(true)
 
             val gradleProject = GradleProjectWrapper(project, sarifPropertiesMock)
             val sourceSetWrapper = SourceSetWrapper(project.mainSourceSet, gradleProject)

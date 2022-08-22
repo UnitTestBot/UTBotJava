@@ -1,8 +1,7 @@
 package org.utbot.engine
 
-import org.utbot.common.findField
-import org.utbot.common.findFieldOrNull
 import org.utbot.common.invokeCatching
+import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.EnvironmentModels
@@ -31,11 +30,13 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtValueExecution
 import org.utbot.framework.plugin.api.UtValueExecutionState
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
@@ -123,17 +124,31 @@ class ValueConstructor {
         val (stateAfter, _) = constructState(execution.stateAfter)
         val returnValue = execution.result.map { construct(listOf(it)).single().value }
 
-        return UtValueExecution(
-            stateBefore,
-            stateAfter,
-            returnValue,
-            execution.path,
-            mocks,
-            execution.instrumentation,
-            execution.summary,
-            execution.testMethodName,
-            execution.displayName
-        )
+        if (execution is UtSymbolicExecution) {
+            return UtValueExecution(
+                stateBefore,
+                stateAfter,
+                returnValue,
+                execution.path,
+                mocks,
+                execution.instrumentation,
+                execution.summary,
+                execution.testMethodName,
+                execution.displayName
+            )
+        } else {
+            return UtValueExecution(
+                stateBefore,
+                stateAfter,
+                returnValue,
+                emptyList(),
+                mocks,
+                emptyList(),
+                execution.summary,
+                execution.testMethodName,
+                execution.displayName
+            )
+        }
     }
 
     private fun constructParamsAndMocks(
@@ -212,9 +227,8 @@ class ValueConstructor {
         val classInstance = javaClass.anyInstance
         constructedObjects[model] = classInstance
 
-        model.fields.forEach { (field, fieldModel) ->
-            val declaredField =
-                javaClass.findFieldOrNull(field.name) ?: error("Can't find field: $field for $javaClass")
+        model.fields.forEach { (fieldId, fieldModel) ->
+            val declaredField = fieldId.jField
             val accessible = declaredField.isAccessible
 
             try {
@@ -228,7 +242,7 @@ class ValueConstructor {
                         fieldModel.classId.name,
                         model.classId.name,
                         UtConcreteValue(classInstance),
-                        field.name
+                        fieldId.name
                     )
                 }
                 val value = construct(fieldModel, target).value
@@ -360,7 +374,7 @@ class ValueConstructor {
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
 
-        val field = instance::class.java.findField(directSetterModel.fieldId.name)
+        val field = directSetterModel.fieldId.jField
         val isAccessible = field.isAccessible
 
         try {
@@ -391,12 +405,19 @@ class ValueConstructor {
      */
     private fun value(model: UtModel) = construct(model, null).value
 
-
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
-        method.invokeCatching(obj = instance, args = args).getOrThrow()
+        method.run {
+            withAccessibility {
+                invokeCatching(obj = instance, args = args).getOrThrow()
+            }
+        }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.newInstance(*args.toTypedArray())
+        constructor.run {
+            withAccessibility {
+                newInstance(*args.toTypedArray())
+            }
+        }
 
     /**
      * Fetches primitive value from NutsModel to create array of primitives.

@@ -39,6 +39,11 @@ interface SarifExtensionProvider {
      */
     val markGeneratedTestsDirectoryAsTestSourcesRoot: Boolean
 
+    /**
+     * Generate tests for private methods or not.
+     */
+    val testPrivateMethods: Boolean
+
     val testFramework: TestFramework
 
     val mockFramework: MockFramework
@@ -93,10 +98,10 @@ interface SarifExtensionProvider {
 
     fun mockStrategyParse(mockStrategy: String): MockStrategyApi =
         when (mockStrategy.toLowerCase()) {
-            "do-not-mock" -> MockStrategyApi.NO_MOCKS
-            "package-based" -> MockStrategyApi.OTHER_PACKAGES
-            "all-except-cut" -> MockStrategyApi.OTHER_CLASSES
-            else -> error("Parameter mockStrategy == '$mockStrategy', but it can take only 'do-not-mock', 'package-based' or 'all-except-cut'")
+            "no-mocks" -> MockStrategyApi.NO_MOCKS
+            "other-packages" -> MockStrategyApi.OTHER_PACKAGES
+            "other-classes" -> MockStrategyApi.OTHER_CLASSES
+            else -> error("Parameter mockStrategy == '$mockStrategy', but it can take only 'no-mocks', 'other-packages' or 'other-classes'")
         }
 
     fun staticsMockingParse(staticsMocking: String): StaticsMocking =

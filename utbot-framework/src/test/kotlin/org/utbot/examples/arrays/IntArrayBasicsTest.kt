@@ -1,6 +1,7 @@
 package org.utbot.examples.arrays
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.junit.jupiter.api.Disabled
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
@@ -10,7 +11,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-internal class IntArrayBasicsTest : AbstractTestCaseGeneratorTest(
+internal class IntArrayBasicsTest : UtValueTestCaseChecker(
     testClass = IntArrayBasics::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
@@ -18,6 +19,18 @@ internal class IntArrayBasicsTest : AbstractTestCaseGeneratorTest(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Test
+    fun testIntArrayWithAssumeOrExecuteConcretely() {
+        check(
+            IntArrayBasics::intArrayWithAssumeOrExecuteConcretely,
+            eq(4),
+            { x, n, r -> x > 0 && n < 20 && r?.size == 2 },
+            { x, n, r -> x > 0 && n >= 20 && r?.size == 4 },
+            { x, n, r -> x <= 0 && n < 20 && r?.size == 10 },
+            { x, n, r -> x <= 0 && n >= 20 && r?.size == 20 },
+        )
+    }
+
     @Test
     fun testInitArray() {
         checkWithException(
@@ -207,6 +220,7 @@ internal class IntArrayBasicsTest : AbstractTestCaseGeneratorTest(
     }
 
     @Test
+    @Disabled("Java 11 transition -- Sergei is looking into it")
     fun testArraysEqualsExample() {
         check(
             IntArrayBasics::arrayEqualsExample,

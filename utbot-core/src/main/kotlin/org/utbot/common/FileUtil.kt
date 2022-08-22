@@ -105,7 +105,7 @@ object FileUtil {
         return tempDir
     }
 
-    private fun URI.extractJarName(): URI = URI(this.schemeSpecificPart.substringBefore("!"))
+    private fun URI.extractJarName(): URI = URI(this.schemeSpecificPart.substringBefore("!").replace(" ", "%20"))
 
     private fun extractClassFromArchive(archiveFile: Path, clazz: KClass<*>, destPath: Path) {
         val classFilePath = clazz.toClassFilePath()
@@ -223,6 +223,15 @@ object FileUtil {
         this.parentFile.mkdirs()
         this.createNewFile()
     }
+
+    // https://stackoverflow.com/a/68822715
+    fun byteCountToDisplaySize(bytes: Long): String =
+        when {
+            bytes >= 1 shl 30 -> "%.1f GB".format(bytes / (1 shl 30))
+            bytes >= 1 shl 20 -> "%.1f MB".format(bytes / (1 shl 20))
+            bytes >= 1 shl 10 -> "%.0f kB".format(bytes / (1 shl 10))
+            else -> "$bytes bytes"
+        }
 }
 
 /**

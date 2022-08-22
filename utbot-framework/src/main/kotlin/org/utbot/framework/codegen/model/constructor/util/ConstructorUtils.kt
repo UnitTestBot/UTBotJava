@@ -14,18 +14,6 @@ import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.WildcardTypeParameter
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
@@ -42,6 +30,28 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.underlyingType
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
+import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
+import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.codegen.model.util.at
+import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.UtArrayModel
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.plugin.api.util.builtinStaticMethodId
+import org.utbot.framework.plugin.api.util.methodId
+import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.objectClassId
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -121,6 +131,40 @@ data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
 
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
 
+/**
+ * A [MethodId] to add an item into [ArrayList].
+ */
+internal val addToListMethodId: MethodId
+    get() = methodId(
+        classId = ArrayList::class.id,
+        name = "add",
+        returnType = booleanClassId,
+        arguments = arrayOf(Object::class.id),
+    )
+
+/**
+ * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
+ */
+internal val argumentsClassId: BuiltinClassId
+    get() = BuiltinClassId(
+        name = "org.junit.jupiter.params.provider.Arguments",
+        simpleName = "Arguments",
+        canonicalName = "org.junit.jupiter.params.provider.Arguments",
+        packageName = "org.junit.jupiter.params.provider"
+    )
+
+/**
+ * A [MethodId] to call JUnit Arguments method.
+ */
+internal val argumentsMethodId: BuiltinMethodId
+    get() = builtinStaticMethodId(
+        classId = argumentsClassId,
+        name = "arguments",
+        returnType = argumentsClassId,
+        // vararg of Objects
+        arguments = arrayOf(objectArrayClassId)
+    )
+
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()
     elements += owner.simpleName.decapitalize()
@@ -153,6 +197,8 @@ private fun FieldPath.toStringList(): List<String> =
 internal fun infiniteInts(): Sequence<Int> =
     generateSequence(1) { it + 1 }
 
+internal const val MAX_ARRAY_INITIALIZER_SIZE = 10
+
 /**
  * Checks if we have already imported a class with such simple name.
  * If so, we cannot import [type] (because it will be used with simple name and will be clashed with already imported)
@@ -169,6 +215,8 @@ internal fun CgContextOwner.importIfNeeded(type: ClassId) {
         .takeIf { (it.isRefType && it.packageName != testClassPackageName && it.packageName != "java.lang") || it.isNested }
         // we cannot import inaccessible classes (builtin classes like JUnit are accessible here because they are public)
         ?.takeIf { it.isAccessibleFrom(testClassPackageName) }
+        // don't import classes from default package
+        ?.takeIf { !it.isInDefaultPackage }
         // cannot import anonymous classes
         ?.takeIf { !it.isAnonymous }
         // do not import if there is a simple name clash
@@ -214,6 +262,58 @@ internal fun CgContextOwner.typeCast(
     return CgTypeCast(targetType, expression, isSafetyCast)
 }
 
+/**
+ * Sets an element of arguments array in parameterized test,
+ * if test framework represents arguments as array.
+ */
+internal fun <T> T.setArgumentsArrayElement(
+    array: CgVariable,
+    index: Int,
+    value: CgExpression,
+    constructor: CgStatementConstructor
+) where T : CgContextOwner, T: CgCallableAccessManager {
+    when (array.type) {
+        objectClassId -> {
+            +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+        }
+        else -> with(constructor) { array.at(index) `=` value }
+    }
+}
+
+@Suppress("unused")
+internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAllocateInitializedArray {
+    val arrayType = arrayTypeOf(elementType)
+    return CgAllocateInitializedArray(arrayInitializer(arrayType, elementType, values))
+}
+
+internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: List<CgExpression>): CgArrayInitializer =
+    CgArrayInitializer(arrayType, elementType, values)
+
+
+/**
+ * For a given [elementType] returns a [ClassId] of an array with elements of this type.
+ * For example, for an id of `int` the result will be an id of `int[]`.
+ *
+ * @param elementType the element type of the returned array class id
+ * @param isNullable a flag whether returned array is nullable or not
+ */
+internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
+    val arrayIdName = "[${elementType.arrayLikeName}"
+    return when (elementType) {
+        is BuiltinClassId -> BuiltinClassId(
+            name = arrayIdName,
+            canonicalName = "${elementType.canonicalName}[]",
+            simpleName = "${elementType.simpleName}[]",
+            isNullable = isNullable
+        )
+        else -> ClassId(
+            name = arrayIdName,
+            elementClassId = elementType,
+            isNullable = isNullable
+        )
+    }
+}
+
 @Suppress("unused")
 internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
     importIfNeeded(classId)
@@ -237,7 +337,7 @@ internal fun ClassId.getAmbiguousOverloadsOf(executableId: ExecutableId): Sequen
     }
 
     return allExecutables.filter {
-        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size
+        it.name == executableId.name && it.parameters.size == executableId.executable.parameters.size && it.classId == executableId.classId
     }
 }
 

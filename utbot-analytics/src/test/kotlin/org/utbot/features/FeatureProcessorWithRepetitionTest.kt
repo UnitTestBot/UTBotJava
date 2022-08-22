@@ -1,15 +1,38 @@
 package org.utbot.features
 
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.examples.UtValueTestCaseChecker
+import org.utbot.examples.eq
+import org.utbot.examples.withFeaturePath
+import java.io.File
+import java.io.FileInputStream
 
-class FeatureProcessorWithRepetitionTest {
+class FeatureProcessorWithRepetitionTest : UtValueTestCaseChecker(OnePath::class, false) {
     companion object {
+        const val featureDir = "src/test/resources/features"
         fun reward(coverage: Double, time: Double) = RewardEstimator.reward(coverage, time)
+
+        @JvmStatic
+        @BeforeAll
+        fun beforeAll() {
+            File(featureDir).mkdir()
+            EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
+            EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
+        }
+
+        @JvmStatic
+        @AfterAll
+        fun afterAll() {
+            File(featureDir).deleteRecursively()
+        }
     }
 
     @Test
-    fun testDumpFeatures() {
+    fun testCalculateRewards() {
         val statesToInt = mapOf(
             "a0" to 1,
             "c0" to 2,
@@ -68,6 +91,21 @@ class FeatureProcessorWithRepetitionTest {
         Assertions.assertEquals(9, rewards.size)
         expectedRewards.forEach {
             Assertions.assertEquals(it.value, rewards[statesToInt[it.key]])
+        }
+    }
+
+    /**
+     * Test, that we correctly add test cases and dump them into file
+     */
+    @Test
+    fun addTestCaseTest() {
+        withFeaturePath(featureDir) {
+            check(
+                OnePath::onePath,
+                eq(1)
+            )
+
+            Assertions.assertTrue(FileInputStream("$featureDir/0.csv").bufferedReader().readLines().size > 1)
         }
     }
 }

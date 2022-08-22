@@ -3,12 +3,14 @@ package org.utbot.framework.codegen
 import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
 import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
+import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodeGenerationSettingBox
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.TypeParameters
 import org.utbot.framework.plugin.api.isolateCommandLineArgumentsToArgumentFile
 import org.utbot.framework.plugin.api.util.booleanArrayClassId
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -27,6 +29,9 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortArrayClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
+import org.utbot.framework.plugin.api.util.longClassId
+import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.voidWrapperClassId
 
 data class TestClassFile(val packageName: String, val imports: List<Import>, val testClass: String)
 
@@ -115,7 +120,7 @@ sealed class StaticsMocking(
 
 object NoStaticMocking : StaticsMocking(
     displayName = "No static mocking",
-    description = "Don't use additional settings to mock static fields"
+    description = "Do not use additional settings to mock static fields"
 )
 
 object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocking") {
@@ -181,6 +186,8 @@ sealed class TestFramework(
     abstract val methodSourceAnnotation: String
     abstract val methodSourceAnnotationId: ClassId
     abstract val methodSourceAnnotationFqn: String
+    abstract val nestedClassesShouldBeStatic: Boolean
+    abstract val argListClassId: ClassId
 
     val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
@@ -223,7 +230,8 @@ sealed class TestFramework(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
+        buildDirectory: String,
+        additionalArguments: List<String>
     ): List<String>
 
     override fun toString() = displayName
@@ -298,16 +306,47 @@ object TestNg : TestFramework(displayName = "TestNG") {
         simpleName = "DataProvider"
     )
 
+    override val nestedClassesShouldBeStatic = true
+
+    override val argListClassId: ClassId
+        get() {
+            val outerArrayId = Array<Array<Any?>?>::class.id
+            val innerArrayId = BuiltinClassId(
+                name = objectArrayClassId.name,
+                simpleName = objectArrayClassId.simpleName,
+                canonicalName = objectArrayClassId.canonicalName,
+                packageName = objectArrayClassId.packageName,
+                elementClassId = objectClassId,
+                typeParameters = TypeParameters(listOf(objectClassId))
+            )
+
+            return BuiltinClassId(
+                name = outerArrayId.name,
+                simpleName = outerArrayId.simpleName,
+                canonicalName = outerArrayId.canonicalName,
+                packageName = outerArrayId.packageName,
+                elementClassId = innerArrayId,
+                typeParameters = TypeParameters(listOf(innerArrayId))
+            )
+        }
+
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
+        buildDirectory: String,
+        additionalArguments: List<String>
     ): List<String> {
         // TestNg requires a specific xml to run with
         writeXmlFileForTestSuite(buildDirectory, classesNames)
 
-        return listOf(executionInvoke, "$mainPackage.TestNG", "$buildDirectory${File.separator}$testXmlName")
+        return buildList {
+            add(executionInvoke)
+            addAll(additionalArguments)
+            add("$mainPackage.TestNG")
+            add("$buildDirectory${File.separator}$testXmlName")
+        }
     }
 
     private fun writeXmlFileForTestSuite(buildDirectory: String, testsNames: List<String>) {
@@ -336,14 +375,21 @@ object TestNg : TestFramework(displayName = "TestNG") {
 }
 
 object Junit4 : TestFramework("JUnit4") {
+    private val parametrizedTestsNotSupportedError: Nothing
+        get() = error("Parametrized tests are not supported for JUnit4")
+
     override val mainPackage: String = JUNIT4_PACKAGE
     override val testAnnotation = "@$mainPackage.Test"
     override val testAnnotationFqn: String = "$mainPackage.Test"
 
-    override val parameterizedTestAnnotation = "Parameterized tests are not supported for JUnit4"
-    override val parameterizedTestAnnotationFqn = "Parameterized tests are not supported for JUnit4"
-    override val methodSourceAnnotation = "Parameterized tests are not supported for JUnit4"
-    override val methodSourceAnnotationFqn = "Parameterized tests are not supported for JUnit4"
+    override val parameterizedTestAnnotation
+        get() = parametrizedTestsNotSupportedError
+    override val parameterizedTestAnnotationFqn
+        get() = parametrizedTestsNotSupportedError
+    override val methodSourceAnnotation
+        get() = parametrizedTestsNotSupportedError
+    override val methodSourceAnnotationFqn
+        get() = parametrizedTestsNotSupportedError
 
     override val testAnnotationId = BuiltinClassId(
         name = "$JUNIT4_PACKAGE.Test",
@@ -375,12 +421,30 @@ object Junit4 : TestFramework("JUnit4") {
         )
     }
 
+    val enclosedClassId = BuiltinClassId(
+        name = "org.junit.experimental.runners.Enclosed",
+        canonicalName = "org.junit.experimental.runners.Enclosed",
+        simpleName = "Enclosed"
+    )
+
+    override val nestedClassesShouldBeStatic = true
+
+    override val argListClassId: ClassId
+        get() = parametrizedTestsNotSupportedError
+
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
-    ): List<String> = listOf(executionInvoke, "$mainPackage.runner.JUnitCore") + classesNames
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add("$mainPackage.runner.JUnitCore")
+        addAll(classesNames)
+    }
 }
 
 object Junit5 : TestFramework("JUnit5") {
@@ -408,6 +472,25 @@ object Junit5 : TestFramework("JUnit5") {
         name = "TimeUnit",
         canonicalName = "java.util.concurrent.TimeUnit",
         simpleName = "TimeUnit"
+    )
+
+    val durationClassId = BuiltinClassId(
+        name = "Duration",
+        canonicalName = "java.time.Duration",
+        simpleName = "Duration"
+    )
+
+    val ofMillis = builtinStaticMethodId(
+        classId = durationClassId,
+        name = "ofMillis",
+        returnType = durationClassId,
+        arguments = arrayOf(longClassId)
+    )
+
+    val nestedTestClassAnnotationId = BuiltinClassId(
+        name = "$JUNIT5_PACKAGE.Nested",
+        canonicalName = "$JUNIT5_PACKAGE.Nested",
+        simpleName = "Nested"
     )
 
     override val testAnnotationId = BuiltinClassId(
@@ -447,6 +530,16 @@ object Junit5 : TestFramework("JUnit5") {
         )
     )
 
+    val assertTimeoutPreemptively = builtinStaticMethodId(
+        classId = assertionsClass,
+        name = "assertTimeoutPreemptively",
+        returnType = voidWrapperClassId,
+        arguments = arrayOf(
+            durationClassId,
+            executableClassId
+        )
+    )
+
     val displayNameClassId = BuiltinClassId(
         name = "$JUNIT5_PACKAGE.DisplayName",
         canonicalName = "$JUNIT5_PACKAGE.DisplayName",
@@ -461,19 +554,37 @@ object Junit5 : TestFramework("JUnit5") {
         )
     }
 
-    private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
+    override val nestedClassesShouldBeStatic = false
+
+    override val argListClassId: ClassId
+        get() {
+            val arrayListId = java.util.ArrayList::class.id
+            return BuiltinClassId(
+                name = arrayListId.name,
+                simpleName = arrayListId.simpleName,
+                canonicalName = arrayListId.canonicalName,
+                packageName = arrayListId.packageName,
+                typeParameters = TypeParameters(listOf(argumentsClassId))
+            )
+        }
+
+    private const val junitVersion = "1.9.0" // TODO read it from gradle.properties
     private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"
 
+    @OptIn(ExperimentalStdlibApi::class)
     override fun getRunTestsCommand(
         executionInvoke: String,
         classPath: String,
         classesNames: List<String>,
-        buildDirectory: String
-    ): List<String> =
-        listOf(
-            executionInvoke,
-            "-jar", classPath.split(File.pathSeparator).single { platformJarName in it },
-        ) + isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" }))
+        buildDirectory: String,
+        additionalArguments: List<String>
+    ): List<String> = buildList {
+        add(executionInvoke)
+        addAll(additionalArguments)
+        add("-jar")
+        add(classPath.split(File.pathSeparator).single { platformJarName in it })
+        add(isolateCommandLineArgumentsToArgumentFile(listOf("-cp", classPath).plus(classesNames.map { "-c=$it" })))
+    }
 }
 
 enum class RuntimeExceptionTestsBehaviour(
@@ -551,7 +662,7 @@ enum class ParametrizedTestSource(
 ) : CodeGenerationSettingItem {
     DO_NOT_PARAMETRIZE(
         displayName = "Not parametrized",
-        description = "Don't generate parametrized tests"
+        description = "Do not generate parametrized tests"
     ),
     PARAMETRIZE(
         displayName = "Parametrized",

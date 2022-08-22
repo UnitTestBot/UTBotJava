@@ -2,14 +2,15 @@ package org.utbot.summary
 
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtOverflowFailure
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.framework.plugin.api.util.isCheckedException
 import org.utbot.summary.UtSummarySettings.MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING
 import org.utbot.summary.clustering.MatrixUniqueness
 import org.utbot.summary.clustering.SplitSteps
@@ -17,8 +18,8 @@ import org.utbot.summary.tag.TraceTag
 import org.utbot.summary.tag.TraceTagWithoutExecution
 
 class TagGenerator {
-    fun testCaseToTags(testCase: UtTestCase): List<TraceTagCluster> {
-        val clusteredExecutions = toClusterExecutions(testCase)
+    fun testSetToTags(testSet: UtMethodTestSet): List<TraceTagCluster> {
+        val clusteredExecutions = toClusterExecutions(testSet)
         val traceTagClusters = mutableListOf<TraceTagCluster>()
 
         val numberOfSuccessfulClusters = clusteredExecutions.filterIsInstance<SuccessfulExecutionCluster>().size
@@ -29,10 +30,10 @@ class TagGenerator {
                 mUniqueness.splitSteps()
             }
 
-            //intersections of steps ONLY in successful clusters
+            // intersections of steps ONLY in successful clusters
             var stepsIntersections = listOf<Step>()
 
-            //we only want to find intersections if there is more than one successful execution
+            // we only want to find intersections if there is more than one successful execution
             if (numberOfSuccessfulClusters > 1 && REMOVE_INTERSECTIONS) {
                 val commonStepsInSuccessfulEx = listOfSplitSteps
                     .filterIndexed { i, _ -> clusteredExecutions[i] is SuccessfulExecutionCluster } //search only in successful
@@ -46,7 +47,7 @@ class TagGenerator {
                 }
             }
 
-            //for every cluster and step add TraceTagCluster
+            // for every cluster and step add TraceTagCluster
             clusteredExecutions.zip(listOfSplitSteps) { cluster, splitSteps ->
                 val commonStepsInCluster =
                     if (stepsIntersections.isNotEmpty() && numberOfSuccessfulClusters > 1) {
@@ -70,17 +71,16 @@ class TagGenerator {
                     )
                 )
             }
-        }//clusteredExecutions should not be empty!
+        } // clusteredExecutions should not be empty!
 
         return traceTagClusters
     }
-
 }
 
 /**
  * @return list of TraceTag created from executions and splitsSteps
  */
-private fun generateExecutionTags(executions: List<UtExecution>, splitSteps: SplitSteps): List<TraceTag> =
+private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSteps: SplitSteps): List<TraceTag> =
     executions.map { TraceTag(it, splitSteps) }
 
 /**
@@ -94,10 +94,10 @@ private fun generateExecutionTags(executions: List<UtExecution>, splitSteps: Spl
  *
  * @return clustered executions
  */
-private fun toClusterExecutions(testCase: UtTestCase): List<ExecutionCluster> {
-    val methodExecutions = testCase.executions
+private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
+    val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
-    val commentPostfix = "for method ${testCase.method.displayName}"
+    val commentPostfix = "for method ${testSet.method.displayName}"
 
     val grouped = methodExecutions.groupBy { it.result.clusterKind() }
 
@@ -147,8 +147,8 @@ enum class ClusterKind {
 
 private fun UtExecutionResult.clusterKind() = when (this) {
     is UtExecutionSuccess -> ClusterKind.SUCCESSFUL_EXECUTIONS
-    is UtImplicitlyThrownException -> if (this.isCheckedException) ClusterKind.CHECKED_EXCEPTIONS else ClusterKind.ERROR_SUITE
-    is UtExplicitlyThrownException -> if (this.isCheckedException) ClusterKind.CHECKED_EXCEPTIONS else ClusterKind.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS
+    is UtImplicitlyThrownException -> if (this.exception.isCheckedException) ClusterKind.CHECKED_EXCEPTIONS else ClusterKind.ERROR_SUITE
+    is UtExplicitlyThrownException -> if (this.exception.isCheckedException) ClusterKind.CHECKED_EXCEPTIONS else ClusterKind.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS
     is UtOverflowFailure -> ClusterKind.OVERFLOWS
     is UtTimeoutException -> ClusterKind.TIMEOUTS
     is UtConcreteExecutionFailure -> ClusterKind.CRASH_SUITE
@@ -157,18 +157,18 @@ private fun UtExecutionResult.clusterKind() = when (this) {
 /**
  * Structure used to represent execution cluster with header
  */
-private sealed class ExecutionCluster(var header: String, val executions: List<UtExecution>)
+private sealed class ExecutionCluster(var header: String, val executions: List<UtSymbolicExecution>)
 
 /**
  * Represents successful execution cluster
  */
-private class SuccessfulExecutionCluster(header: String, executions: List<UtExecution>) :
+private class SuccessfulExecutionCluster(header: String, executions: List<UtSymbolicExecution>) :
     ExecutionCluster(header, executions)
 
 /**
  * Represents failed execution cluster
  */
-private class FailedExecutionCluster(header: String, executions: List<UtExecution>) :
+private class FailedExecutionCluster(header: String, executions: List<UtSymbolicExecution>) :
     ExecutionCluster(header, executions)
 
 /**

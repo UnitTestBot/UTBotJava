@@ -23,19 +23,46 @@ class SarifGradleExtensionProviderTest {
     inner class TargetClassesTest {
         @Test
         fun `should be an empty list by default`() {
-            setTargetClasses(null)
+            setTargetClassesInExtension(null)
             assertEquals(listOf<String>(), extensionProvider.targetClasses)
         }
 
         @Test
         fun `should be provided from the extension`() {
             val targetClasses = listOf("com.abc.Main")
-            setTargetClasses(targetClasses)
+            setTargetClassesInExtension(targetClasses)
             assertEquals(targetClasses, extensionProvider.targetClasses)
         }
 
-        private fun setTargetClasses(value: List<String>?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            val targetClasses = listOf("com.abc.Main")
+            setTargetClassesInTaskParameters(targetClasses)
+            assertEquals(targetClasses, extensionProvider.targetClasses)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            val targetClasses = listOf("com.abc.Main")
+            val anotherTargetClasses = listOf("com.abc.Another")
+            setTargetClassesInTaskParameters(targetClasses)
+            setTargetClassesInExtension(anotherTargetClasses)
+            assertEquals(targetClasses, extensionProvider.targetClasses)
+        }
+
+        @Test
+        fun `should be resolved from the keyword 'all'`() {
+            extensionProvider.taskParameters = mapOf("targetClasses" to "all")
+            assertEquals(listOf<String>(), extensionProvider.targetClasses)
+        }
+
+        private fun setTargetClassesInExtension(value: List<String>?) {
             Mockito.`when`(extensionMock.targetClasses).thenReturn(createListProperty(value))
+        }
+
+        private fun setTargetClassesInTaskParameters(value: List<String>) {
+            extensionProvider.taskParameters = mapOf("targetClasses" to value.joinToString(",", "[", "]"))
+        }
     }
 
     @Nested
@@ -43,19 +70,40 @@ class SarifGradleExtensionProviderTest {
     inner class ProjectRootTest {
         @Test
         fun `should be projectDir by default`() {
-            setProjectRoot(null)
+            setProjectRootInExtension(null)
             assertEquals(project.projectDir, extensionProvider.projectRoot)
         }
 
         @Test
         fun `should be provided from the extension`() {
             val projectRoot = "some/dir/"
-            setProjectRoot(projectRoot)
+            setProjectRootInExtension(projectRoot)
             assertEquals(File(projectRoot), extensionProvider.projectRoot)
         }
 
-        private fun setProjectRoot(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            val projectRoot = "some/directory/"
+            setProjectRootInTaskParameters(projectRoot)
+            assertEquals(File(projectRoot), extensionProvider.projectRoot)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            val projectRoot = "some/dir/"
+            val anotherProjectRoot = "another/dir/"
+            setProjectRootInTaskParameters(projectRoot)
+            setProjectRootInExtension(anotherProjectRoot)
+            assertEquals(File(projectRoot), extensionProvider.projectRoot)
+        }
+
+        private fun setProjectRootInExtension(value: String?) {
             Mockito.`when`(extensionMock.projectRoot).thenReturn(createStringProperty(value))
+        }
+
+        private fun setProjectRootInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("projectRoot" to value)
+        }
     }
 
     @Nested
@@ -64,19 +112,40 @@ class SarifGradleExtensionProviderTest {
         @Test
         fun `should be build generated test by default`() {
             val testsRootExpected = "build/generated/test"
-            setGeneratedTestsRelativeRoot(null)
+            setGeneratedTestsRelativeRootInExtension(null)
             assertEquals(testsRootExpected.toPath(), extensionProvider.generatedTestsRelativeRoot.toPath())
         }
 
         @Test
         fun `should be provided from the extension`() {
             val testsRoot = "some/dir/"
-            setGeneratedTestsRelativeRoot(testsRoot)
+            setGeneratedTestsRelativeRootInExtension(testsRoot)
             assertEquals(testsRoot.toPath(), extensionProvider.generatedTestsRelativeRoot.toPath())
         }
 
-        private fun setGeneratedTestsRelativeRoot(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            val testsRoot = "some/directory/"
+            setGeneratedTestsRelativeRootInTaskParameters(testsRoot)
+            assertEquals(testsRoot.toPath(), extensionProvider.generatedTestsRelativeRoot.toPath())
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            val testsRoot = "some/dir/"
+            val anotherTestsRoot = "another/dir/"
+            setGeneratedTestsRelativeRootInTaskParameters(testsRoot)
+            setGeneratedTestsRelativeRootInExtension(anotherTestsRoot)
+            assertEquals(testsRoot.toPath(), extensionProvider.generatedTestsRelativeRoot.toPath())
+        }
+
+        private fun setGeneratedTestsRelativeRootInExtension(value: String?) {
             Mockito.`when`(extensionMock.generatedTestsRelativeRoot).thenReturn(createStringProperty(value))
+        }
+
+        private fun setGeneratedTestsRelativeRootInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("generatedTestsRelativeRoot" to value)
+        }
     }
 
     @Nested
@@ -84,7 +153,7 @@ class SarifGradleExtensionProviderTest {
     inner class SarifReportsRelativeRootTest {
         @Test
         fun `should be build generated sarif by default`() {
-            setSarifReportsRelativeRoot(null)
+            setSarifReportsRelativeRootInExtension(null)
             val sarifRoot = "build/generated/sarif"
             assertEquals(sarifRoot.toPath(), extensionProvider.sarifReportsRelativeRoot.toPath())
         }
@@ -92,12 +161,33 @@ class SarifGradleExtensionProviderTest {
         @Test
         fun `should be provided from the extension`() {
             val sarifRoot = "some/dir/"
-            setSarifReportsRelativeRoot(sarifRoot)
+            setSarifReportsRelativeRootInExtension(sarifRoot)
             assertEquals(sarifRoot.toPath(), extensionProvider.sarifReportsRelativeRoot.toPath())
         }
 
-        private fun setSarifReportsRelativeRoot(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            val sarifRoot = "some/directory/"
+            setSarifReportsRelativeRootInTaskParameters(sarifRoot)
+            assertEquals(sarifRoot.toPath(), extensionProvider.sarifReportsRelativeRoot.toPath())
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            val sarifRoot = "some/dir/"
+            val anotherSarifRoot = "another/dir/"
+            setSarifReportsRelativeRootInTaskParameters(sarifRoot)
+            setSarifReportsRelativeRootInExtension(anotherSarifRoot)
+            assertEquals(sarifRoot.toPath(), extensionProvider.sarifReportsRelativeRoot.toPath())
+        }
+
+        private fun setSarifReportsRelativeRootInExtension(value: String?) {
             Mockito.`when`(extensionMock.sarifReportsRelativeRoot).thenReturn(createStringProperty(value))
+        }
+
+        private fun setSarifReportsRelativeRootInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("sarifReportsRelativeRoot" to value)
+        }
     }
 
     @Nested
@@ -115,8 +205,47 @@ class SarifGradleExtensionProviderTest {
             assertEquals(false, extensionProvider.markGeneratedTestsDirectoryAsTestSourcesRoot)
         }
 
-        private fun setMark(value: Boolean?) =
-            Mockito.`when`(extensionMock.markGeneratedTestsDirectoryAsTestSourcesRoot).thenReturn(createBooleanProperty(value))
+        private fun setMark(value: Boolean?) {
+            Mockito.`when`(extensionMock.markGeneratedTestsDirectoryAsTestSourcesRoot)
+                .thenReturn(createBooleanProperty(value))
+        }
+    }
+
+    @Nested
+    @DisplayName("testPrivateMethods")
+    inner class TestPrivateMethodsTest {
+        @Test
+        fun `should be false by default`() {
+            setTestPrivateMethodsInExtension(null)
+            assertEquals(false, extensionProvider.testPrivateMethods)
+        }
+
+        @Test
+        fun `should be provided from the extension`() {
+            setTestPrivateMethodsInExtension(true)
+            assertEquals(true, extensionProvider.testPrivateMethods)
+        }
+
+        @Test
+        fun `should be provided from the task parameters`() {
+            setTestPrivateMethodsInTaskParameters(true)
+            assertEquals(true, extensionProvider.testPrivateMethods)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setTestPrivateMethodsInTaskParameters(false)
+            setTestPrivateMethodsInExtension(true)
+            assertEquals(false, extensionProvider.testPrivateMethods)
+        }
+
+        private fun setTestPrivateMethodsInExtension(value: Boolean?) {
+            Mockito.`when`(extensionMock.testPrivateMethods).thenReturn(createBooleanProperty(value))
+        }
+
+        private fun setTestPrivateMethodsInTaskParameters(value: Boolean) {
+            extensionProvider.taskParameters = mapOf("testPrivateMethods" to "$value")
+        }
     }
 
     @Nested
@@ -124,38 +253,56 @@ class SarifGradleExtensionProviderTest {
     inner class TestFrameworkTest {
         @Test
         fun `should be TestFramework defaultItem by default`() {
-            setTestFramework(null)
+            setTestFrameworkInExtension(null)
             assertEquals(TestFramework.defaultItem, extensionProvider.testFramework)
         }
 
         @Test
         fun `should be equal to Junit4`() {
-            setTestFramework("junit4")
+            setTestFrameworkInExtension("junit4")
             assertEquals(Junit4, extensionProvider.testFramework)
         }
 
         @Test
         fun `should be equal to Junit5`() {
-            setTestFramework("junit5")
+            setTestFrameworkInExtension("junit5")
             assertEquals(Junit5, extensionProvider.testFramework)
         }
 
         @Test
         fun `should be equal to TestNg`() {
-            setTestFramework("testng")
+            setTestFrameworkInExtension("testng")
             assertEquals(TestNg, extensionProvider.testFramework)
         }
 
         @Test
         fun `should fail on unknown test framework`() {
-            setTestFramework("unknown")
+            setTestFrameworkInExtension("unknown")
             assertThrows<IllegalStateException> {
                 extensionProvider.testFramework
             }
         }
 
-        private fun setTestFramework(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            setTestFrameworkInTaskParameters("junit4")
+            assertEquals(Junit4, extensionProvider.testFramework)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setTestFrameworkInTaskParameters("testng")
+            setTestFrameworkInExtension("junit5")
+            assertEquals(TestNg, extensionProvider.testFramework)
+        }
+
+        private fun setTestFrameworkInExtension(value: String?) {
             Mockito.`when`(extensionMock.testFramework).thenReturn(createStringProperty(value))
+        }
+
+        private fun setTestFrameworkInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("testFramework" to value)
+        }
     }
 
     @Nested
@@ -163,26 +310,46 @@ class SarifGradleExtensionProviderTest {
     inner class MockFrameworkTest {
         @Test
         fun `should be MockFramework defaultItem by default`() {
-            setMockFramework(null)
+            setMockFrameworkInExtension(null)
             assertEquals(MockFramework.defaultItem, extensionProvider.mockFramework)
         }
 
         @Test
         fun `should be equal to MOCKITO`() {
-            setMockFramework("mockito")
+            setMockFrameworkInExtension("mockito")
             assertEquals(MockFramework.MOCKITO, extensionProvider.mockFramework)
         }
 
         @Test
         fun `should fail on unknown mock framework`() {
-            setMockFramework("unknown")
+            setMockFrameworkInExtension("unknown")
             assertThrows<IllegalStateException> {
                 extensionProvider.mockFramework
             }
         }
 
-        private fun setMockFramework(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            setMockFrameworkInTaskParameters("mockito")
+            assertEquals(MockFramework.MOCKITO, extensionProvider.mockFramework)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setMockFrameworkInTaskParameters("unknown")
+            setMockFrameworkInExtension("mockito")
+            assertThrows<IllegalStateException> {
+                extensionProvider.mockFramework
+            }
+        }
+
+        private fun setMockFrameworkInExtension(value: String?) {
             Mockito.`when`(extensionMock.mockFramework).thenReturn(createStringProperty(value))
+        }
+
+        private fun setMockFrameworkInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("mockFramework" to value)
+        }
     }
 
     @Nested
@@ -190,26 +357,44 @@ class SarifGradleExtensionProviderTest {
     inner class GenerationTimeoutTest {
         @Test
         fun `should be 60 seconds by default`() {
-            setGenerationTimeout(null)
+            setGenerationTimeoutInExtension(null)
             assertEquals(60 * 1000L, extensionProvider.generationTimeout)
         }
 
         @Test
         fun `should be provided from the extension`() {
-            setGenerationTimeout(100L)
+            setGenerationTimeoutInExtension(100L)
             assertEquals(100L, extensionProvider.generationTimeout)
         }
 
         @Test
+        fun `should be provided from the task parameters`() {
+            setGenerationTimeoutInTaskParameters("100")
+            assertEquals(100L, extensionProvider.generationTimeout)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setGenerationTimeoutInTaskParameters("999")
+            setGenerationTimeoutInExtension(100L)
+            assertEquals(999L, extensionProvider.generationTimeout)
+        }
+
+        @Test
         fun `should fail on negative timeout`() {
-            setGenerationTimeout(-1)
+            setGenerationTimeoutInExtension(-1)
             assertThrows<IllegalStateException> {
                 extensionProvider.generationTimeout
             }
         }
 
-        private fun setGenerationTimeout(value: Long?) =
+        private fun setGenerationTimeoutInExtension(value: Long?) {
             Mockito.`when`(extensionMock.generationTimeout).thenReturn(createLongProperty(value))
+        }
+
+        private fun setGenerationTimeoutInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("generationTimeout" to value)
+        }
     }
 
     @Nested
@@ -217,32 +402,50 @@ class SarifGradleExtensionProviderTest {
     inner class CodegenLanguageTest {
         @Test
         fun `should be CodegenLanguage defaultItem by default`() {
-            setCodegenLanguage(null)
+            setCodegenLanguageInExtension(null)
             assertEquals(CodegenLanguage.defaultItem, extensionProvider.codegenLanguage)
         }
 
         @Test
         fun `should be equal to JAVA`() {
-            setCodegenLanguage("java")
+            setCodegenLanguageInExtension("java")
             assertEquals(CodegenLanguage.JAVA, extensionProvider.codegenLanguage)
         }
 
         @Test
         fun `should be equal to KOTLIN`() {
-            setCodegenLanguage("kotlin")
+            setCodegenLanguageInExtension("kotlin")
             assertEquals(CodegenLanguage.KOTLIN, extensionProvider.codegenLanguage)
         }
 
         @Test
         fun `should fail on unknown codegen language`() {
-            setCodegenLanguage("unknown")
+            setCodegenLanguageInExtension("unknown")
             assertThrows<IllegalStateException> {
                 extensionProvider.codegenLanguage
             }
         }
 
-        private fun setCodegenLanguage(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            setCodegenLanguageInTaskParameters("kotlin")
+            assertEquals(CodegenLanguage.KOTLIN, extensionProvider.codegenLanguage)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setCodegenLanguageInTaskParameters("java")
+            setCodegenLanguageInExtension("kotlin")
+            assertEquals(CodegenLanguage.JAVA, extensionProvider.codegenLanguage)
+        }
+
+        private fun setCodegenLanguageInExtension(value: String?) {
             Mockito.`when`(extensionMock.codegenLanguage).thenReturn(createStringProperty(value))
+        }
+
+        private fun setCodegenLanguageInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("codegenLanguage" to value)
+        }
     }
 
     @Nested
@@ -250,38 +453,56 @@ class SarifGradleExtensionProviderTest {
     inner class MockStrategyTest {
         @Test
         fun `should be MockStrategyApi defaultItem by default`() {
-            setMockStrategy(null)
+            setMockStrategyInExtension(null)
             assertEquals(MockStrategyApi.defaultItem, extensionProvider.mockStrategy)
         }
 
         @Test
         fun `should be equal to NO_MOCKS`() {
-            setMockStrategy("do-not-mock")
+            setMockStrategyInExtension("no-mocks")
             assertEquals(MockStrategyApi.NO_MOCKS, extensionProvider.mockStrategy)
         }
 
         @Test
         fun `should be equal to OTHER_PACKAGES`() {
-            setMockStrategy("package-based")
+            setMockStrategyInExtension("other-packages")
             assertEquals(MockStrategyApi.OTHER_PACKAGES, extensionProvider.mockStrategy)
         }
 
         @Test
         fun `should be equal to OTHER_CLASSES`() {
-            setMockStrategy("all-except-cut")
+            setMockStrategyInExtension("other-classes")
             assertEquals(MockStrategyApi.OTHER_CLASSES, extensionProvider.mockStrategy)
         }
 
         @Test
         fun `should fail on unknown mock strategy`() {
-            setMockStrategy("unknown")
+            setMockStrategyInExtension("unknown")
             assertThrows<IllegalStateException> {
                 extensionProvider.mockStrategy
             }
         }
 
-        private fun setMockStrategy(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            setMockStrategyInTaskParameters("no-mocks")
+            assertEquals(MockStrategyApi.NO_MOCKS, extensionProvider.mockStrategy)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setMockStrategyInTaskParameters("other-packages")
+            setMockStrategyInExtension("other-classes")
+            assertEquals(MockStrategyApi.OTHER_PACKAGES, extensionProvider.mockStrategy)
+        }
+
+        private fun setMockStrategyInExtension(value: String?) {
             Mockito.`when`(extensionMock.mockStrategy).thenReturn(createStringProperty(value))
+        }
+
+        private fun setMockStrategyInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("mockStrategy" to value)
+        }
     }
 
     @Nested
@@ -289,32 +510,50 @@ class SarifGradleExtensionProviderTest {
     inner class StaticsMockingTest {
         @Test
         fun `should be StaticsMocking defaultItem by default`() {
-            setStaticsMocking(null)
+            setStaticsMockingInExtension(null)
             assertEquals(StaticsMocking.defaultItem, extensionProvider.staticsMocking)
         }
 
         @Test
         fun `should be equal to NoStaticMocking`() {
-            setStaticsMocking("do-not-mock-statics")
+            setStaticsMockingInExtension("do-not-mock-statics")
             assertEquals(NoStaticMocking, extensionProvider.staticsMocking)
         }
 
         @Test
         fun `should be equal to`() {
-            setStaticsMocking("mock-statics")
+            setStaticsMockingInExtension("mock-statics")
             assertEquals(MockitoStaticMocking, extensionProvider.staticsMocking)
         }
 
         @Test
         fun `should fail on unknown statics mocking`() {
-            setStaticsMocking("unknown")
+            setStaticsMockingInExtension("unknown")
             assertThrows<IllegalStateException> {
                 extensionProvider.staticsMocking
             }
         }
 
-        private fun setStaticsMocking(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            setStaticsMockingInTaskParameters("do-not-mock-statics")
+            assertEquals(NoStaticMocking, extensionProvider.staticsMocking)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setStaticsMockingInTaskParameters("mock-statics")
+            setStaticsMockingInExtension("do-not-mock-statics")
+            assertEquals(MockitoStaticMocking, extensionProvider.staticsMocking)
+        }
+
+        private fun setStaticsMockingInExtension(value: String?) {
             Mockito.`when`(extensionMock.staticsMocking).thenReturn(createStringProperty(value))
+        }
+
+        private fun setStaticsMockingInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("staticsMocking" to value)
+        }
     }
 
     @Nested
@@ -322,32 +561,50 @@ class SarifGradleExtensionProviderTest {
     inner class ForceStaticMockingTest {
         @Test
         fun `should be ForceStaticMocking defaultItem by default`() {
-            setForceStaticMocking(null)
+            setForceStaticMockingInExtension(null)
             assertEquals(ForceStaticMocking.defaultItem, extensionProvider.forceStaticMocking)
         }
 
         @Test
         fun `should be equal to FORCE`() {
-            setForceStaticMocking("force")
+            setForceStaticMockingInExtension("force")
             assertEquals(ForceStaticMocking.FORCE, extensionProvider.forceStaticMocking)
         }
 
         @Test
         fun `should be equal to DO_NOT_FORCE`() {
-            setForceStaticMocking("do-not-force")
+            setForceStaticMockingInExtension("do-not-force")
             assertEquals(ForceStaticMocking.DO_NOT_FORCE, extensionProvider.forceStaticMocking)
         }
 
         @Test
         fun `should fail on unknown force static mocking`() {
-            setForceStaticMocking("unknown")
+            setForceStaticMockingInExtension("unknown")
             assertThrows<IllegalStateException> {
                 extensionProvider.forceStaticMocking
             }
         }
 
-        private fun setForceStaticMocking(value: String?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            setForceStaticMockingInTaskParameters("do-not-force")
+            assertEquals(ForceStaticMocking.DO_NOT_FORCE, extensionProvider.forceStaticMocking)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            setForceStaticMockingInTaskParameters("force")
+            setForceStaticMockingInExtension("do-not-force")
+            assertEquals(ForceStaticMocking.FORCE, extensionProvider.forceStaticMocking)
+        }
+
+        private fun setForceStaticMockingInExtension(value: String?) {
             Mockito.`when`(extensionMock.forceStaticMocking).thenReturn(createStringProperty(value))
+        }
+
+        private fun setForceStaticMockingInTaskParameters(value: String) {
+            extensionProvider.taskParameters = mapOf("forceStaticMocking" to value)
+        }
     }
 
     @Nested
@@ -359,7 +616,7 @@ class SarifGradleExtensionProviderTest {
 
         @Test
         fun `should be defaultSuperClassesToMockAlwaysNames by default`() {
-            setClassesToMockAlways(null)
+            setClassesToMockAlwaysInExtension(null)
             assertEquals(defaultClasses, extensionProvider.classesToMockAlways)
         }
 
@@ -367,12 +624,34 @@ class SarifGradleExtensionProviderTest {
         fun `should be provided from the extension`() {
             val classes = listOf("com.abc.Main")
             val expectedClasses = classes.map(::ClassId).toSet() + defaultClasses
-            setClassesToMockAlways(classes)
+            setClassesToMockAlwaysInExtension(classes)
             assertEquals(expectedClasses, extensionProvider.classesToMockAlways)
         }
 
-        private fun setClassesToMockAlways(value: List<String>?) =
+        @Test
+        fun `should be provided from the task parameters`() {
+            val classes = listOf("com.abc.Main")
+            val expectedClasses = classes.map(::ClassId).toSet() + defaultClasses
+            setClassesToMockAlwaysInTaskParameters(classes)
+            assertEquals(expectedClasses, extensionProvider.classesToMockAlways)
+        }
+
+        @Test
+        fun `should be provided from the task parameters, not from the extension`() {
+            val classes = listOf("com.abc.Main")
+            val anotherClasses = listOf("com.abc.Another")
+            val expectedClasses = classes.map(::ClassId).toSet() + defaultClasses
+            setClassesToMockAlwaysInTaskParameters(classes)
+            setClassesToMockAlwaysInExtension(anotherClasses)
+            assertEquals(expectedClasses, extensionProvider.classesToMockAlways)
+        }
+
+        private fun setClassesToMockAlwaysInExtension(value: List<String>?) =
             Mockito.`when`(extensionMock.classesToMockAlways).thenReturn(createListProperty(value))
+
+        private fun setClassesToMockAlwaysInTaskParameters(value: List<String>) {
+            extensionProvider.taskParameters = mapOf("classesToMockAlways" to value.joinToString(",", "[", "]"))
+        }
     }
 
     // internal

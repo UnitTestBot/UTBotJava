@@ -5,14 +5,14 @@ import org.utbot.engine.overrides.strings.UtNativeString;
 import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
-import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
 import static org.utbot.engine.overrides.UtLogicMock.less;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Long.class, internalUsage = true)
 public class Long {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Long valueOf(long x) {
         return new java.lang.Long(x);
     }
@@ -34,7 +34,7 @@ public class Long {
         if ((s.charAt(0) == '-' || s.charAt(0) == '+') && s.length() == 1) {
             throw new NumberFormatException();
         }
-        assume(s.length() <= 10);
+        assumeOrExecuteConcretely(s.length() <= 10);
         // we need two branches to add more options for concrete executor to find both branches
         if (s.charAt(0) == '-') {
             executeConcretely();
@@ -62,7 +62,7 @@ public class Long {
         if ((s.charAt(0) == '-' || s.charAt(0) == '+') && s.length() == 1) {
             throw new NumberFormatException();
         }
-        assume(s.length() <= 10);
+        assumeOrExecuteConcretely(s.length() <= 10);
         if (s.charAt(0) == '-') {
             throw new NumberFormatException();
         } else {
@@ -77,8 +77,8 @@ public class Long {
         }
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assume(l <= 10000);
-        assume(l >= 10000);
+        assumeOrExecuteConcretely(l <= 10000);
+        assumeOrExecuteConcretely(l >= -10000);
         // condition = l < 0
         boolean condition = less(l, 0);
         // prefix = condition ? "-" : ""

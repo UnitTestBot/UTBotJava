@@ -27,9 +27,11 @@ class CgTestClassBuilder : CgBuilder<CgTestClass> {
     val annotations: MutableList<CgAnnotation> = mutableListOf()
     var superclass: ClassId? = null
     val interfaces: MutableList<ClassId> = mutableListOf()
+    var isStatic: Boolean = false
+    var isNested: Boolean = false
     lateinit var body: CgTestClassBody
 
-    override fun build() = CgTestClass(id, annotations, superclass, interfaces, body)
+    override fun build() = CgTestClass(id, annotations, superclass, interfaces, body, isStatic, isNested)
 }
 
 fun buildTestClass(init: CgTestClassBuilder.() -> Unit) = CgTestClassBuilder().apply(init).build()
@@ -39,7 +41,9 @@ class CgTestClassBodyBuilder : CgBuilder<CgTestClassBody> {
 
     val dataProvidersAndUtilMethodsRegion: MutableList<CgRegion<CgElement>> = mutableListOf()
 
-    override fun build() = CgTestClassBody(testMethodRegions, dataProvidersAndUtilMethodsRegion)
+    val nestedClassRegions: MutableList<CgRegion<CgTestClass>> = mutableListOf()
+
+    override fun build() = CgTestClassBody(testMethodRegions, dataProvidersAndUtilMethodsRegion, nestedClassRegions)
 }
 
 fun buildTestClassBody(init: CgTestClassBodyBuilder.() -> Unit) = CgTestClassBodyBuilder().apply(init).build()
@@ -100,11 +104,11 @@ class CgParameterizedTestDataProviderBuilder : CgMethodBuilder<CgParameterizedTe
     override lateinit var returnType: ClassId
     override val parameters: List<CgParameterDeclaration> = mutableListOf()
     override lateinit var statements: List<CgStatement>
-    override lateinit var annotations: MutableList<CgAnnotation>
+    override val annotations: MutableList<CgAnnotation> = mutableListOf()
     override val exceptions: MutableSet<ClassId> = mutableSetOf()
     override var documentation: CgDocumentationComment = CgDocumentationComment(emptyList())
 
-    override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations)
+    override fun build() = CgParameterizedTestDataProviderMethod(name, statements, returnType, annotations, exceptions)
 }
 
 fun buildParameterizedTestDataProviderMethod(
@@ -144,14 +148,6 @@ class CgTryCatchBuilder : CgBuilder<CgTryCatch> {
 }
 
 fun buildTryCatch(init: CgTryCatchBuilder.() -> Unit): CgTryCatch = CgTryCatchBuilder().apply(init).build()
-
-class CgBlockBuilder : CgBuilder<CgInnerBlock> {
-    lateinit var statements: List<CgStatement>
-
-    override fun build() = CgInnerBlock(statements)
-}
-
-fun buildSimpleBlock(init: CgBlockBuilder.() -> Unit) = CgBlockBuilder().apply(init).build()
 
 // Loops
 interface CgLoopBuilder<T : CgLoop> : CgBuilder<T> {

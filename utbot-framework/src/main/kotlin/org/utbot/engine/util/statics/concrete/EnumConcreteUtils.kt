@@ -10,7 +10,7 @@ import org.utbot.engine.pc.select
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.util.field
+import org.utbot.framework.plugin.api.util.jField
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
@@ -20,7 +20,7 @@ import soot.jimple.StaticFieldRef
 import soot.jimple.Stmt
 import soot.jimple.internal.JAssignStmt
 
-fun UtBotSymbolicEngine.makeSymbolicValuesFromEnumConcreteValues(
+fun Traverser.makeSymbolicValuesFromEnumConcreteValues(
     type: Type,
     enumConstantRuntimeValues: List<Enum<*>>
 ): Pair<List<ObjectValue>, Map<String, MethodResult>> {
@@ -43,7 +43,7 @@ fun associateEnumSootFieldsWithConcreteValues(
     enumConstants: List<Enum<*>>
 ): List<Pair<SootField, List<Any>>> =
     enumFields.map { enumSootField ->
-        val enumField = enumSootField.fieldId.field
+        val enumField = enumSootField.fieldId.jField
 
         val fieldValues = if (enumSootField.isStatic) {
             val staticFieldValue = enumField.withAccessibility { enumField.get(null) }
@@ -62,13 +62,13 @@ fun associateEnumSootFieldsWithConcreteValues(
 /**
  * Construct symbolic updates for enum static fields and a symbolic value for a local in the left part of the assignment.
  */
-fun UtBotSymbolicEngine.makeEnumStaticFieldsUpdates(
+fun Traverser.makeEnumStaticFieldsUpdates(
     staticFields: List<Pair<SootField, List<Any>>>,
     declaringClass: SootClass,
     enumConstantSymbolicResultsByName: Map<String, MethodResult>,
     enumConstantSymbolicValues: List<ObjectValue>,
     enumClassValue: ObjectValue,
-    fieldId: FieldId
+    fieldId: FieldId?
 ): Pair<SymbolicStateUpdate, SymbolicValue?> {
     var staticFieldsUpdates = SymbolicStateUpdate()
     var symbolicValueForLocal: SymbolicValue? = null
@@ -101,7 +101,7 @@ fun UtBotSymbolicEngine.makeEnumStaticFieldsUpdates(
         }
 
         // save value to associate it with local if required
-        if (sootStaticField.name == fieldId.name) {
+        if (fieldId != null && sootStaticField.name == fieldId.name) {
             symbolicValueForLocal = fieldSymbolicValue
         }
     }
@@ -109,7 +109,7 @@ fun UtBotSymbolicEngine.makeEnumStaticFieldsUpdates(
     return staticFieldsUpdates to symbolicValueForLocal
 }
 
-fun UtBotSymbolicEngine.makeEnumNonStaticFieldsUpdates(
+fun Traverser.makeEnumNonStaticFieldsUpdates(
     enumConstantSymbolicValues: List<ObjectValue>,
     nonStaticFields: List<Pair<SootField, List<Any>>>
 ): SymbolicStateUpdate {

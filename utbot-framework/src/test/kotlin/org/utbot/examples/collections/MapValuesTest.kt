@@ -1,10 +1,9 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.AtLeast
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
-import org.utbot.examples.eq
 import org.utbot.examples.ge
 import org.utbot.examples.ignoreExecutionsNumber
 import org.utbot.examples.isException
@@ -14,7 +13,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation SAT-1332
-class MapValuesTest : AbstractTestCaseGeneratorTest(
+class MapValuesTest : UtValueTestCaseChecker(
     testClass = MapValues::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
@@ -92,9 +91,11 @@ class MapValuesTest : AbstractTestCaseGeneratorTest(
     fun testIteratorNext() {
         checkWithException(
             MapValues::iteratorNext,
-            eq(4),
+            between(3..4),
             { map, result -> map == null && result.isException<NullPointerException>() },
-            { map, result -> map != null && map.values.isEmpty() && result.isException<NoSuchElementException>() },
+            // We might lose this branch depending on the order of the exploration since
+            // we do not register wrappers, and, therefore, do not try to cover all of their branches
+            // { map, result -> map != null && map.values.isEmpty() && result.isException<NoSuchElementException>() },
             { map, result -> map != null && map.values.first() == null && result.isException<NullPointerException>() },
             // as map is LinkedHashmap by default this matcher would be correct
             { map, result -> map != null && map.values.isNotEmpty() && result.getOrNull() == map.values.first() },

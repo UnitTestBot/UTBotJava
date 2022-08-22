@@ -28,10 +28,12 @@ class Hierarchy(private val typeRegistry: TypeRegistry) {
         type as? RefType ?: error("$type is not a refType")
 
         val realType = typeRegistry.findRealType(type) as RefType
+        val realFieldDeclaringType = typeRegistry.findRealType(field.declaringClass.type) as RefType
 
-        val ancestorType = ancestors(realType.sootClass.id).lastOrNull { it.declaresField(field.subSignature) }?.type
-            ?: error("No such field ${field.subSignature} found in ${realType.sootClass.name}")
-        return ChunkId("$ancestorType", field.name)
+        if (realFieldDeclaringType.sootClass !in ancestors(realType.sootClass.id)) {
+            error("No such field ${field.subSignature} found in ${realType.sootClass.name}")
+        }
+        return ChunkId("$realFieldDeclaringType", field.name)
     }
 
     /**

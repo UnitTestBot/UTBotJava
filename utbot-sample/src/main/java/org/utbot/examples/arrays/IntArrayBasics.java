@@ -1,8 +1,28 @@
 package org.utbot.examples.arrays;
 
+import org.utbot.api.mock.UtMock;
+
 import java.util.Arrays;
 
 public class IntArrayBasics {
+    public int[] intArrayWithAssumeOrExecuteConcretely(int x, int n) {
+        UtMock.assumeOrExecuteConcretely(n > 30);
+
+        if (x > 0) {
+            if (n < 20) {
+                return new int[2];
+            } else {
+                return new int[4];
+            }
+        } else {
+            if (n < 20) {
+                return new int[10];
+            } else {
+                return new int[20];
+            }
+        }
+    }
+
     public int[] initAnArray(int n) {
         int[] a = new int[n];
         a[n - 1] = n - 1;

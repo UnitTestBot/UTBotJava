@@ -5,14 +5,14 @@ import org.utbot.engine.overrides.strings.UtNativeString;
 import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
-import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
 import static org.utbot.engine.overrides.UtLogicMock.less;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Integer.class, internalUsage = true)
 public class Integer {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Integer valueOf(int x) {
         return new java.lang.Integer(x);
     }
@@ -34,7 +34,7 @@ public class Integer {
         if ((s.charAt(0) == '-' || s.charAt(0) == '+') && s.length() == 1) {
             throw new NumberFormatException();
         }
-        assume(s.length() <= 10);
+        assumeOrExecuteConcretely(s.length() <= 10);
         // we need two branches to add more options for concrete executor to find both branches
         if (s.charAt(0) == '-') {
             executeConcretely();
@@ -62,7 +62,7 @@ public class Integer {
         if ((s.charAt(0) == '-' || s.charAt(0) == '+') && s.length() == 1) {
             throw new NumberFormatException();
         }
-        assume(s.length() <= 10);
+        assumeOrExecuteConcretely(s.length() <= 10);
         if (s.charAt(0) == '-') {
             throw new NumberFormatException();
         } else {
@@ -77,8 +77,8 @@ public class Integer {
         }
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assume(i <= 0x8000);
-        assume(i >= -0x8000);
+        assumeOrExecuteConcretely(i <= 0x8000);
+        assumeOrExecuteConcretely(i >= -0x8000);
         // condition = i < 0
         boolean condition = less(i, 0);
         // prefix = condition ? "-" : ""

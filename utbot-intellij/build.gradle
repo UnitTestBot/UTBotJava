@@ -1,6 +1,5 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-// TODO remove when switch plugin baseline to 2020.3 or higher, with kotlin 1.4 inside
 compileKotlin {
     kotlinOptions {
         allWarningsAsErrors = false
@@ -13,16 +12,15 @@ buildscript {
             url "https://plugins.gradle.org/m2/"
         }
     }
-
     dependencies {
         classpath group: 'org.jetbrains.intellij.plugins', name: 'gradle-intellij-plugin', version: intellij_plugin_version
     }
 }
 
+apply plugin: "org.jetbrains.intellij"
+
 dependencies {
-    api project(':utbot-summary')
-    api project(':utbot-analytics')
-    api ('com.esotericsoftware:kryo:5.1.1')
+    api group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryo_version
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
@@ -37,23 +35,17 @@ dependencies {
     testApi(project(":utbot-framework"))
 }
 
-apply plugin: 'org.jetbrains.intellij'
-
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2020.2'
-    // to use local IDEA comment out "version" and add localPath instead:
-    // localPath 'c:/all/tools/idea'
-    plugins = [
-            'java',
-            // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
-            "org.jetbrains.kotlin:${kotlin_version}-release-IJ2020.2-1",
-            'org.jetbrains.android'
-    ]
-    updateSinceUntilBuild false
+    version = "2022.1"
+    type = "IC"
+    plugins = ['java',
+               // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
+               //https://mvnrepository.com/artifact/org.jetbrains.kotlin/gradle-idea
+               "org.jetbrains.kotlin",
+               'org.jetbrains.android']
 
     patchPluginXml {
-        sinceBuild = '202'
         version = project.version
     }
 }

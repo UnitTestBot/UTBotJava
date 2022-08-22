@@ -1,11 +1,11 @@
 package org.utbot.examples.math
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.eq
 import org.utbot.examples.isException
 import org.junit.jupiter.api.Test
 
-internal class DivRemExamplesTest : AbstractTestCaseGeneratorTest(testClass = DivRemExamples::class) {
+internal class DivRemExamplesTest : UtValueTestCaseChecker(testClass = DivRemExamples::class) {
     @Test
     fun testDiv() {
         checkWithException(

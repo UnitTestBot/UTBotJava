@@ -1,6 +1,6 @@
 package org.utbot.examples.mock
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.between
 import org.utbot.examples.eq
@@ -13,7 +13,7 @@ import org.utbot.examples.value
 import org.utbot.framework.plugin.api.MockStrategyApi.OTHER_PACKAGES
 import org.junit.jupiter.api.Test
 
-internal class ArgumentsMockTest : AbstractTestCaseGeneratorTest(testClass = ServiceWithArguments::class) {
+internal class ArgumentsMockTest : UtValueTestCaseChecker(testClass = ServiceWithArguments::class) {
     @Test
     fun testMockForArguments_callMultipleMethods() {
         checkMocksAndInstrumentation(

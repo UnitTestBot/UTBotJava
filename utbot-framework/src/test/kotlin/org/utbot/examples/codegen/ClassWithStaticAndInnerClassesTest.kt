@@ -1,12 +1,12 @@
 package org.utbot.examples.codegen
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.junit.jupiter.api.Test
 
 @Suppress("INACCESSIBLE_TYPE")
-internal class ClassWithStaticAndInnerClassesTest : AbstractTestCaseGeneratorTest(testClass = ClassWithStaticAndInnerClasses::class) {
+internal class ClassWithStaticAndInnerClassesTest : UtValueTestCaseChecker(testClass = ClassWithStaticAndInnerClasses::class) {
     @Test
     fun testUsePrivateStaticClassWithPrivateField() {
         check(
@@ -94,6 +94,31 @@ internal class ClassWithStaticAndInnerClassesTest : AbstractTestCaseGeneratorTes
             ClassWithStaticAndInnerClasses::usePackagePrivateFinalInnerClassWithPackagePrivateField,
             eq(2),
             coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun testGetValueFromPublicFieldWithPrivateType() {
+        check(
+            ClassWithStaticAndInnerClasses::getValueFromPublicFieldWithPrivateType,
+            eq(2),
+            coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun testPublicStaticClassWithPrivateField_DeepNestedStatic_g() {
+        checkAllCombinations(
+            ClassWithStaticAndInnerClasses.PublicStaticClassWithPrivateField.DeepNestedStatic::g,
+            generateWithNested = true
+        )
+    }
+
+    @Test
+    fun testPublicStaticClassWithPrivateField_DeepNested_h() {
+        checkAllCombinations(
+            ClassWithStaticAndInnerClasses.PublicStaticClassWithPrivateField.DeepNested::h,
+            generateWithNested = true
         )
     }
 }

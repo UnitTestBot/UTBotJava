@@ -1,6 +1,6 @@
 package org.utbot.examples.wrappers
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.withoutMinimization
@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class LongWrapperTest : AbstractTestCaseGeneratorTest(
+internal class LongWrapperTest : UtValueTestCaseChecker(
     testClass = LongWrapper::class,
     testCodeGeneration = true,
     languagePipelines = listOf(

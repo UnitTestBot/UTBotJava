@@ -1,6 +1,7 @@
 package org.utbot.engine.selectors
 
 import org.utbot.engine.ExecutionState
+import org.utbot.engine.isPreconditionCheckMethod
 import org.utbot.engine.pathLogger
 import org.utbot.engine.pc.UtSolver
 import org.utbot.engine.pc.UtSolverStatusKind.SAT
@@ -83,6 +84,19 @@ abstract class BasePathSelector(
                 state.close()
                 continue
             }
+
+            // If we have failed assumes, we try to execute the state concretely
+            if (state.solver.failedAssumptions.isNotEmpty()) {
+                // But we do not want to execute concretely states because of
+                // controversies during `preconditionCheck` analysis
+                if (state.lastMethod?.isPreconditionCheckMethod == true) {
+                    state.close()
+                } else {
+                    statesForConcreteExecution += state
+                }
+                continue
+            }
+
             return state
         }
         return null

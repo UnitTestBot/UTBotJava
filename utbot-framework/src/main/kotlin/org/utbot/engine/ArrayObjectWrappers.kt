@@ -24,21 +24,21 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.getIdOrThrow
+import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
+import soot.ArrayType
 import soot.Scene
+import soot.SootClass
+import soot.SootField
 import soot.SootMethod
 
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
 class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
-    private val rangeModifiableArrayClass = Scene.v().getSootClass(rangeModifiableArrayId.name)
-    private val beginField = rangeModifiableArrayClass.getField("int begin")
-    private val endField = rangeModifiableArrayClass.getField("int end")
-    private val storageField = rangeModifiableArrayClass.getField("java.lang.Object[] storage")
-
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -168,13 +168,15 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
                 val typeStorage = typeResolver.constructTypeStorage(OBJECT_TYPE.arrayType, useConcreteType = false)
                 val array = ArrayValue(typeStorage, arrayAddr)
 
+                val hardConstraints = setOf(
+                    Eq(memory.findArrayLength(arrayAddr), length),
+                    typeRegistry.typeConstraint(arrayAddr, array.typeStorage).all(),
+                ).asHardConstraint()
+
                 listOf(
                     MethodResult(
                         SymbolicSuccess(array),
-                        hardConstraints = setOf(
-                            Eq(memory.findArrayLength(arrayAddr), length),
-                            typeRegistry.typeConstraint(array.addr, array.typeStorage).all()
-                        ).asHardConstraint(),
+                        hardConstraints = hardConstraints,
                         memoryUpdates = arrayUpdateWithValue(arrayAddr, OBJECT_TYPE.arrayType, value)
                     )
                 )
@@ -202,10 +204,10 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         }
     }
 
-    private fun UtBotSymbolicEngine.getStorageArrayField(addr: UtAddrExpression) =
+    private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, rangeModifiableArrayClass, storageField)
 
-    private fun UtBotSymbolicEngine.getStorageArrayExpression(
+    private fun Traverser.getStorageArrayExpression(
         wrapper: ObjectValue
     ): UtExpression = selectArrayExpressionFromMemory(getStorageArrayField(wrapper.addr))
 
@@ -233,7 +235,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 
         val resultModel = UtArrayModel(
             concreteAddr,
-            objectClassId,
+            objectArrayClassId,
             sizeValue,
             UtNullModel(objectClassId),
             mutableMapOf()
@@ -243,16 +245,34 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         // the constructed model to avoid infinite recursion below
         resolver.addConstructedModel(concreteAddr, resultModel)
 
+        // try to retrieve type storage for the single type parameter
+        val typeStorage =
+            resolver.typeRegistry.getTypeStoragesForObjectTypeParameters(wrapper.addr)?.singleOrNull() ?: TypeRegistry.objectTypeStorage
+
         (0 until sizeValue).associateWithTo(resultModel.stores) { i ->
-            resolver.resolveModel(
-                ObjectValue(
-                    TypeStorage(OBJECT_TYPE),
-                    UtAddrExpression(arrayExpression.select(mkInt(i + firstValue)))
-                )
-            )
+            val addr = UtAddrExpression(arrayExpression.select(mkInt(i + firstValue)))
+
+            val value = if (typeStorage.leastCommonType is ArrayType) {
+                ArrayValue(typeStorage, addr)
+            } else {
+                ObjectValue(typeStorage, addr)
+            }
+
+            resolver.resolveModel(value)
         }
 
         return resultModel
+    }
+
+    companion object {
+        internal val rangeModifiableArrayClass: SootClass
+            get() = Scene.v().getSootClass(rangeModifiableArrayId.name)
+        internal val beginField: SootField
+            get() = rangeModifiableArrayClass.getFieldByName("begin")
+        internal val endField: SootField
+            get() = rangeModifiableArrayClass.getFieldByName("end")
+        internal val storageField: SootField
+            get() = rangeModifiableArrayClass.getFieldByName("storage")
     }
 }
 
@@ -266,7 +286,7 @@ class AssociativeArrayWrapper : WrapperInterface {
     private val storageField = associativeArrayClass.getField("java.lang.Object[] storage")
 
 
-    override fun UtBotSymbolicEngine.invoke(
+    override fun Traverser.invoke(
         wrapper: ObjectValue,
         method: SootMethod,
         parameters: List<SymbolicValue>
@@ -379,7 +399,7 @@ class AssociativeArrayWrapper : WrapperInterface {
             UtNullModel(objectClassId),
             stores = (0 until sizeValue).associateTo(mutableMapOf()) { i ->
                 val model = touchedValues.stores[i]
-                val addr = if (model is UtNullModel) 0 else (model as UtReferenceModel).id!!
+                val addr = model.getIdOrThrow()
                 addr to resolver.resolveModel(
                     ObjectValue(
                         TypeStorage(OBJECT_TYPE),
@@ -395,16 +415,16 @@ class AssociativeArrayWrapper : WrapperInterface {
         return model
     }
 
-    private fun UtBotSymbolicEngine.getStorageArrayField(addr: UtAddrExpression) =
+    private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, storageField)
 
-    private fun UtBotSymbolicEngine.getTouchedArrayField(addr: UtAddrExpression) =
+    private fun Traverser.getTouchedArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, touchedField)
 
-    private fun UtBotSymbolicEngine.getTouchedArrayExpression(wrapper: ObjectValue): UtExpression =
+    private fun Traverser.getTouchedArrayExpression(wrapper: ObjectValue): UtExpression =
         selectArrayExpressionFromMemory(getTouchedArrayField(wrapper.addr))
 
-    private fun UtBotSymbolicEngine.getStorageArrayExpression(
+    private fun Traverser.getStorageArrayExpression(
         wrapper: ObjectValue
     ): UtExpression = selectArrayExpressionFromMemory(getStorageArrayField(wrapper.addr))
 }

@@ -5,14 +5,14 @@ import org.utbot.engine.overrides.strings.UtNativeString;
 import org.utbot.engine.overrides.strings.UtString;
 import org.utbot.engine.overrides.strings.UtStringBuilder;
 
-import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.engine.overrides.UtLogicMock.ite;
 import static org.utbot.engine.overrides.UtLogicMock.less;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 
 @UtClassMock(target = java.lang.Short.class, internalUsage = true)
 public class Short {
-    @SuppressWarnings({"UnnecessaryBoxing", "unused"})
+    @SuppressWarnings({"UnnecessaryBoxing", "unused", "deprecation"})
     public static java.lang.Short valueOf(short x) {
         return new java.lang.Short(x);
     }
@@ -34,7 +34,7 @@ public class Short {
         if ((s.charAt(0) == '-' || s.charAt(0) == '+') && s.length() == 1) {
             throw new NumberFormatException();
         }
-        assume(s.length() <= 10);
+        assumeOrExecuteConcretely(s.length() <= 10);
         // we need two branches to add more options for concrete executor to find both branches
         if (s.charAt(0) == '-') {
             executeConcretely();
@@ -50,8 +50,8 @@ public class Short {
         boolean condition = less(s, (short) 0);
         // assumes are placed here to limit search space of solver
         // and reduce time of solving queries with bv2int expressions
-        assume(s <= 10000);
-        assume(s >= 10000);
+        assumeOrExecuteConcretely(s <= 10000);
+        assumeOrExecuteConcretely(s >= -10000);
         // prefix = condition ? "-" : ""
         String prefix = ite(condition, "-", "");
         UtStringBuilder sb = new UtStringBuilder(prefix);

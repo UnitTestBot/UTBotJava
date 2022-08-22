@@ -1,21 +1,18 @@
 package org.utbot.summary.clustering
 
 import org.utbot.framework.plugin.api.Step
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtTestCase
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.summary.UtSummarySettings
-import smile.clustering.dbscan
+import org.utbot.summary.clustering.dbscan.DBSCANTrainer
+import org.utbot.summary.clustering.dbscan.neighbor.LinearRangeQuery
 
-class MatrixUniqueness {
+class MatrixUniqueness(executions: List<UtSymbolicExecution>) {
 
-    private var methodExecutions: List<UtExecution>
+    private var methodExecutions: List<UtSymbolicExecution> = executions
     private val allSteps = mutableListOf<Step>()
     private val matrix: List<IntArray>
 
-    constructor(testCase: UtTestCase) : this(testCase.executions)
-
-    constructor (executions: List<UtExecution>) {
-        this.methodExecutions = executions
+    init {
         executions.forEach {
             it.path.forEach { step ->
                 if (step !in allSteps) allSteps.add(step)
@@ -25,7 +22,10 @@ class MatrixUniqueness {
     }
 
     /**
-     * Creates uniquness matrix. Rows are executions, columns are unique steps from all executions
+     * Creates uniqueness matrix.
+     *
+     * Rows are executions, columns are unique steps from all executions
+     *
      * Every matrix i,j is 1 or 0, as if step in execution or not.
      */
     private fun createMatrix(): List<IntArray> {
@@ -53,10 +53,10 @@ class MatrixUniqueness {
     private fun colSums(matrix: List<IntArray>) = matrix.first().indices.map { col -> this.colSum(matrix, col) }
 
     /**
-     * Splits all steps into common, partly common and unique
+     * Splits all steps into common, partly common and unique.
      *
-     * Unique steps are steps that only occur in one execution
-     * Common steps are steps that occur in all executions
+     * Unique steps are steps that only occur in one execution.
+     * Common steps are steps that occur in all executions.
      * Partly common steps are steps that occur more than one time, but not in all executions
      */
     fun splitSteps(): SplitSteps {
@@ -78,19 +78,24 @@ class MatrixUniqueness {
     }
 
     companion object {
-        /**
-         * Returns map: cluster identifier, List<executions>
-         *     DBSCAN - Density-Based Spatial Clustering of Applications with Noise
-         *     Finds core samples of high density and expands clusters from them
-         */
+        /** Returns map: cluster identifier, List<executions>. */
         fun dbscanClusterExecutions(
-            methodExecutions: List<UtExecution>,
+            methodExecutions: List<UtSymbolicExecution>,
             minPts: Int = UtSummarySettings.MIN_EXEC_DBSCAN,
-            radius: Double = UtSummarySettings.RADIUS_DBSCAN
-        ): Map<Int, List<UtExecution>> {
+            radius: Float = UtSummarySettings.RADIUS_DBSCAN
+        ): Map<Int, List<UtSymbolicExecution>> {
+
             val executionPaths = methodExecutions.map { it.path.asIterable() }.toTypedArray()
-            val cluster = dbscan(executionPaths, ExecutionDistance(), minPts, radius)
-            return methodExecutions.withIndex().groupBy({ cluster.y[it.index] }, { it.value })
+
+            val dbscan = DBSCANTrainer(
+                eps = radius,
+                minSamples = minPts,
+                metric = ExecutionMetric(),
+                rangeQuery = LinearRangeQuery()
+            )
+            val dbscanModel = dbscan.fit(executionPaths)
+            val clusterLabels = dbscanModel.clusterLabels
+            return methodExecutions.withIndex().groupBy({ clusterLabels[it.index] }, { it.value })
         }
     }
 }

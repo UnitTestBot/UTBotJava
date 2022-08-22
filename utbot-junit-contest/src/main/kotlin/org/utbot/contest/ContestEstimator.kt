@@ -2,6 +2,7 @@ package org.utbot.contest
 
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
+import org.utbot.analytics.Predictors
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.info
@@ -33,13 +34,16 @@ import java.util.zip.ZipInputStream
 import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.system.exitProcess
-import org.utbot.framework.JdkPathService
+import org.utbot.framework.plugin.services.JdkInfoService
+import org.utbot.predictors.StateRewardPredictorFactoryImpl
+import org.utbot.framework.PathSelectorType
+import org.utbot.framework.UtSettings
 
 private val logger = KotlinLogging.logger {}
 
 private val classPathSeparator = System.getProperty("path.separator")
-//To hack it to debug something be like Dima
-// if (System.getProperty("user.name") == "d00555580") my_path else "JAVA_HOME"
+//To hack it to debug something be like Duke
+// if (System.getProperty("user.name") == "duke") my_path else "JAVA_HOME"
 private val javaHome = System.getenv("JAVA_HOME")
 
 private val javacCmd = "$javaHome/bin/javac"
@@ -296,7 +300,7 @@ fun main(args: Array<String>) {
         tools = listOf(Tool.UtBot)
     }
 
-    JdkPathService.jdkPathProvider = ContestEstimatorJdkPathProvider(javaHome)
+    JdkInfoService.jdkInfoProvider = ContestEstimatorJdkInfoProvider(javaHome)
     runEstimator(estimatorArgs, methodFilter, projectFilter, processedClassesThreshold, tools)
 }
 
@@ -323,10 +327,18 @@ fun runEstimator(
 //    Predictors.smt = UtBotTimePredictor()
 //    Predictors.smtIncremental = UtBotTimePredictorIncremental()
 //    Predictors.testName = StatementUniquenessPredictor()
-//    Predictors.stateRewardPredictor = NNStateRewardPredictorBase()
+
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-
+    EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
+    if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+    }
+    
+    logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
+    if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
+    }
 
     // fix for CTRL-ALT-SHIFT-C from IDEA, which copies in class#method form
     // fix for path form

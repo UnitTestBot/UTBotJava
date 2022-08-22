@@ -71,6 +71,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
+import org.utbot.framework.plugin.api.SYMBOLIC_NULL_ADDR
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -88,7 +89,6 @@ import soot.SootField
 import soot.SootMethod
 import soot.Type
 import soot.VoidType
-import sun.java2d.cmm.lcms.LcmsServiceProvider
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -117,7 +117,7 @@ class Resolver(
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
-    methodPackageName: String,
+    methodUnderTest: UtMethod<*>,
     private val softMaxArraySize: Int
 ) {
 
@@ -132,7 +132,7 @@ class Resolver(
     private val instrumentation = mutableListOf<UtInstrumentation>()
     private val requiredInstanceFields = mutableMapOf<Address, Set<FieldId>>()
 
-    private val assembleModelGenerator = AssembleModelGenerator(methodPackageName)
+    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest)
 
     /**
      * Contains FieldId of the static field which is construction at the moment and null of there is no such field.
@@ -326,7 +326,7 @@ class Resolver(
         val mockInfoEnriched = mockInfos.getValue(concreteAddr)
         val mockInfo = mockInfoEnriched.mockInfo
 
-        if (concreteAddr == NULL_ADDR) {
+        if (concreteAddr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(mockInfo.classId)
         }
 
@@ -438,7 +438,7 @@ class Resolver(
 
     private fun resolveObject(objectValue: ObjectValue): UtModel {
         val concreteAddr = holder.concreteAddr(objectValue.addr)
-        if (concreteAddr == NULL_ADDR) {
+        if (concreteAddr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(objectValue.type.sootClass.id)
         }
 
@@ -499,7 +499,7 @@ class Resolver(
         actualType: RefType,
     ): UtModel {
         val concreteAddr = holder.concreteAddr(addr)
-        if (concreteAddr == NULL_ADDR) {
+        if (concreteAddr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(defaultType.sootClass.id)
         }
 
@@ -616,7 +616,7 @@ class Resolver(
         val modeledNumDimensions = holder.eval(numDimensionsArray.select(addrExpression)).intValue()
 
         val classRef = classRefByName(modeledType, modeledNumDimensions)
-        val model = UtClassRefModel(CLASS_REF_CLASS_ID, classRef)
+        val model = UtClassRefModel(addr, CLASS_REF_CLASS_ID, classRef)
         addConstructedModel(addr, model)
 
         return model
@@ -641,7 +641,7 @@ class Resolver(
             clazz.enumConstants.indices.random()
         }
         val value = clazz.enumConstants[index] as Enum<*>
-        val model = UtEnumConstantModel(clazz.id, value)
+        val model = UtEnumConstantModel(addr, clazz.id, value)
         addConstructedModel(addr, model)
 
         return model
@@ -683,7 +683,7 @@ class Resolver(
      * the method returns null as the result.
      *
      * @see Memory.touchedAddresses
-     * @see UtBotSymbolicEngine.touchAddress
+     * @see Traverser.touchAddress
      */
     private fun UtSolverStatusSAT.constructTypeOrNull(addr: UtAddrExpression, defaultType: Type): Type? {
         return constructTypeOrNull(addr, defaultType, isTouched(addr))
@@ -796,7 +796,7 @@ class Resolver(
      */
     private fun constructArrayModel(instance: ArrayValue): UtModel {
         val concreteAddr = holder.concreteAddr(instance.addr)
-        if (concreteAddr == NULL_ADDR) {
+        if (concreteAddr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(instance.type.id)
         }
 
@@ -830,7 +830,7 @@ class Resolver(
         concreteAddr: Address,
         details: ArrayExtractionDetails,
     ): UtModel {
-        if (concreteAddr == NULL_ADDR) {
+        if (concreteAddr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(actualType.id)
         }
 
@@ -904,7 +904,7 @@ class Resolver(
         elementType: ArrayType,
         details: ArrayExtractionDetails
     ): UtModel {
-        if (addr == NULL_ADDR) {
+        if (addr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(elementType.id)
         }
 
@@ -928,7 +928,7 @@ class Resolver(
      * Uses [constructTypeOrNull] to evaluate possible element type.
      */
     private fun arrayOfObjectsElementModel(concreteAddr: Address, defaultType: RefType): UtModel {
-        if (concreteAddr == NULL_ADDR) {
+        if (concreteAddr == SYMBOLIC_NULL_ADDR) {
             return UtNullModel(defaultType.id)
         }
 
@@ -977,8 +977,7 @@ private data class ArrayExtractionDetails(
     val oneDimensionalArray: UtArrayExpressionBase
 )
 
-internal const val NULL_ADDR = 0
-internal val nullObjectAddr = UtAddrExpression(mkInt(NULL_ADDR))
+internal val nullObjectAddr = UtAddrExpression(mkInt(SYMBOLIC_NULL_ADDR))
 
 
 fun SymbolicValue.isNullObject() =
@@ -1018,9 +1017,9 @@ val typesOfObjectsToRecreate = listOf(
     "java.lang.CharacterDataLatin1",
     "java.lang.CharacterData00",
     "[Ljava.lang.StackTraceElement",
+    "sun.java2d.cmm.lcms.LcmsServiceProvider",
     PrintStream::class.qualifiedName,
     AccessControlContext::class.qualifiedName,
-    LcmsServiceProvider::class.qualifiedName,
     ICC_ProfileRGB::class.qualifiedName,
     AtomicInteger::class.qualifiedName
 )
@@ -1032,7 +1031,7 @@ val typesOfObjectsToRecreate = listOf(
  * * we have to determine, which null values must be constructed;
  * * we must distinguish primitives and wrappers, but because of kotlin types we cannot do it without the [sootType];
  */
-fun UtBotSymbolicEngine.toMethodResult(value: Any?, sootType: Type): MethodResult {
+fun Traverser.toMethodResult(value: Any?, sootType: Type): MethodResult {
     if (sootType is PrimType) return MethodResult(value.primitiveToSymbolic())
 
     return when (value) {
@@ -1107,7 +1106,7 @@ fun UtBotSymbolicEngine.toMethodResult(value: Any?, sootType: Type): MethodResul
     }
 }
 
-private fun UtBotSymbolicEngine.arrayToMethodResult(
+private fun Traverser.arrayToMethodResult(
     size: Int,
     elementType: Type,
     takeElement: (Int) -> UtExpression
@@ -1143,7 +1142,7 @@ private fun UtBotSymbolicEngine.arrayToMethodResult(
     )
 }
 
-fun UtBotSymbolicEngine.constructEnumStaticFieldResult(
+fun Traverser.constructEnumStaticFieldResult(
     fieldName: String,
     fieldType: Type,
     declaringClass: SootClass,

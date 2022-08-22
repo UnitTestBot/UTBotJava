@@ -1,0 +1,12 @@
+FROM openjdk:8
+
+ARG UTBOT_JAVA_CLI
+
+WORKDIR /usr/src/
+
+# Install UTBot Java CLI
+
+COPY ${UTBOT_JAVA_CLI} .
+
+RUN UTBOT_JAVA_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
+    && ln -s "${UTBOT_JAVA_CLI_PATH}" /usr/src/utbot-cli.jar

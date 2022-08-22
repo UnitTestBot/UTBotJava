@@ -1,6 +1,5 @@
 package org.utbot.framework.plugin.api.util
 
-import org.utbot.common.findFieldOrNull
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -15,6 +14,7 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -118,6 +118,9 @@ val ClassId.isFloatType: Boolean
 val ClassId.isDoubleType: Boolean
     get() = this == doubleClassId || this == doubleWrapperClassId
 
+val ClassId.isClassType: Boolean
+    get() = this == classClassId
+
 val voidClassId = ClassId("void")
 val booleanClassId = ClassId("boolean")
 val byteClassId = ClassId("byte")
@@ -138,6 +141,8 @@ val intWrapperClassId = java.lang.Integer::class.id
 val longWrapperClassId = java.lang.Long::class.id
 val floatWrapperClassId = java.lang.Float::class.id
 val doubleWrapperClassId = java.lang.Double::class.id
+
+val classClassId = java.lang.Class::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here
@@ -238,6 +243,21 @@ val idToPrimitive: Map<ClassId, Class<*>> = mapOf(
 fun isPrimitiveWrapperOrString(type: ClassId): Boolean = (type in primitiveWrappers) || (type == stringClassId)
 
 /**
+ * Returns a wrapper of a given type if it is primitive or a type itself otherwise.
+ */
+fun wrapIfPrimitive(type: ClassId): ClassId = when (type) {
+    booleanClassId -> booleanWrapperClassId
+    byteClassId -> byteWrapperClassId
+    charClassId -> charWrapperClassId
+    shortClassId -> shortWrapperClassId
+    intClassId -> intWrapperClassId
+    longClassId -> longWrapperClassId
+    floatClassId -> floatWrapperClassId
+    doubleClassId -> doubleWrapperClassId
+    else -> type
+}
+
+/**
  * Note: currently uses class$innerClass form to load classes with classloader.
  */
 @Suppress("MapGetWithNotNullAssertionOperator")
@@ -247,6 +267,12 @@ val Class<*>.id: ClassId
         isPrimitive -> primitiveToId[this]!!
         else -> ClassId(name)
     }
+
+/**
+ * [java.lang.reflect.ParameterizedType.getRawType] now returns [Type] instead of [Class].
+ */
+val Type.id: ClassId
+    get() = TODO("Java 11 transition")
 
 val KClass<*>.id: ClassId
     get() = java.id
@@ -275,9 +301,20 @@ val ClassId.isSet: Boolean
 val ClassId.isIterableOrMap: Boolean
     get() = isIterable || isMap
 
-fun ClassId.findFieldOrNull(fieldName: String): Field? = jClass.findFieldOrNull(fieldName)
+val ClassId.isEnum: Boolean
+    get() = jClass.isEnum
 
-fun ClassId.hasField(fieldName: String): Boolean = findFieldOrNull(fieldName) != null
+fun ClassId.findFieldByIdOrNull(fieldId: FieldId): Field? {
+    if (isNotSubtypeOf(fieldId.declaringClass)) {
+        return null
+    }
+
+    return fieldId.safeJField
+}
+
+fun ClassId.hasField(fieldId: FieldId): Boolean {
+    return findFieldByIdOrNull(fieldId) != null
+}
 
 fun ClassId.defaultValueModel(): UtModel = when (this) {
     intClassId -> UtPrimitiveModel(0)
@@ -292,11 +329,12 @@ fun ClassId.defaultValueModel(): UtModel = when (this) {
 }
 
 // FieldId utils
+val FieldId.safeJField: Field?
+    get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }
 
 // TODO: maybe cache it somehow in the future
-val FieldId.field: Field
-    get() = declaringClass.jClass.declaredFields.firstOrNull { it.name == name }
-        ?: error("Field $name is not found in class ${declaringClass.jClass.name}")
+val FieldId.jField: Field
+    get() = safeJField ?: error("Field $name is not declared in class ${declaringClass.jClass.name}")
 
 // https://docstore.mik.ua/orelly/java-ent/jnut/ch03_13.htm
 val FieldId.isInnerClassEnclosingClassReference: Boolean

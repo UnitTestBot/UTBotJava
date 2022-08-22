@@ -1,13 +1,13 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import kotlin.reflect.KFunction2
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class ObjectWithThrowableConstructorTest : AbstractTestCaseGeneratorTest(testClass = ObjectWithThrowableConstructor::class) {
+internal class ObjectWithThrowableConstructorTest : UtValueTestCaseChecker(testClass = ObjectWithThrowableConstructor::class) {
     @Test
     @Disabled("SAT-1500 Support verification of UtAssembleModel for possible exceptions")
     fun testThrowableConstructor() {

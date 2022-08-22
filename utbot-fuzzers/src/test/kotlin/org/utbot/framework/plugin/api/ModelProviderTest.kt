@@ -23,10 +23,17 @@ import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.samples.FieldSetterClass
+import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
+import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
+import org.utbot.framework.plugin.api.samples.SampleEnum
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
+import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
@@ -186,7 +193,7 @@ class ModelProviderTest {
 
             val classId = A::class.java.id
             val models = collect(
-                ObjectModelProvider { 0 }.apply {
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
                     modelProvider = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
                 parameters = listOf(classId)
@@ -214,7 +221,7 @@ class ModelProviderTest {
 
             val classId = A::class.java.id
             val models = collect(
-                ObjectModelProvider { 0 },
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(classId)
             )
 
@@ -234,7 +241,7 @@ class ModelProviderTest {
 
             val classId = A::class.java.id
             val models = collect(
-                ObjectModelProvider { 0 },
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(classId)
             )
 
@@ -251,8 +258,10 @@ class ModelProviderTest {
 
     @Test
     fun `test fallback model can create custom values for any parameter`() {
-        val firstParameterIsUserGenerated = ModelProvider { _, consumer ->
-            consumer.accept(0, UtPrimitiveModel(-123))
+        val firstParameterIsUserGenerated = ModelProvider {
+            sequence {
+                yieldValue(0, UtPrimitiveModel(-123).fuzzed())
+            }
         }.withFallback(PrimitivesModelProvider)
 
         val result = collect(
@@ -270,7 +279,7 @@ class ModelProviderTest {
     fun `test collection model can produce basic values with assembled model`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
-                defaultModelProviders { 0 },
+                defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(java.util.List::class.java.id)
             )
 
@@ -281,11 +290,11 @@ class ModelProviderTest {
     @Test
     fun `test enum model provider`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(EnumModelProvider, parameters = listOf(OneTwoThree::class.java.id))
+            val result = collect(EnumModelProvider(ReferencePreservingIntIdGenerator(0)), parameters = listOf(OneTwoThree::class.java.id))
             assertEquals(1, result.size)
             assertEquals(3, result[0]!!.size)
             OneTwoThree.values().forEachIndexed { index: Int, value ->
-                assertEquals(UtEnumConstantModel(OneTwoThree::class.java.id, value), result[0]!![index])
+                assertEquals(UtEnumConstantModel(index + 1, OneTwoThree::class.java.id, value), result[0]!![index])
             }
         }
     }
@@ -293,7 +302,10 @@ class ModelProviderTest {
     @Test
     fun `test string value generates only primitive models`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(defaultModelProviders { 0 }, parameters = listOf(stringClassId))
+            val result = collect(
+                defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
+                parameters = listOf(stringClassId)
+            )
             assertEquals(1, result.size)
             result[0]!!.forEach {
                 assertInstanceOf(UtPrimitiveModel::class.java, it)
@@ -306,7 +318,10 @@ class ModelProviderTest {
     fun `test wrapper primitives generate only primitive models`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
             primitiveWrappers.asSequence().filterNot { it == voidWrapperClassId }.forEach { classId ->
-                val result = collect(defaultModelProviders { 0 }, parameters = listOf(classId))
+                val result = collect(
+                    defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
+                    parameters = listOf(classId)
+                )
                 assertEquals(1, result.size)
                 result[0]!!.forEach {
                     assertInstanceOf(UtPrimitiveModel::class.java, it)
@@ -321,7 +336,7 @@ class ModelProviderTest {
     fun `test at least one string is created if characters exist as constants`() {
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(
-                defaultModelProviders { 0 },
+                defaultModelProviders(ReferencePreservingIntIdGenerator(0)),
                 parameters = listOf(stringClassId),
                 constants = listOf(
                     FuzzedConcreteValue(charClassId, 'a'),
@@ -344,7 +359,10 @@ class ModelProviderTest {
         }
 
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(ObjectModelProvider { 0 }, parameters = listOf(A::class.java.id))
+            val result = collect(
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
+                parameters = listOf(A::class.java.id)
+            )
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             assertInstanceOf(UtAssembleModel::class.java, result[0]!![0])
@@ -372,7 +390,10 @@ class ModelProviderTest {
         }
 
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(ObjectModelProvider { 0 }, parameters = listOf(MyA::class.java.id))
+            val result = collect(
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
+                parameters = listOf(MyA::class.java.id)
+            )
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             val outerModel = result[0]!![0] as UtAssembleModel
@@ -411,7 +432,10 @@ class ModelProviderTest {
         }
 
         withUtContext(UtContext(this::class.java.classLoader)) {
-            val result = collect(ObjectModelProvider { 0 }, parameters = listOf(Outer::class.java.id))
+            val result = collect(
+                ObjectModelProvider(ReferencePreservingIntIdGenerator(0)),
+                parameters = listOf(Outer::class.java.id)
+            )
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             val outerModel = result[0]!![0] as UtAssembleModel
@@ -430,16 +454,126 @@ class ModelProviderTest {
         }
     }
 
+    @Test
+    fun `test complex object is created with setters`() {
+        val j = FieldSetterClass::class.java
+        assertEquals(6, j.declaredFields.size)
+        assertTrue(
+            setOf(
+                "pubStaticField",
+                "pubFinalField",
+                "pubField",
+                "pubFieldWithSetter",
+                "prvField",
+                "prvFieldWithSetter",
+            ).containsAll(j.declaredFields.map { it.name })
+        )
+        assertEquals(4, j.declaredMethods.size)
+        assertTrue(
+            setOf(
+                "getPubFieldWithSetter",
+                "setPubFieldWithSetter",
+                "getPrvFieldWithSetter",
+                "setPrvFieldWithSetter",
+            ).containsAll(j.declaredMethods.map { it.name })
+        )
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
+                modelProvider = PrimitiveDefaultsModelProvider
+            }, parameters = listOf(FieldSetterClass::class.java.id))
+            assertEquals(1, result.size)
+            assertEquals(2, result[0]!!.size)
+            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            val expectedModificationSize = 3
+            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val actualModificationSize = modificationsChain.size
+            assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
+
+            assertEquals("pubField", (modificationsChain[0] as UtDirectSetFieldModel).fieldId.name)
+            assertEquals("pubFieldWithSetter", (modificationsChain[1] as UtDirectSetFieldModel).fieldId.name)
+            assertEquals("setPrvFieldWithSetter", (modificationsChain[2] as UtExecutableCallModel).executable.name)
+        }
+    }
+
+    @Test
+    fun `test complex object is created with setters and package private field and constructor`() {
+        val j = PackagePrivateFieldAndClass::class.java
+        assertEquals(1, j.declaredFields.size)
+        assertTrue(
+            setOf(
+                "pkgField",
+            ).containsAll(j.declaredFields.map { it.name })
+        )
+
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
+                modelProvider = PrimitiveDefaultsModelProvider
+            }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
+                packageName = PackagePrivateFieldAndClass::class.java.`package`.name
+            }
+            assertEquals(1, result.size)
+            assertEquals(3, result[0]!!.size)
+            assertEquals(0, (result[0]!![0] as UtAssembleModel).modificationsChain.size) { "One of models must be without any modifications" }
+            assertEquals(0, (result[0]!![2] as UtAssembleModel).modificationsChain.size) { "Modification by constructor doesn't change fields" }
+            val expectedModificationSize = 1
+            val modificationsChain = (result[0]!![1] as UtAssembleModel).modificationsChain
+            val actualModificationSize = modificationsChain.size
+            assertEquals(expectedModificationSize, actualModificationSize) { "In target class there's only $expectedModificationSize fields that can be changed, but generated $actualModificationSize modifications" }
+
+            assertEquals("pkgField", (modificationsChain[0] as UtDirectSetFieldModel).fieldId.name)
+        }
+    }
+
+    @Test
+    fun `test that enum models in a recursive object model are consistent`() {
+        withUtContext(UtContext(this::class.java.classLoader)) {
+            val idGenerator = ReferencePreservingIntIdGenerator()
+            val expectedIds = SampleEnum.values().associateWith { idGenerator.getOrCreateIdForValue(it) }
+
+            val result = collect(
+                ObjectModelProvider(idGenerator),
+                parameters = listOf(OuterClassWithEnums::class.java.id)
+            )
+
+            assertEquals(1, result.size)
+            val models = result[0] ?: fail("Inconsistent result")
+
+            for (model in models) {
+                val outerModel = (model as? UtAssembleModel)
+                    ?.finalInstantiationModel as? UtExecutableCallModel
+                    ?: fail("No final instantiation model found for the outer class")
+                for (param in outerModel.params) {
+                    when (param) {
+                        is UtEnumConstantModel -> {
+                            assertEquals(expectedIds[param.value], param.id)
+                        }
+                        is UtAssembleModel -> {
+                            for (enumParam in (param.finalInstantiationModel as UtExecutableCallModel).params) {
+                                enumParam as UtEnumConstantModel
+                                assertEquals(expectedIds[enumParam.value], enumParam.id)
+                            }
+                        }
+                        else -> {
+                            fail("Unexpected parameter model: $param")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private fun collect(
         modelProvider: ModelProvider,
         name: String = "testMethod",
         returnType: ClassId = voidClassId,
         parameters: List<ClassId>,
-        constants: List<FuzzedConcreteValue> = emptyList()
+        constants: List<FuzzedConcreteValue> = emptyList(),
+        block: FuzzedMethodDescription.() -> Unit = {}
     ): Map<Int, List<UtModel>> {
         return mutableMapOf<Int, MutableList<UtModel>>().apply {
-            modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants)) { i, m ->
-                computeIfAbsent(i) { mutableListOf() }.add(m)
+            modelProvider.generate(FuzzedMethodDescription(name, returnType, parameters, constants).apply(block)).forEach { (i, m) ->
+                computeIfAbsent(i) { mutableListOf() }.add(m.model)
             }
         }
     }

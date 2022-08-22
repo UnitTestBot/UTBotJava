@@ -1,6 +1,6 @@
 package org.utbot.examples.collections
 
-import org.utbot.examples.AbstractTestCaseGeneratorTest
+import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
 import org.utbot.examples.isException
@@ -9,7 +9,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation (generics) SAT-1332
-internal class LinkedListsTest : AbstractTestCaseGeneratorTest(
+internal class LinkedListsTest : UtValueTestCaseChecker(
     testClass = LinkedLists::class,
     testCodeGeneration = true,
     languagePipelines = listOf(
@@ -133,7 +133,7 @@ internal class LinkedListsTest : AbstractTestCaseGeneratorTest(
             LinkedLists::peekLast,
             eq(3),
             { l, _ -> l == null },
-            { l, r -> l != null && l.isEmpty() && r.isException<NullPointerException>() },
+            { l, r -> l != null && (l.isEmpty() || l.last() == null) && r.isException<NullPointerException>() },
             { l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l.last() },
             coverage = DoNotCalculate
         )
@@ -146,8 +146,8 @@ internal class LinkedListsTest : AbstractTestCaseGeneratorTest(
             eq(4),
             { l, _ -> l == null },
             { l, r -> l != null && l.isEmpty() && r.isException<NoSuchElementException>() },
-            { l, _ -> l != null && l.isNotEmpty() && l[0] == null },
-            { l, r -> l != null && l.isNotEmpty() && r.getOrNull() == l[0] },
+            { l, r -> l != null && l.isNotEmpty() && l[0] == null && r.isException<NullPointerException>() },
+            { l, r -> l != null && l.isNotEmpty() && l[0] != null && r.getOrNull() == l[0] },
             coverage = DoNotCalculate
         )
     }

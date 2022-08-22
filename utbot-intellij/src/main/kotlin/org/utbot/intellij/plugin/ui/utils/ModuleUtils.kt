@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.ui.utils
 
+import com.android.tools.idea.gradle.project.GradleProjectInfo
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
@@ -14,16 +15,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.ContentEntry
+import com.intellij.openapi.roots.ModifiableRootModel
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.SourceFolder
 import com.intellij.openapi.roots.TestModuleProperties
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.util.PathUtil.getParentPath
 import java.nio.file.Path
 import mu.KotlinLogging
 import org.jetbrains.android.sdk.AndroidSdkType
+import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
 import org.jetbrains.kotlin.platform.TargetPlatformVersion
@@ -35,7 +40,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun Module.jdkVersion(): JavaSdkVersion {
     val moduleRootManager = ModuleRootManager.getInstance(this)
-    val sdk = moduleRootManager.sdk ?: error("No sdk found for module $this") // TODO: get sdk from project?
+    val sdk = moduleRootManager.sdk
     return jdkVersionBy(sdk)
 }
 
@@ -74,29 +79,31 @@ fun Module.getOrCreateTestResourcesPath(testSourceRoot: VirtualFile?): Path {
  */
 fun Module.getOrCreateSarifReportsPath(testSourceRoot: VirtualFile?): Path {
     val testResourcesPath = this.getOrCreateTestResourcesPath(testSourceRoot)
-    return "$testResourcesPath/sarif/".toPath()
+    return "$testResourcesPath/utbot-sarif-report/".toPath()
 }
 
 /**
- * Find test module by current source module.
+ * Find test modules by current source module.
  */
-fun Module.testModule(project: Project): Module {
-    var testModule = findPotentialModuleForTests(project, this)
-    val testRootUrls = testModule.suitableTestSourceRoots()
+fun Module.testModules(project: Project): List<Module> {
+    var testModules = findPotentialModulesForTests(project, this)
+    val testRootUrls = testModules.flatMap { it.suitableTestSourceRoots() }
 
     //if no suitable module for tests is found, create tests in the same root
-    if (testRootUrls.isEmpty() && testModule.suitableTestSourceFolders().isEmpty()) {
-        testModule = this
+    if (testRootUrls.isEmpty() && testModules.flatMap { it.suitableTestSourceFolders() }.isEmpty()) {
+        testModules = listOf(this)
     }
-    return testModule
+    return testModules
 }
 
-private fun findPotentialModuleForTests(project: Project, srcModule: Module): Module {
+private fun findPotentialModulesForTests(project: Project, srcModule: Module): List<Module> {
+    val modules = mutableListOf<Module>()
     for (module in ModuleManager.getInstance(project).modules) {
         if (srcModule == TestModuleProperties.getInstance(module).productionModule) {
-            return module
+            modules += module
         }
     }
+    if (modules.isNotEmpty()) return modules
 
     if (srcModule.suitableTestSourceFolders().isEmpty()) {
         val modules = mutableSetOf<Module>()
@@ -104,15 +111,15 @@ private fun findPotentialModuleForTests(project: Project, srcModule: Module): Mo
         modules.remove(srcModule)
 
         val modulesWithTestRoot = modules.filter { it.suitableTestSourceFolders().isNotEmpty() }
-        if (modulesWithTestRoot.size == 1) return modulesWithTestRoot[0]
+        if (modulesWithTestRoot.size == 1) return modulesWithTestRoot
     }
-    return srcModule
+    return listOf(srcModule)
 }
 
 /**
  * Finds all suitable test root virtual files.
  */
-private fun Module.suitableTestSourceRoots(codegenLanguage: CodegenLanguage): List<VirtualFile> {
+fun Module.suitableTestSourceRoots(codegenLanguage: CodegenLanguage): List<VirtualFile> {
     val sourceRootsInModule = suitableTestSourceFolders(codegenLanguage).mapNotNull { it.file }
 
     if (sourceRootsInModule.isNotEmpty()) {
@@ -140,60 +147,106 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
         // Heuristics: User is more likely to choose the shorter path
         .sortedBy { it.url.length }
 }
+fun Project.isGradle() = GradleProjectInfo.getInstance(this).isBuildWithGradle
+
+private const val dedicatedTestSourceRootName = "utbot_tests"
+fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<VirtualFile>): VirtualFile? {
+    // Don't suggest new test source roots for Gradle project where 'unexpected' test roots won't work
+    if (project.isGradle()) return null
+    // Dedicated test root already exists
+    if (testSourceRoots.any { file -> file.name == dedicatedTestSourceRootName }) return null
+
+    val moduleInstance = ModuleRootManager.getInstance(this)
+    val testFolder = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
+        .firstOrNull { it.rootType in testSourceRootTypes }
+    (testFolder?.let { testFolder.file?.parent } ?: (testFolder?.contentEntry
+        ?: moduleInstance.contentEntries.first()).file ?: moduleFile)?.let {
+        val file = FakeVirtualFile(it, dedicatedTestSourceRootName)
+        testSourceRoots.add(file)
+        // We return "true" IFF it's case of not yet created fake directory
+        return if (VfsUtil.findRelativeFile(it, dedicatedTestSourceRootName) == null) file else null
+    }
+    return null
+}
 
 private const val resourcesSuffix = "/resources"
 
 private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualFile?): String {
-    val moduleInstance = ModuleRootManager.getInstance(module)
-    val sourceFolders = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
-
-    val testResourcesFolder = sourceFolders
-        .filter { sourceFolder ->
-            sourceFolder.rootType in testResourceRootTypes && !sourceFolder.isForGeneratedSources()
-        }
-        // taking the source folder that has the maximum common prefix
-        // with `testSourceRoot`, which was selected by the user
-        .maxBy { sourceFolder ->
-            val sourceFolderPath = sourceFolder.file?.path ?: ""
-            val testSourceRootPath = testSourceRoot?.path ?: ""
-            sourceFolderPath.commonPrefixWith(testSourceRootPath).length
-        }
-    if (testResourcesFolder != null) {
-        return testResourcesFolder.url
-    }
-
-    val testFolder = sourceFolders.firstOrNull { it.rootType in testSourceRootTypes }
-    val contentEntry = testFolder?.contentEntry ?: moduleInstance.contentEntries.first()
-
-    val parentFolderUrl = testFolder?.let { getParentPath(testFolder.url) }
-    val testResourcesUrl =
-        if (parentFolderUrl != null) "${parentFolderUrl}$resourcesSuffix" else "${contentEntry.url}$resourcesSuffix"
-
-    val codegenLanguage =
-        if (testFolder?.rootType == TestResourceKotlinRootType) CodegenLanguage.KOTLIN else CodegenLanguage.JAVA
-
+    val rootModel = ModuleRootManager.getInstance(module).modifiableModel
     try {
-        WriteCommandAction.runWriteCommandAction(module.project) {
-            contentEntry.addSourceFolder(testResourcesUrl, codegenLanguage.testResourcesRootType())
-            moduleInstance.modifiableModel.commit()
-            VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(testResourcesUrl))
-        }
-    }
-    catch (e: java.lang.IllegalStateException) {
-        // Hack to avoid unmodifiable ModuleBridge testModule on Android SAT-1536.
-        workaround(WorkaroundReason.HACK) {
-            logger.info("Error during SARIF report generation: $e")
-            return testFolder!!.url
-        }
-    }
+        val sourceFolders = rootModel.contentEntries.flatMap { it.sourceFolders.toList() }
 
-    return testResourcesUrl
+        val testResourcesFolder = sourceFolders
+            .filter { sourceFolder ->
+                sourceFolder.rootType in testResourceRootTypes && !sourceFolder.isForGeneratedSources()
+            }
+            // taking the source folder that has the maximum common prefix
+            // with `testSourceRoot`, which was selected by the user
+            .maxByOrNull { sourceFolder ->
+                val sourceFolderPath = sourceFolder.file?.path ?: ""
+                val testSourceRootPath = testSourceRoot?.path ?: ""
+                sourceFolderPath.commonPrefixWith(testSourceRootPath).length
+            }
+        if (testResourcesFolder != null) {
+            return testResourcesFolder.url
+        }
+
+        val testFolder = sourceFolders.firstOrNull { it.rootType in testSourceRootTypes }
+        val contentEntry = testFolder?.contentEntry ?: rootModel.contentEntries.first()
+
+        val parentFolderUrl = testFolder?.let { getParentPath(testFolder.url) }
+        val testResourcesUrl =
+            if (parentFolderUrl != null) "${parentFolderUrl}$resourcesSuffix" else "${contentEntry.url}$resourcesSuffix"
+
+        val codegenLanguage =
+            if (testFolder?.rootType == TestResourceKotlinRootType) CodegenLanguage.KOTLIN else CodegenLanguage.JAVA
+
+        try {
+            contentEntry.addSourceRootIfAbsent(rootModel, testResourcesUrl, codegenLanguage.testResourcesRootType())
+        } catch (e: java.lang.IllegalStateException) {
+            // Hack to avoid unmodifiable ModuleBridge testModule on Android SAT-1536.
+            workaround(WorkaroundReason.HACK) {
+                logger.info("Error during SARIF report generation: $e")
+                return testFolder!!.url
+            }
+        }
+
+        return testResourcesUrl
+    } finally {
+        if (!rootModel.isDisposed && rootModel.isWritable) rootModel.dispose()
+    }
+}
+
+fun ContentEntry.addSourceRootIfAbsent(
+    model: ModifiableRootModel,
+    sourceRootUrl: String,
+    type: JpsModuleSourceRootType<*>
+) {
+    getSourceFolders(type).find { it.url == sourceRootUrl }?.apply {
+        model.dispose()
+        return
+    }
+    WriteCommandAction.runWriteCommandAction(rootModel.module.project) {
+        try {
+            VfsUtil.createDirectoryIfMissing(VfsUtilCore.urlToPath(sourceRootUrl))
+            addSourceFolder(sourceRootUrl, type)
+            model.commit()
+        } catch (e: Exception) {
+            logger.error { e }
+            model.dispose()
+        }
+    }
 }
 
 /**
  * Obtain JDK version and make sure that it is JDK8 or JDK11
  */
-private fun jdkVersionBy(sdk: Sdk): JavaSdkVersion {
+private fun jdkVersionBy(sdk: Sdk?): JavaSdkVersion {
+    if (sdk == null) {
+        CommonErrorNotifier.notify("Failed to obtain JDK version of the project")
+    }
+    requireNotNull(sdk)
+
     val jdkVersion = when (sdk.sdkType) {
         is JavaSdk -> {
             (sdk.sdkType as JavaSdk).getVersion(sdk)

@@ -30,7 +30,6 @@ import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.mkString
 import org.utbot.engine.pc.toSort
-import org.utbot.framework.UtSettings.checkNpeForFinalFields
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.plugin.api.FieldId
@@ -46,6 +45,9 @@ import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaMethod
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
+import org.utbot.engine.pc.UtSolverStatusUNDEFINED
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.executableId
 import soot.ArrayType
 import soot.PrimType
 import soot.RefLikeType
@@ -71,7 +73,7 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.tagkit.ArtificialEntityTag
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+import java.lang.reflect.ParameterizedType
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -201,7 +203,7 @@ val Type.numDimensions get() = if (this is ArrayType) numDimensions else 0
 /**
  * Invocation. Can generate multiple targets.
  *
- * @see UtBotSymbolicEngine.virtualAndInterfaceInvoke
+ * @see Traverser.virtualAndInterfaceInvoke
  */
 data class Invocation(
     val instance: ReferenceValue?,
@@ -220,7 +222,7 @@ data class Invocation(
 /**
  * Invocation target. Contains constraints to be satisfied for this instance class (related to virtual invoke).
  *
- * @see UtBotSymbolicEngine.virtualAndInterfaceInvoke
+ * @see Traverser.virtualAndInterfaceInvoke
  */
 data class InvocationTarget(
     val instance: ReferenceValue?,
@@ -243,11 +245,11 @@ data class MethodInvocationTarget(
 )
 
 /**
- * Used in the [UtBotSymbolicEngine.findLibraryTargets] to substitute common types
+ * Used in the [Traverser.findLibraryTargets] to substitute common types
  * like [Iterable] with the types that have corresponding wrappers.
  *
- * @see UtBotSymbolicEngine.findLibraryTargets
- * @see UtBotSymbolicEngine.findInvocationTargets
+ * @see Traverser.findLibraryTargets
+ * @see Traverser.findInvocationTargets
  */
 val libraryTargets: Map<String, List<String>> = mapOf(
     Iterable::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
@@ -325,15 +327,28 @@ val <R> UtMethod<R>.signature: String
         return "${methodName}()"
     }
 
+val ExecutableId.displayName: String
+    get() {
+        val executableName = this.name
+        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        return "$executableName($parameters)"
+    }
+
+val Constructor<*>.displayName: String
+    get() = executableId.displayName
+
+val Method.displayName: String
+    get() = executableId.displayName
+
 val <R> UtMethod<R>.displayName: String
     get() {
-        val methodName = this.callable.name
-        val javaMethod = this.javaMethod ?: this.javaConstructor
-        if (javaMethod != null) {
-            val parameters = javaMethod.parameters.joinToString(separator = ", ") { "${it.type.canonicalName}" }
-            return "${methodName}($parameters)"
+        val executableId = this.javaMethod?.executableId ?: this.javaConstructor?.executableId
+        return if (executableId != null) {
+            executableId.displayName
+        } else {
+            val methodName = this.callable.name
+            return "${methodName}()"
         }
-        return "${methodName}()"
     }
 
 
@@ -381,11 +396,7 @@ fun arrayTypeUpdate(addr: UtAddrExpression, type: ArrayType) =
 fun SootField.shouldBeNotNull(): Boolean {
     require(type is RefLikeType)
 
-    if (hasNotNullAnnotation()) return true
-
-    if (!checkNpeForFinalFields && isFinal) return true
-
-    return false
+    return hasNotNullAnnotation()
 }
 
 /**
@@ -406,7 +417,7 @@ val Type.baseType: Type
     get() = if (this is ArrayType) this.baseType else this
 
 val java.lang.reflect.Type.rawType: java.lang.reflect.Type
-    get() = if (this is ParameterizedTypeImpl) rawType else this
+    get() = if (this is ParameterizedType) rawType else this
 
 /**
  * Returns true if the addr belongs to “this” value, false otherwise.
@@ -434,18 +445,27 @@ val SootClass.isLibraryNonOverriddenClass: Boolean
 /**
  * Returns a state from the list that has [UtSolverStatusSAT] status.
  * Inside it calls UtSolver.check if required.
+ *
+ * [processStatesWithUnknownStatus] is responsible for solver checks for states
+ * with unknown status. Note that this calculation might take a long time.
  */
-fun MutableList<ExecutionState>.pollUntilSat(): ExecutionState? {
+fun MutableList<ExecutionState>.pollUntilSat(processStatesWithUnknownStatus: Boolean): ExecutionState? {
     while (!isEmpty()) {
         val state = removeLast()
 
         with(state.solver) {
+            if (lastStatus.statusKind == UtSolverStatusKind.UNSAT) return@with
+
             if (lastStatus.statusKind == UtSolverStatusKind.SAT) return state
 
-            if (lastStatus.statusKind == UtSolverStatusKind.UNKNOWN) {
-                val result = check(respectSoft = true)
+            require(failedAssumptions.isEmpty()) { "There are failed requirements in the queue to execute concretely" }
 
-                if (result.statusKind == UtSolverStatusKind.SAT) return state
+            if (processStatesWithUnknownStatus) {
+                if (lastStatus == UtSolverStatusUNDEFINED) {
+                    val result = check(respectSoft = true)
+
+                    if (result.statusKind == UtSolverStatusKind.SAT) return state
+                }
             }
         }
     }
@@ -457,3 +477,23 @@ fun isOverriddenClass(type: RefType) = type.sootClass.isOverridden
 
 val SootMethod.isSynthetic: Boolean
     get() = soot.Modifier.isSynthetic(modifiers)
+
+/**
+ * Returns true if the [SootMethod]'s signature is equal to [UtMock.assume]'s signature, false otherwise.
+ */
+val SootMethod.isUtMockAssume
+    get() = signature == assumeMethod.signature
+
+/**
+ * Returns true if the [SootMethod]'s signature is equal to
+ * [UtMock.assumeOrExecuteConcretely]'s signature, false otherwise.
+ */
+val SootMethod.isUtMockAssumeOrExecuteConcretely
+    get() = signature == assumeOrExecuteConcretelyMethod.signature
+
+/**
+ * Returns true is the [SootMethod] is defined in a class from
+ * [UTBOT_OVERRIDE_PACKAGE_NAME] package and its name is `preconditionCheck`.
+ */
+val SootMethod.isPreconditionCheckMethod
+    get() = declaringClass.isOverridden && name == "preconditionCheck"

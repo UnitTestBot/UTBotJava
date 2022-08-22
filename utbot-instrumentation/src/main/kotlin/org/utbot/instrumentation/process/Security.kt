@@ -52,7 +52,9 @@ internal fun <T> sandbox(block: () -> T): T {
 
 internal fun <T> sandbox(file: URI, block: () -> T): T {
     val path = Paths.get(file)
-    val perms = mutableListOf<Permission>()
+    val perms = mutableListOf<Permission>(
+        RuntimePermission("accessDeclaredMembers")
+    )
     val allCodeSource = CodeSource(null, emptyArray<Certificate>())
     if (Files.exists(path)) {
         val policyFile = PolicyFile(file.toURL())

@@ -34,12 +34,12 @@ jobs:
 
       - uses: actions/setup-java@v3
         with:
-          java-version: '8'
+          java-version: '11'
           distribution: 'zulu'
           java-package: jdk+fx
       - uses: gradle/gradle-build-action@v2
         with:
-          gradle-version: 6.8
+          gradle-version: 7.4.2
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'

@@ -39,7 +39,7 @@ Output example (the result of three runs during one night):
 [
   {
     "target": "guava",
-    "class_timeout_ms": 20,
+    "class_timeout_sec": 20,
     "run_timeout_min": 20,
     "duration_ms": 604225,
     "classes_for_generation": 20,
@@ -51,15 +51,15 @@ Output example (the result of three runs during one night):
     "methods_with_exceptions": 46,
     "suspicious_methods": 85,
     "test_classes_failed_to_compile": 0,
-    "covered_instructions_count": 5753,
-    "covered_instructions_count_by_fuzzing": 4375,
-    "covered_instructions_count_by_concolic": 4069,
-    "total_instructions_count": 10182,
+    "covered_instructions": 5753,
+    "covered_instructions_by_fuzzing": 4375,
+    "covered_instructions_by_concolic": 4069,
+    "total_instructions": 10182,
     "avg_coverage": 62.885408034613
   },
   {
     "target": "guava",
-    "class_timeout_ms": 20,
+    "class_timeout_sec": 20,
     "run_timeout_min": 20,
     "duration_ms": 633713,
     "classes_for_generation": 20,
@@ -71,15 +71,15 @@ Output example (the result of three runs during one night):
     "methods_with_exceptions": 46,
     "suspicious_methods": 38,
     "test_classes_failed_to_compile": 0,
-    "covered_instructions_count": 6291,
-    "covered_instructions_count_by_fuzzing": 4470,
-    "covered_instructions_count_by_concolic": 5232,
-    "total_instructions_count": 11011,
+    "covered_instructions": 6291,
+    "covered_instructions_by_fuzzing": 4470,
+    "covered_instructions_by_concolic": 5232,
+    "total_instructions": 11011,
     "avg_coverage": 62.966064315865275
   },
   {
     "target": "guava",
-    "class_timeout_ms": 20,
+    "class_timeout_sec": 20,
     "run_timeout_min": 20,
     "duration_ms": 660421,
     "classes_for_generation": 20,
@@ -91,10 +91,10 @@ Output example (the result of three runs during one night):
     "methods_with_exceptions": 44,
     "suspicious_methods": 43,
     "test_classes_failed_to_compile": 0,
-    "covered_instructions_count": 6266,
-    "covered_instructions_count_by_fuzzing": 4543,
-    "covered_instructions_count_by_concolic": 5041,
-    "total_instructions_count": 11011,
+    "covered_instructions": 6266,
+    "covered_instructions_by_fuzzing": 4543,
+    "covered_instructions_by_concolic": 5041,
+    "total_instructions": 11011,
     "avg_coverage": 61.59069193429194
   }
 ]
@@ -114,7 +114,7 @@ Input example:
 ```
 --stats_file stats.json --output_file data/meta-stats.json
 --commit 66a1aeb6 --branch main
---build 2022.8 --timestamp 1660905157 
+--build 2022.8 --timestamp 1661174420 
 --source_type github-action --source_id 2902082973
 ```
 
@@ -128,7 +128,7 @@ Output example (an average for each statistic over the three runs followed by me
       "version": "0",
       "metrics": [
         {
-          "class_timeout_ms": 20,
+          "class_timeout_sec": 20,
           "run_timeout_min": 20,
           "duration_ms": 604225,
           "classes_for_generation": 20,
@@ -140,14 +140,14 @@ Output example (an average for each statistic over the three runs followed by me
           "methods_with_exceptions": 46,
           "suspicious_methods": 85,
           "test_classes_failed_to_compile": 0,
-          "covered_instructions_count": 5753,
-          "covered_instructions_count_by_fuzzing": 4375,
-          "covered_instructions_count_by_concolic": 4069,
-          "total_instructions_count": 10182,
+          "covered_instructions": 5753,
+          "covered_instructions_by_fuzzing": 4375,
+          "covered_instructions_by_concolic": 4069,
+          "total_instructions": 10182,
           "avg_coverage": 62.885408034613
         },
         {
-          "class_timeout_ms": 20,
+          "class_timeout_sec": 20,
           "run_timeout_min": 20,
           "duration_ms": 633713,
           "classes_for_generation": 20,
@@ -159,14 +159,14 @@ Output example (an average for each statistic over the three runs followed by me
           "methods_with_exceptions": 46,
           "suspicious_methods": 38,
           "test_classes_failed_to_compile": 0,
-          "covered_instructions_count": 6291,
-          "covered_instructions_count_by_fuzzing": 4470,
-          "covered_instructions_count_by_concolic": 5232,
-          "total_instructions_count": 11011,
+          "covered_instructions": 6291,
+          "covered_instructions_by_fuzzing": 4470,
+          "covered_instructions_by_concolic": 5232,
+          "total_instructions": 11011,
           "avg_coverage": 62.966064315865275
         },
         {
-          "class_timeout_ms": 20,
+          "class_timeout_sec": 20,
           "run_timeout_min": 20,
           "duration_ms": 660421,
           "classes_for_generation": 20,
@@ -178,10 +178,10 @@ Output example (an average for each statistic over the three runs followed by me
           "methods_with_exceptions": 44,
           "suspicious_methods": 43,
           "test_classes_failed_to_compile": 0,
-          "covered_instructions_count": 6266,
-          "covered_instructions_count_by_fuzzing": 4543,
-          "covered_instructions_count_by_concolic": 5041,
-          "total_instructions_count": 11011,
+          "covered_instructions": 6266,
+          "covered_instructions_by_fuzzing": 4543,
+          "covered_instructions_by_concolic": 5041,
+          "total_instructions": 11011,
           "avg_coverage": 61.59069193429194
         }
       ]
@@ -195,8 +195,8 @@ Output example (an average for each statistic over the three runs followed by me
     "commit_hash": "66a1aeb6",
     "branch": "main",
     "build_number": "2022.8",
-    "timestamp": 1661153691,
-    "date": "2022-08-22T07:34:51",
+    "timestamp": 1661174420,
+    "date": "2022-08-22T13:20:20",
     "environment": {
       "host": "fv-az377-887",
       "OS": "Linux version #20~20.04.1-Ubuntu SMP Fri Aug 5 12:16:53 UTC 2022",
@@ -224,7 +224,7 @@ Input example:
 
 ```
 --input_data_dir ./data --output_file aggregated_data.json 
---timestamp_from 0 --timestamp_to 1660905157
+--timestamp_from 0 --timestamp_to 1661174420
 ```
 
 Output example (You'll get an array of several outputs without metadata):
@@ -235,7 +235,7 @@ Output example (You'll get an array of several outputs without metadata):
     "version": "0",
     "metrics": [
       {
-        "class_timeout_ms": 20,
+        "class_timeout_sec": 20,
         "run_timeout_min": 20,
         "duration_ms": 604225,
         "classes_for_generation": 20,
@@ -251,10 +251,10 @@ Output example (You'll get an array of several outputs without metadata):
         "total_coverage": 56.50166961304262,
         "total_coverage_by_fuzzing": 42.967982714594385,
         "total_coverage_by_concolic": 39.96267923787075,
-        "timestamp": 1661158455
+        "timestamp": 1661174420
       },
       {
-        "class_timeout_ms": 20,
+        "class_timeout_sec": 20,
         "run_timeout_min": 20,
         "duration_ms": 633713,
         "classes_for_generation": 20,
@@ -270,10 +270,10 @@ Output example (You'll get an array of several outputs without metadata):
         "total_coverage": 57.133775315593496,
         "total_coverage_by_fuzzing": 40.595767868495145,
         "total_coverage_by_concolic": 47.51612024339297,
-        "timestamp": 1661158455
+        "timestamp": 1661174420
       },
       {
-        "class_timeout_ms": 20,
+        "class_timeout_sec": 20,
         "run_timeout_min": 20,
         "duration_ms": 660421,
         "classes_for_generation": 20,
@@ -289,7 +289,7 @@ Output example (You'll get an array of several outputs without metadata):
         "total_coverage": 56.90672963400236,
         "total_coverage_by_fuzzing": 41.25874125874126,
         "total_coverage_by_concolic": 45.78149123603669,
-        "timestamp": 1661158455
+        "timestamp": 1661174420
       }
     ]
   }

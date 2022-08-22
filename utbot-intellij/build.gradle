@@ -33,6 +33,8 @@ dependencies {
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))
     testApi(project(":utbot-framework"))
+
+    api project(':utbot-python')
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
@@ -40,7 +42,7 @@ intellij {
     version = "2022.1"
     type = "IC"
     plugins = ['java',
-               'PythonCore',
+               'PythonCore:221.5080.210',
                // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
                //https://mvnrepository.com/artifact/org.jetbrains.kotlin/gradle-idea
                "org.jetbrains.kotlin",

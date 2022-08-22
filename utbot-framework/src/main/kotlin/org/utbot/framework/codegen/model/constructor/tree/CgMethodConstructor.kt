@@ -708,6 +708,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
                 }
+                is PythonTreeModel -> pythonDeepEquals(expected, actual)
+                is PythonModel -> TODO("Not yet implemented")
             }
         }
     }

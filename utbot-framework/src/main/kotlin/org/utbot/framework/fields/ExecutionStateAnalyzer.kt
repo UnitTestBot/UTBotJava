@@ -4,20 +4,7 @@ import org.utbot.common.WorkaroundReason
 import org.utbot.common.doNotRun
 import org.utbot.common.unreachableBranch
 import org.utbot.common.workaround
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.MissingState
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -232,6 +219,10 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
         }
     }
 
+    override fun visit(element: PythonModel, data: FieldData) {
+        recordFieldState(data, element)
+    }
+
     private fun recordFieldState(data: FieldData, model: UtModel) {
         val fields = data.fields
         val path = data.path
@@ -261,5 +252,6 @@ fun <D> UtModel.accept(visitor: UtModelVisitor<D>, data: D) = visitor.run {
         is UtPrimitiveModel -> visit(element, data)
         is UtReferenceModel -> visit(element, data)
         is UtVoidModel -> visit(element, data)
+        is PythonModel -> visit(element, data)
     }
 }

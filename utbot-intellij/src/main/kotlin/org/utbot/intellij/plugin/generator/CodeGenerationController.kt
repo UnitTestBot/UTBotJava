@@ -45,10 +45,7 @@ import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.common.appendHtmlLine
-import org.utbot.framework.codegen.Import
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RegularImport
-import org.utbot.framework.codegen.StaticImport
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.TestsCodeWithTestReport
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
@@ -337,6 +334,7 @@ object CodeGenerationController {
                 JavaCodeStyleManager.getInstance(project).shortenClassReferences(reformatRange)
             }
             CodegenLanguage.KOTLIN -> ShortenReferences.DEFAULT.process((testClass as KtUltraLightClass).kotlinOrigin.containingKtFile)
+            CodegenLanguage.PYTHON -> TODO("Not yet implemented")
         }
     }
 
@@ -522,6 +520,7 @@ object CodeGenerationController {
                         }
                     }
                     is RegularImport -> { }
+                    is PythonImport -> { }
                 }
             }
         }

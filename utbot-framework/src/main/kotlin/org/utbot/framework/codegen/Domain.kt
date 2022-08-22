@@ -5,8 +5,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
 import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
 import org.utbot.framework.codegen.model.tree.CgClassId
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -33,7 +31,6 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortArrayClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import java.io.File
-import sun.text.normalizer.NormalizerImpl
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.voidWrapperClassId

@@ -32,6 +32,8 @@ object PythonTestGenerationProcessor {
         codegenLanguage: CodegenLanguage,
         outputFilename: String, // without path, just name
         timeoutForRun: Long,
+        doNotCheckRequirements: Boolean = false,
+        visitOnlySpecifiedSource: Boolean = false,
         withMinimization: Boolean = true,
         isCanceled: () -> Boolean = { false },
         checkingRequirementsAction: () -> Unit = {},
@@ -52,16 +54,20 @@ object PythonTestGenerationProcessor {
         try {
             FileManager.assignTestSourceRoot(testSourceRoot)
 
-            checkingRequirementsAction()
-            if (!requirementsAreInstalled(pythonPath)) {
-                val result = requirementsAreNotInstalledAction()
-                if (result == MissingRequirementsActionResult.NOT_INSTALLED)
-                    return
+            if (!doNotCheckRequirements) {
+                checkingRequirementsAction()
+                if (!requirementsAreInstalled(pythonPath)) {
+                    val result = requirementsAreNotInstalledAction()
+                    if (result == MissingRequirementsActionResult.NOT_INSTALLED)
+                        return
+                }
             }
 
             startedLoadingPythonTypesAction()
             PythonTypesStorage.pythonPath = pythonPath
-            PythonTypesStorage.refreshProjectClassesAndModulesLists(directoriesForSysPath)
+
+            val onlySpecifiedFile = if (!visitOnlySpecifiedSource) null else File(pythonFilePath)
+            PythonTypesStorage.refreshProjectClassesAndModulesLists(directoriesForSysPath, onlySpecifiedFile)
             StubFileFinder
 
             startedTestGenerationAction()

@@ -63,13 +63,23 @@ class PythonGenerateTestsCommand: CliktCommand(
     )
 
     private val installRequirementsIfMissing by option(
-        "-r", "--install-requirements",
+        "--install-requirements",
         help = "Install requirements if missing"
     ).flag(default = false)
 
     private val doNotMinimize by option(
         "--do-not-minimize",
-        help = "Do not try to minimize the number of generated tests"
+        help = "Turn off minimization of number of generated tests"
+    ).flag(default = false)
+
+    private val doNotCheckRequirements by option(
+        "--do-not-check-requirements",
+        help = "Turn off Python requirements check"
+    ).flag(default = false)
+
+    private val visitOnlySpecifiedSource by option(
+        "--visit-only-specified-source",
+        help = "Do not search for classes and imported modules in other Python files from sys.path"
     ).flag(default = false)
 
     private val timeout by option(
@@ -214,6 +224,8 @@ class PythonGenerateTestsCommand: CliktCommand(
             outputFilename = outputFilename,
             timeoutForRun = timeoutForRun,
             withMinimization = !doNotMinimize,
+            doNotCheckRequirements = doNotCheckRequirements,
+            visitOnlySpecifiedSource = visitOnlySpecifiedSource,
             checkingRequirementsAction = {
                 logger.info("Checking requirements...")
             },

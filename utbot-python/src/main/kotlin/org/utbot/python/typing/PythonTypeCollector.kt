@@ -14,6 +14,7 @@ import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonModule
 import org.utbot.python.utils.AnnotationNormalizer
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+import org.utbot.python.utils.checkIfFileLiesInPath
 import org.utbot.python.utils.getModuleNameWithoutCheck
 import java.io.File
 import java.io.FileInputStream
@@ -145,38 +146,44 @@ object PythonTypesStorage {
         )
 
     fun refreshProjectClassesAndModulesLists(
-        directoriesForSysPath: Set<String>
+        directoriesForSysPath: Set<String>,
+        onlyFromSpecifiedFile: File? = null
     ) {
-        val processedFiles = mutableSetOf<File>()
         val projectClassesSet = mutableSetOf<ProjectClass>()
         val projectModulesSet = mutableSetOf(PythonModule("builtins"))
 
-        directoriesForSysPath.forEach { path ->
+        val filesToVisit = directoriesForSysPath.flatMap { path ->
+            if (onlyFromSpecifiedFile != null && !checkIfFileLiesInPath(path, onlyFromSpecifiedFile.path))
+                return@flatMap emptyList()
+
             val pathFile = File(path)
-            getPythonFiles(pathFile).forEach inner@{ file ->
-                if (!processedFiles.contains(file)) {
-                    processedFiles.add(file)
-                    val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
-                    val code = PythonCode.getFromString(content, file.path) ?: return@inner
-                    projectClassesSet += code.getToplevelClasses().map { pyClass ->
-                        val collector = ClassInfoCollector(pyClass)
-                        val module = getModuleNameWithoutCheck(pathFile, file)
-                        val initSignature = pyClass.initSignature
-                            ?.map {
-                                annotationFromProjectToClassId(
-                                    it.annotation,
-                                    pythonPath ?: error(PYTHON_NOT_SPECIFIED),
-                                    module,
-                                    pyClass.filename!!,
-                                    directoriesForSysPath
-                                )
-                            }
-                        val fullClassName = module + "." + pyClass.name
-                        ProjectClass(pyClass, collector.storage, initSignature, PythonClassId(fullClassName))
+            if (onlyFromSpecifiedFile != null)
+                return@flatMap listOf(
+                    Pair(getModuleNameWithoutCheck(pathFile, onlyFromSpecifiedFile), onlyFromSpecifiedFile)
+                )
+
+            getPythonFiles(pathFile).map { Pair(getModuleNameWithoutCheck(pathFile, it), it) }
+        } .distinctBy { it.second }
+
+        filesToVisit.forEach { (module, file) ->
+            val content = IOUtils.toString(FileInputStream(file), StandardCharsets.UTF_8)
+            val code = PythonCode.getFromString(content, file.path) ?: return@forEach
+            projectClassesSet += code.getToplevelClasses().map { pyClass ->
+                val collector = ClassInfoCollector(pyClass)
+                val initSignature = pyClass.initSignature
+                    ?.map {
+                        annotationFromProjectToClassId(
+                            it.annotation,
+                            pythonPath ?: error(PYTHON_NOT_SPECIFIED),
+                            module,
+                            pyClass.filename!!,
+                            directoriesForSysPath
+                        )
                     }
-                    projectModulesSet += code.getToplevelModules()
-                }
+                val fullClassName = module + "." + pyClass.name
+                ProjectClass(pyClass, collector.storage, initSignature, PythonClassId(fullClassName))
             }
+            projectModulesSet += code.getToplevelModules()
         }
         projectClasses = projectClassesSet.toList()
 

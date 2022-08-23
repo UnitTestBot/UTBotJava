@@ -23,6 +23,8 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
+import org.utbot.framework.codegen.model.tree.CgComment
+import org.utbot.framework.codegen.model.tree.CgSingleLineComment
 
 class CodeGenerator(
     private val classUnderTest: ClassId,
@@ -146,6 +148,21 @@ sealed class UtilClassKind(
 ) : Comparable<UtilClassKind> {
 
     /**
+     * The version of util class being generated.
+     * For more details see [UtilClassFileMethodProvider.UTIL_CLASS_VERSION].
+     */
+    val utilClassVersion: String
+        get() = UtilClassFileMethodProvider.UTIL_CLASS_VERSION
+
+    /**
+     * The comment specifying the version of util class being generated.
+     *
+     * @see UtilClassFileMethodProvider.UTIL_CLASS_VERSION
+     */
+    val utilClassVersionComment: CgComment
+        get() = CgSingleLineComment("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion}")
+
+    /**
      * A kind of regular UtUtils class. "Regular" here means that this class does not use a mock framework.
      */
     object RegularUtUtils : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = false, priority = 0)
@@ -171,6 +188,14 @@ sealed class UtilClassKind(
     }
 
     companion object {
+
+        /**
+         * Class UtUtils will contain a comment specifying the version of this util class
+         * (if we ever change util methods, then util class will be different, hence the update of its version).
+         * This is a prefix that will go before the version in the comment.
+         */
+        const val UTIL_CLASS_VERSION_COMMENT_PREFIX = "UtUtils class version: "
+
         /**
          * Check if an util class is required, and if so, what kind.
          * @return `null` if [CgContext.utilMethodProvider] is not [UtilClassFileMethodProvider],

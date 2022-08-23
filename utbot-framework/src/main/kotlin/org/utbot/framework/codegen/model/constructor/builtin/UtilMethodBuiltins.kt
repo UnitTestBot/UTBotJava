@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.constructor.builtin
 import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
+import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
@@ -155,7 +156,21 @@ internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
  *
  * Content of this util class may be different (due to mocks in deepEquals), but the methods (and their ids) are the same.
  */
-internal object UtilClassFileMethodProvider : UtilMethodProvider(utUtilsClassId)
+internal object UtilClassFileMethodProvider : UtilMethodProvider(utUtilsClassId) {
+    /**
+     * This property contains the current version of util class.
+     * This version will be written to the util class file inside a comment.
+     *
+     * Whenever we want to create an util class, we first check if there is an already existing one.
+     * If there is, then we decide whether we need to overwrite it or not. One of the factors here
+     * is the version of this existing class. If the version of existing class is older than the one
+     * that is currently stored in [UtilClassFileMethodProvider.UTIL_CLASS_VERSION], then we need to
+     * overwrite an util class, because it might have been changed in the new version.
+     *
+     * **IMPORTANT** if you make any changes to util methods (see [utilMethodTextById]), do not forget to update this version.
+     */
+    const val UTIL_CLASS_VERSION = "1.0"
+}
 
 internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
 

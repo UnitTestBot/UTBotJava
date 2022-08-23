@@ -33,6 +33,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
+import com.intellij.psi.util.childrenOfType
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
@@ -50,7 +51,6 @@ import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
-import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
 import org.utbot.common.allNestedClasses
@@ -161,11 +161,12 @@ object CodeGenerationController {
 
         run(EDT_LATER) {
             waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
+                val mockFrameworkUsed = utilClassListener.mockFrameworkUsed
                 val utilClassKind = utilClassListener.requiredUtilClassKind
                     ?: return@waitForCountDown // no util class needed
 
                 val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
-                if (shouldCreateOrUpdateUtilClass(existingUtilClass, utilClassListener)) {
+                if (shouldCreateOrUpdateUtilClass(existingUtilClass, mockFrameworkUsed, utilClassKind)) {
                     createOrUpdateUtilClass(
                         testDirectory = baseTestDirectory,
                         utilClassKind = utilClassKind,
@@ -203,13 +204,12 @@ object CodeGenerationController {
         }
     }
 
-    private fun shouldCreateOrUpdateUtilClass(existingUtilClass: PsiFile?, utilClassListener: UtilClassListener): Boolean {
-        val existingUtilClassVersion = existingUtilClass?.utilClassVersionOrNull
-        // TODO: here should be the current version of UTBot
-        val newUtilClassVersion = "1.0-SNAPSHOT"
-        val versionIsUpdated = existingUtilClassVersion != newUtilClassVersion
-
-        val mockFrameworkNotUsed = !utilClassListener.mockFrameworkUsed
+    private fun shouldCreateOrUpdateUtilClass(
+        existingUtilClass: PsiFile?,
+        mockFrameworkUsed: Boolean,
+        requiredUtilClassKind: UtilClassKind
+    ): Boolean {
+        val mockFrameworkNotUsed = !mockFrameworkUsed
 
         val utilClassExists = existingUtilClass != null
 
@@ -217,6 +217,10 @@ object CodeGenerationController {
             // If no util class exists, then we should create a new one.
             return true
         }
+
+        val existingUtilClassVersion = existingUtilClass?.utilClassVersionOrNull
+        val newUtilClassVersion = requiredUtilClassKind.utilClassVersion
+        val versionIsUpdated = existingUtilClassVersion != newUtilClassVersion
 
         if (versionIsUpdated) {
             // If an existing util class is out of date,
@@ -353,16 +357,10 @@ object CodeGenerationController {
 
             utilClass.childrenOfType<PsiComment>()
                 .map { comment -> comment.text }
-                .firstOrNull { text -> UTBOT_VERSION_PREFIX in text }
-                ?.substringAfterLast(UTBOT_VERSION_PREFIX)
+                .firstOrNull { text -> UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX in text }
+                ?.substringAfterLast(UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX)
                 ?.trim()
         }
-
-    /**
-     * Util class must have a comment that specifies the version of UTBot it was generated with.
-     * This prefix is the start of this comment. The version of UTBot goes after it in the comment.
-     */
-    private const val UTBOT_VERSION_PREFIX = "UTBot version:"
 
     /**
      * @param srcClass class under test

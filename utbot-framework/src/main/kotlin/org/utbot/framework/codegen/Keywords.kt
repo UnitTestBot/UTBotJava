@@ -25,7 +25,7 @@ private val pythonKeywords = setOf(
     "complex", "delattr", "dir", "divmod", "enumerate", "eval", "exec", "filter", "format", "getattr", "globals", "hasattr",
     "hash", "help", "hex", "id", "input", "isinstance", "issubclass", "iter", "len", "list", "locals", "map", "max",
     "memoryview", "min", "next", "object", "oct", "open", "ord", "pow", "print", "property", "range", "repr", "reversed",
-    "round", "set", "setattr", "slice", "sorted", "staticmethod", "sum", "super", "type", "vars", "zip",
+    "round", "set", "setattr", "slice", "sorted", "staticmethod", "sum", "super", "type", "vars", "zip", "self"
 )
 
 @Suppress("unused")

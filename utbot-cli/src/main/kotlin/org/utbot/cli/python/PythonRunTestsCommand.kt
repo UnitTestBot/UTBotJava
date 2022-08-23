@@ -23,7 +23,7 @@ class PythonRunTestsCommand : CliktCommand(name = "run_python", help = "Run test
         help = "Path to Python interpreter"
     ).required()
 
-    private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used")
+    private val testFrameworkAsString by option("--test-framework", help = "Test framework of tests to run")
         .choice(Pytest.toString(), Unittest.toString())
         .default(Unittest.toString())
 

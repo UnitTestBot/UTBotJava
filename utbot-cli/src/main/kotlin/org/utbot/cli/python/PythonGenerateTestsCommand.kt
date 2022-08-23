@@ -64,7 +64,7 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private val installRequirementsIfMissing by option(
         "--install-requirements",
-        help = "Install requirements if missing"
+        help = "Install Python requirements if missing"
     ).flag(default = false)
 
     private val doNotMinimize by option(

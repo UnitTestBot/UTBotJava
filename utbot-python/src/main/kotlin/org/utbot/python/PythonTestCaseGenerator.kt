@@ -70,6 +70,7 @@ object PythonTestCaseGenerator {
         val executions = mutableListOf<UtExecution>()
         val errors = mutableListOf<UtError>()
         var missingLines: Set<Int>? = null
+        var generated = 0
 
         run breaking@ {
             annotationSequence.forEach { annotations ->
@@ -93,6 +94,7 @@ object PythonTestCaseGenerator {
                 engine.fuzzing().forEach {
                     if (isCancelled())
                         return@breaking
+                    generated += 1
                     when (it) {
                         is UtExecution -> {
                             logger.debug("Added execution")
@@ -109,7 +111,7 @@ object PythonTestCaseGenerator {
                             errors += it
                         }
                     }
-                    if (withMinimization && missingLines?.isEmpty() == true)
+                    if (withMinimization && missingLines?.isEmpty() == true && generated % CHUNK_SIZE == 0)
                         return@breaking
                 }
             }

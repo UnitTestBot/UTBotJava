@@ -4,6 +4,8 @@ import kotlinx.collections.immutable.*
 import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import org.utbot.framework.codegen.model.constructor.TestClassContext
+import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.tree.Block
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
@@ -40,7 +42,7 @@ internal interface CgContextOwner {
     val classUnderTest: ClassId
 
     // test class currently being generated (if series of nested classes is generated, it is the outermost one)
-    val outerMostTestClass: ClassId
+    val outerMostTestClass: BuiltinClassId
 
     // test class currently being generated (if series of nested classes is generated, it is the innermost one)
     var currentTestClass: BuiltinClassId
@@ -413,7 +415,7 @@ internal data class CgContext(
         return builtInClass(name)
     }
 
-    override lateinit var currentTestClass: ClassId
+    override lateinit var currentTestClass: BuiltinClassId
 
     override fun <R> withTestClassFileScope(block: () -> R): R {
         clearClassScope()
@@ -448,13 +450,9 @@ internal data class CgContext(
         }
     }
 
-    private fun createClassIdForNestedClass(testClassModel: TestClassModel): ClassId {
+    private fun createClassIdForNestedClass(testClassModel: TestClassModel): BuiltinClassId {
         val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
-        return BuiltinClassId(
-            name = currentTestClass.name + "$" + simpleName,
-            canonicalName = currentTestClass.canonicalName + "." + simpleName,
-            simpleName = simpleName
-        )
+        return builtInClass(currentTestClass.name + "$" + simpleName, isNested = true)
     }
 
     private fun clearClassScope() {

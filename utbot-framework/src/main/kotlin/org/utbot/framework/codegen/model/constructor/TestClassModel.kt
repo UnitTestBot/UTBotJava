@@ -1,7 +1,7 @@
 package org.utbot.framework.codegen.model.constructor
 
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.enclosingClass
+import org.utbot.jcdb.api.ClassId
 
 // TODO: seems like this class needs to be renamed
 /**

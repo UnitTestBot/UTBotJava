@@ -5,19 +5,19 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.coroutines.runBlocking
 import org.utbot.framework.codegen.RegularImport
 import org.utbot.framework.codegen.StaticImport
+import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.tree.*
+import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.fields.ArrayElementAccess
 import org.utbot.framework.fields.FieldAccess
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
-import org.utbot.jcdb.api.ClassId
-import org.utbot.jcdb.api.allConstructors
+import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
-import org.utbot.jcdb.api.isConstructor
-import org.utbot.jcdb.api.isSubtypeOf
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -99,34 +99,24 @@ data class ExpressionWithType(val type: CgClassType, val expression: CgExpressio
  * A [MethodId] to add an item into [ArrayList].
  */
 internal val addToListMethodId: MethodId
-    get() = methodId(
-        classId = ArrayList::class.id,
-        name = "add",
-        returnType = booleanClassId,
-        arguments = arrayOf(Object::class.id),
-    )
+    get() = runBlocking {
+        asClass<java.util.ArrayList<Any>>().findMethod("add", returnType = booleanClassId, listOf(objectClassId))
+    }
 
 /**
  * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
  */
 internal val argumentsClassId: BuiltinClassId
-    get() = BuiltinClassId(
-        name = "org.junit.jupiter.params.provider.Arguments",
-        simpleName = "Arguments",
-        canonicalName = "org.junit.jupiter.params.provider.Arguments",
-        packageName = "org.junit.jupiter.params.provider"
-    )
+    get() = builtInClass("org.junit.jupiter.params.provider.Arguments")
 
 /**
  * A [MethodId] to call JUnit Arguments method.
  */
 internal val argumentsMethodId: BuiltinMethodId
-    get() = builtinStaticMethodId(
-        classId = argumentsClassId,
-        name = "arguments",
-        returnType = argumentsClassId,
+    get() = argumentsClassId.newBuiltinStaticMethodId("arguments",
+        argumentsClassId,
         // vararg of Objects
-        arguments = arrayOf(objectArrayClassId)
+        listOf(objectArrayClassId)
     )
 
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
@@ -244,7 +234,7 @@ internal fun <T> T.setArgumentsArrayElement(
     value: CgExpression,
     constructor: CgStatementConstructor
 ) where T : CgContextOwner, T: CgCallableAccessManager {
-    when (array.type) {
+    when (array.type.classId) {
         objectClassId -> {
             +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
         }

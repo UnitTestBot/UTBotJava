@@ -264,7 +264,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     }
 
     override fun CgExpression.isInstance(value: CgExpression): CgIsInstance {
-        require(this.type == classClassId) {
+        require(this.type.classId == classClassId) {
             "isInstance method can be called on object with type $classClassId only, but actual type is ${this.type}"
         }
 

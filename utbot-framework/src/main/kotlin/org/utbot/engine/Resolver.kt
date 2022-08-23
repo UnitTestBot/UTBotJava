@@ -22,6 +22,7 @@ import soot.*
 import java.awt.color.ICC_ProfileRGB
 import java.io.PrintStream
 import java.security.AccessControlContext
+import java.security.AccessControlException
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.math.min

@@ -6,7 +6,6 @@ import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
 import org.utbot.framework.codegen.model.visitor.CgVisitor
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.*
 
@@ -534,7 +533,7 @@ class CgIsInstance(
     val classExpression: CgExpression,
     val value: CgExpression,
 ): CgExpression {
-    override val type: ClassId = booleanClassId
+    override val type: CgClassType = booleanClassId.type(isNullable = false)
 }
 
 // Value

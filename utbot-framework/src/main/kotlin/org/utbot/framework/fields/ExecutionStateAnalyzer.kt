@@ -7,6 +7,7 @@ import org.utbot.common.workaround
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.util.UtModelVisitor
 import org.utbot.framework.util.hasThisInstance
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.jcdb.api.ClassId
 import org.utbot.jcdb.api.ifArrayGetElementClass
 

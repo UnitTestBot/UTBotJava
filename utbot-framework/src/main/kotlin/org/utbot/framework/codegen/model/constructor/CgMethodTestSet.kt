@@ -3,7 +3,9 @@ package org.utbot.framework.codegen.model.constructor
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.jcdb.api.ClassId
+import org.utbot.jcdb.api.FieldId
 import soot.jimple.JimpleBody
 
 data class CgMethodTestSet private constructor(

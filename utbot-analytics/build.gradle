@@ -20,8 +20,6 @@ dependencies {
     implementation project(":utbot-fuzzers")
     implementation project(":utbot-instrumentation")
     implementation project(":utbot-framework")
-    implementation project(':utbot-instrumentation')
-    implementation project(':utbot-summary')
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
 

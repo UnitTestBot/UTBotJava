@@ -3,6 +3,10 @@ package org.utbot.framework.codegen
 import org.utbot.framework.DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS
 import org.utbot.framework.codegen.model.constructor.builtin.mockitoClassId
 import org.utbot.framework.codegen.model.constructor.builtin.ongoingStubbingClassId
+import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
+import org.utbot.framework.codegen.model.tree.CgClassType
+import org.utbot.framework.codegen.model.tree.TypeParameters
+import org.utbot.framework.codegen.model.tree.type
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
@@ -103,29 +107,33 @@ object MockitoStaticMocking : StaticsMocking(displayName = "Mockito static mocki
 
     val mockedStaticClassId get() = builtInClass(name = "org.mockito.MockedStatic")
 
-    val mockedConstructionClassId: ClassId get() {
-        return builtInClass(name = "org.mockito.MockedConstruction")
-    }
+    val mockedConstructionClassId: ClassId
+        get() {
+            return builtInClass(name = "org.mockito.MockedConstruction")
+        }
 
-    val mockStaticMethodId get() = mockitoClassId.newBuiltinStaticMethodId(
-        name = "mockStatic",
-        returnType = mockedStaticClassId,
-        arguments = listOf(objectClassId)
-    )
+    val mockStaticMethodId
+        get() = mockitoClassId.newBuiltinStaticMethodId(
+            name = "mockStatic",
+            returnType = mockedStaticClassId,
+            arguments = listOf(objectClassId)
+        )
 
-    val mockConstructionMethodId get() = mockitoClassId.newBuiltinStaticMethodId(
-        name = "mockConstruction",
-        returnType = mockedConstructionClassId,
-        // actually second argument is lambda
-        arguments = listOf(objectClassId, objectClassId)
-    )
+    val mockConstructionMethodId
+        get() = mockitoClassId.newBuiltinStaticMethodId(
+            name = "mockConstruction",
+            returnType = mockedConstructionClassId,
+            // actually second argument is lambda
+            arguments = listOf(objectClassId, objectClassId)
+        )
 
-    val mockedStaticWhen get() = mockedStaticClassId.newBuiltinMethod(
-        name = "when",
-        returnType = ongoingStubbingClassId,
-        // argument type is actually a functional interface
-        arguments = listOf(objectClassId)
-    )
+    val mockedStaticWhen
+        get() = mockedStaticClassId.newBuiltinMethod(
+            name = "when",
+            returnType = ongoingStubbingClassId,
+            // argument type is actually a functional interface
+            arguments = listOf(objectClassId)
+        )
 
     fun mockedStaticWhen(nullable: Boolean): MethodId = mockedStaticClassId.newBuiltinMethod(
         name = "when",
@@ -153,7 +161,7 @@ sealed class TestFramework(
     abstract val methodSourceAnnotationId: ClassId
     abstract val methodSourceAnnotationFqn: String
     abstract val nestedClassesShouldBeStatic: Boolean
-    abstract val argListClassId: ClassId
+    abstract val argListClassId: CgClassType
 
     val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
@@ -163,7 +171,13 @@ sealed class TestFramework(
 
     val assertArrayEquals by lazy { arrayAssertionId("assertArrayEquals", Array<Any>::class.id, Array<Any>::class.id) }
 
-    open val assertBooleanArrayEquals by lazy { assertionId("assertArrayEquals", booleanArrayClassId, booleanArrayClassId) }
+    open val assertBooleanArrayEquals by lazy {
+        assertionId(
+            "assertArrayEquals",
+            booleanArrayClassId,
+            booleanArrayClassId
+        )
+    }
 
     val assertByteArrayEquals by lazy { arrayAssertionId("assertArrayEquals", byteArrayClassId, byteArrayClassId) }
 
@@ -175,9 +189,23 @@ sealed class TestFramework(
 
     val assertLongArrayEquals by lazy { arrayAssertionId("assertArrayEquals", longArrayClassId, longArrayClassId) }
 
-    val assertFloatArrayEquals by lazy { arrayAssertionId("assertArrayEquals", floatArrayClassId, floatArrayClassId, floatClassId) }
+    val assertFloatArrayEquals by lazy {
+        arrayAssertionId(
+            "assertArrayEquals",
+            floatArrayClassId,
+            floatArrayClassId,
+            floatClassId
+        )
+    }
 
-    val assertDoubleArrayEquals by lazy { arrayAssertionId("assertArrayEquals", doubleArrayClassId, doubleArrayClassId, doubleClassId) }
+    val assertDoubleArrayEquals by lazy {
+        arrayAssertionId(
+            "assertArrayEquals",
+            doubleArrayClassId,
+            doubleArrayClassId,
+            doubleClassId
+        )
+    }
 
     val assertNull by lazy { assertionId("assertNull", objectClassId) }
 
@@ -228,19 +256,25 @@ object TestNg : TestFramework(displayName = "TestNG") {
 
     override val arraysAssertionsClass: ClassId get() = builtInClass(TEST_NG_ARRAYS_ASSERTIONS)
 
-    override val assertBooleanArrayEquals: MethodId get() = assertionId("assertEquals", booleanArrayClassId, booleanArrayClassId)
+    override val assertBooleanArrayEquals: MethodId
+        get() = assertionId(
+            "assertEquals",
+            booleanArrayClassId,
+            booleanArrayClassId
+        )
 
     val throwingRunnableClassId get() = builtInClass("${assertionsClass.name}\$ThrowingRunnable")
 
-    val assertThrows get() = assertionsClass.newBuiltinStaticMethodId(
-        name = "assertThrows",
-        // TODO: actually the return type is 'T extends java.lang.Throwable'
-        returnType = java.lang.Throwable::class.id,
-        arguments = listOf(
-            Class::class.id,
-            throwingRunnableClassId
+    val assertThrows
+        get() = assertionsClass.newBuiltinStaticMethodId(
+            name = "assertThrows",
+            // TODO: actually the return type is 'T extends java.lang.Throwable'
+            returnType = java.lang.Throwable::class.id,
+            arguments = listOf(
+                Class::class.id,
+                throwingRunnableClassId
+            )
         )
-    )
 
     override val testAnnotationId: ClassId get() = builtInClass("$mainPackage.annotations.Test")
 
@@ -250,25 +284,15 @@ object TestNg : TestFramework(displayName = "TestNG") {
 
     override val nestedClassesShouldBeStatic = true
 
-    override val argListClassId: ClassId
+    override val argListClassId: CgClassType
         get() {
-            val outerArrayId = Array<Array<Any?>?>::class.id
-            val innerArrayId = BuiltinClassId(
-                name = objectArrayClassId.name,
-                simpleName = objectArrayClassId.simpleName,
-                canonicalName = objectArrayClassId.canonicalName,
-                packageName = objectArrayClassId.packageName,
-                elementClassId = objectClassId,
-                typeParameters = TypeParameters(listOf(objectClassId))
-            )
-
-            return BuiltinClassId(
-                name = outerArrayId.name,
-                simpleName = outerArrayId.simpleName,
-                canonicalName = outerArrayId.canonicalName,
-                packageName = outerArrayId.packageName,
-                elementClassId = innerArrayId,
-                typeParameters = TypeParameters(listOf(innerArrayId))
+            return type<Array<Any>>(
+                isNullable = true,
+                TypeParameters(
+                    listOf(
+                        type<Array<Any>>(isNullable = true, TypeParameters(listOf(type<Any>())))
+                    )
+                )
             )
         }
 
@@ -345,15 +369,11 @@ object Junit4 : TestFramework("JUnit4") {
 
     val ignoreAnnotationClassId get() = builtInClass("$JUNIT4_PACKAGE.Ignore")
 
-    val enclosedClassId = BuiltinClassId(
-        name = "org.junit.experimental.runners.Enclosed",
-        canonicalName = "org.junit.experimental.runners.Enclosed",
-        simpleName = "Enclosed"
-    )
+    val enclosedClassId get() = builtInClass("org.junit.experimental.runners.Enclosed")
 
     override val nestedClassesShouldBeStatic = true
 
-    override val argListClassId: ClassId
+    override val argListClassId: CgClassType
         get() = parametrizedTestsNotSupportedError
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -384,21 +404,18 @@ object Junit5 : TestFramework("JUnit5") {
 
     val timeoutClassId get() = builtInClass("$JUNIT5_PACKAGE.Timeout")
 
-    val timeunitClassId  get() = builtInClass("TimeUnit")
+    val timeunitClassId get() = builtInClass("TimeUnit")
 
     val durationClassId get() = builtInClass("java.time.Duration")
 
-    val ofMillis get() = durationClassId.newBuiltinStaticMethodId(
-        name = "ofMillis",
-        returnType = durationClassId,
-        arguments = listOf(longClassId)
-    )
+    val ofMillis
+        get() = durationClassId.newBuiltinStaticMethodId(
+            name = "ofMillis",
+            returnType = durationClassId,
+            arguments = listOf(longClassId)
+        )
 
-    val nestedTestClassAnnotationId = BuiltinClassId(
-        name = "$JUNIT5_PACKAGE.Nested",
-        canonicalName = "$JUNIT5_PACKAGE.Nested",
-        simpleName = "Nested"
-    )
+    val nestedTestClassAnnotationId get() = builtInClass("$JUNIT5_PACKAGE.Nested", isNested = true)
 
     override val testAnnotationId get() = builtInClass("$JUNIT5_PACKAGE.Test")
 
@@ -410,24 +427,26 @@ object Junit5 : TestFramework("JUnit5") {
 
     override val arraysAssertionsClass get() = assertionsClass
 
-    val assertThrows get() = assertionsClass.newBuiltinStaticMethodId(
-        name = "assertThrows",
-        // TODO: actually the return type is 'T extends java.lang.Throwable'
-        returnType = java.lang.Throwable::class.id,
-        arguments = listOf(
-            Class::class.id,
-            executableClassId
+    val assertThrows
+        get() = assertionsClass.newBuiltinStaticMethodId(
+            name = "assertThrows",
+            // TODO: actually the return type is 'T extends java.lang.Throwable'
+            returnType = java.lang.Throwable::class.id,
+            arguments = listOf(
+                Class::class.id,
+                executableClassId
+            )
         )
-    )
 
-    val assertTimeoutPreemptively get() = assertionsClass.newBuiltinStaticMethodId(
-        name = "assertTimeoutPreemptively",
-        returnType = voidWrapperClassId,
-        arguments = listOf(
-            durationClassId,
-            executableClassId
+    val assertTimeoutPreemptively
+        get() = assertionsClass.newBuiltinStaticMethodId(
+            name = "assertTimeoutPreemptively",
+            returnType = voidWrapperClassId,
+            arguments = listOf(
+                durationClassId,
+                executableClassId
+            )
         )
-    )
 
     val displayNameClassId get() = builtInClass("$JUNIT5_PACKAGE.DisplayName")
 
@@ -435,16 +454,9 @@ object Junit5 : TestFramework("JUnit5") {
 
     override val nestedClassesShouldBeStatic = false
 
-    override val argListClassId: ClassId
+    override val argListClassId: CgClassType
         get() {
-            val arrayListId = java.util.ArrayList::class.id
-            return BuiltinClassId(
-                name = arrayListId.name,
-                simpleName = arrayListId.simpleName,
-                canonicalName = arrayListId.canonicalName,
-                packageName = arrayListId.packageName,
-                typeParameters = TypeParameters(listOf(argumentsClassId))
-            )
+            return type<java.util.ArrayList<Any>>(parameters = TypeParameters(listOf(argumentsClassId.type(true))))
         }
 
     private const val junitVersion = "1.9.0" // TODO read it from gradle.properties

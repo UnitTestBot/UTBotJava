@@ -3,11 +3,11 @@ package org.utbot.framework.codegen.model.constructor.tree
 import kotlinx.coroutines.runBlocking
 import org.utbot.common.PathUtil
 import org.utbot.framework.assemble.assemble
-import org.utbot.framework.codegen.*
+import org.utbot.framework.codegen.ForceStaticMocking
+import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.*
-import org.utbot.framework.codegen.model.constructor.builtin.invoke
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.*
@@ -23,8 +23,8 @@ import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
-import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
+import java.security.AccessControlException
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -1214,13 +1214,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             val statics = genericExecution.stateBefore.statics
             if (statics.isNotEmpty()) {
                 for ((fieldId, model) in statics) {
-                    val staticType = wrapTypeIfRequired(model.classId)
+                    val staticType = wrapTypeIfRequired(model.classId.type())
                     val static = CgParameterDeclaration(
                         parameter = declareParameter(
                             type = staticType,
                             name = nameGenerator.variableName(fieldId.name, isStatic = true)
                         ),
-                        isReferenceType = staticType.isRefType
+                        isReferenceType = staticType.classId.isRefType
                     )
                     this += static
                     currentMethodParameters[CgParameterKind.Statics(model)] = static.parameter
@@ -1493,7 +1493,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     ): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
-            returnType = testFramework.argListClassId
+            returnType = testFramework.argListClassId.classId
             statements = block(body)
             // Exceptions and annotations assignment must run after the statements block is build,
             // because we collect info about exceptions and required annotations while building the statements

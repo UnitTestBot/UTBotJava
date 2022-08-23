@@ -3,8 +3,8 @@ package org.utbot.framework.codegen.model.constructor
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.codegen.model.tree.CgTestClass
+import org.utbot.jcdb.api.ClassId
 
 /**
  * This class stores context information needed to build [CgTestClass].

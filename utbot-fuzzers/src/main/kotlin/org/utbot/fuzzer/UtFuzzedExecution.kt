@@ -1,11 +1,7 @@
 package org.utbot.fuzzer
 
-import org.utbot.framework.plugin.api.Coverage
-import org.utbot.framework.plugin.api.DocStatement
-import org.utbot.framework.plugin.api.EnvironmentModels
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.*
+import org.utbot.jcdb.api.FieldId
 
 /**
  * Fuzzed execution.

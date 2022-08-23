@@ -25,12 +25,7 @@ import org.utbot.framework.coverage.methodCoverage
 import org.utbot.framework.coverage.toAtLeast
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.MockStrategyApi.NO_MOCKS
-import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.enclosingClass
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.kClass
-import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.util.Conflict
 import org.utbot.framework.util.toValueTestCase
 import org.utbot.jcdb.api.FieldId
@@ -2288,7 +2283,9 @@ abstract class UtValueTestCaseChecker(
 
                     val methodUnderTestOwner = testSet.method.clazz
                     val classUnderTest = if (generateWithNested) {
-                        generateSequence(methodUnderTestOwner.id) { clazz -> clazz.enclosingClass }.last().kClass
+                        with(reflection) {
+                            generateSequence(methodUnderTestOwner.id) { clazz -> clazz.enclosingClass }.last().kClass
+                        }
                     } else {
                         methodUnderTestOwner
                     }

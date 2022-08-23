@@ -7,48 +7,16 @@ import org.utbot.framework.codegen.model.constructor.TestClassContext
 import org.utbot.framework.codegen.model.constructor.builtin.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
-import org.utbot.framework.codegen.model.constructor.util.CgComponents
-import org.utbot.framework.codegen.model.constructor.util.addToListMethodId
-import org.utbot.framework.codegen.model.constructor.util.argumentsClassId
-import org.utbot.framework.codegen.model.constructor.util.argumentsMethodId
-import org.utbot.framework.codegen.model.constructor.util.classCgClassId
-import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.framework.codegen.model.constructor.util.*
 import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.codegen.model.constructor.util.setArgumentsArrayElement
-import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAnnotation
-import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
-import org.utbot.framework.codegen.model.tree.CgExpression
-import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgGetKotlinClass
-import org.utbot.framework.codegen.model.tree.CgLiteral
-import org.utbot.framework.codegen.model.tree.CgMethod
-import org.utbot.framework.codegen.model.tree.CgMethodCall
-import org.utbot.framework.codegen.model.tree.CgMultipleArgsAnnotation
-import org.utbot.framework.codegen.model.tree.CgNamedAnnotationArgument
-import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
-import org.utbot.framework.codegen.model.tree.CgValue
-import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.classLiteralAnnotationArgument
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.plugin.api.BuiltinMethodId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.jcdb.api.ClassId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.util.booleanArrayClassId
-import org.utbot.framework.plugin.api.util.byteArrayClassId
-import org.utbot.framework.plugin.api.util.charArrayClassId
-import org.utbot.framework.plugin.api.util.doubleArrayClassId
-import org.utbot.framework.plugin.api.util.floatArrayClassId
-import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.intArrayClassId
-import org.utbot.framework.plugin.api.util.longArrayClassId
-import org.utbot.framework.plugin.api.util.shortArrayClassId
-import org.utbot.framework.plugin.api.util.stringClassId
 import java.util.concurrent.TimeUnit
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -297,7 +265,7 @@ internal class TestNgManager(context: CgContext) : TestFrameworkManager(context)
     override fun collectParameterizedTestAnnotations(dataProviderMethodName: String?) = setOf(
         statementConstructor.annotation(
             testFramework.parameterizedTestAnnotationId,
-            listOf("dataProvider" to CgLiteral(stringClassId, dataProviderMethodName))
+            listOf("dataProvider" to CgLiteral(stringClassId.type(), dataProviderMethodName))
         )
     )
 
@@ -483,7 +451,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
 
     override fun createArgList(length: Int) =
         statementConstructor.newVar(testFramework.argListClassId, "argList") {
-            val constructor = ConstructorId(testFramework.argListClassId, emptyList())
+            val constructor = testFramework.argListClassId.classId.findConstructor().asExecutableConstructor()
             constructor.invoke()
         }
 
@@ -491,7 +459,7 @@ internal class Junit5Manager(context: CgContext) : TestFrameworkManager(context)
         statementConstructor.annotation(testFramework.parameterizedTestAnnotationId),
         statementConstructor.annotation(
             testFramework.methodSourceAnnotationId,
-            "${outerMostTestClass.canonicalName}#$dataProviderMethodName"
+            "${outerMostTestClass.simpleName}#$dataProviderMethodName"
         )
     )
 

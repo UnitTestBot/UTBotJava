@@ -29,6 +29,6 @@ data class PythonTestSet(
 )
 
 class PythonCoverage(
-    val missedInstructions: List<Instruction>,
-    coveredInstructions: List<Instruction>
+    coveredInstructions: List<Instruction>,
+    val missedInstructions: List<Instruction>
 ): Coverage(coveredInstructions)

@@ -8,6 +8,7 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Str
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.Attribute
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Arguments
 import io.github.danielnaczo.python3parser.model.expr.atoms.trailers.arguments.Keyword
+import io.github.danielnaczo.python3parser.model.expr.datastructures.ListExpr
 import io.github.danielnaczo.python3parser.model.expr.datastructures.Tuple
 import io.github.danielnaczo.python3parser.model.expr.operators.binaryops.Add
 import io.github.danielnaczo.python3parser.model.mods.Module
@@ -166,6 +167,7 @@ object PythonCodeGenerator {
         val sourcesName = Name("__sources")
         val stmtsName = Name("__stmts")
         val stmtsFilteredName = Name("__stmts_filtered")
+        val stmtsFilteredWithDefName = Name("__stmts_filtered_with_def")
         val missedName = Name("__missed")
         val missedFilteredName = Name("__missed_filtered")
         val coverageName = Name("__cov")
@@ -247,6 +249,13 @@ object PythonCodeGenerator {
                 listOf(createArguments(listOf(startName, endName, stmtsName)))
             )
         )
+        val stmtsFilteredWithDef = Assign(
+            listOf(stmtsFilteredWithDefName),
+            Add(
+                ListExpr(listOf(startName)),
+                stmtsFilteredName
+            )
+        )
         val missedFiltered = Assign(
             listOf(missedFilteredName),
             Atom(
@@ -258,7 +267,7 @@ object PythonCodeGenerator {
         val okOutputBlock = createOutputBlock(
             resultName.id.name,
             successStatus,
-            stmtsFilteredName.id.name,
+            stmtsFilteredWithDefName.id.name,
             missedFilteredName.id.name
         )
 
@@ -281,6 +290,7 @@ object PythonCodeGenerator {
                 end,
                 covAnalysis,
                 stmtsFiltered,
+                stmtsFilteredWithDef,
                 missedFiltered
             ) + okOutputBlock
         )

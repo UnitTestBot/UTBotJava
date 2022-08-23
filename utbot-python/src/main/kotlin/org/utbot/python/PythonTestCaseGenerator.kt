@@ -69,8 +69,7 @@ object PythonTestCaseGenerator {
 
         val executions = mutableListOf<UtExecution>()
         val errors = mutableListOf<UtError>()
-
-        var testsGenerated = 0
+        var missingLines: Set<Int>? = null
 
         run breaking@ {
             annotationSequence.forEach { annotations ->
@@ -98,19 +97,21 @@ object PythonTestCaseGenerator {
                         is UtExecution -> {
                             logger.debug("Added execution")
                             executions += it
+                            val curMissing =
+                                (it.coverage as? PythonCoverage)
+                                    ?.missedInstructions
+                                    ?.map { x -> x.lineNumber } ?.toSet()
+                                ?: emptySet()
+                            missingLines = if (missingLines == null) curMissing else missingLines!! intersect curMissing
                         }
                         is UtError -> {
                             logger.debug("Failed evaluation")
                             errors += it
                         }
                     }
-                    testsGenerated += 1
-                    if (testsGenerated >= maxTestCount)
+                    if (withMinimization && missingLines?.isEmpty() == true)
                         return@breaking
                 }
-
-                if (testsGenerated >= maxTestCount)
-                    return@breaking
             }
         }
 

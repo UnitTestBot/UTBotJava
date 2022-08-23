@@ -31,6 +31,7 @@ import org.jetbrains.android.sdk.AndroidSdkType
 import org.jetbrains.jps.model.module.JpsModuleSourceRootType
 import org.jetbrains.kotlin.config.KotlinFacetSettingsProvider
 import org.jetbrains.kotlin.config.TestResourceKotlinRootType
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.jetbrains.kotlin.platform.TargetPlatformVersion
 
 private val logger = KotlinLogging.logger {}
@@ -86,6 +87,10 @@ fun Module.getOrCreateSarifReportsPath(testSourceRoot: VirtualFile?): Path {
  * Find test modules by current source module.
  */
 fun Module.testModules(project: Project): List<Module> {
+    if (project.isGradle()) {
+        return project.allModules()
+    }
+
     var testModules = findPotentialModulesForTests(project, this)
     val testRootUrls = testModules.flatMap { it.suitableTestSourceRoots() }
 

@@ -51,13 +51,9 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
             }
         }
 
-        val testRoots = if (model.project.isGradle()) {
-            val allRoots = mutableSetOf<VirtualFile>()
-            model.project.allModules().map { it.suitableTestSourceRoots() }.forEach(allRoots::addAll)
-            allRoots.toMutableList()
-        } else {
-            model.potentialTestModules.flatMap { it.suitableTestSourceRoots().toMutableList() }.toMutableList()
-        }
+        val testRoots = model.potentialTestModules
+            .flatMap { it.suitableTestSourceRoots().toList() }
+            .toMutableList()
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots)

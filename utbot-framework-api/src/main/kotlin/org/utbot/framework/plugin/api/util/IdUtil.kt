@@ -269,7 +269,8 @@ val Class<*>.id: ClassId
     }
 
 /**
- * [java.lang.reflect.ParameterizedType.getRawType] now returns [Type] instead of [Class].
+ * We should specially handle the case of a generic type that is a [Type] and not a [Class].
+ * Returns a [ClassId] for the corresponding raw type.
  */
 val ParameterizedType.id: ClassId
     get() = ClassId(this.rawType.typeName)

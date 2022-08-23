@@ -1292,7 +1292,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
-                    paramType is ParameterizedType -> paramType.rawType.id
+                    paramType is ParameterizedType -> paramType.id
                     else -> ClassId(paramType.typeName)
                 }
 

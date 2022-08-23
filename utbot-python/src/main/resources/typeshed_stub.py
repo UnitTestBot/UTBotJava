@@ -123,10 +123,10 @@ class AstFunctionDefEncoder(json.JSONEncoder):
 
 
 def function_is_property(function):
-    return any(
+    return bool(any([
         'property' == astor.code_gen.to_source(decorator).strip()
         for decorator in function.decorator_list
-    )
+    ]))
 
 
 class AstArgEncoder(json.JSONEncoder):
@@ -296,11 +296,14 @@ def parse_submodule(module_name, collector_):
 def suppress_stdout():
     with open(os.devnull, "w") as devnull:
         old_stdout = sys.stdout
+        old_stderr = sys.stderr
         sys.stdout = devnull
+        sys.stderr = devnull
         try:
             yield
         finally:
             sys.stdout = old_stdout
+            sys.stderr = old_stderr
 
 
 def main():
@@ -310,7 +313,7 @@ def main():
         collector = StubFileCollector((python_version.major, python_version.minor))
         for module in modules:
             parse_submodule(module, collector)
-    result = collector.save_method_annotations()
+        result = collector.save_method_annotations()
     sys.stdout.write(result)
 
 

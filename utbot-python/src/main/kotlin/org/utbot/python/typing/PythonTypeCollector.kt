@@ -31,8 +31,8 @@ class PythonClassIdInfo(
 )
 
 object PythonTypesStorage {
-    private var projectClasses: List<ProjectClass> = emptyList()
-    private var projectModules: List<PythonModule> = emptyList()
+    var projectClasses: List<ProjectClass> = emptyList()
+    var projectModules: List<PythonModule> = emptyList()
     var pythonPath: String? = null
     private const val PYTHON_NOT_SPECIFIED = "PythonPath in PythonTypeCollector not specified"
 
@@ -116,7 +116,7 @@ object PythonTypesStorage {
             if (it.name.startsWith("builtins.")) it.name.removePrefix("builtins.") else null
         }
 
-    private data class ProjectClass(
+    data class ProjectClass(
         val pythonClass: PythonClass,
         val info: ClassInfoCollector.Storage,
         val initAnnotation: List<NormalizedPythonAnnotation>?,

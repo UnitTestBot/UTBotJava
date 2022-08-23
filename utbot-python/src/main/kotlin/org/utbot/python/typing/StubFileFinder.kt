@@ -16,7 +16,11 @@ object StubFileFinder {
     private val jsonAdapter = moshi.adapter(StubFileStructures.JsonData::class.java)
 
     private fun parseJson(json: String): StubFileStructures.JsonData? {
-        return jsonAdapter.fromJson(json)
+        return if (json.isNotEmpty()) {
+            jsonAdapter.fromJson(json)
+        } else {
+            null
+        }
     }
 
     fun updateStubs(

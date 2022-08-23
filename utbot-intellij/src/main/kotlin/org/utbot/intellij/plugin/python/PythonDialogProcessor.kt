@@ -175,7 +175,7 @@ object PythonDialogProcessor {
             val result = Messages.showYesNoDialog(
                 project,
                 message,
-                "Requirements error",
+                "Requirements Error",
                 null,
                 null
             )

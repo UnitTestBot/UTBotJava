@@ -57,6 +57,11 @@ class PythonGenerateTestsCommand: CliktCommand(
         help = "File for generated tests"
     ).required()
 
+    private val coverageOutput by option(
+        "--coverage",
+        help = "File to write coverage report"
+    )
+
     private val installRequirementsIfMissing by option(
         "-r", "--install-requirements",
         help = "Install requirements if missing"
@@ -227,6 +232,12 @@ class PythonGenerateTestsCommand: CliktCommand(
             processMypyWarnings = { messages -> messages.forEach { println(it) } },
             finishedAction = {
                 logger.info("Finished test generation for the following functions: ${it.joinToString()}")
+            },
+            processCoverageInfo = { coverageReport ->
+                val output = coverageOutput ?: return@processTestGeneration
+                val file = File(output)
+                file.writeText(coverageReport)
+                file.createNewFile()
             }
         )
     }

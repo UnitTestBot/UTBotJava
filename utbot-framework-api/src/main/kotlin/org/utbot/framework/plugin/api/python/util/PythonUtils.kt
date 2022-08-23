@@ -10,7 +10,7 @@ fun String.toSnakeCase(): String {
     val splitSymbols = "_"
     return this.mapIndexed { index: Int, c: Char ->
         if (c.isLowerCase() || c.isDigit() || splitSymbols.contains(c)) c
-        else if (c.isUpperCase()) { (if (index > 0) "_" else "") + c.toLowerCase() }
+        else if (c.isUpperCase()) { (if (index > 0) "_" else "") + c.lowercase() }
         else c
     }.joinToString("")
 }

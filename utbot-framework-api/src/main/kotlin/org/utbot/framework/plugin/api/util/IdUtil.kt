@@ -14,6 +14,7 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.contracts.ExperimentalContracts
@@ -270,8 +271,8 @@ val Class<*>.id: ClassId
 /**
  * [java.lang.reflect.ParameterizedType.getRawType] now returns [Type] instead of [Class].
  */
-val Type.id: ClassId
-    get() = TODO("Java 11 transition")
+val ParameterizedType.id: ClassId
+    get() = ClassId(this.rawType.typeName)
 
 val KClass<*>.id: ClassId
     get() = java.id

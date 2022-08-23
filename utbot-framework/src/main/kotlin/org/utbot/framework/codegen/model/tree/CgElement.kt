@@ -337,6 +337,9 @@ class CgDocPreTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(co
     override fun hashCode(): Int = content.hashCode()
 }
 
+/**
+ * Represents a type for statements containing custom JavaDoc tags.
+ */
 data class CgCustomTagStatement(val statements: List<CgDocStatement>) : CgDocTagStatement(statements)
 
 class CgDocCodeStmt(val stmt: String) : CgDocStatement() {

@@ -7,6 +7,9 @@ import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.tag.TraceTagWithoutExecution
 import soot.SootMethod
 
+/**
+ * Builds JavaDoc comments for generated tests using plugin's custom JavaDoc tags.
+ */
 class CustomJavaDocCommentBuilder(
     traceTag: TraceTagWithoutExecution,
     sootToAST: MutableMap<SootMethod, JimpleToASTMap>
@@ -72,7 +75,7 @@ class CustomJavaDocCommentBuilder(
                     StmtType.Condition -> customJavaDocComment.executesCondition += "{@code ${statement.description}}"
                     StmtType.Return -> customJavaDocComment.returnsFrom = "{@code ${statement.description}}"
                     else -> {
-                        //TODO: do we need to handle others?
+                        //TODO: see [issue-773](https://github.com/UnitTestBot/UTBotJava/issues/773)
                     }
                 }
             }

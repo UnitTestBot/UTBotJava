@@ -12,7 +12,7 @@ Generate tests:
 
     java -jar utbot-cli.jar generate_python dir/file_with_sources.py -p <PYTHON_PATH> -o generated_tests.py -s dir
 
-This will generate tests for top-level function from `file_with_sources.py`.
+This will generate tests for top-level functions from `file_with_sources.py`.
 
 Run generated tests:
 

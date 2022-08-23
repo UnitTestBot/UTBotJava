@@ -5,7 +5,6 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
 import org.apache.commons.io.filefilter.NameFileFilter
-import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.python.code.ClassInfoCollector
@@ -14,8 +13,6 @@ import org.utbot.python.code.PythonCode
 import org.utbot.python.code.PythonModule
 import org.utbot.python.utils.AnnotationNormalizer
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
-import org.utbot.python.utils.AnnotationNormalizer.annotationFromStubToClassId
-import org.utbot.python.utils.getModuleName
 import org.utbot.python.utils.getModuleNameWithoutCheck
 import java.io.File
 import java.io.FileInputStream
@@ -35,15 +32,12 @@ object PythonTypesStorage {
     var pythonPath: String? = null
     private const val PYTHON_NOT_SPECIFIED = "PythonPath in PythonTypeCollector not specified"
 
-    private fun mapToClassId(typesFromStubs: Collection<StubFileFinder.SearchResult>): List<NormalizedPythonAnnotation> =
-        typesFromStubs.map {
-            annotationFromStubToClassId(it.typeName, pythonPath ?: error(PYTHON_NOT_SPECIFIED), it.module)
-        }
-
     fun findTypeWithMethod(
         methodName: String
     ): Set<NormalizedPythonAnnotation> {
-        val fromStubs = mapToClassId(StubFileFinder.findTypeWithMethod(methodName))
+        val fromStubs = StubFileFinder.findTypeWithMethod(methodName).map {
+            AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(it)
+        }
         val fromProject = projectClasses.mapNotNull {
             if (it.info.methods.contains(methodName))
                 AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(it.name)
@@ -56,7 +50,9 @@ object PythonTypesStorage {
     fun findTypeWithField(
         fieldName: String
     ): Set<NormalizedPythonAnnotation> {
-        val fromStubs = mapToClassId(StubFileFinder.findTypeWithField(fieldName))
+        val fromStubs = StubFileFinder.findTypeWithField(fieldName).map {
+            AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(it)
+        }
         val fromProject = projectClasses.mapNotNull {
             if (it.info.fields.contains(fieldName))
                 AnnotationNormalizer.pythonClassIdToNormalizedAnnotation(it.name)
@@ -71,12 +67,10 @@ object PythonTypesStorage {
         argumentName: String? = null,
         argumentPosition: Int? = null,
     ): Set<NormalizedPythonAnnotation> =
-        mapToClassId(
-            StubFileFinder.findAnnotationByFunctionWithArgumentPosition(functionName, argumentName, argumentPosition)
-        ).toSet()
+        StubFileFinder.findAnnotationByFunctionWithArgumentPosition(functionName, argumentName, argumentPosition)
 
     fun findTypeByFunctionReturnValue(functionName: String): Set<NormalizedPythonAnnotation> =
-        mapToClassId(StubFileFinder.findAnnotationByFunctionReturnValue(functionName)).toSet()
+        StubFileFinder.findAnnotationByFunctionReturnValue(functionName).toSet()
 
     fun isClassFromProject(typeName: NormalizedPythonAnnotation): Boolean {
         return projectClasses.any { it.name.name == typeName.name }
@@ -93,11 +87,7 @@ object PythonTypesStorage {
                     fromStub.methods.find { it.name == "__init__" }
                         ?.args
                         ?.drop(1) // drop 'self' parameter
-                        ?.map { annotationFromStubToClassId(
-                            it.annotation,
-                            pythonPath ?: error(PYTHON_NOT_SPECIFIED),
-                            classId.moduleName
-                        ) },
+                        ?.map { NormalizedPythonAnnotation(it.annotation) },
                     fromPreprocessed?.instances,
                     fromStub.methods.map { it.name }.toSet(),
                     fromStub.fields.map { it.name }.toSet()

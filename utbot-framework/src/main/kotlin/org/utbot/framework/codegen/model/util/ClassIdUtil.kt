@@ -14,10 +14,21 @@ import org.utbot.jcdb.api.*
  *
  * @param packageName name of the package we check accessibility from
  */
-infix fun ClassId.isAccessibleFrom(packageName: String): Boolean = runBlocking {
-    val isOuterClassAccessible = outerClass()?.isAccessibleFrom(packageName) ?: true
+infix fun ClassId.isAccessibleFrom(packageName: String): Boolean = runBlocking{
 
-    val isAccessibleFromPackageByModifiers = isPublic() || (this@isAccessibleFrom.packageName == packageName && (isPackagePrivate() || isProtected()))
+    if (isLocal() || isSynthetic()) {
+        return@runBlocking false
+    }
 
-    isOuterClassAccessible && isAccessibleFromPackageByModifiers && !isLocal() && !isSynthetic()
+    val outerClassId = outerClass()
+    if (outerClassId != null && !outerClassId.isAccessibleFrom(packageName)) {
+        return@runBlocking false
+    }
+    val elementClassId = ifArrayGetElementClass()
+    if (elementClassId != null) {
+        elementClassId.isAccessibleFrom(packageName)
+    } else {
+        val classPackage =this@isAccessibleFrom.packageName
+        isPublic() || (classPackage == packageName && (isPackagePrivate() || isProtected()))
+    }
 }

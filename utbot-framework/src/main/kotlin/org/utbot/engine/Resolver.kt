@@ -308,12 +308,11 @@ class Resolver(
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
-            // TODO SAT-1561
-            val isOverflow = exception is ArithmeticException && exception.message?.contains("overflow") == true
-            if (isOverflow) {
-                UtOverflowFailure(exception)
-            } else {
-                UtImplicitlyThrownException(exception, inNestedMethod)
+            when {
+                // TODO SAT-1561
+                exception is ArithmeticException && exception.message?.contains("overflow") == true -> UtOverflowFailure(exception)
+                exception is AccessControlException -> UtSandboxFailure(exception)
+                else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }
     }

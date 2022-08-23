@@ -23,6 +23,7 @@ import org.utbot.jcdb.api.*
 import org.utbot.jcdb.api.ext.findClass
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
+import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -238,6 +239,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 methodType = CRASH
                 writeWarningAboutCrash()
             }
+            is AccessControlException -> {
+                methodType = CRASH
+                writeWarningAboutFailureTest(exception)
+                return
+            }
             else -> {
                 methodType = FAILING
                 writeWarningAboutFailureTest(exception)
@@ -248,6 +254,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+        if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
 
@@ -1433,6 +1440,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (result is UtConcreteExecutionFailure) {
             testFrameworkManager.disableTestMethod(
                 "Disabled due to possible JVM crash"
+            )
+        }
+
+        if (result is UtSandboxFailure) {
+            testFrameworkManager.disableTestMethod(
+                "Disabled due to sandbox"
             )
         }
 

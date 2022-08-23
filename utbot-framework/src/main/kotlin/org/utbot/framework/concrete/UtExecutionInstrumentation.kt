@@ -16,6 +16,7 @@ import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import org.utbot.jcdb.api.FieldId
+import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.*
 import kotlin.reflect.jvm.javaMethod
@@ -202,6 +203,9 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private fun sortOutException(exception: Throwable): UtExecutionFailure {
         if (exception is TimeoutException) {
             return UtTimeoutException(exception)
+        }
+        if (exception is AccessControlException) {
+            return UtSandboxFailure(exception)
         }
         val instrs = traceHandler.computeInstructionList()
         val isNested = if (instrs.isEmpty()) {

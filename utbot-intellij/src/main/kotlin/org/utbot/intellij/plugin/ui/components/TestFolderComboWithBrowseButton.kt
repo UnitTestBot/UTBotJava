@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
-import org.utbot.intellij.plugin.ui.utils.isGradle
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
 class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : ComboboxWithBrowseButton() {
@@ -25,7 +25,7 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
     private val SET_TEST_FOLDER = "set test folder"
 
     init {
-        if (model.project.isGradle()) {
+        if (model.project.isBuildWithGradle) {
             setButtonEnabled(false)
             button.toolTipText = "Please define custom test source root via Gradle"
         }
@@ -51,10 +51,10 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
             }
         }
 
-        val testRoots = model.potentialTestModules
-            .flatMap { it.suitableTestSourceRoots().toList() }
-            .toMutableList()
+        val suggestedModules =
+            if (model.project.isBuildWithGradle) model.project.allModules() else model.potentialTestModules
 
+        val testRoots = suggestedModules.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots)
 

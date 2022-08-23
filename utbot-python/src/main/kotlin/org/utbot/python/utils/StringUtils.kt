@@ -24,7 +24,7 @@ fun String.camelToSnakeCase(): String {
     val camelRegex = "(?<=[a-zA-Z])[\\dA-Z]".toRegex()
     return camelRegex.replace(this) {
         "_${it.value}"
-    }.toLowerCase()
+    }.lowercase()
 }
 
 fun moduleOfType(typeName: String): String? {

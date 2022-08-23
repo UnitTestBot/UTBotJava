@@ -1,11 +1,15 @@
 package org.utbot.python
 
 import com.beust.klaxon.Klaxon
+import kotlinx.coroutines.coroutineScope
 import org.utbot.framework.plugin.api.*
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator
 import org.utbot.python.utils.FileManager
+import org.utbot.python.utils.getResult
 import org.utbot.python.utils.runCommand
+import org.utbot.python.utils.startProcess
 
 
 sealed class EvaluationResult
@@ -13,7 +17,7 @@ object EvaluationError : EvaluationResult()
 class EvaluationSuccess(
     private val output: OutputData,
     private val isException: Boolean,
-    private val coverage: PythonCoverage
+    val coverage: PythonCoverage
 ): EvaluationResult() {
     operator fun component1() = output
     operator fun component2() = isException
@@ -22,68 +26,75 @@ class EvaluationSuccess(
 
 data class OutputData(val output: PythonTree.PythonTreeNode, val type: PythonClassId)
 
-object PythonEvaluation {
-    fun evaluate(
-        method: PythonMethod,
-        methodArguments: List<UtModel>,
-        directoriesForSysPath: Set<String>,
-        moduleToImport: String,
-        pythonPath: String,
-        timeoutForRun: Long,
-        additionalModulesToImport: Set<String> = emptySet()
-    ): EvaluationResult {
-        val runCode = PythonCodeGenerator.generateRunFunctionCode(
-            method,
-            methodArguments,
-            directoriesForSysPath,
-            moduleToImport,
-            additionalModulesToImport
-        )
-        val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + method.name + ".py")
-        val result = runCommand(listOf(pythonPath, fileWithCode.path), timeoutForRun)
+data class EvaluationInput(
+    val method: PythonMethod,
+    val methodArguments: List<UtModel>,
+    val directoriesForSysPath: Set<String>,
+    val moduleToImport: String,
+    val pythonPath: String,
+    val timeoutForRun: Long,
+    val thisObject: UtModel?,
+    val modelList: List<UtModel>,
+    val values: List<FuzzedValue>,
+    val additionalModulesToImport: Set<String> = emptySet()
+)
 
-        if (result.exitValue != 0)
-            return EvaluationError
+fun startEvaluationProcess(input: EvaluationInput): Process {
+    val runCode = PythonCodeGenerator.generateRunFunctionCode(
+        input.method,
+        input.methodArguments,
+        input.directoriesForSysPath,
+        input.moduleToImport,
+        input.additionalModulesToImport
+    )
+    val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + input.method.name + ".py")
+    return startProcess(listOf(input.pythonPath, fileWithCode.path))
+}
 
-        val output = result.stdout.split('\n')
+fun getEvaluationResult(input: EvaluationInput, process: Process, timeout: Long): EvaluationResult {
+    val result = getResult(process, timeout = timeout)
 
-        if (output.size != 4)
-            return EvaluationError
+    if (result.exitValue != 0)
+        return EvaluationError
 
-        val status = output[0]
+    val output = result.stdout.split('\n')
 
-        if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
-            return EvaluationError
+    if (output.size != 4)
+        return EvaluationError
 
-        val isSuccess = status == PythonCodeGenerator.successStatus
+    val status = output[0]
 
-        val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
-        val stmts = Klaxon().parseArray<Int>(output[2])!!
-        val missed = Klaxon().parseArray<Int>(output[3])!!
-        val covered = stmts.filter { it !in missed }
-        val coverage = PythonCoverage(
-            covered.map {
-                Instruction(
-                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
-                    method.methodSignature(),
-                    it,
-                    it.toLong()
-                )
-            },
-            missed.map {
-                Instruction(
-                    method.containingPythonClassId?.name ?: pythonAnyClassId.name,
-                    method.methodSignature(),
-                    it,
-                    it.toLong()
-                )
-            }
-        )
+    if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
+        return EvaluationError
 
-        return EvaluationSuccess(
-            OutputData(pythonTree, pythonTree.type),
-            !isSuccess,
-            coverage
-        )
-    }
+    val isSuccess = status == PythonCodeGenerator.successStatus
+
+    val pythonTree = KlaxonPythonTreeParser(output[1]).parseJsonToPythonTree()
+    val stmts = Klaxon().parseArray<Int>(output[2])!!
+    val missed = Klaxon().parseArray<Int>(output[3])!!
+    val covered = stmts.filter { it !in missed }
+    val coverage = PythonCoverage(
+        covered.map {
+            Instruction(
+                input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                input.method.methodSignature(),
+                it,
+                it.toLong()
+            )
+        },
+        missed.map {
+            Instruction(
+                input.method.containingPythonClassId?.name ?: pythonAnyClassId.name,
+                input.method.methodSignature(),
+                it,
+                it.toLong()
+            )
+        }
+    )
+
+    return EvaluationSuccess(
+        OutputData(pythonTree, pythonTree.type),
+        !isSuccess,
+        coverage
+    )
 }

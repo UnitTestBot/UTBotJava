@@ -12,8 +12,9 @@ data class CmdResult(
     val terminatedByTimeout: Boolean = false
 )
 
-fun runCommand(command: List<String>, timeout: Long? = null): CmdResult {
-    val process = ProcessBuilder(command).start()
+fun startProcess(command: List<String>): Process = ProcessBuilder(command).start()
+
+fun getResult(process: Process, timeout: Long? = null): CmdResult {
     if (timeout != null) {
         if (!process.waitFor(timeout, TimeUnit.MILLISECONDS)) {
             process.destroy()
@@ -34,4 +35,9 @@ fun runCommand(command: List<String>, timeout: Long? = null): CmdResult {
 
     val stderr = process.errorStream.readBytes().decodeToString().trimIndent()
     return CmdResult(stdout.trimIndent(), stderr, process.exitValue())
+}
+
+fun runCommand(command: List<String>, timeout: Long? = null): CmdResult {
+    val process = startProcess(command)
+    return getResult(process, timeout)
 }

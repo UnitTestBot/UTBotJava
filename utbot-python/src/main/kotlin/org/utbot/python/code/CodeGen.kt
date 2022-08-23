@@ -196,7 +196,7 @@ object PythonCodeGenerator {
 
         val coverage = Assign(
             listOf(coverageName),
-            Name("coverage.Coverage()")
+            Name("coverage.Coverage(data_suffix=True)")
         )
         val startCoverage = Atom(
             coverageName,
@@ -241,6 +241,10 @@ object PythonCodeGenerator {
                     createArguments(listOf(fullpathName))
                 )
             )
+        )
+        val clean = Atom(
+            coverageName,
+            listOf(Attribute(Identifier("erase")), createArguments())
         )
         val stmtsFiltered = Assign(
             listOf(stmtsFilteredName),
@@ -289,6 +293,7 @@ object PythonCodeGenerator {
                 sourcesAndStart,
                 end,
                 covAnalysis,
+                clean,
                 stmtsFiltered,
                 stmtsFilteredWithDef,
                 missedFiltered

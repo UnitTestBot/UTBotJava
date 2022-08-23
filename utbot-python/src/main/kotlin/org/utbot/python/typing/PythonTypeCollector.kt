@@ -1,6 +1,7 @@
 package org.utbot.python.typing
 
 import com.beust.klaxon.Klaxon
+import mu.KotlinLogging
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.filefilter.FileFilterUtils
@@ -17,6 +18,8 @@ import org.utbot.python.utils.getModuleNameWithoutCheck
 import java.io.File
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets
+
+private val logger = KotlinLogging.logger {}
 
 class PythonClassIdInfo(
     val pythonClassId: PythonClassId,
@@ -178,6 +181,9 @@ object PythonTypesStorage {
         projectClasses = projectClassesSet.toList()
 
         val newModules = projectModulesSet - projectModules.toSet()
+
+        logger.debug("Updating info from stub files")
+
         updateStubFiles(newModules.map { it.name } .toList())
         projectModules = projectModulesSet.toList()
     }

@@ -24,15 +24,6 @@ dependencies {
     testImplementation "org.mockito:mockito-inline:+"
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-compileJava {
-    dependsOn project(':utbot-api').tasks.jar
-}
-
 test {
     minHeapSize = "128m"
     maxHeapSize = "3072m"

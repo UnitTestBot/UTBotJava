@@ -15,20 +15,6 @@ dependencies {
     implementation group: 'org.mockito', name: 'mockito-inline', version: '4.2.0'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-compileKotlin {
-    dependsOn project(':utbot-api').tasks.jar
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
-        allWarningsAsErrors = false
-    }
-}
-
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 

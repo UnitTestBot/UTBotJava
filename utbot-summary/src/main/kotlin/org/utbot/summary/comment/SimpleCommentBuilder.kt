@@ -352,7 +352,7 @@ open class SimpleCommentBuilder(
      * In case when an enclosing class in nested, we need to replace '$' with '.'
      * to render the reference.
      */
-    protected fun getMethodReference(className: String, methodName: String, methodParameterTypes: List<Type>): String {
+    fun getMethodReference(className: String, methodName: String, methodParameterTypes: List<Type>): String {
         val prettyClassName: String = className.replace("$", ".")
 
         return if (methodParameterTypes.isEmpty()) {

@@ -106,3 +106,4 @@ test {
     }
     jvmArgs += ['--add-opens', 'java.base/jdk.internal.loader=ALL-UNNAMED'] //todo remove me
     jvmArgs += ['-XX:+HeapDumpOnOutOfMemoryError', '-XX:HeapDumpPath=heapdump.hprof']
+}

@@ -45,7 +45,7 @@ object StringRandomMutator : ModelMutator {
 
     private fun tryAddChar(random: Random, value: String, position: Int): String {
         val charToMutate = if (value.isNotEmpty()) {
-            value[random.nextInt(value.length)]
+            value.random(random)
         } else {
             // use any meaningful character from the ascii table
             random.nextInt(33, 127).toChar()

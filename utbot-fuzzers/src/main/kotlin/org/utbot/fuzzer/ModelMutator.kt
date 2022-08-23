@@ -20,12 +20,11 @@ interface ModelMutator {
     ) : List<FuzzedParameter> {
         return parameters
             .asSequence()
-            .mapIndexed { index, fuzzedValue ->
+            .mapIndexedNotNull { index, fuzzedValue ->
                 mutate(description, index, fuzzedValue, random)?.let { mutated ->
                     FuzzedParameter(index, mutated)
                 }
             }
-            .filterNotNull()
             .toList()
     }
 

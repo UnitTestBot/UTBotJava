@@ -29,6 +29,6 @@ def quick_sort(array: list[int]):
             quick_sort_random(
                 A, pivot_index + 1, right
             )  # recursive quicksort to the right of the pivot point
-
-    return quick_sort_random(array, 0, len(array))
+    quick_sort_random(array, 0, len(array))
+    return array
 

@@ -13,6 +13,7 @@ import com.intellij.util.ArrayUtil
 import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
@@ -50,7 +51,9 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
             }
         }
 
-        val testRoots = model.potentialTestModules.flatMap { it.suitableTestSourceRoots().toMutableList() }.toMutableList()
+        val testRoots = model.potentialTestModules
+            .flatMap { it.suitableTestSourceRoots().toList() }
+            .toMutableList()
 
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots)

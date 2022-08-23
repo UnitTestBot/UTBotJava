@@ -3,12 +3,14 @@ package org.utbot.python.typing
 import org.utbot.python.utils.moduleOfType
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
+import org.utbot.framework.plugin.api.PythonClassId
 
 object StubFileFinder {
-    val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = emptyMap<String, MutableSet<StubFileStructures.FunctionInfo>>().toMutableMap()
-    val functionToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = emptyMap<String, MutableSet<StubFileStructures.FunctionInfo>>().toMutableMap()
-    val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = emptyMap<String, MutableSet<StubFileStructures.FieldInfo>>().toMutableMap()
-    val nameToClassMap: MutableMap<String, StubFileStructures.ClassInfo> = emptyMap<String, StubFileStructures.ClassInfo>().toMutableMap()
+    val methodToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()
+    val functionToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FunctionInfo>> = mutableMapOf()
+    val fieldToTypeMap: MutableMap<String, MutableSet<StubFileStructures.FieldInfo>> = mutableMapOf()
+    val nameToClassMap: MutableMap<String, StubFileStructures.ClassInfo> = mutableMapOf()
 
     private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
     private val jsonAdapter = moshi.adapter(StubFileStructures.JsonData::class.java)
@@ -22,6 +24,7 @@ object StubFileFinder {
     ) {
         val jsonData = parseJson(json)
         if (jsonData != null) {
+            jsonData.normalizeAnnotations()
             updateMethods(jsonData.methodAnnotations)
             updateFields(jsonData.fieldAnnotations)
             updateFunctions(jsonData.functionAnnotations)
@@ -62,21 +65,19 @@ object StubFileFinder {
         }
     }
 
-    data class SearchResult(val typeName: String, val module: String)
-
     fun findTypeWithMethod(
         methodName: String
-    ): Set<SearchResult> {
+    ): Set<PythonClassId> {
         return (methodToTypeMap[methodName] ?: emptyList()).mapNotNull { methodInfo ->
-            methodInfo.className?.let { SearchResult(it, methodInfo.module) }
+            methodInfo.className?.let { PythonClassId(it) }
         }.toSet()
     }
 
     fun findTypeWithField(
         fieldName: String
-    ): Set<SearchResult> {
+    ): Set<PythonClassId> {
         return (fieldToTypeMap[fieldName] ?: emptyList()).map {
-            SearchResult(it.className, moduleOfType(it.className)!!)
+            PythonClassId(it.className)
         }.toSet()
     }
 
@@ -84,15 +85,14 @@ object StubFileFinder {
         functionName: String,
         argumentName: String? = null,
         argumentPosition: Int? = null,
-    ): Set<SearchResult> {
+    ): Set<NormalizedPythonAnnotation> {
         val functionInfos = functionToTypeMap[functionName] ?: emptyList()
-        val types = mutableSetOf<SearchResult>()
+        val types = mutableSetOf<NormalizedPythonAnnotation>()
         if (argumentName != null) {
             functionInfos.forEach { functionInfo ->
-                val module = functionInfo.module
                 (functionInfo.args + functionInfo.kwonlyargs).forEach {
                     if (it.arg == argumentName && it.annotation != "")
-                        types.add(SearchResult(it.annotation, module))
+                        types.add(NormalizedPythonAnnotation(it.annotation))
                 }
             }
         } else if (argumentPosition != null) {
@@ -100,24 +100,23 @@ object StubFileFinder {
                 val checkCountArgs = functionInfo.args.size > argumentPosition
                 val ann = functionInfo.args.getOrNull(argumentPosition)?.annotation ?: ""
                 if (checkCountArgs && ann != "") {
-                    types.add(SearchResult(ann, functionInfo.module))
+                    types.add(NormalizedPythonAnnotation(ann))
                 }
             }
         } else {
             functionInfos.forEach { functionInfo ->
-                val module = functionInfo.module
                 functionInfo.args.forEach {
                     if (it.annotation != "")
-                        types.add(SearchResult(it.annotation, module))
+                        types.add(NormalizedPythonAnnotation(it.annotation))
                 }
             }
         }
         return types
     }
 
-    fun findAnnotationByFunctionReturnValue(functionName: String): Set<SearchResult> {
+    fun findAnnotationByFunctionReturnValue(functionName: String): Set<NormalizedPythonAnnotation> {
         return functionToTypeMap[functionName]?.map {
-            SearchResult(it.returns, it.module)
+            NormalizedPythonAnnotation(it.returns)
         }?.toSet() ?: emptySet()
     }
 }

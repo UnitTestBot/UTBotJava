@@ -7,34 +7,18 @@ import java.io.File
 
 
 object AnnotationNormalizer {
-    private fun getFileWithScript(resourceName: String): File {
-        val scriptContent = AnnotationNormalizer::class.java.getResource(resourceName)
-            ?.readText()
-            ?: error("Didn't find $resourceName")
+    private val scriptContent = AnnotationNormalizer::class.java
+        .getResource("/normalize_annotation_from_project.py")
+        ?.readText()
+        ?: error("Didn't find /normalize_annotation_from_project.py")
 
-        return FileManager.createTemporaryFile(scriptContent, tag = "normalize_annotation.py")
-    }
-
-    // TODO: remove copy-paste
     private var normalizeAnnotationFromProjectScript_: File? = null
     private val normalizeAnnotationFromProjectScript: File
         get() {
             val result = normalizeAnnotationFromProjectScript_
             if (result == null || !result.exists()) {
-                val result1 = getFileWithScript("/normalize_annotation_from_project.py")
+                val result1 = FileManager.createTemporaryFile(scriptContent, tag = "normalize_annotation.py")
                 normalizeAnnotationFromProjectScript_ = result1
-                return result1
-            }
-            return result
-        }
-
-    private var normalizeAnnotationFromStubScript_: File? = null
-    private val normalizeAnnotationFromStubScript: File
-        get() {
-            val result = normalizeAnnotationFromStubScript_
-            if (result == null || !result.exists()) {
-                val result1 = getFileWithScript("/normalize_annotation_from_stub.py")
-                normalizeAnnotationFromStubScript_ = result1
                 return result1
             }
             return result
@@ -81,41 +65,13 @@ object AnnotationNormalizer {
                 )
             )
 
-    private val stubAnnotationCache: MutableMap<String, NormalizedPythonAnnotation> = mutableMapOf()
-
-    fun annotationFromStubToClassId(
-        annotation: String,
-        pythonPath: String,
-        moduleOfAnnotation: String
-    ): NormalizedPythonAnnotation {
-//        return NormalizedPythonAnnotation(annotation)
-        val cached = stubAnnotationCache[annotation]
-        if (cached != null)
-            return cached
-
-        val result = runCommand(listOf(
-            pythonPath,
-            normalizeAnnotationFromStubScript.path,
-            annotation,
-            moduleOfAnnotation
-        ))
-
-        val ret = NormalizedPythonAnnotation(
-            substituteTypes(
-                if (result.exitValue == 0) result.stdout else annotation
-            )
-        )
-        stubAnnotationCache[annotation] = ret
-        return ret
-    }
-
-    val substitutionMapFirstStage = listOf(
+    private val substitutionMapFirstStage = listOf(
         "builtins.list" to "typing.List",
         "builtins.dict" to "typing.Dict",
         "builtins.set" to "typing.Set"
     )
 
-    val substitutionMapSecondStage = listOf(
+    private val substitutionMapSecondStage = listOf(
         Regex("typing.List *([^\\[]|$)") to "typing.List[typing.Any]",
         Regex("typing.Dict *([^\\[]|$)") to "typing.Dict[typing.Any, typing.Any]",
         Regex("typing.Set *([^\\[]|$)") to "typing.Set[typing.Any]"

@@ -7,7 +7,6 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentSkipListSet
-import jdk.nashorn.internal.codegen.types.Type
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
@@ -24,6 +23,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
+import org.objectweb.asm.Type
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.filterWhen

@@ -22,8 +22,6 @@ object PythonTestCaseGenerator {
     private lateinit var isCancelled: () -> Boolean
     private var timeoutForRun: Long = 0
 
-    private const val maxTestCount = 30
-
     fun init(
         directoriesForSysPath: Set<String>,
         moduleToImport: String,

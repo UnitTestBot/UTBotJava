@@ -463,7 +463,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
         }
 
         override fun visitStr(str: Str, param: MutableMap<String, ArgInfoStorage>?): AST {
-            constStorage.add(FuzzedConcreteValue(pythonStrClassId, str.s))
+            if (str.s.isEmpty() || str.s[0] != 'f')
+                constStorage.add(FuzzedConcreteValue(pythonStrClassId, str.s))
             generalStorage.types.add(Type(pythonStrClassId))
             return super.visitStr(str, param)
         }

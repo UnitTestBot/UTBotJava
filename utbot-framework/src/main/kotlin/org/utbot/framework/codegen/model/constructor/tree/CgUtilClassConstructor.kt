@@ -23,6 +23,7 @@ internal object CgUtilClassConstructor {
                 id = utUtilsClassId
                 body = buildRegularClassBody {
                     content += utilClassKind.utilClassVersionComment
+                    content += utilClassKind.utilClassKindComment
                     content += utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) }
                 }
             }

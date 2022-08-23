@@ -98,19 +98,9 @@ object CodeGenerationController {
 
     private class UtilClassListener {
         var requiredUtilClassKind: UtilClassKind? = null
-        var mockFrameworkUsed: Boolean = false
 
         fun onTestClassGenerated(result: CodeGeneratorResult) {
             requiredUtilClassKind = maxOfNullable(requiredUtilClassKind, result.utilClassKind)
-            mockFrameworkUsed = maxOf(mockFrameworkUsed, result.mockFrameworkUsed)
-        }
-
-        private fun <T : Comparable<T>> maxOfNullable(a: T?, b: T?): T? {
-            return when {
-                a == null -> b
-                b == null -> a
-                else -> maxOf(a, b)
-            }
         }
     }
 
@@ -161,12 +151,12 @@ object CodeGenerationController {
 
         run(EDT_LATER) {
             waitForCountDown(latch, timeout = 100, timeUnit = TimeUnit.MILLISECONDS) {
-                val mockFrameworkUsed = utilClassListener.mockFrameworkUsed
-                val utilClassKind = utilClassListener.requiredUtilClassKind
+                val requiredUtilClassKind = utilClassListener.requiredUtilClassKind
                     ?: return@waitForCountDown // no util class needed
 
                 val existingUtilClass = model.codegenLanguage.getUtilClassOrNull(model.project, model.testModule)
-                if (shouldCreateOrUpdateUtilClass(existingUtilClass, mockFrameworkUsed, utilClassKind)) {
+                val utilClassKind = newUtilClassKindOrNull(existingUtilClass, requiredUtilClassKind)
+                if (utilClassKind != null) {
                     createOrUpdateUtilClass(
                         testDirectory = baseTestDirectory,
                         utilClassKind = utilClassKind,
@@ -204,40 +194,50 @@ object CodeGenerationController {
         }
     }
 
-    private fun shouldCreateOrUpdateUtilClass(
-        existingUtilClass: PsiFile?,
-        mockFrameworkUsed: Boolean,
-        requiredUtilClassKind: UtilClassKind
-    ): Boolean {
-        val mockFrameworkNotUsed = !mockFrameworkUsed
-
-        val utilClassExists = existingUtilClass != null
-
-        if (!utilClassExists) {
-            // If no util class exists, then we should create a new one.
-            return true
+    /**
+     * This method decides whether to overwrite an existing util class with a new one. And if so, then with what kind of util class.
+     * - If no util class exists, then we generate a new one.
+     * - If existing util class' version is out of date, then we overwrite it with a new one.
+     * But we use the maximum of two kinds (existing and the new one) to avoid problems with mocks.
+     * - If existing util class is up-to-date **and** has a greater or equal priority than the new one,
+     * then we do not need to overwrite it (return null).
+     * - Lastly, if the new util class kind has a greater priority than the existing one,
+     * then we do overwrite it with a newer version.
+     *
+     * @param existingUtilClass a [PsiFile] representing a file of an existing util class. If it does not exist, then [existingUtilClass] is `null`.
+     * @param requiredUtilClassKind the kind of the new util class that we attempt to generate.
+     * @return an [UtilClassKind] of a new util class that will be created or `null`, if no new util class is needed.
+     */
+    private fun newUtilClassKindOrNull(existingUtilClass: PsiFile?, requiredUtilClassKind: UtilClassKind): UtilClassKind? {
+        if (existingUtilClass == null) {
+            // If no util class exists, then we should create a new one with the given kind.
+            return requiredUtilClassKind
         }
 
-        val existingUtilClassVersion = existingUtilClass?.utilClassVersionOrNull
+        val existingUtilClassVersion = existingUtilClass.utilClassVersionOrNull ?: return requiredUtilClassKind
         val newUtilClassVersion = requiredUtilClassKind.utilClassVersion
         val versionIsUpdated = existingUtilClassVersion != newUtilClassVersion
 
+        val existingUtilClassKind = existingUtilClass.utilClassKindOrNull ?: return requiredUtilClassKind
+
         if (versionIsUpdated) {
-            // If an existing util class is out of date,
-            // then we must overwrite it with a newer version.
-            return true
+            // If an existing util class is out of date, then we must overwrite it with a newer version.
+            // But we choose the kind with more priority, because it is possible that
+            // the existing util class needed mocks, but the new one doesn't.
+            // In this case we still want to support mocks, because the previously generated tests
+            // expect that the util class does support them.
+            return maxOfNullable(existingUtilClassKind, requiredUtilClassKind)
         }
 
-        if (mockFrameworkNotUsed) {
-            // If util class already exists and mock framework is not used,
-            // then existing util class is enough, and we don't need to generate a new one.
-            // That's because both regular and mock versions of util class can work
-            // with tests that do not use mocks, so we do not have to worry about
-            // version of util class that we have at the moment.
-            return false
+        if (requiredUtilClassKind <= existingUtilClassKind) {
+            // If the existing util class kind has a greater or equal priority than the new one we attempt to generate,
+            // then we should not do anything. The existing util class is already enough.
+            return null
         }
 
-        return true
+        // The last case. The existing util class has a strictly less priority than the new one.
+        // So we generate the new one to overwrite the previous one with it.
+        return requiredUtilClassKind
     }
 
     /**
@@ -345,7 +345,7 @@ object CodeGenerationController {
     }
 
     /**
-     * Util class must have a comment that specifies the version of UTBot it was generated with.
+     * Util class must have a comment that specifies its version.
      * This property represents the version specified by this comment if it exists. Otherwise, the property is `null`.
      */
     private val PsiFile.utilClassVersionOrNull: String?
@@ -360,6 +360,23 @@ object CodeGenerationController {
                 .firstOrNull { text -> UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX in text }
                 ?.substringAfterLast(UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX)
                 ?.trim()
+        }
+
+    /**
+     * Util class must have a comment that specifies its kind.
+     * This property obtains the kind specified by this comment if it exists. Otherwise, the property is `null`.
+     */
+    private val PsiFile.utilClassKindOrNull: UtilClassKind?
+        get() = runReadAction {
+            val utilClass = (this as? PsiClassOwner)
+                ?.classes
+                ?.firstOrNull()
+                ?: return@runReadAction null
+
+            utilClass.childrenOfType<PsiComment>()
+                .map { comment -> comment.text }
+                .mapNotNull { text -> UtilClassKind.utilClassKindByCommentOrNull(text) }
+                .firstOrNull()
         }
 
     /**
@@ -885,5 +902,13 @@ object CodeGenerationController {
             message = "Cannot Create Class '$testClassName'",
             title = "Failed to Create Class"
         )
+    }
+
+    private fun <T : Comparable<T>> maxOfNullable(a: T?, b: T?): T? {
+        return when {
+            a == null -> b
+            b == null -> a
+            else -> maxOf(a, b)
+        }
     }
 }

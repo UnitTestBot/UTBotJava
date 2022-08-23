@@ -82,8 +82,7 @@ class CodeGenerator(
             CodeGeneratorResult(
                 generatedCode = renderClassFile(testClassFile),
                 utilClassKind = UtilClassKind.fromCgContextOrNull(context),
-                testsGenerationReport = testClassFile.testsGenerationReport,
-                mockFrameworkUsed = context.mockFrameworkUsed
+                testsGenerationReport = testClassFile.testsGenerationReport
             )
         }
     }
@@ -117,14 +116,12 @@ class CodeGenerator(
  * @property generatedCode the source code of the test class
  * @property utilClassKind the kind of util class if it is required, otherwise - null
  * @property testsGenerationReport some info about test generation process
- * @property mockFrameworkUsed flag indicating whether any mock objects have been created during code generation ot not
  */
 data class CodeGeneratorResult(
     val generatedCode: String,
     // null if no util class needed, e.g. when we are generating utils directly into test class
     val utilClassKind: UtilClassKind?,
     val testsGenerationReport: TestsGenerationReport,
-    val mockFrameworkUsed: Boolean = false
 )
 
 /**
@@ -162,15 +159,40 @@ sealed class UtilClassKind(
     val utilClassVersionComment: CgComment
         get() = CgSingleLineComment("$UTIL_CLASS_VERSION_COMMENT_PREFIX${utilClassVersion}")
 
+
+    /**
+     * The comment specifying the kind of util class being generated.
+     *
+     * @see utilClassKindCommentText
+     */
+    val utilClassKindComment: CgComment
+        get() = CgSingleLineComment(utilClassKindCommentText)
+
+    /**
+     * The text of comment specifying the kind of util class.
+     * At the moment, there are two kinds: [RegularUtUtils] (without Mockito) and [UtUtilsWithMockito].
+     *
+     * This comment is needed when the plugin decides whether to overwrite an existing util class or not.
+     * When making that decision, it is important to determine if the existing class uses mocks or not,
+     * and this comment will help do that.
+     */
+    abstract val utilClassKindCommentText: String
+
     /**
      * A kind of regular UtUtils class. "Regular" here means that this class does not use a mock framework.
      */
-    object RegularUtUtils : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = false, priority = 0)
+    object RegularUtUtils : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = false, priority = 0) {
+        override val utilClassKindCommentText: String
+            get() = "This is a regular UtUtils class (without mock framework usage)"
+    }
 
     /**
      * A kind of UtUtils class that uses a mock framework. At the moment the framework is Mockito.
      */
-    object UtUtilsWithMockito : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = true, priority = 1)
+    object UtUtilsWithMockito : UtilClassKind(UtilClassFileMethodProvider, mockFrameworkUsed = true, priority = 1) {
+        override val utilClassKindCommentText: String
+            get() = "This is UtUtils class with Mockito support"
+    }
 
     override fun compareTo(other: UtilClassKind): Int {
         return priority.compareTo(other.priority)
@@ -195,6 +217,14 @@ sealed class UtilClassKind(
          * This is a prefix that will go before the version in the comment.
          */
         const val UTIL_CLASS_VERSION_COMMENT_PREFIX = "UtUtils class version: "
+
+        fun utilClassKindByCommentOrNull(comment: String): UtilClassKind? {
+            return when (comment) {
+                RegularUtUtils.utilClassKindCommentText -> RegularUtUtils
+                UtUtilsWithMockito.utilClassKindCommentText -> UtUtilsWithMockito
+                else -> null
+            }
+        }
 
         /**
          * Check if an util class is required, and if so, what kind.

@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 
 class Word:
@@ -9,13 +9,13 @@ class Word:
 class Dictionary:
     def __init__(
             self,
-            languages: List[str],
-            words: List[Word],
+            languages: list[str],
+            words: list[dict[str, list]],
     ):
         self.languages = languages
-        self.words = words
+        self.words = [Word(translations) for translations in words]
 
-    def translate(self, word: str, language=None):
+    def translate(self, word: str, language: Optional[str]):
         if language is not None:
             for word_ in self.words:
                 if word_.translations[language] == word:

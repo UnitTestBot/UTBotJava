@@ -12,3 +12,7 @@ def inhibition(number, string, string_sep, list_of_number, dict_str_to_list):
         list_of_number.append(key)
 
     return list_of_number
+
+
+if __name__ == '__main__':
+    print(inhibition(5, 'fjsl', '|', [1, 2, 3], {'fjls': [1, 2]}))

@@ -1,12 +1,13 @@
+from __future__ import annotations
 from collections import deque
 
 
 class Node:
-    def __init__(self, name: str):
+    def __init__(self, name: str, children: list[Node] = []):
         self.name = name
-        self.children: list[Node] = []
+        self.children = children
 
-    def __str__(self):
+    def __repr__(self):
         return f'<Node: {self.name}>'
 
     def __eq__(self, other):
@@ -30,3 +31,11 @@ def bfs(nodes: list[Node]):
                 queue.append(child)
     return visited
 
+
+if __name__ == '__main__':
+    a = Node('a')
+    b = Node('b')
+    c = Node('c')
+    a.children.append(b)
+    b.children.append(c)
+    print(bfs([a, b, c]))

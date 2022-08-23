@@ -1,3 +1,4 @@
+from __future__ import annotations
 from itertools import product
 
 
@@ -6,7 +7,10 @@ class Matrix:
         self.elements = elements
         self.dim = (len(elements[0]), len(elements))
 
-    def __add__(self, other):
+    def __repr__(self):
+        return str(self.elements)
+
+    def __add__(self, other: Matrix):
         if self.dim == other.dim:
             return Matrix([
                 [
@@ -34,3 +38,9 @@ class Matrix:
                         for k in range(self.dim[1])
                     )
                 return Matrix(result)
+
+
+if __name__ == '__main__':
+    a = Matrix([[1, 2]])
+    b = Matrix([[3, 4]])
+    print(a + b)

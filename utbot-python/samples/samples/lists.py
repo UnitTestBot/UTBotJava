@@ -15,3 +15,10 @@ def find_articles_with_author(articles: list[Article], author: str) -> list[Arti
         article for article in articles
         if article.author == author
     ]
+
+
+if __name__ == '__main__':
+    print(find_articles_with_author([
+        Article('a', 'a1', 'jfls', datetime.datetime.today()),
+        Article('b', 'a2', 'fjls', datetime.datetime.now())
+    ], 'a1'))

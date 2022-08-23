@@ -6,6 +6,6 @@ def pretty_print(x):
     elif isinstance(x, complex):
         return 'It is complex.\n' + 'Value (' + str(x.real) + ' + ' + str(x.real) + 'i)'
     elif isinstance(x, list):
-        return 'It is list.\n' + 'Value ' + str(x)
+        return 'It is list.\n' + f'Value {x}'
     else:
         return 'I do not have any variants'

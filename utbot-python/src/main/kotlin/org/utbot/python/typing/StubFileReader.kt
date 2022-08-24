@@ -4,7 +4,7 @@ import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.runCommand
 
 object StubFileReader {
-    val scriptPath = "/typeshed_stub.py"
+    private const val scriptPath = "/typeshed_stub.py"
 
     fun getStubInfo(
         modules: List<String>,

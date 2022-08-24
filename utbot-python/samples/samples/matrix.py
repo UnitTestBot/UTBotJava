@@ -14,7 +14,7 @@ class Matrix:
         if self.dim == other.dim:
             return Matrix([
                 [
-                    elem + oelem for elem, oelem in
+                    elem + other_elem for elem, other_elem in
                     zip(self.elements[i], other.elements[i])
                 ]
                 for i in range(self.dim[1])

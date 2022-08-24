@@ -52,7 +52,7 @@ class PythonEngine(
             getModulesFromAnnotation(it)
         }.toSet()
 
-        val evaluationInputInterator = fuzz(methodUnderTestDescription, defaultPythonModelProvider).map { values ->
+        val evaluationInputIterator = fuzz(methodUnderTestDescription, defaultPythonModelProvider).map { values ->
             val parameterValues = values.map { it.model }
             val (thisObject, modelList) =
                 if (methodUnderTest.containingPythonClassId == null)
@@ -75,10 +75,10 @@ class PythonEngine(
         }.iterator()
 
         val coveredLines = java.util.Collections.synchronizedSet(mutableSetOf<Int>())
-        while (evaluationInputInterator.hasNext()) {
+        while (evaluationInputIterator.hasNext()) {
             val chunk = mutableListOf<EvaluationInput>()
-            while (evaluationInputInterator.hasNext() && chunk.size < CHUNK_SIZE)
-                chunk += evaluationInputInterator.next()
+            while (evaluationInputIterator.hasNext() && chunk.size < CHUNK_SIZE)
+                chunk += evaluationInputIterator.next()
 
             val coveredBefore = coveredLines.size
             val processes = chunk.map { evaluationInput ->

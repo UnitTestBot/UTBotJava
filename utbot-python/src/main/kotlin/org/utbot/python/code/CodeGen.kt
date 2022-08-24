@@ -19,6 +19,8 @@ import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStm
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.functionStmts.parameters.Parameters
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.ExceptHandler
 import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.tryExceptStmts.Try
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.With
+import io.github.danielnaczo.python3parser.model.stmts.compoundStmts.withStmts.WithItem
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Alias
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.Import
 import io.github.danielnaczo.python3parser.model.stmts.importStmts.ImportFrom
@@ -283,21 +285,31 @@ object PythonCodeGenerator {
             "[]"
         )
 
+        val suppressedBlock = With(
+            listOf(WithItem(Atom(
+                Name(getStdoutSuppressName),
+                listOf(createArguments())
+            ))),
+            Body(
+                parameters + listOf(
+                    fullpath,
+                    coverage,
+                    startCoverage,
+                    result,
+                    stopCoverage,
+                    sourcesAndStart,
+                    end,
+                    covAnalysis,
+                    clean,
+                    stmtsFiltered,
+                    stmtsFilteredWithDef,
+                    missedFiltered
+                )
+            )
+        )
+
         val tryBody = Body(
-            parameters + listOf(
-                fullpath,
-                coverage,
-                startCoverage,
-                result,
-                stopCoverage,
-                sourcesAndStart,
-                end,
-                covAnalysis,
-                clean,
-                stmtsFiltered,
-                stmtsFilteredWithDef,
-                missedFiltered
-            ) + okOutputBlock
+            listOf(suppressedBlock) + okOutputBlock
         )
         val tryHandler = ExceptHandler("Exception", exceptionName)
         val tryBlock = Try(tryBody, listOf(tryHandler), listOf(Body(failOutputBlock)))
@@ -311,11 +323,16 @@ object PythonCodeGenerator {
             listOf(createArguments())
         )
 
-        return pythonTreeSerializerCode + "\n\n\n" + getLines + "\n\n\n" + toString(
-            Module(
-                importStatements + listOf(testFunction, runFunction)
+        return listOf(
+            getStdoutSuppress,
+            pythonTreeSerializerCode,
+            getLines,
+            toString(
+                Module(
+                    importStatements + listOf(testFunction, runFunction)
+                )
             )
-        )
+        ).joinToString("\n\n")
     }
 
     fun generateMypyCheckCode(
@@ -355,6 +372,21 @@ object PythonCodeGenerator {
     private const val getLinesName: String = "__get_lines"
     private val getLines: String = """
         def ${this.getLinesName}(start, end, lines):
-            return list(filter(lambda x: x > start and x < end, lines))
+            return list(filter(lambda x: start < x < end, lines))
+    """.trimIndent()
+
+    private const val getStdoutSuppressName: String = "__suppress_stdout"
+    private val getStdoutSuppress: String = """
+        import os
+        from contextlib import contextmanager
+        @contextmanager
+        def ${this.getStdoutSuppressName}():
+            with open(os.devnull, "w") as devnull:
+                old_stdout = sys.stdout
+                sys.stdout = devnull
+                try:
+                    yield
+                finally:
+                    sys.stdout = old_stdout
     """.trimIndent()
 }

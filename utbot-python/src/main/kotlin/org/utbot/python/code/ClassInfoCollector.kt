@@ -6,7 +6,9 @@ import io.github.danielnaczo.python3parser.model.expr.atoms.Name
 import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.utbot.python.PythonMethod
 
-class ClassInfoCollector(val pyClass: PythonClass) {
+class ClassInfoCollector(pyClass: PythonClass) {
+    val pyClass: PythonClass = pyClass
+
     class Storage {
         val fields = mutableSetOf<String>()
         val methods = mutableSetOf<String>()

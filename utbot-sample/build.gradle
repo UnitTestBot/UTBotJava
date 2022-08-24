@@ -3,6 +3,8 @@ plugins {
     id 'java-library'
 }
 
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
 dependencies {
     implementation group: 'org.jetbrains', name: 'annotations', version: '16.0.2'
     implementation group: 'com.github.stephenc.findbugs', name: 'findbugs-annotations', version: '1.3.9-1'

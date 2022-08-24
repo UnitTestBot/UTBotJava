@@ -9,7 +9,6 @@ if (osName == "mac") osName = "macosx"
 String classifier = osName + "-x86_64"
 
 evaluationDependsOn(':utbot-framework')
-compileKotlin.dependsOn project(':utbot-instrumentation').tasks.jar
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {

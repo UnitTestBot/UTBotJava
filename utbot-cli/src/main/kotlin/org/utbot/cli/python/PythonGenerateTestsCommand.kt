@@ -34,7 +34,8 @@ class PythonGenerateTestsCommand: CliktCommand(
 
     private val pythonClass by option(
         "-c", "--class",
-        help = "Specify top-level class under test. Without this option tests will be generated for top-level functions."
+        help = "Specify top-level (ordinary, not nested) class under test. " +
+                "Without this option tests will be generated for top-level functions."
     )
 
     private val methods by option(

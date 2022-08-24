@@ -25,7 +25,7 @@ object RequirementsUtils {
     }
 
     fun installRequirements(pythonPath: String): CmdResult {
-        val result = runCommand(
+        return runCommand(
             listOf(
                 pythonPath,
                 "-m",
@@ -33,6 +33,5 @@ object RequirementsUtils {
                 "install"
             ) + requirements
         )
-        return result
     }
 }

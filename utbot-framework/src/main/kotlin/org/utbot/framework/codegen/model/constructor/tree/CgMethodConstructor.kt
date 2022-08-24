@@ -35,7 +35,6 @@ import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgIsInstance
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgMethodCall
@@ -56,7 +55,6 @@ import org.utbot.framework.codegen.model.tree.CgTestMethodType.FAILING
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.PARAMETRIZED
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.SUCCESSFUL
 import org.utbot.framework.codegen.model.tree.CgTestMethodType.TIMEOUT
-import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.tree.CgTryCatch
 import org.utbot.framework.codegen.model.tree.CgTypeCast
 import org.utbot.framework.codegen.model.tree.CgValue
@@ -113,7 +111,6 @@ import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -143,7 +140,6 @@ import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
-import kotlin.reflect.jvm.javaType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -1149,7 +1145,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
         if (elements.isNotEmpty()) {
             val elementsHaveSameStructure = PythonTree.allElementsHaveSameStructure(elements)
-            val firstChildren =
+            val firstChild =
                 elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
 
             emptyLine()
@@ -1161,21 +1157,21 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     innerBlock {
                         condition = index
                         iterable = iterator
-                        val indexExpected = newVar(pythonAnyClassId, "expected_element") {
+                        val indexExpected = newVar(firstChild.type, "expected_element") {
                             CgPythonIndex(
                                 pythonIntClassId,
                                 expected,
                                 index
                             )
                         }
-                        val indexActual = newVar(pythonAnyClassId, "actual_element") {
+                        val indexActual = newVar(firstChild.type, "actual_element") {
                             CgPythonIndex(
                                 pythonIntClassId,
                                 actual,
                                 index
                             )
                         }
-                        pythonDeepTreeEquals(firstChildren, indexExpected, indexActual)
+                        pythonDeepTreeEquals(firstChild, indexExpected, indexActual)
                         statements = currentBlock
                     }
                 }
@@ -1251,7 +1247,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             is PythonTree.ReduceNode -> {
                 if (expectedNode.state.isNotEmpty()) {
                     expectedNode.state.forEach { (field, value) ->
-                        val fieldActual = newVar(pythonAnyClassId, "actual_$field") {
+                        val fieldActual = newVar(value.type, "actual_$field") {
                             CgFieldAccess(
                                 actual, FieldId(
                                     value.type,
@@ -1259,7 +1255,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 )
                             )
                         }
-                        val fieldExpected = newVar(pythonAnyClassId, "expected_$field") {
+                        val fieldExpected = newVar(value.type, "expected_$field") {
                             CgFieldAccess(
                                 expected, FieldId(
                                     value.type,

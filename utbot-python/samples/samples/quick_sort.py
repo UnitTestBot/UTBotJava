@@ -1,10 +1,8 @@
-"""
-Picks the random index as the pivot
-"""
 import random
+from typing import List
 
 
-def quick_sort(array: list[int]):
+def quick_sort(array: List[int]):
     def partition(A, left_index, right_index):
         pivot = A[left_index]
         i = left_index + 1

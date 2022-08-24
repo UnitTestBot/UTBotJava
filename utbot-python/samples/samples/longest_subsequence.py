@@ -1,4 +1,7 @@
-def longest_subsequence(array: list[int]) -> list[int]:
+from typing import List
+
+
+def longest_subsequence(array: List[int]) -> List[int]:
     array_length = len(array)
     if array_length <= 1:
         return array

@@ -1,5 +1,5 @@
 def inhibition(number, string, string_sep, list_of_number, dict_str_to_list):
-    new_string = '_' + string + '_'
+    new_string = '_' + string + '_' * number
     new_string = new_string.capitalize() + string_sep + new_string[::-1]
 
     if len(list_of_number) < len(new_string):

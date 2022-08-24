@@ -1,23 +1,25 @@
 from __future__ import annotations
 from itertools import product
+from typing import List
 
 
 class Matrix:
-    def __init__(self, elements: list[list[float]]):
+    def __init__(self, elements: List[List[float]]):
         self.elements = elements
-        self.dim = (len(elements), len(elements[0]))
+        self.dim = (len(elements), len(elements[0]) if len(elements) > 0 else 0)
 
     def __repr__(self):
         return str(self.elements)
 
     def __add__(self, other: Matrix):
+        print(self.dim, other.dim)
         if self.dim == other.dim:
             return Matrix([
                 [
                     elem + other_elem for elem, other_elem in
                     zip(self.elements[i], other.elements[i])
                 ]
-                for i in range(self.dim[1])
+                for i in range(self.dim[0])
             ])
 
     def __mul__(self, other):
@@ -27,7 +29,7 @@ class Matrix:
                     elem * other for elem in
                     self.elements[i]
                 ]
-                for i in range(self.dim[1])
+                for i in range(self.dim[0])
             ])
 
     def __matmul__(self, other):

@@ -1,9 +1,10 @@
 from __future__ import annotations
 from collections import deque
+from typing import List
 
 
 class Node:
-    def __init__(self, name: str, children: list[Node] = []):
+    def __init__(self, name: str, children: List[Node]):
         self.name = name
         self.children = children
 
@@ -17,7 +18,7 @@ class Node:
             return False
 
 
-def bfs(nodes: list[Node]):
+def bfs(nodes: List[Node]):
     if len(nodes) == 0:
         return []
 
@@ -33,9 +34,9 @@ def bfs(nodes: list[Node]):
 
 
 if __name__ == '__main__':
-    a = Node('a')
-    b = Node('b')
-    c = Node('c')
+    a = Node('a', [])
+    b = Node('b', [])
+    c = Node('c', [])
     a.children.append(b)
     b.children.append(c)
     print(bfs([a, b, c]))

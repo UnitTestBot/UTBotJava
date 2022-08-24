@@ -1,5 +1,6 @@
 import dataclasses
 import datetime
+from typing import List
 
 
 @dataclasses.dataclass
@@ -10,7 +11,7 @@ class Article:
     created_at: datetime.datetime
 
 
-def find_articles_with_author(articles: list[Article], author: str) -> list[Article]:
+def find_articles_with_author(articles: List[Article], author: str) -> List[Article]:
     return [
         article for article in articles
         if article.author == author

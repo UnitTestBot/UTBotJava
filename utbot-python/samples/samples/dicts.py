@@ -9,8 +9,8 @@ class Word:
 class Dictionary:
     def __init__(
             self,
-            languages: list[str],
-            words: list[dict[str, list]],
+            languages: List[str],
+            words: List[Dict[str, str]],
     ):
         self.languages = languages
         self.words = [Word(translations) for translations in words]

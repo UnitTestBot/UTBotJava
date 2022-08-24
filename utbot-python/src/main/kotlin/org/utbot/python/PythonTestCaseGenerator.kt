@@ -143,7 +143,6 @@ object PythonTestCaseGenerator {
             curModule,
             directoriesForSysPath,
             pythonPath,
-            fileOfMethod,
             isCancelled,
             storageForMypyMessages
         )

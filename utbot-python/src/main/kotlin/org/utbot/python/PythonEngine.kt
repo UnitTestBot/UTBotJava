@@ -74,7 +74,7 @@ class PythonEngine(
             )
         }.iterator()
 
-        val coveredLines = java.util.Collections.synchronizedSet(mutableSetOf<Int>())
+        val coveredLines = mutableSetOf<Int>()
         while (evaluationInputInterator.hasNext()) {
             val chunk = mutableListOf<EvaluationInput>()
             while (evaluationInputInterator.hasNext() && chunk.size < CHUNK_SIZE)
@@ -87,19 +87,21 @@ class PythonEngine(
             val startedTime = System.currentTimeMillis()
             val results = (processes zip chunk).map { (process, evaluationInput) ->
                 val wait = max(10, timeoutForRun - (System.currentTimeMillis() - startedTime))
+                val evalResult = getEvaluationResult(evaluationInput, process, wait)
                 JobResult(
-                    getEvaluationResult(evaluationInput, process, wait),
+                    evalResult,
                     evaluationInput.values,
                     evaluationInput.thisObject,
                     evaluationInput.modelList
                 )
             }
-            val coveredAfter = coveredLines.size
             results.forEach { jobResult ->
                 if (jobResult.evalResult is EvaluationError) {
                     yield(UtError("EvaluationError", Throwable())) // TODO: make better error description
                 } else {
                     val (resultJSON, isException, coverage) = jobResult.evalResult as EvaluationSuccess
+
+                    coverage.coveredInstructions.forEach { coveredLines.add(it.lineNumber) }
 
                     val prohibitedExceptions = listOf(
                         "builtins.AttributeError",
@@ -143,6 +145,7 @@ class PythonEngine(
                     )
                 }
             }
+            val coveredAfter = coveredLines.size
 
             if (coveredAfter == coveredBefore)
                 return@sequence

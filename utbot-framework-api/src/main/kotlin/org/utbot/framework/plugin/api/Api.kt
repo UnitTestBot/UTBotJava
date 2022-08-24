@@ -376,9 +376,8 @@ class PythonListModel(
     val length: Int = 0,
     val stores: List<PythonModel>
 ) : PythonModel(classId) {
-    override fun toString() = withToStringThreadLocalReentrancyGuard {
-        (0 until length).map { stores[it] }.joinToString(", ", "[", "]")
-    }
+    override fun toString() =
+        (0 until length).joinToString(", ", "[", "]") { stores[it].toString() }
 
     override val allContainingClassIds: Set<PythonClassId>
         get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }
@@ -392,9 +391,8 @@ class PythonTupleModel(
     val length: Int = 0,
     val stores: List<PythonModel>
 ) : PythonModel(classId) {
-    override fun toString() = withToStringThreadLocalReentrancyGuard {
-        (0 until length).map { stores[it] }.joinToString(", ", "(", ")")
-    }
+    override fun toString() =
+        (0 until length).joinToString(", ", "(", ")") { stores[it].toString() }
 
     override val allContainingClassIds: Set<PythonClassId>
         get() = super.allContainingClassIds + stores.flatMap { it.allContainingClassIds }

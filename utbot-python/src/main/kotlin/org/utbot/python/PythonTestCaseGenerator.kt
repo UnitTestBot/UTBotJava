@@ -68,6 +68,7 @@ object PythonTestCaseGenerator {
         val executions = mutableListOf<UtExecution>()
         val errors = mutableListOf<UtError>()
         var missingLines: Set<Int>? = null
+        val coveredLines = mutableSetOf<Int>()
         var generated = 0
 
         run breaking@ {
@@ -86,7 +87,8 @@ object PythonTestCaseGenerator {
                     pythonPath,
                     argInfoCollector.getConstants(),
                     annotations,
-                    timeoutForRun
+                    timeoutForRun,
+                    coveredLines
                 )
 
                 engine.fuzzing().forEach {
@@ -97,6 +99,7 @@ object PythonTestCaseGenerator {
                         is UtExecution -> {
                             logger.debug("Added execution")
                             executions += it
+                            it.coverage?.coveredInstructions?.map { instr -> coveredLines.add(instr.lineNumber) }
                             val curMissing =
                                 (it.coverage as? PythonCoverage)
                                     ?.missedInstructions

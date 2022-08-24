@@ -23,7 +23,8 @@ class PythonEngine(
     private val pythonPath: String,
     private val fuzzedConcreteValues: List<FuzzedConcreteValue>,
     private val selectedTypeMap: Map<String, NormalizedPythonAnnotation>,
-    private val timeoutForRun: Long
+    private val timeoutForRun: Long,
+    private val initialCoveredLines: Set<Int>
 ) {
 
     private data class JobResult(
@@ -74,7 +75,7 @@ class PythonEngine(
             )
         }.iterator()
 
-        val coveredLines = mutableSetOf<Int>()
+        val coveredLines = initialCoveredLines.toMutableSet()
         while (evaluationInputInterator.hasNext()) {
             val chunk = mutableListOf<EvaluationInput>()
             while (evaluationInputInterator.hasNext() && chunk.size < CHUNK_SIZE)
@@ -110,7 +111,7 @@ class PythonEngine(
                     if (isException && (resultJSON.type.name in prohibitedExceptions)) {  // wrong type (sometimes mypy fails)
                         logger.debug("Evaluation with prohibited exception. Substituted types: ${
                             types.joinToString { it.name }
-                        }")
+                        }. Exception type: ${resultJSON.type.name}")
                         return@sequence
                     }
 

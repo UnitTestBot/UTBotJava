@@ -1,9 +1,15 @@
 from __future__ import annotations
 from itertools import product
+from typing import List
+
+
+class MatrixException(Exception):
+    def __init__(self, description):
+        self.description = description
 
 
 class Matrix:
-    def __init__(self, elements: list[list[float]]):
+    def __init__(self, elements: List[List[float]]):
         self.elements = elements
         self.dim = (len(elements), len(elements[0]))
 
@@ -29,6 +35,9 @@ class Matrix:
                 ]
                 for i in range(self.dim[1])
             ])
+        else:
+            raise MatrixException("Wrong Type")
+
 
     def __matmul__(self, other):
         if isinstance(other, Matrix):
@@ -40,9 +49,11 @@ class Matrix:
                         for k in range(self.dim[1])
                     )
                 return Matrix(result)
+        else:
+            raise MatrixException("Wrong Type")
 
 
 if __name__ == '__main__':
-    a = Matrix([[1, 2]])
-    b = Matrix([[3], [4]])
+    a = Matrix([[1., 2.]])
+    b = Matrix([[3.], [4.]])
     print(a @ b)

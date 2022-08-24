@@ -211,7 +211,7 @@ class PythonGenerateTestsCommand: CliktCommand(
         }
 
         processTestGeneration(
-            pythonPath = pythonPath.toAbsolutePath(),
+            pythonPath = pythonPath,
             testSourceRoot = testSourceRoot,
             pythonFilePath = sourceFile.toAbsolutePath(),
             pythonFileContent = sourceFileContent,

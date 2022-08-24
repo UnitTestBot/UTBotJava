@@ -4,7 +4,7 @@ from typing import List
 
 
 class Node:
-    def __init__(self, name: str, children: List[Node]):
+    def __init__(self, name: str, children: List[Node] = []):
         self.name = name
         self.children = children
 

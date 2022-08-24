@@ -1,9 +1,9 @@
-import dataclasses
+from dataclasses import dataclass
 import datetime
 from typing import List
 
 
-@dataclasses.dataclass
+@dataclass
 class Article:
     title: str
     author: str

@@ -204,7 +204,7 @@ private object StringConstant: ConstantsFinder {
         // if string constant is called from String class let's pass it as modification
         if (value.method.declaringClass.name == "java.lang.String") {
             val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
-            if (stringConstantWasPassedAsArg != null) {
+            if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
                 return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedOp.CH))
             }
             val stringConstantWasPassedAsThis = graph.getPredsOf(unit)
@@ -213,7 +213,7 @@ private object StringConstant: ConstantsFinder {
                 ?.useBoxes
                 ?.findFirstInstanceOf<Constant>()
                 ?.plainValue
-            if (stringConstantWasPassedAsThis != null) {
+            if (stringConstantWasPassedAsThis != null && stringConstantWasPassedAsThis is String) {
                 return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsThis, FuzzedOp.CH))
             }
         }

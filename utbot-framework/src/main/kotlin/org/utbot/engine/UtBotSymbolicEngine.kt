@@ -88,9 +88,13 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.Trie
+import org.utbot.fuzzer.TrieBasedFuzzerStatistics
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.withMutations
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.defaultModelMutators
+import org.utbot.fuzzer.flipCoin
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
@@ -392,6 +396,7 @@ class UtBotSymbolicEngine(
         val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
+        val random = Random(0)
         val thisInstance = when {
             methodUnderTest.isStatic -> null
             methodUnderTest.isConstructor -> if (
@@ -405,7 +410,7 @@ class UtBotSymbolicEngine(
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
                     FuzzedMethodDescription("thisInstance", voidClassId, listOf(methodUnderTest.clazz.id), constantValues)
-                ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
+                ).take(10).shuffled(random).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
                     }
@@ -421,8 +426,9 @@ class UtBotSymbolicEngine(
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
-        val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
-        var attempts = UtSettings.fuzzingMaxAttempts
+        val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
+        var attempts = 0
+        val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
@@ -435,7 +441,9 @@ class UtBotSymbolicEngine(
             fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
                 limitValuesCreatedByFieldAccessors = 500
             })
-        }
+        }.withMutations(
+            TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()
+        )
         fuzzedValues.forEach { values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
@@ -473,14 +481,19 @@ class UtBotSymbolicEngine(
 
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             if (coveredInstructions.isNotEmpty()) {
-                val count = coveredInstructionTracker.add(coveredInstructions)
-                if (count.count > 1) {
-                    if (--attempts < 0) {
+                val coverageKey = coveredInstructionTracker.add(coveredInstructions)
+                if (coverageKey.count > 1) {
+                    if (++attempts >= attemptsLimit) {
                         return@flow
+                    }
+                    // Update the seeded values sometimes
+                    // This is necessary because some values cannot do a good values in mutation in any case
+                    if (random.flipCoin(probability = 50)) {
+                        coveredInstructionValues[coverageKey] = values
                     }
                     return@forEach
                 }
-                coveredInstructionValues[count] = values
+                coveredInstructionValues[coverageKey] = values
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
             }

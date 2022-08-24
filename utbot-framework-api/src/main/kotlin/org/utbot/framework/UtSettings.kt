@@ -184,6 +184,11 @@ object UtSettings {
     var testDisplayName by getBooleanProperty(true)
 
     /**
+     * Generate summaries using plugin's custom JavaDoc tags.
+     */
+    var useCustomJavaDocTags by getBooleanProperty(false)
+
+    /**
      * Enable the machine learning module to generate summaries for methods under test.
      * True by default.
      *

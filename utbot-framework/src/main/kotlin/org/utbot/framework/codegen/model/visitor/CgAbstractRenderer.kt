@@ -16,6 +16,7 @@ import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
 import org.utbot.framework.codegen.model.tree.CgComparison
 import org.utbot.framework.codegen.model.tree.CgContinueStatement
+import org.utbot.framework.codegen.model.tree.CgCustomTagStatement
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgDecrement
 import org.utbot.framework.codegen.model.tree.CgDoWhileLoop
@@ -309,11 +310,19 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     }
     override fun visit(element: CgDocPreTagStatement) {
         if (element.content.all { it.isEmpty() }) return
-
         println("<pre>")
         for (stmt in element.content) stmt.accept(this)
         println("</pre>")
     }
+
+    override fun visit(element: CgCustomTagStatement) {
+        if (element.statements.all { it.isEmpty() }) return
+
+        for (stmt in element.statements) {
+            stmt.accept(this)
+        }
+    }
+
     override fun visit(element: CgDocCodeStmt) {
         if (element.isEmpty()) return
 

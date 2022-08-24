@@ -44,7 +44,7 @@ Run generated tests:
   
 - `-c, --class <class>`
   
-  Specify top-level class under test. Without this option tests will be generated for top-level functions.
+  Specify top-level (ordinary, not nested) class under test. Without this option tests will be generated for top-level functions.
   
 - `-m, --methods <method1>,<method2>`
 

@@ -1,16 +1,14 @@
 import argparse
 import json
-import re
 import subprocess
-from collections import defaultdict
+from datetime import datetime
 from os import environ
 from os.path import exists
 from platform import uname
 from time import time
-from datetime import datetime
 
 from monitoring_settings import JSON_VERSION
-from utils import postprocess_targets
+from utils import *
 
 
 def load(json_file):
@@ -69,11 +67,12 @@ def build_metadata(args):
 
 
 def build_targets(stats_array):
-    result = defaultdict(lambda: [])
+    result = get_default_metrics_dict()
     for stats in stats_array:
-        target = stats['target']
-        del stats['target']
-        result[target].append(stats)
+        target = stats['parameters']['target']
+        del stats['parameters']['target']
+        update_target(result[target], stats)
+
     return postprocess_targets(result)
 
 
@@ -102,8 +101,8 @@ def get_args():
         '--build', help='build number', type=str
     )
     parser.add_argument(
-        '--output_file', help='output file',
-        type=str, required=True
+        '--output_file', required=True,
+        help='output file', type=str
     )
     parser.add_argument(
         '--timestamp', help='statistics timestamp',

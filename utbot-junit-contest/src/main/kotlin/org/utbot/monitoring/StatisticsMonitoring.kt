@@ -80,50 +80,86 @@ private fun StringBuilder.tab(tabs: Int) {
     append("\t".repeat(tabs))
 }
 
-private fun StringBuilder.addValue(name: String, value: Any, tabs: Int = 0, needComma: Boolean = true) {
+private fun StringBuilder.addValue(name: String, value: Any?, tabs: Int = 0, needComma: Boolean = true) {
     tab(tabs)
     append("\"$name\": $value")
-    if (needComma)
-        append(',')
+    if (needComma) append(',')
     appendLine()
 }
 
-private fun GlobalStats.jsonString(baseTabs: Int = 0) =
+
+private fun objectString(vararg values: Pair<String, Any?>, baseTabs: Int = 0, needFirstTab: Boolean = false) =
     buildString {
-        tab(baseTabs)
+        if (needFirstTab) tab(baseTabs)
         appendLine("{")
 
         val tabs = baseTabs + 1
-        addValue("target", MonitoringSettings.project, tabs)
-        addValue("class_timeout_sec", MonitoringSettings.classTimeoutSeconds, tabs)
-        addValue("run_timeout_min", MonitoringSettings.runTimeoutMinutes, tabs)
-        duration?.let {
-            addValue("duration_ms", it, tabs)
+        values.forEachIndexed { index, (name, value) ->
+            addValue(name, value, tabs, index != values.lastIndex)
         }
-        addValue("classes_for_generation", classesForGeneration, tabs)
-        addValue("testcases_generated", testCasesGenerated, tabs)
-        addValue("classes_without_problems", classesWithoutProblems, tabs)
-        addValue("classes_canceled_by_timeout", classesCanceledByTimeout, tabs)
-        addValue("total_methods_for_generation", totalMethodsForGeneration, tabs)
-        addValue("methods_with_at_least_one_testcase_generated", methodsWithAtLeastOneTestCaseGenerated, tabs)
-        addValue("methods_with_exceptions", methodsWithExceptions, tabs)
-        addValue("suspicious_methods", suspiciousMethods, tabs)
-        addValue("test_classes_failed_to_compile", testClassesFailedToCompile, tabs)
-        addValue("covered_instructions", coveredInstructions, tabs)
-        addValue("covered_instructions_by_fuzzing", coveredInstructionsByFuzzing, tabs)
-        addValue("covered_instructions_by_concolic", coveredInstructionsByConcolic, tabs)
-        addValue("total_instructions", totalInstructions, tabs)
-        addValue("avg_coverage", avgCoverage, tabs, needComma = false)
 
         tab(baseTabs)
         append("}")
     }
 
-private fun List<GlobalStats>.jsonString() =
-    joinToString(
-        separator = ",\n",
-        prefix = "[\n",
-        postfix = "\n]"
-    ) {
-        it.jsonString(baseTabs = 1)
+private fun arrayString(vararg values: Any?, baseTabs: Int = 0, needFirstTab: Boolean = false) =
+    buildString {
+        if (needFirstTab) tab(baseTabs)
+        appendLine("[")
+
+        val tabs = baseTabs + 1
+        values.forEachIndexed { index, value ->
+            tab(tabs)
+            append(value)
+            if (index != values.lastIndex) append(",")
+            appendLine()
+        }
+
+        tab(baseTabs)
+        append("]")
     }
+
+
+private fun GlobalStats.parametersObject(baseTabs: Int = 0, needFirstTab: Boolean = false) =
+    objectString(
+        "target" to "\"${MonitoringSettings.project}\"",
+        "class_timeout_sec" to MonitoringSettings.classTimeoutSeconds,
+        "run_timeout_min" to MonitoringSettings.runTimeoutMinutes,
+        baseTabs = baseTabs,
+        needFirstTab = needFirstTab
+    )
+
+
+private fun GlobalStats.metricsObject(baseTabs: Int = 0, needFirstTab: Boolean = false) =
+    objectString(
+        "duration_ms" to duration,
+        "classes_for_generation" to classesForGeneration,
+        "testcases_generated" to testCasesGenerated,
+        "classes_without_problems" to classesWithoutProblems,
+        "classes_canceled_by_timeout" to classesCanceledByTimeout,
+        "total_methods_for_generation" to totalMethodsForGeneration,
+        "methods_with_at_least_one_testcase_generated" to methodsWithAtLeastOneTestCaseGenerated,
+        "methods_with_exceptions" to methodsWithExceptions,
+        "suspicious_methods" to suspiciousMethods,
+        "test_classes_failed_to_compile" to testClassesFailedToCompile,
+        "covered_instructions" to coveredInstructions,
+        "covered_instructions_by_fuzzing" to coveredInstructionsByFuzzing,
+        "covered_instructions_by_concolic" to coveredInstructionsByConcolic,
+        "total_instructions" to totalInstructions,
+        "avg_coverage" to avgCoverage,
+        baseTabs = baseTabs,
+        needFirstTab = needFirstTab
+    )
+
+private fun GlobalStats.jsonString(baseTabs: Int = 0, needFirstTab: Boolean = false) =
+    objectString(
+        "parameters" to parametersObject(baseTabs + 1),
+        "metrics" to metricsObject(baseTabs + 1),
+        baseTabs = baseTabs,
+        needFirstTab = needFirstTab
+    )
+
+private fun Iterable<GlobalStats>.jsonString() =
+    arrayString(*map {
+        it.jsonString(baseTabs = 1)
+    }.toTypedArray())

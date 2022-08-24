@@ -1,12 +1,11 @@
 import argparse
 import json
-from collections import defaultdict
 from os import listdir
 from os.path import isfile, join
 from time import time
 
 from monitoring_settings import JSON_VERSION
-from utils import postprocess_targets
+from utils import *
 
 
 def get_file_seq(input_data_dir):
@@ -34,7 +33,7 @@ def get_stats_seq(args):
             yield stats
 
 
-def transform_target_stats(stats, timestamp):
+def transform_target_stats(stats):
     common_prefix = "covered_instructions"
     denum = stats["total_instructions"]
 
@@ -46,24 +45,24 @@ def transform_target_stats(stats, timestamp):
         del stats[key]
 
     del stats["total_instructions"]
-    stats["timestamp"] = timestamp
 
     return stats
 
 
 def aggregate_stats(stats_seq):
-    result = defaultdict(lambda: [])
+    result = get_default_metrics_dict()
 
     for stats in stats_seq:
         targets = stats["targets"]
         timestamp = stats["metadata"]["timestamp"]
         for target in targets:
             full_name = f'{target["id"]}-{target["version"]}'
-            metrics = target["metrics"]
-            for target_stats in metrics:
-                result[full_name].append(
-                    transform_target_stats(target_stats, timestamp)
-                )
+            new_data = result[full_name]
+            for target_stats in target["metrics"]:
+                new_data["metrics"].append(transform_target_stats(target_stats))
+            for target_params in target["parameters"]:
+                target_params["timestamp"] = timestamp
+                new_data["parameters"].append(target_params)
 
     return postprocess_targets(result)
 

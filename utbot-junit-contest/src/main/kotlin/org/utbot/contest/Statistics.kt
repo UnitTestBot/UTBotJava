@@ -62,8 +62,11 @@ class GlobalStats {
     val avgCoverage: Double
         get() = statsForClasses
             .filter { it.coverage.totalInstructions != 0L }
-            .map { it.coverage.getCoverageInfo(it.className).run { if (total == 0) 0.0 else 100.0 * covered / total } }
-            .average()
+            .map { it.coverage.getCoverageInfo(it.className).run { 100.0 * covered / total } }
+            .average().run {
+                if (isNaN()) 0.0
+                else this
+            }
 
     override fun toString(): String = "\n<Global statistics> :" +
             "\n\t#classes for generation = $classesForGeneration" +

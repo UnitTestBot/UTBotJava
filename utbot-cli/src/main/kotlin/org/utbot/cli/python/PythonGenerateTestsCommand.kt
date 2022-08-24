@@ -26,73 +26,74 @@ private val logger = KotlinLogging.logger {}
 
 class PythonGenerateTestsCommand: CliktCommand(
     name = "generate_python",
-    help = "Generate tests for specified Python class or top-level functions from specified file"
+    help = "Generate tests for a specified Python class or top-level functions from a specified file."
 ) {
     private val sourceFile by argument(
-        help = "File with Python code to generate tests for"
+        help = "File with Python code to generate tests for."
     )
 
     private val pythonClass by option(
         "-c", "--class",
-        help = "Specify top-level class under test"
+        help = "Specify top-level class under test. Without this option tests will be generated for top-level functions."
     )
 
     private val methods by option(
         "-m", "--methods",
-        help = "Specify methods under test"
+        help = "Specify methods under test."
     ).split(",")
 
     private val directoriesForSysPath by option(
         "-s", "--sys-path",
-        help = "Directories to add to sys.path"
+        help = "(required) Directories to add to sys.path. " +
+                "One of directories must contain the file with the methods under test."
     ).split(",").required()
 
     private val pythonPath by option(
         "-p", "--python-path",
-        help = "Path to Python interpreter"
+        help = "(required) Path to Python interpreter."
     ).required()
 
     private val output by option(
         "-o", "--output",
-        help = "File for generated tests"
+        help = "(required) File for generated tests."
     ).required()
 
     private val coverageOutput by option(
         "--coverage",
-        help = "File to write coverage report"
+        help = "File to write coverage report."
     )
 
     private val installRequirementsIfMissing by option(
         "--install-requirements",
-        help = "Install Python requirements if missing"
+        help = "Install Python requirements if missing."
     ).flag(default = false)
 
     private val doNotMinimize by option(
         "--do-not-minimize",
-        help = "Turn off minimization of number of generated tests"
+        help = "Turn off minimization of the number of generated tests."
     ).flag(default = false)
 
     private val doNotCheckRequirements by option(
         "--do-not-check-requirements",
-        help = "Turn off Python requirements check"
+        help = "Turn off Python requirements check (to speed up)."
     ).flag(default = false)
 
     private val visitOnlySpecifiedSource by option(
         "--visit-only-specified-source",
-        help = "Do not search for classes and imported modules in other Python files from sys.path"
+        help = "Do not search for classes and imported modules in other Python files from sys.path."
     ).flag(default = false)
 
     private val timeout by option(
         "-t", "--timeout",
-        help = "Specify the maximum time in milliseconds to spend on generating tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)"
+        help = "Specify the maximum time in milliseconds to spend on generating tests ($DEFAULT_TIMEOUT_IN_MILLIS by default)."
     ).long().default(DEFAULT_TIMEOUT_IN_MILLIS)
 
     private val timeoutForRun by option(
         "--timeout-for-run",
-        help = "Specify the maximum time in milliseconds to spend on one function run ($DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS by default)"
+        help = "Specify the maximum time in milliseconds to spend on one function run ($DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS by default)."
     ).long().default(DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS)
 
-    private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used")
+    private val testFrameworkAsString by option("--test-framework", help = "Test framework to be used.")
         .choice(Pytest.toString(), Unittest.toString())
         .default(Unittest.toString())
 

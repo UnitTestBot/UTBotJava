@@ -160,24 +160,9 @@ class ModelProviderTest {
         )
 
         assertEquals(1, models.size)
-        assertEquals(2, models[0]!!.size)
-        listOf("nonemptystring", "nonemptystr`ng").forEach {
+        assertEquals(1, models[0]!!.size)
+        listOf("nonemptystring").forEach {
             assertTrue( models[0]!!.contains(UtPrimitiveModel(it))) { "Failed to find string $it in list ${models[0]}" }
-        }
-    }
-
-    @Test
-    fun `test mutation creates the same values between different runs`() {
-        repeat(10) {
-            val models = collect(StringConstantModelProvider,
-                parameters = listOf(stringClassId),
-                constants = listOf(
-                    FuzzedConcreteValue(stringClassId, "anotherstring", FuzzedOp.CH),
-                )
-            )
-            listOf("anotherstring", "anotherskring").forEach {
-                assertTrue( models[0]!!.contains(UtPrimitiveModel(it))) { "Failed to find string $it in list ${models[0]}" }
-            }
         }
     }
 

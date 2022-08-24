@@ -106,6 +106,7 @@ import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
@@ -141,6 +142,7 @@ import org.utbot.framework.plugin.api.util.wrapIfPrimitive
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
+import java.security.AccessControlException
 import java.lang.reflect.ParameterizedType
 import kotlin.reflect.jvm.javaType
 
@@ -351,6 +353,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 methodType = CRASH
                 writeWarningAboutCrash()
             }
+            is AccessControlException -> {
+                methodType = CRASH
+                writeWarningAboutFailureTest(exception)
+                return
+            }
             else -> {
                 methodType = FAILING
                 writeWarningAboutFailureTest(exception)
@@ -361,6 +368,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+        if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
 
@@ -1284,7 +1292,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
-                    paramType is ParameterizedType -> paramType.rawType.id
+                    paramType is ParameterizedType -> paramType.id
                     else -> ClassId(paramType.typeName)
                 }
 
@@ -1530,6 +1538,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (result is UtConcreteExecutionFailure) {
             testFrameworkManager.disableTestMethod(
                 "Disabled due to possible JVM crash"
+            )
+        }
+
+        if (result is UtSandboxFailure) {
+            testFrameworkManager.disableTestMethod(
+                "Disabled due to sandbox"
             )
         }
 

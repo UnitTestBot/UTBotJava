@@ -58,6 +58,8 @@ import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
+import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.isAbstract
 import kotlin.reflect.KClass
@@ -89,7 +91,7 @@ object UtTestsDialogProcessor {
         // we want to start the child process in the same directory as the test runner
         WorkingDirService.workingDirProvider = PluginWorkingDirProvider(project)
 
-        if (project.isGradle() && testModules.flatMap { it.suitableTestSourceRoots() }.isEmpty()) {
+        if (project.isBuildWithGradle && testModules.flatMap { it.suitableTestSourceRoots() }.isEmpty()) {
             val errorMessage = """
                 <html>No test source roots found in the project.<br>
                 Please, <a href="https://www.jetbrains.com/help/idea/testing.html#add-test-root">create or configure</a> at least one test source root.

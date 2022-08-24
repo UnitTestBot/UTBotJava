@@ -11,6 +11,7 @@ import java.io.File
 import java.io.OutputStream
 import java.io.PrintStream
 import java.net.URLClassLoader
+import java.security.AllPermission
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.system.exitProcess
@@ -51,6 +52,12 @@ private val kryoHelper: KryoHelper = KryoHelper(System.`in`, System.`out`)
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
  */
 fun main() {
+    permissions {
+        // Enable all permissions for instrumentation.
+        // SecurityKt.sandbox() is used to restrict these permissions.
+        + AllPermission()
+    }
+
     // We don't want user code to litter the standard output, so we redirect it.
     val tmpStream = PrintStream(object : OutputStream() {
         override fun write(b: Int) {}

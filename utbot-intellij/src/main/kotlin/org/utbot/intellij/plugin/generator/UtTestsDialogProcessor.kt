@@ -41,7 +41,6 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.intellij.plugin.generator.CodeGenerationController.generateTests
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.GenerateTestsDialogWindow
-import org.utbot.intellij.plugin.ui.utils.isGradle
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.ui.utils.testModules

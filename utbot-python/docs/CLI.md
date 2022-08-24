@@ -83,3 +83,7 @@ Run generated tests:
 - `--test-framework [pytest|Unittest]`
   
   Test framework of tests to run
+
+- `-o, --output <filename>`
+
+  Specify file for report.

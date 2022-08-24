@@ -5,7 +5,7 @@ from itertools import product
 class Matrix:
     def __init__(self, elements: list[list[float]]):
         self.elements = elements
-        self.dim = (len(elements[0]), len(elements))
+        self.dim = (len(elements), len(elements[0]))
 
     def __repr__(self):
         return str(self.elements)
@@ -29,7 +29,9 @@ class Matrix:
                 ]
                 for i in range(self.dim[1])
             ])
-        elif isinstance(other, Matrix):
+
+    def __matmul__(self, other):
+        if isinstance(other, Matrix):
             if self.dim[1] == other.dim[0]:
                 result = [[0 for _ in range(self.dim[0])] * other.dim[1]]
                 for i, j in product(range(self.dim[0]), range(other.dim[1])):
@@ -42,5 +44,5 @@ class Matrix:
 
 if __name__ == '__main__':
     a = Matrix([[1, 2]])
-    b = Matrix([[3, 4]])
-    print(a + b)
+    b = Matrix([[3], [4]])
+    print(a @ b)

@@ -22,7 +22,6 @@ object AnnotationFinder {
         moduleToImport: String,
         directoriesForSysPath: Set<String>,
         pythonPath: String,
-        fileOfMethod: String,
         isCancelled: () -> Boolean,
         storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine>
     ): Sequence<Map<String, NormalizedPythonAnnotation>> {
@@ -35,7 +34,7 @@ object AnnotationFinder {
             methodUnderTest,
             annotationsToCheck,
             moduleToImport,
-            directoriesForSysPath + listOf(File(fileOfMethod).parentFile.path),
+            directoriesForSysPath,
             pythonPath,
             isCancelled,
             storageForMypyMessages

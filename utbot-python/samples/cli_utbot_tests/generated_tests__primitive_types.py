@@ -14,14 +14,14 @@ class TestTopLevelFunctions(unittest.TestCase):
         self.assertEqual('I do not have any variants', actual)
     
     def test_pretty_print1(self):
-        actual = primitive_types.pretty_print(str(b'python.org', 'idna'))
+        actual = primitive_types.pretty_print(str(b'\x80'))
         
-        self.assertEqual('It is string.\nValue <<python.org>>', actual)
+        self.assertEqual("It is string.\nValue <<b'\\x80'>>", actual)
     
     def test_pretty_print2(self):
-        actual = primitive_types.pretty_print(int('535a7988a', 13))
+        actual = primitive_types.pretty_print((1 << 100))
         
-        self.assertEqual('It is integer.\nValue 4294967297', actual)
+        self.assertEqual('It is integer.\nValue 1267650600228229401496703205376', actual)
     
     def test_pretty_print3(self):
         actual = primitive_types.pretty_print(complex(float('inf'), float('inf')))

@@ -9,9 +9,9 @@ class TestTopLevelFunctions(unittest.TestCase):
     # region Test suites for executable type_inhibition.inhibition
     # region
     def test_inhibition_by_fuzzer(self):
-        actual = type_inhibition.inhibition(int('000', 0), str(1e+300 * 1e+300), str(b'python.org', 'idna'), [], {})
+        actual = type_inhibition.inhibition(0, str(), str(b'\x80'), [], {})
         
-        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 'inf'], actual)
+        self.assertEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, ''], actual)
     
     # endregion
     

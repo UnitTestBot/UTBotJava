@@ -4,7 +4,7 @@
 
 Команда по умолчанию
 ```bash
-java -jar utbot-cli.jar generate_python samples/<filename>.py -p <python_path> -o cli_utbot_tests/<output_file>.py -s samples/ --timeout-for-run 500 --visit-only-specified-source
+java -jar utbot-cli.jar generate_python samples/<filename>.py -p <python_path> -o cli_utbot_tests/<output_file>.py -s samples/ ----timeout-for-run 500 --timeout 10000 --visit-only-specified-source
 ```
 
 | Пример                   | Тесты                                     | Дополнительные аргументы                  |

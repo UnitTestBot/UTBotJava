@@ -11,7 +11,7 @@ class TestTopLevelFunctions(unittest.TestCase):
     # region Test suites for executable deep_equals.comparable_list
     # region
     def test_comparable_list(self):
-        actual = deep_equals.comparable_list(int('100000001', 16))
+        actual = deep_equals.comparable_list(4294967296)
         
         comparable_class = copyreg._reconstructor(deep_equals.ComparableClass, builtins.object, None)
         comparable_class.x = 0
@@ -42,7 +42,7 @@ class TestTopLevelFunctions(unittest.TestCase):
     # region Test suites for executable deep_equals.incomparable_list
     # region
     def test_incomparable_list(self):
-        actual = deep_equals.incomparable_list(int('100000001', 16))
+        actual = deep_equals.incomparable_list(4294967296)
         
         incomparable_class = copyreg._reconstructor(deep_equals.IncomparableClass, builtins.object, None)
         incomparable_class.x = 0

@@ -13,7 +13,7 @@ class TestMatrix(unittest.TestCase):
     def test__mul__(self):
         matrix = matrix.Matrix([])
         
-        actual = matrix.__mul__(int('-1'))
+        actual = matrix.__mul__(123)
         
         matrix1 = copyreg._reconstructor(matrix.Matrix, builtins.object, None)
         matrix1.elements = []
@@ -27,7 +27,7 @@ class TestMatrix(unittest.TestCase):
     
     def test__mul__throws_t(self):
         matrix = matrix.Matrix([])
-        self1 = matrix.Matrix([[float(0.0), float(7.3)], [float(10 ** 23), float('+NAn'), float('+infinity'), float('+NAn'), float('+infinity'), float(0.0), float(0.0), float('+NAn'), float('+NAn')], [float(-1), float(314), float(314), float(1970), float(314)], [float(10 ** 23), float('+NAn'), float('+infinity'), float('+NAn'), float('+infinity'), float(0.0), float(0.0), float('+NAn'), float('+NAn')]])
+        self1 = matrix.Matrix([[0.0, float(314), float(10 ** 23), 0.0, float(1970)], [float('nan'), float('1.4'), 0.0, float('1.4'), float(314), float(10 ** 23), float(10 ** 23)]])
         
         matrix.__mul__(self1)
         

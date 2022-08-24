@@ -22,61 +22,63 @@ Run generated tests:
   
 - `-s, --sys-path <dir1>,<dir2>`              
 
-  Directories to add to sys.path (required). One of directories must contain file with methods under test.
+  (required) Directories to add to `sys.path`. One of directories must contain the file with the methods under test.
+  
+  `sys.path` is a list of strings that specifies the search path for modules. It must include paths for all user modules that are used in imports.
 
 - `-p, --python-path <path>`           
 
-  Path to Python interpreter (required)
+  (required) Path to Python interpreter.
   
 - `-o, --output <filename>`                
 
-  File for generated tests (required)
+  (required) File for generated tests.
 
 - `--coverage <filename>`                  
   
-  File to write coverage report
+  File to write coverage report.
   
 - `-c, --class <class>`
   
-  Specify top-level class under test
+  Specify top-level class under test. Without this option tests will be generated for top-level functions.
   
 - `-m, --methods <method1>,<method2>`
 
-  Specify methods under test
+  Specify methods under test.
 
 - `--install-requirements`           
 
-  Install Python requirements if missing
+  Install Python requirements if missing.
   
 - `--do-not-minimize`                
   
-  Turn off minimization of number of generated tests
+  Turn off minimization of the number of generated tests.
 
 - `--do-not-check-requirements`
   
-  Turn off Python requirements check (to speed up)
+  Turn off Python requirements check (to speed up).
   
 - `--visit-only-specified-source`
 
-  Do not search for classes and imported modules in other Python files from sys.path
+  Do not search for classes and imported modules in other Python files from `--sys-path` option.
 
 - `-t, --timeout INT`                
 
-  Specify the maximum time in milliseconds to spend on generating tests (60000 by default)
+  Specify the maximum time in milliseconds to spend on generating tests (60000 by default).
   
 - `--timeout-for-run INT`            
 
-  Specify the maximum time in milliseconds to spend on one function run (2000 by default)
+  Specify the maximum time in milliseconds to spend on one function run (2000 by default).
 
 - `--test-framework [pytest|Unittest]`
 
-  Test framework to be used
+  Test framework to be used.
   
 ## `run_python` options
 
 - `-p, --python-path <path>`
   
-  Path to Python interpreter (required)
+  (required) Path to Python interpreter.
 
 - `--test-framework [pytest|Unittest]`
   

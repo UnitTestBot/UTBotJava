@@ -57,12 +57,9 @@ open class SimpleCommentBuilder(
         root: SimpleSentenceBlock,
         currentMethod: SootMethod
     ) {
-        val thrownException = traceTag.result.exceptionOrNull()
-        if (thrownException == null) {
-            root.exceptionThrow = traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
-        } else {
-            val exceptionName = thrownException.javaClass.simpleName
-            val reason = findExceptionReason(currentMethod, thrownException)
+        traceTag.result.exceptionOrNull()?.let {
+            val exceptionName = it.javaClass.simpleName
+            val reason = findExceptionReason(currentMethod, it)
             root.exceptionThrow = "$exceptionName $reason"
         }
     }

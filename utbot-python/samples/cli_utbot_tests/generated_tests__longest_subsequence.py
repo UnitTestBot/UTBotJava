@@ -9,14 +9,9 @@ class TestTopLevelFunctions(unittest.TestCase):
     # region Test suites for executable longest_subsequence.longest_subsequence
     # region
     def test_longest_subsequence(self):
-        actual = longest_subsequence.longest_subsequence([0, 83, 1, 2, 2, 123, 0])
+        actual = longest_subsequence.longest_subsequence([1, 2, 83, 83, 1, (1 << 100), (1 << 100), -1, 123, -1, 1, 4294967296, 4294967296])
         
-        self.assertEqual([0, 1, 2, 2, 123], actual)
-    
-    def test_longest_subsequence1(self):
-        actual = longest_subsequence.longest_subsequence([1, 1, 1, 2])
-        
-        self.assertEqual([1, 1, 1, 2], actual)
+        self.assertEqual([1, 2, 83, 83, 123, 4294967296, 4294967296], actual)
     
     # endregion
     

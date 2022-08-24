@@ -9,11 +9,16 @@ class TestTopLevelFunctions(unittest.TestCase):
     # region Test suites for executable quick_sort.quick_sort
     # region
     def test_quick_sort(self):
-        actual = quick_sort.quick_sort([0, -1, 4294967297, 123, 0, 4294967296, -3, 1, -3])
+        actual = quick_sort.quick_sort([-3, 0, -1, 83, 1, 0, 1])
         
-        self.assertEqual([-3, -3, -1, 0, 0, 1, 123, 4294967296, 4294967297], actual)
+        self.assertEqual([-3, -1, 0, 0, 1, 1, 83], actual)
     
     def test_quick_sort1(self):
+        actual = quick_sort.quick_sort([0, 4294967297])
+        
+        self.assertEqual([0, 4294967297], actual)
+    
+    def test_quick_sort2(self):
         actual = quick_sort.quick_sort([])
         
         self.assertEqual([], actual)

@@ -20,18 +20,18 @@ data class TestClassModel(
             val class2methodTestSets = testSets.groupBy { it.executableId.classId }
 
             val classesWithMethodsUnderTest = testSets
-                .distinctBy { it.executableId.classId }
                 .map { it.executableId.classId }
+                .distinct()
 
             // For each class stores list of its "direct" nested classes
-            val class2nestedClasses = mutableMapOf<ClassId, MutableList<ClassId>>()
+            val class2nestedClasses = mutableMapOf<ClassId, MutableSet<ClassId>>()
 
             for (classId in classesWithMethodsUnderTest) {
                 var currentClass = classId
                 var enclosingClass = currentClass.enclosingClass
                 // while we haven't reached the top of nested class hierarchy or the main class under test
                 while (enclosingClass != null && currentClass != classUnderTest) {
-                    class2nestedClasses.getOrPut(enclosingClass) { mutableListOf() } += currentClass
+                    class2nestedClasses.getOrPut(enclosingClass) { mutableSetOf() } += currentClass
                     currentClass = enclosingClass
                     enclosingClass = enclosingClass.enclosingClass
                 }
@@ -42,7 +42,7 @@ data class TestClassModel(
         private fun constructRecursively(
             clazz: ClassId,
             class2methodTestSets: Map<ClassId, List<CgMethodTestSet>>,
-            class2nestedClasses: Map<ClassId, List<ClassId>>
+            class2nestedClasses: Map<ClassId, Set<ClassId>>
         ): TestClassModel {
             val currentNestedClasses = class2nestedClasses.getOrDefault(clazz, listOf())
             val currentMethodTestSets = class2methodTestSets.getOrDefault(clazz, listOf())

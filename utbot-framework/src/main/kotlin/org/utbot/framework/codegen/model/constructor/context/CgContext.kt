@@ -33,7 +33,6 @@ import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.util.createTestClassName
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -449,7 +448,7 @@ internal data class CgContext(
 
     override val outerMostTestClass: ClassId by lazy {
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
-        val simpleName = testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
+        val simpleName = testClassCustomName ?: "${classUnderTest.simpleName}Test"
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
             name = name,

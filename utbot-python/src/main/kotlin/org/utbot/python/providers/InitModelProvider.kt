@@ -5,7 +5,7 @@ import org.utbot.framework.plugin.api.PythonModel
 import org.utbot.fuzzer.*
 import org.utbot.python.typing.PythonTypesStorage
 
-object InitModelProvider: PythonModelProvider() {
+class InitModelProvider(private val recursionDepth: Int): PythonModelProvider() {
     override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         description.parametersMap.forEach { (classId, parameterIndices) ->
             val type = PythonTypesStorage.findPythonClassIdInfoByName(classId.name) ?: return@forEach
@@ -22,7 +22,13 @@ object InitModelProvider: PythonModelProvider() {
                         description.concreteValues
                     )
 
-                    fuzz(constructor, defaultPythonModelProvider).map { initValues ->
+                    val modelProvider =
+                        if (recursionDepth <= 0)
+                            nonRecursiveModelProvider
+                        else
+                            getDefaultPythonModelProvider(recursionDepth - 1)
+
+                    fuzz(constructor, modelProvider).map { initValues ->
                         PythonInitObjectModel(classId.name, initValues.mapNotNull { it.model as? PythonModel })
                     }
                 }

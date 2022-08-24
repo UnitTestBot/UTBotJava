@@ -9,8 +9,8 @@ import org.utbot.python.typing.parseGeneric
 import java.lang.Integer.min
 import kotlin.random.Random
 
-object GenericModelProvider: PythonModelProvider() {
-    private const val maxGenNum = 10
+class GenericModelProvider(private val recursionDepth: Int): PythonModelProvider() {
+    private val maxGenNum = 10
 
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
         fun <T: UtModel> fuzzGeneric(
@@ -24,7 +24,14 @@ object GenericModelProvider: PythonModelProvider() {
                 parameters,
                 description.concreteValues
             )
-            fuzz(syntheticGenericType, defaultPythonModelProvider)
+
+            val modelProvider =
+                if (recursionDepth <= 0)
+                    nonRecursiveModelProvider
+                else
+                    getDefaultPythonModelProvider(recursionDepth - 1)
+
+            fuzz(syntheticGenericType, modelProvider)
                 .randomChunked()
                 .mapNotNull(modelConstructor)
                 .forEach {

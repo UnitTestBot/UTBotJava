@@ -59,7 +59,7 @@ test {
     jvmArgs '-XX:MaxHeapSize=3072m'
 
     useJUnitPlatform() {
-        excludeTags 'slow', 'IntegrationTest', 'Summary'
+        excludeTags 'slow', 'IntegrationTest'
     }
 }
 

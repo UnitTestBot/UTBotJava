@@ -96,6 +96,11 @@ class FeatureProcessorWithRepetitionTest : UtValueTestCaseChecker(OnePath::class
 
     /**
      * Test, that we correctly add test cases and dump them into file
+     *
+     * NOTE: works only if the
+     * ```
+     * UtSettings.pathSelectorType == PathSelectorType.INHERITORS_SELECTOR
+     * ```
      */
     @Test
     fun addTestCaseTest() {

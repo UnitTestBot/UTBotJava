@@ -42,37 +42,6 @@ object PythonCodeGenerator {
         return modulePrettyPrintVisitor.visitModule(module, IndentationPrettyPrint(0))
     }
 
-    private fun createOutputBlock(
-        outputName: String,
-        status: String,
-        stmtsName: String,
-        missedName: String
-    ): List<Statement> {
-        return listOf(
-            Assign(
-                listOf(Name("out")),
-                Atom(
-                    Name(
-                        "_PythonTreeSerializer().dumps"
-                    ),
-                    listOf(createArguments(listOf(Name(outputName))))
-                )
-            ),
-            Atom(
-                Name("print"),
-                listOf(
-                    createArguments(
-                        listOf(Str("'$status'"), Name("json.dumps(out)"), Name(stmtsName), Name(missedName)),
-                        listOf(
-                            Keyword(Name("end"), Str("''")),
-                            Keyword(Name("sep"), Str("'\\n'"))
-                        )
-                    )
-                )
-            )
-        )
-    }
-
     private fun createArguments(
         args: List<Expression> = emptyList(),
         keywords: List<Keyword> = emptyList(),
@@ -174,6 +143,9 @@ object PythonCodeGenerator {
         val missedFilteredName = Name("__missed_filtered")
         val coverageName = Name("__cov")
         val fullpathName = Name("__fullpath")
+        val statusName = Name("__status")
+        val exceptionName = Name("__exception")
+        val serialisedName = Name("__serialized")
 
         val fullpath = Assign(
             listOf(fullpathName),
@@ -205,9 +177,24 @@ object PythonCodeGenerator {
             listOf(Attribute(Identifier("start")), createArguments())
         )
 
-        val result = Assign(
+        val resultSuccess = Assign(
             listOf(resultName),
             functionCall
+        )
+
+        val statusSuccess = Assign(
+            listOf(statusName),
+            Str("\"" + successStatus + "\"")
+        )
+
+        val resultError = Assign(
+            listOf(resultName),
+            exceptionName
+        )
+
+        val statusError = Assign(
+            listOf(statusName),
+            Str("\"" + failStatus + "\"")
         )
 
         val stopCoverage = Atom(
@@ -270,53 +257,92 @@ object PythonCodeGenerator {
             )
         )
 
-        val okOutputBlock = createOutputBlock(
-            resultName.id.name,
-            successStatus,
-            stmtsFilteredWithDefName.id.name,
-            missedFilteredName.id.name
+        val serialize = Assign(
+            listOf(serialisedName),
+            Atom(
+                Name("_PythonTreeSerializer().dumps"),
+                listOf(createArguments(listOf(resultName)))
+            )
         )
 
-        val exceptionName = "e"
-        val failOutputBlock = createOutputBlock(
-            exceptionName,
-            failStatus,
-            "[]",
-            "[]"
+        val jsonDumps = Atom(
+            Name("json"),
+            listOf(
+                Attribute(Identifier("dumps")),
+                createArguments(listOf(serialisedName))
+            )
         )
 
-        val suppressedBlock = With(
-            listOf(WithItem(Atom(
-                Name(getStdoutSuppressName),
-                listOf(createArguments())
-            ))),
-            Body(
-                parameters + listOf(
-                    fullpath,
-                    coverage,
-                    startCoverage,
-                    result,
-                    stopCoverage,
-                    sourcesAndStart,
-                    end,
-                    covAnalysis,
-                    clean,
-                    stmtsFiltered,
-                    stmtsFilteredWithDef,
-                    missedFiltered
+//        TODO: Add this block
+//        val suppressedBlock = With(
+//            listOf(WithItem(Atom(
+//                Name(getStdoutSuppressName),
+//                listOf(createArguments())
+//            ))),
+//            Body(
+//                parameters + listOf(
+//                    fullpath,
+//                    coverage,
+//                    startCoverage,
+//                    result,
+//                    stopCoverage,
+//                    sourcesAndStart,
+//                    end,
+//                    covAnalysis,
+//                    clean,
+//                    stmtsFiltered,
+//                    stmtsFilteredWithDef,
+//                    missedFiltered
+//                )
+//            )
+//        )
+//
+//        val tryBody = Body(
+//            listOf(suppressedBlock) + okOutputBlock
+        val printStmt = Atom(
+            Name("print"),
+            listOf(
+                createArguments(
+                    listOf(statusName, jsonDumps, stmtsFilteredWithDefName, missedFilteredName),
+                    listOf(
+                        Keyword(Name("end"), Str("''")),
+                        Keyword(Name("sep"), Str("'\\n'"))
+                    )
                 )
             )
         )
 
-        val tryBody = Body(
-            listOf(suppressedBlock) + okOutputBlock
-        )
-        val tryHandler = ExceptHandler("Exception", exceptionName)
-        val tryBlock = Try(tryBody, listOf(tryHandler), listOf(Body(failOutputBlock)))
+        val tryBody = Body(listOf(
+            resultSuccess,
+            statusSuccess
+        ))
+        val failBody = Body(listOf(
+            resultError,
+            statusError
+        ))
+        val tryHandler = ExceptHandler("Exception", exceptionName.id.name)
+        val tryBlock = Try(tryBody, listOf(tryHandler), listOf(failBody))
 
-        testFunction.addStatement(
-            tryBlock
-        )
+        (parameters + listOf(
+            fullpath,
+            coverage,
+            startCoverage
+        )).forEach { testFunction.addStatement(it) }
+
+        testFunction.addStatement(tryBlock)
+
+        listOf(
+            stopCoverage,
+            sourcesAndStart,
+            end,
+            covAnalysis,
+            clean,
+            stmtsFiltered,
+            stmtsFilteredWithDef,
+            missedFiltered,
+            serialize,
+            printStmt
+        ).forEach { testFunction.addStatement(it) }
 
         val runFunction = Atom(
             Name(testFunctionName),

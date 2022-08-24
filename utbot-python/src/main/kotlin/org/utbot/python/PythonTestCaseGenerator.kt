@@ -2,10 +2,7 @@ package org.utbot.python
 
 import mu.KotlinLogging
 import org.utbot.framework.minimization.minimizeExecutions
-import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.pythonAnyClassId
+import org.utbot.framework.plugin.api.*
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
@@ -68,6 +65,7 @@ object PythonTestCaseGenerator {
         val executions = mutableListOf<UtExecution>()
         val errors = mutableListOf<UtError>()
         var missingLines: Set<Int>? = null
+        val coveredLines = mutableSetOf<Int>()
         var generated = 0
 
         run breaking@ {
@@ -86,7 +84,8 @@ object PythonTestCaseGenerator {
                     pythonPath,
                     argInfoCollector.getConstants(),
                     annotations,
-                    timeoutForRun
+                    timeoutForRun,
+                    coveredLines
                 )
 
                 engine.fuzzing().forEach {
@@ -97,12 +96,7 @@ object PythonTestCaseGenerator {
                         is UtExecution -> {
                             logger.debug("Added execution")
                             executions += it
-                            val curMissing =
-                                (it.coverage as? PythonCoverage)
-                                    ?.missedInstructions
-                                    ?.map { x -> x.lineNumber } ?.toSet()
-                                ?: emptySet()
-                            missingLines = if (missingLines == null) curMissing else missingLines!! intersect curMissing
+                            missingLines = updateCoverage(it, coveredLines, missingLines)
                         }
                         is UtError -> {
                             logger.debug("Failed evaluation")
@@ -115,12 +109,28 @@ object PythonTestCaseGenerator {
             }
         }
 
+        val (successfulExecutions, failedExecutions) = executions.partition { it.result is UtExecutionSuccess }
+
         return PythonTestSet(
             method,
-            if (withMinimization) minimizeExecutions(executions) else executions,
+            if (withMinimization)
+                minimizeExecutions(successfulExecutions) + minimizeExecutions(failedExecutions)
+            else
+                executions,
             errors,
             storageForMypyMessages
         )
+    }
+
+    // returns new missingLines
+    private fun updateCoverage(execution: UtExecution, coveredLines: MutableSet<Int>, missingLines: Set<Int>?): Set<Int> {
+        execution.coverage?.coveredInstructions?.map { instr -> coveredLines.add(instr.lineNumber) }
+        val curMissing =
+            (execution.coverage as? PythonCoverage)
+                ?.missedInstructions
+                ?.map { x -> x.lineNumber } ?.toSet()
+                ?: emptySet()
+        return if (missingLines == null) curMissing else missingLines intersect curMissing
     }
 
     private fun getAnnotations(

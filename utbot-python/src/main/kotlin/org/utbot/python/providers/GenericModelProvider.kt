@@ -26,10 +26,9 @@ object GenericModelProvider: PythonModelProvider() {
             )
             fuzz(syntheticGenericType, defaultPythonModelProvider)
                 .randomChunked()
-                .map(modelConstructor)
+                .mapNotNull(modelConstructor)
                 .forEach {
-                    if (it != null)
-                        yield(FuzzedParameter(index, it.fuzzed()))
+                    yield(FuzzedParameter(index, it.fuzzed()))
                 }
         }
 

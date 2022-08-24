@@ -52,7 +52,7 @@ Run generated tests:
   
 - `--do-not-minimize`                
   
-  Turn off minimization of number of generated tests.
+  Turn off minimization of the number of generated tests.
 
 - `--do-not-check-requirements`
   

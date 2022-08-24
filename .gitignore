@@ -9,4 +9,7 @@ target/
 *.log
 *.swp
 __pycache__
-.mypy_cache
+*.mypy_cache
+*.tmp/
+*.venv/
+venv/

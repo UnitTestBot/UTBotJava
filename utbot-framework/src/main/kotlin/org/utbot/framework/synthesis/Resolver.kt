@@ -1,6 +1,6 @@
 package org.utbot.framework.synthesis
 
-import org.utbot.engine.nextDefaultModelId
+import org.utbot.engine.defaultIdGenerator
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.util.nextModelName
@@ -65,7 +65,7 @@ class Resolver(
         val modificationChain = mutableListOf<UtStatementModel>()
 
         val model = UtAssembleModel(
-            nextDefaultModelId++,
+            defaultIdGenerator.createId(),
             unit.classId,
             nextModelName("refModel_${unit.classId.simpleName}"),
             instantiationChain,
@@ -90,7 +90,7 @@ class Resolver(
         val modificationChain = mutableListOf<UtStatementModel>()
 
         val model = UtAssembleModel(
-            nextDefaultModelId++,
+            defaultIdGenerator.createId(),
             unit.classId,
             nextModelName("refModel_${unit.classId.simpleName}"),
             instantiationChain,
@@ -125,7 +125,7 @@ class Resolver(
         val modificationChain = mutableListOf<UtStatementModel>()
 
         val model = UtAssembleModel(
-            nextDefaultModelId++,
+            defaultIdGenerator.createId(),
             unit.classId,
             nextModelName("refModel_${unit.classId.simpleName}"),
             instantiationChain,
@@ -154,7 +154,7 @@ class Resolver(
         }
 
         return UtArrayModel(
-            nextDefaultModelId++,
+            defaultIdGenerator.createId(),
             unit.classId,
             lengthModel.value as Int,
             unit.classId.elementClassId!!.defaultValueModel(),

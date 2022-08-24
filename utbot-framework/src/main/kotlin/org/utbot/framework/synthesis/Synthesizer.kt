@@ -12,6 +12,7 @@ import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
 class Synthesizer(
+    val testCaseGenerator: TestCaseGenerator,
     val parameters: List<UtModel>,
     val depth: Int = 4
 ) {
@@ -25,7 +26,7 @@ class Synthesizer(
             appendLine("Synthesizer stats:")
             appendLine("Total attempts - $attempts")
             appendLine("Successful attempts - $successes")
-            appendLine("Success rate - ${String.format("%.2f", successes.toDouble() / attempts)}")
+            appendLine("Success rate - ${String.format("%.2f", 100.0 * successes.toDouble() / attempts)}")
         }
 
         private fun success() {
@@ -46,7 +47,7 @@ class Synthesizer(
     }
 
     private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
-    private val unitChecker = SynthesisUnitChecker(objectClassId.toSoot())
+    private val unitChecker = SynthesisUnitChecker(testCaseGenerator, objectClassId.toSoot())
 
     fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel>? {
         val currentTime = { System.currentTimeMillis() }

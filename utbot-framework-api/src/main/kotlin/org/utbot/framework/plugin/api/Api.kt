@@ -209,7 +209,12 @@ class UtSymbolicExecution(
         append(")")
     }
 
-    fun copy(stateAfter: EnvironmentModels, result: UtExecutionResult, coverage: Coverage): UtResult {
+    fun copy(
+        stateBefore: EnvironmentModels,
+        stateAfter: EnvironmentModels,
+        result: UtExecutionResult,
+        coverage: Coverage?,
+    ): UtExecution {
         return UtSymbolicExecution(
             stateBefore,
             stateAfter,
@@ -220,7 +225,8 @@ class UtSymbolicExecution(
             coverage,
             summary,
             testMethodName,
-            displayName
+            displayName,
+            constrainedExecution
         )
     }
 }

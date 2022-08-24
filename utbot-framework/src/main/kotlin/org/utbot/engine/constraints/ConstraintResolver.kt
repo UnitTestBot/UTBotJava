@@ -1,7 +1,6 @@
 package org.utbot.engine.constraints
 
 import org.utbot.engine.*
-import org.utbot.engine.NULL_ADDR
 import org.utbot.engine.pc.*
 import org.utbot.engine.pc.constraint.UtVarContext
 import org.utbot.framework.plugin.api.*
@@ -159,7 +158,7 @@ class ConstraintResolver(
         concrete: Concrete? = null
     ): UtModel = when {
         variable.isPrimitive -> buildPrimitiveModel(variable, atoms, aliases)
-        variable.addr == NULL_ADDR -> UtNullModel(variable.classId)
+        variable.addr == SYMBOLIC_NULL_ADDR -> UtNullModel(variable.classId)
         variable.addr in resolvedConstraints -> UtReferenceToConstraintModel(
             variable,
             resolvedConstraints.getValue(variable.addr)

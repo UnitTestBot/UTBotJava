@@ -21,18 +21,18 @@ class ConstraintBasedPostConditionConstructor(
 ) : PostConditionConstructor {
 
     override fun constructPostCondition(
-        engine: UtBotSymbolicEngine,
+        traverser: Traverser,
         symbolicResult: SymbolicResult?
-    ): SymbolicStateUpdate = UtConstraintBuilder(engine).run {
+    ): SymbolicStateUpdate = UtConstraintBuilder(traverser).run {
         var constraints = SymbolicStateUpdate()
-        val entryFrame = engine.environment.state.executionStack.first()
+        val entryFrame = traverser.environment.state.executionStack.first()
         val frameParameters = entryFrame.parameters.map { it.value }
         for (model in models) {
             constraints += buildPostCondition(
                 model,
                 this,
                 frameParameters,
-                engine.environment.state.localVariableMemory
+                traverser.environment.state.localVariableMemory
             ).asHardConstraint()
         }
         constraints
@@ -75,9 +75,9 @@ class ConstraintBasedPostConditionConstructor(
     }
 
     override fun constructSoftPostCondition(
-        engine: UtBotSymbolicEngine
+        traverser: Traverser,
     ): SymbolicStateUpdate = UtConstraintBuilder(
-        engine
+        traverser
     ).run {
         TODO()
 //        for ((index, parameter) in models.parameters.withIndex()) {
@@ -102,7 +102,7 @@ class ConstraintBasedPostConditionConstructor(
 }
 
 private class UtConstraintBuilder(
-    private val engine: UtBotSymbolicEngine
+    private val traverser: Traverser
 ) : UtConstraintVisitor<UtBoolExpression>, UtConstraintVariableVisitor<SymbolicValue> {
     override fun visitUtConstraintParameter(expr: UtConstraintParameter): SymbolicValue = with(expr) {
         when {
@@ -125,21 +125,21 @@ private class UtConstraintBuilder(
             isArray -> {
                 val sootType = classId.toSootType() as ArrayType
                 val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
-                engine.createArray(addr, sootType, useConcreteType = addr.isThisAddr)
+                traverser.createArray(addr, sootType, useConcreteType = addr.isThisAddr)
             }
 
             else -> {
                 val sootType = classId.toSoot().type
                 val addr = UtAddrExpression(mkBVConst("post_condition_${name}", UtIntSort))
-                engine.createObject(addr, sootType, useConcreteType = addr.isThisAddr)
+                traverser.createObject(addr, sootType, useConcreteType = addr.isThisAddr)
             }
         }
     }
 
     override fun visitUtConstraintNull(expr: UtConstraintNull): SymbolicValue = with(expr) {
         when {
-            classId.isArray -> engine.createArray(nullObjectAddr, classId.toSootType() as ArrayType)
-            else -> engine.createObject(
+            classId.isArray -> traverser.createArray(nullObjectAddr, classId.toSootType() as ArrayType)
+            else -> traverser.createObject(
                 nullObjectAddr,
                 classId.toSoot().type,
                 mockInfoGenerator = null,
@@ -153,7 +153,7 @@ private class UtConstraintBuilder(
         val type = sootField.declaringClass.type
         val instanceVal = instance.accept(this@UtConstraintBuilder)
         try {
-            engine.createFieldOrMock(
+            traverser.createFieldOrMock(
                 type,
                 instanceVal.addr,
                 sootField,
@@ -169,15 +169,15 @@ private class UtConstraintBuilder(
         val index = index.accept(this@UtConstraintBuilder)
         val type = instance.classId.toSootType() as? ArrayType ?: ArrayType.v(OBJECT_TYPE.sootClass.type, 1)
         val elementType = type.elementType
-        val chunkId = engine.typeRegistry.arrayChunkId(type)
-        val descriptor = MemoryChunkDescriptor(chunkId, type, elementType).also { engine.touchMemoryChunk(it) }
-        val array = engine.memory.findArray(descriptor)
+        val chunkId = traverser.typeRegistry.arrayChunkId(type)
+        val descriptor = MemoryChunkDescriptor(chunkId, type, elementType).also { traverser.touchMemoryChunk(it) }
+        val array = traverser.memory.findArray(descriptor)
 
         when (elementType) {
             is RefType -> {
                 val generator = UtMockInfoGenerator { mockAddr -> UtObjectMockInfo(elementType.id, mockAddr) }
 
-                val objectValue = engine.createObject(
+                val objectValue = traverser.createObject(
                     UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
                     elementType,
                     useConcreteType = false,
@@ -185,14 +185,14 @@ private class UtConstraintBuilder(
                 )
 
                 if (objectValue.type.isJavaLangObject()) {
-                    engine.queuedSymbolicStateUpdates += engine.typeRegistry.zeroDimensionConstraint(objectValue.addr)
+                    traverser.queuedSymbolicStateUpdates += traverser.typeRegistry.zeroDimensionConstraint(objectValue.addr)
                         .asSoftConstraint()
                 }
 
                 objectValue
             }
 
-            is ArrayType -> engine.createArray(
+            is ArrayType -> traverser.createArray(
                 UtAddrExpression(array.select(arrayInstance.addr, index.exprValue)),
                 elementType,
                 useConcreteType = false
@@ -204,7 +204,7 @@ private class UtConstraintBuilder(
 
     override fun visitUtConstraintArrayLengthAccess(expr: UtConstraintArrayLength): SymbolicValue = with(expr) {
         val array = instance.accept(this@UtConstraintBuilder)
-        engine.memory.findArrayLength(array.addr)
+        traverser.memory.findArrayLength(array.addr)
     }
 
     override fun visitUtConstraintBoolConstant(expr: UtConstraintBoolConstant): SymbolicValue =
@@ -381,10 +381,10 @@ private class UtConstraintBuilder(
     override fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): UtBoolExpression = with(expr) {
         val lhvVal = operand.accept(this@UtConstraintBuilder)
         val type = type.toSootType()
-        engine.typeRegistry
+        traverser.typeRegistry
             .typeConstraint(
                 lhvVal.addr,
-                engine.typeResolver.constructTypeStorage(type, false)
+                traverser.typeResolver.constructTypeStorage(type, false)
             )
             .isConstraint()
     }

@@ -117,7 +117,7 @@ class Resolver(
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
-    methodUnderTest: UtMethod<*>,
+    methodPackageName: String,
     private val softMaxArraySize: Int
 ) {
 
@@ -132,7 +132,7 @@ class Resolver(
     private val instrumentation = mutableListOf<UtInstrumentation>()
     private val requiredInstanceFields = mutableMapOf<Address, Set<FieldId>>()
 
-    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest)
+    private val assembleModelGenerator = AssembleModelGenerator(methodPackageName)
 
     /**
      * Contains FieldId of the static field which is construction at the moment and null of there is no such field.

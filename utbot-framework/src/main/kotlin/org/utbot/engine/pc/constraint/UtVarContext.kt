@@ -68,7 +68,9 @@ class UtVarContext(
                     val instance = expr.index.accept(this)
                     try {
                         val (type, field) = base.name.split("_", limit = 2)
-                        UtConstraintFieldAccess(instance, FieldId(ClassId(type), field))
+                        val fieldId = FieldId(ClassId(type), field)
+                        fieldId.type
+                        UtConstraintFieldAccess(instance, fieldId)
                     } catch (e: Throwable) {
                         arrayAccess(base, instance)
                     }

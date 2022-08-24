@@ -37,9 +37,10 @@ class UtConstraintBuilder(
             else -> error("Not boolean expr")
         }
 
-    override fun visit(expr: UtArraySelectExpression): UtConstraint? {
-        if (shouldSkip(expr)) return null
-        return super.visit(expr)
+    override fun visit(expr: UtArraySelectExpression): UtConstraint? = applyConstraint(expr) {
+        if (shouldSkip(expr)) return@applyConstraint null
+        if (expr.sort !is UtBoolSort) throw NotSupportedByConstraintResolverException()
+        UtBoolConstraint(expr.accept(variableContext))
     }
 
     override fun visit(expr: UtTrue): UtConstraint {
@@ -95,22 +96,22 @@ class UtConstraintBuilder(
         val rhv = expr.right.expr.accept(variableContext)
         when (expr.operator) {
             Le -> {
-                if (!lhv.isPrimitive && !rhv.isPrimitive) return@applyConstraint null
+                if (!lhv.isPrimitive || !rhv.isPrimitive) return@applyConstraint null
                 UtLeConstraint(lhv, rhv)
             }
 
             Lt -> {
-                if (!lhv.isPrimitive && !rhv.isPrimitive) return@applyConstraint null
+                if (!lhv.isPrimitive || !rhv.isPrimitive) return@applyConstraint null
                 UtLtConstraint(lhv, rhv)
             }
 
             Ge -> {
-                if (!lhv.isPrimitive && !rhv.isPrimitive) return@applyConstraint null
+                if (!lhv.isPrimitive || !rhv.isPrimitive) return@applyConstraint null
                 UtGeConstraint(lhv, rhv)
             }
 
             Gt -> {
-                if (!lhv.isPrimitive && !rhv.isPrimitive) return@applyConstraint null
+                if (!lhv.isPrimitive || !rhv.isPrimitive) return@applyConstraint null
                 UtGtConstraint(lhv, rhv)
             }
 
@@ -140,8 +141,8 @@ class UtConstraintBuilder(
         return UtRefTypeConstraint(operand, expr.type.classId)
     }
 
-    override fun visit(expr: UtGenericExpression): UtConstraint {
-        throw NotSupportedByConstraintResolverException()
+    override fun visit(expr: UtGenericExpression): UtConstraint? {
+        return null
     }
 
     override fun visit(expr: UtIsGenericTypeExpression): UtConstraint? = applyConstraint(expr) {

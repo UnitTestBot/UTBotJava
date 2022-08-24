@@ -400,7 +400,7 @@ object UtSettings {
     /**
      * Flag for enabling model synthesis
      */
-    var enableSynthesis = true
+    var enableSynthesis by getBooleanProperty(true)
 
     /**
      * Timeout model synthesis

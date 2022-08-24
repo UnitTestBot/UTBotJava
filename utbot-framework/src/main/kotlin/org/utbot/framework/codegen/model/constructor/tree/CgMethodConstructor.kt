@@ -702,6 +702,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
                 }
+                else -> {
+                    error("Unexpected ${expectedModel::class.java} in deep equals")
+                }
             }
         }
     }

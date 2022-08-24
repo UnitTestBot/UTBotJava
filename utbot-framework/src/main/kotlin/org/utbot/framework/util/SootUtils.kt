@@ -44,6 +44,7 @@ import org.utbot.engine.overrides.stream.UtDoubleStream
 import org.utbot.engine.overrides.stream.UtIntStream
 import org.utbot.engine.overrides.stream.UtLongStream
 import org.utbot.engine.overrides.stream.UtStream
+import org.utbot.engine.overrides.stream.actions.*
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.util.signature
@@ -198,4 +199,13 @@ private val classesToLoad = arrayOf(
     IntStream::class,
     LongStream::class,
     DoubleStream::class,
+    StreamAction::class,
+    ConsumerAction::class,
+    DistinctAction::class,
+    FilterAction::class,
+    LimitAction::class,
+    MapAction::class,
+    NaturalSortingAction::class,
+    SkipAction::class,
+    SortingAction::class,
 )

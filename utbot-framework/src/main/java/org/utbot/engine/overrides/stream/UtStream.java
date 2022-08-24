@@ -28,6 +28,15 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
+import org.utbot.engine.overrides.stream.actions.ConsumerAction;
+import org.utbot.engine.overrides.stream.actions.DistinctAction;
+import org.utbot.engine.overrides.stream.actions.FilterAction;
+import org.utbot.engine.overrides.stream.actions.LimitAction;
+import org.utbot.engine.overrides.stream.actions.MapAction;
+import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
+import org.utbot.engine.overrides.stream.actions.SkipAction;
+import org.utbot.engine.overrides.stream.actions.SortingAction;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -43,12 +52,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
      */
     private final Collection<E> origin;
 
-    private final RangeModifiableUnlimitedArray<Function> mappings;
-    private final RangeModifiableUnlimitedArray<Predicate> filters;
-    private final RangeModifiableUnlimitedArray<Boolean> distinctInvocations;
-    private final RangeModifiableUnlimitedArray<Comparator> sortingInvocations;
-    private final RangeModifiableUnlimitedArray<Consumer> actions;
-    private final RangeModifiableUnlimitedArray<Long> limits;
+    private final RangeModifiableUnlimitedArray<StreamAction> actions;
 
     private final RangeModifiableUnlimitedArray<Runnable> closeHandlers;
 
@@ -63,12 +67,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public UtStream(Collection<E> collection) {
         visit(this);
 
-        mappings = new RangeModifiableUnlimitedArray<>();
-        filters = new RangeModifiableUnlimitedArray<>();
-        distinctInvocations = new RangeModifiableUnlimitedArray<>();
-        sortingInvocations = new RangeModifiableUnlimitedArray<>();
         actions = new RangeModifiableUnlimitedArray<>();
-        limits = new RangeModifiableUnlimitedArray<>();
         closeHandlers = new RangeModifiableUnlimitedArray<>();
 
         origin = collection;
@@ -95,15 +94,13 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         origin = other.origin;
 
-        mappings = other.mappings;
-        filters = other.filters;
-        distinctInvocations = other.distinctInvocations;
-        sortingInvocations = other.sortingInvocations;
         actions = other.actions;
-        limits = other.limits;
 
         isParallel = other.isParallel;
-        isClosed = other.isClosed;
+
+        // new stream should be opened
+        isClosed = false;
+
         closeHandlers = other.closeHandlers;
     }
 
@@ -150,7 +147,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> filter(Predicate<? super E> predicate) {
         preconditionCheckWithClosingStream();
 
-        filters.insert(filters.end++, predicate);
+        final FilterAction filterAction = new FilterAction((Predicate<Object>) predicate);
+        actions.insert(actions.end++, filterAction);
 
         return new UtStream<>(this);
     }
@@ -171,7 +169,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public <R> Stream<R> map(Function<? super E, ? extends R> mapper) {
         preconditionCheckWithClosingStream();
 
-        mappings.insert(mappings.end++, mapper);
+        final MapAction mapAction = new MapAction((Function<Object, Object>) mapper);
+        actions.insert(actions.end++, mapAction);
 
         return new UtStream<>(this);
     }
@@ -268,39 +267,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> distinct() {
         preconditionCheckWithClosingStream();
 
-        /*int size = origin.size();
-        Object[] distinctElements = new Object[size];
-        int distinctSize = 0;
-
-        for (E element : origin) {
-            boolean isDuplicate = false;
-
-            if (element == null) {
-                for (int j = 0; j < distinctSize; j++) {
-                    Object alreadyProcessedElement = distinctElements[j];
-                    if (alreadyProcessedElement == null) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-            } else {
-                for (int j = 0; j < distinctSize; j++) {
-                    Object alreadyProcessedElement = distinctElements[j];
-                    if (element.equals(alreadyProcessedElement)) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isDuplicate) {
-                distinctElements[distinctSize++] = element;
-            }
-        }
-
-        return new UtStream<>((E[]) distinctElements, distinctSize);*/
-
-        distinctInvocations.insert(distinctInvocations.end++, true);
+        final DistinctAction distinctAction = new DistinctAction();
+        actions.insert(actions.end++, distinctAction);
 
         return new UtStream<>(this);
     }
@@ -342,33 +310,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> sorted() {
         preconditionCheckWithClosingStream();
 
-        /*int size = origin.size();
-
-        if (size == 0) {
-            return new UtStream<>();
-        }
-
-        E[] sortedElements = (E[]) new Object[size];
-        int i = 0;
-
-        for (E element : origin) {
-            sortedElements[i++] = element;
-        }
-
-        // bubble sort
-        for (i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (((Comparable<E>) sortedElements[j]).compareTo(sortedElements[j + 1]) > 0) {
-                    E tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }
-
-        return new UtStream<>(sortedElements);*/
-
-        sortingInvocations.insert(sortingInvocations.end++, Comparator.naturalOrder());
+        final NaturalSortingAction naturalSortingAction = new NaturalSortingAction();
+        actions.insert(actions.end++, naturalSortingAction);
 
         return new UtStream<>(this);
     }
@@ -378,31 +321,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> sorted(Comparator<? super E> comparator) {
         preconditionCheckWithClosingStream();
 
-        /*int size = origin.size();
-
-        if (size == 0) {
-            return new UtStream<>();
-        }
-
-        E[] sortedElements = (E[]) new Object[size];
-        int i = 0;
-
-        for (E element : origin) {
-            sortedElements[i++] = element;
-        }
-
-        // bubble sort
-        for (i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (comparator.compare(sortedElements[j], sortedElements[j + 1]) > 0) {
-                    E tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }*/
-
-        sortingInvocations.insert(sortingInvocations.end++, comparator);
+        final SortingAction sortingAction = new SortingAction((Comparator<Object>) comparator);
+        actions.insert(actions.end++, sortingAction);
 
         return new UtStream<>(this);
     }
@@ -426,7 +346,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> peek(Consumer<? super E> action) {
         preconditionCheckWithoutClosing();
 
-        actions.insert(actions.end++, action);
+        final ConsumerAction consumerAction = new ConsumerAction((Consumer<Object>) action);
+        actions.insert(actions.end++, consumerAction);
 
         return new UtStream<>(this);
     }
@@ -445,31 +366,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             throw new IllegalArgumentException();
         }
 
-        /*if (maxSize == 0) {
-            return new UtStream<>();
-        }
-
-        assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
-
-        int newSize = (int) maxSize;
-        int curSize = origin.size();
-
-        if (newSize > curSize) {
-            newSize = curSize;
-        }
-
-        E[] elements = (E[]) new Object[newSize];
-        int i = 0;
-
-        for (E element : origin) {
-            if (i >= newSize) {
-                break;
-            }
-
-            elements[i++] = element;
-        }*/
-
-        limits.insert(limits.end++, maxSize);
+        final LimitAction limitAction = new LimitAction(maxSize);
+        actions.insert(actions.end++, limitAction);
 
         return new UtStream<>(this);
     }
@@ -514,32 +412,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return new UtStream<>(this);
         }
 
-        /*int curSize = origin.size();
-        if (n > curSize) {
-            return new UtStream<>();
-        }
-
-        // n is 1...Integer.MAX_VALUE here
-        int newSize = (int) (curSize - n);
-
-        if (newSize == 0) {
-            return new UtStream<>();
-        }
-
-        E[] elements = (E[]) new Object[newSize];
-        int i = 0;
-        int j = 0;
-
-        for (E element : origin) {
-            if (i++ < n) {
-                break;
-            }
-
-            elements[j++] = element;
-        }*/
-
-        // add the negative size for skip, opposite to limit
-        limits.insert(limits.end++, -n);
+        final SkipAction skipAction = new SkipAction(n);
+        actions.insert(actions.end++, skipAction);
 
         return new UtStream<>(this);
     }
@@ -606,76 +480,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return (A[]) applyActions(array);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @NotNull
     private Object[] applyActions(Object[] originArray) {
-        int curSize = originArray.length;
+        int actionsNumber = actions.end;
 
-        int transformationsNumber = mappings.end;
-
-        for (int i = 0; i < transformationsNumber; i++) {
-            Object[] transformed = new Object[curSize];
-            int newSize;
-
-            Function mapping = mappings.get(i);
-
-            if (mapping != null) {
-                mapInvocation(originArray, transformed, mapping);
-
-                originArray = transformed;
-            } else {
-                Predicate filter = filters.get(i);
-
-                if (filter != null) {
-                    newSize = filterInvocation(originArray, transformed, filter);
-
-                    curSize = newSize;
-                    originArray = new Object[curSize];
-                    UtArrayMock.arraycopy(transformed, 0, originArray, 0, curSize);
-                } else {
-                    Boolean isDistinctInvocation = distinctInvocations.get(i);
-
-                    if (isDistinctInvocation != null) {
-                        newSize = distinctInvocation(originArray, transformed);
-
-                        curSize = newSize;
-                        originArray = new Object[curSize];
-                        UtArrayMock.arraycopy(transformed, 0, originArray, 0, curSize);
-                    } else {
-                        Comparator comparator = sortingInvocations.get(i);
-
-                        if (comparator != null) {
-                            sortedInvocation(originArray, transformed, comparator, curSize);
-
-                            originArray = transformed;
-                        } else {
-                            Consumer action = actions.get(i);
-
-                            if (action != null) {
-                                actionInvocation(originArray, action);
-                            } else {
-                                Long limit = limits.get(i);
-
-                                if (limit != null) {
-                                    if (limit < 0) {
-                                        // skip action
-                                        transformed = skipInvocation(originArray, -limit, curSize);
-                                    } else {
-                                        // limit
-                                        transformed = limitInvocation(originArray, limit, curSize);
-                                    }
-
-                                    curSize = transformed.length;
-                                    originArray = new Object[curSize];
-                                    UtArrayMock.arraycopy(transformed, 0, originArray, 0, curSize);
-                                } else {
-                                    // no action is required, skip
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        for (int i = 0; i < actionsNumber; i++) {
+            originArray = actions.get(i).applyAction(originArray);
         }
 
         return originArray;

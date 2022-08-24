@@ -458,6 +458,15 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
             coverage = Full
         )
     }
+
+    @Test
+    fun testSourceCollectionMutationExample() {
+        check(
+            BaseStreamExample::sourceCollectionMutationExample,
+            eq(1),
+            { r -> r == true }
+        )
+    }
 }
 
 internal val streamConsumerStaticsMatchers = arrayOf(

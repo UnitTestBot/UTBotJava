@@ -3,10 +3,12 @@ package org.utbot.examples.stream;
 import org.jetbrains.annotations.NotNull;
 import org.utbot.api.mock.UtMock;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -533,6 +535,20 @@ public class BaseStreamExample {
         return Stream.concat(first, second).toArray(Integer[]::new);
     }
 
+    public boolean sourceCollectionMutationExample() {
+        List<Integer> list = new ArrayList<>();
+        list.add(null);
+
+        final Stream<Integer> stream = list.stream();
+        final Stream<Integer> originallyEmpty = stream.filter(Objects::nonNull);
+
+        list.set(0, 0);
+
+        final Integer firstValue = (Integer) originallyEmpty.toArray()[0];
+
+        return firstValue == 0;
+    }
+
     // avoid NPE
     private int nullableSum(Integer a, Integer b) {
         if (b == null) {
@@ -565,7 +581,6 @@ public class BaseStreamExample {
         void plus(int other) {
             value += other;
         }
-
         void plus(IntWrapper other) {
             value += other.value;
         }

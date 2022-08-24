@@ -8,6 +8,14 @@ import logging
 import datetime
 
 
+class Dummy:
+    pass
+
+
+def propagate_dummy(d: Dummy) -> List[Dummy]:
+    return [d, d]
+
+
 class A:
     x = 4
     y = 5

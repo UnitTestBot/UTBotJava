@@ -1,6 +1,6 @@
 ## Build
 
-.jar file can be built in GithubActions with script publish-plugin-and-cli-from-branch.
+.jar file can be built in Github Actions with script publish-plugin-and-cli-from-branch.
 
 ## Requirements
 

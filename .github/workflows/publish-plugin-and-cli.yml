@@ -5,8 +5,10 @@ on:
 
 jobs:
     build_and_run_tests:
-      uses: ./.github/workflows/build-and-run-tests-from-branch.yml      
+      uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+      secrets: inherit
 
     publish_plugin_and_cli:
       needs: build_and_run_tests
       uses: ./.github/workflows/publish-plugin-and-cli-from-branch.yml
+      secrets: inherit

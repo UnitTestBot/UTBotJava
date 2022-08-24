@@ -1,3 +1,7 @@
+## Build
+
+.jar file can be built in GithubActions with script publish-plugin-and-cli-from-branch.
+
 ## Requirements
 
 Prefered Python version: 3.8 or 3.9.
@@ -82,7 +86,7 @@ Run generated tests:
 
 - `--test-framework [pytest|Unittest]`
   
-  Test framework of tests to run
+  Test framework of tests to run.
 
 - `-o, --output <filename>`
 

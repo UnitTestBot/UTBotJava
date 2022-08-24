@@ -87,6 +87,7 @@ jar { dependsOn classes
 
     version '1.0'
 
+    dependsOn configurations.runtimeClasspath
     from {
         sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
@@ -109,6 +110,7 @@ task monitoringJar(type: Jar) { dependsOn classes
 
     version '1.0'
 
+    dependsOn configurations.runtimeClasspath
     from {
         sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }

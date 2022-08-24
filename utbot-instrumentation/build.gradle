@@ -25,10 +25,11 @@ jar {
         )
     }
 
+    dependsOn configurations.compileClasspath
     from {
-        configurations.compileClasspath.collect {
-            it.isDirectory() ? it : zipTree(it)
-        }
+        sourceSets.main.output + configurations.compileClasspath
+                .findAll {it.name.endsWith('jar')  }
+                .collect { zipTree(it) }
     }
 }
 

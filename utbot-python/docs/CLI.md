@@ -1,14 +1,18 @@
 ## Build
 
-.jar file can be built in Github Actions with script publish-plugin-and-cli-from-branch.
+.jar file can be built in Github Actions with script `publish-plugin-and-cli-from-branch`.
 
 ## Requirements
 
-Prefered Python version: 3.8 or 3.9.
+ - Required Java version: 11.
 
-Before running utbot install pip requirements (or use `--install-requirements` flag in `generate_python` command):
+ - Prefered Python version: 3.8 or 3.9.
 
-    python -m pip install mypy==0.971 astor typeshed-client coverage
+    Make sure that your Python has `pip` installed (this is usually the case). [Read more about pip installation](https://pip.pypa.io/en/stable/installation/).
+
+    Before running utbot install pip requirements (or use `--install-requirements` flag in `generate_python` command):
+
+        python -m pip install mypy==0.971 astor typeshed-client coverage
 
 ## Basic usage
 

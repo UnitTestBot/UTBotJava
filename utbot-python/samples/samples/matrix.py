@@ -16,8 +16,11 @@ class Matrix:
     def __repr__(self):
         return str(self.elements)
 
+    def __eq__(self, other):
+        if isinstance(other, Matrix):
+            return self.elements == other.elements
+
     def __add__(self, other: Matrix):
-        print(self.dim, other.dim)
         if self.dim == other.dim:
             return Matrix([
                 [

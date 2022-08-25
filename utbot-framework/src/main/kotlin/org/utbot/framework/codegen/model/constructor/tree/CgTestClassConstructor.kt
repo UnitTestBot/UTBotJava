@@ -49,6 +49,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         return buildTestClassFile {
             this.testClass = withTestClassScope { constructTestClass(testClassModel) }
             imports.addAll(context.collectedImports)
+            existingVariableNames = existingVariableNames.addAll(context.collectedImports.map { it.qualifiedName })
             sysPaths.addAll(context.collectedSysPaths.map { CgPythonSysPath(it) })
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }

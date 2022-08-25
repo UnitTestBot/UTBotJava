@@ -3,13 +3,19 @@ package org.utbot.framework.codegen.model.constructor.name
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.python.util.toSnakeCase
+import java.util.*
 
 internal class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(context_) {
 
     override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
+        if (type is PythonClassId) {
+            val moduleName = type.moduleName
+            existingVariableNames = existingVariableNames.add(moduleName)
+        }
         val baseName = base?.toSnakeCase() ?: nameFrom(type)
-        return variableName(baseName.toSnakeCase().decapitalize(), isMock)
+        return variableName(baseName.toSnakeCase().replaceFirstChar { it.lowercase(Locale.getDefault()) }, isMock)
     }
 
     override fun testMethodNameFor(executableId: ExecutableId, customName: String?): String {

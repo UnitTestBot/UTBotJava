@@ -1,0 +1,24 @@
+FROM azul/zulu-openjdk:11.0.15-11.56.19
+ARG UTBOT_PYTHON_CLI
+
+WORKDIR /usr/src/
+
+# Install UTBot Python CLI
+
+COPY ${UTBOT_PYTHON_CLI} .
+
+RUN apt-get update && \
+	apt-get install -y curl && \
+	
+	# Install Python
+	apt-get install -y python3.9 && \
+	
+	# Install pip	
+	curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+	apt-get install -y python3.9-distutils  && \
+	python3.9 get-pip.py && \
+	
+	apt-get clean
+
+RUN UTBOT_PYTHON_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
+    && ln -s "${UTBOT_PYTHON_CLI_PATH}" /usr/src/utbot-cli.jar

@@ -8,7 +8,7 @@
 
  - Prefered Python version: 3.8 or 3.9.
 
-    Ensure that your Python has `pip` installed (this is usually the case). [Read more about pip installation](https://pip.pypa.io/en/stable/installation/).
+    Make sure that your Python has `pip` installed (this is usually the case). [Read more about pip installation](https://pip.pypa.io/en/stable/installation/).
 
     Before running utbot install pip requirements (or use `--install-requirements` flag in `generate_python` command):
 

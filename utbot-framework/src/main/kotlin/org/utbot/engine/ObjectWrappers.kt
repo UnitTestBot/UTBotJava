@@ -13,6 +13,7 @@ import org.utbot.engine.overrides.collections.AssociativeArray
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
+import org.utbot.engine.overrides.security.UtSecurityManager
 import org.utbot.engine.overrides.strings.UtNativeString
 import org.utbot.engine.overrides.strings.UtString
 import org.utbot.engine.overrides.strings.UtStringBuffer
@@ -86,6 +87,8 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(java.util.stream.BaseStream::class, UT_STREAM.className)
         putSootClass(java.util.stream.Stream::class, UT_STREAM.className)
         // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
+
+        putSootClass(java.lang.SecurityManager::class, UtSecurityManager::class)
     }
 
 /**
@@ -187,6 +190,9 @@ private val wrappers = mapOf(
     wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
     wrap(java.util.stream.Stream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },
     // TODO primitive streams https://github.com/UnitTestBot/UTBotJava/issues/146
+
+    // Security-related wrappers
+    wrap(SecurityManager::class) { type, addr -> objectValue(type, addr, SecurityManagerWrapper()) },
 ).also {
     // check every `wrapped` class has a corresponding value in [classToWrapper]
     it.keys.all { key ->

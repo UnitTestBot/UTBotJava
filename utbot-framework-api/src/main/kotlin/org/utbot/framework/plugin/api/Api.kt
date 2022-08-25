@@ -922,7 +922,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = safeJField.toString()
+    override fun toString() = safeJField?.toString() ?: "[unresolved] $declaringClass.$name"
 }
 
 inline fun <T> withReflection(block: () -> T): T {

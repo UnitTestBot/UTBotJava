@@ -70,7 +70,6 @@ import org.utbot.framework.codegen.model.util.equalTo
 import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
-import org.utbot.framework.codegen.model.util.isInaccessible
 import org.utbot.framework.codegen.model.util.length
 import org.utbot.framework.codegen.model.util.lessThan
 import org.utbot.framework.codegen.model.util.nullLiteral
@@ -139,6 +138,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
 import java.lang.reflect.InvocationTargetException
@@ -273,7 +273,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun <E> Map<FieldId, E>.accessibleFields(): Map<FieldId, E> = filterKeys { !it.isInaccessible }
+    private fun <E> Map<FieldId, E>.accessibleFields(): Map<FieldId, E> = filterKeys { !it.isInaccessibleViaReflection }
 
     /**
      * @return expression for [java.lang.Class] of the given [classId]

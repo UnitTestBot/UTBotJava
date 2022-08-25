@@ -406,6 +406,11 @@ object UtSettings {
      */
     var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
 
+    /**
+     * Disable sandbox in the concrete executor. All unsafe/dangerous calls will be permitted.
+     */
+    var disableSandbox by getBooleanProperty(false)
+
     override fun toString(): String =
         settingsValues
             .mapKeys { it.key.name }

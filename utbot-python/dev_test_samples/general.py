@@ -9,11 +9,9 @@ import datetime
 
 
 class Dummy:
-    pass
+    def propagate(self):
+        return [self, self]
 
-
-def propagate_dummy(d: Dummy) -> List[Dummy]:
-    return [d, d]
 
 
 class A:
@@ -154,8 +152,19 @@ def k(x: typing.Any):
         return x
 
 
+def constants(x, y):
+    if x == 12345:
+        return "one"
+    elif (2000 < x) and (y < 2234):
+        return "two"
+    elif x == 1e5:
+        return "three"
+    else:
+        return "four"
+
+
 #  interesting case with sets
-def set_small_data_labels(dates):
+def get_data_labels(dates):
     if len(dates) == 0:
         return None
     if all(x.hour == 0 and x.minute == 0 for x in dates):

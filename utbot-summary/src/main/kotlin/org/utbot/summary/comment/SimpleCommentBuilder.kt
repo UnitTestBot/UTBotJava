@@ -42,15 +42,7 @@ open class SimpleCommentBuilder(
      */
     open fun buildString(currentMethod: SootMethod): String {
         val root = SimpleSentenceBlock(stringTemplates = stringTemplates)
-
-        val thrownException = traceTag.result.exceptionOrNull()
-        if (thrownException == null) {
-            root.exceptionThrow = traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
-        } else {
-            val exceptionName = thrownException.javaClass.simpleName
-            val reason = findExceptionReason(currentMethod, thrownException)
-            root.exceptionThrow = "$exceptionName $reason"
-        }
+        buildThrownExceptionInfo(root, currentMethod)
         skippedIterations()
         buildSentenceBlock(traceTag.rootStatementTag, root, currentMethod)
         var sentence = toSentence(root)
@@ -61,12 +53,10 @@ open class SimpleCommentBuilder(
         return "<pre>\n$sentence</pre>".replace(CARRIAGE_RETURN, "")
     }
 
-    /**
-     * Creates List<DocStatement> from SimpleSentenceBlock
-     */
-    open fun buildDocStmts(currentMethod: SootMethod): List<DocStatement> {
-        val root = SimpleSentenceBlock(stringTemplates = stringTemplates)
-
+    private fun buildThrownExceptionInfo(
+        root: SimpleSentenceBlock,
+        currentMethod: SootMethod
+    ) {
         val thrownException = traceTag.result.exceptionOrNull()
         if (thrownException == null) {
             root.exceptionThrow = traceTag.result.exceptionOrNull()?.let { it::class.qualifiedName }
@@ -75,9 +65,14 @@ open class SimpleCommentBuilder(
             val reason = findExceptionReason(currentMethod, thrownException)
             root.exceptionThrow = "$exceptionName $reason"
         }
-        skippedIterations()
-        buildSentenceBlock(traceTag.rootStatementTag, root, currentMethod)
-        val docStmts = toDocStmts(root)
+    }
+
+    /**
+     * Creates List<[DocStatement]> from [SimpleSentenceBlock].
+     */
+    open fun buildDocStmts(currentMethod: SootMethod): List<DocStatement> {
+        val sentenceBlock = buildSentenceBlock(currentMethod)
+        val docStmts = toDocStmts(sentenceBlock)
 
         if (docStmts.isEmpty()) {
             return listOf(DocRegularStmt(genWarnNotification())) //TODO SAT-1310
@@ -86,6 +81,14 @@ open class SimpleCommentBuilder(
 //        sentence = lastCommaToDot(sentence) //TODO SAT-1309
 
         return listOf<DocStatement>(DocPreTagStatement(docStmts))
+    }
+
+    private fun buildSentenceBlock(currentMethod: SootMethod): SimpleSentenceBlock {
+        val rootSentenceBlock = SimpleSentenceBlock(stringTemplates = stringTemplates)
+        buildThrownExceptionInfo(rootSentenceBlock, currentMethod)
+        skippedIterations()
+        buildSentenceBlock(traceTag.rootStatementTag, rootSentenceBlock, currentMethod)
+        return rootSentenceBlock
     }
 
     protected fun genWarnNotification(): String = " " //why is it empty?
@@ -114,7 +117,7 @@ open class SimpleCommentBuilder(
         return stmts
     }
 
-    private fun findExceptionReason(currentMethod: SootMethod, thrownException: Throwable): String {
+    protected fun findExceptionReason(currentMethod: SootMethod, thrownException: Throwable): String {
         val path = traceTag.path
         if (path.isEmpty()) {
             if (thrownException is ConcreteExecutionFailureException) {
@@ -161,7 +164,7 @@ open class SimpleCommentBuilder(
     /**
      * Sentence blocks are built based on unique and partly unique statement tags.
      */
-    private fun buildSentenceBlock(
+    open fun buildSentenceBlock(
         statementTag: StatementTag?,
         sentenceBlock: SimpleSentenceBlock,
         currentMethod: SootMethod
@@ -191,7 +194,7 @@ open class SimpleCommentBuilder(
             sentenceInvoke.squashStmtText()
             if (!sentenceInvoke.isEmpty()) {
                 sentenceBlock.invokeSentenceBlock =
-                    Pair(invokeDescription(className, methodName, methodParameterTypes), sentenceInvoke)
+                    Pair(getMethodReference(className, methodName, methodParameterTypes), sentenceInvoke)
                 createNextBlock = true
                 invokeRegistered = true
             }
@@ -317,7 +320,7 @@ open class SimpleCommentBuilder(
             sentenceBlock.stmtTexts.add(
                 StmtDescription(
                     StmtType.Invoke,
-                    invokeDescription(className, methodName, methodParameterTypes),
+                    getMethodReference(className, methodName, methodParameterTypes),
                     frequency
                 )
             )
@@ -349,7 +352,7 @@ open class SimpleCommentBuilder(
      * In case when an enclosing class in nested, we need to replace '$' with '.'
      * to render the reference.
      */
-    protected fun invokeDescription(className: String, methodName: String, methodParameterTypes: List<Type>): String {
+    fun getMethodReference(className: String, methodName: String, methodParameterTypes: List<Type>): String {
         val prettyClassName: String = className.replace("$", ".")
 
         return if (methodParameterTypes.isEmpty()) {
@@ -358,6 +361,14 @@ open class SimpleCommentBuilder(
             val methodParametersAsString = methodParameterTypes.joinToString(",")
             "{@link $prettyClassName#$methodName($methodParametersAsString)}"
         }
+    }
+
+    /**
+     * Returns a reference to the class.
+     * Replaces '$' with '.' in case a class is nested.
+     */
+    fun getClassReference(fullClasName: String): String {
+        return "{@link ${fullClasName.replace("$", ".")}}"
     }
 
     protected fun buildIterationsBlock(

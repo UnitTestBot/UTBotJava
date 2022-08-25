@@ -1,5 +1,6 @@
 package org.utbot.examples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
@@ -9,6 +10,7 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.junit.jupiter.api.Test
 
 // TODO failed Kotlin compilation ($ in function names, generics) SAT-1220 SAT-1332
+@Disabled("Java 11 transition")
 internal class ListWrapperReturnsVoidTest : UtValueTestCaseChecker(
     testClass = ListWrapperReturnsVoidExample::class,
     testCodeGeneration = true,

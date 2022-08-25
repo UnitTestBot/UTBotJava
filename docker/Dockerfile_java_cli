@@ -1,25 +1,12 @@
 FROM openjdk:8
 
-ARG ACCESS_TOKEN
+ARG UTBOT_JAVA_CLI
 
 WORKDIR /usr/src/
 
-RUN apt-get update \
-    && apt-get install -y curl \
-        unzip \
-        python3 \
-        python3-requests \
-    && apt-get clean
-
 # Install UTBot Java CLI
-COPY docker/get_java_cli_download_url.py .
 
-ENV JAVA_CLI_ZIP_NAME "utbot_java_cli.zip"
-    
-RUN curl -H "Authorization: Bearer ${ACCESS_TOKEN}" \
-        -L "$(python3 get_java_cli_download_url.py)" \
-        -o "${JAVA_CLI_ZIP_NAME}" \
-    && unzip "${JAVA_CLI_ZIP_NAME}" \
-    && rm "${JAVA_CLI_ZIP_NAME}" \
-    && JAVA_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
-    && ln -s "${JAVA_CLI_PATH}" /usr/src/utbot-cli.jar
+COPY ${UTBOT_JAVA_CLI} .
+
+RUN UTBOT_JAVA_CLI_PATH="$(find /usr/src -type f -name 'utbot-cli*')" \
+    && ln -s "${UTBOT_JAVA_CLI_PATH}" /usr/src/utbot-cli.jar

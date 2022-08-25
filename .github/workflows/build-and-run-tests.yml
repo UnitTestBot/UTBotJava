@@ -1,47 +1,88 @@
 name: "UTBot Java: build and run tests"
 
-on:
+on:  
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: utbot_java_cli
+  DOCKERFILE_PATH: docker/Dockerfile_java_cli
+  # Environment variable setting gradle options.
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+
 jobs:
-  build_and_run_tests:
+  build-and-run-tests:
+    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+    secrets: inherit
+
+
+  publish-cli-image:
+    needs: build-and-run-tests
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v2
-      with:
-        java-version: '8'
-        distribution: 'zulu'
-        java-package: jdk+fx
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.8
-        
-    - name: Build and run tests in UTBot Java
+    - name: Print environment variables
+      run: printenv
+
+    - uses: actions/checkout@v3
+
+    - name: Set environment variables
       run: |
-        export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
+        # "You can make an environment variable available to any subsequent steps in a workflow job by 
+        # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
+        echo VERSION="$(date +%Y).$(date +%-m)" >> $GITHUB_ENV
         
-    - name: Upload utbot-framework logs
-      if: ${{ always() }}
-      uses: actions/upload-artifact@v2
+    - name: Build UTBot Java CLI
+      run: |
+        cd utbot-cli
+        gradle build --no-daemon -x test -PsemVer=${{ env.VERSION }}
+    - name: Set docker tag
+      run:
+        # "You can make an environment variable available to any subsequent steps in a workflow job by 
+        # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
+        echo DOCKER_TAG="$(date +%Y).$(date +%-m).$(date +%-d)-${{ github.sha }}" >> $GITHUB_ENV
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
       with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
-      
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
       with:
-        name: utbot_framework_tests_report
-        path: utbot-framework/build/reports/tests/test/*
-        
-    - name: Upload utbot-intellij tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3
       with:
-        name: utbot_intellij_tests_report
-        path: utbot-intellij/build/reports/tests/test/*
+        images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=${{ env.DOCKER_TAG }}
+    - name: Docker Buildx (build and push)
+      run: |
+        docker buildx build \
+          -f ${{ env.DOCKERFILE_PATH }} \
+          --cache-from "type=local,src=/tmp/.buildx-cache" \
+          --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
+          --tag ${{ steps.meta.outputs.tags }} \
+          --build-arg UTBOT_JAVA_CLI=utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar \
+          --push .
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache

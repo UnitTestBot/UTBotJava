@@ -14,6 +14,8 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -265,6 +267,13 @@ val Class<*>.id: ClassId
         isPrimitive -> primitiveToId[this]!!
         else -> ClassId(name)
     }
+
+/**
+ * We should specially handle the case of a generic type that is a [Type] and not a [Class].
+ * Returns a [ClassId] for the corresponding raw type.
+ */
+val ParameterizedType.id: ClassId
+    get() = ClassId(this.rawType.typeName)
 
 val KClass<*>.id: ClassId
     get() = java.id

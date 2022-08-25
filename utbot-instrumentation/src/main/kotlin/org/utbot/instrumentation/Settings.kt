@@ -3,7 +3,7 @@ package org.utbot.instrumentation
 import org.objectweb.asm.Opcodes
 
 object Settings {
-    const val ASM_API = Opcodes.ASM5
+    const val ASM_API = Opcodes.ASM7
 
     /**
      * Constants used in bytecode instrumentation.

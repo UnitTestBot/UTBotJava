@@ -2,49 +2,13 @@ name: "Plugin and CLI: publish as archives"
 on:
   push:
     branches: [main]
-    
+
 jobs:
+    build_and_run_tests:
+      uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+      secrets: inherit
+
     publish_plugin_and_cli:
-      runs-on: ubuntu-20.04
-            
-      steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-java@v2
-        with:
-          java-version: '8'
-          distribution: 'zulu'
-          java-package: jdk+fx
-      - uses: gradle/gradle-build-action@v2
-        with:
-          gradle-version: 6.8
-          
-      - name: Set environment variables
-        run:
-          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
-          
-      - name: Build UTBot IntelliJ IDEA plugin
-        run: |
-          export KOTLIN_HOME="/usr"
-          gradle buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
-          cd utbot-intellij/build/distributions
-          unzip utbot-intellij-${{ env.VERSION }}.zip
-          rm utbot-intellij-${{ env.VERSION }}.zip
-          
-      - name: Archive UTBot IntelliJ IDEA plugin
-        uses: actions/upload-artifact@v2
-        with:
-          name: utbot-intellij-${{ env.VERSION }}
-          path: utbot-intellij/build/distributions/*
-          
-      - name: Build UTBot CLI
-        run: |
-          export KOTLIN_HOME="/usr"
-          cd utbot-cli
-          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
-          cd build/libs
-          
-      - name: Archive UTBot CLI
-        uses: actions/upload-artifact@v2
-        with:
-          name: utbot-cli-${{ env.VERSION }}
-          path: utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar
+      needs: build_and_run_tests
+      uses: ./.github/workflows/publish-plugin-and-cli-from-branch.yml
+      secrets: inherit

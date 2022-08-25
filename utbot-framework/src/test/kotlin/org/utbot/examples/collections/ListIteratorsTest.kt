@@ -1,5 +1,6 @@
 package org.utbot.examples.collections
 
+import org.junit.jupiter.api.Disabled
 import org.utbot.examples.UtValueTestCaseChecker
 import org.utbot.examples.DoNotCalculate
 import org.utbot.examples.eq
@@ -57,6 +58,7 @@ internal class ListIteratorsTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("Java 11 transition")
     fun testAddElements() {
         check(
             ListIterators::addElements,

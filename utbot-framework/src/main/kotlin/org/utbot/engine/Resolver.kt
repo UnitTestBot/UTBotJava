@@ -72,6 +72,7 @@ import kotlin.math.min
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.plugin.api.SYMBOLIC_NULL_ADDR
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -88,7 +89,7 @@ import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
-import sun.java2d.cmm.lcms.LcmsServiceProvider
+import java.security.AccessControlException
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -372,12 +373,11 @@ class Resolver(
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
-            // TODO SAT-1561
-            val isOverflow = exception is ArithmeticException && exception.message?.contains("overflow") == true
-            if (isOverflow) {
-                UtOverflowFailure(exception)
-            } else {
-                UtImplicitlyThrownException(exception, inNestedMethod)
+            when {
+                // TODO SAT-1561
+                exception is ArithmeticException && exception.message?.contains("overflow") == true -> UtOverflowFailure(exception)
+                exception is AccessControlException -> UtSandboxFailure(exception)
+                else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }
     }
@@ -1017,9 +1017,9 @@ val typesOfObjectsToRecreate = listOf(
     "java.lang.CharacterDataLatin1",
     "java.lang.CharacterData00",
     "[Ljava.lang.StackTraceElement",
+    "sun.java2d.cmm.lcms.LcmsServiceProvider",
     PrintStream::class.qualifiedName,
     AccessControlContext::class.qualifiedName,
-    LcmsServiceProvider::class.qualifiedName,
     ICC_ProfileRGB::class.qualifiedName,
     AtomicInteger::class.qualifiedName
 )

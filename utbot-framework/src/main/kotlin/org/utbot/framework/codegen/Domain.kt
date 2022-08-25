@@ -568,7 +568,7 @@ object Junit5 : TestFramework("JUnit5") {
             )
         }
 
-    private const val junitVersion = "1.7.1" // TODO read it from gradle.properties
+    private const val junitVersion = "1.9.0" // TODO read it from gradle.properties
     private const val platformJarName: String = "junit-platform-console-standalone-$junitVersion.jar"
 
     @OptIn(ExperimentalStdlibApi::class)

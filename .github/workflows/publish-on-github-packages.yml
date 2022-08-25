@@ -3,58 +3,37 @@ name: "[M] Publish on GitHub Packages"
 on:
   workflow_dispatch:
     inputs:
-      commit-sha:
+      commit_sha:
         type: string
         required: true
         description: "commit SHA: e.g. cab4799c"
+        
+env:
+  # Environment variable setting gradle options.
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
 
 jobs:
+  build-and-run-tests:
+    if: ${{ github.actor == 'korifey' || github.actor == 'denis-fokin' || github.actor == 'victoriafomina' || github.actor == 'bissquit' }}
+    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+    with:
+      commit_sha: ${{ github.event.inputs.commit_sha }}
+    secrets: inherit
+
   publish_on_github_packages:
-    if: ${{ github.actor == 'korifey' || github.actor == 'denis-fokin' || github.actor == 'victoriafomina' || 
-          github.actor == 'bissquit' }}
+    needs: build-and-run-tests
     runs-on: ubuntu-20.04
-    permissions:
-      packages: write
-      contents: read
     steps:
+    - name: Print environment variables
+      run: printenv
+
     - uses: actions/checkout@v3
-    - uses: actions/setup-java@v3
       with:
-        java-version: '8'
-        distribution: 'zulu'
-        java-package: jdk+fx
-        cache: gradle
+        ref: ${{ github.event.inputs.commit_sha }}
+
     - uses: gradle/gradle-build-action@v2
       with:
-        gradle-version: 6.8
-        
-    - name: Check out ${{ github.event.inputs.commit-sha }} commit
-      run: |
-        git fetch
-        git checkout ${{ github.event.inputs.commit-sha }}
-          
-    - name: "UTBot Java: build and run tests"
-      run: |
-        export KOTLIN_HOME="/usr"
-        gradle clean build --no-daemon
-        
-    - name: Upload utbot-framework logs
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_logs
-        path: utbot-framework/logs/*
-      
-    - name: Upload utbot-framework tests report artifacts if tests have failed
-      if: ${{ failure() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: utbot_framework_tests_report
-        path: utbot-framework/build/reports/tests/test/*
-        
-    - uses: gradle/gradle-build-action@v2
-      with:
-        gradle-version: 6.8
+        gradle-version: 7.4.2
         arguments: publish
       env:
         GITHUB_ACTOR: ${{ github.actor }}

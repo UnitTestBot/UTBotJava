@@ -1,8 +1,12 @@
 package org.utbot.common
 
+import java.io.File
+import java.net.MalformedURLException
 import java.net.URL
+import java.net.URLClassLoader
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 
 object PathUtil {
 
@@ -93,4 +97,13 @@ object PathUtil {
     val Path.fileExtension: String
         get() = "." + this.toFile().extension
 
+    @JvmStatic
+    fun getUrlsFromClassLoader(contextClassLoader: ClassLoader): Array<URL> {
+        return if (contextClassLoader is URLClassLoader) {
+            contextClassLoader.urLs
+        } else {
+            System.getProperty("java.class.path").split(File.pathSeparator).dropLastWhile { it.isEmpty() }
+                .map { File(it).toURL() }.toTypedArray()
+        }
+    }
 }

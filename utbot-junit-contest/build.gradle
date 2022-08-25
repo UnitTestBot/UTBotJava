@@ -36,10 +36,10 @@ test {
     useJUnit()
     // set heap size for the test JVM(s)
     minHeapSize = "128m"
-    maxHeapSize = "16384m"
+    maxHeapSize = "3072m"
 
     // set JVM arguments for the test JVM(s)
-    jvmArgs '-XX:MaxPermSize=256m'
+    jvmArgs '-XX:MaxHeapSize=3072m'
 
     finalizedBy jacocoTestReport
 }

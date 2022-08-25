@@ -127,6 +127,7 @@ class _PythonTreeSerializer:
             deserialized_obj = self.memory[id_].deserialized_obj
             if not self.memory[id_].is_draft:
                 self.memory[id_].comparable = py_object == deserialized_obj
+                skip_comparable = False
         elif isinstance(py_object, type):
             value = _PythonTreeSerializer.get_type_name(py_object)
             strategy = 'repr'

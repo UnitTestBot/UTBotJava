@@ -16,7 +16,7 @@ You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/a
 
 UTBot Python has been tested on Python 3.8 and 3.9. Some syntax from Python 3.10 is not supported.
 
-Usually nothing has to be done manually, but if you have any troubles with requirements refer to [requirements section](docs/CLI.md#requirements) in CLI documentation.
+Usually nothing has to be done manually, but if you have any troubles with requirements, refer to [requirements section](docs/CLI.md#requirements) in CLI documentation.
 
 ## IntelliJ IDEA plugin
 

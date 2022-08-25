@@ -26,4 +26,12 @@ After indexing has finished, move the cursor to a function, press ALT+SHIFT+U (o
 
 ### Command line interface
 
-You can find documentation on CLI usage [here](https://github.com/UnitTestBot/UTBotJava/blob/utbot-python-codegen/utbot-python/docs/CLI.md).
+You can find documentation on CLI usage [here](docs/CLI.md).
+
+## Contribute
+
+Read more in [UTBot Java Readme](../README.md#contribute-to-utbot-java).
+
+## Support
+
+Read more in [UTBot Java Readme](../README.md#find-support).

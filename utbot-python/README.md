@@ -6,13 +6,19 @@ This is the support of UTBot for Python.
 
 UTBot tries to maximize the code coverage while minimizing the number of tests. For now, we use only the fuzzing technique for Python.
 
-## Get started
+# Get started
 
 There are two ways to use UTBot: as an IntelliJ IDEA plugin or through a command line interface.
 
 You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2924526925).
 
-### IntelliJ IDEA plugin
+## Requirements
+
+UTBot Python has been tested on Python 3.8 and 3.9. Some syntax from Python 3.10 is not supported.
+
+Usually nothing has to be done manually, but if you have any troubles with requirements refer to [requirements section](docs/CLI.md#requirements) in CLI documentation.
+
+## IntelliJ IDEA plugin
 
 IntelliJ IDEA version should be 2022.1.
 
@@ -24,14 +30,14 @@ Configure the Python interpreter for your project and make sure that IDEA resolv
 
 After indexing has finished, move the cursor to a function, press ALT+SHIFT+U (or ALT+U, ALT+T in Ubuntu), and generate tests.
 
-### Command line interface
+## Command line interface
 
 You can find documentation on CLI usage [here](docs/CLI.md).
 
-## Contribute
+# Contribute
 
 Read more in [UTBot Java Readme](../README.md#contribute-to-utbot-java).
 
-## Support
+# Support
 
 Read more in [UTBot Java Readme](../README.md#find-support).

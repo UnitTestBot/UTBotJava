@@ -23,4 +23,13 @@ class ClassWithNullableFieldTest : UtValueTestCaseChecker(
             coverage = DoNotCalculate
         )
     }
+
+    @Test
+    fun testClassWithNullableField1() {
+        check(
+            ClassWithNullableField::returnGreatCompoundWithNullableField,
+            eq(3),
+            coverage = DoNotCalculate
+        )
+    }
 }

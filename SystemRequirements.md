@@ -1,11 +1,28 @@
 # System requirements
 
-Before starting to work with UnitTestBot please check if that your system satisfies the following requirements.
+---
 
-* JDK 8—11 is installed.
+### To generate tests with UnitTestBot:
 
-* IntelliJ IDEA from 2020.2 to 2022.1.4 is installed.
+you have to install IntelliJ IDEA (versions from 2022.1 to 2022.1.4 are supported).
 
-* JAVA_HOME environment variable contains the correct path to the necessary JDK installation directory (JDK 8—11).
+### To contribute to UnitTestBot:
 
-* PATH environment variable contains the path to the bin folder of the same JDK installation directory.
+you have to install
+
+- IntelliJ IDEA (versions from 2022.1 to 2022.1.4 are supported);
+
+- JDK 11;
+
+- Kotlin 1.7.0 or later;
+
+you also have to check if
+
+- ```JAVA_HOME``` environment variable contains the path to JDK 11 installation directory;
+
+- ```PATH``` environment variable contains the path to the ```bin``` folder of JDK 11 installation directory;
+
+- ```KOTLIN_HOME``` environment variable contains the path to the ```kotlinc``` folder of Kotlin (1.7.0 or later) installation 
+  directory.
+
+Please note: if the environment variables lead to unsupported JDK or Kotlin versions, you won't be able to build the UnitTestBot project.

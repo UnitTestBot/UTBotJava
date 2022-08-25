@@ -8,47 +8,35 @@ import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedParameter
-import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
-import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
 
 class ArrayModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
     recursion: Int = 1
 ) : RecursiveModelProvider(idGenerator, recursion) {
+    override fun copy(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepthLeft: Int) =
+        ArrayModelProvider(idGenerator, recursionDepthLeft)
 
-    private val defaultArraySize = 3
-
-    private val limitRecursivelyFuzzed =
-        when(recursion) {
-            1 -> Int.MAX_VALUE
-            else -> 3
-        }
-
-    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        description.parametersMap
-            .asSequence()
-            .filter { (classId, _) -> classId.isArray }
-            .forEach { (arrayClassId, indices) ->
-
-                // Fuzz small arrays with interesting elements
-                yieldAllValues(indices, generateArrayRecursively(arrayClassId, description, defaultArraySize))
-
-                // Fuzz arrays with interesting lengths and default-valued elements
-                val lengths = generateArrayLengths(description)
-                yieldAllValues(indices, lengths.asSequence().map { length ->
-                    createFuzzedArrayModel(arrayClassId, length, null)
-                })
+    override fun generateModelConstructors(
+        description: FuzzedMethodDescription,
+        clazz: ClassId
+    ): List<ModelConstructor> {
+        if (!clazz.isArray)
+            return listOf()
+        val lengths = generateArrayLengths(description).sorted()
+        return lengths.map { length ->
+            ModelConstructor(List(length) { clazz.elementClassId!! }) { values ->
+                createFuzzedArrayModel(clazz, length, values.map { it.model } )
             }
+        }
     }
 
     private fun generateArrayLengths(description: FuzzedMethodDescription): Set<Int> {
+        description.concreteValues
         val fuzzedLengths = fuzzValuesRecursively(
             types = listOf(intClassId),
             baseMethodDescription = description,
-            modelProvider = ConstantsModelProvider,
-            generatedValuesName = "array length"
+            modelProvider = ConstantsModelProvider
         )
 
         return fuzzedLengths
@@ -56,22 +44,7 @@ class ArrayModelProvider(
             .filter { it in 0..10 }
             .toSet()
             .plus(0)
-    }
-
-    private fun generateArrayRecursively(arrayClassId: ClassId, description: FuzzedMethodDescription, length: Int): Sequence<FuzzedValue> {
-        val elementClassId = arrayClassId.elementClassId ?: error("expected ClassId for array but got ${arrayClassId.name}")
-        val fuzzedArrayElements = fuzzValuesRecursively(
-            types = List(length) { elementClassId },
-            baseMethodDescription = description,
-            modelProvider = generateRecursiveProvider(),
-            generatedValuesName = "elements of array"
-        )
-
-        return fuzzedArrayElements
-            .take(limitRecursivelyFuzzed)
-            .map { elements ->
-                createFuzzedArrayModel(arrayClassId, length, elements.map { it.model })
-            }
+            .plus(3)
     }
 
     private fun createFuzzedArrayModel(arrayClassId: ClassId, length: Int, values: List<UtModel>?) =

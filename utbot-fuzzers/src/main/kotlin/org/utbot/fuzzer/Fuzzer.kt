@@ -166,7 +166,7 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
 /**
  * Creates a model provider consisting of providers that do not make recursive calls inside them
  */
-fun nonRecursiveProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
+private fun nonRecursiveProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
     return ModelProvider.of(
         CollectionModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
@@ -180,14 +180,24 @@ fun nonRecursiveProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
 }
 
 /**
- * Creates a model provider consisting of providers that will make no more than [recursion] nested recursive calls.
+ * TODO: write doc here
  */
-fun recursiveModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>, recursion: Int): ModelProvider {
+private fun recursiveModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int): ModelProvider {
     return ModelProvider.of(
-        ObjectModelProvider(idGenerator, recursion),
-        ArrayModelProvider(idGenerator, recursion)
+        ObjectModelProvider(idGenerator, recursionDepth),
+        ArrayModelProvider(idGenerator, recursionDepth)
     )
 }
+
+/**
+ * Creates a model provider from a list of default providers.
+ */
+fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int = 1): ModelProvider =
+    if (recursionDepth >= 0)
+        nonRecursiveProviders(idGenerator).with(recursiveModelProviders(idGenerator, recursionDepth))
+    else
+        nonRecursiveProviders(idGenerator)
+
 
 fun defaultModelMutators(): List<ModelMutator> = listOf(
     StringRandomMutator,

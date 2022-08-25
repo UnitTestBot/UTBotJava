@@ -21,6 +21,7 @@ import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
@@ -412,6 +413,7 @@ class ModelProviderTest {
         }
     }
 
+    @Disabled
     @Test
     @Suppress("unused", "UNUSED_PARAMETER", "ConvertSecondaryConstructorToPrimary")
     fun `test complex object is constructed with the simplest inner object constructor`() {

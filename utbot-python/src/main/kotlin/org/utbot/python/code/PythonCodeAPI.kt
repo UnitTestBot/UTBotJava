@@ -125,7 +125,7 @@ class PythonMethodBody(
 
     // TODO: consider cases of default and named arguments
     private val getParams: List<Parameter> =
-        if (ast.parameters.isPresent) ast.parameters.get().params else emptyList()
+        if (ast.parameters.isPresent) ast.parameters.get().params ?: emptyList() else emptyList()
 
     override val arguments: List<PythonArgument>
         get() = getParams.map { param ->
@@ -144,8 +144,6 @@ class PythonMethodBody(
     }
 
     companion object {
-        fun typeAsStringToClassId(typeAsString: String): PythonClassId = PythonClassId(typeAsString)
-
         fun annotationToString(annotation: Optional<Expression>): String? =
             if (annotation.isPresent) astToString(annotation.get()).trim() else null
     }

@@ -12,7 +12,7 @@ There are two ways to use UTBot: as an IntelliJ IDEA plugin or through a command
 
 You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2924526925).
 
-## Requirements
+## Python requirements
 
 UTBot Python has been tested on Python 3.8 and 3.9. Some syntax from Python 3.10 is not supported.
 

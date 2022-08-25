@@ -1,5 +1,0 @@
-import sys
-
-
-class TestFileGeneral:
-

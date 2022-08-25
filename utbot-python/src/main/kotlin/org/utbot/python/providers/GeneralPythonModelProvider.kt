@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.fuzzer.*
 
-val defaultPythonModelProvider = getDefaultPythonModelProvider(recursionDepth = 5)
+val defaultPythonModelProvider = getDefaultPythonModelProvider(recursionDepth = 4)
 
 fun getDefaultPythonModelProvider(recursionDepth: Int): ModelProvider =
     ModelProvider.of(

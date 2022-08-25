@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.framework.plugin.api.pythonNoneClassId
 import org.utbot.fuzzer.FuzzedParameter
 
-object OptionalModelProvider: PythonModelProvider() {
+class OptionalModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> {
         var result = emptySequence<FuzzedParameter>()
         description.parametersMap.forEach { (classId, parameterIndices) ->
@@ -20,14 +20,15 @@ object OptionalModelProvider: PythonModelProvider() {
                         if (it == index) NormalizedPythonAnnotation(pythonNoneClassId.name)  else pythonAnyClassId
                     }
                 )
-                result += defaultPythonModelProvider.generate(descriptionWithNoneType)
+                val modelProvider = getDefaultPythonModelProvider(recursionDepth)
+                result += modelProvider.generate(descriptionWithNoneType)
                 val descriptionWithNonNoneType = substituteTypesByIndex(
                     description,
                     (0 until description.parameters.size).map {
                         if (it == index) NormalizedPythonAnnotation(match.groupValues[1]) else pythonAnyClassId
                     }
                 )
-                result += defaultPythonModelProvider.generate(descriptionWithNonNoneType)
+                result += modelProvider.generate(descriptionWithNonNoneType)
             }
         }
         return result

@@ -13,7 +13,7 @@ import org.utbot.python.utils.startProcess
 
 
 sealed class EvaluationResult
-object EvaluationError : EvaluationResult()
+class EvaluationError(val reason: String) : EvaluationResult()
 class EvaluationSuccess(
     private val output: OutputData,
     private val isException: Boolean,
@@ -55,17 +55,19 @@ fun getEvaluationResult(input: EvaluationInput, process: Process, timeout: Long)
     val result = getResult(process, timeout = timeout)
 
     if (result.exitValue != 0)
-        return EvaluationError
+        return EvaluationError(
+            if (result.terminatedByTimeout) "Timeout" else "Non-zero exit status"
+        )
 
     val output = result.stdout.split('\n')
 
     if (output.size != 4)
-        return EvaluationError
+        return EvaluationError("Incorrect format of output")
 
     val status = output[0]
 
     if (status != PythonCodeGenerator.successStatus && status != PythonCodeGenerator.failStatus)
-        return EvaluationError
+        return EvaluationError("Incorrect format of output")
 
     val isSuccess = status == PythonCodeGenerator.successStatus
 

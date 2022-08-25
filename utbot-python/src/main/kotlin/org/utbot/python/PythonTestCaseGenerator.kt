@@ -99,7 +99,7 @@ object PythonTestCaseGenerator {
                             missingLines = updateCoverage(it, coveredLines, missingLines)
                         }
                         is UtError -> {
-                            logger.debug("Failed evaluation")
+                            logger.debug("Failed evaluation. Reason: ${it.description}")
                             errors += it
                         }
                     }

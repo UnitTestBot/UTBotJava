@@ -8,7 +8,7 @@ import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import java.math.BigDecimal
 import java.math.BigInteger
 
-object ConstantModelProvider: PythonModelProvider() {
+class ConstantModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
 
     override fun generate(description: PythonFuzzedMethodDescription) = sequence {
         description.concreteValues

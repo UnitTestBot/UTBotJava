@@ -4,7 +4,7 @@ import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.fuzzer.FuzzedParameter
 
-object UnionModelProvider: PythonModelProvider() {
+class UnionModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> {
         var result = emptySequence<FuzzedParameter>()
         description.parametersMap.forEach { (classId, parameterIndices) ->
@@ -19,7 +19,7 @@ object UnionModelProvider: PythonModelProvider() {
                             if (it == index) NormalizedPythonAnnotation(newAnnotation) else pythonAnyClassId
                         }
                     )
-                    result += defaultPythonModelProvider.generate(newDescription)
+                    result += getDefaultPythonModelProvider(recursionDepth).generate(newDescription)
                 }
             }
         }

@@ -42,7 +42,6 @@ class Matrix:
         else:
             raise MatrixException("Wrong Type")
 
-
     def __matmul__(self, other):
         if isinstance(other, Matrix):
             if self.dim[1] == other.dim[0]:

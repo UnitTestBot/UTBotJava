@@ -98,7 +98,7 @@ class PythonEngine(
             }
             results.forEach { jobResult ->
                 if (jobResult.evalResult is EvaluationError) {
-                    yield(UtError("EvaluationError", Throwable())) // TODO: make better error description
+                    yield(UtError(jobResult.evalResult.reason, Throwable()))
                 } else {
                     val (resultJSON, isException, coverage) = jobResult.evalResult as EvaluationSuccess
 

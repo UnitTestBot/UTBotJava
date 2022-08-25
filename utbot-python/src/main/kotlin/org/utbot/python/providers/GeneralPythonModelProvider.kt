@@ -6,26 +6,19 @@ import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.fuzzer.*
 
-val defaultPythonModelProvider = getDefaultPythonModelProvider(recursionDepth = 5)
+val defaultPythonModelProvider = getDefaultPythonModelProvider(recursionDepth = 4)
 
 fun getDefaultPythonModelProvider(recursionDepth: Int): ModelProvider =
     ModelProvider.of(
-        ConstantModelProvider,
-        DefaultValuesModelProvider,
-        InitModelProvider(recursionDepth),
+        ConstantModelProvider(recursionDepth),
+        DefaultValuesModelProvider(recursionDepth),
         GenericModelProvider(recursionDepth),
-        UnionModelProvider,
-        OptionalModelProvider
+        UnionModelProvider(recursionDepth),
+        OptionalModelProvider(recursionDepth),
+        InitModelProvider(recursionDepth)
     )
 
-val nonRecursiveModelProvider = ModelProvider.of(
-    ConstantModelProvider,
-    DefaultValuesModelProvider,
-    UnionModelProvider,
-    OptionalModelProvider
-)
-
-abstract class PythonModelProvider: ModelProvider {
+abstract class PythonModelProvider(protected val recursionDepth: Int): ModelProvider {
     override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> =
         generate(
             PythonFuzzedMethodDescription(

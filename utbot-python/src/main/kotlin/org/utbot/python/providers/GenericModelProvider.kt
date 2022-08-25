@@ -9,7 +9,7 @@ import org.utbot.python.typing.parseGeneric
 import java.lang.Integer.min
 import kotlin.random.Random
 
-class GenericModelProvider(private val recursionDepth: Int): PythonModelProvider() {
+class GenericModelProvider(recursionDepth: Int): PythonModelProvider(recursionDepth) {
     private val maxGenNum = 10
 
     override fun generate(description: PythonFuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
@@ -17,7 +17,10 @@ class GenericModelProvider(private val recursionDepth: Int): PythonModelProvider
             parameters: List<NormalizedPythonAnnotation>,
             index: Int,
             modelConstructor: (List<List<FuzzedValue>>) -> T?
-        ) = sequence {
+        ) = sequence inner@{
+            if (recursionDepth <= 0)
+                return@inner
+
             val syntheticGenericType = FuzzedMethodDescription(
                 "${description.name}<syntheticGenericList>",
                 pythonNoneClassId,
@@ -25,13 +28,7 @@ class GenericModelProvider(private val recursionDepth: Int): PythonModelProvider
                 description.concreteValues
             )
 
-            val modelProvider =
-                if (recursionDepth <= 0)
-                    nonRecursiveModelProvider
-                else
-                    getDefaultPythonModelProvider(recursionDepth - 1)
-
-            fuzz(syntheticGenericType, modelProvider)
+            fuzz(syntheticGenericType, getDefaultPythonModelProvider(recursionDepth - 1))
                 .randomChunked()
                 .mapNotNull(modelConstructor)
                 .forEach {
@@ -88,7 +85,7 @@ class GenericModelProvider(private val recursionDepth: Int): PythonModelProvider
     }
 }
 
-const val MAX_CONTAINER_SIZE = 15
+const val MAX_CONTAINER_SIZE = 7
 
 fun Sequence<List<FuzzedValue>>.randomChunked(): Sequence<List<List<FuzzedValue>>> {
     val seq = this

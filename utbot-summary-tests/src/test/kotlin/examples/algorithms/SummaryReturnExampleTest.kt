@@ -3,7 +3,7 @@ package examples.algorithms
 import examples.SummaryTestCaseGeneratorTest
 import org.utbot.examples.algorithms.ReturnExample
 import org.junit.jupiter.api.Test
-import org.utbot.examples.DoNotCalculate
+import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 
 class SummaryReturnExampleTest : SummaryTestCaseGeneratorTest(

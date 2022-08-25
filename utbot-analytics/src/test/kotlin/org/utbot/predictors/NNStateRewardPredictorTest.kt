@@ -3,11 +3,11 @@ package org.utbot.predictors
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.examples.withPathSelectorType
 import org.utbot.analytics.StateRewardPredictor
-import org.utbot.examples.withRewardModelPath
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
+import org.utbot.testcheckers.withPathSelectorType
+import org.utbot.testcheckers.withRewardModelPath
 import kotlin.system.measureNanoTime
 
 class NNStateRewardPredictorTest {

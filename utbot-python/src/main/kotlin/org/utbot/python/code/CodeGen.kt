@@ -273,32 +273,7 @@ object PythonCodeGenerator {
             )
         )
 
-//        TODO: Add this block
-//        val suppressedBlock = With(
-//            listOf(WithItem(Atom(
-//                Name(getStdoutSuppressName),
-//                listOf(createArguments())
-//            ))),
-//            Body(
-//                parameters + listOf(
-//                    fullpath,
-//                    coverage,
-//                    startCoverage,
-//                    result,
-//                    stopCoverage,
-//                    sourcesAndStart,
-//                    end,
-//                    covAnalysis,
-//                    clean,
-//                    stmtsFiltered,
-//                    stmtsFilteredWithDef,
-//                    missedFiltered
-//                )
-//            )
-//        )
-//
-//        val tryBody = Body(
-//            listOf(suppressedBlock) + okOutputBlock
+
         val printStmt = Atom(
             Name("print"),
             listOf(
@@ -316,12 +291,19 @@ object PythonCodeGenerator {
             resultSuccess,
             statusSuccess
         ))
+        val suppressedBlock = With(
+            listOf(WithItem(Atom(
+                Name(getStdoutSuppressName),
+                listOf(createArguments())
+            ))),
+            tryBody
+        )
         val failBody = Body(listOf(
             resultError,
             statusError
         ))
         val tryHandler = ExceptHandler("Exception", exceptionName.id.name)
-        val tryBlock = Try(tryBody, listOf(tryHandler), listOf(failBody))
+        val tryBlock = Try(suppressedBlock, listOf(tryHandler), listOf(failBody))
 
         (parameters + listOf(
             fullpath,

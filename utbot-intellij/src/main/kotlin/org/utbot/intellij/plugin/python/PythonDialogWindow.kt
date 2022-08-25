@@ -47,6 +47,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         )
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.pythonItems.toTypedArray()))
 
+    private val visitOnlySpecifiedSource = JCheckBox("Visit only specified source")
+
     private lateinit var panel: DialogPanel
 
     @Suppress("UNCHECKED_CAST")
@@ -56,7 +58,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     init {
         title = "Generate tests with UtBot"
-        setResizable(false)
+        isResizable = false
         init()
     }
 
@@ -83,25 +85,30 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             row("Timeout for one function run:") {
                 component(timeoutSpinnerForOneRun)
             }
+            row {
+                component(visitOnlySpecifiedSource)
+            }
         }
 
         updateFunctionsTable()
         return panel
     }
 
-    private fun globalPyFunctionsToPyMemberInfo(project: Project, functions: Collection<PyFunction>): List<PyMemberInfo<PyElement>> {
+    private fun globalPyFunctionsToPyMemberInfo(
+        project: Project,
+        functions: Collection<PyFunction>
+    ): List<PyMemberInfo<PyElement>> {
         val generator = PyElementGenerator.getInstance(project)
         val newClass = generator.createFromText(
             LanguageLevel.getDefault(),
             PyClass::class.java,
-            "class __ivtdjvrdkgbmpmsclaro__:\npass"
+            "class __FakeWrapperUtBotClass_ivtdjvrdkgbmpmsclaro__:\npass"
         )
         functions.forEach {
             newClass.add(it)
         }
         val storage = PyMemberInfoStorage(newClass)
-        val infos = storage.getClassMemberInfos(newClass)
-        return infos
+        return storage.getClassMemberInfos(newClass)
     }
 
     private fun pyFunctionsToPyMemberInfo(project: Project, functions: Collection<PyFunction>, containingClass: PyClass?): List<PyMemberInfo<PyElement>> {
@@ -151,6 +158,7 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
         model.codegenLanguage = CodegenLanguage.PYTHON
         model.timeout = TimeUnit.SECONDS.toMillis(timeoutSpinnerForTotalTimeout.number.toLong())
         model.timeoutForRun = TimeUnit.SECONDS.toMillis(timeoutSpinnerForOneRun.number.toLong())
+        model.visitOnlySpecifiedSource = visitOnlySpecifiedSource.isBorderPaintedFlat
 
         super.doOKAction()
     }

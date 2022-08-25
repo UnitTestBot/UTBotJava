@@ -75,7 +75,8 @@ object PythonDialogProcessor {
                 directoriesForSysPath,
                 moduleToImport,
                 UtSettings.utBotGenerationTimeoutInMillis,
-                DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS
+                DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS,
+                visitOnlySpecifiedSource = false,
             )
         )
     }
@@ -138,6 +139,7 @@ object PythonDialogProcessor {
                     codegenLanguage = model.codegenLanguage,
                     outputFilename = getOutputFileName(model),
                     timeoutForRun = model.timeoutForRun,
+                    visitOnlySpecifiedSource = model.visitOnlySpecifiedSource,
                     isCanceled = { indicator.isCanceled },
                     checkingRequirementsAction = { indicator.text = "Checking requirements" },
                     requirementsAreNotInstalledAction = {

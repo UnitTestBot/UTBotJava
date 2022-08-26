@@ -18,6 +18,8 @@ import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
 import org.utbot.python.utils.getModuleName
 import java.io.File
+import java.nio.file.Paths
+import kotlin.io.path.Path
 
 private const val DEFAULT_TIMEOUT_IN_MILLIS = 60000L
 private const val DEFAULT_TIMEOUT_FOR_ONE_RUN_IN_MILLIS = 2000L
@@ -252,7 +254,8 @@ class PythonGenerateTestsCommand: CliktCommand(
                 val file = File(output)
                 file.writeText(coverageReport)
                 file.createNewFile()
-            }
+            },
+            pythonRunRoot = Paths.get("").toAbsolutePath()
         )
     }
 

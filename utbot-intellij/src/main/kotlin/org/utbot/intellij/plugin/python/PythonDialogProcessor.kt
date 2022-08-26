@@ -33,6 +33,9 @@ import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.pathString
 
 const val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
 
@@ -167,7 +170,8 @@ object PythonDialogProcessor {
                         val message = it.fold(StringBuilder()) { acc, line -> acc.appendHtmlLine(line) }
                         WarningTestsReportNotifier.notify(message.toString())
                     },
-                    startedCleaningAction = { indicator.text = "Cleaning up..." }
+                    startedCleaningAction = { indicator.text = "Cleaning up..." },
+                    pythonRunRoot = Path(model.testSourceRoot!!.path)
                 )
             }
         })

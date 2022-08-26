@@ -16,6 +16,10 @@ import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.RequirementsUtils.requirementsAreInstalled
 import org.utbot.python.utils.getLineOfFunction
 import java.io.File
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.name
+import kotlin.io.path.pathString
 
 object PythonTestGenerationProcessor {
     fun processTestGeneration(
@@ -47,7 +51,8 @@ object PythonTestGenerationProcessor {
         processMypyWarnings: (List<String>) -> Unit = {},
         processCoverageInfo: (String) -> Unit = {},
         startedCleaningAction: () -> Unit = {},
-        finishedAction: (List<String>) -> Unit = {}  // take names of functions with generated tests
+        finishedAction: (List<String>) -> Unit = {},  // take names of functions with generated tests
+        pythonRunRoot: Path? = null
     ) {
         Cleaner.restart()
 
@@ -80,7 +85,8 @@ object PythonTestGenerationProcessor {
                     pythonPath,
                     pythonFilePath,
                     timeoutForRun,
-                    withMinimization
+                    withMinimization,
+                    pythonRunRoot = pythonRunRoot ?: Path(testSourceRoot)
                 ) { isCanceled() || (System.currentTimeMillis() - startTime) > timeout }
             }
 
@@ -137,7 +143,7 @@ object PythonTestGenerationProcessor {
                         CgMethodTestSet(
                             methodIds[testSet.method] as ExecutableId,
                             testSet.executions,
-                            directoriesForSysPath,
+                            relativizePaths(pythonRunRoot, directoriesForSysPath),
                         )
                     }
                 ).generatedCode
@@ -225,4 +231,13 @@ object PythonTestGenerationProcessor {
 
         return jsonAdapter.toJson(CoverageInfo(coveredInstructionSets, missedInstructionSets))
     }
+
+    private fun relativizePaths(rootPath: Path?, paths: Set<String>): Set<String> =
+        if (rootPath != null) {
+            paths.map { path ->
+                rootPath.relativize(Path(path)).pathString
+            }.toSet()
+        } else {
+            paths
+        }
 }

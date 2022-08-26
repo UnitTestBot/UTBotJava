@@ -63,7 +63,7 @@ jobs:
       - name: Build UTBot CLI
         run: |
           cd utbot-cli
-          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
+          gradle clean build -x test --no-daemon -PsemVer=${{ env.VERSION }}
           
       - name: Archive UTBot CLI
         uses: actions/upload-artifact@v3

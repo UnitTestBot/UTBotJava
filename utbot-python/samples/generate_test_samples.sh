@@ -1,7 +1,8 @@
 # Usage:
 # ./generate_test_samples.sh <absolute_python_path>
 
-python_path=$0
+python_path=$1
+echo $python_path
 
 java -jar utbot-cli.jar generate_python samples/arithmetic.py -p $python_path -o cli_utbot_tests/generated_tests__arithmetic.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000 --do-not-check-requirements
 java -jar utbot-cli.jar generate_python samples/deep_equals.py -p $python_path -o cli_utbot_tests/generated_tests__deep_equals.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000 --do-not-check-requirements

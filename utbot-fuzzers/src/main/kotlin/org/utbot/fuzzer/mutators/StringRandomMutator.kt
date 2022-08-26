@@ -37,7 +37,7 @@ object StringRandomMutator : ModelMutator {
         if (random.flipCoin(probability = 50)) {
             result = tryRemoveChar(random, result, position) ?: string
         }
-        if (random.flipCoin(probability = 50)) {
+        if (random.flipCoin(probability = 50) && result.length < 1000) {
             result = tryAddChar(random, result, position)
         }
         return result

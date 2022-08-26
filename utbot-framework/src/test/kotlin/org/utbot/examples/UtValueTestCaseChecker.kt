@@ -31,6 +31,7 @@ import org.utbot.framework.coverage.toAtLeast
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.DocClassLinkStmt
 import org.utbot.framework.plugin.api.DocCodeStmt
+import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocMethodLinkStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -2746,6 +2747,7 @@ private fun flattenDocStatements(summary: List<DocStatement>): List<DocStatement
             is DocMethodLinkStmt -> flatten.add(s)
             is DocCodeStmt -> flatten.add(s)
             is DocRegularStmt -> flatten.add(s)
+            is DocCustomTagStatement -> flatten.add(s)
         }
     }
     return flatten

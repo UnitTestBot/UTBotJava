@@ -16,6 +16,7 @@ env:
 jobs:
   build-and-run-tests:
     uses: ./.github/workflows/build-and-run-tests-from-branch.yml
+    secrets: inherit
 
 
   publish-cli-image:

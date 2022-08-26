@@ -29,13 +29,13 @@ import io.github.danielnaczo.python3parser.visitors.modifier.ModifierVisitor
 import org.apache.commons.lang3.math.NumberUtils
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedConcreteValue
-import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.FuzzedContext
 import org.utbot.python.PythonMethod
 import org.utbot.python.typing.PythonTypesStorage
 import java.math.BigDecimal
 import java.math.BigInteger
 
-class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<NormalizedPythonAnnotation>) {
+class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List<NormalizedPythonAnnotation>) {
     open class Hint
     class Type(val type: PythonClassId): Hint()
     data class Method(val name: String): Hint()
@@ -91,33 +91,8 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
     fun getAllGeneralHints(): List<Hint> = visitor.generalStorage.toList()
 
     fun getAllArgHints(): Map<String, List<Hint>> {
-       return paramNames.associate { argName ->
-           argName to (collectedValues[argName]?.toList() ?: emptyList())
-       }
+       return paramNames.associateWith { argName -> (collectedValues[argName]?.toList() ?: emptyList()) }
     }
-
-    fun getConstantAnnotations(): Map<String, Set<Type>> =
-        collectedValues.entries.associate {
-            it.key to it.value.types
-        }
-
-    fun getFunctionArgs(): Map<String, Set<FunctionArg>> =
-        collectedValues.entries.associate {
-            it.key to it.value.functionArgs }
-
-    fun getMethods(): Map<String, Set<Method>> =
-        collectedValues.entries.associate {
-            it.key to it.value.methods
-        }
-
-    fun getFields(): Map<String, Set<Field>> =
-        collectedValues.entries.associate {
-            it.key to it.value.fields
-        }
-    fun getFunctionRets() =
-        collectedValues.entries.associate {
-            it.key to it.value.functionRets
-        }
 
     private class MatchVisitor(
         private val paramNames: List<String>,
@@ -412,18 +387,18 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
             return super.visitAugAssign(ast, param)
         }
 
-        private fun getOp(ast: BinOp): FuzzedOp =
+        private fun getOp(ast: BinOp): FuzzedContext =
             when (ast) {
-                is Eq -> FuzzedOp.EQ
-                is NotEq -> FuzzedOp.NE
-                is Gt -> FuzzedOp.GT
-                is GtE -> FuzzedOp.GE
-                is Lt -> FuzzedOp.LT
-                is LtE -> FuzzedOp.LE
-                else -> FuzzedOp.NONE
+                is Eq -> FuzzedContext.Comparison.EQ
+                is NotEq -> FuzzedContext.Comparison.NE
+                is Gt -> FuzzedContext.Comparison.GT
+                is GtE -> FuzzedContext.Comparison.GE
+                is Lt -> FuzzedContext.Comparison.LT
+                is LtE -> FuzzedContext.Comparison.LE
+                else -> FuzzedContext.Unknown
             }
 
-        private fun getNumFuzzedValue(num: String, op: FuzzedOp = FuzzedOp.NONE): FuzzedConcreteValue? =
+        private fun getNumFuzzedValue(num: String, op: FuzzedContext = FuzzedContext.Unknown): FuzzedConcreteValue? =
             try {
                 when (val x = NumberUtils.createNumber(num)) {
                     is Int -> FuzzedConcreteValue(pythonIntClassId, x.toBigInteger(), op)
@@ -435,7 +410,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
                 null
             }
 
-        private fun <A, N> constPat(op: FuzzedOp): Pattern<(FuzzedConcreteValue?) -> A, A, N> {
+        private fun <A, N> constPat(op: FuzzedContext): Pattern<(FuzzedConcreteValue?) -> A, A, N> {
             val pats = listOf<Pattern<(FuzzedConcreteValue?) -> A, A, N>>(
                 map1(refl(num(apply()))) { x -> getNumFuzzedValue(x, op) },
                 map1(refl(str(apply()))) { x ->
@@ -487,7 +462,7 @@ class ArgInfoCollector(val method: PythonMethod, val argumentTypes: List<Normali
                 ast
             )
             val op = getOp(ast)
-            if (op != FuzzedOp.NONE)
+            if (op != FuzzedContext.Unknown)
                 parse(
                     binOp(fleft = refl(name(drop())), fright = constPat(op)),
                     onError = null,

@@ -63,6 +63,7 @@ class PythonRunTestsCommand : CliktCommand(name = "run_python", help = "Run test
         } else {
             val file = File(output!!)
             file.writeText(result.stderr + result.stdout)
+            file.parentFile?.mkdirs()
             file.createNewFile()
         }
         exitProcess(result.exitValue)

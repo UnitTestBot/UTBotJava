@@ -1,4 +1,7 @@
-python_path=/home/vyacheslav/Desktop/utbot/UTBotJava/utbot-python/samples/venv/bin/python
+# Usage:
+# ./generate_test_samples.sh <absolute_python_path>
+
+python_path=$0
 
 java -jar utbot-cli.jar generate_python samples/arithmetic.py -p $python_path -o cli_utbot_tests/generated_tests__arithmetic.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
 java -jar utbot-cli.jar generate_python samples/deep_equals.py -p $python_path -o cli_utbot_tests/generated_tests__deep_equals.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
@@ -8,6 +11,6 @@ java -jar utbot-cli.jar generate_python samples/longest_subsequence.py -p $pytho
 java -jar utbot-cli.jar generate_python samples/matrix.py -p $python_path -o cli_utbot_tests/generated_tests__matrix.py -s samples/ --timeout-for-run 500 --visit-only-specified-source -c Matrix -m __add__,__mul__,__matmul__ --timeout 10000
 java -jar utbot-cli.jar generate_python samples/primitive_types.py -p $python_path -o cli_utbot_tests/generated_tests__primitive_types.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
 java -jar utbot-cli.jar generate_python samples/quick_sort.py -p $python_path -o cli_utbot_tests/generated_tests__quick_sort.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
-java -jar utbot-cli.jar generate_python samples/test_coverage.py -p $python_path -o cli_utbot_tests/generated_tests__coverage.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
+java -jar utbot-cli.jar generate_python samples/test_coverage.py -p $python_path -o cli_utbot_tests/generated_tests__test_coverage.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
 java -jar utbot-cli.jar generate_python samples/type_inhibition.py -p $python_path -o cli_utbot_tests/generated_tests__type_inhibition.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000
 java -jar utbot-cli.jar generate_python samples/using_collections.py -p $python_path -o cli_utbot_tests/generated_tests__using_collections.py -s samples/ --timeout-for-run 500 --visit-only-specified-source --timeout 10000

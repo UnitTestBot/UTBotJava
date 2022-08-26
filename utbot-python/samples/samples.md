@@ -18,6 +18,6 @@ java -jar utbot-cli.jar generate_python samples/<filename>.py -p <python_path> -
 | `matrix.py`              | `generated_tests__matrix.py`              | `-c Matrix -m __add__,__mul__,__matmul__` |
 | `primitive_types.py`     | `generated_tests__primitive_types.py`     |                                           |
 | `quick_sort.py`          | `generated_tests__quick_sort.py`          |                                           |
-| `test_coverage.py`       | `generated_tests__type_inhibition.py`     |                                           |
-| `type_inhibition.py`     | `generated_tests__using_collections.py`   |                                           |
-| `using_collections.py`   | `generated_tests__arithmetic.py`          |                                           |
+| `test_coverage.py`       | `generated_tests__test_coverage.py`     |                                           |
+| `type_inhibition.py`     | `generated_tests__type_inhibition.py`   |                                           |
+| `using_collections.py`   | `generated_tests__using_collections.py`          |                                           |

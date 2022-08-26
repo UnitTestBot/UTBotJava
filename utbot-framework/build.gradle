@@ -12,20 +12,6 @@ configurations {
     z3native
 }
 
-compileKotlin {
-    dependsOn project(':utbot-fuzzers').tasks.jar
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
-        allWarningsAsErrors = false
-    }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 dependencies {
 
     api project(':utbot-core')

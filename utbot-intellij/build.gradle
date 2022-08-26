@@ -2,8 +2,15 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 compileKotlin {
     kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
         allWarningsAsErrors = false
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 buildscript {

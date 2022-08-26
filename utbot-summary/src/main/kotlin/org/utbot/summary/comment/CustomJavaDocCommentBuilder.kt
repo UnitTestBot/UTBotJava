@@ -45,14 +45,11 @@ class CustomJavaDocCommentBuilder(
 
         // builds Throws exception section
         val thrownException = traceTag.result.exceptionOrNull()
-        val thrownExceptionDescription: String? = thrownException?.let {
+        if (thrownException != null) {
             val exceptionName = thrownException.javaClass.name
             val reason = findExceptionReason(currentMethod, thrownException)
-            "{@link $exceptionName} $reason"
-        }
 
-        if (thrownExceptionDescription != null) {
-            customJavaDocComment.throwsException = thrownExceptionDescription
+            customJavaDocComment.throwsException = "{@link $exceptionName} $reason"
         }
 
         // builds Iterates section

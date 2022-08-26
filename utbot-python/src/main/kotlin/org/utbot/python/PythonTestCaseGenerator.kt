@@ -7,11 +7,16 @@ import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.name
+import kotlin.io.path.pathString
 
 private val logger = KotlinLogging.logger {}
 
 object PythonTestCaseGenerator {
     private var withMinimization: Boolean = true
+    private var pythonRunRoot: Path? = null
     private lateinit var directoriesForSysPath: Set<String>
     private lateinit var curModule: String
     private lateinit var pythonPath: String
@@ -26,6 +31,7 @@ object PythonTestCaseGenerator {
         fileOfMethod: String,
         timeoutForRun: Long,
         withMinimization: Boolean = true,
+        pythonRunRoot: Path? = null,
         isCancelled: () -> Boolean
     ) {
         this.directoriesForSysPath = directoriesForSysPath
@@ -35,6 +41,7 @@ object PythonTestCaseGenerator {
         this.withMinimization = withMinimization
         this.isCancelled = isCancelled
         this.timeoutForRun = timeoutForRun
+        this.pythonRunRoot = pythonRunRoot
     }
 
     private val storageForMypyMessages: MutableList<MypyAnnotations.MypyReportLine> = mutableListOf()

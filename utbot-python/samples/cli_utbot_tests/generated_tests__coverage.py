@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/home/vyacheslav/Desktop/utbot/UTBotJava/utbot-python/samples/samples')
+sys.path.append('samples')
 import unittest
 import builtins
 import test_coverage

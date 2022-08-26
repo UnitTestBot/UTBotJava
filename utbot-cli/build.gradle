@@ -49,9 +49,6 @@ classes {
 }
 
 jar {
-    dependsOn project(':utbot-framework').tasks.jar
-    dependsOn project(':utbot-summary').tasks.jar
-
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli'

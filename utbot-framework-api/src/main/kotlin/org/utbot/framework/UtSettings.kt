@@ -406,7 +406,7 @@ object UtSettings {
      * Timeout model synthesis
      *
      */
-    var synthesisTimeoutInMillis by getLongProperty(60000L)
+    var synthesisTimeoutInMillis by getLongProperty(6000L)
 
     override fun toString(): String =
         settingsValues

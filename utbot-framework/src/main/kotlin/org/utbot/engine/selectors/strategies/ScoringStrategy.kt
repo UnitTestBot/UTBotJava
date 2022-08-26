@@ -19,17 +19,19 @@ abstract class ScoringStrategy(graph: InterProceduralUnitGraph) : TraverseGraphS
     operator fun get(state: ExecutionState): Double = score(state)
 }
 
-class ScoringStrategyBuilder(
-    private val targets: Map<LocalVariable, UtModel>
-) {
+interface ScoringStrategyBuilder {
 
-    constructor() : this(emptyMap())
-
-    fun build(graph: InterProceduralUnitGraph, typeRegistry: TypeRegistry): ScoringStrategy =
-        ModelSynthesisScoringStrategy(graph, targets, typeRegistry)
+    fun build(graph: InterProceduralUnitGraph, traverser: Traverser): ScoringStrategy
 }
 
-val defaultScoringStrategy get() = ScoringStrategyBuilder(emptyMap())
+class ModelScoringStrategyBuilder(
+    private val targets: Map<LocalVariable, UtModel>
+) : ScoringStrategyBuilder {
+    override fun build(graph: InterProceduralUnitGraph, traverser: Traverser): ScoringStrategy =
+        ModelSynthesisScoringStrategy(graph, targets, traverser.typeRegistry)
+}
+
+val defaultScoringStrategy get() = ModelScoringStrategyBuilder(emptyMap())
 
 
 private typealias Path = PersistentList<Stmt>

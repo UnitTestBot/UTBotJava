@@ -111,14 +111,16 @@ private var stateSelectedCount = 0
 internal val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
 private fun pathSelector(
+    type: PathSelectorType,
     graph: InterProceduralUnitGraph,
-    typeRegistry: TypeRegistry,
-) = when (pathSelectorType) {
+    traverser: Traverser,
+    postConditionConstructor: PostConditionConstructor
+) = when (type) {
     PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
-    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
+    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, traverser.typeRegistry) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
@@ -148,7 +150,7 @@ private fun pathSelector(
 
     PathSelectorType.SCORING_PATH_SELECTOR -> scoringPathSelector(
         graph,
-        defaultScoringStrategy.build(graph, typeRegistry)
+        postConditionConstructor.scoringBuilder().build(graph, traverser)
     ) {
         withStepsLimit(pathSelectorStepsLimit)
     }
@@ -192,13 +194,13 @@ class UtBotSymbolicEngine(
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis,
     private val useSynthesis: Boolean = enableSynthesis,
     private val postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
+    private val pathSelectorType: PathSelectorType = UtSettings.pathSelectorType
 ) : UtContextInitializer() {
 
     private val graph get() = methodUnderTest.graph
     private val methodUnderAnalysisStmts: Set<Stmt> = graph.stmts.toSet()
     private val globalGraph = InterProceduralUnitGraph(graph)
     private val typeRegistry: TypeRegistry = TypeRegistry()
-    private val pathSelector: PathSelector = pathSelector(globalGraph, typeRegistry)
 
     internal val hierarchy: Hierarchy = Hierarchy(typeRegistry)
 
@@ -228,6 +230,12 @@ class UtBotSymbolicEngine(
         typeResolver,
         globalGraph,
         mocker,
+        postConditionConstructor
+    )
+    private val pathSelector: PathSelector = pathSelector(
+        pathSelectorType,
+        globalGraph,
+        traverser,
         postConditionConstructor
     )
 

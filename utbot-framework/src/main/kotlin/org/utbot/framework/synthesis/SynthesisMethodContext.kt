@@ -2,8 +2,7 @@ package org.utbot.framework.synthesis
 
 import org.utbot.engine.*
 import org.utbot.framework.plugin.api.*
-import org.utbot.framework.synthesis.postcondition.constructors.toSoot
-import org.utbot.framework.synthesis.postcondition.constructors.toSootType
+import org.utbot.framework.plugin.api.util.*
 import soot.ArrayType
 import soot.RefType
 import soot.SootClass
@@ -15,7 +14,35 @@ import soot.jimple.JimpleBody
 import soot.jimple.NullConstant
 import soot.jimple.Stmt
 import soot.jimple.internal.JimpleLocal
+import soot.BooleanType
+import soot.ByteType
+import soot.CharType
+import soot.DoubleType
+import soot.FloatType
+import soot.IntType
+import soot.LongType
+import soot.RefLikeType
+import soot.Scene
+import soot.ShortType
 import java.util.*
+
+internal fun ClassId.toSoot(): SootClass = Scene.v().getSootClass(this.name)
+
+internal fun ClassId.toSootType(): Type = when {
+    this.isPrimitive -> when (this) {
+        booleanClassId -> BooleanType.v()
+        byteClassId -> ByteType.v()
+        shortClassId -> ShortType.v()
+        charClassId -> CharType.v()
+        intClassId -> IntType.v()
+        longClassId -> LongType.v()
+        floatClassId -> FloatType.v()
+        doubleClassId -> DoubleType.v()
+        else -> error("Unexpected primitive type: $this")
+    }
+    this.isArray -> elementClassId!!.toSootType().makeArrayType()
+    else -> toSoot().type
+}
 
 data class SynthesisParameter(
     val type: Type,

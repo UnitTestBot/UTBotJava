@@ -2,6 +2,8 @@ package org.utbot.framework.synthesis.postcondition.constructors
 
 import org.utbot.engine.*
 import org.utbot.engine.pc.*
+import org.utbot.engine.selectors.strategies.ConstraintScoringStrategyBuilder
+import org.utbot.engine.selectors.strategies.ScoringStrategyBuilder
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
@@ -10,6 +12,8 @@ import org.utbot.framework.plugin.api.UtConstraintParameter
 import org.utbot.framework.plugin.api.util.*
 import org.utbot.framework.synthesis.SynthesisMethodContext
 import org.utbot.framework.synthesis.SynthesisUnitContext
+import org.utbot.framework.synthesis.toSoot
+import org.utbot.framework.synthesis.toSootType
 import soot.ArrayType
 import soot.RefType
 
@@ -23,7 +27,7 @@ class ConstraintBasedPostConditionConstructor(
     override fun constructPostCondition(
         traverser: Traverser,
         symbolicResult: SymbolicResult?
-    ): SymbolicStateUpdate = UtConstraintBuilder(traverser).run {
+    ): SymbolicStateUpdate = UtConstraint2ExpressionConverter(traverser).run {
         var constraints = SymbolicStateUpdate()
         val entryFrame = traverser.environment.state.executionStack.first()
         val frameParameters = entryFrame.parameters.map { it.value }
@@ -38,10 +42,36 @@ class ConstraintBasedPostConditionConstructor(
         constraints
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
+    override fun constructSoftPostCondition(
+        traverser: Traverser,
+    ): SymbolicStateUpdate = UtConstraint2ExpressionConverter(
+        traverser
+    ).run {
+        var constraints = SymbolicStateUpdate()
+        val entryFrame = traverser.environment.state.executionStack.first()
+        val frameParameters = entryFrame.parameters.map { it.value }
+        for (model in models) {
+            constraints += buildPostCondition(
+                model,
+                this,
+                frameParameters,
+                traverser.environment.state.localVariableMemory
+            ).asSoftConstraint()
+        }
+        constraints
+    }
+
+    override fun scoringBuilder(): ScoringStrategyBuilder {
+        return ConstraintScoringStrategyBuilder(
+            models,
+            unitContext,
+            methodContext,
+        )
+    }
+
     private fun buildPostCondition(
         model: UtModel,
-        builder: UtConstraintBuilder,
+        builder: UtConstraint2ExpressionConverter,
         parameters: List<SymbolicValue>,
         localVariableMemory: LocalVariableMemory,
     ): Set<UtBoolExpression> = buildSet {
@@ -57,7 +87,7 @@ class ConstraintBasedPostConditionConstructor(
             }
 
             is UtConstraintModel -> {
-                if (model is UtArrayConstraintModel) {
+                if (model is UtElementContainerConstraintModel) {
                     addAll(buildPostCondition(model.length, builder, parameters, localVariableMemory))
                     for ((index, element) in model.elements) {
                         addAll(buildPostCondition(index, builder, parameters, localVariableMemory))
@@ -73,35 +103,9 @@ class ConstraintBasedPostConditionConstructor(
             else -> error("Unknown model: ${model::class}")
         }
     }
-
-    override fun constructSoftPostCondition(
-        traverser: Traverser,
-    ): SymbolicStateUpdate = UtConstraintBuilder(
-        traverser
-    ).run {
-        TODO()
-//        for ((index, parameter) in models.parameters.withIndex()) {
-//            val local = locals[index]
-//            val sv = engine.environment.state.localVariableMemory.local(local)!!
-//            when (parameter) {
-//                is UtNullModel -> {
-//                    constraints += mkEq(sv.addr, nullObjectAddr).asSoftConstraint()
-//                }
-//                is UtConstraintModel -> {
-//                    for (constraint in parameter.utConstraints) {
-//                        buildConstraint(constraint)
-//                        constraints += mkEq(sv, buildExpression(parameter.variable)).asSoftConstraint()
-//                    }
-//
-//                }
-//                else -> error("Unknown model: ${parameter::class}")
-//            }
-//        }
-//        constraints
-    }
 }
 
-private class UtConstraintBuilder(
+class UtConstraint2ExpressionConverter(
     private val traverser: Traverser
 ) : UtConstraintVisitor<UtBoolExpression>, UtConstraintVariableVisitor<SymbolicValue> {
     override fun visitUtConstraintParameter(expr: UtConstraintParameter): SymbolicValue = with(expr) {
@@ -151,7 +155,7 @@ private class UtConstraintBuilder(
     override fun visitUtConstraintFieldAccess(expr: UtConstraintFieldAccess): SymbolicValue = with(expr) {
         val sootField = fieldId.declaringClass.toSoot().getFieldByName(fieldId.name)
         val type = sootField.declaringClass.type
-        val instanceVal = instance.accept(this@UtConstraintBuilder)
+        val instanceVal = instance.accept(this@UtConstraint2ExpressionConverter)
         try {
             traverser.createFieldOrMock(
                 type,
@@ -165,8 +169,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintArrayAccess(expr: UtConstraintArrayAccess): SymbolicValue = with(expr) {
-        val arrayInstance = instance.accept(this@UtConstraintBuilder)
-        val index = index.accept(this@UtConstraintBuilder)
+        val arrayInstance = instance.accept(this@UtConstraint2ExpressionConverter)
+        val index = index.accept(this@UtConstraint2ExpressionConverter)
         val type = instance.classId.toSootType() as? ArrayType ?: ArrayType.v(OBJECT_TYPE.sootClass.type, 1)
         val elementType = type.elementType
         val chunkId = traverser.typeRegistry.arrayChunkId(type)
@@ -203,7 +207,7 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintArrayLengthAccess(expr: UtConstraintArrayLength): SymbolicValue = with(expr) {
-        val array = instance.accept(this@UtConstraintBuilder)
+        val array = instance.accept(this@UtConstraint2ExpressionConverter)
         traverser.memory.findArrayLength(array.addr)
     }
 
@@ -217,8 +221,8 @@ private class UtConstraintBuilder(
         expr.value.primitiveToSymbolic()
 
     override fun visitUtConstraintAdd(expr: UtConstraintAdd): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Add(elhv, erhv)
@@ -226,8 +230,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintAnd(expr: UtConstraintAnd): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             And(elhv, erhv)
@@ -235,8 +239,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintCmp(expr: UtConstraintCmp): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Cmp(elhv, erhv)
@@ -244,8 +248,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintCmpg(expr: UtConstraintCmpg): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Cmpg(elhv, erhv)
@@ -253,8 +257,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintCmpl(expr: UtConstraintCmpl): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Cmpl(elhv, erhv)
@@ -262,8 +266,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintDiv(expr: UtConstraintDiv): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Div(elhv, erhv)
@@ -271,8 +275,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintMul(expr: UtConstraintMul): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Mul(elhv, erhv)
@@ -280,8 +284,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintOr(expr: UtConstraintOr): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Or(elhv, erhv)
@@ -289,8 +293,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintRem(expr: UtConstraintRem): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Rem(elhv, erhv)
@@ -298,8 +302,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintShl(expr: UtConstraintShl): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Shl(elhv, erhv)
@@ -307,8 +311,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintShr(expr: UtConstraintShr): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Shr(elhv, erhv)
@@ -316,8 +320,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintSub(expr: UtConstraintSub): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Sub(elhv, erhv)
@@ -325,8 +329,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintUshr(expr: UtConstraintUshr): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Ushr(elhv, erhv)
@@ -334,8 +338,8 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintXor(expr: UtConstraintXor): SymbolicValue = with(expr) {
-        val elhv = lhv.accept(this@UtConstraintBuilder) as PrimitiveValue
-        val erhv = rhv.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val elhv = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val erhv = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             classId.toSootType(),
             Xor(elhv, erhv)
@@ -343,19 +347,19 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtConstraintNot(expr: UtConstraintNot): SymbolicValue = with(expr) {
-        val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val oper = operand.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(oper.type, mkNot(oper.expr as UtBoolExpression))
     }
 
     override fun visitUtConstraintNeg(expr: UtConstraintNeg): SymbolicValue = with(expr) {
-        val oper = operand.accept(this@UtConstraintBuilder) as PrimitiveValue
+        val oper = operand.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         PrimitiveValue(
             oper.type, UtNegExpression(oper)
         )
     }
 
     override fun visitUtConstraintCast(expr: UtConstraintCast): SymbolicValue = with(expr) {
-        val oper = operand.accept(this@UtConstraintBuilder) as? PrimitiveValue
+        val oper = operand.accept(this@UtConstraint2ExpressionConverter) as? PrimitiveValue
             ?: error("a")
         PrimitiveValue(
             oper.type, UtCastExpression(oper, classId.toSootType())
@@ -363,23 +367,23 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtNegatedConstraint(expr: UtNegatedConstraint): UtBoolExpression = with(expr) {
-        mkNot(constraint.accept(this@UtConstraintBuilder))
+        mkNot(constraint.accept(this@UtConstraint2ExpressionConverter))
     }
 
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder)
-        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter)
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter)
         mkEq(lhvVal, rhvVal)
     }
 
     override fun visitUtRefGenericEqConstraint(expr: UtRefGenericEqConstraint) = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder)
-        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter)
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter)
         UtEqGenericTypeParametersExpression(lhvVal.addr, rhvVal.addr, mapping)
     }
 
     override fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = operand.accept(this@UtConstraintBuilder)
+        val lhvVal = operand.accept(this@UtConstraint2ExpressionConverter)
         val type = type.toSootType()
         traverser.typeRegistry
             .typeConstraint(
@@ -390,49 +394,41 @@ private class UtConstraintBuilder(
     }
 
     override fun visitUtRefGenericTypeConstraint(expr: UtRefGenericTypeConstraint): UtBoolExpression = with(expr) {
-        val operandVal = operand.accept(this@UtConstraintBuilder)
-        val baseVal = base.accept(this@UtConstraintBuilder)
+        val operandVal = operand.accept(this@UtConstraint2ExpressionConverter)
+        val baseVal = base.accept(this@UtConstraint2ExpressionConverter)
         UtIsGenericTypeExpression(operandVal.addr, baseVal.addr, parameterIndex)
     }
 
     override fun visitUtBoolConstraint(expr: UtBoolConstraint): UtBoolExpression =
-        expr.operand.accept(this@UtConstraintBuilder).exprValue as UtBoolExpression
+        expr.operand.accept(this@UtConstraint2ExpressionConverter).exprValue as UtBoolExpression
 
     override fun visitUtEqConstraint(expr: UtEqConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder)
-        val rhvVal = rhv.accept(this@UtConstraintBuilder)
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter)
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter)
         mkEq(lhvVal, rhvVal)
     }
 
     override fun visitUtLtConstraint(expr: UtLtConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         Lt(lhvVal, rhvVal)
     }
 
     override fun visitUtGtConstraint(expr: UtGtConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         Gt(lhvVal, rhvVal)
     }
 
     override fun visitUtLeConstraint(expr: UtLeConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         Le(lhvVal, rhvVal)
     }
 
     override fun visitUtGeConstraint(expr: UtGeConstraint): UtBoolExpression = with(expr) {
-        val lhvVal = lhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
-        val rhvVal = rhv.accept(this@UtConstraintBuilder) as? PrimitiveValue
-            ?: error("a")
+        val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
+        val rhvVal = rhv.accept(this@UtConstraint2ExpressionConverter) as PrimitiveValue
         Ge(lhvVal, rhvVal)
     }
 

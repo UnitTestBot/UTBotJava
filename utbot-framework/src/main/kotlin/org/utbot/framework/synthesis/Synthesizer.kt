@@ -7,7 +7,6 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.objectClassId
-import org.utbot.framework.synthesis.postcondition.constructors.toSoot
 
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 

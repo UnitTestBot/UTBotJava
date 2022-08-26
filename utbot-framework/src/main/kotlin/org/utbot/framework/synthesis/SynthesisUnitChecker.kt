@@ -37,8 +37,9 @@ class SynthesisUnitChecker(
             executions.firstOrNull { it.result is UtExecutionSuccess }
         } ?: return null
 
+        logger.debug { "Constructed method" }
+        logger.debug { method.activeBody }
 
-        logger.error { execution }
         return synthesisMethodContext.resolve(listOfNotNull(execution.stateBefore.thisInstance) + execution.stateBefore.parameters)
     }
 

@@ -2,6 +2,7 @@ package org.utbot.fuzzer
 
 import mu.KotlinLogging
 import org.utbot.fuzzer.mutators.NumberRandomMutator
+import org.utbot.fuzzer.mutators.RegexStringModelMutator
 import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.ArrayModelProvider
 import org.utbot.fuzzer.providers.CharToStringModelProvider
@@ -12,6 +13,7 @@ import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
 import org.utbot.fuzzer.providers.PrimitivesModelProvider
+import org.utbot.fuzzer.providers.RegexModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -154,6 +156,7 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
         EnumModelProvider(idGenerator),
         ConstantsModelProvider,
         StringConstantModelProvider,
+        RegexModelProvider,
         CharToStringModelProvider,
         PrimitivesModelProvider,
         PrimitiveWrapperModelProvider,
@@ -169,6 +172,7 @@ fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Model
         ArrayModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
         StringConstantModelProvider,
+        RegexModelProvider,
         CharToStringModelProvider,
         ConstantsModelProvider,
         PrimitiveDefaultsModelProvider,
@@ -176,7 +180,11 @@ fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Model
     )
 }
 
-fun defaultModelMutators(): List<ModelMutator> = listOf(StringRandomMutator, NumberRandomMutator)
+fun defaultModelMutators(): List<ModelMutator> = listOf(
+    StringRandomMutator,
+    RegexStringModelMutator,
+    NumberRandomMutator,
+)
 
 /**
  * Tries to mutate a random value from the seed.

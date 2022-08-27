@@ -46,6 +46,7 @@ import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.codegen.model.tree.CgParameterKind
+import org.utbot.framework.codegen.model.util.createTestClassName
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -453,11 +454,17 @@ data class CgContext(
     private var _currentTestClassContext: TestClassContext? = null
 
     override val outerMostTestClass: ClassId by lazy {
+        if (codegenLanguage == CodegenLanguage.PYTHON) {
+            val name = testClassCustomName ?: "Test${createTestClassName(classUnderTest.name)}"
+            return@lazy BuiltinClassId(
+                name = name,
+                canonicalName = name,
+                simpleName = name
+            )
+        }
+
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
-        val simpleName = if (codegenLanguage == CodegenLanguage.PYTHON)
-            testClassCustomName ?: "Test${classUnderTest.name}"
-        else
-            testClassCustomName ?: "${classUnderTest.simpleName}Test"
+        val simpleName = testClassCustomName ?: "${classUnderTest.simpleName}Test"
 
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(

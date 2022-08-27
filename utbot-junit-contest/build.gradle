@@ -98,7 +98,15 @@ jar { dependsOn classes
 
 task monitoringJar(type: Jar) { dependsOn classes
 
-    archiveName 'monitoring.jar'
+    archiveBaseName.set('monitoring')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        sourceSets.main.output + configurations.runtimeClasspath
+                .collect { it.isDirectory() ? it : zipTree(it) }
+    }
 
     manifest {
         attributes 'Main-Class': 'org.utbot.monitoring.StatisticsMonitoringKt'
@@ -106,13 +114,6 @@ task monitoringJar(type: Jar) { dependsOn classes
         attributes 'Bundle-Version': "${project.version}"
         attributes 'Implementation-Title': 'UtBot Monitoring'
         attributes 'JAR-Type': 'Fat JAR'
-    }
-
-    version '1.0'
-
-    dependsOn configurations.runtimeClasspath
-    from {
-        sourceSets.main.output + configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE

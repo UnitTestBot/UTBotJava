@@ -28,8 +28,8 @@ jar {
     dependsOn configurations.compileClasspath
     from {
         sourceSets.main.output + configurations.compileClasspath
-                .findAll {it.name.endsWith('jar')  }
-                .collect { zipTree(it) }
+                .findAll { it.isDirectory() || it.name.endsWith('jar') }
+                .collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 

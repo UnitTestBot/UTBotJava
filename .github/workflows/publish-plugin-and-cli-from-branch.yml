@@ -28,7 +28,7 @@ env:
 jobs:
     publish_plugin_and_cli:
       runs-on: ubuntu-20.04
-      container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+      container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
       
       steps:
       - name: Print environment variables

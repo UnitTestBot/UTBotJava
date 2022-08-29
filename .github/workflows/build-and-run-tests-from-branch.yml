@@ -57,7 +57,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-tests-matrix.outputs.matrix) }}
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
     - name: Print environment variables
       run: printenv
@@ -111,7 +111,7 @@ jobs:
       matrix:
         project: [utbot-api, utbot-cli, utbot-core, utbot-framework-api, utbot-fuzzers, utbot-gradle, utbot-instrumentation, utbot-instrumentation-tests, utbot-intellij, utbot-junit-contest, utbot-sample, utbot-summary, utbot-summary-tests]
     runs-on: ubuntu-20.04
-    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
     - name: Print environment variables
       run: printenv

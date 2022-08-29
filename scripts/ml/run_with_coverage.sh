@@ -13,7 +13,7 @@ if [[ -n $COVERAGE_PROCESSING ]]; then
 fi
 
 WORKDIR="."
-$WORKDIR/scripts/run_contest_estimator.sh $PROJECT $TIME_LIMIT "$PATH_SELECTOR" "" "$COVERAGE_PROCESSING"
+$WORKDIR/scripts/ml/run_contest_estimator.sh $PROJECT $TIME_LIMIT "$PATH_SELECTOR" "" "$COVERAGE_PROCESSING"
 
 ./gradlew :utbot-junit-contest:test :utbot-junit-contest:jacocoTestReport
 

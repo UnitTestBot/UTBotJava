@@ -6,19 +6,30 @@ from os import environ
 from os.path import exists
 from platform import uname
 from time import time
+from typing import Optional
 
 from monitoring_settings import JSON_VERSION
 from utils import *
 
 
-def load(json_file):
+def load(json_file: str) -> Optional[any]:
+    """
+    Try load object from json file
+    :param json_file: path to json file
+    :return: object from given json file or None
+    """
     if exists(json_file):
         with open(json_file, "r") as f:
             return json.load(f)
     return None
 
 
-def try_get_output(args):
+def try_get_output(args: str) -> Optional[str]:
+    """
+    Try to run subprocess with specified arguments
+    :param args: arguments for execution
+    :return: result output of execution or None
+    """
     try:
         return subprocess.check_output(args, stderr=subprocess.STDOUT, shell=True).decode()
     except Exception as e:
@@ -26,7 +37,12 @@ def try_get_output(args):
         return None
 
 
-def parse_gradle_version(s):
+def parse_gradle_version(s: str) -> Optional[str]:
+    """
+    Parse gradle version from given string
+    :param s: execution result of gradle --version
+    :return: parsed gradle version or None
+    """
     if s is None:
         return None
     regex = re.compile(r'^\s*(Gradle [.\d]+)\s*$', re.MULTILINE)
@@ -36,7 +52,11 @@ def parse_gradle_version(s):
     return result.group(1)
 
 
-def build_environment_data():
+def build_environment_data() -> dict:
+    """
+    Collect environment data from host
+    :return: dictionary with environment data
+    """
     uname_result = uname()
     environment = {
         'host': uname_result.node,
@@ -50,7 +70,12 @@ def build_environment_data():
     return environment
 
 
-def build_metadata(args):
+def build_metadata(args: argparse.Namespace) -> dict:
+    """
+    Collect metadata into dictionary
+    :param args: parsed program arguments
+    :return: dictionary with metadata
+    """
     metadata = {
         'source': {
             'type': args.source_type,
@@ -66,7 +91,12 @@ def build_metadata(args):
     return metadata
 
 
-def build_targets(stats_array):
+def build_targets(stats_array: List[dict]) -> List[dict]:
+    """
+    Collect and group statistics by target
+    :param stats_array: list of dictionaries with parameters and metrics
+    :return: list of metrics and parameters grouped by target
+    """
     result = get_default_metrics_dict()
     for stats in stats_array:
         target = stats['parameters']['target']
@@ -76,7 +106,12 @@ def build_targets(stats_array):
     return postprocess_targets(result)
 
 
-def insert_metadata(args):
+def insert_metadata(args: argparse.Namespace) -> dict:
+    """
+    Collect metadata and statistics from specified file and merge them into result
+    :param args: parsed program arguments
+    :return: dictionary with statistics and metadata
+    """
     stats_array = load(args.stats_file)
     if stats_array is None:
         raise FileNotFoundError("File with stats does not exist!")

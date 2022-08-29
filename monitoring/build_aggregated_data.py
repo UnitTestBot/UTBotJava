@@ -3,19 +3,31 @@ import json
 from os import listdir
 from os.path import isfile, join
 from time import time
+from typing import Iterator
 
 from monitoring_settings import JSON_VERSION
 from utils import *
 
 
-def get_file_seq(input_data_dir):
+def get_file_seq(input_data_dir: str) -> Iterator[str]:
+    """
+    Get all files from specified directory
+    :param input_data_dir: path to directory with files
+    :return: sequence of filepaths
+    """
     for filename in listdir(input_data_dir):
         path = join(input_data_dir, filename)
         if isfile(path):
             yield path
 
 
-def check_stats(stats, args):
+def check_stats(stats: dict, args: argparse.Namespace) -> bool:
+    """
+    Checks timestamp and version of given statistics
+    :param stats: dictionary with statistics and metadata
+    :param args: parsed program arguments
+    :return: is timestamp and version match
+    """
     try:
         timestamp = stats["metadata"]["timestamp"]
         timestamp_match = args.timestamp_from <= timestamp <= args.timestamp_to
@@ -25,7 +37,12 @@ def check_stats(stats, args):
         return False
 
 
-def get_stats_seq(args):
+def get_stats_seq(args: argparse.Namespace) -> Iterator[dict]:
+    """
+    Get statistics with metadata matched specified period
+    :param args: parsed program arguments
+    :return: sequence of statistics with metadata filtered by version and timestamp
+    """
     for file in get_file_seq(args.input_data_dir):
         with open(file, "r") as f:
             stats = json.load(f)
@@ -33,7 +50,12 @@ def get_stats_seq(args):
             yield stats
 
 
-def transform_target_stats(stats):
+def transform_target_stats(stats: dict) -> dict:
+    """
+    Transform metrics by computing total coverage
+    :param stats: metrics
+    :return: transformed metrics
+    """
     common_prefix = "covered_instructions"
     denum = stats["total_instructions"]
 
@@ -49,7 +71,12 @@ def transform_target_stats(stats):
     return stats
 
 
-def aggregate_stats(stats_seq):
+def aggregate_stats(stats_seq: Iterator[dict]) -> List[dict]:
+    """
+    Aggregate list of metrics and parameters into list of transformed metrics and parameters grouped by targets
+    :param stats_seq: sequence of metrics and parameters
+    :return: list of metrics and parameters grouped by targets
+    """
     result = get_default_metrics_dict()
 
     for stats in stats_seq:

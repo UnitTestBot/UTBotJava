@@ -270,9 +270,12 @@ data class UtSolver constructor(
                 UNSATISFIABLE -> {
                     val unsatCore = z3Solver.unsatCore
 
+                    val failedSoftConstraints = unsatCore.filter { it in translatedSoft.keys }
+                    val failedAssumptions = unsatCore.filter { it in translatedAssumptions.keys }
+
                     // if we don't have any soft constraints and enabled unsat cores
                     // for hard constraints, then calculate it and print the result using the logger
-                    if (translatedSoft.isEmpty() && translatedAssumptions.isEmpty() && UtSettings.enableUnsatCoreCalculationForHardConstraints) {
+                    if (failedSoftConstraints.isEmpty() && failedAssumptions.isEmpty() && UtSettings.enableUnsatCoreCalculationForHardConstraints) {
                         with(context.mkSolver()) {
                             check(*z3Solver.assertions)
                             val constraintsInUnsatCore = this.unsatCore.toList()
@@ -286,20 +289,16 @@ data class UtSolver constructor(
                     // an unsat core for hard constraints
                     if (unsatCore.isEmpty()) return UNSAT
 
-                    val failedSoftConstraints = unsatCore.filter { it in translatedSoft.keys }
-
                     if (failedSoftConstraints.isNotEmpty()) {
                         failedSoftConstraints.forEach { translatedSoft.remove(it) }
                         // remove soft constraints first, only then try to remove assumptions
                         continue
                     }
 
-                    unsatCore
-                        .filter { it in translatedAssumptions.keys }
-                        .forEach {
-                            assumptionsInUnsatCore += translatedAssumptions.getValue(it)
-                            translatedAssumptions.remove(it)
-                        }
+                    failedAssumptions.forEach {
+                        assumptionsInUnsatCore += translatedAssumptions.getValue(it)
+                        translatedAssumptions.remove(it)
+                    }
                 }
                 else -> {
                     logger.debug { "Reason of UNKNOWN: ${z3Solver.reasonUnknown}" }

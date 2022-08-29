@@ -1,6 +1,8 @@
 package org.utbot.engine.overrides.collections;
 
+import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.UtArrayMock;
+
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,10 +15,6 @@ import java.util.RandomAccess;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
-
-import org.jetbrains.annotations.NotNull;
-import org.utbot.engine.overrides.stream.UtStream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -63,11 +61,11 @@ public class UtArrayList<E> extends AbstractList<E>
         addAll(c);
     }
 
-    public UtArrayList(E[] data) {
+    public UtArrayList(Object[] data) {
         this(data, 0, data.length);
     }
 
-    public UtArrayList(E[] data, int startInclusive, int endExclusive) {
+    public UtArrayList(Object[] data, int startInclusive, int endExclusive) {
         visit(this);
 
         int length = endExclusive - startInclusive;
@@ -380,6 +378,7 @@ public class UtArrayList<E> extends AbstractList<E>
 
     /**
      * Auxiliary method, that should be only executed concretely
+     *
      * @return new ArrayList with all the elements from this.
      */
     private List<E> toList() {

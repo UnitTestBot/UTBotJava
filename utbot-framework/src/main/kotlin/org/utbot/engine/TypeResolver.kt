@@ -193,7 +193,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
      * types, otherwise only anonymous types. It is required for some classes, e.g., `forEach__145`.
      */
     private fun TypeStorage.filterInappropriateClassesForCodeGeneration(): TypeStorage {
-        val unwantedTypes = mutableSetOf<Type>()
+        /*val unwantedTypes = mutableSetOf<Type>()
         val concreteTypes = mutableSetOf<Type>()
 
         val leastCommonSootClass = (leastCommonType as? RefType)?.sootClass
@@ -217,7 +217,9 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             copy(possibleConcreteTypes = unwantedTypes)
         } else {
             copy(possibleConcreteTypes = concreteTypes)
-        }
+        }*/
+
+        return this
     }
 
     /**

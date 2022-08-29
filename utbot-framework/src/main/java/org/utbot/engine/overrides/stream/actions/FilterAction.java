@@ -5,12 +5,15 @@ import org.utbot.engine.overrides.UtArrayMock;
 import java.util.function.Predicate;
 
 public class FilterAction implements StreamAction {
-    private final Predicate<Object> filter;
+    @SuppressWarnings("rawtypes")
+    private final Predicate filter;
 
-    public FilterAction(Predicate<Object> filter) {
+    @SuppressWarnings("rawtypes")
+    public FilterAction(Predicate filter) {
         this.filter = filter;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Object[] applyAction(Object[] originArray) {
         int newSize = 0;

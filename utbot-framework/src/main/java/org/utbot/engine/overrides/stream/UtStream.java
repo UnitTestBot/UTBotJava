@@ -51,7 +51,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     /**
      * A reference to the original collection. The default collection is {@link UtArrayList}.
      */
-    private final Collection<E> origin;
+    private final Collection origin;
 
     private final RangeModifiableUnlimitedArray<StreamAction> actions;
 
@@ -94,15 +94,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         visit(this);
 
         origin = other.origin;
-
         actions = other.actions;
-
         isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
 
         // new stream should be opened
         isClosed = false;
-
-        closeHandlers = other.closeHandlers;
     }
 
     /**
@@ -148,7 +145,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> filter(Predicate<? super E> predicate) {
         preconditionCheckWithClosingStream();
 
-        final FilterAction filterAction = new FilterAction((Predicate<Object>) predicate);
+        final FilterAction filterAction = new FilterAction(predicate);
         actions.insert(actions.end++, filterAction);
 
         return new UtStream<>(this);
@@ -187,49 +184,52 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     @Override
     public IntStream mapToInt(ToIntFunction<? super E> mapper) {
         // TODO
-        preconditionCheckWithClosingStream();
-
-        int size = origin.size();
-        Integer[] data = new Integer[size];
-        int i = 0;
-
-        for (E element : origin) {
-            data[i++] = mapper.applyAsInt(element);
-        }
-
-        return new UtIntStream(data, size);
+        return null;
+//        preconditionCheckWithClosingStream();
+//
+//        int size = origin.size();
+//        Integer[] data = new Integer[size];
+//        int i = 0;
+//
+//        for (E element : origin) {
+//            data[i++] = mapper.applyAsInt(element);
+//        }
+//
+//        return new UtIntStream(data, size);
     }
 
     @Override
     public LongStream mapToLong(ToLongFunction<? super E> mapper) {
         // TODO
-        preconditionCheckWithClosingStream();
-
-        int size = origin.size();
-        Long[] data = new Long[size];
-        int i = 0;
-
-        for (E element : origin) {
-            data[i++] = mapper.applyAsLong(element);
-        }
-
-        return new UtLongStream(data, size);
+        return null;
+//        preconditionCheckWithClosingStream();
+//
+//        int size = origin.size();
+//        Long[] data = new Long[size];
+//        int i = 0;
+//
+//        for (E element : origin) {
+//            data[i++] = mapper.applyAsLong(element);
+//        }
+//
+//        return new UtLongStream(data, size);
     }
 
     @Override
     public DoubleStream mapToDouble(ToDoubleFunction<? super E> mapper) {
         // TODO
-        preconditionCheckWithClosingStream();
-
-        int size = origin.size();
-        Double[] data = new Double[size];
-        int i = 0;
-
-        for (E element : origin) {
-            data[i++] = mapper.applyAsDouble(element);
-        }
-
-        return new UtDoubleStream(data, size);
+        return null;
+//        preconditionCheckWithClosingStream();
+//
+//        int size = origin.size();
+//        Double[] data = new Double[size];
+//        int i = 0;
+//
+//        for (E element : origin) {
+//            data[i++] = mapper.applyAsDouble(element);
+//        }
+//
+//        return new UtDoubleStream(data, size);
     }
 
     @Override
@@ -410,12 +410,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             throw new IllegalArgumentException();
         }
 
-        if (n == 0) {
-            // do nothing
-            return new UtStream<>(this);
-        }
+        assumeOrExecuteConcretely(n <= Integer.MAX_VALUE);
 
-        final SkipAction skipAction = new SkipAction(n);
+        final SkipAction skipAction = new SkipAction((int) n);
         actions.insert(actions.end++, skipAction);
 
         return new UtStream<>(this);
@@ -463,12 +460,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Object[] toArray() {
         preconditionCheckWithClosingStream();
 
-        Object[] originArray = origin.toArray();
-        UtMock.disableClassCastExceptionCheck(originArray);
-
-        originArray = applyActions(originArray);
-
-        return originArray;
+        return applyActions(origin.toArray());
     }
 
     @NotNull
@@ -476,16 +468,18 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public <A> A[] toArray(IntFunction<A[]> generator) {
         preconditionCheckWithClosingStream();
 
+        final Object[] objects = origin.toArray();
+
+        final Object[] result = applyActions(objects);
+
         // TODO untracked ArrayStoreException - JIRA:1089
-        int size = origin.size();
-        A[] array = generator.apply(size);
+        A[] array = generator.apply(result.length);
+        int i = 0;
+        for (Object o : result) {
+            array[i++] = (A) o;
+        }
 
-        UtArrayMock.arraycopy(origin.toArray(), 0, array, 0, size);
-
-        final Object[] result = applyActions(array);
-        UtMock.disableClassCastExceptionCheck(result);
-
-        return (A[]) result;
+        return array;
     }
 
     @NotNull
@@ -682,7 +676,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Iterator<E> iterator() {
         Object[] finalElements = toArray();
 
-        return new UtArrayList<>((E[]) finalElements).iterator();
+        return new UtStreamIterator<>(finalElements);
     }
 
     @NotNull
@@ -757,6 +751,28 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         // clear handlers
         closeHandlers.end = 0;
+    }
+
+    public static class UtStreamIterator<E> implements Iterator<E> {
+        private final Object[] data;
+        private final int lastIndex;
+
+        private int index = 0;
+
+        public UtStreamIterator(Object[] data) {
+            this.data = data;
+            lastIndex = data.length - 1;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return index <= lastIndex;
+        }
+
+        @Override
+        public E next() {
+            return (E) data[index++];
+        }
     }
 //
 //    private final List<Object> actions = new UtArrayList<>();

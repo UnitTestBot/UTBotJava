@@ -46,6 +46,7 @@ import org.utbot.engine.pc.UtOrBoolExpression
 import org.utbot.engine.pc.UtPrimitiveSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolver
+import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
 import org.utbot.engine.pc.UtSubNoOverflowExpression
 import org.utbot.engine.pc.UtTrue
@@ -2418,10 +2419,10 @@ class Traverser(
         return targets
             .asSequence()
             .sortedByDescending { typeRegistry.findRating(it.implementationClass) }
-            .take(10)
+            .take(40)
             .sortedByDescending { it.possibleTypes.size }
             .sortedBy { it.method.isNative }
-            .take(8)
+            .take(40)
             .sortedByDescending { typeRegistry.findRating(it.implementationClass) }
             .toList()
     }
@@ -2497,6 +2498,22 @@ class Traverser(
                     }
                 }
             }
+
+            /*val methodResults = mutableListOf<MethodResult>()
+            val graphResults = mutableListOf<GraphResult>()
+
+            for (result in artificialMethodOverride.results) {
+                when (result) {
+                    is MethodResult -> methodResults += result
+                    is GraphResult -> graphResults += result
+                }
+            }
+
+            graphResults.map {
+                ExecutionStateBasics(it.graph, invocation.instance, invocation.parameters, it.constraints, isLibraryMethod = true)
+            }.let { pushToPathSelectorFirstReachableStates(it) }
+
+            return methodResults*/
         }
 
         // If there is no such invocation, use the generator to produce invocation targets
@@ -2922,6 +2939,50 @@ class Traverser(
                 graph.body.method
             )
         )
+    }
+
+    private data class ExecutionStateBasics(
+        val graph: ExceptionalUnitGraph,
+        val caller: ReferenceValue?,
+        val callParameters: List<SymbolicValue>,
+        val constraints: Set<UtBoolExpression> = emptySet(),
+        val isLibraryMethod: Boolean = false
+    )
+
+    private fun TraversalContext.pushToPathSelectorFirstReachableStates(executionStatesBasics: List<ExecutionStateBasics>) {
+        val satStates = mutableListOf<ExecutionState>()
+
+        for (executionStateBasics in executionStatesBasics) {
+            if (satStates.size >= 5) {
+                break
+            }
+
+            val executionState = with(executionStateBasics) {
+                globalGraph.join(
+                    environment.state.stmt,
+                    graph,
+                    !isLibraryMethod
+                )
+                val parametersWithThis =
+                    listOfNotNull(caller) + callParameters
+
+                environment.state.push(
+                    graph.head,
+                    inputArguments = ArrayDeque(parametersWithThis),
+                    queuedSymbolicStateUpdates + constraints.asHardConstraint(),
+                    graph.body.method
+                )
+            }
+
+            with(executionState) {
+                val unsat =
+                    solver.assertions.isNotEmpty() && solver.check(respectSoft = false).statusKind != UtSolverStatusKind.SAT
+
+                if (!unsat) satStates += this
+            }
+        }
+
+        satStates.forEach { offerState(it) }
     }
 
     private fun ExecutionState.updateQueued(

@@ -33,9 +33,6 @@ public class DistinctAction implements StreamAction {
             }
         }
 
-        Object[] distinctElements = new Object[distinctSize];
-        UtArrayMock.arraycopy(originArray, 0, distinctElements, 0, distinctSize);
-
-        return distinctElements;
+        return UtArrayMock.copyOf(originArray, distinctSize);
     }
 }

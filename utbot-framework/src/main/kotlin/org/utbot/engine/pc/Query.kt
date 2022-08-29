@@ -185,9 +185,6 @@ data class Query(
             return copy(lastAdded = emptyList())
         }
         if (addedHard.any { it is UtFalse }) {
-            org.utbot.engine.logger.debug {
-                "Simplifier UtFalse:" + hard.joinToString(prefix = "\n", separator = "\n")
-            }
             return UnsatQuery(this.hard.addAll(addedHard))
         }
         val addedEqs = mutableMapOf<UtExpression, UtExpression>()

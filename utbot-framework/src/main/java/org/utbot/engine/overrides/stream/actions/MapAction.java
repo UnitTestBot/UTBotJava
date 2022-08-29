@@ -14,13 +14,11 @@ public class MapAction implements StreamAction {
     @SuppressWarnings("unchecked")
     @Override
     public Object[] applyAction(Object[] originArray) {
-        Object[] transformed = new Object[originArray.length];
-
         int i = 0;
         for (Object o : originArray) {
-            transformed[i++] = mapping.apply(o);
+            originArray[i++] = mapping.apply(o);
         }
 
-        return transformed;
+        return originArray;
     }
 }

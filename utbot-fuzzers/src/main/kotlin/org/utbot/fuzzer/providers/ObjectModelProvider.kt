@@ -24,23 +24,28 @@ import java.lang.reflect.Method
 import java.lang.reflect.Modifier.*
 
 /**
- * Creates [UtAssembleModel] for objects which have public constructors with primitives types and String as parameters.
+ * Creates [UtAssembleModel] for objects which have public constructors
  */
 class ObjectModelProvider(
     idGenerator: IdentityPreservingIdGenerator<Int>,
-    recursion: Int = 1,
-) : RecursiveModelProvider(idGenerator, recursion) {
-    override fun copy(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepthLeft: Int) =
-        ObjectModelProvider(idGenerator, recursionDepthLeft)
+    recursionDepthLeft: Int = 1,
+) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
+    override fun createNewInstance(parentProvider: RecursiveModelProvider, newTotalLimit: Int): RecursiveModelProvider =
+        ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
+            .copySettingsFrom(parentProvider)
+            .apply {
+                totalLimit = newTotalLimit
+                branchingLimit = 1     // When called recursively, we will use only simplest constructor
+            }
 
     override fun generateModelConstructors(
         description: FuzzedMethodDescription,
-        clazz: ClassId
+        classId: ClassId
     ): List<ModelConstructor> {
-        if (clazz == stringClassId || clazz.isPrimitiveWrapper)
+        if (classId == stringClassId || classId.isPrimitiveWrapper)
             return listOf()
 
-        val constructors = collectConstructors(clazz) { javaConstructor ->
+        val constructors = collectConstructors(classId) { javaConstructor ->
             isAccessible(javaConstructor, description.packageName)
         }.sortedWith(
             primitiveParameterizedConstructorsFirstAndThenByParameterCount
@@ -54,7 +59,7 @@ class ObjectModelProvider(
                         ModelConstructor(parameters) { assembleModel(idGenerator.createId(), constructorId, it) }
                     )
                     if (parameters.isEmpty()) {
-                        val fields = findSuitableFields(classId, description)
+                        val fields = findSuitableFields(this.classId, description)
                         if (fields.isNotEmpty()) {
                             add(
                                 ModelConstructor(fields.map { it.classId }) {
@@ -65,8 +70,6 @@ class ObjectModelProvider(
                     }
                 }
             }
-
-            //add(ModelConstructor(listOf()) { UtNullModel(clazz).fuzzed {}})
         }
     }
 

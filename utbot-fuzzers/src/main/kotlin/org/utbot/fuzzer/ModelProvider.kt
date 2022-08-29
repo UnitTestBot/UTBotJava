@@ -41,7 +41,9 @@ fun interface ModelProvider {
         }
     }
 
-    // TODO: add KDoc here
+    /**
+     * Applies [transform] for current provider
+     */
     fun map(transform: (ModelProvider) -> ModelProvider): ModelProvider {
         return if (this is Combined) {
             Combined(providers.map(transform))

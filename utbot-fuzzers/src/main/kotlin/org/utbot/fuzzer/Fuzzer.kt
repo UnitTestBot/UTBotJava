@@ -12,7 +12,6 @@ import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
-import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.RegexModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.util.*
@@ -143,24 +142,6 @@ fun <T> Sequence<List<FuzzedValue>>.withMutations(statistics: FuzzerStatistics<T
     // try mutations if fuzzer tried all combinations if any seeds are available
     @Suppress("ControlFlowWithEmptyBody")
     while (yieldMutated(statistics, description, mutatorList, random)) {}
-}
-
-/**
- * Creates a model provider from a list of default providers.
- */
-fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
-    return ModelProvider.of(
-        ObjectModelProvider(idGenerator),
-        CollectionModelProvider(idGenerator),
-        ArrayModelProvider(idGenerator),
-        EnumModelProvider(idGenerator),
-        ConstantsModelProvider,
-        StringConstantModelProvider,
-        RegexModelProvider,
-        CharToStringModelProvider,
-        PrimitivesModelProvider,
-        PrimitiveWrapperModelProvider,
-    )
 }
 
 /**

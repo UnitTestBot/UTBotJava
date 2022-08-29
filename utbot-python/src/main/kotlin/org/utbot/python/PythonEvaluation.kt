@@ -1,15 +1,14 @@
 package org.utbot.python
 
 import com.beust.klaxon.Klaxon
-import kotlinx.coroutines.coroutineScope
 import org.utbot.framework.plugin.api.*
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.python.code.KlaxonPythonTreeParser
 import org.utbot.python.code.PythonCodeGenerator
 import org.utbot.python.utils.FileManager
 import org.utbot.python.utils.getResult
-import org.utbot.python.utils.runCommand
 import org.utbot.python.utils.startProcess
+import java.io.File
 
 
 sealed class EvaluationResult
@@ -39,7 +38,12 @@ data class EvaluationInput(
     val additionalModulesToImport: Set<String> = emptySet()
 )
 
-fun startEvaluationProcess(input: EvaluationInput): Process {
+data class EvaluationProcess (
+    val process: Process,
+    val fileWithCode: File
+)
+
+fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
     val runCode = PythonCodeGenerator.generateRunFunctionCode(
         input.method,
         input.methodArguments,
@@ -47,12 +51,20 @@ fun startEvaluationProcess(input: EvaluationInput): Process {
         input.moduleToImport,
         input.additionalModulesToImport
     )
-    val fileWithCode = FileManager.createTemporaryFile(runCode, tag = "run_" + input.method.name + ".py")
-    return startProcess(listOf(input.pythonPath, fileWithCode.path))
+    val fileWithCode = FileManager.createTemporaryFile(
+        runCode,
+        tag = "run_" + input.method.name + ".py",
+        addToCleaner = false
+    )
+    return EvaluationProcess(
+        startProcess(listOf(input.pythonPath, fileWithCode.path)),
+        fileWithCode
+    )
 }
 
-fun getEvaluationResult(input: EvaluationInput, process: Process, timeout: Long): EvaluationResult {
-    val result = getResult(process, timeout = timeout)
+fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, timeout: Long): EvaluationResult {
+    val result = getResult(process.process, timeout = timeout)
+    process.fileWithCode.delete()
 
     if (result.exitValue != 0)
         return EvaluationError(

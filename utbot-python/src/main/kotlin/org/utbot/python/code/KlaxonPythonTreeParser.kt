@@ -47,6 +47,8 @@ class KlaxonPythonTreeParser(
                 repr = "float('$repr')"
             } else if (repr == "inf") {
                 repr = "float('$repr')"
+            } else if (repr == "-inf") {
+                repr = "float('$repr')"
             }
             PythonTree.PrimitiveNode(PythonClassId(type), repr)
         } else {

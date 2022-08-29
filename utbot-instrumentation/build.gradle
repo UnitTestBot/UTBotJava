@@ -25,9 +25,10 @@ jar {
         )
     }
 
+    // we need only classes from implementation and utbot to execute child process
     dependsOn configurations.compileClasspath
     from {
-        sourceSets.main.output + configurations.compileClasspath
+        configurations.compileClasspath
                 .findAll { it.isDirectory() || it.name.endsWith('jar') }
                 .collect { it.isDirectory() ? it : zipTree(it) }
     }

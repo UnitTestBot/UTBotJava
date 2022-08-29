@@ -17,6 +17,13 @@ jobs:
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
     steps:
+      - name: Install git
+        run: |
+          apt-get upgrade -y
+          apt-get update -y
+          apt-get install git -y
+          git config --global --add safe.directory $(pwd)
+
       - name: Checkout main
         uses: actions/checkout@v3
 

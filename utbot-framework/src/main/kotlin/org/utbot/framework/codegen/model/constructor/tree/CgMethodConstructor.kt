@@ -839,6 +839,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         // if model is already processed, so we don't want to add new statements
         if (fieldModel in visitedModels) {
+            currentBlock += testFrameworkManager.getDeepEqualsAssertion(expected, actual).toStatement()
             return
         }
 

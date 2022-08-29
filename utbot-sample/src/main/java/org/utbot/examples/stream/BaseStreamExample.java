@@ -49,14 +49,16 @@ public class BaseStreamExample {
         return prevSize != newSize;
     }
 
-    Integer[] mapExample(List<Integer> list) {
+    Object[] mapExample(List<Integer> list) {
         UtMock.assume(list != null && !list.isEmpty());
 
         final Function<Integer, Integer> mapper = value -> value * 2;
         if (list.contains(null)) {
-            return list.stream().map(mapper).toArray(Integer[]::new);
+//            return list.stream().map(mapper).toArray(Integer[]::new);
+            return list.stream().map(mapper).toArray();
         } else {
-            return list.stream().map(mapper).toArray(Integer[]::new);
+//            return list.stream().map(mapper).toArray(Integer[]::new);
+            return list.stream().map(mapper).toArray();
         }
     }
 

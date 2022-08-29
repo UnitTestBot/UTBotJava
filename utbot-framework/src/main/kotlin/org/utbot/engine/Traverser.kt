@@ -2421,7 +2421,7 @@ class Traverser(
             .take(10)
             .sortedByDescending { it.possibleTypes.size }
             .sortedBy { it.method.isNative }
-            .take(5)
+            .take(8)
             .sortedByDescending { typeRegistry.findRating(it.implementationClass) }
             .toList()
     }

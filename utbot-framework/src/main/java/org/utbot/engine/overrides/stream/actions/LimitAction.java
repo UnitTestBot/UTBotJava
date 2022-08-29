@@ -1,11 +1,11 @@
 package org.utbot.engine.overrides.stream.actions;
 
-import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
+import org.utbot.engine.overrides.UtArrayMock;
 
 public class LimitAction implements StreamAction {
-    private final long maxSize;
+    private final int maxSize;
 
-    public LimitAction(long maxSize) {
+    public LimitAction(int maxSize) {
         this.maxSize = maxSize;
     }
 
@@ -15,25 +15,15 @@ public class LimitAction implements StreamAction {
             return new Object[]{};
         }
 
-        assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
-
         final int curSize = originArray.length;
-        int newSize = (int) maxSize;
+        int newSize = maxSize;
 
         if (newSize > curSize) {
             newSize = curSize;
         }
 
         Object[] elements = new Object[newSize];
-        int i = 0;
-
-        for (Object element : originArray) {
-            if (i >= newSize) {
-                break;
-            }
-
-            elements[i++] = element;
-        }
+        UtArrayMock.arraycopy(originArray, 0, elements, 0, newSize);
 
         return elements;
     }

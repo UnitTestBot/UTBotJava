@@ -1,5 +1,7 @@
 package org.utbot.engine.overrides.stream.actions;
 
+import org.utbot.engine.overrides.UtArrayMock;
+
 public class SkipAction implements StreamAction {
     private final long n;
 
@@ -23,16 +25,7 @@ public class SkipAction implements StreamAction {
         }
 
         Object[] elements = new Object[newSize];
-        int i = 0;
-        int j = 0;
-
-        for (Object element : originArray) {
-            if (i++ < n) {
-                break;
-            }
-
-            elements[j++] = element;
-        }
+        UtArrayMock.arraycopy(originArray, 0, elements, 0, newSize);
 
         return elements;
     }

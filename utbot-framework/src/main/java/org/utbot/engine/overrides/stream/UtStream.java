@@ -1,5 +1,6 @@
 package org.utbot.engine.overrides.stream;
 
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
@@ -169,7 +170,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public <R> Stream<R> map(Function<? super E, ? extends R> mapper) {
         preconditionCheckWithClosingStream();
 
-        final MapAction mapAction = new MapAction((Function<Object, Object>) mapper);
+        final MapAction mapAction = new MapAction(mapper);
         actions.insert(actions.end++, mapAction);
 
         return new UtStream<>(this);
@@ -366,8 +367,10 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             throw new IllegalArgumentException();
         }
 
-        final LimitAction limitAction = new LimitAction(maxSize);
-        actions.insert(actions.end++, limitAction);
+        assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
+
+        final LimitAction limitAction = new LimitAction((int) maxSize);
+        actions.set(actions.end++, limitAction);
 
         return new UtStream<>(this);
     }
@@ -461,6 +464,8 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         preconditionCheckWithClosingStream();
 
         Object[] originArray = origin.toArray();
+        UtMock.disableClassCastExceptionCheck(originArray);
+
         originArray = applyActions(originArray);
 
         return originArray;
@@ -477,7 +482,10 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         UtArrayMock.arraycopy(origin.toArray(), 0, array, 0, size);
 
-        return (A[]) applyActions(array);
+        final Object[] result = applyActions(array);
+        UtMock.disableClassCastExceptionCheck(result);
+
+        return (A[]) result;
     }
 
     @NotNull
@@ -486,6 +494,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         for (int i = 0; i < actionsNumber; i++) {
             originArray = actions.get(i).applyAction(originArray);
+            UtMock.disableClassCastExceptionCheck(originArray); // TODO do we need it?
         }
 
         return originArray;

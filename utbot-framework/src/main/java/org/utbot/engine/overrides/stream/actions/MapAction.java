@@ -3,12 +3,15 @@ package org.utbot.engine.overrides.stream.actions;
 import java.util.function.Function;
 
 public class MapAction implements StreamAction {
-    private final Function<Object, Object> mapping;
+    @SuppressWarnings("rawtypes")
+    private final Function mapping;
 
-    public MapAction(Function<Object, Object> mapping) {
+    @SuppressWarnings("rawtypes")
+    public MapAction(Function mapping) {
         this.mapping = mapping;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Object[] applyAction(Object[] originArray) {
         Object[] transformed = new Object[originArray.length];

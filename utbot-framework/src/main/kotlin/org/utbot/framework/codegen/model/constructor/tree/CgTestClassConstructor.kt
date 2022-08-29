@@ -123,11 +123,13 @@ internal class CgTestClassConstructor(val context: CgContext) :
             return null
         }
 
+        allExecutions = testSet.executions
+
         val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
-        when (context.parameterizedTestSource) {
+        when (context.parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
                 for ((clusterSummary, executionIndices) in clustersInfo) {
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()

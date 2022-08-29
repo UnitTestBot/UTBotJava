@@ -12,7 +12,7 @@ object FileManager {
         this.testSourceRoot = testSourceRoot
         val testsFolder = File(testSourceRoot)
         if (!testsFolder.exists())
-            testsFolder.mkdir()
+            testsFolder.mkdirs()
         val tmpFolder = Paths.get(testSourceRoot, tmpFolderName).toFile()
         if (!tmpFolder.exists())
             tmpFolder.mkdir()
@@ -29,6 +29,7 @@ object FileManager {
 
     fun writeToAssignedFile(file: File, content: String) {
         file.writeText(content)
+        file.parentFile?.mkdirs()
         file.createNewFile()
     }
 

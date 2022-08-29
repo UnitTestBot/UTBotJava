@@ -11,19 +11,6 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: junit4_version
 }
 
-compileKotlin {
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
-        allWarningsAsErrors = false
-    }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 shadowJar {
   configurations = [project.configurations.compileClasspath]
   archiveClassifier.set('')

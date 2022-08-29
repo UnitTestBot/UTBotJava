@@ -63,7 +63,7 @@ class SimpleClusterCommentBuilder(
      * Builds sentence blocks as parent one,
      * but ignores few types of statementTag that are considered in SimpleCommentBuilder
      */
-    private fun buildSentenceBlock(
+    override fun buildSentenceBlock(
         statementTag: StatementTag?,
         sentenceBlock: SimpleSentenceBlock,
         currentMethod: SootMethod
@@ -93,7 +93,7 @@ class SimpleClusterCommentBuilder(
             sentenceInvoke.squashStmtText()
             if (!sentenceInvoke.isEmpty()) {
                 sentenceBlock.invokeSentenceBlock =
-                    Pair(invokeDescription(className, methodName, methodParameterTypes), sentenceInvoke)
+                    Pair(getMethodReference(className, methodName, methodParameterTypes), sentenceInvoke)
                 createNextBlock = true
                 invokeRegistered = true
             }

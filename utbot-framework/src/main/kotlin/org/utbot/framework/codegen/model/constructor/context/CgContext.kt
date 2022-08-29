@@ -25,7 +25,14 @@ import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMetho
 import org.utbot.framework.codegen.model.constructor.tree.Block
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
-import org.utbot.framework.codegen.model.util.createTestClassName
+import org.utbot.framework.codegen.model.tree.CgAnnotation
+import org.utbot.framework.codegen.model.tree.CgExecutableCall
+import org.utbot.framework.codegen.model.tree.CgStatement
+import org.utbot.framework.codegen.model.tree.CgStatementExecutableCall
+import org.utbot.framework.codegen.model.tree.CgTestMethod
+import org.utbot.framework.codegen.model.tree.CgThisInstance
+import org.utbot.framework.codegen.model.tree.CgValue
+import org.utbot.framework.codegen.model.tree.CgVariable
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -37,9 +44,9 @@ import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassContext
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.codegen.model.tree.CgParameterKind
+import org.utbot.framework.codegen.model.util.createTestClassName
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -134,7 +141,7 @@ internal interface CgContextOwner {
 
     val codegenLanguage: CodegenLanguage
 
-    val parameterizedTestSource: ParametrizedTestSource
+    val parametrizedTestSource: ParametrizedTestSource
 
     // flag indicating whether a mock framework is used in the generated code
     var mockFrameworkUsed: Boolean
@@ -208,6 +215,8 @@ internal interface CgContextOwner {
     val enableTestsTimeout: Boolean
 
     var statesCache: EnvironmentFieldStateCache
+
+    var allExecutions: List<UtExecution>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -403,7 +412,7 @@ data class CgContext(
     override val forceStaticMocking: ForceStaticMocking,
     override val generateWarningsForStaticMocking: Boolean,
     override val codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    override val parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
+    override val parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
     override var mockFrameworkUsed: Boolean = false,
     override var currentBlock: PersistentList<CgStatement> = persistentListOf(),
     override var existingVariableNames: PersistentSet<String> = persistentSetOf(),
@@ -424,6 +433,7 @@ data class CgContext(
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
     var memoryObjects: MutableMap<PythonId, CgVariable> = emptyMap<PythonId, CgVariable>().toMutableMap()
+    override lateinit var allExecutions: List<UtExecution>
 
     /**
      * This property cannot be accessed outside of test class file scope
@@ -444,11 +454,17 @@ data class CgContext(
     private var _currentTestClassContext: TestClassContext? = null
 
     override val outerMostTestClass: ClassId by lazy {
+        if (codegenLanguage == CodegenLanguage.PYTHON) {
+            val name = testClassCustomName ?: "Test${createTestClassName(classUnderTest.name)}"
+            return@lazy BuiltinClassId(
+                name = name,
+                canonicalName = name,
+                simpleName = name
+            )
+        }
+
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
-        val simpleName = if (codegenLanguage == CodegenLanguage.PYTHON)
-            testClassCustomName ?: "Test${createTestClassName(classUnderTest.name)}"
-        else
-            testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
+        val simpleName = testClassCustomName ?: "${classUnderTest.simpleName}Test"
 
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(

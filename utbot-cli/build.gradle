@@ -5,13 +5,6 @@ configurations {
     fetchInstrumentationJar
 }
 
-compileKotlin {
-    dependsOn project(':utbot-instrumentation').tasks.jar
-    kotlinOptions {
-        allWarningsAsErrors = false
-    }
-}
-
 dependencies {
     api project(':utbot-framework-api')
     implementation project(':utbot-framework')
@@ -60,6 +53,7 @@ jar {
     dependsOn project(':utbot-framework').tasks.jar
     dependsOn project(':utbot-summary').tasks.jar
     dependsOn project(':utbot-python').tasks.jar
+    dependsOn project(':utbot-fuzzers').tasks.jar
 
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'

@@ -1,7 +1,7 @@
 # Usage:
 # ./generate_test_samples.sh <absolute_python_path>
 
-python_path=$0
+python_path=$1
 
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__arithmetic.py -p $python_path
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__deep_equals.py -p $python_path
@@ -14,3 +14,6 @@ java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_t
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__test_coverage.py -p $python_path
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__type_inference.py -p $python_path
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__using_collections.py -p $python_path
+java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__dummy_with_eq.py -p $python_path
+java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__dummy_without_eq.py -p $python_path
+java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__list_of_datetime.py -p $python_path

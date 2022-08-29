@@ -3,6 +3,8 @@ plugins {
     id 'java-library'
 }
 
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
 dependencies {
     implementation group: 'org.jetbrains', name: 'annotations', version: '16.0.2'
     implementation group: 'com.github.stephenc.findbugs', name: 'findbugs-annotations', version: '1.3.9-1'
@@ -22,15 +24,6 @@ dependencies {
 
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '4.0.0'
     testImplementation "org.mockito:mockito-inline:+"
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-compileJava {
-    dependsOn project(':utbot-api').tasks.jar
 }
 
 test {

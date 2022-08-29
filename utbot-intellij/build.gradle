@@ -2,8 +2,15 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 compileKotlin {
     kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
         allWarningsAsErrors = false
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 buildscript {
@@ -29,7 +36,7 @@ dependencies {
 
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
     implementation(project(":utbot-fuzzers"))
-
+    api project(':utbot-analytics')
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))
     testApi(project(":utbot-framework"))

@@ -454,12 +454,12 @@ sealed class UtReferenceModel(
 ) : UtModel(classId)
 
 /**
- * Checks if [UtModel] is a null.
+ * Checks if [UtModel] is a [UtNullModel].
  */
 fun UtModel.isNull() = this is UtNullModel
 
 /**
- * Checks if [UtModel] is not a null.
+ * Checks if [UtModel] is not a [UtNullModel].
  */
 fun UtModel.isNotNull() = !isNull()
 
@@ -1453,6 +1453,9 @@ class DocPreTagStatement(content: List<DocStatement>) : DocTagStatement(content)
     override fun hashCode(): Int = content.hashCode()
 }
 
+data class DocCustomTagStatement(val statements: List<DocStatement>) : DocTagStatement(statements) {
+    override fun toString(): String = content.joinToString(separator = "")
+}
 
 open class DocClassLinkStmt(val className: String) : DocStatement() {
     override fun toString(): String = className

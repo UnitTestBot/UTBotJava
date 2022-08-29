@@ -1341,8 +1341,9 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         statements = currentBlock
                     }
                 }
-            } else {
-                testFrameworkManager.assertEquals(expected, actual)
+            }
+            else {
+                testFrameworkManager.assertIsinstance(listOf(expected.type), actual)
             }
         }
     }
@@ -1372,6 +1373,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 expected,
                 actual,
             )
+            emptyLineIfNeeded()
             return
         }
         when (expectedNode) {
@@ -1379,6 +1381,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 testFrameworkManager.assertIsinstance(
                     listOf(expected.type), actual
                 )
+                emptyLineIfNeeded()
             }
             is PythonTree.ListNode -> {
                 pythonAssertBuiltinsCollection(
@@ -1435,6 +1438,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     testFrameworkManager.assertIsinstance(
                         listOf(expected.type), actual
                     )
+                    emptyLineIfNeeded()
                 }
             }
             else -> {}

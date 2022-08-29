@@ -1,4 +1,5 @@
 import copy
+import pickle
 import types
 from itertools import zip_longest
 import copyreg
@@ -93,7 +94,7 @@ class _PythonTreeSerializer:
             self.serialize(item)
             for item in reduce_value[3]
         ])
-        dictitems, deserialized_dictitems = _PythonTreeSerializer.unzip_dict([
+        dictitems, deserialized_dictitems = self.unzip_dict([
             (self.serialize(key), self.serialize(value))
             for key, value in reduce_value[4]
         ])
@@ -119,12 +120,6 @@ class _PythonTreeSerializer:
         id_ = id(py_object)
         skip_comparable = False
         comparable = True
-
-        try:
-            if repr(py_object) == 'nan':
-                py_object = float('nan')
-        except Exception:
-            pass
 
         if id_ in self.memory:
             value = id_
@@ -160,7 +155,7 @@ class _PythonTreeSerializer:
         else:
             value = repr(py_object)
             try:
-                deserialized_obj = copy.deepcopy(py_object)
+                deserialized_obj = pickle.loads(pickle.dumps(py_object))
             except Exception:
                 deserialized_obj = py_object
                 skip_comparable = True

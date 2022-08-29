@@ -8,10 +8,11 @@ object PythonTree {
         var comparable: Boolean = true
     ) {
         open val children: List<PythonTreeNode> = emptyList()
+        fun maxDepth(): Int = 1 + children.map { it.maxDepth() }.max()
 
         open fun typeEquals(other: Any?): Boolean {
             return if (other is PythonTreeNode)
-                type == other.type
+                type == other.type && comparable && other.comparable
             else
                 false
         }
@@ -110,8 +111,15 @@ object PythonTree {
             get() = args + state.values + listitems + dictitems.values + dictitems.keys
 
         override fun typeEquals(other: Any?): Boolean {
-            return if (other is ReduceNode)
-                type == other.type
+            return if (other is ReduceNode) {
+                type == other.type && state.all { (key, value) ->
+                    other.state.containsKey(key) && value.typeEquals(other.state[key])
+                } && listitems.withIndex().all { (index, item) ->
+                    other.listitems.size > index && item.typeEquals(other.listitems[index])
+                } &&  dictitems.all { (key, value) ->
+                    other.dictitems.containsKey(key) && value.typeEquals(other.dictitems[key])
+                }
+            }
             else false
         }
     }

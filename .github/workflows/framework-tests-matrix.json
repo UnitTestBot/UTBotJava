@@ -22,14 +22,10 @@
     },
     {
       "PART_NAME": "examples-part2",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\"",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\" --tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\" --tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\"",
     },
     {
       "PART_NAME": "examples-part3",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\" --tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\"",
-    },
-    {
-      "PART_NAME": "examples-part4",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.structures.*\" --tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\"",
     },
     {

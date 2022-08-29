@@ -135,9 +135,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
-                        runCatching {
+//                        runCatching {
                             currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-                        }.onFailure { e -> processFailure(testSet, e) }
+//                        }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content

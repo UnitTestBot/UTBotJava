@@ -1249,13 +1249,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     fieldAccess `=` value
                 }
                 listitems.forEach {
-                    CgMethodCall(
+                    +CgMethodCall(
                         obj,
                         PythonMethodId(
                             obj.type as PythonClassId,
                             "append",
                             NormalizedPythonAnnotation(pythonNoneClassId.name),
-                            listOf(it.type as RawPythonAnnotation)
+                            listOf(RawPythonAnnotation(it.type.name))
                         ),
                         listOf(it)
                     )

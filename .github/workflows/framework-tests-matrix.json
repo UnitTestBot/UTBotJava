@@ -26,7 +26,7 @@
     },
     {
       "PART_NAME": "examples-part3",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.structures.*\" --tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\"",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.strings.*\" --tests \"org.utbot.examples.structures.*\" --tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\"",
     },
     {
     "PART_NAME": "examples-lists",
@@ -39,10 +39,6 @@
     {
       "PART_NAME": "examples-maps-part2",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapsPart2Test\"",
-    },
-    {
-      "PART_NAME": "examples-strings",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.strings.*\"",
     }
   ]
 }

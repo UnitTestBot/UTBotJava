@@ -12,5 +12,5 @@ java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_t
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__primitive_types.py -p $python_path
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__quick_sort.py -p $python_path
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__test_coverage.py -p $python_path
-java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__type_inhibition.py -p $python_path
+java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__type_inference.py -p $python_path
 java -jar utbot-cli.jar --verbosity DEBUG run_python cli_utbot_tests/generated_tests__using_collections.py -p $python_path

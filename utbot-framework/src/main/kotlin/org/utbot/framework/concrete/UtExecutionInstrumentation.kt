@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.withReflection
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
@@ -209,15 +210,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         }
         }
     }
-
-    private val inaccessibleViaReflectionFields = setOf(
-        "security" to "java.lang.System",
-        "fieldFilterMap" to "sun.reflect.Reflection",
-        "methodFilterMap" to "sun.reflect.Reflection"
-    )
-
-    private val FieldId.isInaccessibleViaReflection: Boolean
-        get() = (name to declaringClass.name) in inaccessibleViaReflectionFields
 
     private fun sortOutException(exception: Throwable): UtExecutionFailure {
         if (exception is TimeoutException) {

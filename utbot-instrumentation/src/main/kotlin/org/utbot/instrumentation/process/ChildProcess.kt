@@ -49,13 +49,20 @@ private fun log(any: Any?) {
 private val kryoHelper: KryoHelper = KryoHelper(System.`in`, System.`out`)
 
 /**
+ * Command-line option to disable the sandbox
+ */
+const val DISABLE_SANDBOX_OPTION = "--disable-sandbox"
+
+/**
  * It should be compiled into separate jar file (child_process.jar) and be run with an agent (agent.jar) option.
  */
-fun main() {
-    permissions {
-        // Enable all permissions for instrumentation.
-        // SecurityKt.sandbox() is used to restrict these permissions.
-        + AllPermission()
+fun main(args: Array<String>) {
+    if (!args.contains(DISABLE_SANDBOX_OPTION)) {
+        permissions {
+            // Enable all permissions for instrumentation.
+            // SecurityKt.sandbox() is used to restrict these permissions.
+            +AllPermission()
+        }
     }
 
     // We don't want user code to litter the standard output, so we redirect it.

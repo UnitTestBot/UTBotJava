@@ -45,6 +45,7 @@ private val systemPackages = setOf(
     "sun.reflect", // we cannot mock Reflection since mockers are using it during the execution
     "java.awt",
     "sun.misc",
+    "jdk.internal",
     "kotlin.jvm.internal",
     "kotlin.internal"
 )

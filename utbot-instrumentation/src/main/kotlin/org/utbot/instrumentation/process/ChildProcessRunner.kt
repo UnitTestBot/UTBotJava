@@ -49,7 +49,14 @@ class ChildProcessRunner {
 
         val directory = WorkingDirService.provide().toFile()
 
-        val processBuilder = ProcessBuilder(cmds)
+        val commandsWithOptions = buildList {
+            addAll(cmds)
+            if (UtSettings.disableSandbox) {
+                add(DISABLE_SANDBOX_OPTION)
+            }
+        }
+
+        val processBuilder = ProcessBuilder(commandsWithOptions)
             .redirectError(errorLogFile)
             .directory(directory)
 

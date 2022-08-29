@@ -98,6 +98,7 @@ import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
+import org.utbot.framework.util.isInaccessibleViaReflection
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -631,7 +632,7 @@ class Traverser(
 
         // so, we have to make an update for the local $r0
 
-        return if (stmt is JAssignStmt) {
+        return if (stmt is JAssignStmt && stmt.leftOp is JimpleLocal) {
             val local = stmt.leftOp as JimpleLocal
 
             localMemoryUpdate(local.variable to symbolicValue)
@@ -1798,6 +1799,8 @@ class Traverser(
      */
     private fun isStaticFieldMeaningful(field: SootField) =
         !Modifier.isSynthetic(field.modifiers) &&
+            // we don't want to set fields that cannot be set via reflection anyway
+            !field.fieldId.isInaccessibleViaReflection &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
                 ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()

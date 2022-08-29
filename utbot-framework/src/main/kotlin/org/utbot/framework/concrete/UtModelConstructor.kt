@@ -28,6 +28,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.framework.util.valueToClassId
 import java.lang.reflect.Modifier
 import java.util.IdentityHashMap
@@ -281,7 +282,9 @@ internal class UtModelConstructor(
         generateSequence(javaClazz) { it.superclass }.forEach { clazz ->
             val allFields = clazz.declaredFields
             allFields
+                .asSequence()
                 .filter { !(Modifier.isFinal(it.modifiers) && Modifier.isStatic(it.modifiers)) } // TODO: what about static final fields?
+                .filterNot { it.fieldId.isInaccessibleViaReflection }
                 .forEach { it.withAccessibility { fields[it.fieldId] = construct(it.get(value), it.type.id) } }
         }
         return utModel

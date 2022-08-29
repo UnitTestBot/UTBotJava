@@ -22,27 +22,15 @@
     },
     {
       "PART_NAME": "examples-part2",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\"",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.exceptions.*\" --tests \"org.utbot.examples.invokes.*\" --tests \"org.utbot.examples.lambda.*\" --tests \"org.utbot.examples.make.symbolic.*\" --tests \"org.utbot.examples.math.*\" --tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\"",
     },
     {
       "PART_NAME": "examples-part3",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.mixed.*\" --tests \"org.utbot.examples.mock.*\" --tests \"org.utbot.examples.models.*\" --tests \"org.utbot.examples.natives.*\" --tests \"org.utbot.examples.objects.*\" --tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\"",
+      "TESTS_TO_RUN": "--tests \"org.utbot.examples.primitives.*\" --tests \"org.utbot.examples.recursion.*\" --tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.strings.*\" --tests \"org.utbot.examples.structures.*\" --tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\"",
     },
     {
-      "PART_NAME": "examples-part4",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.statics.substitution.*\"  --tests \"org.utbot.examples.stdlib.*\" --tests \"org.utbot.examples.structures.*\" --tests \"org.utbot.examples.thirdparty.numbers.*\" --tests \"org.utbot.examples.types.*\" --tests \"org.utbot.examples.unsafe.*\" --tests \"org.utbot.examples.wrappers.*\"",
-    },
-    {
-    "PART_NAME": "examples-lists-part1",
-    "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart1Test\"",
-    },
-    {
-      "PART_NAME": "examples-lists-part2",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart2Test\"",
-    },
-    {
-      "PART_NAME": "examples-lists-part3",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart3Test\"",
+    "PART_NAME": "examples-lists",
+    "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.ListsPart1Test\" --tests \"org.utbot.examples.collections.ListsPart2Test\" --tests \"org.utbot.examples.collections.ListsPart3Test\"",
     },
     {
       "PART_NAME": "examples-maps-part1",
@@ -51,10 +39,6 @@
     {
       "PART_NAME": "examples-maps-part2",
       "TESTS_TO_RUN": "--tests \"org.utbot.examples.collections.MapsPart2Test\"",
-    },
-    {
-      "PART_NAME": "examples-strings",
-      "TESTS_TO_RUN": "--tests \"org.utbot.examples.strings.*\"",
     }
   ]
 }

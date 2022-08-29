@@ -144,7 +144,7 @@ sealed class UtResult
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
  * - comments, method names and display names created by utbot-summary module.
  */
-open class UtExecution(
+abstract class UtExecution(
     val stateBefore: EnvironmentModels,
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
@@ -223,6 +223,27 @@ class UtSymbolicExecution(
         )
     }
 }
+
+/**
+ * Execution that result in an error (e.g., JVM crash or another concrete execution error).
+ *
+ * Contains:
+ * - state before the execution;
+ * - result (a [UtExecutionFailure] or its subclass);
+ * - coverage information (instructions) if this execution was obtained from the concrete execution.
+ * - comments, method names and display names created by utbot-summary module.
+ *
+ * This execution does not contain any "after" state, as it is generally impossible to obtain
+ * in case of failure. [MissingState] is used instead.
+ */
+class UtFailedExecution(
+    stateBefore: EnvironmentModels,
+    result: UtExecutionFailure,
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
 
 open class EnvironmentModels(
     val thisInstance: UtModel?,

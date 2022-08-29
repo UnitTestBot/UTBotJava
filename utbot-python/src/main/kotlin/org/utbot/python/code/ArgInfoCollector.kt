@@ -430,7 +430,7 @@ class ArgInfoCollector(val method: PythonMethod, private val argumentTypes: List
 
         override fun visitNum(num: Num, param: MutableMap<String, ArgInfoStorage>): AST {
             val value = getNumFuzzedValue(num.n)
-            if (value != null) {
+            if (value != null && constStorage.find { it.value == value.value } == null) {
                 constStorage.add(value)
                 (value.classId as? PythonClassId) ?.let { generalStorage.types.add(Type(it)) }
             }

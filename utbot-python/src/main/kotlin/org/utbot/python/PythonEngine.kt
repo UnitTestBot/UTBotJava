@@ -14,7 +14,7 @@ import org.utbot.fuzzer.FuzzedValue
 import java.lang.Long.max
 
 private val logger = KotlinLogging.logger {}
-const val CHUNK_SIZE = 10
+const val CHUNK_SIZE = 15
 
 class PythonEngine(
     private val methodUnderTest: PythonMethod,

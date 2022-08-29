@@ -152,15 +152,13 @@ def k(x: typing.Any):
         return x
 
 
-def constants(x, y):
-    if x == 12345:
+def constants(x):
+    if x == 1e5:
         return "one"
-    elif (2000 < x) and (y < 2234):
+    elif (x > 1e4 - 2) and (x < 1e4):
         return "two"
-    elif x == 1e5:
-        return "three"
     else:
-        return "four"
+        return "three"
 
 
 #  interesting case with sets

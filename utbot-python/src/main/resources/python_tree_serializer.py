@@ -118,6 +118,13 @@ class _PythonTreeSerializer:
         type_ = _PythonTreeSerializer.get_type(py_object)
         id_ = id(py_object)
         skip_comparable = False
+        comparable = True
+
+        try:
+            if repr(py_object) == 'nan':
+                py_object = float('nan')
+        except Exception:
+            pass
 
         if id_ in self.memory:
             value = id_
@@ -137,6 +144,7 @@ class _PythonTreeSerializer:
                 self.serialize(element) for element in py_object
             ]
             value, deserialized_obj = _PythonTreeSerializer.unzip_list(elements, type(py_object))
+            comparable = all([element['comparable'] for element in value])
             strategy = 'generic'
         elif type(py_object) == dict:
             elements = [
@@ -144,6 +152,7 @@ class _PythonTreeSerializer:
                 for key, value in py_object.items()
             ]
             value, deserialized_obj = _PythonTreeSerializer.unzip_dict(elements)
+            comparable = all([element[1]['comparable'] for element in value])
             strategy = 'generic'
         elif _PythonTreeSerializer.has_reduce(py_object):
             value, deserialized_obj = self.get_reduce(py_object)
@@ -160,7 +169,7 @@ class _PythonTreeSerializer:
 
         if not skip_comparable:
             try:
-                comparable = py_object == deserialized_obj
+                comparable = comparable and (py_object == deserialized_obj)
             except Exception:
                 comparable = False
 

@@ -45,7 +45,6 @@ internal class StandardStructuresTest : UtValueTestCaseChecker(testClass = Stand
     }
 
     @Test
-    @Disabled("TODO use correct wrapper JIRA:1495")
     fun testGetDeque() {
         val dequeSummary = listOf<DocStatement>(
             DocPreTagStatement(
@@ -72,7 +71,7 @@ internal class StandardStructuresTest : UtValueTestCaseChecker(testClass = Stand
             { d, r -> d is LinkedList && r is LinkedList },
             { d, r -> d == null && r == null },
             { d, r ->
-                d !is ArrayDeque<*> && d !is LinkedList && d != null && r !is ArrayDeque<*> && r !is LinkedList && r != null
+                d !is java.util.ArrayDeque<*> && d !is LinkedList && d != null && r !is java.util.ArrayDeque<*> && r !is LinkedList && r != null
             },
             coverage = DoNotCalculate,
             summaryTextChecks = listOf(

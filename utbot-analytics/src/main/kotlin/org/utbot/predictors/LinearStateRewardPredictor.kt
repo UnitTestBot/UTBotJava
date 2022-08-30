@@ -19,7 +19,7 @@ private val logger = KotlinLogging.logger {}
  * Last weight is bias
  */
 private fun loadWeights(path: String): Matrix {
-    val weightsFile = File("${UtSettings.rewardModelPath}/${path}")
+    val weightsFile = File("${UtSettings.modelPath}/${path}")
     lateinit var weightsArray: DoubleArray
 
     try {

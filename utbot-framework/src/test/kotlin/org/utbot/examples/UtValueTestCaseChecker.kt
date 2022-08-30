@@ -2847,12 +2847,12 @@ inline fun <reified T> withTreatingOverflowAsError(block: () -> T): T {
 }
 
 inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () -> T): T {
-    val prev = UtSettings.rewardModelPath
-    UtSettings.rewardModelPath = rewardModelPath
+    val prev = UtSettings.modelPath
+    UtSettings.modelPath = rewardModelPath
     try {
         return block()
     } finally {
-        UtSettings.rewardModelPath = prev
+        UtSettings.modelPath = prev
     }
 }
 

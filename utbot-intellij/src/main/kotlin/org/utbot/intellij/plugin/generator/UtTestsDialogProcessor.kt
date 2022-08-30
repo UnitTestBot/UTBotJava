@@ -58,7 +58,6 @@ import org.utbot.framework.PathSelectorType
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.settings.Settings
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
 import org.utbot.intellij.plugin.util.isAbstract
 import kotlin.reflect.KClass
@@ -282,13 +281,13 @@ object UtTestsDialogProcessor {
     private fun configureML() {
         logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
 
-        if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
             val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
             try {
                 Class.forName(analyticsConfigurationClassPath)
                 Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
 
-                logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
+                logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
             } catch (e: ClassNotFoundException) {
                 logger.error {
                     "Configuration of the predictors from the utbot-analytics module described in the class: " +

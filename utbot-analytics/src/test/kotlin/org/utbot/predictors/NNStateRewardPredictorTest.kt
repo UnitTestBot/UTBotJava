@@ -30,15 +30,9 @@ class NNStateRewardPredictorTest {
             val averageTime = calcAverageTimeForModelPredict(::NNStateRewardPredictorBase, 100, features)
             println(averageTime)
         }
-
-
-        withRewardModelPath("models") {
-            val averageTime = calcAverageTimeForModelPredict(::StateRewardPredictorTorch, 100, features)
-            println(averageTime)
-        }
     }
 
-    private fun calcAverageTimeForModelPredict(
+    internal fun calcAverageTimeForModelPredict(
         model: () -> StateRewardPredictor,
         iterations: Int,
         features: List<Double>
@@ -57,7 +51,7 @@ class NNStateRewardPredictorTest {
     @Test
     fun corruptedModelFileTest() {
         withRewardModelPath("src/test/resources") {
-            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+            withPathSelectorType(PathSelectorType.ML_SELECTOR) {
                 NNStateRewardPredictorBase(modelPath = "corrupted_nn.json")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
@@ -67,7 +61,7 @@ class NNStateRewardPredictorTest {
     @Test
     fun emptyModelFileTest() {
         withRewardModelPath("src/test/resources") {
-            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+            withPathSelectorType(PathSelectorType.ML_SELECTOR) {
                 NNStateRewardPredictorBase(modelPath = "empty_nn.json")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
@@ -77,7 +71,7 @@ class NNStateRewardPredictorTest {
     @Test
     fun corruptedScalerTest() {
         withRewardModelPath("src/test/resources") {
-            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+            withPathSelectorType(PathSelectorType.ML_SELECTOR) {
                 NNStateRewardPredictorBase(scalerPath = "corrupted_scaler.txt")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }

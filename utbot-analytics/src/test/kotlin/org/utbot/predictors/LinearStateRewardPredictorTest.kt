@@ -25,7 +25,7 @@ class LinearStateRewardPredictorTest {
     @Test
     fun wrongFormatTest() {
         withRewardModelPath("src/test/resources") {
-            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+            withPathSelectorType(PathSelectorType.ML_SELECTOR) {
                 LinearStateRewardPredictor("wrong_format_linear.txt")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }

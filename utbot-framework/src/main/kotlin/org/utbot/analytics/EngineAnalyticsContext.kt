@@ -4,7 +4,7 @@ import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.selectors.NNRewardGuidedSelectorFactory
 import org.utbot.engine.selectors.NNRewardGuidedSelectorWithRecalculationFactory
 import org.utbot.engine.selectors.NNRewardGuidedSelectorWithoutRecalculationFactory
-import org.utbot.framework.NNRewardGuidedSelectorType
+import org.utbot.framework.MLSelectorType
 import org.utbot.framework.UtSettings
 
 /**
@@ -23,9 +23,9 @@ object EngineAnalyticsContext {
         }
     }
 
-    val nnRewardGuidedSelectorFactory: NNRewardGuidedSelectorFactory = when (UtSettings.nnRewardGuidedSelectorType) {
-        NNRewardGuidedSelectorType.WITHOUT_RECALCULATION -> NNRewardGuidedSelectorWithoutRecalculationFactory()
-        NNRewardGuidedSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
+    val nnRewardGuidedSelectorFactory: NNRewardGuidedSelectorFactory = when (UtSettings.mlSelectorType) {
+        MLSelectorType.WITHOUT_RECALCULATION -> NNRewardGuidedSelectorWithoutRecalculationFactory()
+        MLSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
     }
 
     var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {

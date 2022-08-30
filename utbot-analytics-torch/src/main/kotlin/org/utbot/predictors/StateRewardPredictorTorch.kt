@@ -15,7 +15,7 @@ class StateRewardPredictorTorch : StateRewardPredictor, Closeable {
     val model: Model = Model.newInstance("model")
 
     init {
-        model.load(Paths.get(UtSettings.rewardModelPath, "model.pt1"))
+        model.load(Paths.get(UtSettings.modelPath, "model.pt1"))
     }
 
     private val predictor: Predictor<List<Float>, Float> = model.newPredictor(object : Translator<List<Float>, Float> {

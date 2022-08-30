@@ -88,9 +88,9 @@ object UtSettings : AbstractSettings(
     var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
 
     /**
-     * Type of nnRewardGuidedSelector
+     * Type of MLSelector
      */
-    var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
+    var mlSelectorType: MLSelectorType by getEnumProperty(MLSelectorType.WITHOUT_RECALCULATION)
 
     /**
      * Type of [StateRewardPredictor]
@@ -327,9 +327,9 @@ object UtSettings : AbstractSettings(
     var enableFeatureProcess by getBooleanProperty(false)
 
     /**
-     * Path to deserialized reward models
+     * Path to deserialized ML models
      */
-    var rewardModelPath by getStringProperty("../models/0")
+    var modelPath by getStringProperty("../models/0")
 
     /**
      * Full class name of the class containing the configuration for the ML models to solve path selection task.
@@ -405,9 +405,9 @@ enum class PathSelectorType {
     FORK_DEPTH_SELECTOR,
 
     /**
-     * [NNRewardGuidedSelector]
+     * [MLSelector]
      */
-    NN_REWARD_GUIDED_SELECTOR,
+    ML_SELECTOR,
 
     /**
      * [RandomSelector]
@@ -428,14 +428,14 @@ enum class TestSelectionStrategyType {
 /**
  * Enum to specify [NNRewardGuidedSelector], see implementations for more details
  */
-enum class NNRewardGuidedSelectorType {
+enum class MLSelectorType {
     /**
-     * [NNRewardGuidedSelectorWithRecalculation]
+     * [MLSelectorWithRecalculation]
      */
     WITH_RECALCULATION,
 
     /**
-     * [NNRewardGuidedSelectorWithoutRecalculation]
+     * [MLSelectorWithoutRecalculation]
      */
     WITHOUT_RECALCULATION
 }
@@ -445,7 +445,7 @@ enum class NNRewardGuidedSelectorType {
  */
 enum class StateRewardPredictorType {
     /**
-     * [NNStateRewardPredictorBase]
+     * [MLStateRewardPredictorBase]
      */
     BASE,
 
@@ -455,7 +455,7 @@ enum class StateRewardPredictorType {
     TORCH,
 
     /**
-     * [NNStateRewardPredictorBase]
+     * [LinearStateRewardPredictorBase]
      */
     LINEAR
 }

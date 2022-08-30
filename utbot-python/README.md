@@ -10,7 +10,7 @@ UTBot tries to maximize the code coverage while minimizing the number of tests. 
 
 There are two ways to use UTBot: as an IntelliJ IDEA plugin or through a command line interface.
 
-You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2933192370).
+You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2954138341).
 
 ## Python requirements
 
@@ -29,6 +29,11 @@ IntelliJ IDEA version should be 2022.1.
 3. Configure the Python interpreter for your project and make sure that IDEA resolves all imports.
 
 4. After indexing has finished, move the cursor to a function, press ALT+SHIFT+U (or ALT+U, ALT+T in Ubuntu), and generate tests.
+
+### Dependency
+
+Package `com.intellij.modules.python` in `/utbot-intellij/resources/plugin.xml` is necessary dependecy for now, it is needed to use Python Psi tree.  
+
 
 ## Command line interface
 

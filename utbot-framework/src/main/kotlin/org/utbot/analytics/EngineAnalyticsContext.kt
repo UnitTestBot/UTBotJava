@@ -1,9 +1,9 @@
 package org.utbot.analytics
 
 import org.utbot.engine.InterProceduralUnitGraph
-import org.utbot.engine.selectors.NNRewardGuidedSelectorFactory
-import org.utbot.engine.selectors.NNRewardGuidedSelectorWithRecalculationFactory
-import org.utbot.engine.selectors.NNRewardGuidedSelectorWithoutRecalculationFactory
+import org.utbot.engine.selectors.MLSelectorFactory
+import org.utbot.engine.selectors.MLSelectorWithRecalculationFactory
+import org.utbot.engine.selectors.MLSelectorWithoutRecalculationFactory
 import org.utbot.framework.MLSelectorType
 import org.utbot.framework.UtSettings
 
@@ -23,9 +23,9 @@ object EngineAnalyticsContext {
         }
     }
 
-    val nnRewardGuidedSelectorFactory: NNRewardGuidedSelectorFactory = when (UtSettings.mlSelectorType) {
-        MLSelectorType.WITHOUT_RECALCULATION -> NNRewardGuidedSelectorWithoutRecalculationFactory()
-        MLSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
+    val mlSelectorFactory: MLSelectorFactory = when (UtSettings.mlSelectorType) {
+        MLSelectorType.WITHOUT_RECALCULATION -> MLSelectorWithoutRecalculationFactory()
+        MLSelectorType.WITH_RECALCULATION -> MLSelectorWithRecalculationFactory()
     }
 
     var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {

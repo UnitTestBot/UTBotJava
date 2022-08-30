@@ -169,7 +169,7 @@ fun interleavedSelector(graph: InterProceduralUnitGraph, builder: InterleavedSel
     InterleavedSelectorBuilder(graph).apply(builder).build()
 
 /**
- * build [NNRewardGuidedSelector] using [NNRewardGuidedSelectorBuilder]
+ * build [MLSelector] using [NNRewardGuidedSelectorBuilder]
  */
 fun nnRewardGuidedSelector(
     graph: InterProceduralUnitGraph,
@@ -525,15 +525,15 @@ class InterleavedSelectorBuilder internal constructor(
 }
 
 /**
- * Builder for [NNRewardGuidedSelector]. Used in []
+ * Builder for [MLSelector]. Used in []
  */
 class NNRewardGuidedSelectorBuilder internal constructor(
     graph: InterProceduralUnitGraph,
     private val strategy: StrategyOption,
     context: PathSelectorContext = PathSelectorContext(graph),
-) : PathSelectorBuilder<NNRewardGuidedSelector>(graph, context) {
+) : PathSelectorBuilder<MLSelector>(graph, context) {
     private val seed = seedInPathSelector
-    override fun build() = EngineAnalyticsContext.nnRewardGuidedSelectorFactory(
+    override fun build() = EngineAnalyticsContext.mlSelectorFactory(
         withGeneratedTestCountingStatistics(),
         withChoosingStrategy(strategy),
         requireNotNull(context.stoppingStrategy) { "StoppingStrategy isn't specified" },

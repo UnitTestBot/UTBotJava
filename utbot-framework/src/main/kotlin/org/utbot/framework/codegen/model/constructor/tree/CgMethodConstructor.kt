@@ -1292,6 +1292,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val actualValue = newVar(pythonIntClassId, "actual_length") {
             CgGetLength(actual)
         }
+        emptyLineIfNeeded()
         testFrameworkManager.assertEquals(expectedValue, actualValue)
         return expectedValue
     }
@@ -1343,6 +1344,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             }
             else {
+                emptyLineIfNeeded()
                 testFrameworkManager.assertIsinstance(listOf(expected.type), actual)
             }
         }
@@ -1369,19 +1371,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         actual: CgVariable
     ) {
         if (expectedNode.comparable) {
+            emptyLineIfNeeded()
             testFrameworkManager.assertEquals(
                 expected,
                 actual,
             )
-            emptyLineIfNeeded()
             return
         }
         when (expectedNode) {
             is PythonTree.PrimitiveNode -> {
+                emptyLineIfNeeded()
                 testFrameworkManager.assertIsinstance(
                     listOf(expected.type), actual
                 )
-                emptyLineIfNeeded()
             }
             is PythonTree.ListNode -> {
                 pythonAssertBuiltinsCollection(
@@ -1400,6 +1402,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 )
             }
             is PythonTree.SetNode -> {
+                emptyLineIfNeeded()
                 testFrameworkManager.assertEquals(
                     expected, actual
                 )
@@ -1435,10 +1438,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         pythonDeepTreeEquals(value, fieldExpected, fieldActual)
                     }
                 } else {
+                    emptyLineIfNeeded()
                     testFrameworkManager.assertIsinstance(
                         listOf(expected.type), actual
                     )
-                    emptyLineIfNeeded()
                 }
             }
             else -> {}
@@ -1527,7 +1530,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 is PythonMethodId -> {
                     emptyLineIfNeeded()
 
-//                    importIfNeeded(result.classId)
                     actual = newVar(
                         CgClassId(result.classId),
                         "actual",
@@ -1596,6 +1598,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             }
                         }
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
+                    }
+                    if (executableId is PythonMethodId) {
+                        existingVariableNames += executableId.name
+                        executableId.moduleName.split('.').forEach {
+                            existingVariableNames += it
+                        }
                     }
                     rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()

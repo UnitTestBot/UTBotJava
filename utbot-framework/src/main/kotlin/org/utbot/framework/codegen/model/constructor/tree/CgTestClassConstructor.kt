@@ -48,6 +48,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
     fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
             this.testClass = withTestClassScope { constructTestClass(testClassModel) }
+            if (testFramework is Unittest) {
+                context.collectedImports.add(PythonImport("unittest"))
+            }
             imports.addAll(context.collectedImports)
             existingVariableNames = existingVariableNames.addAll(context.collectedImports.map { it.qualifiedName })
             sysPaths.addAll(context.collectedSysPaths.map { CgPythonSysPath(it) })
@@ -58,9 +61,6 @@ internal class CgTestClassConstructor(val context: CgContext) :
     private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
         return buildTestClass {
             id = currentTestClass
-            if (testFramework is Unittest) {
-                context.collectedImports.add(PythonImport("unittest"))
-            }
 
             if (currentTestClass != outerMostTestClass) {
                 isNested = true
@@ -135,9 +135,9 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
                     emptyLineIfNeeded()
                     for (i in executionIndices) {
-//                        runCatching {
+                        runCatching {
                             currentTestCaseTestMethods += methodConstructor.createTestMethod(methodUnderTest, testSet.executions[i])
-//                        }.onFailure { e -> processFailure(testSet, e) }
+                        }.onFailure { e -> processFailure(testSet, e) }
                     }
                     val clusterHeader = clusterSummary?.header
                     val clusterContent = clusterSummary?.content

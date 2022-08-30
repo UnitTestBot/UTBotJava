@@ -1,0 +1,9 @@
+- [ ] importIfNeeded, добавление импортов внутри testFramework
+- [ ] Переделать sys.path в import или package
+- [ ] Посмотреть, где собирается existingVariableNames, и добавить туда свои
+- [ ] Убрать if-ы из Cg... с Python -> список процессоров для вызова этих действий
+- [ ] Перенести Python модели из Api.kt в PythonApi???
+- [ ] Все изменения положить в отдельные пакеты
+- [ ] Обработка исключений (writeWarningAboutFunciton)
+- [ ] Переместить вызов pythonDeepEquals в самый верх
+- [ ] PythonTree <-> AssembleModel?

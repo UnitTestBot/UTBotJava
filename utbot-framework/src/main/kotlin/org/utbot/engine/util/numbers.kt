@@ -150,11 +150,11 @@ infix fun Number.xor(other: Number): Number = when (this) {
 }
 
 fun Number.abs(): Number = when (this) {
-    is Long -> this.abs()
-    is Int -> this.abs()
-    is Short -> this.abs()
-    is Byte -> this.abs()
-    is Double -> this.abs()
-    is Float -> this.abs()
+    is Long -> kotlin.math.abs(this)
+    is Int -> kotlin.math.abs(this)
+    is Short -> kotlin.math.abs(this.toInt()).toShort()
+    is Byte -> kotlin.math.abs(this.toInt()).toByte()
+    is Double -> kotlin.math.abs(this)
+    is Float -> kotlin.math.abs(this)
     else -> error("Unknown numeric type")
 }

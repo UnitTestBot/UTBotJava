@@ -48,15 +48,17 @@ class ConstraintBasedPostConditionConstructor(
         traverser
     ).run {
         var constraints = SymbolicStateUpdate()
-        val entryFrame = traverser.environment.state.executionStack.first()
-        val frameParameters = entryFrame.parameters.map { it.value }
-        for (model in models) {
-            constraints += buildPostCondition(
-                model,
-                this,
-                frameParameters,
-                traverser.environment.state.localVariableMemory
-            ).asSoftConstraint()
+        if (traverser.isInitialized) {
+            val entryFrame = traverser.environment.state.executionStack.first()
+            val frameParameters = entryFrame.parameters.map { it.value }
+            for (model in models) {
+                constraints += buildPostCondition(
+                    model,
+                    this,
+                    frameParameters,
+                    traverser.environment.state.localVariableMemory
+                ).asSoftConstraint()
+            }
         }
         constraints
     }
@@ -66,6 +68,7 @@ class ConstraintBasedPostConditionConstructor(
             models,
             unitContext,
             methodContext,
+            this
         )
     }
 

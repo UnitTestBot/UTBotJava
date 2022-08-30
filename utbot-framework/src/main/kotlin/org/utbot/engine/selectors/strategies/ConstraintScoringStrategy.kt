@@ -14,8 +14,10 @@ import org.utbot.engine.z3.boolValue
 import org.utbot.engine.z3.intValue
 import org.utbot.engine.z3.value
 import org.utbot.framework.plugin.api.*
+import org.utbot.framework.plugin.api.util.isSubtypeOf
 import org.utbot.framework.synthesis.SynthesisMethodContext
 import org.utbot.framework.synthesis.SynthesisUnitContext
+import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionConstructor
 import org.utbot.framework.synthesis.postcondition.constructors.UtConstraint2ExpressionConverter
 import soot.ArrayType
 import soot.PrimType
@@ -30,9 +32,10 @@ class ConstraintScoringStrategyBuilder(
     private val models: List<UtModel>,
     private val unitContext: SynthesisUnitContext,
     private val methodContext: SynthesisMethodContext,
+    private val postCondition: ConstraintBasedPostConditionConstructor
 ) : ScoringStrategyBuilder {
     override fun build(graph: InterProceduralUnitGraph, traverser: Traverser): ScoringStrategy =
-        ConstraintScoringStrategy(graph, models, unitContext, methodContext, traverser)
+        ConstraintScoringStrategy(graph, models, unitContext, methodContext, traverser, postCondition)
 }
 
 class ConstraintScoringStrategy(
@@ -41,16 +44,19 @@ class ConstraintScoringStrategy(
     private val unitContext: SynthesisUnitContext,
     private val methodContext: SynthesisMethodContext,
     private val traverser: Traverser,
+    private val postCondition: ConstraintBasedPostConditionConstructor
 ) : ScoringStrategy(graph) {
     private val logger = KotlinLogging.logger("ModelSynthesisScoringStrategy")
     private val stateModels = hashMapOf<ExecutionState, UtSolverStatus>()
     private val pathScores = hashMapOf<StmtPath, Double>()
 
+    private val distanceStatistics = DistanceStatistics(graph)
     private val typeRegistry = traverser.typeRegistry
     private val hierarchy = Hierarchy(typeRegistry)
     private val typeResolver: TypeResolver = TypeResolver(typeRegistry, hierarchy)
 
     companion object {
+        private const val DEPTH_CHECK = 10
         private const val PATH_SCORE_COEFFICIENT = 1.0
         private const val MODEL_SCORE_COEFFICIENT = 100.0
 
@@ -59,8 +65,23 @@ class ConstraintScoringStrategy(
         internal const val MIN_SCORE = 0.0
     }
 
+    private fun shouldDropBasedOnScores(state: ExecutionState): Boolean {
+        val previous = run {
+            var current = state.path
+            val res = mutableListOf<StmtPath>()
+            repeat(DEPTH_CHECK) {
+                if (current.isEmpty()) return@repeat
+                res += current
+                current = current.removeAt(current.lastIndex)
+            }
+            res.reversed()
+        }
+        val scores = previous.map { pathScores.getOrDefault(it, INF_SCORE) }
+        return scores.size >= DEPTH_CHECK && (0 until scores.lastIndex).all { scores[it] <= scores[it + 1] }
+    }
+
     override fun shouldDrop(state: ExecutionState): Boolean {
-        TODO("Not yet implemented")
+        return shouldDropBasedOnScores(state) || distanceStatistics.shouldDrop(state)
     }
 
     override fun score(executionState: ExecutionState): Double = pathScores.getOrPut(executionState.path) {
@@ -73,8 +94,12 @@ class ConstraintScoringStrategy(
 
 
     private fun computeModelScore(executionState: ExecutionState): Double {
+        if (!traverser.isInitialized) return MIN_SCORE
+        val solver = executionState.solver
+        val postCondition = postCondition.constructSoftPostCondition(traverser)
+        val newSolver = solver.add(postCondition.hardConstraints, postCondition.softConstraints)
         val holder = stateModels.getOrPut(executionState) {
-            executionState.solver.check(respectSoft = true)
+            newSolver.check(respectSoft = true)
         } as? UtSolverStatusSAT ?: return INF_SCORE
 
         val memory = executionState.executionStack.first().localVariableMemory
@@ -145,7 +170,8 @@ class UtConstraintScorer(
 
 
     override fun visitUtNegatedConstraint(expr: UtNegatedConstraint): Double {
-        return MAX_SCORE - expr.constraint.accept(this)
+        val cmp = expr.constraint.accept(this)
+        return MAX_SCORE - cmp
     }
 
     override fun visitUtRefEqConstraint(expr: UtRefEqConstraint): Double {
@@ -166,9 +192,11 @@ class UtConstraintScorer(
 
     override fun visitUtRefTypeConstraint(expr: UtRefTypeConstraint): Double {
         val operand = expr.operand.accept(varBuilder)
-
-        return when (holder.constructTypeOrNull(operand.addr, operand.type)?.classId) {
-            expr.type -> MIN_SCORE
+        val classId = holder.findTypeOrNull(operand.addr)?.classId
+        return when {
+            classId == null -> MAX_SCORE
+            classId == expr.type -> MIN_SCORE
+            classId.isSubtypeOf(expr.type) -> MIN_SCORE
             else -> MAX_SCORE
         }
     }

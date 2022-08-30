@@ -218,6 +218,9 @@ class Traverser(
 
     // TODO: move this and other mutable fields to [TraversalContext]
     lateinit var environment: Environment
+
+    val isInitialized get() = this::environment.isInitialized
+
     private val solver: UtSolver
         get() = environment.state.solver
 

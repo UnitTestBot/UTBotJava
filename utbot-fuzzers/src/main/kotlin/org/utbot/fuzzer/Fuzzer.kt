@@ -12,6 +12,7 @@ import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
+import org.utbot.fuzzer.providers.PrimitivesModelProvider
 import org.utbot.fuzzer.providers.RegexModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.util.*
@@ -145,39 +146,44 @@ fun <T> Sequence<List<FuzzedValue>>.withMutations(statistics: FuzzerStatistics<T
 }
 
 /**
- * Creates a model provider consisting of providers that do not make recursive calls inside them
+ * Creates a model provider from a list of default providers.
  */
-private fun nonRecursiveProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
+fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
     return ModelProvider.of(
+        ObjectModelProvider(idGenerator),
         CollectionModelProvider(idGenerator),
+        ArrayModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
+        ConstantsModelProvider,
         StringConstantModelProvider,
         RegexModelProvider,
         CharToStringModelProvider,
-        ConstantsModelProvider,
-        PrimitiveDefaultsModelProvider,
+        PrimitivesModelProvider,
         PrimitiveWrapperModelProvider,
     )
 }
 
 /**
- * TODO: write doc here
+ * Creates a model provider from a list of providers that we want to use by default in [RecursiveModelProvider]
  */
-private fun recursiveModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int): ModelProvider {
-    return ModelProvider.of(
-        ObjectModelProvider(idGenerator, recursionDepth),
-        ArrayModelProvider(idGenerator, recursionDepth)
+internal fun modelProviderForRecursiveCalls(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int): ModelProvider {
+    val nonRecursiveProviders = ModelProvider.of(
+        CollectionModelProvider(idGenerator),
+        EnumModelProvider(idGenerator),
+        StringConstantModelProvider,
+        CharToStringModelProvider,
+        ConstantsModelProvider,
+        PrimitiveDefaultsModelProvider,
+        PrimitiveWrapperModelProvider,
     )
-}
 
-/**
- * Creates a model provider from a list of default providers.
- */
-fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int = 1): ModelProvider =
-    if (recursionDepth >= 0)
-        nonRecursiveProviders(idGenerator).with(recursiveModelProviders(idGenerator, recursionDepth))
+    return if (recursionDepth >= 0)
+        nonRecursiveProviders
+            .with(ObjectModelProvider(idGenerator, recursionDepth))
+            .with(ArrayModelProvider(idGenerator, recursionDepth))
     else
-        nonRecursiveProviders(idGenerator)
+        nonRecursiveProviders
+}
 
 
 fun defaultModelMutators(): List<ModelMutator> = listOf(

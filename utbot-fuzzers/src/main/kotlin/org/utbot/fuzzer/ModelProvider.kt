@@ -37,7 +37,7 @@ fun interface ModelProvider {
         return if (this is Combined) {
             Combined(providers.filterNot(filter))
         } else {
-            Combined(if (filter(this)) emptyList() else listOf(this)) // TODO: remove Combined from here (?)
+            Combined(if (filter(this)) emptyList() else listOf(this))
         }
     }
 
@@ -134,8 +134,19 @@ fun interface ModelProvider {
     /**
      * Wrapper class that delegates implementation to the [providers].
      */
-    // TODO: flatten Combined instances in providers (?)
-    private class Combined(val providers: List<ModelProvider>): ModelProvider {
+    private class Combined(providers: List<ModelProvider>): ModelProvider {
+        val providers: List<ModelProvider>
+
+        init {
+            // Flattening to avoid Combined inside Combined (for correct work of except, map, etc.)
+            this.providers = providers.flatMap {
+                if (it is Combined)
+                    it.providers
+                else
+                    listOf(it)
+            }
+        }
+
         override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
             providers.forEach { provider ->
                 provider.generate(description).forEach {

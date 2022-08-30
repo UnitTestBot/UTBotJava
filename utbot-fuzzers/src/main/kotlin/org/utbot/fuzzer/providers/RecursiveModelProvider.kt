@@ -8,9 +8,9 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
-import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.exceptIsInstance
 import org.utbot.fuzzer.fuzz
+import org.utbot.fuzzer.modelProviderForRecursiveCalls
 
 /**
  * Auxiliary data class that stores information describing how to construct model from parts (submodels)
@@ -43,14 +43,14 @@ data class ModelConstructor(
 abstract class RecursiveModelProvider(
     val idGenerator: IdentityPreservingIdGenerator<Int>,
     val recursionDepthLeft: Int
-): ModelProvider {
-    var modelProviderForRecursiveCalls: ModelProvider = defaultModelProviders(idGenerator, recursionDepthLeft - 1)
+) : ModelProvider {
+    var modelProviderForRecursiveCalls: ModelProvider = modelProviderForRecursiveCalls(idGenerator, recursionDepthLeft - 1)
 
     var fallbackProvider: ModelProvider = NullModelProvider
 
     var totalLimit: Int = 1000
 
-    var branchingLimit: Int = 10 //Int.MAX_VALUE
+    var branchingLimit: Int = Int.MAX_VALUE
 
     private fun getModelProvider(numOfBranches: Int): ModelProvider =
         if (recursionDepthLeft > 0)

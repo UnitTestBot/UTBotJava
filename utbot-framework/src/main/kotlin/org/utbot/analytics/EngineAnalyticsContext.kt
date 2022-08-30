@@ -4,7 +4,7 @@ import org.utbot.engine.InterProceduralUnitGraph
 import org.utbot.engine.selectors.MLSelectorFactory
 import org.utbot.engine.selectors.MLSelectorWithRecalculationFactory
 import org.utbot.engine.selectors.MLSelectorWithoutRecalculationFactory
-import org.utbot.framework.MLSelectorType
+import org.utbot.framework.MLSelectorRecalculationType
 import org.utbot.framework.UtSettings
 
 /**
@@ -23,9 +23,9 @@ object EngineAnalyticsContext {
         }
     }
 
-    val mlSelectorFactory: MLSelectorFactory = when (UtSettings.mlSelectorType) {
-        MLSelectorType.WITHOUT_RECALCULATION -> MLSelectorWithoutRecalculationFactory()
-        MLSelectorType.WITH_RECALCULATION -> MLSelectorWithRecalculationFactory()
+    val mlSelectorFactory: MLSelectorFactory = when (UtSettings.mlSelectorRecalculationType) {
+        MLSelectorRecalculationType.WITHOUT_RECALCULATION -> MLSelectorWithoutRecalculationFactory()
+        MLSelectorRecalculationType.WITH_RECALCULATION -> MLSelectorWithRecalculationFactory()
     }
 
     var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {

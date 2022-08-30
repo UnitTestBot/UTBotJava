@@ -83,17 +83,17 @@ object UtSettings : AbstractSettings(
     var seedInPathSelector: Int? by getProperty<Int?>(42, String::toInt)
 
     /**
-     * Type of path selector
+     * Type of path selector.
      */
     var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.TORCH_SELECTOR)
 
     /**
-     * Type of MLSelector
+     * Type of MLSelector recalculation.
      */
-    var mlSelectorType: MLSelectorType by getEnumProperty(MLSelectorType.WITHOUT_RECALCULATION)
+    var mlSelectorRecalculationType: MLSelectorRecalculationType by getEnumProperty(MLSelectorRecalculationType.WITHOUT_RECALCULATION)
 
     /**
-     * Type of [StateRewardPredictor]
+     * Type of [StateRewardPredictor].
      */
     var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
 
@@ -436,9 +436,9 @@ enum class TestSelectionStrategyType {
 }
 
 /**
- * Enum to specify [NNRewardGuidedSelector], see implementations for more details
+ * Enum to specify [MLSelector], see implementations for more details
  */
-enum class MLSelectorType {
+enum class MLSelectorRecalculationType {
     /**
      * [MLSelectorWithRecalculation]
      */

@@ -32,7 +32,7 @@ IntelliJ IDEA version should be 2022.1.
 
 ### Dependency
 
-Package `com.intellij.modules.python` in `/utbot-intellij/resources/plugin.xml` is necessary dependecy, it needed to use Python Psi Tree.  
+Package `com.intellij.modules.python` in `/utbot-intellij/resources/plugin.xml` is necessary dependecy, it needed to use Python Psi tree.  
 
 
 ## Command line interface

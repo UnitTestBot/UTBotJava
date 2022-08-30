@@ -4,6 +4,7 @@ import org.utbot.common.WorkaroundReason.MAKE_SYMBOLIC
 import org.utbot.common.workaround
 import org.utbot.engine.UtListClass.UT_ARRAY_LIST
 import org.utbot.engine.UtListClass.UT_LINKED_LIST
+import org.utbot.engine.UtListClass.UT_LINKED_LIST_WITH_NULLABLE_CHECK
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_DOUBLE
 import org.utbot.engine.UtOptionalClass.UT_OPTIONAL_INT
@@ -71,8 +72,12 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(CopyOnWriteArrayList::class, UT_ARRAY_LIST.className)
         putSootClass(java.util.LinkedList::class, UT_LINKED_LIST.className)
         putSootClass(java.util.AbstractSequentialList::class, UT_LINKED_LIST.className)
-        // TODO mistake JIRA:1495
-        putSootClass(java.util.ArrayDeque::class, UT_LINKED_LIST.className)
+
+        putSootClass(java.util.ArrayDeque::class, UT_LINKED_LIST_WITH_NULLABLE_CHECK.className)
+        putSootClass(java.util.concurrent.ConcurrentLinkedDeque::class, UT_LINKED_LIST_WITH_NULLABLE_CHECK.className)
+        putSootClass(java.util.concurrent.ConcurrentLinkedQueue::class, UT_LINKED_LIST_WITH_NULLABLE_CHECK.className)
+        putSootClass(java.util.concurrent.LinkedBlockingDeque::class, UT_LINKED_LIST_WITH_NULLABLE_CHECK.className)
+        putSootClass(java.util.concurrent.LinkedBlockingQueue::class, UT_LINKED_LIST_WITH_NULLABLE_CHECK.className)
 
         putSootClass(java.util.Set::class, UtHashSet::class)
         putSootClass(java.util.AbstractSet::class, UtHashSet::class)
@@ -83,6 +88,7 @@ val classToWrapper: MutableMap<TypeToBeWrapped, WrapperType> =
         putSootClass(java.util.AbstractMap::class, UtHashMap::class)
         putSootClass(java.util.LinkedHashMap::class, UtHashMap::class)
         putSootClass(java.util.HashMap::class, UtHashMap::class)
+        putSootClass(java.util.concurrent.ConcurrentHashMap::class, UtHashMap::class)
 
         putSootClass(java.util.stream.BaseStream::class, UT_STREAM.className)
         putSootClass(java.util.stream.Stream::class, UT_STREAM.className)
@@ -143,48 +149,50 @@ private val wrappers = mapOf(
     wrap(AssociativeArray::class) { type, addr ->
         objectValue(type, addr, AssociativeArrayWrapper())
     },
+
     // list wrappers
-    wrap(java.util.List::class) { _, addr ->
-        objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST))
+    wrap(java.util.List::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
+    wrap(java.util.AbstractList::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
+    wrap(java.util.ArrayList::class) { _, addr -> objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST)) },
+
+
+    wrap(CopyOnWriteArrayList::class) { type, addr -> objectValue(type, addr, ListWrapper(UT_ARRAY_LIST)) },
+
+    wrap(java.util.LinkedList::class) { _, addr -> objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST)) },
+    wrap(java.util.AbstractSequentialList::class) { _, addr -> objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST)) },
+
+    // queue, deque wrappers
+    wrap(java.util.ArrayDeque::class) { type, addr ->
+        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
     },
-    wrap(java.util.AbstractList::class) { _, addr ->
-        objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST))
+    wrap(java.util.ArrayDeque::class) { type, addr ->
+        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
     },
-    wrap(java.util.ArrayList::class) { _, addr ->
-        objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST))
+    wrap(java.util.concurrent.ConcurrentLinkedDeque::class) { type, addr ->
+        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
     },
-    wrap(CopyOnWriteArrayList::class) { _, addr ->
-        objectValue(ARRAY_LIST_TYPE, addr, ListWrapper(UT_ARRAY_LIST))
+    wrap(java.util.concurrent.ConcurrentLinkedQueue::class) { type, addr ->
+        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
+    },
+    wrap(java.util.concurrent.LinkedBlockingDeque::class) { type, addr ->
+        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
+    },
+    wrap(java.util.concurrent.LinkedBlockingQueue::class) { type, addr ->
+        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
     },
 
-    wrap(java.util.LinkedList::class) { _, addr ->
-        objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST))
-    },
-    wrap(java.util.AbstractSequentialList::class) { _, addr ->
-        objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST))
-    },
-    // TODO mistake JIRA:1495
-    wrap(java.util.ArrayDeque::class) { _, addr ->
-        objectValue(LINKED_LIST_TYPE, addr, ListWrapper(UT_LINKED_LIST))
-    },
     // set wrappers
-    wrap(java.util.Set::class) { _, addr ->
-        objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper())
-    },
-    wrap(java.util.AbstractSet::class) { _, addr ->
-        objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper())
-    },
-    wrap(java.util.HashSet::class) { _, addr ->
-        objectValue(HASH_SET_TYPE, addr, SetWrapper())
-    },
-    wrap(java.util.LinkedHashSet::class) { _, addr ->
-        objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper())
-    },
+    wrap(java.util.Set::class) { _, addr -> objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper()) },
+    wrap(java.util.AbstractSet::class) { _, addr -> objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper()) },
+    wrap(java.util.HashSet::class) { _, addr -> objectValue(HASH_SET_TYPE, addr, SetWrapper()) },
+    wrap(java.util.LinkedHashSet::class) { _, addr -> objectValue(LINKED_HASH_SET_TYPE, addr, SetWrapper()) },
+
     // map wrappers
     wrap(java.util.Map::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
     wrap(java.util.AbstractMap::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
     wrap(java.util.LinkedHashMap::class) { _, addr -> objectValue(LINKED_HASH_MAP_TYPE, addr, MapWrapper()) },
     wrap(java.util.HashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
+    wrap(java.util.concurrent.ConcurrentHashMap::class) { _, addr -> objectValue(HASH_MAP_TYPE, addr, MapWrapper()) },
 
     // stream wrappers
     wrap(java.util.stream.BaseStream::class) { _, addr -> objectValue(STREAM_TYPE, addr, CommonStreamWrapper()) },

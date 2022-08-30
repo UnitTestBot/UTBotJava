@@ -309,7 +309,7 @@ object UtTestsDialogProcessor {
             }
             UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }
-        catch (e: Exception) {
+        catch (e: Exception) { // engine not found, for example
             logger.error { e.message }
             UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }

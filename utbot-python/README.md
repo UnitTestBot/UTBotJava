@@ -10,7 +10,7 @@ UTBot tries to maximize the code coverage while minimizing the number of tests. 
 
 There are two ways to use UTBot: as an IntelliJ IDEA plugin or through a command line interface.
 
-You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2933192370).
+You can download both archives [here](https://github.com/UnitTestBot/UTBotJava/actions/runs/2954138341).
 
 ## Python requirements
 

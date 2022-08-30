@@ -1,5 +1,14 @@
 package org.utbot.contest
 
+import java.io.File
+import java.io.FileInputStream
+import java.net.URLClassLoader
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+import java.util.concurrent.CancellationException
+import java.util.concurrent.TimeUnit
+import java.util.zip.ZipInputStream
 import mu.KotlinLogging
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
@@ -18,26 +27,16 @@ import org.utbot.contest.Paths.moduleTestDir
 import org.utbot.contest.Paths.outputDir
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
+import org.utbot.framework.PathSelectorType
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
-import java.io.File
-import java.io.FileInputStream
-import java.net.URLClassLoader
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
-import java.util.concurrent.CancellationException
-import java.util.concurrent.TimeUnit
-import java.util.zip.ZipInputStream
+import org.utbot.predictors.StateRewardPredictorFactoryImpl
 import kotlin.concurrent.thread
 import kotlin.math.min
-import kotlin.system.exitProcess
-import org.utbot.framework.plugin.services.JdkInfoService
-import org.utbot.predictors.StateRewardPredictorFactoryImpl
-import org.utbot.framework.PathSelectorType
-import org.utbot.framework.UtSettings
 
 private val logger = KotlinLogging.logger {}
 
@@ -311,7 +310,7 @@ fun runEstimator(
     projectFilter: List<String>?,
     processedClassesThreshold: Int,
     tools: List<Tool>
-) {
+): GlobalStats {
 
     val classesLists = File(args[0])
     val classpathDir = File(args[1])
@@ -424,8 +423,11 @@ fun runEstimator(
     logger.info { globalStats }
     ConcreteExecutor.defaultPool.close()
 
-    if (globalStats.statsForClasses.isNotEmpty())
-        exitProcess(1)
+//    For what?
+//    if (globalStats.statsForClasses.isNotEmpty())
+//        exitProcess(1)
+
+    return globalStats
 }
 
 private fun moveFolder(sourceFile: File, targetFile: File) {

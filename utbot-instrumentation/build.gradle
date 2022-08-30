@@ -18,8 +18,6 @@ dependencies {
 jar {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-    from sourceSets.main.output
-
     manifest {
         attributes (
                 'Main-Class': 'org.utbot.instrumentation.process.ChildProcessKt',
@@ -27,9 +25,12 @@ jar {
         )
     }
 
-    dependsOn configurations.runtimeClasspath
+    // we need only classes from implementation and utbot to execute child process
+    dependsOn configurations.compileClasspath
     from {
-        configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
+        configurations.compileClasspath
+                .findAll { it.isDirectory() || it.name.endsWith('jar') }
+                .collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 

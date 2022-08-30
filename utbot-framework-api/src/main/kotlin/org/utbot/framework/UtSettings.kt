@@ -1,11 +1,7 @@
 package org.utbot.framework
 
 import mu.KotlinLogging
-import org.utbot.common.PathUtil.toPath
-import java.io.FileInputStream
-import java.io.IOException
-import java.util.Properties
-import kotlin.properties.PropertyDelegateProvider
+import org.utbot.common.AbstractSettings
 import kotlin.reflect.KProperty
 
 private val logger = KotlinLogging.logger {}
@@ -50,43 +46,9 @@ internal class SettingDelegate<T>(val property: KProperty<*>, val initializer: (
  */
 const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
 
-object UtSettings {
-    private val properties = Properties().also { props ->
-        val settingsPath = System.getProperty(defaultKeyForSettingsPath) ?: defaultSettingsPath
-        val settingsPathFile = settingsPath.toPath().toFile()
-        if (settingsPathFile.exists()) {
-            try {
-                FileInputStream(settingsPathFile).use { reader ->
-                    props.load(reader)
-                }
-            } catch (e: IOException) {
-                logger.info(e) { e.message }
-            }
-        }
-    }
-
-    private fun <T> getProperty(
-        defaultValue: T,
-        converter: (String) -> T
-    ): PropertyDelegateProvider<UtSettings, SettingDelegate<T>> {
-        return PropertyDelegateProvider { _, property ->
-            SettingDelegate(property) {
-                try {
-                    properties.getProperty(property.name)?.let(converter) ?: defaultValue
-                } catch (e: Throwable) {
-                    logger.info(e) { e.message }
-                    defaultValue
-                }
-            }
-        }
-    }
-
-    private fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, String::toBoolean)
-    private fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, String::toInt)
-    private fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, String::toLong)
-    private fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
-    private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
-        getProperty(defaultValue) { enumValueOf(it) }
+object UtSettings : AbstractSettings(
+    logger, defaultKeyForSettingsPath, defaultSettingsPath
+) {
 
     /**
      * Setting to disable coroutines debug explicitly.
@@ -411,12 +373,6 @@ object UtSettings {
      */
     var disableSandbox by getBooleanProperty(false)
 
-    override fun toString(): String =
-        settingsValues
-            .mapKeys { it.key.name }
-            .entries
-            .sortedBy { it.key }
-            .joinToString(separator = System.lineSeparator()) { "\t${it.key}=${it.value}" }
 }
 
 /**

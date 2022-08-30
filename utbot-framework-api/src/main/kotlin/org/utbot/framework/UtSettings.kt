@@ -337,6 +337,11 @@ object UtSettings : AbstractSettings(
     var analyticsConfigurationClassPath by getStringProperty("org.utbot.AnalyticsConfiguration")
 
     /**
+     * Full class name of the class containing the configuration for the ML models exported from the PyTorch to solve path selection task.
+     */
+    var analyticsTorchConfigurationClassPath by getStringProperty("org.utbot.AnalyticsTorchConfiguration")
+
+    /**
      * Number of model iterations that will be used during ContestEstimator
      */
     var iterations by getIntProperty(1)
@@ -410,6 +415,11 @@ enum class PathSelectorType {
     ML_SELECTOR,
 
     /**
+     * [TorchSelector]
+     */
+    TORCH_SELECTOR,
+
+    /**
      * [RandomSelector]
      */
     RANDOM_SELECTOR,
@@ -448,11 +458,6 @@ enum class StateRewardPredictorType {
      * [MLStateRewardPredictorBase]
      */
     BASE,
-
-    /**
-     * [StateRewardPredictorTorch]
-     */
-    TORCH,
 
     /**
      * [LinearStateRewardPredictorBase]

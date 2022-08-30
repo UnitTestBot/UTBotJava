@@ -10,7 +10,6 @@ import org.utbot.framework.UtSettings
 class StateRewardPredictorFactoryImpl : StateRewardPredictorFactory {
     override operator fun invoke() = when (UtSettings.stateRewardPredictorType) {
         StateRewardPredictorType.BASE -> NNStateRewardPredictorBase()
-        StateRewardPredictorType.TORCH -> error("The torch model adapter is bundled with the utbot-analytics-torch module!")
         StateRewardPredictorType.LINEAR -> LinearStateRewardPredictor()
     }
 }

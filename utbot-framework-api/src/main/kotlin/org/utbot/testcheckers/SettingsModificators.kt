@@ -108,3 +108,16 @@ inline fun <reified T> withoutConcrete(block: () -> T): T {
         UtSettings.useConcreteExecution = prev
     }
 }
+
+/**
+ * Run [block] with disabled sandbox in the concrete executor
+ */
+inline fun <reified T> withoutSandbox(block: () -> T): T {
+    val prev = UtSettings.disableSandbox
+    UtSettings.disableSandbox = true
+    try {
+        return block()
+    } finally {
+        UtSettings.disableSandbox = prev
+    }
+}

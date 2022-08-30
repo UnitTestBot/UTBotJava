@@ -5,9 +5,7 @@ import org.utbot.tests.infrastructure.DoNotCalculate
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
-import org.utbot.examples.withoutSandbox
-import org.utbot.framework.codegen.CodeGeneration
-import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.testcheckers.withoutSandbox
 
 internal class JvmCrashExamplesTest : UtValueTestCaseChecker(testClass = JvmCrashExamples::class) {
     @Test

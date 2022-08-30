@@ -30,7 +30,7 @@ IntelliJ IDEA version should be 2022.1.
 
 4. After indexing has finished, move the cursor to a function, press ALT+SHIFT+U (or ALT+U, ALT+T in Ubuntu), and generate tests.
 
-### Dependencies
+### Dependency
 
 Package `com.intellij.modules.python` in `/utbot-intellij/resources/plugin.xml` is необходимый dependecy. We need it to use Python Psi Tree.  
 

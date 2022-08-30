@@ -76,9 +76,11 @@ jar {
         attributes 'Main-Class': 'org.utbot.QualityAnalysisKt'
     }
 
+    dependsOn configurations.runtimeClasspath
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 = true
 }

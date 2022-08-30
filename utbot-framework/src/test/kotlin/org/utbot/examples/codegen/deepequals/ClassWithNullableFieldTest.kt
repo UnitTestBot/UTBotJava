@@ -16,7 +16,7 @@ class ClassWithNullableFieldTest : UtValueTestCaseChecker(
     )
 ) {
     @Test
-    fun testClassWithNullableField() {
+    fun testClassWithNullableFieldInCompound() {
         check(
             ClassWithNullableField::returnCompoundWithNullableField,
             eq(2),
@@ -25,7 +25,7 @@ class ClassWithNullableFieldTest : UtValueTestCaseChecker(
     }
 
     @Test
-    fun testClassWithNullableField1() {
+    fun testClassWithNullableFieldInGreatCompound() {
         check(
             ClassWithNullableField::returnGreatCompoundWithNullableField,
             eq(3),

@@ -1,3 +1,13 @@
+pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.name == "rdgen") {
+                useModule("com.jetbrains.rd:rd-gen:${requested.version}")
+            }
+        }
+    }
+}
+
 rootProject.name = 'utbot'
 
 include 'utbot-core'
@@ -17,4 +27,5 @@ include 'utbot-summary'
 include 'utbot-gradle'
 //include 'utbot-maven'
 include 'utbot-summary-tests'
+include 'utbot-rd'
 

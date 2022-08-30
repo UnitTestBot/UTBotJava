@@ -1,5 +1,6 @@
 package org.utbot.examples
 
+import com.jetbrains.rd.util.reactive.RdFault
 import org.utbot.examples.samples.ExampleClass
 import org.utbot.examples.samples.staticenvironment.StaticExampleClass
 import org.utbot.instrumentation.ConcreteExecutor
@@ -52,9 +53,10 @@ class TestIsolated {
             }
 
             assertInstanceOf(
-                IllegalArgumentException::class.java,
+                RdFault::class.java,
                 exc.cause!!
             )
+            assertTrue((exc.cause as RdFault).reasonTypeFqn == "IllegalArgumentException")
         }
     }
 

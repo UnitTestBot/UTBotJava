@@ -1,0 +1,122 @@
+name: "UTBot Java: night statistics monitoring"
+
+on:
+   schedule:
+     - cron: '0 0 * * *'
+
+env:
+  data_branch: monitoring-data
+  data_path: monitoring/data
+  aggregated_data_branch: monitoring-aggregated-data
+  aggregated_data_path: monitoring/aggregated_data
+  monitoring_properties: monitoring/monitoring.properties
+  output_stats: stats.json
+
+jobs:
+  build_and_run_monitoring:
+    runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+    steps:
+      - name: Install git
+        run: |
+          apt-get upgrade -y
+          apt-get update -y
+          apt-get install git -y
+          git config --global --add safe.directory $(pwd)
+
+      - name: Checkout main
+        uses: actions/checkout@v3
+
+      - name: Checkout monitoring data
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.data_branch }}
+          path: ${{ env.data_path }}
+
+      - name: Checkout aggregated monitoring data
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.aggregated_data_branch }}
+          path: ${{ env.aggregated_data_path }}
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Build and run monitoring UTBot Java
+        run: |
+          gradle :utbot-junit-contest:monitoringJar
+          java -jar \
+            -Dutbot.monitoring.settings.path=$monitoring_properties \
+            utbot-junit-contest/build/libs/monitoring.jar \
+            $output_stats
+
+      - name: Get current date
+        id: date
+        run: |
+          echo "::set-output name=date::$(date +'%Y-%m-%d')"
+          echo "::set-output name=timestamp::$(date +%s)"
+          echo "::set-output name=last_month::$(date --date='last month' +%s)"
+
+      - name: Get metadata
+        id: metadata
+        run: |
+          echo "::set-output name=commit::$(git rev-parse HEAD)"
+          echo "::set-output name=short_commit::$(git rev-parse --short HEAD)"
+          echo "::set-output name=branch::$(git name-rev --name-only HEAD)"
+          echo "::set-output name=build::$(date +'%Y.%-m')"
+
+      - name: Insert metadata
+        run: |
+          python monitoring/insert_metadata.py \
+            --stats_file $output_stats \
+            --output_file "$data_path/data-$branch-$date-$timestamp-$short_commit.json" \
+            --commit $commit \
+            --branch $branch \
+            --build "$build" \
+            --timestamp $timestamp \
+            --source_type "github-action" \
+            --source_id $run_id
+        env:
+          date: ${{ steps.date.outputs.date }}
+          timestamp: ${{ steps.date.outputs.timestamp }}
+          commit: ${{ steps.metadata.outputs.commit }}
+          short_commit: ${{ steps.metadata.outputs.short_commit }}
+          branch: ${{ steps.metadata.outputs.branch }}
+          build: ${{ steps.metadata.outputs.build }}
+          run_id: ${{ github.run_id }}
+
+      - name: Build aggregated data (last month)
+        run: |
+          python monitoring/build_aggregated_data.py \
+            --input_data_dir $data_path \
+            --output_file $aggregated_data_path/aggregated-data-$date.json \
+            --timestamp_from $timestamp_from \
+            --timestamp_to $timestamp
+        env:
+          date: ${{ steps.date.outputs.date }}
+          timestamp: ${{ steps.date.outputs.timestamp }}
+          timestamp_from: ${{ steps.date.outputs.last_month }}
+
+      - name: Commit and push statistics
+        uses: actions-js/push@master
+        with:
+          branch: ${{ env.data_branch }}
+          message: 'night-monitoring-${{ steps.date.outputs.date }}'
+          directory: ${{ env.data_path }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and push aggregated statistics
+        uses: actions-js/push@master
+        with:
+          branch: ${{ env.aggregated_data_branch }}
+          message: 'night-monitoring-${{ steps.date.outputs.date }}'
+          directory: ${{ env.aggregated_data_path }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs
+          path: logs/utbot.log

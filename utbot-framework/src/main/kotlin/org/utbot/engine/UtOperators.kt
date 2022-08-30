@@ -87,26 +87,26 @@ sealed class UtBoolOperator(delegate: BoolOperator) : UtOperator<UtBoolOpExpress
         UtBoolOpExpression(this, left, right.toPrimitiveValue())
 }
 
-internal object Le : UtBoolOperator(org.utbot.engine.z3.Le)
-internal object Lt : UtBoolOperator(org.utbot.engine.z3.Lt)
-internal object Ge : UtBoolOperator(org.utbot.engine.z3.Ge)
-internal object Gt : UtBoolOperator(org.utbot.engine.z3.Gt)
-internal object Eq : UtBoolOperator(org.utbot.engine.z3.Eq)
-internal object Ne : UtBoolOperator(org.utbot.engine.z3.Ne)
+object Le : UtBoolOperator(org.utbot.engine.z3.Le)
+object Lt : UtBoolOperator(org.utbot.engine.z3.Lt)
+object Ge : UtBoolOperator(org.utbot.engine.z3.Ge)
+object Gt : UtBoolOperator(org.utbot.engine.z3.Gt)
+object Eq : UtBoolOperator(org.utbot.engine.z3.Eq)
+object Ne : UtBoolOperator(org.utbot.engine.z3.Ne)
 
-internal object Rem : UtBinOperator(org.utbot.engine.z3.Rem)
-internal object Div : UtBinOperator(org.utbot.engine.z3.Div)
-internal object Mul : UtBinOperator(org.utbot.engine.z3.Mul)
-internal object Add : UtBinOperator(org.utbot.engine.z3.Add)
-internal object Sub : UtBinOperator(org.utbot.engine.z3.Sub)
+object Rem : UtBinOperator(org.utbot.engine.z3.Rem)
+object Div : UtBinOperator(org.utbot.engine.z3.Div)
+object Mul : UtBinOperator(org.utbot.engine.z3.Mul)
+object Add : UtBinOperator(org.utbot.engine.z3.Add)
+object Sub : UtBinOperator(org.utbot.engine.z3.Sub)
 
-internal object Shl : UtBinOperator(org.utbot.engine.z3.Shl, ::leftOperandType)
-internal object Shr : UtBinOperator(org.utbot.engine.z3.Shr, ::leftOperandType)
-internal object Ushr : UtBinOperator(org.utbot.engine.z3.Ushr, ::leftOperandType)
+object Shl : UtBinOperator(org.utbot.engine.z3.Shl, ::leftOperandType)
+object Shr : UtBinOperator(org.utbot.engine.z3.Shr, ::leftOperandType)
+object Ushr : UtBinOperator(org.utbot.engine.z3.Ushr, ::leftOperandType)
 
-internal object Xor : UtBinOperator(org.utbot.engine.z3.Xor)
-internal object Or : UtBinOperator(org.utbot.engine.z3.Or)
-internal object And : UtBinOperator(org.utbot.engine.z3.And)
+object Xor : UtBinOperator(org.utbot.engine.z3.Xor)
+object Or : UtBinOperator(org.utbot.engine.z3.Or)
+object And : UtBinOperator(org.utbot.engine.z3.And)
 
 /**
  * NaN related logic - comparison anything with NaN gives false.
@@ -114,9 +114,9 @@ internal object And : UtBinOperator(org.utbot.engine.z3.And)
  * If at least one of value1 or value2 is NaN, the result of the cmpg instruction is 1,
  * and the result of cmpl is -1.
  */
-internal object Cmp : UtBinOperator(org.utbot.engine.z3.Cmp, ::intSort)
-internal object Cmpl : UtBinOperator(org.utbot.engine.z3.Cmpl, ::intSort)
-internal object Cmpg : UtBinOperator(org.utbot.engine.z3.Cmpg, ::intSort)
+object Cmp : UtBinOperator(org.utbot.engine.z3.Cmp, ::intSort)
+object Cmpl : UtBinOperator(org.utbot.engine.z3.Cmpl, ::intSort)
+object Cmpg : UtBinOperator(org.utbot.engine.z3.Cmpg, ::intSort)
 
 fun maxSort(left: PrimitiveValue, right: PrimitiveValue) =
     maxOf(left.expr.sort, right.expr.sort, UtIntSort, compareBy { it.rank() })

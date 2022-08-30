@@ -1,5 +1,6 @@
 package org.utbot.examples
 
+import com.jetbrains.rd.util.reactive.RdFault
 import org.utbot.examples.samples.ClassWithSameMethodNames
 import org.utbot.examples.samples.ExampleClass
 import org.utbot.examples.samples.staticenvironment.StaticExampleClass
@@ -46,9 +47,10 @@ class TestInvokeInstrumentation {
                 )
             }
             assertInstanceOf(
-                IllegalArgumentException::class.java,
+                RdFault::class.java,
                 exc.cause!!
             )
+            assertTrue((exc.cause as RdFault).reasonTypeFqn == "IllegalArgumentException")
         }
     }
 

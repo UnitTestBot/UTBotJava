@@ -82,4 +82,5 @@ jar {
     }
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 = true
 }

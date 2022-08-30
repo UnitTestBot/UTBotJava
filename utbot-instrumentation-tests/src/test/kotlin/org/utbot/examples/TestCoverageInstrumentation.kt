@@ -1,5 +1,6 @@
 package org.utbot.examples
 
+import com.jetbrains.rd.util.reactive.RdFault
 import org.utbot.examples.samples.ExampleClass
 import org.utbot.examples.statics.substitution.StaticSubstitution
 import org.utbot.examples.statics.substitution.StaticSubstitutionExamples
@@ -74,9 +75,10 @@ class TestCoverageInstrumentation {
             }
 
             assertInstanceOf(
-                IllegalArgumentException::class.java,
+                RdFault::class.java,
                 exc.cause!!
             )
+            assertTrue((exc.cause as RdFault).reasonTypeFqn == "IllegalArgumentException")
         }
     }
 
@@ -96,9 +98,10 @@ class TestCoverageInstrumentation {
             }
 
             assertInstanceOf(
-                IllegalArgumentException::class.java,
+                RdFault::class.java,
                 exc.cause!!
             )
+            assertTrue((exc.cause as RdFault).reasonTypeFqn == "IllegalArgumentException")
 
             it.execute(ExampleClass::bar, arrayOf(testObject, 2))
             val coverageInfo1 = it.collectCoverage(ExampleClass::class.java)

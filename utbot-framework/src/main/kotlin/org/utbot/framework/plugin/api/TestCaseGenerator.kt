@@ -5,7 +5,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -39,6 +38,7 @@ import org.utbot.framework.util.jimpleBody
 import org.utbot.framework.util.runSoot
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.warmup
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.nio.file.Path

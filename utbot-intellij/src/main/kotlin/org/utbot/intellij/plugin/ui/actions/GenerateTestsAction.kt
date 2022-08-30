@@ -1,7 +1,6 @@
 package org.utbot.intellij.plugin.ui.actions
 
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
-import org.utbot.intellij.plugin.ui.utils.KotlinPsiElementHandler
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -15,25 +14,24 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
 import org.jetbrains.kotlin.idea.core.getPackage
 import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
-import org.jetbrains.kotlin.psi.KtClass
+import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import java.util.*
 
 class GenerateTestsAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (srcClasses, focusedMethod) = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, focusedMethod)
+        val (srcClasses, focusedMethod, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethod)
     }
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 
-    private fun getPsiTargets(e: AnActionEvent): Pair<Set<PsiClass>, MemberInfo?>? {
+    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, MemberInfo?, Boolean>? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR)
         if (editor != null) {
@@ -47,27 +45,45 @@ class GenerateTestsAction : AnAction() {
                 val srcClass = psiElementHandler.containingClass(element) ?: return null
                 if (srcClass.isInterface) return null
                 val srcSourceRoot = srcClass.getSourceRoot() ?: return null
-                val srcMethods = TestIntegrationUtils.extractClassMethods(srcClass, false)
-                val focusedMethod = focusedMethodOrNull(element, srcMethods, psiElementHandler)
+                val srcMembers = srcClass.extractFirstLevelMembers(false)
+                val focusedMethod = focusedMethodOrNull(element, srcMembers, psiElementHandler)
 
                 val module = ModuleUtil.findModuleForFile(srcSourceRoot, project) ?: return null
                 val matchingRoot = ModuleRootManager.getInstance(module).contentEntries
                     .flatMap { entry -> entry.sourceFolders.toList() }
                     .singleOrNull { folder -> folder.file == srcSourceRoot }
-                if (srcMethods.isEmpty() || matchingRoot == null || matchingRoot.rootType.isForTests) {
+                if (srcMembers.isEmpty() || matchingRoot == null || matchingRoot.rootType.isForTests) {
                     return null
                 }
 
-                return Pair(setOf(srcClass), focusedMethod)
+                return Triple(setOf(srcClass), focusedMethod, true)
             }
         } else {
             // The action is being called from 'Project' tool window 
             val srcClasses = mutableSetOf<PsiClass>()
-            e.getData(CommonDataKeys.PSI_ELEMENT)?.let {
-                srcClasses += getAllClasses(it)
-            }
-            e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
-                srcClasses += getAllClasses(project, it)
+            var selectedMethod: MemberInfo? = null
+            var extractMembersFromSrcClasses = false
+            val element = e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+            if (element is PsiFileSystemItem) {
+                e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
+                    srcClasses += getAllClasses(project, it)
+                }
+            } else {
+                val file = element.containingFile ?: return null
+                val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
+
+                if (psiElementHandler.isCreateTestActionAvailable(element)) {
+                    psiElementHandler.containingClass(element)?.let {
+                        srcClasses += setOf(it)
+                        extractMembersFromSrcClasses = true
+                        if (it.extractFirstLevelMembers(false).isEmpty())
+                            return null
+                    }
+
+                    if (element is PsiMethod) {
+                        selectedMethod = MemberInfo(element)
+                    }
+                }
             }
             srcClasses.removeIf { it.isInterface }
             var commonSourceRoot = null as VirtualFile?
@@ -84,7 +100,7 @@ class GenerateTestsAction : AnAction() {
                      .filter { folder -> !folder.rootType.isForTests && folder.file == commonSourceRoot}
                      .findAny().isPresent ) return null
 
-            return Pair(srcClasses, null)
+            return Triple(srcClasses.toSet(), selectedMethod, extractMembersFromSrcClasses)
         }
         return null
     }
@@ -114,20 +130,12 @@ class GenerateTestsAction : AnAction() {
         return methods.singleOrNull { it.member == currentMethod }
     }
 
-    private fun getAllClasses(psiElement: PsiElement): Set<PsiClass> {
-        return when (psiElement) {
-            is KtClass -> setOf(KotlinPsiElementHandler().toPsi(psiElement, PsiClass::class.java))
-            is PsiClass -> setOf(psiElement)
-            is PsiDirectory -> getAllClasses(psiElement)
-            else -> emptySet()
-        }
-    }
-
     private fun getAllClasses(directory: PsiDirectory): Set<PsiClass> {
         val allClasses = directory.files.flatMap { getClassesFromFile(it) }.toMutableSet()
         for (subDir in directory.subdirectories) allClasses += getAllClasses(subDir)
         return allClasses
     }
+
     private fun getAllClasses(project: Project, virtualFiles: Array<VirtualFile>): Set<PsiClass> {
         val psiFiles = virtualFiles.mapNotNull { it.toPsiFile(project) }
         val psiDirectories = virtualFiles.mapNotNull { it.toPsiDirectory(project) }

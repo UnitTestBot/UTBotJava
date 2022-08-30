@@ -1,5 +1,5 @@
 # Usage:
-# ./generate_test_samples.sh <absolute_python_path>
+# ./generate_test_samples.sh <absolute_python_path> <java_path>
 
 python_path=$1
 java_path=$2

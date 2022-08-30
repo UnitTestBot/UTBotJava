@@ -42,6 +42,17 @@ fun interface ModelProvider {
     }
 
     /**
+     * Applies [transform] for current provider
+     */
+    fun map(transform: (ModelProvider) -> ModelProvider): ModelProvider {
+        return if (this is Combined) {
+            Combined(providers.map(transform))
+        } else {
+            transform(this)
+        }
+    }
+
+    /**
      * Creates [ModelProvider] that passes unprocessed classes to `modelProvider`.
      *
      * Returned model provider is called before `modelProvider` is called, therefore consumer will get values
@@ -123,7 +134,19 @@ fun interface ModelProvider {
     /**
      * Wrapper class that delegates implementation to the [providers].
      */
-    private class Combined(val providers: List<ModelProvider>): ModelProvider {
+    private class Combined(providers: List<ModelProvider>): ModelProvider {
+        val providers: List<ModelProvider>
+
+        init {
+            // Flattening to avoid Combined inside Combined (for correct work of except, map, etc.)
+            this.providers = providers.flatMap {
+                if (it is Combined)
+                    it.providers
+                else
+                    listOf(it)
+            }
+        }
+
         override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
             providers.forEach { provider ->
                 provider.generate(description).forEach {

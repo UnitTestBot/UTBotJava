@@ -439,7 +439,7 @@ class UtBotSymbolicEngine(
                 packageName = executableId.classId.packageName
             }
             fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
-                limitValuesCreatedByFieldAccessors = 500
+                totalLimit = 500
             })
         }.withMutations(
             TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()

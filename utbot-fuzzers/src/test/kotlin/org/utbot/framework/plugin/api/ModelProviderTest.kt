@@ -196,7 +196,7 @@ class ModelProviderTest {
             val classId = A::class.java.id
             val models = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                    modelProvider = ModelProvider.of(PrimitiveDefaultsModelProvider)
+                    modelProviderForRecursiveCalls = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
                 parameters = listOf(classId)
             )
@@ -482,7 +482,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                modelProvider = PrimitiveDefaultsModelProvider
+                modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(FieldSetterClass::class.java.id))
             assertEquals(1, result.size)
             assertEquals(2, result[0]!!.size)
@@ -510,7 +510,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                modelProvider = PrimitiveDefaultsModelProvider
+                modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
                 packageName = PackagePrivateFieldAndClass::class.java.`package`.name
             }

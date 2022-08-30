@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.HTML_LINE_SEPARATOR
 import org.utbot.common.PathUtil.toHtmlLinkTag
+import org.utbot.common.allNestedClasses
 import org.utbot.common.appendHtmlLine
 import org.utbot.framework.codegen.Import
 import org.utbot.framework.codegen.ParametrizedTestSource
@@ -70,6 +71,7 @@ import org.utbot.intellij.plugin.ui.WarningTestsReportNotifier
 import org.utbot.intellij.plugin.ui.utils.getOrCreateSarifReportsPath
 import org.utbot.intellij.plugin.ui.utils.showErrorDialogLater
 import org.utbot.intellij.plugin.util.RunConfigurationHelper
+import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.intellij.plugin.util.signature
 import org.utbot.sarif.SarifReport
 import java.nio.file.Path
@@ -82,7 +84,11 @@ import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
 
-    fun generateTests(model: GenerateTestsModel, testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>) {
+    fun generateTests(
+        model: GenerateTestsModel,
+        testSetsByClass: Map<PsiClass, List<UtMethodTestSet>>,
+        psi2KClass: Map<PsiClass, KClass<*>>
+    ) {
         val baseTestDirectory = model.testSourceRoot?.toPsiDirectory(model.project)
             ?: return
         val allTestPackages = getPackageDirectories(baseTestDirectory)
@@ -98,9 +104,10 @@ object CodeGenerationController {
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
                 val file = testClass.containingFile
+                val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(srcClass, testClass, file, testSets, model, latch, reports)
+                        generateCodeAndReport(srcClass, cut, testClass, file, testSets, model, latch, reports)
                         testFiles.add(file)
                     } catch (e: IncorrectOperationException) {
                         showCreatingClassError(model.project, createTestClassName(srcClass))
@@ -240,6 +247,7 @@ object CodeGenerationController {
 
     private fun generateCodeAndReport(
         srcClass: PsiClass,
+        classUnderTest: KClass<*>,
         testClass: PsiClass,
         file: PsiFile,
         testSets: List<UtMethodTestSet>,
@@ -247,8 +255,7 @@ object CodeGenerationController {
         reportsCountDown: CountDownLatch,
         reports: MutableList<TestsGenerationReport>,
     ) {
-        val classUnderTest = testSets.first().method.clazz
-        val classMethods = TestIntegrationUtils.extractClassMethods(srcClass, false)
+        val classMethods = srcClass.extractClassMethodsIncludingNested(false)
         val paramNames = DumbService.getInstance(model.project)
             .runReadActionInSmartMode(Computable { findMethodParamNames(classUnderTest, classMethods) })
 
@@ -339,7 +346,7 @@ object CodeGenerationController {
 
     private fun findMethodParamNames(clazz: KClass<*>, methods: List<MemberInfo>): Map<ExecutableId, List<String>> {
         val bySignature = methods.associate { it.signature() to it.paramNames() }
-        return clazz.functions
+        return clazz.allNestedClasses.flatMap { it.functions }
             .mapNotNull { method -> bySignature[method.signature()]?.let { params -> method.executableId to params } }
             .toMap()
     }

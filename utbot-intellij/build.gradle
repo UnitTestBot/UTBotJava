@@ -44,7 +44,9 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = "2021.2"
+    // https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html#intellij-platform-based-products-of-recent-ide-versions
+    // https://confluence.jetbrains.com/display/IDEADEV/IDEA+2021.2+latest+builds
+    version = "212.5712.43"
     type = "IC"
     plugins = ['java',
                // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
@@ -53,7 +55,8 @@ intellij {
                'org.jetbrains.android']
 
     patchPluginXml {
-        version = project.version
+        sinceBuild = '212'
+        untilBuild = '221.*'
     }
 }
 

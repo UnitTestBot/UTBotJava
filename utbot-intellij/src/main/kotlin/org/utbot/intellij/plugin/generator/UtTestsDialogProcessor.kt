@@ -311,6 +311,7 @@ object UtTestsDialogProcessor {
         }
         catch (e: Exception) {
             logger.error { e.message }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }
     }
 

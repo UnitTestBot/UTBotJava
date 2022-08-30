@@ -1,4 +1,0 @@
-tqdm
-typeshed_client
-astor
-mypy

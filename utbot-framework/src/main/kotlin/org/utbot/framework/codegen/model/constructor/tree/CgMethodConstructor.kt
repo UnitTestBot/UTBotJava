@@ -1171,7 +1171,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 else -> {
                     when (expected) {
                         is CgPythonTree -> pythonDeepEquals(expected, actual)
-                        is CgPythonRepr -> testFrameworkManager.assertEquals(expected, actual)
                         is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
                         else -> generateDeepEqualsOrNullAssertion(expected, actual)

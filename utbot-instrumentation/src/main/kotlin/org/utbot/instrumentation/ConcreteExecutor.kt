@@ -83,6 +83,14 @@ class ConcreteExecutorPool(val maxCount: Int = Settings.defaultConcreteExecutorP
         executors.forEach { it.close() }
         executors.clear()
     }
+
+    fun forceTerminateProcesses() {
+        executors.forEach {
+            it.forceTerminateProcess()
+        }
+        executors.clear()
+    }
+
 }
 
 /**
@@ -258,6 +266,10 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
     }
 
     override fun close() {
+        forceTerminateProcess()
+    }
+
+    fun forceTerminateProcess() {
         runBlocking {
             corMutex.withLock {
                 if (alive) {
@@ -272,6 +284,7 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
             }
         }
     }
+
 }
 
 fun ConcreteExecutor<*,*>.warmup() = runBlocking {

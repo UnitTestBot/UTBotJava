@@ -6,6 +6,7 @@ import org.utbot.framework.plugin.api.MockFramework
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.LibraryOrderEntry
+import org.utbot.framework.codegen.model.util.parametrizedTestsPatterns
 import org.utbot.framework.codegen.model.util.Patterns
 
 fun findFrameworkLibrary(
@@ -23,6 +24,13 @@ fun findFrameworkLibrary(
     mockFramework: MockFramework,
     scope: LibrarySearchScope = LibrarySearchScope.Module,
 ): LibraryOrderEntry? = findMatchingLibrary(project, testModule, mockFramework.patterns(), scope)
+
+fun findParametrizedTestsLibrary(
+    project: Project,
+    testModule: Module,
+    testFramework: TestFramework,
+    scope: LibrarySearchScope = LibrarySearchScope.Module,
+): LibraryOrderEntry? = findMatchingLibrary(project, testModule, testFramework.parametrizedTestsPatterns(), scope)
 
 private fun findMatchingLibrary(
     project: Project,

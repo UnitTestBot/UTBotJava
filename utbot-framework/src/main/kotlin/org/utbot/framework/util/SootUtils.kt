@@ -34,6 +34,7 @@ import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
 import org.utbot.engine.overrides.collections.AbstractCollection
+import org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck
 import org.utbot.engine.overrides.stream.Arrays
 import org.utbot.engine.overrides.stream.Stream
 import org.utbot.engine.overrides.stream.UtStream
@@ -129,6 +130,7 @@ private val classesToLoad = arrayOf(
     UtArrayList::class,
     UtArrayList.UtArrayListIterator::class,
     UtLinkedList::class,
+    UtLinkedListWithNullableCheck::class,
     UtLinkedList.UtLinkedListIterator::class,
     UtLinkedList.ReverseIteratorWrapper::class,
     UtHashSet::class,

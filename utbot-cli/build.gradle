@@ -6,9 +6,9 @@ configurations {
 }
 
 dependencies {
-    api project(':utbot-framework-api')
+    implementation project(':utbot-framework-api')
     implementation project(':utbot-framework')
-    api project(':utbot-summary')
+    implementation project(':utbot-summary')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     // Without this dependency testng tests do not run.
@@ -49,10 +49,6 @@ classes {
 }
 
 jar {
-    dependsOn project(':utbot-framework').tasks.jar
-    dependsOn project(':utbot-summary').tasks.jar
-    dependsOn project(':utbot-fuzzers').tasks.jar
-
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli'
@@ -63,6 +59,7 @@ jar {
 
     archiveVersion.set(project.version as String)
 
+    dependsOn configurations.runtimeClasspath
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }

@@ -53,9 +53,9 @@ if ! netstat -tulpn | grep -q ${PORT_NODE_EXPORTER} ; then
 fi
 
 # custom java processes memory metrics
-chmod +x scripts/ps_parser.sh
+chmod +x scripts/project/ps_parser.sh
 while true; do
-  ./scripts/ps_parser.sh | curl -u "${PUSHGATEWAY_USER}":"${PUSHGATEWAY_PASSWORD}" --data-binary @- "https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${PROM_ADDITIONAL_LABELS}" 2>/dev/null
+  ./scripts/project/ps_parser.sh | curl -u "${PUSHGATEWAY_USER}":"${PUSHGATEWAY_PASSWORD}" --data-binary @- "https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${PROM_ADDITIONAL_LABELS}" 2>/dev/null
   sleep ${SLEEP_TIME_SECONDS}
 done &
 

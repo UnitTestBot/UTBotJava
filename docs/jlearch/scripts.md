@@ -5,7 +5,7 @@ For each scenario: go to root of `UTBotJava` repository - it is `WORKDIR`.
 
 Before start of work run:
 ```bash
-./scripts/prepare.sh
+./scripts/ml/prepare.sh
 ```
 
 It will copy contest resources in `contest_input` folder and build the project, because we use jars, so if you want to change something in code and re-run scripts, then you should run:
@@ -16,11 +16,11 @@ It will copy contest resources in `contest_input` folder and build the project, 
 ## To Train a few iterations of your models:
 By default features directory is `eval/features` - it should be created, to change it you should manually do it in source code of scripts.
 
-List projects and selectors on what you want to train in `scripts/prog_list` and `scripts/selector_list`. You will be trained on all methods of all classes from `contest_input/classes/<project name>/list`.
+List projects and selectors on what you want to train in `scripts/ml/prog_list` and `scripts/selector_list`. You will be trained on all methods of all classes from `contest_input/classes/<project name>/list`.
 
 Then just run:
 ```bash
-./scripts/train_iteratively.sh <time_limit> <iterations> <output_dir> <python_command>
+./scripts/ml/train_iteratively.sh <time_limit> <iterations> <output_dir> <python_command>
 ```
 Python command is your command for python3, in the end of execution you will get iterations models in `<output_dir>` folder and features for each selector and project in `<features_dir>/<selector>/<project>` for `selector` from `selectors_list` and in `<features_dir>/jlearch/<selector>/<prog>` for models.
 
@@ -29,7 +29,7 @@ Check that `srcTestDir` with your project exist in `build.gradle` of `utbot-juni
 
 Then just run: 
 ```bash
-./scripts/run_with_coverage.sh <project> <time_limit> <path_selector> <selector_alias>
+./scripts/ml/run_with_coverage.sh <project> <time_limit> <path_selector> <selector_alias>
 ``` 
 
 In the end of execution you will get jacoco report in `eval/jacoco/<project>/<selector_alias>/` folder.
@@ -37,7 +37,7 @@ In the end of execution you will get jacoco report in `eval/jacoco/<project>/<se
 ## To estimate quality
 Just run:
 ```bash
-./scripts/quality_analysis.sh <project> <selector_aliases, separated by comma>
+./scripts/ml/quality_analysis.sh <project> <selector_aliases, separated by comma>
 ```
 It will take coverage reports from relative report folders (at `eval/jacoco/project/alias`) and generate charts in `$outputDir/<project>/<timestamp>.html`.
 `outputDir` can be changed in `QualityAnalysisConfig`. Result file will contain information about 3 metrics:

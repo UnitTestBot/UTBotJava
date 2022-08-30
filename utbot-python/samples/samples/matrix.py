@@ -10,8 +10,15 @@ class MatrixException(Exception):
 
 class Matrix:
     def __init__(self, elements: List[List[float]]):
-        self.elements = elements
-        self.dim = (len(elements), len(elements[0]) if len(elements) > 0 else 0)
+        self.dim = (
+            len(elements),
+            max(len(elements[i]) for i in range(len(elements)))
+            if len(elements) > 0 else 0
+        )
+        self.elements = [
+            row + [0] * (self.dim[1] - len(row))
+            for row in elements
+        ]
 
     def __repr__(self):
         return str(self.elements)

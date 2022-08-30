@@ -1,5 +1,6 @@
 import datetime
 
+
 def get_data_labels(dates):
     if len(dates) == 0:
         return None

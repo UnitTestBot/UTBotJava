@@ -1,4 +1,4 @@
-def inhibition(number, string, string_sep, list_of_number, dict_str_to_list):
+def type_inference(number, string, string_sep, list_of_number, dict_str_to_list):
     new_string = '_' + string + '_' * number
     new_string = new_string.capitalize() + string_sep + new_string[::-1]
 
@@ -13,4 +13,4 @@ def inhibition(number, string, string_sep, list_of_number, dict_str_to_list):
 
 
 if __name__ == '__main__':
-    print(inhibition(5, 'fjsl', '|', [1, 2, 3], {'fjls': [1, 2]}))
+    print(type_inference(5, 'fjsl', '|', [1, 2, 3], {'fjls': [1, 2]}))

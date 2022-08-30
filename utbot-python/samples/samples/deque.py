@@ -1,6 +1,8 @@
 from collections import deque
 
 
-def generate_people_queue(people_count: int):
+def generate_people_deque(people_count: int):
     names = ['Alex', 'Bob', 'Cate', 'Daisy', 'Ed']
-    return deque(sorted(names[:min(len(names), people_count)]))
+    if people_count > 5:
+        people_count = 5
+    return deque(sorted(names[:people_count]))

@@ -1,9 +1,9 @@
 import sys
 sys.path.append('samples')
-import unittest
 import builtins
 import using_collections
 import collections
+import unittest
 
 
 class TestTopLevelFunctions(unittest.TestCase):
@@ -13,6 +13,7 @@ class TestTopLevelFunctions(unittest.TestCase):
         actual = using_collections.generate_collections({})
         
         counter = collections.Counter({0: 100, })
+        
         self.assertEqual([{0: 100, }, counter, [(0, 100)]], actual)
     
     # endregion

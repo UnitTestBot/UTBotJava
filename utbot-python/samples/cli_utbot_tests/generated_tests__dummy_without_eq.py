@@ -1,10 +1,10 @@
 import sys
-sys.path.append('/home/tochilinak/Documents/projects/utbot/UTBotJava/utbot-python/samples/samples')
-import unittest
+sys.path.append('samples')
 import dummy_without_eq
 import builtins
 import copyreg
 import types
+import unittest
 
 
 class TestDummy(unittest.TestCase):
@@ -19,12 +19,14 @@ class TestDummy(unittest.TestCase):
         expected_list = [dummy1, dummy1]
         expected_length = len(expected_list)
         actual_length = len(actual)
+        
         self.assertEqual(expected_length, actual_length)
         
         index = None
         for index in range(0, expected_length, 1):
             expected_element = expected_list[index]
             actual_element = actual[index]
+            
             self.assertTrue(isinstance(actual_element, dummy_without_eq.Dummy))
     
     # endregion

@@ -1,10 +1,10 @@
 import sys
 sys.path.append('samples')
-import unittest
 import builtins
 import deep_equals
 import copyreg
 import types
+import unittest
 
 
 class TestTopLevelFunctions(unittest.TestCase):
@@ -33,6 +33,7 @@ class TestTopLevelFunctions(unittest.TestCase):
         comparable_class8.x = 8
         comparable_class9 = copyreg._reconstructor(deep_equals.ComparableClass, builtins.object, None)
         comparable_class9.x = 9
+        
         self.assertEqual([comparable_class, comparable_class1, comparable_class2, comparable_class3, comparable_class4, comparable_class5, comparable_class6, comparable_class7, comparable_class8, comparable_class9], actual)
     
     # endregion
@@ -67,6 +68,7 @@ class TestTopLevelFunctions(unittest.TestCase):
         expected_list = [incomparable_class, incomparable_class1, incomparable_class2, incomparable_class3, incomparable_class4, incomparable_class5, incomparable_class6, incomparable_class7, incomparable_class8, incomparable_class9]
         expected_length = len(expected_list)
         actual_length = len(actual)
+        
         self.assertEqual(expected_length, actual_length)
         
         index = None
@@ -75,6 +77,7 @@ class TestTopLevelFunctions(unittest.TestCase):
             actual_element = actual[index]
             actual_x = actual_element.x
             expected_x = expected_element.x
+            
             self.assertEqual(expected_x, actual_x)
     
     # endregion

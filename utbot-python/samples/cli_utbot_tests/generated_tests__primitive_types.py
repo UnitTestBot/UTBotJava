@@ -1,8 +1,8 @@
 import sys
 sys.path.append('samples')
-import unittest
 import builtins
 import primitive_types
+import unittest
 
 
 class TestTopLevelFunctions(unittest.TestCase):

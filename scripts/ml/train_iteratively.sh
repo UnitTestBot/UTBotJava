@@ -11,7 +11,7 @@ WORKDIR="."
 
 echo "Start training data on heuristical based selectors"
 
-$WORKDIR/scripts/train_data.sh $TIME_LIMIT
+$WORKDIR/scripts/ml/train_data.sh $TIME_LIMIT
 
 echo "Start iterative learning of models"
 
@@ -28,7 +28,7 @@ do
       echo "EXTRA_ARGS=$EXTRA_ARGS"
     fi
 
-    COMMAND="$PYTHON_COMMAND $WORKDIR/scripts/train.py --features_dir $WORKDIR/eval/features --output_dir $OUTPUT_DIR/$model/$i --prog_list $WORKDIR/scripts/prog_list --model $model $EXTRA_ARGS"
+    COMMAND="$PYTHON_COMMAND $WORKDIR/scripts/ml/train.py --features_dir $WORKDIR/eval/features --output_dir $OUTPUT_DIR/$model/$i --prog_list $WORKDIR/scripts/prog_list --model $model $EXTRA_ARGS"
     echo "TRAINING COMMAND=$COMMAND"
     $COMMAND
   done
@@ -44,7 +44,7 @@ do
         PREDICTOR="LINEAR"
       fi
 
-     $WORKDIR/scripts/run_contest_estimator.sh $prog $TIME_LIMIT "NN_REWARD_GUIDED_SELECTOR $OUTPUT_DIR/$model/$i $PREDICTOR" "true eval/features/jlearch/$model$i/$prog"
+     $WORKDIR/scripts/ml/run_contest_estimator.sh $prog $TIME_LIMIT "NN_REWARD_GUIDED_SELECTOR $OUTPUT_DIR/$model/$i $PREDICTOR" "true eval/features/jlearch/$model$i/$prog"
     done
-  done <"$WORKDIR/scripts/prog_list"
+  done <"$WORKDIR/scripts/ml/prog_list"
 done

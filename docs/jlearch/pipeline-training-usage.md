@@ -32,6 +32,6 @@ Briefly:
 To do this, you should:
 * Be sure that you use `Java 8` by `java` command and set `JAVA_HOME` to `Java 8`. 
 * Put projects, on which you want to learn in `contest_input/projects` folder, then list classes, on which you want to learn in `contest_input/classes/<project name>/list` (if it is empty, than we will take all classes from project jar).
-* Run `pip install -r scripts/requirements.txt`. It is up to you to make it in virtual environment or not.
-* List selectors in `scripts/selector_list` and projects in `scripts/prog_list`
-* Run `./scripts/train_iteratively.sh `
+* Run `pip install -r scripts/ml/requirements.txt`. It is up to you to make it in virtual environment or not.
+* List selectors in `scripts/ml/selector_list` and projects in `scripts/ml/prog_list`
+* Run `./scripts/ml/train_iteratively.sh `

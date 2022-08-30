@@ -36,7 +36,7 @@ import org.utbot.engine.selectors.coveredNewSelector
 import org.utbot.engine.selectors.cpInstSelector
 import org.utbot.engine.selectors.forkDepthSelector
 import org.utbot.engine.selectors.inheritorsSelector
-import org.utbot.engine.selectors.nnRewardGuidedSelector
+import org.utbot.engine.selectors.mlSelector
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
 import org.utbot.engine.selectors.pollUntilFastSAT
 import org.utbot.engine.selectors.randomPathSelector
@@ -137,7 +137,10 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         PathSelectorType.FORK_DEPTH_SELECTOR -> forkDepthSelector(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
-        PathSelectorType.ML_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
+        PathSelectorType.ML_SELECTOR -> mlSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.TORCH_SELECTOR -> mlSelector(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
         PathSelectorType.RANDOM_SELECTOR -> randomSelector(graph, StrategyOption.DISTANCE) {

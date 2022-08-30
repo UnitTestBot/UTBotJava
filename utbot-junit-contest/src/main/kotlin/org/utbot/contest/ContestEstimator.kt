@@ -329,12 +329,12 @@ fun runEstimator(
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
     EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
-    if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
+    if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
     }
     
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
-    if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
+    if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
         logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
     }
 

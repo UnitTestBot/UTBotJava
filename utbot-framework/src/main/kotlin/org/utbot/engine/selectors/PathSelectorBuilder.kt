@@ -169,13 +169,13 @@ fun interleavedSelector(graph: InterProceduralUnitGraph, builder: InterleavedSel
     InterleavedSelectorBuilder(graph).apply(builder).build()
 
 /**
- * build [MLSelector] using [NNRewardGuidedSelectorBuilder]
+ * build [MLSelector] using [MLSelectorBuilder]
  */
-fun nnRewardGuidedSelector(
+fun mlSelector(
     graph: InterProceduralUnitGraph,
     strategy: StrategyOption,
-    builder: NNRewardGuidedSelectorBuilder.() -> Unit
-) = NNRewardGuidedSelectorBuilder(graph, strategy).apply(builder).build()
+    builder: MLSelectorBuilder.() -> Unit
+) = MLSelectorBuilder(graph, strategy).apply(builder).build()
 
 data class PathSelectorContext(
     val graph: InterProceduralUnitGraph,
@@ -527,7 +527,7 @@ class InterleavedSelectorBuilder internal constructor(
 /**
  * Builder for [MLSelector]. Used in []
  */
-class NNRewardGuidedSelectorBuilder internal constructor(
+class MLSelectorBuilder internal constructor(
     graph: InterProceduralUnitGraph,
     private val strategy: StrategyOption,
     context: PathSelectorContext = PathSelectorContext(graph),

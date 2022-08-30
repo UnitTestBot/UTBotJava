@@ -311,7 +311,7 @@ object UtTestsDialogProcessor {
         }
         catch (e: Exception) { // engine not found, for example
             logger.error { e.message }
-            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR // TODO: it's not enough just switch on alternative selector, probably we need to reconfigure all the stuff EngineAnalyticsContext
         }
     }
 

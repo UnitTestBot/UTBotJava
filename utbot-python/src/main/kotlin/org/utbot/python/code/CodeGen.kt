@@ -113,7 +113,8 @@ object PythonCodeGenerator {
         methodArguments: List<UtModel>,
         directoriesForSysPath: Set<String>,
         moduleToImport: String,
-        additionalModules: Set<String> = emptySet()
+        additionalModules: Set<String> = emptySet(),
+        fileForOutputName: String
     ): String {
 
         val importStatements = generateImportFunctionCode(
@@ -146,6 +147,7 @@ object PythonCodeGenerator {
         val statusName = Name("__status")
         val exceptionName = Name("__exception")
         val serialisedName = Name("__serialized")
+        val fileName = Name("__out_file")
 
         val fullpath = Assign(
             listOf(fullpathName),
@@ -273,15 +275,33 @@ object PythonCodeGenerator {
             )
         )
 
-
-        val printStmt = Atom(
-            Name("print"),
+        val printStmt = With(
             listOf(
-                createArguments(
-                    listOf(statusName, jsonDumps, stmtsFilteredWithDefName, missedFilteredName),
-                    listOf(
-                        Keyword(Name("end"), Str("''")),
-                        Keyword(Name("sep"), Str("'\\n'"))
+                WithItem(Name("open(\"$fileForOutputName\", \"w\")"), fileName)
+            ),
+            Atom(
+                fileName,
+                listOf(
+                    Attribute(Identifier("write")),
+                    createArguments(
+                        listOf(
+                            Atom(
+                                Name("\"\\n\""),
+                                listOf(
+                                    Attribute(Identifier("join")),
+                                    createArguments(listOf(
+                                        ListExpr(
+                                            listOf(
+                                                Atom(Name("str"), listOf(createArguments(listOf(statusName)))),
+                                                Atom(Name("str"), listOf(createArguments(listOf(jsonDumps)))),
+                                                Atom(Name("str"), listOf(createArguments(listOf(stmtsFilteredWithDefName)))),
+                                                Atom(Name("str"), listOf(createArguments(listOf(missedFilteredName))))
+                                            )
+                                        )
+                                    ))
+                                )
+                            )
+                        )
                     )
                 )
             )

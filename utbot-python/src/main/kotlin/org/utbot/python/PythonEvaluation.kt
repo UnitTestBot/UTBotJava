@@ -40,16 +40,22 @@ data class EvaluationInput(
 
 data class EvaluationProcess (
     val process: Process,
-    val fileWithCode: File
+    val fileWithCode: File,
+    val fileForOutput: File
 )
 
 fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
+    val fileForOutput = FileManager.assignTemporaryFile(
+        tag = "out_" + input.method.name + ".py",
+        addToCleaner = false
+    )
     val runCode = PythonCodeGenerator.generateRunFunctionCode(
         input.method,
         input.methodArguments,
         input.directoriesForSysPath,
         input.moduleToImport,
-        input.additionalModulesToImport
+        input.additionalModulesToImport,
+        fileForOutput.path
     )
     val fileWithCode = FileManager.createTemporaryFile(
         runCode,
@@ -58,7 +64,8 @@ fun startEvaluationProcess(input: EvaluationInput): EvaluationProcess {
     )
     return EvaluationProcess(
         startProcess(listOf(input.pythonPath, fileWithCode.path)),
-        fileWithCode
+        fileWithCode,
+        fileForOutput
     )
 }
 
@@ -71,7 +78,8 @@ fun getEvaluationResult(input: EvaluationInput, process: EvaluationProcess, time
             if (result.terminatedByTimeout) "Timeout" else "Non-zero exit status"
         )
 
-    val output = result.stdout.split('\n')
+    val output = process.fileForOutput.readText().split('\n')
+    process.fileForOutput.delete()
 
     if (output.size != 4)
         return EvaluationError("Incorrect format of output")

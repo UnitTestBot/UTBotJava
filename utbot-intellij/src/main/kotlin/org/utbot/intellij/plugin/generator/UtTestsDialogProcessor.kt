@@ -309,6 +309,9 @@ object UtTestsDialogProcessor {
             }
             UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }
+        catch (e: Exception) {
+            logger.error { e.message }
+        }
     }
 
     private fun errorMessage(className: String?, timeout: Long) = buildString {

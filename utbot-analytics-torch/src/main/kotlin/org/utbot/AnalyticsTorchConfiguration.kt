@@ -12,7 +12,7 @@ import org.utbot.predictors.StateRewardPredictorWithTorchModelsSupportFactoryImp
  * @see <a href="https://github.com/UnitTestBot/UTBotJava/issues/725">
  *     Issue: Enable utbot-analytics module in utbot-intellij module</a>
  */
-object AnalyticsWithTorchModelsSupportConfiguration {
+object AnalyticsTorchConfiguration {
     init {
         EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
         EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()

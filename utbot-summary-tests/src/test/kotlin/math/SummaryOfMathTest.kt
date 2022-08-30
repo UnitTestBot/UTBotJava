@@ -2,6 +2,7 @@ package math
 
 import examples.SummaryTestCaseGeneratorTest
 import guava.examples.math.Stats
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
@@ -17,6 +18,7 @@ class SummaryOfMathTest : SummaryTestCaseGeneratorTest(
     Stats::class,
 ) {
     @Test
+    @Disabled
     fun testOfInts() {
         val summary1 = "Test calls {@link guava.examples.math.StatsAccumulator#addAll(int[])},\n" +
                 "    there it triggers recursion of addAll once, \n" +

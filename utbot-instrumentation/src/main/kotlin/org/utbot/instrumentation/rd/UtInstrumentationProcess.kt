@@ -6,6 +6,7 @@ import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.isAlive
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
+import org.utbot.common.getPid
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.rd.generated.AddPathsParams
@@ -53,7 +54,7 @@ class UtInstrumentationProcess private constructor(
         // 1. child process will create file "${processId}.created" - this indicates that child process is ready to receive messages
         // 2. we will test the connection via sync RdSignal
         // only then we can successfully start operating
-        val pid = process.toHandle().pid().toInt()
+        val pid = process.getPid.toInt()
         val syncFile = File(processSyncDirectory, childCreatedFileName(pid))
 
         while (lifetime.isAlive) {

@@ -13,7 +13,7 @@ import com.jetbrains.rd.util.lifetime.plusAssign
 import com.jetbrains.rd.util.threading.SingleThreadScheduler
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import org.utbot.common.scanForClasses
+import org.utbot.common.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
 import org.utbot.instrumentation.instrumentation.Instrumentation
@@ -64,7 +64,7 @@ private object HandlerClassesLoader : URLClassLoader(emptyArray()) {
 
 private typealias ChildProcessLogLevel = LogLevel
 
-private val logLevel = ChildProcessLogLevel.Trace
+private val logLevel = ChildProcessLogLevel.Info
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
@@ -116,7 +116,7 @@ suspend fun main(args: Array<String>) = runBlocking {
         ?.run { split("=").last().toInt().coerceIn(1..65535) }
         ?: throw IllegalArgumentException("No port provided")
 
-    val pid = ProcessHandle.current().pid().toInt()
+    val pid = currentProcessPid.toInt()
     val def = LifetimeDefinition()
 
     SingleThreadScheduler(Lifetime.Eternal, "")
@@ -146,6 +146,7 @@ suspend fun main(args: Array<String>) = runBlocking {
         lifetime += { logInfo { "lifetime terminated" } }
         try {
             logInfo {"pid - $pid"}
+            logInfo {"isJvm8 - $isJvm8, isJvm9Plus - $isJvm9Plus, isWindows - $isWindows"}
             initiate(lifetime, port, pid)
         } finally {
             val syncFile = File(processSyncDirectory, childCreatedFileName(pid))
@@ -264,11 +265,6 @@ private suspend fun initiate(lifetime: Lifetime, port: Int, pid: Int) {
         SocketWire.Client(lifetime, scheduler, port),
         lifetime
     )
-    logInfo {
-        "heartbeatAlive - ${clientProtocol.wire.heartbeatAlive.value}, connected - ${
-            clientProtocol.wire.connected.value
-        }"
-    }
     val (sync, protocolModel) = obtainClientIO(lifetime, clientProtocol)
 
     protocolModel.setup(kryoHelper) {
@@ -279,6 +275,7 @@ private suspend fun initiate(lifetime: Lifetime, port: Int, pid: Int) {
 
     val answerFromMainProcess = sync.adviseForConditionAsync(lifetime) {
         if (it == "main") {
+            logTrace { "received from main" }
             measureExecutionForTermination {
                 sync.fire("child")
             }

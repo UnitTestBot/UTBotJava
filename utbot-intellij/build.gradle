@@ -35,7 +35,6 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
 
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
-    implementation(project(":utbot-fuzzers"))
     // implementation project(':utbot-analytics') // to reduce the plugin size
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))

@@ -31,7 +31,13 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.*;
+import java.net.URLClassLoader;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.utbot.external.api.UtModelFactoryKt.classIdForType;
@@ -60,7 +66,6 @@ public class UtBotJavaApiTest {
 
     @BeforeEach
     public void setUp() {
-        SootUtils.runSoot(PrimitiveFields.class);
         context = UtContext.Companion.setUtContext(new UtContext(PrimitiveFields.class.getClassLoader()));
         modelFactory = new UtModelFactory();
     }
@@ -1221,6 +1226,7 @@ public class UtBotJavaApiTest {
 
     @Test
     public void testFuzzingSimple() {
+        SootUtils.runSoot(StringSwitchExample.class);
         UtBotJavaApi.setStopConcreteExecutorOnExit(false);
 
         String classpath = getClassPath(StringSwitchExample.class);

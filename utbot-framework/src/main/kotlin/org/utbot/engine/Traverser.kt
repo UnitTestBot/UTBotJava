@@ -2437,6 +2437,9 @@ class Traverser(
         val method = invokeExpr.retrieveMethod()
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
+
+        // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
+        // TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
         return commonInvokePart(invocation)
     }
 
@@ -2455,7 +2458,23 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
-        // First, check if there is override for the invocation itself, not for the targets
+        /**
+         * First, check if there is override for the invocation itself, not for the targets.
+         *
+         * Note that calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers,
+         * so here we resolve [invocation] to the inherited method invocation if it's something like:
+         *
+         * ```java
+         * public class InheritedWrapper extends BaseWrapper {
+         *     public void add(Object o) {
+         *         // some stuff
+         *         super.add(o); // this resolves to InheritedWrapper::add instead of BaseWrapper::add
+         *     }
+         * }
+         * ```
+         *
+         * TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
+         */
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
 
         // If so, return the result of the override

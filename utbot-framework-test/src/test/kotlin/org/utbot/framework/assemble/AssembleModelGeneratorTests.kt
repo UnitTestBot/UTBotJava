@@ -31,7 +31,6 @@ import org.utbot.examples.assemble.constructors.PrivateConstructor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithSetter
 import org.utbot.examples.assemble.defaults.DefaultPackagePrivateField
 import org.utbot.examples.assemble.statics.StaticField
-import org.utbot.framework.SootUtils
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
@@ -56,6 +55,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.util.SootUtils
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.

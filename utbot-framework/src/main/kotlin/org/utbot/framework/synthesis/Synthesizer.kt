@@ -1,6 +1,7 @@
 package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
+import org.utbot.framework.UtSettings.synthesisMaxDepth
 import org.utbot.framework.UtSettings.synthesisTimeoutInMillis
 import org.utbot.framework.modifications.StatementsStorage
 import org.utbot.framework.plugin.api.*
@@ -13,7 +14,7 @@ internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPr
 class Synthesizer(
     val testCaseGenerator: TestCaseGenerator,
     val parameters: List<UtModel>,
-    val depth: Int = 4
+    val depth: Int = synthesisMaxDepth
 ) {
     companion object {
         private val logger = KotlinLogging.logger("ConstrainedSynthesizer")

@@ -406,7 +406,13 @@ object UtSettings {
      * Timeout model synthesis
      *
      */
-    var synthesisTimeoutInMillis by getLongProperty(6000L)
+    var synthesisTimeoutInMillis by getLongProperty(60000L)
+
+    /**
+     * Max depth for synthesis search
+     *
+     */
+    var synthesisMaxDepth by getIntProperty(10)
 
     override fun toString(): String =
         settingsValues

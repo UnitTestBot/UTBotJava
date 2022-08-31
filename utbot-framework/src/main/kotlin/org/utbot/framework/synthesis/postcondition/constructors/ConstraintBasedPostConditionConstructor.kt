@@ -403,7 +403,11 @@ class UtConstraint2ExpressionConverter(
     }
 
     override fun visitUtBoolConstraint(expr: UtBoolConstraint): UtBoolExpression =
-        expr.operand.accept(this@UtConstraint2ExpressionConverter).exprValue as UtBoolExpression
+        when (val bool = expr.operand.accept(this@UtConstraint2ExpressionConverter).exprValue) {
+            is UtBoolExpression -> bool
+            is UtArraySelectExpression -> UtEqExpression(bool, UtTrue)
+            else -> throw NotSupportedByConstraintResolverException()
+        }
 
     override fun visitUtEqConstraint(expr: UtEqConstraint): UtBoolExpression = with(expr) {
         val lhvVal = lhv.accept(this@UtConstraint2ExpressionConverter)

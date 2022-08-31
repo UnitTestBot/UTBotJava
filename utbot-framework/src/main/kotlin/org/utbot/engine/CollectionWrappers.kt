@@ -208,16 +208,15 @@ enum class UtListClass {
 }
 
 /**
- * BaseCollectionWrapper that uses implementation of [UtArrayList] or [UtLinkedList]
+ * BaseCollectionWrapper that uses implementation of [UtArrayList], [UtLinkedList], or [UtLinkedListWithNullableCheck]
  * depending on specified [utListClass] parameter.
  *
- * This class is also used for wrapping [java.util.Deque] as [UtLinkedList] and [UtLinkedListWithNullableCheck]
- * implement [java.util.Deque].
+ * This class is also used for wrapping [java.util.Queue], because [UtLinkedList] and [UtLinkedListWithNullableCheck]
+ * both implement [java.util.Queue].
  *
  * At resolving stage ListWrapper is resolved to [UtAssembleModel].
- * This model is instantiated by [java.util.ArrayList] constructor if utListClass is [UtListClass.UT_ARRAY_LIST],
- * by [java.util.LinkedList] constructor if utListClass is [UtListClass.UT_LINKED_LIST] or by other constructors
- * depending on concrete type from passed [ReferenceValue] in [resolveValueModels] function.
+ * This model is instantiated by constructor which is taken from the type from the passed [ReferenceValue] in [value]
+ * function.
  *
  * Modification chain consists of consequent [java.util.Collection.add] methods
  * that are arranged to iterating order of list.

@@ -2,11 +2,11 @@ package org.utbot.examples.collections
 
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.examples.UtValueTestCaseChecker
-import org.utbot.examples.eq
-import org.utbot.examples.isException
-import org.utbot.framework.codegen.CodeGeneration
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.CodeGeneration
+import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+import org.utbot.tests.infrastructure.isException
 
 class QueueUsagesTest : UtValueTestCaseChecker(
     testClass = QueueUsages::class,

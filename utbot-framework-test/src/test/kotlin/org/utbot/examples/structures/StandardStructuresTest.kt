@@ -12,7 +12,9 @@ import java.util.LinkedList
 import java.util.TreeMap
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.CodeGeneration
 
 internal class StandardStructuresTest : UtValueTestCaseChecker(
     testClass = StandardStructures::class,

@@ -172,7 +172,7 @@ class ConstructorAnalyzer {
         for (assn in assignments) {
             val jimpleLocal = assn.rightOp as? JimpleLocal ?: continue
 
-            val field = (assn.leftOp as JInstanceFieldRef).field
+            val field = (assn.leftOp as? JInstanceFieldRef)?.field ?: continue
             val parameterIndex = jimpleBody.locals.indexOfFirst { it.name == jimpleLocal.name }
             indexedFields[parameterIndex - 1] = FieldId(field.declaringClass.id, field.name)
         }

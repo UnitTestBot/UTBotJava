@@ -34,8 +34,8 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
-import org.utbot.framework.util.runSoot
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.warmup
@@ -78,7 +78,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                runSoot(buildDir, classpath)
+                SootUtils.runSoot(buildDir, classpath)
             }
 
             //warmup

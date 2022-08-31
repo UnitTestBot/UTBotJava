@@ -1,25 +1,15 @@
 package org.utbot.examples.manual
 
-import org.utbot.common.FileUtil
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
-import java.nio.file.Path
 
 object SootUtils {
     @JvmStatic
     fun runSoot(clazz: Class<*>) {
-        val buildDir = FileUtil.locateClassPath(clazz.kotlin) ?: FileUtil.isolateClassFiles(clazz.kotlin)
-        val buildDirPath = buildDir.toPath()
-
-        if (buildDirPath != previousBuildDir) {
-            org.utbot.framework.util.runSoot(buildDirPath, null)
-            previousBuildDir = buildDirPath
-        }
+        org.utbot.framework.util.SootUtils.runSoot(clazz.kotlin)
     }
-
-    private var previousBuildDir: Path? = null
 }
 
 fun fields(

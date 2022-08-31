@@ -12,7 +12,6 @@ import org.utbot.examples.modificators.StronglyConnectedComponents
 import org.utbot.examples.modificators.coupling.ClassA
 import org.utbot.examples.modificators.coupling.ClassB
 import org.utbot.examples.modificators.hierarchy.InheritedModifications
-import org.utbot.framework.SootUtils
 import org.utbot.framework.modifications.AnalysisMode
 import org.utbot.framework.modifications.AnalysisMode.AllModificators
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
@@ -25,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.utbot.framework.util.SootUtils
 
 internal class UtBotFieldModificatorsTest {
     private lateinit var fieldsModificatorsSearcher: UtBotFieldsModificatorsSearcher

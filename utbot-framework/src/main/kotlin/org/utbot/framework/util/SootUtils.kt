@@ -52,10 +52,35 @@ import soot.jimple.JimpleBody
 import soot.options.Options
 import soot.toolkits.graph.ExceptionalUnitGraph
 
+object SootUtils {
+    /**
+     * Runs Soot in tests if it hasn't already been done.
+     */
+    fun runSoot(clazz: KClass<*>) {
+        val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
+        val buildDirPath = buildDir.toPath()
+
+        runSoot(buildDirPath, null)
+    }
+
+    fun runSoot(buildDirPath: Path, classPath: String?) {
+        synchronized(this) {
+            if (buildDirPath != previousBuildDir || classPath != previousClassPath) {
+                org.utbot.framework.util.runSoot(buildDirPath, classPath)
+                previousBuildDir = buildDirPath
+                previousClassPath = classPath
+            }
+        }
+    }
+
+    private var previousBuildDir: Path? = null
+    private var previousClassPath: String? = null
+}
+
 /**
 Convert code to Jimple
  */
-fun runSoot(buildDir: Path, classpath: String?) {
+private fun runSoot(buildDir: Path, classpath: String?) {
     G.reset()
     val options = Options.v()
 

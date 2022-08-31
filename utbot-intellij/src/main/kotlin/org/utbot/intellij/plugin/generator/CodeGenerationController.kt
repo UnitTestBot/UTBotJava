@@ -33,7 +33,6 @@ import com.intellij.psi.PsiMethod
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
-import com.intellij.psi.util.childrenOfType
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.IncorrectOperationException
@@ -49,6 +48,7 @@ import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
+import org.jetbrains.kotlin.psi.psiUtil.getChildrenOfType
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.scripting.resolve.classId
 import org.utbot.common.HTML_LINE_SEPARATOR
@@ -355,7 +355,7 @@ object CodeGenerationController {
                 ?.firstOrNull()
                 ?: return@runReadAction null
 
-            utilClass.childrenOfType<PsiComment>()
+            utilClass.getChildrenOfType<PsiComment>()
                 .map { comment -> comment.text }
                 .firstOrNull { text -> UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX in text }
                 ?.substringAfterLast(UtilClassKind.UTIL_CLASS_VERSION_COMMENT_PREFIX)
@@ -373,7 +373,7 @@ object CodeGenerationController {
                 ?.firstOrNull()
                 ?: return@runReadAction null
 
-            utilClass.childrenOfType<PsiComment>()
+            utilClass.getChildrenOfType<PsiComment>()
                 .map { comment -> comment.text }
                 .mapNotNull { text -> UtilClassKind.utilClassKindByCommentOrNull(text) }
                 .firstOrNull()

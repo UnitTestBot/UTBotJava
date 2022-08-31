@@ -1,0 +1,96 @@
+{
+    "version": 1,
+    "targets": [
+        {
+            "id": "guava",
+            "version": "0",
+            "parameters": [
+                {
+                    "class_timeout_sec": 20,
+                    "run_timeout_min": 20
+                },
+                {
+                    "class_timeout_sec": 20,
+                    "run_timeout_min": 20
+                },
+                {
+                    "class_timeout_sec": 20,
+                    "run_timeout_min": 20
+                }
+            ],
+            "metrics": [
+                {
+                    "duration_ms": 634896,
+                    "classes_for_generation": 20,
+                    "testcases_generated": 904,
+                    "classes_without_problems": 10,
+                    "classes_canceled_by_timeout": 8,
+                    "total_methods_for_generation": 519,
+                    "methods_with_at_least_one_testcase_generated": 321,
+                    "methods_with_exceptions": 44,
+                    "suspicious_methods": 60,
+                    "test_classes_failed_to_compile": 6,
+                    "covered_instructions": 4918,
+                    "covered_instructions_by_fuzzing": 4024,
+                    "covered_instructions_by_concolic": 1679,
+                    "total_instructions": 9519,
+                    "avg_coverage": 56.67283315399434
+                },
+                {
+                    "duration_ms": 675730,
+                    "classes_for_generation": 20,
+                    "testcases_generated": 650,
+                    "classes_without_problems": 9,
+                    "classes_canceled_by_timeout": 6,
+                    "total_methods_for_generation": 519,
+                    "methods_with_at_least_one_testcase_generated": 321,
+                    "methods_with_exceptions": 61,
+                    "suspicious_methods": 102,
+                    "test_classes_failed_to_compile": 6,
+                    "covered_instructions": 4559,
+                    "covered_instructions_by_fuzzing": 4038,
+                    "covered_instructions_by_concolic": 900,
+                    "total_instructions": 9750,
+                    "avg_coverage": 55.39081228970302
+                },
+                {
+                    "duration_ms": 778641,
+                    "classes_for_generation": 20,
+                    "testcases_generated": 0,
+                    "classes_without_problems": 0,
+                    "classes_canceled_by_timeout": 20,
+                    "total_methods_for_generation": 519,
+                    "methods_with_at_least_one_testcase_generated": 0,
+                    "methods_with_exceptions": 0,
+                    "suspicious_methods": 0,
+                    "test_classes_failed_to_compile": 0,
+                    "covered_instructions": 0,
+                    "covered_instructions_by_fuzzing": 0,
+                    "covered_instructions_by_concolic": 0,
+                    "total_instructions": 0,
+                    "avg_coverage": 0.0
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "source": {
+            "type": "github-action",
+            "id": "2960601614"
+        },
+        "commit_hash": "54337ca85fde719f72a28ec1ec4c89068192f4ff",
+        "branch": "main",
+        "build_number": "2022.8",
+        "timestamp": 1661909870,
+        "date": "2022-08-31T01:37:50",
+        "environment": {
+            "host": "c4d07d106d91",
+            "OS": "Linux version #20~20.04.1-Ubuntu SMP Fri Aug 5 12:16:53 UTC 2022",
+            "java_version": "openjdk version \"11.0.15\" 2022-04-19 LTS\nOpenJDK Runtime Environment Zulu11.56+19-CA (build 11.0.15+10-LTS)\nOpenJDK 64-Bit Server VM Zulu11.56+19-CA (build 11.0.15+10-LTS, mixed mode)\n",
+            "gradle_version": "Gradle 7.4.2",
+            "JAVA_HOME": "/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64",
+            "KOTLIN_HOME": "/opt/kotlin/kotlinc",
+            "PATH": "/__t/Python/3.9.13/x64/bin:/__t/Python/3.9.13/x64:/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64/bin:/opt/gradle/gradle-7.4.2/bin:/opt/kotlin/kotlinc/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        }
+    }
+}

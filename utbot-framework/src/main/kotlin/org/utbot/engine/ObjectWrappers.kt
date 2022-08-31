@@ -165,9 +165,6 @@ private val wrappers = mapOf(
     wrap(java.util.ArrayDeque::class) { type, addr ->
         objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
     },
-    wrap(java.util.ArrayDeque::class) { type, addr ->
-        objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
-    },
     wrap(java.util.concurrent.ConcurrentLinkedDeque::class) { type, addr ->
         objectValue(type, addr, ListWrapper(UT_LINKED_LIST_WITH_NULLABLE_CHECK))
     },

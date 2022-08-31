@@ -3,9 +3,7 @@ package org.utbot.framework.codegen.model.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.RegularImport
-import org.utbot.framework.codegen.StaticImport
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.codegen.model.util.CgPrinter
@@ -36,7 +34,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgTestClassFile) {
-        renderPythonImport(PythonImport(importName = "sys"))
+        renderPythonImport(PythonSysPathImport(sysPath = "sys"))
         renderSysPaths(element)
         element.imports.filterIsInstance<PythonImport>().forEach {
             renderPythonImport(it)
@@ -212,6 +210,10 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun renderStaticImport(staticImport: StaticImport) {
         TODO("Not yet implemented")
+    }
+
+    override fun renderPythonImport(pythonImport: PythonSysPathImport) {
+        println("sys.path.append('${pythonImport.sysPath}')")
     }
 
     override fun renderPythonImport(pythonImport: PythonImport) {

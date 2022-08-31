@@ -47,6 +47,8 @@ internal open class CgTestClassConstructor(val context: CgContext) :
      */
     open fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
+            this.testClass = withTestClassScope { constructTestClass(testClassModel) }
+            imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }

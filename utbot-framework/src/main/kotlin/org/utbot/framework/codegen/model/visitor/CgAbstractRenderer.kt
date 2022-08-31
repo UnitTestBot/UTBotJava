@@ -3,10 +3,7 @@ package org.utbot.framework.codegen.model.visitor
 import org.apache.commons.text.StringEscapeUtils
 import org.utbot.common.WorkaroundReason.LONG_CODE_FRAGMENTS
 import org.utbot.common.workaround
-import org.utbot.framework.codegen.Import
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.RegularImport
-import org.utbot.framework.codegen.StaticImport
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
@@ -935,4 +932,5 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
     override fun visit(element: CgPythonTuple) {}
     override fun visit(element: CgPythonList) {}
     override fun visit(element: CgPythonSet) {}
+    open fun renderPythonImport(pythonImport: PythonSysPathImport) {}
 }

@@ -193,6 +193,8 @@ sealed class TestFramework(
     abstract val nestedClassesShouldBeStatic: Boolean
     abstract val argListClassId: ClassId
 
+    open val testSuperClass: ClassId? = null
+
     open val assertEquals by lazy { assertionId("assertEquals", objectClassId, objectClassId) }
 
     val assertFloatEquals by lazy { assertionId("assertEquals", floatClassId, floatClassId, floatClassId) }
@@ -294,10 +296,9 @@ object Pytest : TestFramework(displayName = "pytest") {
 }
 
 object Unittest : TestFramework(displayName = "Unittest") {
+    override val testSuperClass: ClassId? = PythonClassId("unittest.TestCase")
     override val mainPackage: String = "unittest"
-    override val assertionsClass: ClassId = PythonClassId(
-        "self"
-    )
+    override val assertionsClass: ClassId = PythonClassId("self")
     override val arraysAssertionsClass: ClassId = assertionsClass
     override val testAnnotation: String
         get() = TODO("Not yet implemented")

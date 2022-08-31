@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.util.underlyingType
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
 import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.PythonUserImport
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.*
@@ -243,11 +244,11 @@ internal fun CgContextOwner.importIfNeeded(method: MethodId) {
 }
 
 internal fun CgContextOwner.importIfNeeded(method: PythonMethodId) {
-    collectedImports += PythonImport(method.moduleName)
+    collectedImports += PythonUserImport(method.moduleName)
 }
 
 internal fun CgContextOwner.importIfNeeded(pyClass: PythonClassId) {
-    collectedImports += PythonImport(pyClass.name, pyClass.moduleName)
+    collectedImports += PythonUserImport(pyClass.name, pyClass.moduleName)
 }
 
 /**

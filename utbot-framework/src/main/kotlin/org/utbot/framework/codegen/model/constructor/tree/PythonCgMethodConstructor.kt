@@ -1,11 +1,11 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.model.constructor.builtin.closeMethodIdOrNull
+import org.utbot.framework.codegen.PythonUserImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.python.util.moduleOfType
@@ -54,7 +54,7 @@ internal class PythonCgMethodConstructor(context: CgContext) : CgMethodConstruct
                         if (param is PythonModel) {
                             param.allContainingClassIds.forEach {
                                 existingVariableNames += it.moduleName
-                                collectedImports += PythonImport(it.moduleName)
+                                importIfNeeded(it)
                             }
                         }
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
@@ -87,7 +87,7 @@ internal class PythonCgMethodConstructor(context: CgContext) : CgMethodConstruct
         }
 
     private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
-        collectedImports += PythonImport(objectNode.type.moduleName)
+        collectedImports += PythonUserImport(objectNode.type.moduleName)
         return when (objectNode) {
             is PythonTree.PrimitiveNode -> {
                 CgLiteral(objectNode.type, objectNode.repr)
@@ -121,7 +121,7 @@ internal class PythonCgMethodConstructor(context: CgContext) : CgMethodConstruct
                 }
                 val constructorModule = moduleOfType(objectNode.constructor) ?: objectNode.constructor
                 existingVariableNames += constructorModule
-                collectedImports += PythonImport(constructorModule)
+                collectedImports += PythonUserImport(constructorModule)
 
                 val initArgs = objectNode.args.map {
                     pythonBuildObject(it)

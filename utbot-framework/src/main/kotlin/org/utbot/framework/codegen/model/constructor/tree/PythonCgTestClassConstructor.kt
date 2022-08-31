@@ -2,6 +2,7 @@ package org.utbot.framework.codegen.model.constructor.tree;
 
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.PythonUserImport
 import org.utbot.framework.codegen.Unittest
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
@@ -14,7 +15,7 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
         return buildTestClassFile {
             this.testClass = withTestClassScope { constructTestClass(testClassModel) }
             if (testFramework is Unittest) {
-                context.collectedImports.add(PythonImport("unittest"))
+                context.collectedImports.add(PythonUserImport("unittest"))
             }
             imports.addAll(context.collectedImports)
             existingVariableNames = existingVariableNames.addAll(context.collectedImports.map { it.qualifiedName })
@@ -72,7 +73,7 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
             // all methods are generated so that all necessary info is already present in the context
             with (currentTestClassContext) {
                 annotations += collectedTestClassAnnotations
-                superclass = if (testFramework is Unittest) PythonClassId("unittest.TestCase") else testClassSuperclass
+                superclass = testFramework.testSuperClass
                 interfaces += collectedTestClassInterfaces
             }
         }

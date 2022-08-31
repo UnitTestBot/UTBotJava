@@ -64,6 +64,6 @@ tasks {
     runIde {
         jvmArgs("-Xmx2048m")
         //// Uncomment and set correct path to Android Studio to run it
-        // ideDirectory = file('d:/AS2021')
+         //ideDir = file('d:/AS2021')
     }
 }

@@ -358,7 +358,8 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      * Finds most appropriate constructor in class.
      *
      * If the [compositeModel].fields is empty, we don't care about affected fields, we would like to take an empty
-     * constructor or an appropriate constructor with the least number of arguments.
+     * constructor if the declaring class is from [java.util] package or an appropriate constructor with the least
+     * number of arguments.
      *
      * Otherwise, we prefer constructor that allows to set more fields than others
      * and use only simple assignments like "this.a = a".
@@ -374,9 +375,10 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
             .map { it.executableId }
 
         return if (compositeModel.fields.isEmpty()) {
+            val fromUtilPackage = classId.packageName.startsWith("java.util")
             constructorIds
                 .sortedBy { it.parameters.size }
-                .firstOrNull { it.parameters.isEmpty() || constructorAnalyzer.isAppropriate(it) }
+                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || constructorAnalyzer.isAppropriate(it) }
         } else {
             constructorIds
                 .sortedByDescending { it.parameters.size }

@@ -14,7 +14,13 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.testcheckers.eq
 
-internal class StandardStructuresTest : UtValueTestCaseChecker(testClass = StandardStructures::class) {
+internal class StandardStructuresTest : UtValueTestCaseChecker(
+    testClass = StandardStructures::class,
+    languagePipelines = listOf(
+        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    )
+) {
     @Test
     @Disabled("TODO down cast for object wrapper JIRA:1480")
     fun testGetList() {

@@ -147,16 +147,16 @@ import java.lang.reflect.ParameterizedType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
-internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
+internal open class CgMethodConstructor(val context: CgContext) : CgContextOwner by context,
     CgFieldStateManager by CgComponents.getFieldStateManagerBy(context),
     CgCallableAccessManager by CgComponents.getCallableAccessManagerBy(context),
     CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
 
-    private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-    private val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
+    protected val nameGenerator = CgComponents.getNameGeneratorBy(context)
+    protected val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
 
-    private val variableConstructor = CgComponents.getVariableConstructorBy(context)
-    private val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
+    protected val variableConstructor = CgComponents.getVariableConstructorBy(context)
+    protected val mockFrameworkManager = CgComponents.getMockFrameworkManagerBy(context)
 
     private val floatDelta: Float = 1e-6f
     private val doubleDelta = 1e-6
@@ -169,7 +169,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private val fieldsOfExecutionResults = mutableMapOf<Pair<FieldId, Int>, MutableList<UtModel>>()
 
-    private fun setupInstrumentation() {
+    protected fun setupInstrumentation() {
         if (currentExecution is UtSymbolicExecution) {
             val execution = currentExecution as UtSymbolicExecution
             val instrumentation = execution.instrumentation
@@ -219,7 +219,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      * Thus, this method only caches an actual initial static fields state in order to recover it
      * at the end of the test, and it has nothing to do with the 'before' and 'after' caches.
      */
-    private fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
+    protected fun rememberInitialStaticFields(statics: Map<FieldId, UtModel>) {
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
@@ -244,7 +244,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
+    protected fun substituteStaticFields(statics: Map<FieldId, UtModel>, isParametrized: Boolean = false) {
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
@@ -267,7 +267,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun recoverStaticFields() {
+    protected fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
             if (field.canBeSetIn(testClassPackageName)) {
                 field.declaringClass[field] `=` prevValue
@@ -294,7 +294,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * Generates result assertions for unit tests.
      */
-    private fun generateResultAssertions() {
+    protected fun generateResultAssertions() {
         when (currentExecutable) {
             is ConstructorId -> generateConstructorCall(currentExecutable!!, currentExecution!!)
             is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating result assertions")
@@ -464,7 +464,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
      *
      * Note: not supported in parameterized tests.
      */
-    private fun generateFieldStateAssertions() {
+    protected fun generateFieldStateAssertions() {
         val thisInstanceCache = statesCache.thisInstance
         for (path in thisInstanceCache.paths) {
             assertStatesByPath(thisInstanceCache, path)
@@ -715,8 +715,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
                 }
-                is PythonTreeModel -> pythonDeepEquals(expected, actual)
-                is PythonModel -> TODO("Not yet implemented")
+                else -> {}
             }
         }
     }
@@ -984,7 +983,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 is UtVoidModel -> {
                     // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
                 }
-                is PythonModel -> TODO("Not yet implemented")
+                else -> {}
             }
         }
     }
@@ -1024,7 +1023,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             is UtVoidModel -> {
                 // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
             }
-            is PythonModel -> TODO("Not yet implemented")
+            else -> {}
         }
     }
 
@@ -1096,69 +1095,69 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return ClassIdArrayInfo(classId, nestedElementClassId, dimensions)
     }
 
-    private fun assertEquality(expected: CgValue, actual: CgVariable) {
+    open fun assertEquality(expected: CgValue, actual: CgVariable) {
         when {
             expected.type.isArray -> {
-                // TODO: How to compare arrays of Float and Double wrappers?
-                // TODO: For example, JUnit5 does not have an assertEquals() overload for these wrappers.
-                // TODO: So for now we compare arrays of these wrappers as arrays of Objects, but that is probably wrong.
-                when (expected.type.elementClassId!!) {
-                    floatClassId -> testFrameworkManager.assertFloatArrayEquals(
-                        typeCast(floatArrayClassId, expected, isSafetyCast = true),
-                        typeCast(floatArrayClassId, actual, isSafetyCast = true),
-                        floatDelta
-                    )
-                    doubleClassId -> testFrameworkManager.assertDoubleArrayEquals(
-                        typeCast(doubleArrayClassId, expected, isSafetyCast = true),
-                        typeCast(doubleArrayClassId, actual, isSafetyCast = true),
-                        doubleDelta
-                    )
-                    else -> {
-                        val targetType = when {
-                            expected.type.isPrimitiveArray -> expected.type
-                            actual.type.isPrimitiveArray -> actual.type
-                            else -> objectArrayClassId
-                        }
-                        if (targetType.isPrimitiveArray) {
-                            // we can use simple arrayEquals for primitive arrays
-                            testFrameworkManager.assertArrayEquals(
-                                targetType,
-                                typeCast(targetType, expected, isSafetyCast = true),
-                                typeCast(targetType, actual, isSafetyCast = true)
-                            )
-                        } else {
-                            // array of objects, have to use deep equals
+                                 // TODO: How to compare arrays of Float and Double wrappers?
+                                 // TODO: For example, JUnit5 does not have an assertEquals() overload for these wrappers.
+                                 // TODO: So for now we compare arrays of these wrappers as arrays of Objects, but that is probably wrong.
+                                 when (expected.type.elementClassId!!) {
+                                 floatClassId -> testFrameworkManager.assertFloatArrayEquals(
+                                 typeCast(floatArrayClassId, expected, isSafetyCast = true),
+                                 typeCast(floatArrayClassId, actual, isSafetyCast = true),
+                                 floatDelta
+                                 )
+                                 doubleClassId -> testFrameworkManager.assertDoubleArrayEquals(
+                                 typeCast(doubleArrayClassId, expected, isSafetyCast = true),
+                                 typeCast(doubleArrayClassId, actual, isSafetyCast = true),
+                                 doubleDelta
+                                 )
+                                 else -> {
+                                 val targetType = when {
+                                 expected.type.isPrimitiveArray -> expected.type
+                                 actual.type.isPrimitiveArray -> actual.type
+                                 else -> objectArrayClassId
+                                 }
+                                 if (targetType.isPrimitiveArray) {
+                                 // we can use simple arrayEquals for primitive arrays
+                                 testFrameworkManager.assertArrayEquals(
+                                 targetType,
+                                 typeCast(targetType, expected, isSafetyCast = true),
+                                 typeCast(targetType, actual, isSafetyCast = true)
+                                 )
+                                 } else {
+                                 // array of objects, have to use deep equals
 
-                            when (expected) {
-                                is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
-                                is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
-                                else -> {
-                                    require(resultModel is UtArrayModel) {
-                                        "Result model have to be UtArrayModel to generate arrays assertion " +
-                                                "but `${resultModel::class}` found"
-                                    }
-                                    generateDeepEqualsOrNullAssertion(expected, actual)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                                 when (expected) {
+                                 is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
+                                 is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
+                                 else -> {
+                                 require(resultModel is UtArrayModel) {
+                                 "Result model have to be UtArrayModel to generate arrays assertion " +
+                                 "but `${resultModel::class}` found"
+                                 }
+                                 generateDeepEqualsOrNullAssertion(expected, actual)
+                                 }
+                                 }
+                                 }
+                                 }
+                                 }
+                                 }
             else -> when {
                 (expected.type == floatClassId || expected.type == floatWrapperClassId) -> {
-                    testFrameworkManager.assertFloatEquals(
-                        typeCast(floatClassId, expected, isSafetyCast = true),
-                        typeCast(floatClassId, actual, isSafetyCast = true),
-                        floatDelta
-                    )
-                }
+                                                                                       testFrameworkManager.assertFloatEquals(
+                                                                                       typeCast(floatClassId, expected, isSafetyCast = true),
+                                                                                       typeCast(floatClassId, actual, isSafetyCast = true),
+                                                                                       floatDelta
+                                                                                       )
+                                                                                       }
                 (expected.type == doubleClassId || expected.type == doubleWrapperClassId) -> {
-                    testFrameworkManager.assertDoubleEquals(
-                        typeCast(doubleClassId, expected, isSafetyCast = true),
-                        typeCast(doubleClassId, actual, isSafetyCast = true),
-                        doubleDelta
-                    )
-                }
+                                                                                         testFrameworkManager.assertDoubleEquals(
+                                                                                         typeCast(doubleClassId, expected, isSafetyCast = true),
+                                                                                         typeCast(doubleClassId, actual, isSafetyCast = true),
+                                                                                         doubleDelta
+                                                                                         )
+                                                                                         }
                 expected == nullLiteral() -> testFrameworkManager.assertNull(actual)
                 expected is CgLiteral && expected.value is Boolean -> {
                     when (parametrizedTestSource) {
@@ -1170,280 +1169,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 else -> {
                     when (expected) {
-                        is CgPythonTree -> pythonDeepEquals(expected, actual)
                         is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
                         is CgNotNullAssertion -> generateForNotNullAssertion(expected, actual)
                         else -> generateDeepEqualsOrNullAssertion(expected, actual)
                     }
                 }
             }
-        }
-    }
-
-    private fun pythonBuildObject(objectNode: PythonTree.PythonTreeNode): CgValue {
-        collectedImports += PythonImport(objectNode.type.moduleName)
-        return when (objectNode) {
-            is PythonTree.PrimitiveNode -> {
-                CgLiteral(objectNode.type, objectNode.repr)
-            }
-            is PythonTree.ListNode -> {
-                CgPythonList(
-                    objectNode.items.map { pythonBuildObject(it) }
-                )
-            }
-            is PythonTree.TupleNode -> {
-                CgPythonTuple(
-                    objectNode.items.map { pythonBuildObject(it) }
-                )
-            }
-            is PythonTree.SetNode -> {
-                CgPythonSet(
-                    objectNode.items.map { pythonBuildObject(it) }.toSet()
-                )
-            }
-            is PythonTree.DictNode -> {
-                CgPythonDict(
-                    objectNode.items.map { (key, value) ->
-                        pythonBuildObject(key) to pythonBuildObject(value)
-                    }.toMap()
-                )
-            }
-            is PythonTree.ReduceNode -> {
-                val id = objectNode.id
-                if (context.memoryObjects.containsKey(id)) {
-                    return context.memoryObjects[id]!!
-                }
-                val constructorModule = moduleOfType(objectNode.constructor) ?: objectNode.constructor
-                existingVariableNames += constructorModule
-                collectedImports += PythonImport(constructorModule)
-
-                val initArgs = objectNode.args.map {
-                    pythonBuildObject(it)
-                }
-                val constructor = ConstructorId(
-                    PythonClassId(objectNode.constructor),
-                    initArgs.map { it.type }
-                )
-
-                val obj = newVar(objectNode.type) {
-                    CgConstructorCall(
-                        constructor,
-                        initArgs
-                    )
-                }
-                context.memoryObjects[id] = obj
-
-                val state = objectNode.state.map { (key, value) ->
-                    key to pythonBuildObject(value)
-                }.toMap()
-                val listitems = objectNode.listitems.map {
-                    pythonBuildObject(it)
-                }
-                val dictitems = objectNode.dictitems.map { (key, value) ->
-                    pythonBuildObject(key) to pythonBuildObject(value)
-                }
-
-                state.forEach { (key, value) ->
-                    val fieldAccess = CgFieldAccess(obj, FieldId(objectNode.type, key))
-                    fieldAccess `=` value
-                }
-                listitems.forEach {
-                    +CgMethodCall(
-                        obj,
-                        PythonMethodId(
-                            obj.type as PythonClassId,
-                            "append",
-                            NormalizedPythonAnnotation(pythonNoneClassId.name),
-                            listOf(RawPythonAnnotation(it.type.name))
-                        ),
-                        listOf(it)
-                    )
-                }
-                dictitems.forEach { (key, value) ->
-                    val index = CgPythonIndex(
-                        value.type as PythonClassId,
-                        obj,
-                        key
-                    )
-                    index `=` value
-                }
-
-                return obj
-            }
-            else -> {
-                throw UnsupportedOperationException()
-            }
-        }
-    }
-
-    private fun pythonDeepEquals(expected: CgValue, actual: CgVariable) {
-        require(expected is CgPythonTree) {
-            "Expected value have to be CgPythonTree but `${expected::class}` found"
-        }
-        val expectedValue = pythonBuildObject(expected.tree)
-        pythonDeepTreeEquals(expected.tree, expectedValue, actual)
-    }
-
-    private fun pythonLenAssertConstructor(expected: CgVariable, actual: CgVariable): CgVariable {
-        val expectedValue = newVar(pythonIntClassId, "expected_length") {
-            CgGetLength(expected)
-        }
-        val actualValue = newVar(pythonIntClassId, "actual_length") {
-            CgGetLength(actual)
-        }
-        emptyLineIfNeeded()
-        testFrameworkManager.assertEquals(expectedValue, actualValue)
-        return expectedValue
-    }
-
-    private fun pythonAssertElementsByKey(
-        expectedNode: PythonTree.PythonTreeNode,
-        expected: CgVariable,
-        actual: CgVariable,
-        iterator: CgReferenceExpression,
-        keyName: String = "index",
-    ) {
-        val elements = when (expectedNode) {
-            is PythonTree.ListNode -> expectedNode.items
-            is PythonTree.TupleNode -> expectedNode.items
-            is PythonTree.DictNode -> expectedNode.items.values
-            else -> throw UnsupportedOperationException()
-        }
-        if (elements.isNotEmpty()) {
-            val elementsHaveSameStructure = PythonTree.allElementsHaveSameStructure(elements)
-            val firstChild =
-                elements.first()  // TODO: We can use only structure => we should use another element if the first is empty
-
-            emptyLine()
-            if (elementsHaveSameStructure) {
-                val index = newVar(pythonNoneClassId, keyName) {
-                    CgLiteral(pythonNoneClassId, "None")
-                }
-                forEachLoop {
-                    innerBlock {
-                        condition = index
-                        iterable = iterator
-                        val indexExpected = newVar(firstChild.type, "expected_element") {
-                            CgPythonIndex(
-                                pythonIntClassId,
-                                expected,
-                                index
-                            )
-                        }
-                        val indexActual = newVar(firstChild.type, "actual_element") {
-                            CgPythonIndex(
-                                pythonIntClassId,
-                                actual,
-                                index
-                            )
-                        }
-                        pythonDeepTreeEquals(firstChild, indexExpected, indexActual)
-                        statements = currentBlock
-                    }
-                }
-            }
-            else {
-                emptyLineIfNeeded()
-                testFrameworkManager.assertIsinstance(listOf(expected.type), actual)
-            }
-        }
-    }
-
-    private fun pythonAssertBuiltinsCollection(
-        expectedNode: PythonTree.PythonTreeNode,
-        expected: CgValue,
-        actual: CgVariable,
-        expectedName: String,
-        elementName: String = "index",
-    ) {
-        val expectedCollection = newVar(expected.type, expectedName) { expected }
-
-        val length = pythonLenAssertConstructor(expectedCollection, actual)
-
-        val iterator = if (expectedNode is PythonTree.DictNode) expected else CgPythonRange(length)
-        pythonAssertElementsByKey(expectedNode, expectedCollection, actual, iterator, elementName)
-    }
-
-    private fun pythonDeepTreeEquals(
-        expectedNode: PythonTree.PythonTreeNode,
-        expected: CgValue,
-        actual: CgVariable
-    ) {
-        if (expectedNode.comparable) {
-            emptyLineIfNeeded()
-            testFrameworkManager.assertEquals(
-                expected,
-                actual,
-            )
-            return
-        }
-        when (expectedNode) {
-            is PythonTree.PrimitiveNode -> {
-                emptyLineIfNeeded()
-                testFrameworkManager.assertIsinstance(
-                    listOf(expected.type), actual
-                )
-            }
-            is PythonTree.ListNode -> {
-                pythonAssertBuiltinsCollection(
-                    expectedNode,
-                    expected,
-                    actual,
-                    "expected_list"
-                )
-            }
-            is PythonTree.TupleNode -> {
-                pythonAssertBuiltinsCollection(
-                    expectedNode,
-                    expected,
-                    actual,
-                    "expected_tuple"
-                )
-            }
-            is PythonTree.SetNode -> {
-                emptyLineIfNeeded()
-                testFrameworkManager.assertEquals(
-                    expected, actual
-                )
-            }
-            is PythonTree.DictNode -> {
-                pythonAssertBuiltinsCollection(
-                    expectedNode,
-                    expected,
-                    actual,
-                    "expected_dict",
-                    "key"
-                )
-            }
-            is PythonTree.ReduceNode -> {
-                if (expectedNode.state.isNotEmpty()) {
-                    expectedNode.state.forEach { (field, value) ->
-                        val fieldActual = newVar(value.type, "actual_$field") {
-                            CgFieldAccess(
-                                actual, FieldId(
-                                    value.type,
-                                    field
-                                )
-                            )
-                        }
-                        val fieldExpected = newVar(value.type, "expected_$field") {
-                            CgFieldAccess(
-                                expected, FieldId(
-                                    value.type,
-                                    field
-                                )
-                            )
-                        }
-                        pythonDeepTreeEquals(value, fieldExpected, fieldActual)
-                    }
-                } else {
-                    emptyLineIfNeeded()
-                    testFrameworkManager.assertIsinstance(
-                        listOf(expected.type), actual
-                    )
-                }
-            }
-            else -> {}
         }
     }
 
@@ -1518,7 +1249,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         )
     }
 
-    private fun recordActualResult() {
+    protected fun recordActualResult() {
         currentExecution!!.result.onSuccess { result ->
             when (val executable = currentExecutable) {
                 is ConstructorId -> {
@@ -1526,16 +1257,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     return
                 }
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
-                is PythonMethodId -> {
-                    emptyLineIfNeeded()
-
-                    actual = newVar(
-                        CgClassId(result.classId),
-                        "actual",
-                    ) {
-                        thisInstance[executable](*methodArguments.toTypedArray())
-                    }
-                }
                 is MethodId -> {
                     // TODO possible engine bug - void method return type and result not UtVoidModel
                     if (result.isUnit() || executable.returnType == voidClassId) return
@@ -1554,20 +1275,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         }
     }
 
-    private fun generatePythonTestComments(execution: UtExecution) {
-        when (execution.result) {
-            is UtExplicitlyThrownException ->
-                (execution.result as UtExplicitlyThrownException).exception.message?.let {
-                    emptyLineIfNeeded()
-                    comment("raises $it")
-                }
-            else -> {
-                // nothing
-            }
-        }
-    }
-
-    fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
+    open fun createTestMethod(executableId: ExecutableId, execution: UtExecution): CgTestMethod =
         withTestMethodScope(execution) {
             val testMethodName = nameGenerator.testMethodNameFor(executableId, execution.testMethodName)
             // TODO: remove this line when SAT-1273 is completed
@@ -1575,8 +1283,6 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             testMethod(testMethodName, execution.displayName) {
                 val statics = currentExecution!!.stateBefore.statics
                 rememberInitialStaticFields(statics)
-                context.memoryObjects.clear()
-
                 val stateAnalyzer = ExecutionStateAnalyzer(execution)
                 val modificationInfo = stateAnalyzer.findModifiedFields()
                 // TODO: move such methods to another class and leave only 2 public methods: remember initial and final states
@@ -1590,27 +1296,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
-                        if (param is PythonModel) {
-                            param.allContainingClassIds.forEach {
-                                existingVariableNames += it.moduleName
-                                collectedImports += PythonImport(it.moduleName)
-                            }
-                        }
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
-                    }
-                    if (executableId is PythonMethodId) {
-                        existingVariableNames += executableId.name
-                        executableId.moduleName.split('.').forEach {
-                            existingVariableNames += it
-                        }
                     }
                     rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()
                     generateResultAssertions()
                     rememberFinalEnvironmentState(modificationInfo)
                     generateFieldStateAssertions()
-                    if (executableId is PythonMethodId)
-                        generatePythonTestComments(execution)
                 }
 
                 if (statics.isNotEmpty()) {
@@ -1910,7 +1602,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return arguments
     }
 
-    private fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
+    protected fun <R> withTestMethodScope(execution: UtExecution, block: () -> R): R {
         clearTestMethodScope()
         currentExecution = execution
         statesCache = EnvironmentFieldStateCache.emptyCacheFor(execution)
@@ -1996,7 +1688,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             Unittest -> error("Parameterized tests are not supported for Unittest (yet)")
         }
 
-    private fun testMethod(
+    protected fun testMethod(
         methodName: String,
         displayName: String?,
         params: List<CgParameterDeclaration> = emptyList(),

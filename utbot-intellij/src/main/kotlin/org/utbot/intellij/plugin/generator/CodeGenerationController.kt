@@ -521,6 +521,7 @@ object CodeGenerationController {
                     }
                     is RegularImport -> { }
                     is PythonImport -> { }
+                    is PythonSysPathImport -> { }
                 }
             }
         }

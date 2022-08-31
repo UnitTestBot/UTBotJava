@@ -69,7 +69,13 @@ internal object CgComponents {
         }
     }
 
-    fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) { CgMethodConstructor(context) }
+    fun getMethodConstructorBy(context: CgContext) = methodConstructors.getOrPut(context) {
+        when (context.codegenLanguage) {
+            CodegenLanguage.PYTHON -> PythonCgMethodConstructor(context)
+            else -> CgMethodConstructor(context)
+        }
+    }
+
     fun getTestClassConstructorBy(context: CgContext) = testClassConstructors.getOrPut(context) { CgTestClassConstructor(context) }
 
     private val nameGenerators: MutableMap<CgContext, CgNameGenerator> = mutableMapOf()

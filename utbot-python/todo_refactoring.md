@@ -1,7 +1,7 @@
 - [ ] importIfNeeded, добавление импортов внутри testFramework
 - [ ] Переделать sys.path в import или package
 - [ ] Посмотреть, где собирается existingVariableNames, и добавить туда свои
-- [ ] Убрать if-ы из Cg... с Python -> список процессоров для вызова этих действий
+- [ ] Убрать if-ы из Cg... с Python -> (перенес логику из CgMethodConstructor в PythonCgMethodConstructor)
 - [ ] Перенести Python модели из Api.kt в PythonApi???
 - [ ] Все изменения положить в отдельные пакеты
 - [ ] Обработка исключений (writeWarningAboutFunciton)

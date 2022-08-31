@@ -32,33 +32,26 @@ import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.kClass
 import kotlin.reflect.KClass
 
-internal class CgTestClassConstructor(val context: CgContext) :
+internal open class CgTestClassConstructor(val context: CgContext) :
     CgContextOwner by context,
     CgStatementConstructor by CgComponents.getStatementConstructorBy(context) {
 
-    private val methodConstructor = CgComponents.getMethodConstructorBy(context)
+    protected val methodConstructor = CgComponents.getMethodConstructorBy(context)
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-    private val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
+    protected val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
 
-    private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
+    protected val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
      * Given a testClass model  constructs CgTestClass
      */
-    fun construct(testClassModel: TestClassModel): CgTestClassFile {
+    open fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
-            this.testClass = withTestClassScope { constructTestClass(testClassModel) }
-            if (testFramework is Unittest) {
-                context.collectedImports.add(PythonImport("unittest"))
-            }
-            imports.addAll(context.collectedImports)
-            existingVariableNames = existingVariableNames.addAll(context.collectedImports.map { it.qualifiedName })
-            sysPaths.addAll(context.collectedSysPaths.map { CgPythonSysPath(it) })
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }
 
-    private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
+    open fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
         return buildTestClass {
             id = currentTestClass
 
@@ -87,7 +80,6 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
                 for (testSet in testClassModel.methodTestSets) {
                     updateCurrentExecutable(testSet.executableId)
-                    context.collectedSysPaths.addAll(testSet.sysPaths)
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
                     val executableUnderTestCluster = CgExecutableUnderTestCluster(
                         "Test suites for executable $currentExecutable",
@@ -112,13 +104,12 @@ internal class CgTestClassConstructor(val context: CgContext) :
             // all methods are generated so that all necessary info is already present in the context
             with (currentTestClassContext) {
                 annotations += collectedTestClassAnnotations
-                superclass = if (testFramework is Unittest) PythonClassId("unittest.TestCase") else testClassSuperclass
                 interfaces += collectedTestClassInterfaces
             }
         }
     }
 
-    private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    open fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }
@@ -127,7 +118,6 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
         val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
-        val requiredFields = mutableListOf<CgParameterDeclaration>()
 
         when (context.parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
@@ -148,18 +138,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     testsGenerationReport.addTestsByType(testSet, currentTestCaseTestMethods)
                 }
             }
-            ParametrizedTestSource.PARAMETRIZE -> {
-                for (splitByExecutionTestSet in testSet.splitExecutionsByResult()) {
-                    for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
-                        createParametrizedTestAndDataProvider(
-                            splitByChangedStaticsTestSet,
-                            requiredFields,
-                            regions,
-                            methodUnderTest
-                        )
-                    }
-                }
-            }
+            ParametrizedTestSource.PARAMETRIZE -> {}
         }
 
         val errors = testSet.allErrors
@@ -171,7 +150,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
         return regions
     }
 
-    private fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
+    protected fun processFailure(testSet: CgMethodTestSet, failure: Throwable) {
         codeGenerationErrors
             .getOrPut(testSet) { mutableMapOf() }
             .merge(failure.description, 1, Int::plus)
@@ -235,7 +214,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
     /**
      * Engine errors + codegen errors for a given [UtMethodTestSet]
      */
-    private val CgMethodTestSet.allErrors: Map<String, Int>
+    protected val CgMethodTestSet.allErrors: Map<String, Int>
         get() = errors + codeGenerationErrors.getOrDefault(this, mapOf())
 }
 

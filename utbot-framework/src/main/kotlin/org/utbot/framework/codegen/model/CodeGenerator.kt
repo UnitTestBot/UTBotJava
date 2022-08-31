@@ -19,6 +19,7 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockFramework
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
+import org.utbot.framework.codegen.model.constructor.tree.PythonCgTestClassConstructor
 
 class CodeGenerator(
     val classUnderTest: ClassId,
@@ -71,6 +72,17 @@ class CodeGenerator(
         context.withTestClassFileScope {
             val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
             val testClassFile = CgTestClassConstructor(context).construct(testClassModel)
+            TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
+        }
+    }
+
+    fun pythonGenerateAsStringWithTestReport(
+        cgTestSets: List<CgMethodTestSet>,
+        testClassCustomName: String? = null,
+    ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
+        context.withTestClassFileScope {
+            val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
+            val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)
             TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
         }
     }

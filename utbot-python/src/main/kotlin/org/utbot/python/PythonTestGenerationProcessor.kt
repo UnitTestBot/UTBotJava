@@ -138,7 +138,7 @@ object PythonTestGenerationProcessor {
                     codegenLanguage = codegenLanguage,
                     testClassPackageName = "",
                 )
-                val testCode = codegen.generateAsStringWithTestReport(
+                val testCode = codegen.pythonGenerateAsStringWithTestReport(
                     notEmptyTests.map { testSet ->
                         CgMethodTestSet(
                             methodIds[testSet.method] as ExecutableId,

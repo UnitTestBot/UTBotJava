@@ -74,7 +74,7 @@ class QueueUsagesTest : UtValueTestCaseChecker(
             QueueUsages::addAllQueue,
             eq(3),
             { q, _, r -> q == null && r.isException<NullPointerException>() },
-            { q, x, r -> q != null && x != null && x in r.getOrNull()!! },
+            { q, x, r -> q != null && x in r.getOrNull()!! }, // we can cover this line with x == null or x != null
             { q, x, r -> q != null && x == null && r.isException<NullPointerException>() },
         )
     }

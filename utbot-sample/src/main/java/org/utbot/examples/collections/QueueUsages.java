@@ -44,8 +44,8 @@ public class QueueUsages {
         return q;
     }
 
-    public Queue<WrappedInt> addAllQueue(Queue<WrappedInt> q, WrappedInt o) {
-        Collection<WrappedInt> lst = Arrays.asList(new WrappedInt(1), o);
+    public Queue<WrappedInt> addAllQueue(Queue<WrappedInt> q, WrappedInt x) {
+        Collection<WrappedInt> lst = Arrays.asList(new WrappedInt(1), x);
         q.addAll(lst);
         return q;
     }

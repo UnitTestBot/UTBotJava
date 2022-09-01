@@ -28,9 +28,9 @@ object EngineAnalyticsContext {
         MLSelectorRecalculationType.WITH_RECALCULATION -> MLSelectorWithRecalculationFactory()
     }
 
-    var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {
-        override fun invoke(): StateRewardPredictor {
-            error("NNStateRewardPredictor factory wasn't provided")
+    var mlPredictorFactory: MLPredictorFactory = object : MLPredictorFactory {
+        override fun invoke(): MLPredictor {
+            error("MLPredictor factory wasn't provided")
         }
     }
 }

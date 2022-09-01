@@ -1,6 +1,6 @@
 package org.utbot.predictors
 
-import org.utbot.analytics.StateRewardPredictor
+import org.utbot.analytics.MLPredictor
 import mu.KotlinLogging
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
@@ -35,8 +35,8 @@ private fun loadWeights(path: String): Matrix {
     return Matrix(weightsArray)
 }
 
-class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH, scalerPath: String = DEFAULT_SCALER_PATH) :
-    StateRewardPredictor {
+class LinearRegressionPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH, scalerPath: String = DEFAULT_SCALER_PATH) :
+    MLPredictor {
     private lateinit var weights: Matrix
     private lateinit var scaler: StandardScaler
 
@@ -46,7 +46,7 @@ class LinearStateRewardPredictor(weightsPath: String = DEFAULT_WEIGHT_PATH, scal
             scaler = loadScaler(scalerPath)
         } catch (e: PredictorLoadingException) {
             logger.info(e) {
-                "Error while initialization of LinearStateRewardPredictor. Changing pathSelectorType on INHERITORS_SELECTOR"
+                "Error while initialization of LinearRegressionPredictor. Changing pathSelectorType on INHERITORS_SELECTOR"
             }
             UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }

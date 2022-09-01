@@ -3,7 +3,7 @@ package org.utbot
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.features.FeatureExtractorFactoryImpl
 import org.utbot.features.FeatureProcessorWithStatesRepetitionFactory
-import org.utbot.predictors.StateRewardPredictorWithTorchModelsSupportFactoryImpl
+import org.utbot.predictors.TorchPredictorFactoryImpl
 
 /**
  * The basic configuration of the utbot-analytics-torch module used in utbot-intellij and (as planned) in utbot-cli
@@ -16,6 +16,6 @@ object AnalyticsTorchConfiguration {
     init {
         EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
         EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-        EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorWithTorchModelsSupportFactoryImpl()
+        EngineAnalyticsContext.mlPredictorFactory = TorchPredictorFactoryImpl()
     }
 }

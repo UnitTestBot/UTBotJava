@@ -7,11 +7,11 @@ import org.utbot.framework.UtSettings
 import org.utbot.testcheckers.withPathSelectorType
 import org.utbot.testcheckers.withModelPath
 
-class LinearStateRewardPredictorTest {
+class LinearRegressionPredictorTest {
     @Test
     fun simpleTest() {
         withModelPath("src/test/resources") {
-            val pred = LinearStateRewardPredictor()
+            val pred = LinearRegressionPredictor()
 
             val features = listOf(
                 listOf(2.0, 3.0),
@@ -26,7 +26,7 @@ class LinearStateRewardPredictorTest {
     fun wrongFormatTest() {
         withModelPath("src/test/resources") {
             withPathSelectorType(PathSelectorType.ML_SELECTOR) {
-                LinearStateRewardPredictor("wrong_format_linear.txt")
+                LinearRegressionPredictor("wrong_format_linear.txt")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
@@ -35,7 +35,7 @@ class LinearStateRewardPredictorTest {
     @Test
     fun simpleTestNotBatch() {
         withModelPath("src/test/resources") {
-            val pred = LinearStateRewardPredictor()
+            val pred = LinearRegressionPredictor()
 
             val features = listOf(2.0, 3.0)
 

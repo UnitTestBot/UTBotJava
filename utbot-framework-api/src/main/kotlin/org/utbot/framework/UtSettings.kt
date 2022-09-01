@@ -95,7 +95,7 @@ object UtSettings : AbstractSettings(
     /**
      * Type of [StateRewardPredictor].
      */
-    var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
+    var mlPredictorType: MLPredictorType by getEnumProperty(MLPredictorType.MLP)
 
     /**
      * Steps limit for path selector.
@@ -451,16 +451,16 @@ enum class MLSelectorRecalculationType {
 }
 
 /**
- * Enum to specify [StateRewardPredictor], see implementations for details
+ * Enum to specify [MLPredictor], see implementations for details
  */
-enum class StateRewardPredictorType {
+enum class MLPredictorType {
     /**
-     * [MLStateRewardPredictorBase]
+     * [MultilayerPerceptronPredictor]
      */
-    BASE,
+    MLP,
 
     /**
-     * [LinearStateRewardPredictorBase]
+     * [LinearRegressionPredictor]
      */
-    LINEAR
+    LINREG
 }

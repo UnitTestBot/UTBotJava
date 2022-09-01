@@ -3,16 +3,16 @@ package org.utbot.predictors
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.analytics.StateRewardPredictor
+import org.utbot.analytics.MLPredictor
 import org.utbot.testcheckers.withModelPath
 import kotlin.system.measureNanoTime
 
-class NNStateRewardPredictorTest {
+class TorchPredictorTest {
     @Test
     @Disabled("Just to see the performance of predictors")
     fun simpleTest() {
         withModelPath("src/test/resources") {
-            val pred = StateRewardPredictorTorch()
+            val pred = TorchPredictor()
 
             val features = listOf(0.0, 0.0)
 
@@ -25,13 +25,13 @@ class NNStateRewardPredictorTest {
     fun performanceTest() {
         val features = (1..13).map { 1.0 }.toList()
         withModelPath("models") {
-            val averageTime = calcAverageTimeForModelPredict(::StateRewardPredictorTorch, 100, features)
+            val averageTime = calcAverageTimeForModelPredict(::TorchPredictor, 100, features)
             println(averageTime)
         }
     }
 
     private fun calcAverageTimeForModelPredict(
-        model: () -> StateRewardPredictor,
+        model: () -> MLPredictor,
         iterations: Int,
         features: List<Double>
     ): Double {

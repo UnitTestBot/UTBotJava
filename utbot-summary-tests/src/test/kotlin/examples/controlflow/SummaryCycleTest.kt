@@ -2,7 +2,7 @@ package examples.controlflow
 
 import examples.SummaryTestCaseGeneratorTest
 import org.junit.jupiter.api.Test
-import org.utbot.examples.DoNotCalculate
+import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.examples.controlflow.Cycles
 import org.utbot.framework.plugin.api.MockStrategyApi
 

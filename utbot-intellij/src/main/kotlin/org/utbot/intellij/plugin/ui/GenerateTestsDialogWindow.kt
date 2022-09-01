@@ -39,14 +39,11 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.PackageWrapper
 import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
 import com.intellij.refactoring.util.RefactoringUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.HyperlinkLabel
@@ -97,7 +94,6 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.utbot.common.PathUtil.toPath
-import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
@@ -136,7 +132,7 @@ import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
-import org.utbot.intellij.plugin.util.isAbstract
+import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -384,17 +380,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateMembersTable() {
         val srcClasses = model.srcClasses
 
-        val items: List<MemberInfo>
-        if (srcClasses.size == 1) {
-            items = TestIntegrationUtils.extractClassMethods(srcClasses.single(), false)
-                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { it.member !is SyntheticElement }
-                .filterNot { it.isAbstract }
-            updateMethodsTable(items)
+        val items = if (model.extractMembersFromSrcClasses) {
+            srcClasses.flatMap { it.extractFirstLevelMembers(false) }
         } else {
-            items = srcClasses.map { MemberInfo(it) }
-            updateClassesTable(items)
+            srcClasses.map { MemberInfo(it) }
         }
 
+        checkMembers(items)
+        membersTable.setMemberInfos(items)
         if (items.isEmpty()) isOKActionEnabled = false
 
         // fix issue with MemberSelectionTable height, set it directly.
@@ -403,27 +396,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         membersTable.preferredScrollableViewportSize = size(-1, height)
     }
 
-    private fun updateMethodsTable(allMethods: List<MemberInfo>) {
-        val selectedDisplayNames = model.selectedMethods?.map { it.displayName } ?: emptyList()
-        val selectedMethods = if (selectedDisplayNames.isEmpty())
-            allMethods
-            else allMethods.filter { it.displayName in selectedDisplayNames }
+    private fun checkMembers(allMembers: List<MemberInfo>) {
+        val selectedDisplayNames = model.selectedMembers?.map { it.displayName } ?: emptyList()
+        val selectedMembers = allMembers.filter { it.displayName in selectedDisplayNames }
 
-        if (selectedMethods.isEmpty()) {
-            checkMembers(allMethods)
-        } else {
-            checkMembers(selectedMethods)
-        }
-
-        membersTable.setMemberInfos(allMethods)
+        val methodsToCheck = selectedMembers.ifEmpty { allMembers }
+        methodsToCheck.forEach { it.isChecked = true }
     }
-
-    private fun updateClassesTable(srcClasses: List<MemberInfo>) {
-        checkMembers(srcClasses)
-        membersTable.setMemberInfos(srcClasses)
-    }
-
-    private fun checkMembers(members: List<MemberInfo>) = members.forEach { it.isChecked = true }
 
     private fun getTestRoot() : VirtualFile? {
         model.testSourceRoot?.let {
@@ -497,12 +476,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
 
         val selectedMembers = membersTable.selectedMemberInfos
-        model.srcClasses = selectedMembers
-            .mapNotNull { it.member as? PsiClass ?: it.member.containingClass }
-            .toSet()
-
-        val selectedMethods = selectedMembers.filter { it.member is PsiMethod }.toSet()
-        model.selectedMethods = if (selectedMethods.any()) selectedMethods else null
+        if (!model.extractMembersFromSrcClasses) {
+            model.srcClasses = selectedMembers
+                .mapNotNull { it.member as? PsiClass }
+                .toSet()
+        }
+        model.selectedMembers = selectedMembers.toSet()
 
         model.testFramework = testFrameworks.item
         model.mockStrategy = mockStrategies.item

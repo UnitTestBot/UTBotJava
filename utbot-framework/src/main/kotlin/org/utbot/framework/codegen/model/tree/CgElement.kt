@@ -3,9 +3,12 @@ package org.utbot.framework.codegen.model.tree
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
+import org.utbot.framework.codegen.model.constructor.tree.CgUtilClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
+import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.codegen.model.visitor.CgVisitor
+import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -32,8 +35,11 @@ interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
     fun <R> accept(visitor: CgVisitor<R>): R = visitor.run {
         when (val element = this@CgElement) {
+            is CgRegularClassFile -> visit(element)
             is CgTestClassFile -> visit(element)
+            is CgRegularClass -> visit(element)
             is CgTestClass -> visit(element)
+            is CgRegularClassBody -> visit(element)
             is CgTestClassBody -> visit(element)
             is CgStaticsRegion -> visit(element)
             is CgSimpleRegion<*> -> visit(element)
@@ -112,33 +118,89 @@ interface CgElement {
 
 // Code entities
 
+sealed class AbstractCgClassFile<T : AbstractCgClass<*>> : CgElement {
+    abstract val imports: List<Import>
+    abstract val declaredClass: T
+}
+
+data class CgRegularClassFile(
+    override val imports: List<Import>,
+    override val declaredClass: CgRegularClass
+) : AbstractCgClassFile<CgRegularClass>()
+
 data class CgTestClassFile(
-    val imports: List<Import>,
-    val testClass: CgTestClass,
+    override val imports: List<Import>,
+    override val declaredClass: CgTestClass,
     val testsGenerationReport: TestsGenerationReport
-) : CgElement
+) : AbstractCgClassFile<CgTestClass>()
+
+sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
+    abstract val id: ClassId
+    abstract val annotations: List<CgAnnotation>
+    abstract val superclass: ClassId?
+    abstract val interfaces: List<ClassId>
+    abstract val body: T
+    abstract val isStatic: Boolean
+    abstract val isNested: Boolean
+
+    val packageName
+        get() = id.packageName
+
+    val simpleName
+        get() = id.simpleName
+}
+
+/**
+ * This class represents any class that we may want to generate other than the test class.
+ * At the moment the only such case is the generation of util class UtUtils.
+ *
+ * The difference with [CgTestClass] is in the body.
+ * The structure of a test class body is fixed (we know what it should contain),
+ * whereas an arbitrary class could contain anything.
+ * For example, the body of UtUtils class contains a comment with information
+ * about the version of UTBot it was generated with, and all the util methods.
+ *
+ * @see CgUtilClassConstructor
+ */
+class CgRegularClass(
+    override val id: ClassId,
+    override val annotations: List<CgAnnotation>,
+    override val superclass: ClassId?,
+    override val interfaces: List<ClassId>,
+    override val body: CgRegularClassBody,
+    override val isStatic: Boolean,
+    override val isNested: Boolean
+) : AbstractCgClass<CgRegularClassBody>()
 
 data class CgTestClass(
-    val id: ClassId,
-    val annotations: List<CgAnnotation>,
-    val superclass: ClassId?,
-    val interfaces: List<ClassId>,
-    val body: CgTestClassBody,
-    val isStatic: Boolean,
-    val isNested: Boolean
-) : CgElement {
-    val packageName = id.packageName
-    val simpleName = id.simpleName
-}
+    override val id: ClassId,
+    override val annotations: List<CgAnnotation>,
+    override val superclass: ClassId?,
+    override val interfaces: List<ClassId>,
+    override val body: CgTestClassBody,
+    override val isStatic: Boolean,
+    override val isNested: Boolean
+) : AbstractCgClass<CgTestClassBody>()
 
+
+sealed class AbstractCgClassBody : CgElement
+
+data class CgRegularClassBody(val content: List<CgElement>) : AbstractCgClassBody()
+
+/**
+ * Body of the test class.
+ * @property testMethodRegions regions containing the test methods
+ * @property staticDeclarationRegions regions containing static declarations.
+ * This is usually util methods and data providers.
+ * In Kotlin all static declarations must be grouped together in a companion object.
+ * In Java there is no such restriction, but for uniformity we are grouping
+ * Java static declarations together as well. It can also improve code readability.
+ */
 data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
-    val utilsRegion: List<CgRegion<CgElement>>,
+    val staticDeclarationRegions: List<CgStaticsRegion>,
     val nestedClassRegions: List<CgRegion<CgTestClass>>
-) : CgElement {
-    val regions: List<CgRegion<*>>
-        get() = testMethodRegions
-}
+) : AbstractCgClassBody()
 
 /**
  * A class representing the IntelliJ IDEA's regions.
@@ -157,7 +219,10 @@ open class CgSimpleRegion<T : CgElement>(
 ) : CgRegion<T>()
 
 /**
- * Stores data providers for parametrized tests and util methods
+ * A region that stores some static declarations, e.g. data providers or util methods.
+ * There may be more than one static region in a class and they all are stored
+ * in a [CgTestClassBody.staticDeclarationRegions].
+ * In case of Kotlin, they all will be rendered inside of a companion object.
  */
 class CgStaticsRegion(
     override val header: String?,
@@ -184,9 +249,20 @@ data class CgExecutableUnderTestCluster(
  * This is because util methods are hardcoded. On the rendering stage their text
  * is retrieved by their [MethodId].
  *
- * [id] identifier of the util method.
+ * @property id identifier of the util method.
  */
-data class CgUtilMethod(val id: MethodId) : CgElement
+data class CgUtilMethod(val id: MethodId) : CgElement {
+    internal fun getText(rendererContext: CgRendererContext): String {
+        // we should not throw an exception on failure here,
+        // because this function is used during rendering and
+        // exceptions can crash rendering, so we use an empty string if the text is not found
+        return with(rendererContext) {
+            rendererContext.utilMethodProvider
+                .utilMethodTextById(id, mockFrameworkUsed, mockFramework, codegenLanguage)
+                .getOrDefault("")
+        }
+    }
+}
 
 // Methods
 

@@ -511,10 +511,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         // then process force static mocking case
         model.generateWarningsForStaticMocking = model.staticsMocking is NoStaticMocking
         if (model.forceStaticMocking == ForceStaticMocking.FORCE) {
-            // we have to use mock framework to mock statics, no user provided => choose default
-            if (model.mockFramework == null) {
-                model.mockFramework = MockFramework.defaultItem
-            }
             // we need mock framework extension to mock statics, no user provided => choose default
             if (model.staticsMocking is NoStaticMocking) {
                 model.staticsMocking = StaticsMocking.defaultItem

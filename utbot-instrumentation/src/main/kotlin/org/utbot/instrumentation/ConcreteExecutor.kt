@@ -16,7 +16,7 @@ import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.rd.UtInstrumentationProcess
-import org.utbot.instrumentation.rd.UtRdLoggerFactory
+import org.utbot.rd.UtRdLoggerFactory
 import org.utbot.instrumentation.rd.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.util.ChildProcessError
 import java.io.Closeable

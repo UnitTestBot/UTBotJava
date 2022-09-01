@@ -2484,6 +2484,7 @@ class Traverser(
                 environment.state.definitelyFork()
             }
 
+/*
             return mutableListOf<MethodResult>().apply {
                 for (result in artificialMethodOverride.results) {
                     when (result) {
@@ -2498,8 +2499,9 @@ class Traverser(
                     }
                 }
             }
+*/
 
-            /*val methodResults = mutableListOf<MethodResult>()
+            val methodResults = mutableListOf<MethodResult>()
             val graphResults = mutableListOf<GraphResult>()
 
             for (result in artificialMethodOverride.results) {
@@ -2513,7 +2515,7 @@ class Traverser(
                 ExecutionStateBasics(it.graph, invocation.instance, invocation.parameters, it.constraints, isLibraryMethod = true)
             }.let { pushToPathSelectorFirstReachableStates(it) }
 
-            return methodResults*/
+            return methodResults
         }
 
         // If there is no such invocation, use the generator to produce invocation targets

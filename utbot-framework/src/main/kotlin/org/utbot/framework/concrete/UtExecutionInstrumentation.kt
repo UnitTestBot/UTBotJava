@@ -43,6 +43,7 @@ import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import org.objectweb.asm.Type
+import org.utbot.framework.plugin.api.MissingState
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -144,7 +145,18 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         traceHandler.resetTrace()
 
         return MockValueConstructor(instrumentationContext).use { constructor ->
-            val params = constructor.constructMethodParameters(parametersModels)
+            val params = try {
+                constructor.constructMethodParameters(parametersModels)
+            } catch (e: Throwable) {
+                if (e.cause is AccessControlException) {
+                    return@use UtConcreteExecutionResult(
+                        MissingState,
+                        UtSandboxFailure(e.cause!!),
+                        Coverage()
+                    )
+                }
+                throw e
+            }
             val staticFields = constructor
                 .constructStatics(
                     stateBefore

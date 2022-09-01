@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Test
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.testcheckers.withPathSelectorType
-import org.utbot.testcheckers.withRewardModelPath
+import org.utbot.testcheckers.withModelPath
 
 class LinearStateRewardPredictorTest {
     @Test
     fun simpleTest() {
-        withRewardModelPath("src/test/resources") {
+        withModelPath("src/test/resources") {
             val pred = LinearStateRewardPredictor()
 
             val features = listOf(
@@ -24,8 +24,8 @@ class LinearStateRewardPredictorTest {
 
     @Test
     fun wrongFormatTest() {
-        withRewardModelPath("src/test/resources") {
-            withPathSelectorType(PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        withModelPath("src/test/resources") {
+            withPathSelectorType(PathSelectorType.ML_SELECTOR) {
                 LinearStateRewardPredictor("wrong_format_linear.txt")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
@@ -34,7 +34,7 @@ class LinearStateRewardPredictorTest {
 
     @Test
     fun simpleTestNotBatch() {
-        withRewardModelPath("src/test/resources") {
+        withModelPath("src/test/resources") {
             val pred = LinearStateRewardPredictor()
 
             val features = listOf(2.0, 3.0)

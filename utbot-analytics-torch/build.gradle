@@ -1,7 +1,7 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 configurations {
-    mlmodels
+    torchmodels
 }
 
 def osName = System.getProperty('os.name').toLowerCase().split()[0]
@@ -12,33 +12,18 @@ evaluationDependsOn(':utbot-framework')
 compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 
 dependencies {
-    api(project(":utbot-api"))
-    api(project(":utbot-core"))
-    api(project(":utbot-summary"))
-    api(project(":utbot-framework-api"))
-    api(project(":utbot-fuzzers"))
-    api(project(":utbot-instrumentation"))
-    api(project(":utbot-framework"))
+    api project(':utbot-analytics')
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
-
-    implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
-    implementation group: 'com.github.haifengl', name: 'smile-kotlin', version: '2.6.0'
-    implementation group: 'com.github.haifengl', name: 'smile-plot', version: '2.6.0'
-    implementation group: 'com.github.haifengl', name: 'smile-core', version: '2.6.0'
-    implementation group: 'com.github.haifengl', name: 'smile-interpolation', version: '2.6.0'
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
-    implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.6'
 
     implementation group: 'org.bytedeco', name: 'arpack-ng', version: "3.7.0-1.5.4", classifier: "$classifier"
     implementation group: 'org.bytedeco', name: 'openblas', version: "0.3.10-1.5.4", classifier: "$classifier"
     implementation group: 'org.bytedeco', name: 'javacpp', version: javacpp_version, classifier: "$classifier"
+    implementation group: 'org.jsoup', name: 'jsoup', version: jsoup_version
 
-    implementation group: 'tech.tablesaw', name: 'tablesaw-core', version: '0.38.2'
-    implementation group: 'tech.tablesaw', name: 'tablesaw-jsplot', version: '0.38.2'
-
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.9'
-    implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+    implementation "ai.djl:api:$djl_api_version"
+    implementation "ai.djl.pytorch:pytorch-engine:$djl_api_version"
+    implementation "ai.djl.pytorch:pytorch-native-auto:$pytorch_native_version"
 
     testImplementation project(':utbot-framework').sourceSets.test.output
 }
@@ -55,7 +40,7 @@ test {
 }
 
 processResources {
-    configurations.mlmodels.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+    configurations.torchmodels.resolvedConfiguration.resolvedArtifacts.each { artifact ->
         from(zipTree(artifact.getFile())) {
             into "models"
         }

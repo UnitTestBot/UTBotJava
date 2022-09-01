@@ -303,24 +303,37 @@ object UtTestsDialogProcessor {
     private fun configureML() {
         logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
 
-        if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
             val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
-            try {
-                Class.forName(analyticsConfigurationClassPath)
-                Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+            tryToSetUpMLSelector(analyticsConfigurationClassPath)
+        }
 
-                logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
-            } catch (e: ClassNotFoundException) {
-                logger.error {
-                    "Configuration of the predictors from the utbot-analytics module described in the class: " +
-                            "$analyticsConfigurationClassPath is not found!"
-                }
+        if (UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
+            val analyticsConfigurationClassPath = UtSettings.analyticsTorchConfigurationClassPath
+            tryToSetUpMLSelector(analyticsConfigurationClassPath)
+        }
+    }
 
-                logger.info(e) {
-                    "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
-                }
-                UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+    private fun tryToSetUpMLSelector(analyticsConfigurationClassPath: String) {
+        try {
+            Class.forName(analyticsConfigurationClassPath)
+            Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+
+            logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
+        } catch (e: ClassNotFoundException) {
+            logger.error {
+                "Configuration of the predictors from the utbot-analytics module described in the class: " +
+                        "$analyticsConfigurationClassPath is not found!"
             }
+
+            logger.info(e) {
+                "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
+            }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+        }
+        catch (e: Exception) { // engine not found, for example
+            logger.error { e.message }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }
     }
 

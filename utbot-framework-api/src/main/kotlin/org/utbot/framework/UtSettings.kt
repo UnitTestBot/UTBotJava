@@ -83,17 +83,17 @@ object UtSettings : AbstractSettings(
     var seedInPathSelector: Int? by getProperty<Int?>(42, String::toInt)
 
     /**
-     * Type of path selector
+     * Type of path selector.
      */
     var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
 
     /**
-     * Type of nnRewardGuidedSelector
+     * Type of MLSelector recalculation.
      */
-    var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
+    var mlSelectorRecalculationType: MLSelectorRecalculationType by getEnumProperty(MLSelectorRecalculationType.WITHOUT_RECALCULATION)
 
     /**
-     * Type of [StateRewardPredictor]
+     * Type of [StateRewardPredictor].
      */
     var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
 
@@ -327,14 +327,19 @@ object UtSettings : AbstractSettings(
     var enableFeatureProcess by getBooleanProperty(false)
 
     /**
-     * Path to deserialized reward models
+     * Path to deserialized ML models
      */
-    var rewardModelPath by getStringProperty("../models/0")
+    var modelPath by getStringProperty("../models/0")
 
     /**
      * Full class name of the class containing the configuration for the ML models to solve path selection task.
      */
     var analyticsConfigurationClassPath by getStringProperty("org.utbot.AnalyticsConfiguration")
+
+    /**
+     * Full class name of the class containing the configuration for the ML models exported from the PyTorch to solve path selection task.
+     */
+    var analyticsTorchConfigurationClassPath by getStringProperty("org.utbot.AnalyticsTorchConfiguration")
 
     /**
      * Number of model iterations that will be used during ContestEstimator
@@ -405,9 +410,14 @@ enum class PathSelectorType {
     FORK_DEPTH_SELECTOR,
 
     /**
-     * [NNRewardGuidedSelector]
+     * [MLSelector]
      */
-    NN_REWARD_GUIDED_SELECTOR,
+    ML_SELECTOR,
+
+    /**
+     * [TorchSelector]
+     */
+    TORCH_SELECTOR,
 
     /**
      * [RandomSelector]
@@ -426,16 +436,16 @@ enum class TestSelectionStrategyType {
 }
 
 /**
- * Enum to specify [NNRewardGuidedSelector], see implementations for more details
+ * Enum to specify [MLSelector], see implementations for more details
  */
-enum class NNRewardGuidedSelectorType {
+enum class MLSelectorRecalculationType {
     /**
-     * [NNRewardGuidedSelectorWithRecalculation]
+     * [MLSelectorWithRecalculation]
      */
     WITH_RECALCULATION,
 
     /**
-     * [NNRewardGuidedSelectorWithoutRecalculation]
+     * [MLSelectorWithoutRecalculation]
      */
     WITHOUT_RECALCULATION
 }
@@ -445,17 +455,12 @@ enum class NNRewardGuidedSelectorType {
  */
 enum class StateRewardPredictorType {
     /**
-     * [NNStateRewardPredictorBase]
+     * [MLStateRewardPredictorBase]
      */
     BASE,
 
     /**
-     * [StateRewardPredictorTorch]
-     */
-    TORCH,
-
-    /**
-     * [NNStateRewardPredictorBase]
+     * [LinearStateRewardPredictorBase]
      */
     LINEAR
 }

@@ -10,7 +10,6 @@ import org.utbot.framework.UtSettings
 class StateRewardPredictorFactoryImpl : StateRewardPredictorFactory {
     override operator fun invoke() = when (UtSettings.stateRewardPredictorType) {
         StateRewardPredictorType.BASE -> NNStateRewardPredictorBase()
-        StateRewardPredictorType.TORCH -> StateRewardPredictorTorch()
         StateRewardPredictorType.LINEAR -> LinearStateRewardPredictor()
     }
 }

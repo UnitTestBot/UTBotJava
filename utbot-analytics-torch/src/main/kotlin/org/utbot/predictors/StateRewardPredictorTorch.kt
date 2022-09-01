@@ -12,10 +12,11 @@ import java.io.Closeable
 import java.nio.file.Paths
 
 class StateRewardPredictorTorch : StateRewardPredictor, Closeable {
-    val model: Model = Model.newInstance("model")
+    val model: Model
 
     init {
-        model.load(Paths.get(UtSettings.rewardModelPath, "model.pt1"))
+        model = Model.newInstance("model")
+        model.load(Paths.get(UtSettings.modelPath, "model.pt1"))
     }
 
     private val predictor: Predictor<List<Float>, Float> = model.newPredictor(object : Translator<List<Float>, Float> {

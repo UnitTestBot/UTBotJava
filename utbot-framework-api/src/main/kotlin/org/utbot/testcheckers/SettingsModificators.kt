@@ -39,13 +39,13 @@ inline fun <reified T> withPathSelectorType(pathSelectorType: PathSelectorType, 
     }
 }
 
-inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () -> T): T {
-    val prev = UtSettings.rewardModelPath
-    UtSettings.rewardModelPath = rewardModelPath
+inline fun <reified T> withModelPath(modelPath: String, block: () -> T): T {
+    val prev = UtSettings.modelPath
+    UtSettings.modelPath = modelPath
     try {
         return block()
     } finally {
-        UtSettings.rewardModelPath = prev
+        UtSettings.modelPath = prev
     }
 }
 

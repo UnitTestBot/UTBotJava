@@ -85,7 +85,7 @@ object UtSettings : AbstractSettings(
     /**
      * Type of path selector.
      */
-    var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
+    var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.ML_SELECTOR)
 
     /**
      * Type of MLSelector recalculation.
@@ -93,7 +93,7 @@ object UtSettings : AbstractSettings(
     var mlSelectorRecalculationType: MLSelectorRecalculationType by getEnumProperty(MLSelectorRecalculationType.WITHOUT_RECALCULATION)
 
     /**
-     * Type of [StateRewardPredictor].
+     * Type of [MLPredictor].
      */
     var mlPredictorType: MLPredictorType by getEnumProperty(MLPredictorType.MLP)
 

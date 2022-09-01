@@ -94,7 +94,7 @@ import kotlinx.collections.immutable.persistentSetOf
 // hack
 const val MAX_LIST_SIZE = 10
 const val MAX_RESOLVE_LIST_SIZE = 256
-const val MAX_STRING_SIZE = 40
+const val MAX_STRING_SIZE = 256
 internal const val HARD_MAX_ARRAY_SIZE = 256
 
 internal const val PREFERRED_ARRAY_SIZE = 2

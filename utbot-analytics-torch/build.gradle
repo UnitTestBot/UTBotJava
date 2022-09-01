@@ -16,14 +16,14 @@ dependencies {
     testImplementation project(':utbot-sample')
     testImplementation group: 'junit', name: 'junit', version: junit4_version
 
-    api group: 'org.bytedeco', name: 'arpack-ng', version: "3.7.0-1.5.4", classifier: "$classifier"
-    api group: 'org.bytedeco', name: 'openblas', version: "0.3.10-1.5.4", classifier: "$classifier"
-    api group: 'org.bytedeco', name: 'javacpp', version: javacpp_version, classifier: "$classifier"
-    api group: 'org.jsoup', name: 'jsoup', version: jsoup_version
+    implementation group: 'org.bytedeco', name: 'arpack-ng', version: "3.7.0-1.5.4", classifier: "$classifier"
+    implementation group: 'org.bytedeco', name: 'openblas', version: "0.3.10-1.5.4", classifier: "$classifier"
+    implementation group: 'org.bytedeco', name: 'javacpp', version: javacpp_version, classifier: "$classifier"
+    implementation group: 'org.jsoup', name: 'jsoup', version: jsoup_version
 
-    api "ai.djl:api:$djl_api_version"
-    api "ai.djl.pytorch:pytorch-engine:$djl_api_version"
-    api "ai.djl.pytorch:pytorch-native-auto:$pytorch_native_version"
+    implementation "ai.djl:api:$djl_api_version"
+    implementation "ai.djl.pytorch:pytorch-engine:$djl_api_version"
+    implementation "ai.djl.pytorch:pytorch-native-auto:$pytorch_native_version"
 
     testImplementation project(':utbot-framework').sourceSets.test.output
 }

@@ -3,18 +3,15 @@ package org.utbot.predictors
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.examples.withPathSelectorType
 import org.utbot.analytics.StateRewardPredictor
-import org.utbot.examples.withRewardModelPath
-import org.utbot.framework.PathSelectorType
-import org.utbot.framework.UtSettings
+import org.utbot.testcheckers.withModelPath
 import kotlin.system.measureNanoTime
 
 class NNStateRewardPredictorTest {
     @Test
     @Disabled("Just to see the performance of predictors")
     fun simpleTest() {
-        withRewardModelPath("src/test/resources") {
+        withModelPath("src/test/resources") {
             val pred = StateRewardPredictorTorch()
 
             val features = listOf(0.0, 0.0)
@@ -27,7 +24,7 @@ class NNStateRewardPredictorTest {
     @Test
     fun performanceTest() {
         val features = (1..13).map { 1.0 }.toList()
-        withRewardModelPath("models") {
+        withModelPath("models") {
             val averageTime = calcAverageTimeForModelPredict(::StateRewardPredictorTorch, 100, features)
             println(averageTime)
         }

@@ -36,7 +36,7 @@ dependencies {
 
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
     implementation(project(":utbot-fuzzers"))
-    implementation project(':utbot-analytics') // to reduce the plugin size
+    // implementation project(':utbot-analytics') // to reduce the plugin size
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))
     testApi(project(":utbot-framework"))

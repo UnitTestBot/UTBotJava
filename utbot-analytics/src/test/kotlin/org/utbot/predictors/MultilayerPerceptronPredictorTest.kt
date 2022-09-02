@@ -3,18 +3,18 @@ package org.utbot.predictors
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.utbot.analytics.StateRewardPredictor
+import org.utbot.analytics.MLPredictor
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
 import org.utbot.testcheckers.withPathSelectorType
 import org.utbot.testcheckers.withModelPath
 import kotlin.system.measureNanoTime
 
-class NNStateRewardPredictorTest {
+class MultilayerPerceptronPredictorTest {
     @Test
     fun simpleTest() {
         withModelPath("src/test/resources") {
-            val pred = NNStateRewardPredictorBase()
+            val pred = MultilayerPerceptronPredictor()
 
             val features = listOf(0.0, 0.0)
 
@@ -27,13 +27,13 @@ class NNStateRewardPredictorTest {
     fun performanceTest() {
         val features = (1..13).map { 1.0 }.toList()
         withModelPath("models\\test\\0") {
-            val averageTime = calcAverageTimeForModelPredict(::NNStateRewardPredictorBase, 100, features)
+            val averageTime = calcAverageTimeForModelPredict(::MultilayerPerceptronPredictor, 100, features)
             println(averageTime)
         }
     }
 
     internal fun calcAverageTimeForModelPredict(
-        model: () -> StateRewardPredictor,
+        model: () -> MLPredictor,
         iterations: Int,
         features: List<Double>
     ): Double {
@@ -52,7 +52,7 @@ class NNStateRewardPredictorTest {
     fun corruptedModelFileTest() {
         withModelPath("src/test/resources") {
             withPathSelectorType(PathSelectorType.ML_SELECTOR) {
-                NNStateRewardPredictorBase(modelPath = "corrupted_nn.json")
+                MultilayerPerceptronPredictor(modelPath = "corrupted_nn.json")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
@@ -62,7 +62,7 @@ class NNStateRewardPredictorTest {
     fun emptyModelFileTest() {
         withModelPath("src/test/resources") {
             withPathSelectorType(PathSelectorType.ML_SELECTOR) {
-                NNStateRewardPredictorBase(modelPath = "empty_nn.json")
+                MultilayerPerceptronPredictor(modelPath = "empty_nn.json")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }
@@ -72,7 +72,7 @@ class NNStateRewardPredictorTest {
     fun corruptedScalerTest() {
         withModelPath("src/test/resources") {
             withPathSelectorType(PathSelectorType.ML_SELECTOR) {
-                NNStateRewardPredictorBase(scalerPath = "corrupted_scaler.txt")
+                MultilayerPerceptronPredictor(scalerPath = "corrupted_scaler.txt")
                 assertEquals(PathSelectorType.INHERITORS_SELECTOR, UtSettings.pathSelectorType)
             }
         }

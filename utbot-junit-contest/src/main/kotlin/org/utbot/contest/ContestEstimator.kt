@@ -33,7 +33,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.predictors.StateRewardPredictorFactoryImpl
+import org.utbot.predictors.MLPredictorFactoryImpl
 import kotlin.concurrent.thread
 import kotlin.math.min
 
@@ -328,9 +328,9 @@ fun runEstimator(
 
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-    EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
+    EngineAnalyticsContext.mlPredictorFactory = MLPredictorFactoryImpl()
     if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
-        Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+        Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
     }
     
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }

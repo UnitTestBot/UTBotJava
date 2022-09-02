@@ -317,7 +317,7 @@ object UtTestsDialogProcessor {
     private fun tryToSetUpMLSelector(analyticsConfigurationClassPath: String) {
         try {
             Class.forName(analyticsConfigurationClassPath)
-            Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+            Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
 
             logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
         } catch (e: ClassNotFoundException) {

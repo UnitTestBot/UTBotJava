@@ -54,6 +54,7 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.PathSelectorType
+import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.settings.Settings
@@ -206,13 +207,32 @@ object UtTestsDialogProcessor {
 
                                 withStaticsSubstitutionRequired(true) {
                                     val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
+                                    var forceMockListener: ForceMockListener? = null
+                                    var forceStaticMockListener: ForceStaticMockListener? = null
 
-                                    if (!mockFrameworkInstalled) {
-                                        ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
-                                    }
+                                    when (model.parametrizedTestSource) {
+                                        ParametrizedTestSource.PARAMETRIZE -> {
+                                            forceMockListener = ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
+                                            forceStaticMockListener = ForceStaticMockListener.create(
+                                                testCaseGenerator,
+                                                model.conflictTriggers
+                                            )
+                                        }
 
-                                    if (!model.staticsMocking.isConfigured) {
-                                        ForceStaticMockListener.create(testCaseGenerator, model.conflictTriggers)
+                                        ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                                            when {
+                                                !mockFrameworkInstalled -> forceMockListener = ForceMockListener.create(
+                                                    testCaseGenerator,
+                                                    model.conflictTriggers
+                                                )
+
+                                                !model.staticsMocking.isConfigured -> forceStaticMockListener =
+                                                    ForceStaticMockListener.create(
+                                                        testCaseGenerator,
+                                                        model.conflictTriggers
+                                                    )
+                                            }
+                                        }
                                     }
 
                                     val notEmptyCases = runCatching {
@@ -234,6 +254,9 @@ object UtTestsDialogProcessor {
                                                 .filterNot { it.executions.isEmpty() && it.errors.isEmpty() }
                                         }
                                     }.getOrDefault(listOf())
+
+                                    forceMockListener?.detach(testCaseGenerator, forceMockListener)
+                                    forceStaticMockListener?.detach(testCaseGenerator, forceStaticMockListener)
 
                                     if (notEmptyCases.isEmpty()) {
                                         if (model.srcClasses.size > 1) {

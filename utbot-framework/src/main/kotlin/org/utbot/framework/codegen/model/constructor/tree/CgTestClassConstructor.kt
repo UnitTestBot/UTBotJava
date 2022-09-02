@@ -147,14 +147,20 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
             }
             ParametrizedTestSource.PARAMETRIZE -> {
-                for (splitByExecutionTestSet in testSet.splitExecutionsByResult()) {
-                    for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
-                        createParametrizedTestAndDataProvider(
-                            splitByChangedStaticsTestSet,
-                            requiredFields,
-                            regions,
-                            methodUnderTest
-                        )
+                // We filter out Fuzzer executions because sometimes we need to turn off
+                // Symbolic Engine and stop the test generation in case of mocking taking place
+                // and do not collect this execution. But having Fuzzer executions may cause
+                // unwanted executions being present.
+                testSet.extractSymbolicExecutions().also {
+                    for (splitByExecutionTestSet in it.splitExecutionsByResult()) {
+                        for (splitByChangedStaticsTestSet in splitByExecutionTestSet.splitExecutionsByChangedStatics()) {
+                            createParametrizedTestAndDataProvider(
+                                splitByChangedStaticsTestSet,
+                                requiredFields,
+                                regions,
+                                methodUnderTest
+                            )
+                        }
                     }
                 }
             }

@@ -163,6 +163,7 @@ open class TestCaseGenerator(
                         )
 
                         engineActions.map { engine.apply(it) }
+                        engineActions.clear()
 
                         generate(engine)
                             .catch {

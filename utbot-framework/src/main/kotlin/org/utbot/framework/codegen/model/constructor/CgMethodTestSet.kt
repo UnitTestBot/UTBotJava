@@ -8,6 +8,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -64,6 +65,12 @@ data class CgMethodTestSet private constructor(
             executions.groupBy { it.stateBefore.statics.keys }
 
         return executionsByStaticsUsage.map { (_, executions) -> substituteExecutions(executions) }
+    }
+
+    fun extractSymbolicExecutions(): CgMethodTestSet {
+        val executionsBySource = executions.filterIsInstance<UtSymbolicExecution>()
+
+        return substituteExecutions(executionsBySource)
     }
 
     /**

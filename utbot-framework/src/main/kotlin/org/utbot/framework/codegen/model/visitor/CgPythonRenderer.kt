@@ -34,7 +34,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun visit(element: CgTestClassFile) {
-        renderPythonImport(PythonSysPathImport(sysPath = "sys"))
+        renderPythonImport(PythonSystemImport("sys"))
         renderSysPaths(element)
         element.imports.filterIsInstance<PythonImport>().forEach {
             renderPythonImport(it)

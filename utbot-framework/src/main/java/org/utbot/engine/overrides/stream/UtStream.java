@@ -1,10 +1,22 @@
 package org.utbot.engine.overrides.stream;
 
+import org.jetbrains.annotations.NotNull;
 import org.utbot.api.mock.UtMock;
-import org.utbot.engine.overrides.UtArrayMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
+import org.utbot.engine.overrides.stream.actions.DistinctAction;
+import org.utbot.engine.overrides.stream.actions.LimitAction;
+import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
+import org.utbot.engine.overrides.stream.actions.SkipAction;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
+import org.utbot.engine.overrides.stream.actions.objects.ConsumerAction;
+import org.utbot.engine.overrides.stream.actions.objects.FilterAction;
+import org.utbot.engine.overrides.stream.actions.objects.MapAction;
+import org.utbot.engine.overrides.stream.actions.objects.SortingAction;
+import org.utbot.engine.overrides.stream.actions.objects.ToDoubleMapAction;
+import org.utbot.engine.overrides.stream.actions.objects.ToIntMapAction;
+import org.utbot.engine.overrides.stream.actions.objects.ToLongMapAction;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -28,16 +40,6 @@ import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
-import org.utbot.engine.overrides.stream.actions.ConsumerAction;
-import org.utbot.engine.overrides.stream.actions.DistinctAction;
-import org.utbot.engine.overrides.stream.actions.FilterAction;
-import org.utbot.engine.overrides.stream.actions.LimitAction;
-import org.utbot.engine.overrides.stream.actions.MapAction;
-import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
-import org.utbot.engine.overrides.stream.actions.SkipAction;
-import org.utbot.engine.overrides.stream.actions.SortingAction;
-import org.utbot.engine.overrides.stream.actions.StreamAction;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -51,13 +53,13 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     /**
      * A reference to the original collection. The default collection is {@link UtArrayList}.
      */
-    private final Collection origin;
+    final Collection origin;
 
-    private final RangeModifiableUnlimitedArray<StreamAction> actions;
+    final RangeModifiableUnlimitedArray<StreamAction> actions;
 
-    private final RangeModifiableUnlimitedArray<Runnable> closeHandlers;
+    final RangeModifiableUnlimitedArray<Runnable> closeHandlers;
 
-    private boolean isParallel = false;
+    boolean isParallel = false;
 
     /**
      * {@code false} by default, assigned to {@code true} after performing any operation on this stream. Any operation,
@@ -102,6 +104,42 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         isClosed = false;
     }
 
+    public UtStream(UtIntStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtStream(UtLongStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtStream(UtDoubleStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
     /**
      * Precondition check is called only once by object,
      * if it was passed as parameter to method under test.
@@ -116,8 +154,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         if (alreadyVisited(this)) {
             return;
         }
-        // TODO ?
-//        setEqualGenericType(elementData);
 
         assume(origin != null);
 
@@ -151,18 +187,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return new UtStream<>(this);
     }
 
-    private int filterInvocation(Object[] originArray, Object[] filtered, Predicate filter) {
-        int newSize = 0;
-
-        for (Object o : originArray) {
-            if (filter.test(o)) {
-                filtered[newSize++] = o;
-            }
-        }
-
-        return newSize;
-    }
-
     @Override
     public <R> Stream<R> map(Function<? super E, ? extends R> mapper) {
         preconditionCheckWithClosingStream();
@@ -173,18 +197,14 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return new UtStream<>(this);
     }
 
-    private void mapInvocation(Object[] originArray, Object[] transformed, Function mapping) {
-        int newSize = 0;
-
-        for (Object o : originArray) {
-            transformed[newSize++] = mapping.apply(o);
-        }
-    }
-
     @Override
     public IntStream mapToInt(ToIntFunction<? super E> mapper) {
-        // TODO
-        return null;
+        preconditionCheckWithClosingStream();
+
+        final ToIntMapAction mapAction = new ToIntMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
+
+        return new UtIntStream(this);
 //        preconditionCheckWithClosingStream();
 //
 //        int size = origin.size();
@@ -200,8 +220,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
     @Override
     public LongStream mapToLong(ToLongFunction<? super E> mapper) {
-        // TODO
-        return null;
+        preconditionCheckWithClosingStream();
+
+        final ToLongMapAction mapAction = new ToLongMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
+
+        return new UtLongStream(this);
 //        preconditionCheckWithClosingStream();
 //
 //        int size = origin.size();
@@ -217,8 +241,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
     @Override
     public DoubleStream mapToDouble(ToDoubleFunction<? super E> mapper) {
-        // TODO
-        return null;
+        preconditionCheckWithClosingStream();
+
+        final ToDoubleMapAction mapAction = new ToDoubleMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
+
+        return new UtDoubleStream(this);
 //        preconditionCheckWithClosingStream();
 //
 //        int size = origin.size();
@@ -274,38 +302,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return new UtStream<>(this);
     }
 
-    private int distinctInvocation(Object[] curElements, Object[] distinctElements) {
-        int distinctSize = 0;
-
-        for (Object element : curElements) {
-            boolean isDuplicate = false;
-
-            if (element == null) {
-                for (int j = 0; j < distinctSize; j++) {
-                    Object alreadyProcessedElement = distinctElements[j];
-                    if (alreadyProcessedElement == null) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-            } else {
-                for (int j = 0; j < distinctSize; j++) {
-                    Object alreadyProcessedElement = distinctElements[j];
-                    if (element.equals(alreadyProcessedElement)) {
-                        isDuplicate = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isDuplicate) {
-                distinctElements[distinctSize++] = element;
-            }
-        }
-
-        return distinctSize;
-    }
-
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
     @Override
     public Stream<E> sorted() {
@@ -322,41 +318,20 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     public Stream<E> sorted(Comparator<? super E> comparator) {
         preconditionCheckWithClosingStream();
 
-        final SortingAction sortingAction = new SortingAction((Comparator<Object>) comparator);
+        final SortingAction sortingAction = new SortingAction(comparator);
         actions.insert(actions.end++, sortingAction);
 
         return new UtStream<>(this);
-    }
-
-    private void sortedInvocation(Object[] originElements, Object[] sortedElements, Comparator comparator, int size) {
-        UtArrayMock.arraycopy(originElements, 0, sortedElements, 0, size);
-
-        // bubble sort
-        for (int i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (comparator.compare(sortedElements[j], sortedElements[j + 1]) > 0) {
-                    Object tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }
     }
 
     @Override
     public Stream<E> peek(Consumer<? super E> action) {
         preconditionCheckWithoutClosing();
 
-        final ConsumerAction consumerAction = new ConsumerAction((Consumer<Object>) action);
+        final ConsumerAction consumerAction = new ConsumerAction(action);
         actions.insert(actions.end++, consumerAction);
 
         return new UtStream<>(this);
-    }
-
-    public void actionInvocation(Object[] originArray, Consumer action) {
-        for (Object element : originArray) {
-            action.accept(element);
-        }
     }
 
     @Override
@@ -375,33 +350,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return new UtStream<>(this);
     }
 
-    private Object[] limitInvocation(Object[] originArray, long maxSize, int curSize) {
-        if (maxSize == 0) {
-            return new Object[]{};
-        }
-
-        assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
-
-        int newSize = (int) maxSize;
-
-        if (newSize > curSize) {
-            newSize = curSize;
-        }
-
-        Object[] elements = new Object[newSize];
-        int i = 0;
-
-        for (Object element : originArray) {
-            if (i >= newSize) {
-                break;
-            }
-
-            elements[i++] = element;
-        }
-
-        return elements;
-    }
-
     @Override
     public Stream<E> skip(long n) {
         preconditionCheckWithClosingStream();
@@ -416,33 +364,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         actions.insert(actions.end++, skipAction);
 
         return new UtStream<>(this);
-    }
-
-    private Object[] skipInvocation(Object[] originArray, long n, int curSize) {
-        if (n > curSize) {
-            return new Object[]{};
-        }
-
-        // n is 1...Integer.MAX_VALUE here
-        int newSize = (int) (curSize - n);
-
-        if (newSize == 0) {
-            return new Object[]{};
-        }
-
-        Object[] elements = new Object[newSize];
-        int i = 0;
-        int j = 0;
-
-        for (Object element : originArray) {
-            if (i++ < n) {
-                break;
-            }
-
-            elements[j++] = element;
-        }
-
-        return elements;
     }
 
     @Override
@@ -488,7 +409,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         for (int i = 0; i < actionsNumber; i++) {
             originArray = actions.get(i).applyAction(originArray);
-            UtMock.disableClassCastExceptionCheck(originArray); // TODO do we need it?
         }
 
         return originArray;
@@ -774,34 +694,4 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             return (E) data[index++];
         }
     }
-//
-//    private final List<Object> actions = new UtArrayList<>();
-//
-//    private Object apply() {
-//        Object[] previousElements = elementData.toArray();
-//        int size = previousElements.length;
-//
-//        for (Object action : actions) {
-//            Object[] newElements = new Object[size];
-//            int newSize = 0;
-//
-//            if (action instanceof Predicate) {
-//                for (Object element : previousElements) {
-//                    if (((Predicate<Object>) action).test(element)) {
-//                        newElements[newSize++] = element;
-//                    }
-//                }
-//            } else if (action instanceof Function) {
-//                for (Object element : previousElements) {
-//                    newElements[newSize++] = ((Function<Object, Object>) action).apply(element);
-//                }
-//            }
-//
-//            size = newSize;
-//            previousElements = new Object[size];
-//            UtArrayMock.arraycopy(newElements, 0, previousElements, 0, size);
-//        }
-//
-//        return previousElements;
-//    }
 }

@@ -45,6 +45,14 @@ import org.utbot.engine.overrides.stream.UtIntStream
 import org.utbot.engine.overrides.stream.UtLongStream
 import org.utbot.engine.overrides.stream.UtStream
 import org.utbot.engine.overrides.stream.actions.*
+import org.utbot.engine.overrides.stream.actions.objects.ConsumerAction
+import org.utbot.engine.overrides.stream.actions.DistinctAction
+import org.utbot.engine.overrides.stream.actions.objects.FilterAction
+import org.utbot.engine.overrides.stream.actions.LimitAction
+import org.utbot.engine.overrides.stream.actions.objects.MapAction
+import org.utbot.engine.overrides.stream.actions.NaturalSortingAction
+import org.utbot.engine.overrides.stream.actions.SkipAction
+import org.utbot.engine.overrides.stream.actions.objects.SortingAction
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.util.signature

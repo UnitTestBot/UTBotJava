@@ -1,6 +1,7 @@
 package org.utbot.engine.overrides.stream.actions;
 
 import org.utbot.engine.overrides.UtArrayMock;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
 
 public class DistinctAction implements StreamAction {
     @Override

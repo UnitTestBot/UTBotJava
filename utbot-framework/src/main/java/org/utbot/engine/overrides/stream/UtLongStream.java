@@ -1,16 +1,45 @@
 package org.utbot.engine.overrides.stream;
 
 import org.jetbrains.annotations.NotNull;
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
+import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
+import org.utbot.engine.overrides.stream.actions.DistinctAction;
+import org.utbot.engine.overrides.stream.actions.LimitAction;
+import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
+import org.utbot.engine.overrides.stream.actions.SkipAction;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntConsumerAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntFilterAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToDoubleMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToLongMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToObjMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.LongConsumerAction;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.LongFilterAction;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.LongMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToDoubleMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToIntMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToObjMapAction;
 
+import java.util.Collection;
+import java.util.IntSummaryStatistics;
 import java.util.LongSummaryStatistics;
 import java.util.NoSuchElementException;
 import java.util.OptionalDouble;
 import java.util.OptionalLong;
+import java.util.OptionalLong;
 import java.util.PrimitiveIterator;
 import java.util.Spliterator;
 import java.util.function.BiConsumer;
+import java.util.function.IntBinaryOperator;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
+import java.util.function.IntPredicate;
+import java.util.function.IntToDoubleFunction;
+import java.util.function.IntToLongFunction;
+import java.util.function.IntUnaryOperator;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
@@ -18,6 +47,7 @@ import java.util.function.LongPredicate;
 import java.util.function.LongToDoubleFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.LongUnaryOperator;
+import java.util.function.ObjIntConsumer;
 import java.util.function.ObjLongConsumer;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
@@ -33,12 +63,18 @@ import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
+// TODO we can use method implementations from UtStream after wrappers inheritance support https://github.com/UnitTestBot/UTBotJava/issues/819
 public class UtLongStream implements LongStream, UtGenericStorage<Long> {
-    private final RangeModifiableUnlimitedArray<Long> elementData;
+    /**
+     * A reference to the original collection. The default collection is {@link UtArrayList}.
+     */
+    final Collection origin;
 
-    private final RangeModifiableUnlimitedArray<Runnable> closeHandlers = new RangeModifiableUnlimitedArray<>();
+    final RangeModifiableUnlimitedArray<StreamAction> actions;
 
-    private boolean isParallel = false;
+    final RangeModifiableUnlimitedArray<Runnable> closeHandlers;
+
+    boolean isParallel = false;
 
     /**
      * {@code false} by default, assigned to {@code true} after performing any operation on this stream. Any operation,
@@ -46,16 +82,75 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
      */
     private boolean isClosed = false;
 
-    public UtLongStream() {
-        visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
+    public UtLongStream(Long[] data) {
+        this(data, 0, data.length);
     }
 
     public UtLongStream(Long[] data, int length) {
+        this(data, 0, length);
+    }
+
+    public UtLongStream(Long[] data, int startInclusive, int endExclusive) {
+        this(new UtArrayList<>(data, startInclusive, endExclusive));
+    }
+
+    public UtLongStream(UtLongStream other) {
         visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
-        elementData.end = length;
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public UtLongStream(UtStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtLongStream(UtIntStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtLongStream(UtDoubleStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private UtLongStream(Collection collection) {
+        visit(this);
+
+        actions = new RangeModifiableUnlimitedArray<>();
+        closeHandlers = new RangeModifiableUnlimitedArray<>();
+
+        origin = collection;
     }
 
     /**
@@ -72,29 +167,24 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
         if (alreadyVisited(this)) {
             return;
         }
-        setEqualGenericType(elementData);
 
-        assume(elementData != null);
-        assume(elementData.storage != null);
+        assume(origin != null);
 
-        parameter(elementData);
-        parameter(elementData.storage);
-
-        assume(elementData.begin == 0);
-
-        assume(elementData.end >= 0);
-        // we can create a stream for an array using Stream.of
-        assume(elementData.end <= HARD_MAX_ARRAY_SIZE);
+        parameter(origin);
 
         visit(this);
     }
 
-    private void preconditionCheckWithClosingStream() {
+    private void preconditionCheckWithoutClosing() {
         preconditionCheck();
 
         if (isClosed) {
             throw new IllegalStateException();
         }
+    }
+
+    private void preconditionCheckWithClosingStream() {
+        preconditionCheckWithoutClosing();
 
         // Even if exception occurs in the body of a stream operation, this stream could not be used later.
         isClosed = true;
@@ -103,70 +193,50 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     public LongStream filter(LongPredicate predicate) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Long[] filtered = new Long[size];
-        int j = 0;
-        for (int i = 0; i < size; i++) {
-            long element = elementData.get(i);
-            if (predicate.test(element)) {
-                filtered[j++] = element;
-            }
-        }
+        final LongFilterAction filterAction = new LongFilterAction(predicate);
+        actions.insert(actions.end++, filterAction);
 
-        return new UtLongStream(filtered, j);
+        return new UtLongStream(this);
     }
 
     @Override
     public LongStream map(LongUnaryOperator mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Long[] mapped = new Long[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsLong(elementData.get(i));
-        }
+        final LongMapAction mapAction = new LongMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtLongStream(mapped, size);
+        return new UtLongStream(this);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <U> Stream<U> mapToObj(LongFunction<? extends U> mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Object[] mapped = new Object[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.apply(elementData.get(i));
-        }
+        final LongToObjMapAction mapAction = new LongToObjMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtStream<>((U[]) mapped);
+        return new UtStream<>(this);
     }
 
     @Override
     public IntStream mapToInt(LongToIntFunction mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Integer[] mapped = new Integer[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsInt(elementData.get(i));
-        }
+        final LongToIntMapAction mapAction = new LongToIntMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtIntStream(mapped, size);
+        return new UtIntStream(this);
     }
 
     @Override
     public DoubleStream mapToDouble(LongToDoubleFunction mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Double[] mapped = new Double[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsDouble(elementData.get(i));
-        }
+        final LongToDoubleMapAction mapAction = new LongToDoubleMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtDoubleStream(mapped, size);
+        return new UtDoubleStream(this);
     }
 
     @Override
@@ -181,27 +251,10 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     public LongStream distinct() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Long[] distinctElements = new Long[size];
-        int distinctSize = 0;
-        for (int i = 0; i < size; i++) {
-            long element = elementData.get(i);
-            boolean isDuplicate = false;
+        final DistinctAction distinctAction = new DistinctAction();
+        actions.insert(actions.end++, distinctAction);
 
-            for (int j = 0; j < distinctSize; j++) {
-                long alreadyProcessedElement = distinctElements[j];
-                if (element == alreadyProcessedElement) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-
-            if (!isDuplicate) {
-                distinctElements[distinctSize++] = element;
-            }
-        }
-
-        return new UtLongStream(distinctElements, distinctSize);
+        return new UtLongStream(this);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
@@ -209,44 +262,20 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     public LongStream sorted() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
+        final NaturalSortingAction naturalSortingAction = new NaturalSortingAction();
+        actions.insert(actions.end++, naturalSortingAction);
 
-        if (size == 0) {
-            return new UtLongStream();
-        }
-
-        Long[] sortedElements = new Long[size];
-        for (int i = 0; i < size; i++) {
-            sortedElements[i] = elementData.get(i);
-        }
-
-        // bubble sort
-        for (int i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (sortedElements[j] > sortedElements[j + 1]) {
-                    Long tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }
-
-        return new UtLongStream(sortedElements, size);
+        return new UtLongStream(this);
     }
 
     @Override
     public LongStream peek(LongConsumer action) {
-        preconditionCheckWithClosingStream();
+        preconditionCheckWithoutClosing();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            action.accept(elementData.get(i));
-        }
+        final LongConsumerAction consumerAction = new LongConsumerAction(action);
+        actions.insert(actions.end++, consumerAction);
 
-        // returned stream should be opened, so we "reopen" this stream to return it
-        isClosed = false;
-
-        return this;
+        return new UtLongStream(this);
     }
 
     @Override
@@ -257,22 +286,12 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             throw new IllegalArgumentException();
         }
 
-        if (maxSize == 0) {
-            return new UtLongStream();
-        }
-
         assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
 
-        int newSize = (int) maxSize;
-        int curSize = elementData.end;
+        final LimitAction limitAction = new LimitAction((int) maxSize);
+        actions.set(actions.end++, limitAction);
 
-        if (newSize > curSize) {
-            newSize = curSize;
-        }
-
-        Long[] elements = elementData.toCastedArray(0, newSize);
-
-        return new UtLongStream(elements, newSize);
+        return new UtLongStream(this);
     }
 
     @Override
@@ -283,21 +302,12 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             throw new IllegalArgumentException();
         }
 
-        int curSize = elementData.end;
-        if (n > curSize) {
-            return new UtLongStream();
-        }
+        assumeOrExecuteConcretely(n <= Integer.MAX_VALUE);
 
-        // n is 1...Integer.MAX_VALUE here
-        int newSize = (int) (curSize - n);
+        final SkipAction skipAction = new SkipAction((int) n);
+        actions.insert(actions.end++, skipAction);
 
-        if (newSize == 0) {
-            return new UtLongStream();
-        }
-
-        Long[] elements = elementData.toCastedArray((int) n, newSize);
-
-        return new UtLongStream(elements, newSize);
+        return new UtLongStream(this);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -316,23 +326,34 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     public long[] toArray() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        long[] result = new long[size];
-        for (int i = 0; i < size; i++) {
-            result[i] = elementData.get(i);
+        final Object[] objects = applyActions(origin.toArray());
+
+        final long[] result = new long[objects.length];
+        int i = 0;
+        for (Object object : objects) {
+            result[i++] = (Long) object;
         }
 
         return result;
     }
 
+    @NotNull
+    private Object[] applyActions(Object[] originArray) {
+        int actionsNumber = actions.end;
+
+        for (int i = 0; i < actionsNumber; i++) {
+            originArray = actions.get(i).applyAction(originArray);
+        }
+
+        return originArray;
+    }
+
     @Override
     public long reduce(long identity, LongBinaryOperator op) {
-        preconditionCheckWithClosingStream();
-
-        int size = elementData.end;
         long result = identity;
-        for (int i = 0; i < size; i++) {
-            result = op.applyAsLong(result, elementData.get(i));
+
+        for (long element : toArray()) {
+            result = op.applyAsLong(result, element);
         }
 
         return result;
@@ -340,16 +361,16 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public OptionalLong reduce(LongBinaryOperator op) {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        int size = elementData.end;
+        int size = finalElements.length;
         if (size == 0) {
             return OptionalLong.empty();
         }
 
         Long result = null;
-        for (int i = 0; i < size; i++) {
-            long element = elementData.get(i);
+
+        for (long element : finalElements) {
             if (result == null) {
                 result = element;
             } else {
@@ -357,18 +378,18 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
             }
         }
 
-        return result == null ? OptionalLong.empty() : OptionalLong.of(result);
+        return OptionalLong.of(result);
     }
 
     @Override
     public <R> R collect(Supplier<R> supplier, ObjLongConsumer<R> accumulator, BiConsumer<R, R> combiner) {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
         // since this implementation is always sequential, we do not need to use the combiner
-        int size = elementData.end;
         R result = supplier.get();
-        for (int i = 0; i < size; i++) {
-            accumulator.accept(result, elementData.get(i));
+
+        for (long element : finalElements) {
+            accumulator.accept(result, element);
         }
 
         return result;
@@ -376,57 +397,49 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public long sum() {
-        preconditionCheckWithClosingStream();
-
-        final int size = elementData.end;
-
-        if (size == 0) {
-            return 0;
-        }
+        long[] finalElements = toArray();
 
         long sum = 0;
-
-        for (int i = 0; i < size; i++) {
-            long element = elementData.get(i);
+        for (long element : finalElements) {
             sum += element;
         }
 
         return sum;
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalLong min() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalLong.empty();
         }
 
-        long min = elementData.get(0);
-        for (int i = 1; i < size; i++) {
-            final long element = elementData.get(i);
-            min = (element < min) ? element : min;
+        long min = finalElements[0];
+        for (long element : finalElements) {
+            if (element < min) {
+                min = element;
+            }
         }
 
         return OptionalLong.of(min);
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalLong max() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalLong.empty();
         }
 
-        long max = elementData.get(0);
-        for (int i = 1; i < size; i++) {
-            final long element = elementData.get(i);
-            max = (element > max) ? element : max;
+        long max = finalElements[0];
+        for (long element : finalElements) {
+            if (element > max) {
+                max = element;
+            }
         }
 
         return OptionalLong.of(max);
@@ -434,40 +447,37 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public long count() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        return elementData.end;
+        return finalElements.length;
     }
 
     @Override
     public OptionalDouble average() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalDouble.empty();
         }
 
-        // "reopen" this stream to use sum and count
-        isClosed = false;
-        final double sum = sum();
-        isClosed = false;
-        final long count = count();
+        long sum = 0;
+        for (long element : finalElements) {
+            sum += element;
+        }
 
-        double average = sum / count;
+        final double average = ((double) sum) / length;
 
         return OptionalDouble.of(average);
     }
 
     @Override
     public LongSummaryStatistics summaryStatistics() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
         LongSummaryStatistics statistics = new LongSummaryStatistics();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            long element = elementData.get(i);
+        for (long element : finalElements) {
             statistics.accept(element);
         }
 
@@ -476,11 +486,10 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public boolean anyMatch(LongPredicate predicate) {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            if (predicate.test(elementData.get(i))) {
+        for (long element : finalElements) {
+            if (predicate.test(element)) {
                 return true;
             }
         }
@@ -490,11 +499,10 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public boolean allMatch(LongPredicate predicate) {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            if (!predicate.test(elementData.get(i))) {
+        for (long element : finalElements) {
+            if (!predicate.test(element)) {
                 return false;
             }
         }
@@ -509,21 +517,17 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public OptionalLong findFirst() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        if (elementData.end == 0) {
+        if (finalElements.length == 0) {
             return OptionalLong.empty();
         }
 
-        long first = elementData.get(0);
-
-        return OptionalLong.of(first);
+        return OptionalLong.of(finalElements[0]);
     }
 
     @Override
     public OptionalLong findAny() {
-        preconditionCheckWithClosingStream();
-
         // since this implementation is always sequential, we can just return the first element
         return findFirst();
     }
@@ -532,37 +536,14 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     public DoubleStream asDoubleStream() {
         preconditionCheckWithClosingStream();
 
-        final int size = elementData.end;
-
-        if (size == 0) {
-            return new UtDoubleStream();
-        }
-
-        final long[] elements = copyData();
-        Double[] doubles = new Double[size];
-
-        for (int i = 0; i < size; i++) {
-            doubles[i] = (double) elements[i];
-        }
-
-        return new UtDoubleStream(doubles, size);
+        return new UtDoubleStream(this);
     }
 
     @Override
     public Stream<Long> boxed() {
         preconditionCheckWithClosingStream();
 
-        final int size = elementData.end;
-        if (size == 0) {
-            return new UtStream<>();
-        }
-
-        Long[] elements = new Long[size];
-        for (int i = 0; i < size; i++) {
-            elements[i] = elementData.get(i);
-        }
-
-        return new UtStream<>(elements);
+        return new UtStream<>(this);
     }
 
     @Override
@@ -587,9 +568,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     @Override
     public PrimitiveIterator.OfLong iterator() {
-        preconditionCheckWithClosingStream();
+        long[] finalElements = toArray();
 
-        return new UtLongStreamIterator(0);
+        return new UtLongStreamIterator(finalElements);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -647,46 +628,31 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
         closeHandlers.end = 0;
     }
 
-    // Copies data to long array. Might be used on already "closed" stream. Marks this stream as closed.
-    private long[] copyData() {
-        // "open" stream to use toArray method
-        isClosed = false;
+    public static class UtLongStreamIterator implements PrimitiveIterator.OfLong {
+        private final long[] data;
 
-        return toArray();
-    }
+        private final int lastIndex;
 
-    public class UtLongStreamIterator implements PrimitiveIterator.OfLong {
         int index;
 
-        UtLongStreamIterator(int index) {
-            if (index < 0 || index > elementData.end) {
-                throw new IndexOutOfBoundsException();
-            }
-
-            this.index = index;
+        public UtLongStreamIterator(long[] data) {
+            this.data = data;
+            lastIndex = data.length - 1;
         }
 
         @Override
         public boolean hasNext() {
-            preconditionCheck();
-
-            return index != elementData.end;
+            return index <= lastIndex;
         }
 
         @Override
         public long nextLong() {
-            return next();
+            return data[index++];
         }
 
         @Override
         public Long next() {
-            preconditionCheck();
-
-            if (index == elementData.end) {
-                throw new NoSuchElementException();
-            }
-
-            return elementData.get(index++);
+            return data[index++];
         }
     }
 }

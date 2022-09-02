@@ -1,4 +1,6 @@
-package org.utbot.engine.overrides.stream.actions;
+package org.utbot.engine.overrides.stream.actions.objects;
+
+import org.utbot.engine.overrides.stream.actions.StreamAction;
 
 import java.util.function.Function;
 

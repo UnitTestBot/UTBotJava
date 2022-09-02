@@ -1,14 +1,19 @@
-package org.utbot.engine.overrides.stream.actions;
+package org.utbot.engine.overrides.stream.actions.objects;
+
+import org.utbot.engine.overrides.stream.actions.StreamAction;
 
 import java.util.Comparator;
 
 public class SortingAction implements StreamAction {
-    private final Comparator<Object> comparator;
+    @SuppressWarnings("rawtypes")
+    private final Comparator comparator;
 
-    public SortingAction(Comparator<Object> comparator) {
+    @SuppressWarnings("rawtypes")
+    public SortingAction(Comparator comparator) {
         this.comparator = comparator;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Object[] applyAction(Object[] originArray) {
         final int size = originArray.length;

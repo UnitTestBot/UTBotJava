@@ -1,14 +1,19 @@
-package org.utbot.engine.overrides.stream.actions;
+package org.utbot.engine.overrides.stream.actions.objects;
+
+import org.utbot.engine.overrides.stream.actions.StreamAction;
 
 import java.util.function.Consumer;
 
 public class ConsumerAction implements StreamAction {
-    private final Consumer<Object> action;
+    @SuppressWarnings("rawtypes")
+    private final Consumer action;
 
-    public ConsumerAction(Consumer<Object> action) {
+    @SuppressWarnings("rawtypes")
+    public ConsumerAction(Consumer action) {
         this.action = action;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Object[] applyAction(Object[] originArray) {
         for (Object element : originArray) {

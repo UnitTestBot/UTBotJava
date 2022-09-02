@@ -1,7 +1,9 @@
 package org.utbot.engine.overrides.stream.actions;
 
+import org.utbot.engine.overrides.stream.actions.StreamAction;
+
 public class NaturalSortingAction implements StreamAction {
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public Object[] applyAction(Object[] originArray) {
         final int size = originArray.length;
@@ -9,7 +11,7 @@ public class NaturalSortingAction implements StreamAction {
         // bubble sort
         for (int i = 0; i < size - 1; i++) {
             for (int j = 0; j < size - i - 1; j++) {
-                if (((Comparable<Object>) originArray[j]).compareTo(originArray[j + 1]) > 0) {
+                if (((Comparable) originArray[j]).compareTo(originArray[j + 1]) > 0) {
                     Object tmp = originArray[j];
                     originArray[j] = originArray[j + 1];
                     originArray[j + 1] = tmp;

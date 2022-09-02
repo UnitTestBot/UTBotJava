@@ -1,25 +1,23 @@
-package org.utbot.engine.overrides.stream.actions;
+package org.utbot.engine.overrides.stream.actions.primitives.ints;
 
 import org.utbot.engine.overrides.UtArrayMock;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
 
-import java.util.function.Predicate;
+import java.util.function.IntPredicate;
 
-public class FilterAction implements StreamAction {
-    @SuppressWarnings("rawtypes")
-    private final Predicate filter;
+public class IntFilterAction implements StreamAction {
+    private final IntPredicate filter;
 
-    @SuppressWarnings("rawtypes")
-    public FilterAction(Predicate filter) {
+    public IntFilterAction(IntPredicate filter) {
         this.filter = filter;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Object[] applyAction(Object[] originArray) {
         int newSize = 0;
 
         for (Object o : originArray) {
-            if (filter.test(o)) {
+            if (filter.test((Integer) o)) {
                 originArray[newSize++] = o;
             }
         }

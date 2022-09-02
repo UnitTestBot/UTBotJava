@@ -1,11 +1,24 @@
 package org.utbot.engine.overrides.stream;
 
 import org.jetbrains.annotations.NotNull;
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
+import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
+import org.utbot.engine.overrides.stream.actions.DistinctAction;
+import org.utbot.engine.overrides.stream.actions.LimitAction;
+import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
+import org.utbot.engine.overrides.stream.actions.SkipAction;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntConsumerAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntFilterAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToDoubleMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToLongMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToObjMapAction;
 
+import java.util.Collection;
 import java.util.IntSummaryStatistics;
-import java.util.NoSuchElementException;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.PrimitiveIterator;
@@ -27,18 +40,23 @@ import java.util.stream.Stream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
-import static org.utbot.engine.ResolverKt.HARD_MAX_ARRAY_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
+// TODO we can use method implementations from UtStream after wrappers inheritance support https://github.com/UnitTestBot/UTBotJava/issues/819
 public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
-    private final RangeModifiableUnlimitedArray<Integer> elementData;
+    /**
+     * A reference to the original collection. The default collection is {@link UtArrayList}.
+     */
+    final Collection origin;
 
-    private final RangeModifiableUnlimitedArray<Runnable> closeHandlers = new RangeModifiableUnlimitedArray<>();
+    final RangeModifiableUnlimitedArray<StreamAction> actions;
 
-    private boolean isParallel = false;
+    final RangeModifiableUnlimitedArray<Runnable> closeHandlers;
+
+    boolean isParallel = false;
 
     /**
      * {@code false} by default, assigned to {@code true} after performing any operation on this stream. Any operation,
@@ -46,16 +64,75 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
      */
     private boolean isClosed = false;
 
-    public UtIntStream() {
-        visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
+    public UtIntStream(Integer[] data) {
+        this(data, 0, data.length);
     }
 
     public UtIntStream(Integer[] data, int length) {
+        this(data, 0, length);
+    }
+
+    public UtIntStream(Integer[] data, int startInclusive, int endExclusive) {
+        this(new UtArrayList<>(data, startInclusive, endExclusive));
+    }
+
+    public UtIntStream(UtIntStream other) {
         visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
-        elementData.end = length;
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public UtIntStream(UtStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtIntStream(UtLongStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtIntStream(UtDoubleStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private UtIntStream(Collection collection) {
+        visit(this);
+
+        actions = new RangeModifiableUnlimitedArray<>();
+        closeHandlers = new RangeModifiableUnlimitedArray<>();
+
+        origin = collection;
     }
 
     /**
@@ -72,29 +149,24 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
         if (alreadyVisited(this)) {
             return;
         }
-        setEqualGenericType(elementData);
 
-        assume(elementData != null);
-        assume(elementData.storage != null);
+        assume(origin != null);
 
-        parameter(elementData);
-        parameter(elementData.storage);
-
-        assume(elementData.begin == 0);
-
-        assume(elementData.end >= 0);
-        // we can create a stream for an array using Stream.of
-        assume(elementData.end <= HARD_MAX_ARRAY_SIZE);
+        parameter(origin);
 
         visit(this);
     }
 
-    private void preconditionCheckWithClosingStream() {
+    private void preconditionCheckWithoutClosing() {
         preconditionCheck();
 
         if (isClosed) {
             throw new IllegalStateException();
         }
+    }
+
+    private void preconditionCheckWithClosingStream() {
+        preconditionCheckWithoutClosing();
 
         // Even if exception occurs in the body of a stream operation, this stream could not be used later.
         isClosed = true;
@@ -103,70 +175,50 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     public IntStream filter(IntPredicate predicate) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Integer[] filtered = new Integer[size];
-        int j = 0;
-        for (int i = 0; i < size; i++) {
-            int element = elementData.get(i);
-            if (predicate.test(element)) {
-                filtered[j++] = element;
-            }
-        }
+        final IntFilterAction filterAction = new IntFilterAction(predicate);
+        actions.insert(actions.end++, filterAction);
 
-        return new UtIntStream(filtered, j);
+        return new UtIntStream(this);
     }
 
     @Override
     public IntStream map(IntUnaryOperator mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Integer[] mapped = new Integer[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsInt(elementData.get(i));
-        }
+        final IntMapAction mapAction = new IntMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtIntStream(mapped, size);
+        return new UtIntStream(this);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <U> Stream<U> mapToObj(IntFunction<? extends U> mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        U[] mapped = (U[]) new Object[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.apply(elementData.get(i));
-        }
+        final IntToObjMapAction mapAction = new IntToObjMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtStream<>(mapped);
+        return new UtStream<>(this);
     }
 
     @Override
     public LongStream mapToLong(IntToLongFunction mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Long[] mapped = new Long[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsLong(elementData.get(i));
-        }
+        final IntToLongMapAction mapAction = new IntToLongMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtLongStream(mapped, size);
+        return new UtLongStream(this);
     }
 
     @Override
     public DoubleStream mapToDouble(IntToDoubleFunction mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Double[] mapped = new Double[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsDouble(elementData.get(i));
-        }
+        final IntToDoubleMapAction mapAction = new IntToDoubleMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtDoubleStream(mapped, size);
+        return new UtDoubleStream(this);
     }
 
     @Override
@@ -181,27 +233,10 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     public IntStream distinct() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Integer[] distinctElements = new Integer[size];
-        int distinctSize = 0;
-        for (int i = 0; i < size; i++) {
-            int element = elementData.get(i);
-            boolean isDuplicate = false;
+        final DistinctAction distinctAction = new DistinctAction();
+        actions.insert(actions.end++, distinctAction);
 
-            for (int j = 0; j < distinctSize; j++) {
-                int alreadyProcessedElement = distinctElements[j];
-                if (element == alreadyProcessedElement) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-
-            if (!isDuplicate) {
-                distinctElements[distinctSize++] = element;
-            }
-        }
-
-        return new UtIntStream(distinctElements, distinctSize);
+        return new UtIntStream(this);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
@@ -209,44 +244,20 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     public IntStream sorted() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
+        final NaturalSortingAction naturalSortingAction = new NaturalSortingAction();
+        actions.insert(actions.end++, naturalSortingAction);
 
-        if (size == 0) {
-            return new UtIntStream();
-        }
-
-        Integer[] sortedElements = new Integer[size];
-        for (int i = 0; i < size; i++) {
-            sortedElements[i] = elementData.get(i);
-        }
-
-        // bubble sort
-        for (int i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (sortedElements[j] > sortedElements[j + 1]) {
-                    Integer tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }
-
-        return new UtIntStream(sortedElements, size);
+        return new UtIntStream(this);
     }
 
     @Override
     public IntStream peek(IntConsumer action) {
-        preconditionCheckWithClosingStream();
+        preconditionCheckWithoutClosing();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            action.accept(elementData.get(i));
-        }
+        final IntConsumerAction consumerAction = new IntConsumerAction(action);
+        actions.insert(actions.end++, consumerAction);
 
-        // returned stream should be opened, so we "reopen" this stream to return it
-        isClosed = false;
-
-        return this;
+        return new UtIntStream(this);
     }
 
     @Override
@@ -257,22 +268,12 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             throw new IllegalArgumentException();
         }
 
-        if (maxSize == 0) {
-            return new UtIntStream();
-        }
-
         assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
 
-        int newSize = (int) maxSize;
-        int curSize = elementData.end;
+        final LimitAction limitAction = new LimitAction((int) maxSize);
+        actions.set(actions.end++, limitAction);
 
-        if (newSize > curSize) {
-            newSize = curSize;
-        }
-
-        Integer[] newData = elementData.toCastedArray(0, newSize);
-
-        return new UtIntStream(newData, newSize);
+        return new UtIntStream(this);
     }
 
     @Override
@@ -283,21 +284,12 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             throw new IllegalArgumentException();
         }
 
-        int curSize = elementData.end;
-        if (n > curSize) {
-            return new UtIntStream();
-        }
+        assumeOrExecuteConcretely(n <= Integer.MAX_VALUE);
 
-        // n is 1...Integer.MAX_VALUE here
-        int newSize = (int) (curSize - n);
+        final SkipAction skipAction = new SkipAction((int) n);
+        actions.insert(actions.end++, skipAction);
 
-        if (newSize == 0) {
-            return new UtIntStream();
-        }
-
-        Integer[] newData = elementData.toCastedArray((int) n, newSize);
-
-        return new UtIntStream(newData, newSize);
+        return new UtIntStream(this);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -316,24 +308,34 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     public int[] toArray() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        int[] result = new int[size];
+        final Object[] objects = applyActions(origin.toArray());
 
-        for (int i = 0; i < size; i++) {
-            result[i] = elementData.get(i);
+        final int[] result = new int[objects.length];
+        int i = 0;
+        for (Object object : objects) {
+            result[i++] = (Integer) object;
         }
 
         return result;
     }
 
+    @NotNull
+    private Object[] applyActions(Object[] originArray) {
+        int actionsNumber = actions.end;
+
+        for (int i = 0; i < actionsNumber; i++) {
+            originArray = actions.get(i).applyAction(originArray);
+        }
+
+        return originArray;
+    }
+
     @Override
     public int reduce(int identity, IntBinaryOperator op) {
-        preconditionCheckWithClosingStream();
-
-        int size = elementData.end;
         int result = identity;
-        for (int i = 0; i < size; i++) {
-            result = op.applyAsInt(result, elementData.get(i));
+
+        for (int element : toArray()) {
+            result = op.applyAsInt(result, element);
         }
 
         return result;
@@ -341,16 +343,16 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public OptionalInt reduce(IntBinaryOperator op) {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        int size = elementData.end;
+        int size = finalElements.length;
         if (size == 0) {
             return OptionalInt.empty();
         }
 
         Integer result = null;
-        for (int i = 0; i < size; i++) {
-            int element = elementData.get(i);
+
+        for (int element : finalElements) {
             if (result == null) {
                 result = element;
             } else {
@@ -358,18 +360,18 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
             }
         }
 
-        return result == null ? OptionalInt.empty() : OptionalInt.of(result);
+        return OptionalInt.of(result);
     }
 
     @Override
     public <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner) {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
         // since this implementation is always sequential, we do not need to use the combiner
-        int size = elementData.end;
         R result = supplier.get();
-        for (int i = 0; i < size; i++) {
-            accumulator.accept(result, elementData.get(i));
+
+        for (int element : finalElements) {
+            accumulator.accept(result, element);
         }
 
         return result;
@@ -377,57 +379,49 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public int sum() {
-        preconditionCheckWithClosingStream();
-
-        final int size = elementData.end;
-
-        if (size == 0) {
-            return 0;
-        }
+        int[] finalElements = toArray();
 
         int sum = 0;
-
-        for (int i = 0; i < size; i++) {
-            int element = elementData.get(i);
+        for (int element : finalElements) {
             sum += element;
         }
 
         return sum;
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalInt min() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalInt.empty();
         }
 
-        int min = elementData.get(0);
-        for (int i = 1; i < size; i++) {
-            final int element = elementData.get(i);
-            min = (element < min) ? element : min;
+        int min = finalElements[0];
+        for (int element : finalElements) {
+            if (element < min) {
+                min = element;
+            }
         }
 
         return OptionalInt.of(min);
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalInt max() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalInt.empty();
         }
 
-        int max = elementData.get(0);
-        for (int i = 1; i < size; i++) {
-            final int element = elementData.get(i);
-            max = (element > max) ? element : max;
+        int max = finalElements[0];
+        for (int element : finalElements) {
+            if (element > max) {
+                max = element;
+            }
         }
 
         return OptionalInt.of(max);
@@ -435,40 +429,37 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public long count() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        return elementData.end;
+        return finalElements.length;
     }
 
     @Override
     public OptionalDouble average() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalDouble.empty();
         }
 
-        // "reopen" this stream to use sum and count
-        isClosed = false;
-        final double sum = sum();
-        isClosed = false;
-        final long count = count();
+        int sum = 0;
+        for (int element : finalElements) {
+            sum += element;
+        }
 
-        double average = sum / count;
+        final double average = ((double) sum) / length;
 
         return OptionalDouble.of(average);
     }
 
     @Override
     public IntSummaryStatistics summaryStatistics() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
         IntSummaryStatistics statistics = new IntSummaryStatistics();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            int element = elementData.get(i);
+        for (int element : finalElements) {
             statistics.accept(element);
         }
 
@@ -477,11 +468,10 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public boolean anyMatch(IntPredicate predicate) {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            if (predicate.test(elementData.get(i))) {
+        for (int element : finalElements) {
+            if (predicate.test(element)) {
                 return true;
             }
         }
@@ -491,11 +481,10 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public boolean allMatch(IntPredicate predicate) {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            if (!predicate.test(elementData.get(i))) {
+        for (int element : finalElements) {
+            if (!predicate.test(element)) {
                 return false;
             }
         }
@@ -510,21 +499,17 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public OptionalInt findFirst() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        if (elementData.end == 0) {
+        if (finalElements.length == 0) {
             return OptionalInt.empty();
         }
 
-        int first = elementData.get(0);
-
-        return OptionalInt.of(first);
+        return OptionalInt.of(finalElements[0]);
     }
 
     @Override
     public OptionalInt findAny() {
-        preconditionCheckWithClosingStream();
-
         // since this implementation is always sequential, we can just return the first element
         return findFirst();
     }
@@ -533,60 +518,21 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     public LongStream asLongStream() {
         preconditionCheckWithClosingStream();
 
-        final int size = elementData.end;
-
-        if (size == 0) {
-            return new UtLongStream();
-        }
-
-        // "open" stream to use toArray method
-        final int[] elements = copyData();
-
-        Long[] longs = new Long[size];
-
-        for (int i = 0; i < size; i++) {
-            longs[i] = (long) elements[i];
-        }
-
-        return new UtLongStream(longs, size);
+        return new UtLongStream(this);
     }
 
     @Override
     public DoubleStream asDoubleStream() {
         preconditionCheckWithClosingStream();
 
-        final int size = elementData.end;
-
-        if (size == 0) {
-            return new UtDoubleStream();
-        }
-
-        final int[] elements = copyData();
-
-        Double[] doubles = new Double[size];
-
-        for (int i = 0; i < size; i++) {
-            doubles[i] = (double) elements[i];
-        }
-
-        return new UtDoubleStream(doubles, size);
+        return new UtDoubleStream(this);
     }
 
     @Override
     public Stream<Integer> boxed() {
         preconditionCheckWithClosingStream();
 
-        final int size = elementData.end;
-        if (size == 0) {
-            return new UtStream<>();
-        }
-
-        Integer[] elements = new Integer[size];
-        for (int i = 0; i < size; i++) {
-            elements[i] = elementData.get(i);
-        }
-
-        return new UtStream<>(elements);
+        return new UtStream<>(this);
     }
 
     @Override
@@ -611,9 +557,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     @Override
     public PrimitiveIterator.OfInt iterator() {
-        preconditionCheckWithClosingStream();
+        int[] finalElements = toArray();
 
-        return new UtIntStreamIterator(0);
+        return new UtIntStreamIterator(finalElements);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -671,46 +617,31 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
         closeHandlers.end = 0;
     }
 
-    // Copies data to int array. Might be used on already "closed" stream. Marks this stream as closed.
-    private int[] copyData() {
-        // "open" stream to use toArray method
-        isClosed = false;
+    public static class UtIntStreamIterator implements PrimitiveIterator.OfInt {
+        private final int[] data;
 
-        return toArray();
-    }
+        private final int lastIndex;
 
-    public class UtIntStreamIterator implements PrimitiveIterator.OfInt {
         int index;
 
-        UtIntStreamIterator(int index) {
-            if (index < 0 || index > elementData.end) {
-                throw new IndexOutOfBoundsException();
-            }
-
-            this.index = index;
+        public UtIntStreamIterator(int[] data) {
+            this.data = data;
+            lastIndex = data.length - 1;
         }
 
         @Override
         public boolean hasNext() {
-            preconditionCheck();
-
-            return index != elementData.end;
+            return index <= lastIndex;
         }
 
         @Override
         public int nextInt() {
-            return next();
+            return data[index++];
         }
 
         @Override
         public Integer next() {
-            preconditionCheck();
-
-            if (index == elementData.end) {
-                throw new NoSuchElementException();
-            }
-
-            return elementData.get(index++);
+            return data[index++];
         }
     }
 }

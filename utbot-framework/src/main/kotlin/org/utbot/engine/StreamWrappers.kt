@@ -4,15 +4,14 @@ import org.utbot.engine.overrides.stream.UtDoubleStream
 import org.utbot.engine.overrides.stream.UtIntStream
 import org.utbot.engine.overrides.stream.UtLongStream
 import org.utbot.engine.overrides.stream.UtStream
-import org.utbot.engine.overrides.stream.actions.ConsumerAction
+import org.utbot.engine.overrides.stream.actions.objects.ConsumerAction
 import org.utbot.engine.overrides.stream.actions.DistinctAction
-import org.utbot.engine.overrides.stream.actions.FilterAction
+import org.utbot.engine.overrides.stream.actions.objects.FilterAction
 import org.utbot.engine.overrides.stream.actions.LimitAction
-import org.utbot.engine.overrides.stream.actions.MapAction
+import org.utbot.engine.overrides.stream.actions.objects.MapAction
 import org.utbot.engine.overrides.stream.actions.NaturalSortingAction
 import org.utbot.engine.overrides.stream.actions.SkipAction
-import org.utbot.engine.overrides.stream.actions.SortingAction
-import org.utbot.engine.overrides.stream.actions.StreamAction
+import org.utbot.engine.overrides.stream.actions.objects.SortingAction
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
@@ -20,7 +19,6 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId

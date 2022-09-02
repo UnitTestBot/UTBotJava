@@ -206,32 +206,24 @@ object UtTestsDialogProcessor {
                                     .executeSynchronously()
 
                                 withStaticsSubstitutionRequired(true) {
-                                    val mockFrameworkInstalled = model.mockFramework?.isInstalled ?: true
+                                    val mockFrameworkInstalled = model.mockFramework.isInstalled
                                     var forceMockListener: ForceMockListener? = null
                                     var forceStaticMockListener: ForceStaticMockListener? = null
 
                                     when (model.parametrizedTestSource) {
-                                        ParametrizedTestSource.PARAMETRIZE -> {
-                                            forceMockListener = ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
-                                            forceStaticMockListener = ForceStaticMockListener.create(
-                                                testCaseGenerator,
-                                                model.conflictTriggers
-                                            )
-                                        }
-
                                         ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
                                             when {
-                                                !mockFrameworkInstalled -> forceMockListener = ForceMockListener.create(
-                                                    testCaseGenerator,
-                                                    model.conflictTriggers
-                                                )
+                                                !mockFrameworkInstalled -> forceMockListener =
+                                                    ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
 
-                                                !model.staticsMocking.isConfigured -> forceStaticMockListener =
-                                                    ForceStaticMockListener.create(
-                                                        testCaseGenerator,
-                                                        model.conflictTriggers
-                                                    )
+                                                !model.staticsMocking.isConfigured ->
+                                                    forceStaticMockListener = ForceStaticMockListener.create(testCaseGenerator, model.conflictTriggers)
                                             }
+                                        }
+
+                                        ParametrizedTestSource.PARAMETRIZE -> {
+                                            forceMockListener = ForceMockListener.create(testCaseGenerator, model.conflictTriggers)
+                                            forceStaticMockListener = ForceStaticMockListener.create(testCaseGenerator, model.conflictTriggers)
                                         }
                                     }
 

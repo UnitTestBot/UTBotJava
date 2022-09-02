@@ -1,7 +1,6 @@
 package org.utbot.engine.overrides.stream;
 
 import org.jetbrains.annotations.NotNull;
-import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
@@ -10,12 +9,6 @@ import org.utbot.engine.overrides.stream.actions.LimitAction;
 import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
 import org.utbot.engine.overrides.stream.actions.SkipAction;
 import org.utbot.engine.overrides.stream.actions.StreamAction;
-import org.utbot.engine.overrides.stream.actions.primitives.ints.IntConsumerAction;
-import org.utbot.engine.overrides.stream.actions.primitives.ints.IntFilterAction;
-import org.utbot.engine.overrides.stream.actions.primitives.ints.IntMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToDoubleMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToLongMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.ints.IntToObjMapAction;
 import org.utbot.engine.overrides.stream.actions.primitives.longs.LongConsumerAction;
 import org.utbot.engine.overrides.stream.actions.primitives.longs.LongFilterAction;
 import org.utbot.engine.overrides.stream.actions.primitives.longs.LongMapAction;
@@ -24,22 +17,12 @@ import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToIntMapAc
 import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToObjMapAction;
 
 import java.util.Collection;
-import java.util.IntSummaryStatistics;
 import java.util.LongSummaryStatistics;
-import java.util.NoSuchElementException;
 import java.util.OptionalDouble;
-import java.util.OptionalLong;
 import java.util.OptionalLong;
 import java.util.PrimitiveIterator;
 import java.util.Spliterator;
 import java.util.function.BiConsumer;
-import java.util.function.IntBinaryOperator;
-import java.util.function.IntConsumer;
-import java.util.function.IntFunction;
-import java.util.function.IntPredicate;
-import java.util.function.IntToDoubleFunction;
-import java.util.function.IntToLongFunction;
-import java.util.function.IntUnaryOperator;
 import java.util.function.LongBinaryOperator;
 import java.util.function.LongConsumer;
 import java.util.function.LongFunction;
@@ -47,7 +30,6 @@ import java.util.function.LongPredicate;
 import java.util.function.LongToDoubleFunction;
 import java.util.function.LongToIntFunction;
 import java.util.function.LongUnaryOperator;
-import java.util.function.ObjIntConsumer;
 import java.util.function.ObjLongConsumer;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
@@ -57,7 +39,6 @@ import java.util.stream.Stream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
-import static org.utbot.engine.ResolverKt.HARD_MAX_ARRAY_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
@@ -68,6 +49,7 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     /**
      * A reference to the original collection. The default collection is {@link UtArrayList}.
      */
+    @SuppressWarnings("rawtypes")
     final Collection origin;
 
     final RangeModifiableUnlimitedArray<StreamAction> actions;
@@ -82,6 +64,11 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
      */
     private boolean isClosed = false;
 
+    public UtLongStream() {
+        this(new Long[]{}, 0, 0);
+    }
+
+    @SuppressWarnings("unused")
     public UtLongStream(Long[] data) {
         this(data, 0, data.length);
     }

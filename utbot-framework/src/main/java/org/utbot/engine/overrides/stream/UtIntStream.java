@@ -1,7 +1,6 @@
 package org.utbot.engine.overrides.stream;
 
 import org.jetbrains.annotations.NotNull;
-import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
@@ -50,6 +49,7 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
     /**
      * A reference to the original collection. The default collection is {@link UtArrayList}.
      */
+    @SuppressWarnings("rawtypes")
     final Collection origin;
 
     final RangeModifiableUnlimitedArray<StreamAction> actions;
@@ -64,6 +64,11 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
      */
     private boolean isClosed = false;
 
+    public UtIntStream() {
+        this(new Integer[]{}, 0, 0);
+    }
+
+    @SuppressWarnings("unused")
     public UtIntStream(Integer[] data) {
         this(data, 0, data.length);
     }

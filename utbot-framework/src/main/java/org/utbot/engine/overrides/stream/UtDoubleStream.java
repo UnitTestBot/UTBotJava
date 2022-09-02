@@ -2,10 +2,22 @@ package org.utbot.engine.overrides.stream;
 
 import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
+import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
+import org.utbot.engine.overrides.stream.actions.DistinctAction;
+import org.utbot.engine.overrides.stream.actions.LimitAction;
+import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
+import org.utbot.engine.overrides.stream.actions.SkipAction;
+import org.utbot.engine.overrides.stream.actions.StreamAction;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleConsumerAction;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleFilterAction;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleToIntMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleToLongMapAction;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleToObjMapAction;
 
+import java.util.Collection;
 import java.util.DoubleSummaryStatistics;
-import java.util.NoSuchElementException;
 import java.util.OptionalDouble;
 import java.util.PrimitiveIterator;
 import java.util.Spliterator;
@@ -26,18 +38,23 @@ import java.util.stream.Stream;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
-import static org.utbot.engine.ResolverKt.HARD_MAX_ARRAY_SIZE;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.executeConcretely;
 import static org.utbot.engine.overrides.UtOverrideMock.parameter;
 import static org.utbot.engine.overrides.UtOverrideMock.visit;
 
 public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
-    private final RangeModifiableUnlimitedArray<Double> elementData;
+    /**
+     * A reference to the original collection. The default collection is {@link UtArrayList}.
+     */
+    @SuppressWarnings("rawtypes")
+    final Collection origin;
 
-    private final RangeModifiableUnlimitedArray<Runnable> closeHandlers = new RangeModifiableUnlimitedArray<>();
+    final RangeModifiableUnlimitedArray<StreamAction> actions;
 
-    private boolean isParallel = false;
+    final RangeModifiableUnlimitedArray<Runnable> closeHandlers;
+
+    boolean isParallel = false;
 
     /**
      * {@code false} by default, assigned to {@code true} after performing any operation on this stream. Any operation,
@@ -46,15 +63,79 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     private boolean isClosed = false;
 
     public UtDoubleStream() {
-        visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
+        this(new Double[]{}, 0, 0);
+    }
+
+    @SuppressWarnings("unused")
+    public UtDoubleStream(Double[] data) {
+        this(data, 0, data.length);
     }
 
     public UtDoubleStream(Double[] data, int length) {
+        this(data, 0, length);
+    }
+
+    public UtDoubleStream(Double[] data, int startInclusive, int endExclusive) {
+        this(new UtArrayList<>(data, startInclusive, endExclusive));
+    }
+
+    public UtDoubleStream(UtDoubleStream other) {
         visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
-        elementData.end = length;
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public UtDoubleStream(UtStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtDoubleStream(UtIntStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    public UtDoubleStream(UtLongStream other) {
+        visit(this);
+
+        origin = other.origin;
+        actions = other.actions;
+        isParallel = other.isParallel;
+        closeHandlers = other.closeHandlers;
+
+        // new stream should be opened
+        isClosed = false;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private UtDoubleStream(Collection collection) {
+        visit(this);
+
+        actions = new RangeModifiableUnlimitedArray<>();
+        closeHandlers = new RangeModifiableUnlimitedArray<>();
+
+        origin = collection;
     }
 
     /**
@@ -71,29 +152,24 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         if (alreadyVisited(this)) {
             return;
         }
-        setEqualGenericType(elementData);
 
-        assume(elementData != null);
-        assume(elementData.storage != null);
+        assume(origin != null);
 
-        parameter(elementData);
-        parameter(elementData.storage);
-
-        assume(elementData.begin == 0);
-
-        assume(elementData.end >= 0);
-        // we can create a stream for an array using Stream.of
-        assume(elementData.end <= HARD_MAX_ARRAY_SIZE);
+        parameter(origin);
 
         visit(this);
     }
 
-    private void preconditionCheckWithClosingStream() {
+    private void preconditionCheckWithoutClosing() {
         preconditionCheck();
 
         if (isClosed) {
             throw new IllegalStateException();
         }
+    }
+
+    private void preconditionCheckWithClosingStream() {
+        preconditionCheckWithoutClosing();
 
         // Even if exception occurs in the body of a stream operation, this stream could not be used later.
         isClosed = true;
@@ -102,70 +178,50 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     public DoubleStream filter(DoublePredicate predicate) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Double[] filtered = new Double[size];
-        int j = 0;
-        for (int i = 0; i < size; i++) {
-            double element = elementData.get(i);
-            if (predicate.test(element)) {
-                filtered[j++] = element;
-            }
-        }
+        final DoubleFilterAction filterAction = new DoubleFilterAction(predicate);
+        actions.insert(actions.end++, filterAction);
 
-        return new UtDoubleStream(filtered, j);
+        return new UtDoubleStream(this);
     }
 
     @Override
     public DoubleStream map(DoubleUnaryOperator mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Double[] mapped = new Double[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsDouble(elementData.get(i));
-        }
+        final DoubleMapAction mapAction = new DoubleMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtDoubleStream(mapped, size);
+        return new UtDoubleStream(this);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public <U> Stream<U> mapToObj(DoubleFunction<? extends U> mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Object[] mapped = new Object[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.apply(elementData.get(i));
-        }
+        final DoubleToObjMapAction mapAction = new DoubleToObjMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtStream<>((U[]) mapped);
+        return new UtStream<>(this);
     }
 
     @Override
     public IntStream mapToInt(DoubleToIntFunction mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Integer[] mapped = new Integer[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsInt(elementData.get(i));
-        }
+        final DoubleToIntMapAction mapAction = new DoubleToIntMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtIntStream(mapped, size);
+        return new UtIntStream(this);
     }
 
     @Override
     public LongStream mapToLong(DoubleToLongFunction mapper) {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Long[] mapped = new Long[size];
-        for (int i = 0; i < size; i++) {
-            mapped[i] = mapper.applyAsLong(elementData.get(i));
-        }
+        final DoubleToLongMapAction mapAction = new DoubleToLongMapAction(mapper);
+        actions.insert(actions.end++, mapAction);
 
-        return new UtLongStream(mapped, size);
+        return new UtLongStream(this);
     }
 
     @Override
@@ -180,27 +236,10 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     public DoubleStream distinct() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        Double[] distinctElements = new Double[size];
-        int distinctSize = 0;
-        for (int i = 0; i < size; i++) {
-            double element = elementData.get(i);
-            boolean isDuplicate = false;
+        final DistinctAction distinctAction = new DistinctAction();
+        actions.insert(actions.end++, distinctAction);
 
-            for (int j = 0; j < distinctSize; j++) {
-                double alreadyProcessedElement = distinctElements[j];
-                if (element == alreadyProcessedElement) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-
-            if (!isDuplicate) {
-                distinctElements[distinctSize++] = element;
-            }
-        }
-
-        return new UtDoubleStream(distinctElements, distinctSize);
+        return new UtDoubleStream(this);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188
@@ -208,44 +247,20 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     public DoubleStream sorted() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
+        final NaturalSortingAction naturalSortingAction = new NaturalSortingAction();
+        actions.insert(actions.end++, naturalSortingAction);
 
-        if (size == 0) {
-            return new UtDoubleStream();
-        }
-
-        Double[] sortedElements = new Double[size];
-        for (int i = 0; i < size; i++) {
-            sortedElements[i] = elementData.get(i);
-        }
-
-        // bubble sort
-        for (int i = 0; i < size - 1; i++) {
-            for (int j = 0; j < size - i - 1; j++) {
-                if (sortedElements[j] > sortedElements[j + 1]) {
-                    Double tmp = sortedElements[j];
-                    sortedElements[j] = sortedElements[j + 1];
-                    sortedElements[j + 1] = tmp;
-                }
-            }
-        }
-
-        return new UtDoubleStream(sortedElements, size);
+        return new UtDoubleStream(this);
     }
 
     @Override
     public DoubleStream peek(DoubleConsumer action) {
-        preconditionCheckWithClosingStream();
+        preconditionCheckWithoutClosing();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            action.accept(elementData.get(i));
-        }
+        final DoubleConsumerAction consumerAction = new DoubleConsumerAction(action);
+        actions.insert(actions.end++, consumerAction);
 
-        // returned stream should be opened, so we "reopen" this stream to return it
-        isClosed = false;
-
-        return this;
+        return new UtDoubleStream(this);
     }
 
     @Override
@@ -256,22 +271,12 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             throw new IllegalArgumentException();
         }
 
-        if (maxSize == 0) {
-            return new UtDoubleStream();
-        }
-
         assumeOrExecuteConcretely(maxSize <= Integer.MAX_VALUE);
 
-        int newSize = (int) maxSize;
-        int curSize = elementData.end;
+        final LimitAction limitAction = new LimitAction((int) maxSize);
+        actions.set(actions.end++, limitAction);
 
-        if (newSize > curSize) {
-            newSize = curSize;
-        }
-
-        Double[] elements = elementData.toCastedArray(0, newSize);
-
-        return new UtDoubleStream(elements, newSize);
+        return new UtDoubleStream(this);
     }
 
     @Override
@@ -282,21 +287,12 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             throw new IllegalArgumentException();
         }
 
-        int curSize = elementData.end;
-        if (n > curSize) {
-            return new UtDoubleStream();
-        }
+        assumeOrExecuteConcretely(n <= Integer.MAX_VALUE);
 
-        // n is 1...Integer.MAX_VALUE here
-        int newSize = (int) (curSize - n);
+        final SkipAction skipAction = new SkipAction((int) n);
+        actions.insert(actions.end++, skipAction);
 
-        if (newSize == 0) {
-            return new UtDoubleStream();
-        }
-
-        Double[] elements = elementData.toCastedArray((int) n, newSize);
-
-        return new UtDoubleStream(elements, newSize);
+        return new UtDoubleStream(this);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -315,23 +311,34 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     public double[] toArray() {
         preconditionCheckWithClosingStream();
 
-        int size = elementData.end;
-        double[] result = new double[size];
-        for (int i = 0; i < size; i++) {
-            result[i] = elementData.get(i);
+        final Object[] objects = applyActions(origin.toArray());
+
+        final double[] result = new double[objects.length];
+        int i = 0;
+        for (Object object : objects) {
+            result[i++] = (Double) object;
         }
 
         return result;
     }
 
+    @NotNull
+    private Object[] applyActions(Object[] originArray) {
+        int actionsNumber = actions.end;
+
+        for (int i = 0; i < actionsNumber; i++) {
+            originArray = actions.get(i).applyAction(originArray);
+        }
+
+        return originArray;
+    }
+
     @Override
     public double reduce(double identity, DoubleBinaryOperator op) {
-        preconditionCheckWithClosingStream();
-
-        int size = elementData.end;
         double result = identity;
-        for (int i = 0; i < size; i++) {
-            result = op.applyAsDouble(result, elementData.get(i));
+
+        for (double element : toArray()) {
+            result = op.applyAsDouble(result, element);
         }
 
         return result;
@@ -339,16 +346,16 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public OptionalDouble reduce(DoubleBinaryOperator op) {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        int size = elementData.end;
+        int size = finalElements.length;
         if (size == 0) {
             return OptionalDouble.empty();
         }
 
         Double result = null;
-        for (int i = 0; i < size; i++) {
-            double element = elementData.get(i);
+
+        for (double element : finalElements) {
             if (result == null) {
                 result = element;
             } else {
@@ -356,18 +363,18 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
             }
         }
 
-        return result == null ? OptionalDouble.empty() : OptionalDouble.of(result);
+        return OptionalDouble.of(result);
     }
 
     @Override
     public <R> R collect(Supplier<R> supplier, ObjDoubleConsumer<R> accumulator, BiConsumer<R, R> combiner) {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
         // since this implementation is always sequential, we do not need to use the combiner
-        int size = elementData.end;
         R result = supplier.get();
-        for (int i = 0; i < size; i++) {
-            accumulator.accept(result, elementData.get(i));
+
+        for (double element : finalElements) {
+            accumulator.accept(result, element);
         }
 
         return result;
@@ -375,57 +382,49 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public double sum() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        final int size = elementData.end;
-
-        if (size == 0) {
-            return 0;
-        }
-
-        double sum = 0;
-
-        for (int i = 0; i < size; i++) {
-            double element = elementData.get(i);
+        long sum = 0;
+        for (double element : finalElements) {
             sum += element;
         }
 
         return sum;
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalDouble min() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalDouble.empty();
         }
 
-        double min = elementData.get(0);
-        for (int i = 1; i < size; i++) {
-            final double element = elementData.get(i);
-            min = (element < min) ? element : min;
+        double min = finalElements[0];
+        for (double element : finalElements) {
+            if (element < min) {
+                min = element;
+            }
         }
 
         return OptionalDouble.of(min);
     }
 
-    @SuppressWarnings("ManualMinMaxCalculation")
     @Override
     public OptionalDouble max() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalDouble.empty();
         }
 
-        double max = elementData.get(0);
-        for (int i = 1; i < size; i++) {
-            final double element = elementData.get(i);
-            max = (element > max) ? element : max;
+        double max = finalElements[0];
+        for (double element : finalElements) {
+            if (element > max) {
+                max = element;
+            }
         }
 
         return OptionalDouble.of(max);
@@ -433,40 +432,37 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public long count() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        return elementData.end;
+        return finalElements.length;
     }
 
     @Override
     public OptionalDouble average() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        int size = elementData.end;
-        if (size == 0) {
+        final int length = finalElements.length;
+        if (length == 0) {
             return OptionalDouble.empty();
         }
 
-        // "reopen" this stream to use sum and count
-        isClosed = false;
-        final double sum = sum();
-        isClosed = false;
-        final long count = count();
+        long sum = 0;
+        for (double element : finalElements) {
+            sum += element;
+        }
 
-        double average = sum / count;
+        final double average = ((double) sum) / length;
 
         return OptionalDouble.of(average);
     }
 
     @Override
     public DoubleSummaryStatistics summaryStatistics() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
         DoubleSummaryStatistics statistics = new DoubleSummaryStatistics();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            double element = elementData.get(i);
+        for (double element : finalElements) {
             statistics.accept(element);
         }
 
@@ -475,28 +471,23 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public boolean anyMatch(DoublePredicate predicate) {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        int size = elementData.end;
-        boolean matches = false;
-        for (int i = 0; i < size; i++) {
-            matches |= predicate.test(elementData.get(i));
-//            if (predicate.test(elementData.get(i))) {
-//                return true;
-//            }
+        for (double element : finalElements) {
+            if (predicate.test(element)) {
+                return true;
+            }
         }
 
-//        return false;
-        return matches;
+        return false;
     }
 
     @Override
     public boolean allMatch(DoublePredicate predicate) {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        int size = elementData.end;
-        for (int i = 0; i < size; i++) {
-            if (!predicate.test(elementData.get(i))) {
+        for (double element : finalElements) {
+            if (!predicate.test(element)) {
                 return false;
             }
         }
@@ -511,21 +502,17 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public OptionalDouble findFirst() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        if (elementData.end == 0) {
+        if (finalElements.length == 0) {
             return OptionalDouble.empty();
         }
 
-        double first = elementData.get(0);
-
-        return OptionalDouble.of(first);
+        return OptionalDouble.of(finalElements[0]);
     }
 
     @Override
     public OptionalDouble findAny() {
-        preconditionCheckWithClosingStream();
-
         // since this implementation is always sequential, we can just return the first element
         return findFirst();
     }
@@ -534,17 +521,7 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     public Stream<Double> boxed() {
         preconditionCheckWithClosingStream();
 
-        final int size = elementData.end;
-        if (size == 0) {
-            return new UtStream<>();
-        }
-
-        Double[] elements = new Double[size];
-        for (int i = 0; i < size; i++) {
-            elements[i] = elementData.get(i);
-        }
-
-        return new UtStream<>(elements);
+        return new UtStream<>(this);
     }
 
     @Override
@@ -569,9 +546,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     @Override
     public PrimitiveIterator.OfDouble iterator() {
-        preconditionCheckWithClosingStream();
+        double[] finalElements = toArray();
 
-        return new UtDoubleStreamIterator(0);
+        return new UtDoubleStreamIterator(finalElements);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -629,38 +606,31 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         closeHandlers.end = 0;
     }
 
-    public class UtDoubleStreamIterator implements PrimitiveIterator.OfDouble {
+    public static class UtDoubleStreamIterator implements PrimitiveIterator.OfDouble {
+        private final double[] data;
+
+        private final int lastIndex;
+
         int index;
 
-        UtDoubleStreamIterator(int index) {
-            if (index < 0 || index > elementData.end) {
-                throw new IndexOutOfBoundsException();
-            }
-
-            this.index = index;
+        public UtDoubleStreamIterator(double[] data) {
+            this.data = data;
+            lastIndex = data.length - 1;
         }
 
         @Override
         public boolean hasNext() {
-            preconditionCheck();
-
-            return index != elementData.end;
+            return index <= lastIndex;
         }
 
         @Override
         public double nextDouble() {
-            return next();
+            return data[index++];
         }
 
         @Override
         public Double next() {
-            preconditionCheck();
-
-            if (index == elementData.end) {
-                throw new NoSuchElementException();
-            }
-
-            return elementData.get(index++);
+            return data[index++];
         }
     }
 }

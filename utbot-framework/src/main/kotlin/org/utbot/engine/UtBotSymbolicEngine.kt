@@ -68,6 +68,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
@@ -518,9 +519,8 @@ class UtBotSymbolicEngine(
         stateBefore: EnvironmentModels,
         e: ConcreteExecutionFailureException
     ) {
-        val failedConcreteExecution = UtExecution(
+        val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
-            stateAfter = MissingState,
             result = UtConcreteExecutionFailure(e)
         )
 

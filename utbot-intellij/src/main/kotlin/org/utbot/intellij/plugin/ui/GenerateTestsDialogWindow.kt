@@ -116,6 +116,7 @@ import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
+import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
 import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
@@ -125,6 +126,7 @@ import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
+import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
@@ -196,6 +198,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         TestFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
+            it.isParametrizedTestsConfigured = findParametrizedTestsLibrary(model.project, model.testModule, it) != null
         }
         MockFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
@@ -532,6 +535,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         configureTestFrameworkIfRequired()
         configureMockFrameworkIfRequired()
         configureStaticMockingIfRequired()
+        configureParametrizedTestsIfRequired()
 
         super.doOKAction()
     }
@@ -665,8 +669,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     //region configure frameworks
 
     private fun configureTestFrameworkIfRequired() {
-        if (!testFrameworks.item.isInstalled) {
+        val testFramework = testFrameworks.item
+        if (!testFramework.isInstalled) {
             configureTestFramework()
+
+            // Configuring framework will configure parametrized tests automatically
+            // TODO: do something more general here
+            // Note: we can't just update isParametrizedTestsConfigured as before because project.allLibraries() won't be updated immediately
+            testFramework.isParametrizedTestsConfigured = true
         }
 
         model.conflictTriggers[Conflict.TestFrameworkConflict] = TestFramework.allItems.count { it.isInstalled  } > 1
@@ -681,6 +691,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun configureStaticMockingIfRequired() {
         if (staticsMocking.item != NoStaticMocking && !staticsMocking.item.isConfigured) {
             configureStaticMocking()
+        }
+    }
+
+    private fun configureParametrizedTestsIfRequired() {
+        if (parametrizedTestSources.item != ParametrizedTestSource.DO_NOT_PARAMETRIZE && !testFrameworks.item.isParametrizedTestsConfigured) {
+            configureParametrizedTests()
         }
     }
 
@@ -739,6 +755,27 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (!mockitoMockMakerPath.exists()) {
             Files.createFile(mockitoMockMakerPath)
             Files.write(mockitoMockMakerPath, MOCKITO_EXTENSIONS_FILE_CONTENT)
+        }
+    }
+
+    private fun configureParametrizedTests() {
+        // TODO: currently first three declarations are copy-pasted from configureTestFramework(), maybe fix this somehow?
+        val selectedTestFramework = testFrameworks.item
+
+        val libraryInProject =
+            findFrameworkLibrary(model.project, model.testModule, selectedTestFramework, LibrarySearchScope.Project)
+        val versionInProject = libraryInProject?.libraryName?.parseVersion()
+
+        val libraryDescriptor: ExternalLibraryDescriptor? = when (selectedTestFramework) {
+            Junit4 -> error("Parametrized tests are not supported for JUnit 4")
+            Junit5 -> jUnit5ParametrizedTestsLibraryDescriptor(versionInProject)
+            TestNg -> null // Parametrized tests come with TestNG by default
+        }
+
+        selectedTestFramework.isParametrizedTestsConfigured = true
+        libraryDescriptor?.let {
+            addDependency(model.testModule, it)
+                .onError { selectedTestFramework.isParametrizedTestsConfigured = false }
         }
     }
 

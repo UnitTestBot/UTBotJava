@@ -64,7 +64,9 @@ fun <T> sandbox(block: () -> T): T {
 fun <T> sandbox(file: URI, block: () -> T): T {
     val path = Paths.get(file)
     val perms = mutableListOf<Permission>(
-        RuntimePermission("accessDeclaredMembers")
+        RuntimePermission("accessDeclaredMembers"),
+        RuntimePermission("getStackWalkerWithClassReference"),
+        RuntimePermission("getClassLoader"),
     )
     val allCodeSource = CodeSource(null, emptyArray<Certificate>())
     if (Files.exists(path)) {

@@ -11,6 +11,7 @@ import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
+import java.util.*
 
 class ModelBasedNameSuggester(
     private val suggester: List<SingleModelNameSuggester> = listOf(
@@ -52,7 +53,8 @@ class ModelBasedNameSuggester(
             is UtExecutionSuccess -> (result.model as? UtPrimitiveModel)?.value?.let { v ->
                 when (v) {
                     is Number -> prettifyNumber(v)
-                    is Boolean -> v.toString().capitalize()
+                    is Boolean -> v.toString()
+                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
                     else -> null
                 }?.let { "Returns$it" }
             }
@@ -78,7 +80,8 @@ class ModelBasedNameSuggester(
 
         return buildString {
             append("test")
-            append(description.compilableName?.capitalize() ?: "Method")
+            append(description.compilableName?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                ?: "Method")
             append(returnString)
             if (parameters.isNotEmpty()) {
                 append("With", parameters)
@@ -101,7 +104,12 @@ class ModelBasedNameSuggester(
             .filterNotNull()
             .toList()
 
-        val parameters = summaries.joinToString(postfix = if (summaries.size < values.size) " and others" else "")
+        val postfix = when {
+            summaries.isEmpty() && values.isNotEmpty() -> "with generated values"
+            summaries.size < values.size -> " and others"
+            else -> ""
+        }
+        val parameters = summaries.joinToString(postfix = postfix)
 
         val returnValue = when(result) {
             is UtExecutionSuccess -> result.model.let { m ->

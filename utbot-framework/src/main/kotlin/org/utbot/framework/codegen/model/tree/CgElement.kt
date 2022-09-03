@@ -245,20 +245,27 @@ data class CgExecutableUnderTestCluster(
     override val content: List<CgRegion<CgMethod>>
 ) : CgRegion<CgRegion<CgMethod>>()
 
+/**
+ * Util entity is either an instance of [CgAuxiliaryClass] or [CgUtilMethod].
+ * Util methods are the helper methods that we use in our generated tests,
+ * and auxiliary classes are the classes that util methods use.
+ */
 sealed class CgUtilEntity : CgElement {
     internal abstract fun getText(rendererContext: CgRendererContext): String
 }
 
+/**
+ * This class represents classes that are required by our util methods.
+ * For example, class `CapturedArgument` that is used by util methods that construct lambda values.
+ *
+ * **Note** that we call such classes **auxiliary** instead of **util** in order to avoid confusion
+ * with class `org.utbot.runtime.utils.UtUtils`, which is generally called an **util class**.
+ * `UtUtils` is a class that contains all our util methods and **auxiliary classes**.
+ */
 data class CgAuxiliaryClass(val id: ClassId) : CgUtilEntity() {
     override fun getText(rendererContext: CgRendererContext): String {
-        // we should not throw an exception on failure here,
-        // because this function is used during rendering and
-        // exceptions can crash rendering, so we use an empty string if the text is not found
-        return with(rendererContext) {
-            rendererContext.utilMethodProvider
-                .auxiliaryClassTextById(id, codegenLanguage)
-                .getOrDefault("")
-        }
+        return rendererContext.utilMethodProvider
+            .auxiliaryClassTextById(id, rendererContext.codegenLanguage)
     }
 }
 
@@ -272,13 +279,9 @@ data class CgAuxiliaryClass(val id: ClassId) : CgUtilEntity() {
  */
 data class CgUtilMethod(val id: MethodId) : CgUtilEntity() {
     override fun getText(rendererContext: CgRendererContext): String {
-        // we should not throw an exception on failure here,
-        // because this function is used during rendering and
-        // exceptions can crash rendering, so we use an empty string if the text is not found
         return with(rendererContext) {
             rendererContext.utilMethodProvider
                 .utilMethodTextById(id, mockFrameworkUsed, mockFramework, codegenLanguage)
-                .getOrDefault("")
         }
     }
 }
@@ -668,32 +671,10 @@ class CgThisInstance(override val type: ClassId) : CgValue
 
 // Variables
 
-/**
- * @property name name of the variable
- * @property compileTimeType type a variable was declared with in the code.
- * For example, `List<Integer>` in `List<Integer> l = new ArrayList<>();`.
- * @property runtimeType actual type of an object stored in the variable.
- * For example, `ArrayList<Integer>` in `List<Integer> l = new ArrayList<>();`.
- */
 open class CgVariable(
     val name: String,
-    val compileTimeType: ClassId,
-    val runtimeType: ClassId
+    override val type: ClassId,
 ) : CgValue {
-
-    /**
-     * If [compileTimeType] and [runtimeType] are the same, a variable may be declared with this constructor.
-     */
-    constructor(name: String, type: ClassId) : this(name, type, type)
-
-    /**
-     * Property [type] inherited from [CgExpression] is delegated to [compileTimeType].
-     * That's because when we access a variable in the code we can only work with it
-     * through its compileTimeType interface, not knowing about its concrete implementation (runtime type).
-     */
-    override val type: ClassId
-        get() = compileTimeType
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

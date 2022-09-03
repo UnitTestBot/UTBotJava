@@ -53,25 +53,6 @@ val ClassId.denotableType: ClassId
         }
     }
 
-private val isLambdaRegex = ".*(\\$)lambda_.*".toRegex()
-
-val ClassId.isLambda: Boolean
-    get() = name matches isLambdaRegex
-
-val ClassId.isFunctionalInterface: Boolean
-    get() {
-        // we cannot access jClass of a builtin type, so we have to return false
-        if (this is BuiltinClassId) return false
-        // we cannot access jClass for lambdas, but we know that it is not a functional interface anyway
-        if (this.isLambda) return false
-
-        val clazz = this.jClass
-        if (!clazz.isInterface) return false
-
-        val abstractMethods = clazz.methods.filter { java.lang.reflect.Modifier.isAbstract(it.modifiers) }
-        return abstractMethods.size == 1
-    }
-
 @Suppress("unused")
 val ClassId.enclosingClass: ClassId?
     get() = jClass.enclosingClass?.id

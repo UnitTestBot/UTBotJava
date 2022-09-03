@@ -132,8 +132,10 @@ internal class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructStaticLambda(model: UtLambdaModel, capturedValues: List<UtModel>): CgMethodCall {
-        val capturedArguments = capturedValues.map { utilMethodProvider.capturedArgumentConstructorId(getClassOf(it.classId), getOrCreateVariable(it)) }
-        return testClassThisInstance[buildStaticLambda](
+        val capturedArguments = capturedValues.map {
+            utilMethodProvider.capturedArgumentConstructorId(getClassOf(it.classId), getOrCreateVariable(it))
+        }
+        return utilsClassId[buildStaticLambda](
             getClassOf(model.samType),
             getClassOf(model.declaringClass),
             model.lambdaName,
@@ -142,12 +144,14 @@ internal class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructLambda(model: UtLambdaModel, capturedValues: List<UtModel>): CgMethodCall {
-        require(capturedValues.isNotEmpty()) { "Non-static lambda must capture `this` instance, so there must be at least one captured value" }
+        require(capturedValues.isNotEmpty()) {
+            "Non-static lambda must capture `this` instance, so there must be at least one captured value"
+        }
         val capturedThisInstance = getOrCreateVariable(capturedValues.first())
         val capturedArguments = capturedValues
             .subList(1, capturedValues.size)
             .map { utilMethodProvider.capturedArgumentConstructorId(getClassOf(it.classId), getOrCreateVariable(it)) }
-        return testClassThisInstance[buildLambda](
+        return utilsClassId[buildLambda](
             getClassOf(model.samType),
             getClassOf(model.declaringClass),
             model.lambdaName,

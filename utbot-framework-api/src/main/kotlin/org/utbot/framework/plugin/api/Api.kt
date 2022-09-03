@@ -521,10 +521,21 @@ data class UtAssembleModel(
  * Depending on the captured variables, this method will be either static or non-static.
  *
  * Since lambdas are not classes we cannot use a class loader to get info about them as we can do for other models.
- * Hence, the necessity for this specific lambda model that will be processed differently: instead of working
- * with a class we will be working with the synthetic method that represents our lambda.
+ * Hence, the necessity for this specific lambda model that will be processed differently:
+ * instead of working with a class we will be working with the synthetic method that represents our lambda.
+ *
+ * @property id see documentation on [UtReferenceModel.id]
+ * @property samType the type of functional interface that this lambda will be used for (e.g. [java.util.function.Predicate]).
+ * `sam` means single abstract method. See https://kotlinlang.org/docs/fun-interfaces.html for more details about it in Kotlin.
+ * In Java it means the same.
+ * @property declaringClass a class where the lambda is located.
+ * We need this class, because the synthetic method the lambda is compiled into will be located in it.
+ * @property lambdaName the name of synthetic method the lambda is compiled into.
+ * We need it to find this method in the [declaringClass]
+ * @property capturedValues models of values captured by lambda.
+ * Lambdas can capture local variables, method arguments, static and non-static fields.
  */
-// TODO: what about support for Kotlin lambdas (they are not exactly the same as Java's due to functional types)
+// TODO: what about support for Kotlin lambdas and function types? See https://github.com/UnitTestBot/UTBotJava/issues/852
 class UtLambdaModel(
     override val id: Int?,
     val samType: ClassId,

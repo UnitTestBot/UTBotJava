@@ -233,7 +233,6 @@ class AssembleModelGenerator(private val methodPackageName: String) {
         }
 
         try {
-            // TODO: we can't use simpleName for anonymous classes, because it's empty
             val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
 
             val instantiationChain = mutableListOf<UtStatementModel>()

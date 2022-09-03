@@ -642,7 +642,7 @@ class Resolver(
         val samType = sootClass.interfaces.singleOrNull()?.id
             ?: error("Lambda must implement single interface, but ${sootClass.interfaces.size} found for ${sootClass.name}")
 
-        val declaringClass = classLoader.loadClass(sootClass.name.substringBeforeLast("\$lambda"))
+        val declaringClass = classLoader.loadClass(sootClass.name.substringBefore("\$lambda"))
 
         // Java compiles lambdas into synthetic methods with specific names.
         // However, Soot represents lambdas as classes.
@@ -654,7 +654,7 @@ class Resolver(
         // Here we obtain the synthetic method name of lambda from the name of its SootClass.
         val lambdaName = sootClass.name
             .let { name ->
-                val start = name.lastIndexOf("\$lambda") + 1
+                val start = name.indexOf("\$lambda") + 1
                 val end = name.lastIndexOf("__")
                 name.substring(start, end)
             }

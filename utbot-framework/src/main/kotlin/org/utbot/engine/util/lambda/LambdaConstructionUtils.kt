@@ -58,7 +58,46 @@ private fun getInstantiatedMethodType(
  */
 private fun getLambdaMethod(declaringClass: Class<*>, lambdaName: String): Method {
     return declaringClass.declaredMethods.firstOrNull { it.name == lambdaName }
-        ?: throw IllegalArgumentException("No lambda method named ${'$'}lambdaName was found in class: ${'$'}{declaringClass.canonicalName}")
+        ?: throw IllegalArgumentException("No lambda method named $lambdaName was found in class: ${declaringClass.canonicalName}")
+}
+
+/**
+ * This class contains some info that is needed by both [constructLambda] and [constructStaticLambda].
+ * We obtain this info in [prepareLambdaInfo] to avoid duplicated code in [constructLambda] and [constructStaticLambda].
+ */
+private data class LambdaMetafactoryInfo(
+    val caller: MethodHandles.Lookup,
+    val invokedName: String,
+    val samMethodType: MethodType,
+    val lambdaMethod: Method,
+    val lambdaMethodType: MethodType
+)
+
+/**
+ * Obtain and prepare [LambdaMetafactoryInfo] that is needed by [constructLambda] and [constructStaticLambda].
+ */
+private fun prepareLambdaInfo(
+    samType: Class<*>,
+    declaringClass: Class<*>,
+    lambdaName: String,
+): LambdaMetafactoryInfo {
+    // Create lookup for class where the lambda is declared in.
+    val caller = getLookupIn(declaringClass)
+
+    // Obtain the single abstract method of a functional interface whose instance we are building.
+    // For example, for `java.util.function.Predicate` it will be method `test`.
+    val singleAbstractMethod = getSingleAbstractMethod(samType)
+
+    val invokedName = singleAbstractMethod.name
+
+    // Method type of single abstract method of the target functional interface.
+    val samMethodType = MethodType.methodType(singleAbstractMethod.returnType, singleAbstractMethod.parameterTypes)
+
+    val lambdaMethod = getLambdaMethod(declaringClass, lambdaName)
+    lambdaMethod.isAccessible = true
+    val lambdaMethodType = MethodType.methodType(lambdaMethod.returnType, lambdaMethod.parameterTypes)
+
+    return LambdaMetafactoryInfo(caller, invokedName, samMethodType, lambdaMethod, lambdaMethodType)
 }
 
 /**
@@ -82,19 +121,9 @@ internal fun constructStaticLambda(
     lambdaName: String,
     vararg capturedArguments: CapturedArgument
 ): Any {
-    // Create lookup for class where the lambda is declared in.
-    val caller = getLookupIn(declaringClass)
+    val (caller, invokedName, samMethodType, lambdaMethod, lambdaMethodType) =
+        prepareLambdaInfo(samType, declaringClass, lambdaName)
 
-    // Obtain the single abstract method of a functional interface whose instance we are building.
-    // For example, for `java.util.function.Predicate` it will be method `test`.
-    val singleAbstractMethod = getSingleAbstractMethod(samType)
-    val invokedName = singleAbstractMethod.name
-    // Method type of single abstract method of the target functional interface.
-    val samMethodType = MethodType.methodType(singleAbstractMethod.returnType, singleAbstractMethod.parameterTypes)
-
-    val lambdaMethod = getLambdaMethod(declaringClass, lambdaName)
-    lambdaMethod.isAccessible = true
-    val lambdaMethodType = MethodType.methodType(lambdaMethod.returnType, lambdaMethod.parameterTypes)
     val lambdaMethodHandle = caller.findStatic(declaringClass, lambdaName, lambdaMethodType)
 
     val capturedArgumentTypes = capturedArguments.map { it.type }.toTypedArray()
@@ -129,19 +158,9 @@ internal fun constructLambda(
     capturedReceiver: Any,
     vararg capturedArguments: CapturedArgument
 ): Any {
-    // Create lookup for class where the lambda is declared in.
-    val caller = getLookupIn(declaringClass)
+    val (caller, invokedName, samMethodType, lambdaMethod, lambdaMethodType) =
+        prepareLambdaInfo(samType, declaringClass, lambdaName)
 
-    // Obtain the single abstract method of a functional interface whose instance we are building.
-    // For example, for `java.util.function.Predicate` it will be method `test`.
-    val singleAbstractMethod = getSingleAbstractMethod(samType)
-    val invokedName = singleAbstractMethod.name
-    // Method type of single abstract method of the target functional interface.
-    val samMethodType = MethodType.methodType(singleAbstractMethod.returnType, singleAbstractMethod.parameterTypes)
-
-    val lambdaMethod = getLambdaMethod(declaringClass, lambdaName)
-    lambdaMethod.isAccessible = true
-    val lambdaMethodType = MethodType.methodType(lambdaMethod.returnType, lambdaMethod.parameterTypes)
     val lambdaMethodHandle = caller.findVirtual(declaringClass, lambdaName, lambdaMethodType)
 
     val capturedArgumentTypes = capturedArguments.map { it.type }.toTypedArray()

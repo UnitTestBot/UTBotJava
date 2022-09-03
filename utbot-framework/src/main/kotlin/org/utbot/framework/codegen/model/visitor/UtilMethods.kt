@@ -38,15 +38,17 @@ private enum class Visibility(val text: String) {
     }
 }
 
+// TODO: This method may throw an exception that will crash rendering.
+// TODO: Add isolation on rendering: https://github.com/UnitTestBot/UTBotJava/issues/853
 internal fun UtilMethodProvider.utilMethodTextById(
     id: MethodId,
     mockFrameworkUsed: Boolean,
     mockFramework: MockFramework,
     codegenLanguage: CodegenLanguage
-): Result<String> = runCatching {
+): String {
     // If util methods are declared in the test class, then they are private. Otherwise, they are public.
     val visibility = if (this is TestClassUtilMethodProvider) Visibility.PRIVATE else Visibility.PUBLIC
-    with(this) {
+    return with(this) {
         when (id) {
             getUnsafeInstanceMethodId -> getUnsafeInstance(visibility, codegenLanguage)
             createInstanceMethodId -> createInstance(visibility, codegenLanguage)
@@ -77,17 +79,15 @@ internal fun UtilMethodProvider.utilMethodTextById(
     }
 }
 
-internal fun UtilMethodProvider.auxiliaryClassTextById(
-    id: ClassId,
-    codegenLanguage: CodegenLanguage
-): Result<String> = runCatching {
+// TODO: This method may throw an exception that will crash rendering.
+// TODO: Add isolation on rendering: https://github.com/UnitTestBot/UTBotJava/issues/853
+internal fun UtilMethodProvider.auxiliaryClassTextById(id: ClassId, codegenLanguage: CodegenLanguage): String =
     with(this) {
         when (id) {
             capturedArgumentClassId -> capturedArgumentClass(codegenLanguage)
             else -> error("Unknown auxiliary class: $id")
         }
     }
-}
 
 private fun getEnumConstantByName(visibility: Visibility, language: CodegenLanguage): String =
     when (language) {

@@ -695,7 +695,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         )
                     }
                 }
-                is UtLambdaModel -> Unit
+                is UtLambdaModel -> Unit // we do not check equality of lambdas
                 is UtVoidModel -> {
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
@@ -960,8 +960,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                 }
 
-                is UtLambdaModel -> Unit // TODO: lambda model
-
+                // Lambdas do not have fields. They have captured values, but we do not consider them here.
+                is UtLambdaModel,
                 is UtNullModel,
                 is UtPrimitiveModel,
                 is UtArrayModel,
@@ -1001,8 +1001,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             }
 
-            is UtLambdaModel -> Unit // TODO: lambda model
-
+            // Lambdas do not have fields. They have captured values, but we do not consider them here.
+            is UtLambdaModel,
             is UtNullModel,
             is UtPrimitiveModel,
             is UtArrayModel,

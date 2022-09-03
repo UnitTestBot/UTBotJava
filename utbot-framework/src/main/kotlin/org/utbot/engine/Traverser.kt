@@ -1835,7 +1835,7 @@ class Traverser(
             return fromMemory
         }
         val addr = fromMemory?.addr ?: findNewAddr()
-        val created = createObject(addr, classType, useConcreteType = true, mockInfoGenerator)
+        val created = createObject(addr, classType, useConcreteType = false, mockInfoGenerator)
         queuedSymbolicStateUpdates += MemoryUpdate(staticInstanceStorage = persistentHashMapOf(classType.id to created))
         return created
     }

@@ -29,6 +29,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
+    @Disabled("TODO enable after anonymous function support")
     @Test
     fun testReturningStreamExample() {
         check(
@@ -41,6 +42,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
         )
     }
 
+    @Disabled("TODO enable after anonymous function support")
     @Test
     fun testReturningStreamAsParameterExample() {
         withoutConcrete {
@@ -69,8 +71,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
         check(
             LongStreamExample::mapExample,
             ignoreExecutionsNumber,
-            { c, r -> null in c && r.contentEquals(c.longs { it?.toLong()?.times(2) ?: 0L }) },
-            { c: List<Short?>, r -> null !in c && r.contentEquals(c.longs { it?.toLong()?.times(2) ?: 0L }) },
+            { c, r -> r.contentEquals(c.longs { it?.toLong()?.times(2) ?: 0L }) },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
@@ -83,12 +84,11 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
             { c, r ->
                 val intArrays = c.longs().map { it.let { i -> longArrayOf(i, i) } }.toTypedArray()
 
-                null in c && intArrays.zip(r as Array<out Any>).all { it.first.contentEquals(it.second as LongArray?) }
-            },
-            { c: List<Short?>, r ->
-                val intArrays = c.longs().map { it.let { i -> longArrayOf(i, i) } }.toTypedArray()
-
-                null !in c && intArrays.zip(r as Array<out Any>).all { it.first.contentEquals(it.second as LongArray?) }
+                intArrays
+                    .zip(r as Array<out Any>)
+                    .all {
+                        it.first.contentEquals(it.second as LongArray?)
+                    }
             },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
@@ -102,12 +102,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
             { c, r ->
                 val ints = c.longs().map { it.toInt() }.toIntArray()
 
-                null in c && ints.contentEquals(r)
-            },
-            { c: List<Short?>, r ->
-                val ints = c.longs().map { it.toInt() }.toIntArray()
-
-                null !in c && ints.contentEquals(r)
+                ints.contentEquals(r)
             },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
@@ -121,12 +116,7 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
             { c, r ->
                 val doubles = c.longs().map { it.toDouble() / 2 }.toDoubleArray()
 
-                null in c && doubles.contentEquals(r)
-            },
-            { c: List<Short?>, r ->
-                val doubles = c.filterNotNull().map { it.toDouble() / 2 }.toDoubleArray()
-
-                null !in c && doubles.contentEquals(r)
+                doubles.contentEquals(r)
             },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )

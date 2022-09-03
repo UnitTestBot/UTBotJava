@@ -58,11 +58,7 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
-        if (list.contains(null)) {
-            return ints.map(mapper).toArray();
-        } else {
-            return ints.map(mapper).toArray();
-        }
+        return ints.map(mapper).toArray();
     }
 
     Object[] mapToObjExample(List<Short> list) {
@@ -72,11 +68,7 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
-        if (list.contains(null)) {
-            return ints.mapToObj(mapper).toArray();
-        } else {
-            return ints.mapToObj(mapper).toArray();
-        }
+        return ints.mapToObj(mapper).toArray();
     }
 
     long[] mapToLongExample(List<Short> list) {
@@ -86,11 +78,7 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
-        if (list.contains(null)) {
-            return ints.mapToLong(mapper).toArray();
-        } else {
-            return ints.mapToLong(mapper).toArray();
-        }
+        return ints.mapToLong(mapper).toArray();
     }
 
     double[] mapToDoubleExample(List<Short> list) {
@@ -100,11 +88,7 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
-        if (list.contains(null)) {
-            return ints.mapToDouble(mapper).toArray();
-        } else {
-            return ints.mapToDouble(mapper).toArray();
-        }
+        return ints.mapToDouble(mapper).toArray();
     }
 
     int[] flatMapExample(List<Short> list) {

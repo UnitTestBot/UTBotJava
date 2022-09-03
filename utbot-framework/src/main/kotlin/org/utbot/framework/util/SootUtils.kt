@@ -45,14 +45,10 @@ import org.utbot.engine.overrides.stream.UtIntStream
 import org.utbot.engine.overrides.stream.UtLongStream
 import org.utbot.engine.overrides.stream.UtStream
 import org.utbot.engine.overrides.stream.actions.*
-import org.utbot.engine.overrides.stream.actions.objects.ConsumerAction
-import org.utbot.engine.overrides.stream.actions.DistinctAction
-import org.utbot.engine.overrides.stream.actions.objects.FilterAction
-import org.utbot.engine.overrides.stream.actions.LimitAction
-import org.utbot.engine.overrides.stream.actions.objects.MapAction
-import org.utbot.engine.overrides.stream.actions.NaturalSortingAction
-import org.utbot.engine.overrides.stream.actions.SkipAction
-import org.utbot.engine.overrides.stream.actions.objects.SortingAction
+import org.utbot.engine.overrides.stream.actions.objects.*
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.*
+import org.utbot.engine.overrides.stream.actions.primitives.ints.*
+import org.utbot.engine.overrides.stream.actions.primitives.longs.*
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.util.signature
@@ -208,13 +204,46 @@ private val classesToLoad = arrayOf(
     IntStream::class,
     LongStream::class,
     DoubleStream::class,
+
+    // abstract stream action
     StreamAction::class,
-    ConsumerAction::class,
+
+    // common stream actions
     DistinctAction::class,
-    FilterAction::class,
     LimitAction::class,
-    MapAction::class,
     NaturalSortingAction::class,
     SkipAction::class,
+
+    // objects specific stream actions
+    ConsumerAction::class,
+    FilterAction::class,
+    MapAction::class,
     SortingAction::class,
+    ToDoubleMapAction::class,
+    ToIntMapAction::class,
+    ToLongMapAction::class,
+
+    // doubles specific stream actions
+    DoubleConsumerAction::class,
+    DoubleFilterAction::class,
+    DoubleMapAction::class,
+    DoubleToIntMapAction::class,
+    DoubleToLongMapAction::class,
+    DoubleToObjMapAction::class,
+
+    // ints specific stream actions
+    IntConsumerAction::class,
+    IntFilterAction::class,
+    IntMapAction::class,
+    IntToDoubleMapAction::class,
+    IntToLongMapAction::class,
+    IntToObjMapAction::class,
+
+    // longs specific stream actions
+    LongConsumerAction::class,
+    LongFilterAction::class,
+    LongMapAction::class,
+    LongToIntMapAction::class,
+    LongToDoubleMapAction::class,
+    LongToObjMapAction::class,
 )

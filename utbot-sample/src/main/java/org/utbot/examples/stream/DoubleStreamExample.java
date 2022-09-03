@@ -55,11 +55,7 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
-        if (list.contains(null)) {
-            return doubles.map(mapper).toArray();
-        } else {
-            return doubles.map(mapper).toArray();
-        }
+        return doubles.map(mapper).toArray();
     }
 
     Object[] mapToObjExample(List<Short> list) {
@@ -69,11 +65,7 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
-        if (list.contains(null)) {
-            return doubles.mapToObj(mapper).toArray();
-        } else {
-            return doubles.mapToObj(mapper).toArray();
-        }
+        return doubles.mapToObj(mapper).toArray();
     }
 
     int[] mapToIntExample(List<Short> list) {
@@ -83,11 +75,7 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
-        if (list.contains(null)) {
-            return doubles.mapToInt(mapper).toArray();
-        } else {
-            return doubles.mapToInt(mapper).toArray();
-        }
+        return doubles.mapToInt(mapper).toArray();
     }
 
     long[] mapToLongExample(List<Short> list) {
@@ -97,11 +85,7 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
-        if (list.contains(null)) {
-            return doubles.mapToLong(mapper).toArray();
-        } else {
-            return doubles.mapToLong(mapper).toArray();
-        }
+        return doubles.mapToLong(mapper).toArray();
     }
 
     double[] flatMapExample(List<Short> list) {

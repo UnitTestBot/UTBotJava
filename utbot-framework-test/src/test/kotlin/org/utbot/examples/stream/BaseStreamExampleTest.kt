@@ -84,8 +84,10 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
         checkWithException(
             BaseStreamExample::mapToIntExample,
             ignoreExecutionsNumber,
-            { c, r -> null in c && r.isException<NullPointerException>() },
-            { c, r -> r.getOrThrow().contentEquals(c.map { it.toInt() }.toIntArray()) },
+            { c, r ->
+                (null in c && r.isException<NullPointerException>()) ||
+                        r.getOrThrow().contentEquals(c.map { it.toInt() }.toIntArray())
+            },
             coverage = AtLeast(90)
         )
     }
@@ -95,8 +97,10 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
         checkWithException(
             BaseStreamExample::mapToLongExample,
             ignoreExecutionsNumber,
-            { c, r -> null in c && r.isException<NullPointerException>() },
-            { c, r -> r.getOrThrow().contentEquals(c.map { it.toLong() }.toLongArray()) },
+            { c, r ->
+                (null in c && r.isException<NullPointerException>()) ||
+                        r.getOrThrow().contentEquals(c.map { it.toLong() }.toLongArray())
+            },
             coverage = AtLeast(90)
         )
     }
@@ -106,8 +110,10 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
         checkWithException(
             BaseStreamExample::mapToDoubleExample,
             ignoreExecutionsNumber,
-            { c, r -> null in c && r.isException<NullPointerException>() },
-            { c, r -> r.getOrThrow().contentEquals(c.map { it.toDouble() }.toDoubleArray()) },
+            { c, r ->
+                (null in c && r.isException<NullPointerException>()) ||
+                        r.getOrThrow().contentEquals(c.map { it.toDouble() }.toDoubleArray())
+            },
             coverage = AtLeast(90)
         )
     }
@@ -466,7 +472,8 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
         check(
             BaseStreamExample::sourceCollectionMutationExample,
             eq(1),
-            { r -> r == true }
+            { r -> r == true },
+            coverage = AtLeast(97)
         )
     }
 }

@@ -57,11 +57,7 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
-        if (list.contains(null)) {
-            return longs.map(mapper).toArray();
-        } else {
-            return longs.map(mapper).toArray();
-        }
+        return longs.map(mapper).toArray();
     }
 
     Object[] mapToObjExample(List<Short> list) {
@@ -71,11 +67,7 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
-        if (list.contains(null)) {
-            return longs.mapToObj(mapper).toArray();
-        } else {
-            return longs.mapToObj(mapper).toArray();
-        }
+        return longs.mapToObj(mapper).toArray();
     }
 
     int[] mapToIntExample(List<Short> list) {
@@ -85,11 +77,7 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
-        if (list.contains(null)) {
-            return longs.mapToInt(mapper).toArray();
-        } else {
-            return longs.mapToInt(mapper).toArray();
-        }
+        return longs.mapToInt(mapper).toArray();
     }
 
     double[] mapToDoubleExample(List<Short> list) {
@@ -99,11 +87,7 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
-        if (list.contains(null)) {
-            return longs.mapToDouble(mapper).toArray();
-        } else {
-            return longs.mapToDouble(mapper).toArray();
-        }
+        return longs.mapToDouble(mapper).toArray();
     }
 
     long[] flatMapExample(List<Short> list) {

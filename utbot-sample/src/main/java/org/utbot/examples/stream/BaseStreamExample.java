@@ -65,31 +65,19 @@ public class BaseStreamExample {
     int[] mapToIntExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
 
-        if (list.contains(null)) {
-            return list.stream().mapToInt(Short::intValue).toArray();
-        } else {
-            return list.stream().mapToInt(Short::intValue).toArray();
-        }
+        return list.stream().mapToInt(Short::intValue).toArray();
     }
 
     long[] mapToLongExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
 
-        if (list.contains(null)) {
-            return list.stream().mapToLong(Short::longValue).toArray();
-        } else {
-            return list.stream().mapToLong(Short::longValue).toArray();
-        }
+        return list.stream().mapToLong(Short::longValue).toArray();
     }
 
     double[] mapToDoubleExample(List<Short> list) {
         UtMock.assume(list != null && !list.isEmpty());
 
-        if (list.contains(null)) {
-            return list.stream().mapToDouble(Short::doubleValue).toArray();
-        } else {
-            return list.stream().mapToDouble(Short::doubleValue).toArray();
-        }
+        return list.stream().mapToDouble(Short::doubleValue).toArray();
     }
 
     Object[] flatMapExample(List<Integer> list) {

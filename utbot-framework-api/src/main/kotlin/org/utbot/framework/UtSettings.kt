@@ -378,6 +378,11 @@ object UtSettings : AbstractSettings(
      */
     var disableSandbox by getBooleanProperty(false)
 
+    /**
+     * Exclude fuzzer-produced executions during minimization if there is an equivalent symbolic execution
+     */
+    var preferSymbolicExecutionsDuringMinimization by getBooleanProperty(true)
+
 }
 
 /**

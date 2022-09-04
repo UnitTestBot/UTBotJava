@@ -13,11 +13,14 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.fuzzer.UtFuzzedExecution
 
 
 /**
@@ -52,8 +55,17 @@ fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
         executions.indices.filter { executions[it].coverage?.coveredInstructions?.isEmpty() ?: true }.toSet()
     // ^^^ here we add executions with empty or null coverage, because it happens only if a concrete execution failed,
     //     so we don't know the actual coverage for such executions
+
+    // If the minimizer is configured to prefer symbolic executions, compute the priority for each execution,
+    // otherwise use an empty priority map to mark that all executions have the same priority
+    val sourcePriorities = if (UtSettings.preferSymbolicExecutionsDuringMinimization) {
+        executions.withIndex().associate { it.index to it.value.getSourcePriorityForMinimization() }
+    } else {
+        emptyMap()
+    }
+
     val mapping = buildMapping(executions.filterIndexed { idx, _ -> idx !in unknownCoverageExecutions })
-    val usedExecutionIndexes = (GreedyEssential.minimize(mapping) + unknownCoverageExecutions).toSet()
+    val usedExecutionIndexes = (GreedyEssential.minimize(mapping, sourcePriorities) + unknownCoverageExecutions).toSet()
 
     val usedMinimizedExecutions = executions.filterIndexed { idx, _ -> idx in usedExecutionIndexes }
 
@@ -62,6 +74,18 @@ fun minimizeExecutions(executions: List<UtExecution>): List<UtExecution> {
     } else {
         usedMinimizedExecutions
     }
+}
+
+/**
+ * Compute the priority of the given execution during minimization. Lower values correspond to higher priority.
+ *
+ * If [UtSettings.preferSymbolicExecutionsDuringMinimization] is true, minimizer will use these priorities
+ * to select symbolic executions instead of fuzzer-generated executions with the same coverage.
+ */
+private fun UtExecution.getSourcePriorityForMinimization(): Int = when (this) {
+    is UtSymbolicExecution -> 0
+    is UtFuzzedExecution -> 1
+    else -> 2
 }
 
 /**
@@ -149,7 +173,6 @@ private fun buildMapping(executions: List<UtExecution>): Map<Int, List<Int>> {
     val allCoveredEdges = mutableMapOf<Pair<Long, Long>, Int>()
     val thrownExceptions = mutableMapOf<String, Long>()
     val mapping = mutableMapOf<Int, List<Int>>()
-
 
     executions.forEachIndexed { idx, execution ->
         execution.coverage?.let { coverage ->

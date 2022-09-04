@@ -2,33 +2,58 @@ package org.utbot.framework.minimization
 
 import java.util.PriorityQueue
 
-private inline class ExecutionNumber(val number: Int)
+@JvmInline
+private value class ExecutionNumber(val number: Int)
 
-private inline class LineNumber(val number: Int)
+@JvmInline
+private value class LineNumber(val number: Int)
+
+/**
+ * Execution source priority (symbolic executions are considered more important than fuzzed executions).
+ * @see [UtSettings.preferSymbolicExecutionsDuringMinimization]
+ */
+@JvmInline
+private value class SourcePriority(val number: Int)
+
+/**
+ * A wrapper that combines covered lines with the execution source priority
+ */
+private data class ExecutionCoverageInfo(
+    val sourcePriority: SourcePriority,
+    val coveredLines: List<LineNumber>
+)
 
 /**
  * [Greedy essential algorithm](CONFLUENCE:Test+Minimization)
  */
 class GreedyEssential private constructor(
-    executionToCoveredLines: Map<ExecutionNumber, List<LineNumber>>
+    executionToCoveredLines: Map<ExecutionNumber, ExecutionCoverageInfo>
 ) {
+    private val executionToSourcePriority: Map<ExecutionNumber, SourcePriority> =
+        executionToCoveredLines
+            .mapValues { it.value.sourcePriority }
+
     private val executionToUsefulLines: Map<ExecutionNumber, MutableSet<LineNumber>> =
         executionToCoveredLines
-            .mapValues { it.value.toMutableSet() }
+            .mapValues { it.value.coveredLines.toMutableSet() }
 
     private val lineToUnusedCoveringExecutions: Map<LineNumber, MutableSet<ExecutionNumber>> =
         executionToCoveredLines
-            .flatMap { (execution, lines) -> lines.map { it to execution } }
+            .flatMap { (execution, lines) -> lines.coveredLines.map { it to execution } }
             .groupBy({ it.first }) { it.second }
             .mapValues { it.value.toMutableSet() }
 
     private val executionByPriority =
-        PriorityQueue(compareByDescending<Pair<ExecutionNumber, Int>> { it.second }.thenBy { it.first.number })
+        PriorityQueue(
+            compareByDescending<Triple<ExecutionNumber, Int, SourcePriority>> { it.second }
+                    .thenBy { it.third.number }
+                    .thenBy { it.first.number }
+        )
             .apply {
                 addAll(
                     executionToCoveredLines
                         .keys
-                        .map { it to executionToUsefulLines[it]!!.size }
+                        .map { Triple(it, executionToUsefulLines[it]!!.size, executionToSourcePriority[it]!!) }
                 )
             }
 
@@ -69,7 +94,7 @@ class GreedyEssential private constructor(
     }
 
     private fun executionToPriority(execution: ExecutionNumber) =
-        execution to executionToUsefulLines[execution]!!.size
+        Triple(execution, executionToUsefulLines[execution]!!.size, executionToSourcePriority[execution]!!)
 
     private fun removeLineFromExecution(execution: ExecutionNumber, line: LineNumber) {
         executionByPriority.remove(executionToPriority(execution))
@@ -87,12 +112,21 @@ class GreedyEssential private constructor(
          * Minimizes the given [executions] assuming the map represents mapping from execution id to covered
          * instruction ids.
          *
+         * @param executions the mapping of execution ids to lists of lines covered by the execution.
+         * @param sourcePriorities execution priorities: lower values correspond to more important executions
+         *        that should be kept everything else being equal.
+         *
          * @return retained execution ids.
          */
-        fun minimize(executions: Map<Int, List<Int>>): List<Int> {
+        fun minimize(executions: Map<Int, List<Int>>, sourcePriorities: Map<Int, Int> = emptyMap()): List<Int> {
             val convertedExecutions = executions
                 .entries
-                .associate { (execution, lines) -> ExecutionNumber(execution) to lines.map { LineNumber(it) } }
+                .associate { (execution, lines) ->
+                    ExecutionNumber(execution) to ExecutionCoverageInfo(
+                        SourcePriority(sourcePriorities.getOrDefault(execution, 0)),
+                        lines.map { LineNumber(it) }
+                    )
+                }
 
             val prioritizer = GreedyEssential(convertedExecutions)
             val list = mutableListOf<ExecutionNumber>()

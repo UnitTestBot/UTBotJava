@@ -4,34 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
-import org.utbot.engine.overrides.stream.actions.DistinctAction;
-import org.utbot.engine.overrides.stream.actions.LimitAction;
-import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
-import org.utbot.engine.overrides.stream.actions.SkipAction;
-import org.utbot.engine.overrides.stream.actions.StreamAction;
-import org.utbot.engine.overrides.stream.actions.primitives.longs.LongConsumerAction;
-import org.utbot.engine.overrides.stream.actions.primitives.longs.LongFilterAction;
-import org.utbot.engine.overrides.stream.actions.primitives.longs.LongMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToDoubleMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToIntMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.longs.LongToObjMapAction;
+import org.utbot.engine.overrides.stream.actions.*;
+import org.utbot.engine.overrides.stream.actions.primitives.longs.*;
 
-import java.util.Collection;
-import java.util.LongSummaryStatistics;
-import java.util.OptionalDouble;
-import java.util.OptionalLong;
-import java.util.PrimitiveIterator;
-import java.util.Spliterator;
-import java.util.function.BiConsumer;
-import java.util.function.LongBinaryOperator;
-import java.util.function.LongConsumer;
-import java.util.function.LongFunction;
-import java.util.function.LongPredicate;
-import java.util.function.LongToDoubleFunction;
-import java.util.function.LongToIntFunction;
-import java.util.function.LongUnaryOperator;
-import java.util.function.ObjLongConsumer;
-import java.util.function.Supplier;
+import java.util.*;
+import java.util.function.*;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -64,6 +41,21 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
      */
     private boolean isClosed = false;
 
+    /**
+     * Stores original array if this stream was created using
+     * {@link java.util.Arrays#stream)} or {@code of} or @code empty}
+     * method invocations (not from collection or another stream), and {@code null} otherwise.
+     * <p>
+     * Used only during resolving for creating stream assemble model.
+     */
+    @SuppressWarnings("unused")
+    Object[] originArray;
+
+    /**
+     * {@code true} if this stream was created from primitive array, and false otherwise.
+     */
+    boolean isCreatedFromPrimitiveArray;
+
     public UtLongStream() {
         this(new Long[]{}, 0, 0);
     }
@@ -79,6 +71,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
     public UtLongStream(Long[] data, int startInclusive, int endExclusive) {
         this(new UtArrayList<>(data, startInclusive, endExclusive));
+
+        originArray = data;
+        isCreatedFromPrimitiveArray = true;
     }
 
     public UtLongStream(UtLongStream other) {
@@ -91,6 +86,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -104,6 +102,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtLongStream(UtIntStream other) {
@@ -116,6 +117,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtLongStream(UtDoubleStream other) {
@@ -128,6 +132,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     @SuppressWarnings("rawtypes")
@@ -138,6 +145,9 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
         closeHandlers = new RangeModifiableUnlimitedArray<>();
 
         origin = collection;
+
+        originArray = null;
+        isCreatedFromPrimitiveArray = false;
     }
 
     /**

@@ -64,8 +64,25 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
      */
     private boolean isClosed = false;
 
+    /**
+     * Stores original array if this stream was created using
+     * {@link java.util.Arrays#stream)} or {@code of} or @code empty}
+     * method invocations (not from collection or another stream), and {@code null} otherwise.
+     *
+     * Used only during resolving for creating stream assemble model.
+     */
+    @SuppressWarnings("unused")
+    Object[] originArray;
+
+    /**
+     * {@code true} if this stream was created from primitive array, and false otherwise.
+     */
+    boolean isCreatedFromPrimitiveArray;
+
     public UtIntStream() {
         this(new Integer[]{}, 0, 0);
+
+        isCreatedFromPrimitiveArray = false;
     }
 
     @SuppressWarnings("unused")
@@ -79,6 +96,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
     public UtIntStream(Integer[] data, int startInclusive, int endExclusive) {
         this(new UtArrayList<>(data, startInclusive, endExclusive));
+
+        originArray = data;
+        isCreatedFromPrimitiveArray = true;
     }
 
     public UtIntStream(UtIntStream other) {
@@ -91,6 +111,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -104,6 +127,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtIntStream(UtLongStream other) {
@@ -116,6 +142,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtIntStream(UtDoubleStream other) {
@@ -128,6 +157,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     @SuppressWarnings("rawtypes")
@@ -138,6 +170,9 @@ public class UtIntStream implements IntStream, UtGenericStorage<Integer> {
         closeHandlers = new RangeModifiableUnlimitedArray<>();
 
         origin = collection;
+
+        originArray = null;
+        isCreatedFromPrimitiveArray = false;
     }
 
     /**

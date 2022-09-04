@@ -4,41 +4,16 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
-import org.utbot.engine.overrides.stream.actions.DistinctAction;
-import org.utbot.engine.overrides.stream.actions.LimitAction;
-import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
-import org.utbot.engine.overrides.stream.actions.SkipAction;
-import org.utbot.engine.overrides.stream.actions.StreamAction;
-import org.utbot.engine.overrides.stream.actions.objects.ConsumerAction;
-import org.utbot.engine.overrides.stream.actions.objects.FilterAction;
-import org.utbot.engine.overrides.stream.actions.objects.MapAction;
-import org.utbot.engine.overrides.stream.actions.objects.SortingAction;
-import org.utbot.engine.overrides.stream.actions.objects.ToDoubleMapAction;
-import org.utbot.engine.overrides.stream.actions.objects.ToIntMapAction;
-import org.utbot.engine.overrides.stream.actions.objects.ToLongMapAction;
+import org.utbot.engine.overrides.stream.actions.*;
+import org.utbot.engine.overrides.stream.actions.objects.*;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Optional;
-import java.util.Spliterator;
-import java.util.Spliterators;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.IntFunction;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.function.ToDoubleFunction;
-import java.util.function.ToIntFunction;
-import java.util.function.ToLongFunction;
-import java.util.stream.Collector;
+import java.util.*;
+import java.util.function.*;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+import java.util.stream.*;
 
 import static org.utbot.api.mock.UtMock.assume;
 import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
@@ -66,17 +41,38 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
      */
     private boolean isClosed = false;
 
-    public UtStream(Collection<E> collection) {
+    /**
+     * Stores original array if this stream was created using
+     * {@link java.util.Arrays#stream(int[])} or {@link Stream#empty()} or {@link Stream#of(E...)}
+     * method invocations (not from collection or another stream), and {@code null} otherwise.
+     * <p>
+     * Used only during resolving for creating stream assemble model.
+     */
+    @SuppressWarnings("unused")
+    Object[] originArray;
+
+    /**
+     * {@code true} if this stream was created from primitive array, and false otherwise.
+     */
+    boolean isCreatedFromPrimitiveArray;
+
+    public UtStream(Collection collection) {
         visit(this);
 
         actions = new RangeModifiableUnlimitedArray<>();
         closeHandlers = new RangeModifiableUnlimitedArray<>();
 
         origin = collection;
+
+        originArray = null;
+        isCreatedFromPrimitiveArray = false;
     }
 
     public UtStream() {
         this(new UtArrayList<>());
+
+        originArray = new Object[0];
+        isCreatedFromPrimitiveArray = false;
     }
 
     public UtStream(E[] data) {
@@ -89,6 +85,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
     public UtStream(E[] data, int startInclusive, int endExclusive) {
         this(new UtArrayList<>(data, startInclusive, endExclusive));
+
+        originArray = data;
+        isCreatedFromPrimitiveArray = false;
     }
 
     public UtStream(UtStream other) {
@@ -101,6 +100,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtStream(UtIntStream other) {
@@ -113,6 +115,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtStream(UtLongStream other) {
@@ -125,6 +130,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtStream(UtDoubleStream other) {
@@ -137,6 +145,9 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     /**
@@ -204,17 +215,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         actions.insert(actions.end++, mapAction);
 
         return new UtIntStream(this);
-//        preconditionCheckWithClosingStream();
-//
-//        int size = origin.size();
-//        Integer[] data = new Integer[size];
-//        int i = 0;
-//
-//        for (E element : origin) {
-//            data[i++] = mapper.applyAsInt(element);
-//        }
-//
-//        return new UtIntStream(data, size);
     }
 
     @Override
@@ -225,17 +225,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         actions.insert(actions.end++, mapAction);
 
         return new UtLongStream(this);
-//        preconditionCheckWithClosingStream();
-//
-//        int size = origin.size();
-//        Long[] data = new Long[size];
-//        int i = 0;
-//
-//        for (E element : origin) {
-//            data[i++] = mapper.applyAsLong(element);
-//        }
-//
-//        return new UtLongStream(data, size);
     }
 
     @Override
@@ -246,17 +235,6 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         actions.insert(actions.end++, mapAction);
 
         return new UtDoubleStream(this);
-//        preconditionCheckWithClosingStream();
-//
-//        int size = origin.size();
-//        Double[] data = new Double[size];
-//        int i = 0;
-//
-//        for (E element : origin) {
-//            data[i++] = mapper.applyAsDouble(element);
-//        }
-//
-//        return new UtDoubleStream(data, size);
     }
 
     @Override

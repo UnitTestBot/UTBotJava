@@ -4,33 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray;
 import org.utbot.engine.overrides.collections.UtArrayList;
 import org.utbot.engine.overrides.collections.UtGenericStorage;
-import org.utbot.engine.overrides.stream.actions.DistinctAction;
-import org.utbot.engine.overrides.stream.actions.LimitAction;
-import org.utbot.engine.overrides.stream.actions.NaturalSortingAction;
-import org.utbot.engine.overrides.stream.actions.SkipAction;
-import org.utbot.engine.overrides.stream.actions.StreamAction;
-import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleConsumerAction;
-import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleFilterAction;
-import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleToIntMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleToLongMapAction;
-import org.utbot.engine.overrides.stream.actions.primitives.doubles.DoubleToObjMapAction;
+import org.utbot.engine.overrides.stream.actions.*;
+import org.utbot.engine.overrides.stream.actions.primitives.doubles.*;
 
-import java.util.Collection;
-import java.util.DoubleSummaryStatistics;
-import java.util.OptionalDouble;
-import java.util.PrimitiveIterator;
-import java.util.Spliterator;
-import java.util.function.BiConsumer;
-import java.util.function.DoubleBinaryOperator;
-import java.util.function.DoubleConsumer;
-import java.util.function.DoubleFunction;
-import java.util.function.DoublePredicate;
-import java.util.function.DoubleToIntFunction;
-import java.util.function.DoubleToLongFunction;
-import java.util.function.DoubleUnaryOperator;
-import java.util.function.ObjDoubleConsumer;
-import java.util.function.Supplier;
+import java.util.*;
+import java.util.function.*;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -62,6 +40,21 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
      */
     private boolean isClosed = false;
 
+    /**
+     * Stores original array if this stream was created using
+     * {@link java.util.Arrays#stream)} or {@code of} or @code empty}
+     * method invocations (not from collection or another stream), and {@code null} otherwise.
+     * <p>
+     * Used only during resolving for creating stream assemble model.
+     */
+    @SuppressWarnings("unused")
+    Object[] originArray;
+
+    /**
+     * {@code true} if this stream was created from primitive array, and false otherwise.
+     */
+    boolean isCreatedFromPrimitiveArray;
+
     public UtDoubleStream() {
         this(new Double[]{}, 0, 0);
     }
@@ -77,6 +70,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
     public UtDoubleStream(Double[] data, int startInclusive, int endExclusive) {
         this(new UtArrayList<>(data, startInclusive, endExclusive));
+
+        originArray = data;
+        isCreatedFromPrimitiveArray = true;
     }
 
     public UtDoubleStream(UtDoubleStream other) {
@@ -89,6 +85,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -102,6 +101,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtDoubleStream(UtIntStream other) {
@@ -114,6 +116,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     public UtDoubleStream(UtLongStream other) {
@@ -126,6 +131,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
 
         // new stream should be opened
         isClosed = false;
+
+        originArray = other.originArray;
+        isCreatedFromPrimitiveArray = other.isCreatedFromPrimitiveArray;
     }
 
     @SuppressWarnings("rawtypes")
@@ -136,6 +144,9 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
         closeHandlers = new RangeModifiableUnlimitedArray<>();
 
         origin = collection;
+
+        originArray = null;
+        isCreatedFromPrimitiveArray = false;
     }
 
     /**

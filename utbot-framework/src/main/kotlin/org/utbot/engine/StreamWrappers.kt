@@ -19,15 +19,20 @@ import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtModel
+import org.utbot.framework.plugin.api.UtNullModel
+import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
+import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.longArrayClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.methodId
@@ -71,7 +76,7 @@ enum class UtStreamClass {
 }
 
 abstract class StreamWrapper(
-    utStreamClass: UtStreamClass, protected val elementsClassId: ClassId
+    utStreamClass: UtStreamClass, private val elementsClassId: ClassId
 ) : BaseGenericStorageBasedContainerWrapper(utStreamClass.className) {
     protected val streamClassId = utStreamClass.overriddenStreamClassId
 
@@ -114,21 +119,48 @@ abstract class StreamWrapper(
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
 
-        val originCollectionModel = resolveOriginCollection(wrapper)
-        val actionModels = resolveActions(wrapper)
+        val collectedFieldModels = collectFieldModels(wrapper.addr, overriddenClass.type)
+
+        val isFromPrimitives = resolveIsFromPrimitives(collectedFieldModels).value as Boolean
+        val actionModels = resolveActions(collectedFieldModels)
+        val sourceModel = resolveSource(wrapper, collectedFieldModels).let {
+            if (!isFromPrimitives) {
+                it
+            } else {
+                // transform array model for wrappers to array model for primitives
+                (it as UtArrayModel).transformElementsModel()
+            }
+        }
 
         val instantiationChain = mutableListOf<UtStatementModel>()
         val modificationsChain = emptyList<UtStatementModel>()
 
-        // TODO tests with mutations for origin collections
         UtAssembleModel(addr, streamClassId, modelName, instantiationChain, modificationsChain)
             .apply {
-                instantiationChain += UtExecutableCallModel(
-                    instance = originCollectionModel,
-                    executable = streamMethodId,
-                    params = emptyList(),
-                    returnValue = this
-                )
+                instantiationChain += if (sourceModel is UtArrayModel) {
+                    // stream was created from array or empty
+
+                    val (executable, params) = if (sourceModel.length == 0) {
+                        streamEmptyMethodId to emptyList()
+                    } else {
+                        streamOfMethodId to listOf(sourceModel)
+                    }
+
+                    UtExecutableCallModel(
+                        instance = null,
+                        executable = executable,
+                        params = params,
+                        returnValue = this
+                    )
+                } else {
+                    UtExecutableCallModel(
+                        instance = sourceModel,
+                        executable = streamMethodId,
+                        params = emptyList(),
+                        returnValue = this
+                    )
+
+                }
 
                 actionModels.forEach {
                     instantiationChain += UtExecutableCallModel(
@@ -141,15 +173,51 @@ abstract class StreamWrapper(
             }
     }
 
+    /**
+     * Transforms model for array of wrappers (Integer, Long, Double, etc) to array of corresponding primitives.
+     */
+    private fun UtArrayModel.transformElementsModel(): UtArrayModel {
+        return copy(
+            classId = elementsClassId,
+            constModel = constModel.wrapperModelToPrimitiveModel(),
+            stores = stores.mapValuesTo(mutableMapOf()) { it.value.wrapperModelToPrimitiveModel() }
+        )
+    }
+
+    private fun UtModel.wrapperModelToPrimitiveModel(): UtModel {
+        if (this is UtNullModel) {
+            return elementsClassId.elementClassId!!.defaultValueModel()
+        }
+
+        if (!classId.isPrimitiveWrapper || this !is UtAssembleModel) {
+            return this
+        }
+
+        val firstChainStatement = allStatementsChain.firstOrNull() ?: return this
+        val constructorCall = (firstChainStatement as? UtExecutableCallModel) ?: return this
+
+        return (constructorCall.params.firstOrNull() as? UtPrimitiveModel) ?: this
+    }
+
     override fun chooseClassIdWithConstructor(classId: ClassId): ClassId = error("No constructor for Stream")
 
     override val modificationMethodId: MethodId
         get() = error("No modification method for Stream")
 
-    private fun Resolver.resolveOriginCollection(wrapper: ObjectValue): UtReferenceModel {
+    open fun Resolver.resolveSource(wrapper: ObjectValue, collectedFieldModels: Map<FieldId, UtModel>): UtReferenceModel {
+        val originArrayField = FieldId(overriddenClass.type.classId, "originArray")
+
+        val originArrayModel = collectedFieldModels[originArrayField]
+
+        // stream was created from array or empty
+        if (originArrayModel !is UtNullModel) {
+            return originArrayModel as UtArrayModel
+        }
+
+        // stream was not created from array, resolve origin collection
         val originCollectionField = FieldId(overriddenClass.type.classId, "origin")
 
-        val collectionModel = collectFieldModels(wrapper.addr, overriddenClass.type)[originCollectionField]
+        val collectionModel = collectedFieldModels[originCollectionField]
 
         require(collectionModel is UtReferenceModel) {
             "Origin collection for Stream ${overriddenClass.type} wrapper was expected to be UtReferenceModel " +
@@ -159,13 +227,19 @@ abstract class StreamWrapper(
         return collectionModel
     }
 
-    private fun Resolver.resolveActions(wrapper: ObjectValue): List<UtCompositeModel> {
+    private fun resolveActions(collectedFieldModels: Map<FieldId, UtModel>): List<UtCompositeModel> {
         val actionsFieldId = FieldId(overriddenClass.type.classId, "actions")
-        val actionsArrayModel = collectFieldModels(wrapper.addr, overriddenClass.type)[actionsFieldId] as? UtArrayModel ?: return emptyList()
+        val actionsArrayModel = collectedFieldModels[actionsFieldId] as? UtArrayModel ?: return emptyList()
 
         val actionModels = constructValues(actionsArrayModel, actionsArrayModel.length).flatten()
 
         return actionModels.filterIsInstance<UtCompositeModel>()
+    }
+
+    private fun resolveIsFromPrimitives(collectedFieldModels: Map<FieldId, UtModel>): UtPrimitiveModel {
+        val isCreatedFromPrimitiveArrayField = FieldId(overriddenClass.type.classId, "isCreatedFromPrimitiveArray")
+
+        return collectedFieldModels[isCreatedFromPrimitiveArrayField] as UtPrimitiveModel
     }
 
     private fun ClassId.getActionMethod(): MethodId =

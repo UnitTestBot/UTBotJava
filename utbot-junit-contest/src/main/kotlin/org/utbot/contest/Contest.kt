@@ -211,9 +211,7 @@ fun runGeneration(
         logger.error("Seems like classloader for cut not valid (maybe it was backported to system): ${cut.classLoader}")
     }
 
-    val statsForClass = StatsForClass(Type.getInternalName(cut.classId.jClass))
-
-    val testedClasses = ConcurrentSkipListSet<String>()
+    val statsForClass = StatsForClass()
 
     val codeGenerator = CodeGenerator(
             cut.classId,
@@ -321,17 +319,17 @@ fun runGeneration(
                                     is UtExecution -> {
                                         try {
                                             val testMethodName = testMethodName(method.toString(), ++testsCounter)
-                                            val className = method.clazz.qualifiedName
+                                            val className = Type.getInternalName(method.clazz.java)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }
                                             statsForMethod.testsGeneratedCount++
                                             result.coverage?.let {
                                                 statsForClass.updateCoverage(
                                                     newCoverage = it,
-                                                    isNewClass = !testedClasses.contains(className),
+                                                    isNewClass = !statsForClass.testedClassNames.contains(className),
                                                     fromFuzzing = result is UtFuzzedExecution
                                                 )
                                             }
-                                            testedClasses.add(className)
+                                            statsForClass.testedClassNames.add(className)
 
                                             //TODO: it is a strange hack to create fake test case for one [UtResult]
                                             testSets.add(UtMethodTestSet(method, listOf(result)))

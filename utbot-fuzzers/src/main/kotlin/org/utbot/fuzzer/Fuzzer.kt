@@ -2,6 +2,7 @@ package org.utbot.fuzzer
 
 import mu.KotlinLogging
 import org.utbot.fuzzer.mutators.NumberRandomMutator
+import org.utbot.fuzzer.mutators.RegexStringModelMutator
 import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.ArrayModelProvider
 import org.utbot.fuzzer.providers.CharToStringModelProvider
@@ -12,6 +13,7 @@ import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import org.utbot.fuzzer.providers.PrimitiveWrapperModelProvider
 import org.utbot.fuzzer.providers.PrimitivesModelProvider
+import org.utbot.fuzzer.providers.RegexModelProvider
 import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
@@ -154,6 +156,7 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
         EnumModelProvider(idGenerator),
         ConstantsModelProvider,
         StringConstantModelProvider,
+        RegexModelProvider,
         CharToStringModelProvider,
         PrimitivesModelProvider,
         PrimitiveWrapperModelProvider,
@@ -161,12 +164,11 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
 }
 
 /**
- * Creates a model provider for [ObjectModelProvider] that generates values for object constructor.
+ * Creates a model provider from a list of providers that we want to use by default in [RecursiveModelProvider]
  */
-fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
-    return ModelProvider.of(
+internal fun modelProviderForRecursiveCalls(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int): ModelProvider {
+    val nonRecursiveProviders = ModelProvider.of(
         CollectionModelProvider(idGenerator),
-        ArrayModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
         StringConstantModelProvider,
         CharToStringModelProvider,
@@ -174,9 +176,21 @@ fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Model
         PrimitiveDefaultsModelProvider,
         PrimitiveWrapperModelProvider,
     )
+
+    return if (recursionDepth >= 0)
+        nonRecursiveProviders
+            .with(ObjectModelProvider(idGenerator, recursionDepth))
+            .with(ArrayModelProvider(idGenerator, recursionDepth))
+    else
+        nonRecursiveProviders
 }
 
-fun defaultModelMutators(): List<ModelMutator> = listOf(StringRandomMutator, NumberRandomMutator)
+
+fun defaultModelMutators(): List<ModelMutator> = listOf(
+    StringRandomMutator,
+    RegexStringModelMutator,
+    NumberRandomMutator,
+)
 
 /**
  * Tries to mutate a random value from the seed.

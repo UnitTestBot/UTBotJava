@@ -58,39 +58,3 @@ class FuzzedMethodDescription(
         concreteValues
     )
 }
-
-/**
- * Object to pass concrete values to fuzzer
- */
-data class FuzzedConcreteValue(
-    val classId: ClassId,
-    val value: Any,
-    val relativeOp: FuzzedOp = FuzzedOp.NONE,
-)
-
-enum class FuzzedOp(val sign: String?) {
-    NONE(null),
-    EQ("=="),
-    NE("!="),
-    GT(">"),
-    GE(">="),
-    LT("<"),
-    LE("<="),
-    CH(null), // changed or called
-    ;
-
-    fun isComparisonOp() = this == EQ || this == NE || this == GT || this == GE || this == LT || this == LE
-
-    fun reverseOrNull() : FuzzedOp? = when(this) {
-        EQ -> NE
-        NE -> EQ
-        GT -> LE
-        LT -> GE
-        LE -> GT
-        GE -> LT
-        else -> null
-    }
-
-    fun reverseOrElse(another: (FuzzedOp) -> FuzzedOp): FuzzedOp =
-        reverseOrNull() ?: another(this)
-}

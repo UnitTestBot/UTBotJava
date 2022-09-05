@@ -1,5 +1,12 @@
 package org.utbot.contest
 
+import java.io.File
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.net.URL
+import java.net.URLClassLoader
+import java.nio.file.Paths
+import java.util.concurrent.ConcurrentSkipListSet
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
@@ -16,8 +23,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.yield
 import mu.KotlinLogging
+import org.objectweb.asm.Type
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
+import org.utbot.common.filterWhen
 import org.utbot.common.info
 import org.utbot.engine.EngineController
 import org.utbot.engine.isConstructor
@@ -27,20 +36,25 @@ import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.junitByVersion
 import org.utbot.framework.codegen.model.CodeGenerator
+import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.MockStrategyApi
+import org.utbot.framework.plugin.api.TestCaseGenerator
+import org.utbot.framework.plugin.api.UtError
+import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.isKnownSyntheticMethod
+import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.warmup.Warmup
-import java.io.File
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import java.net.URL
-import java.net.URLClassLoader
-import java.nio.file.Paths
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
@@ -53,15 +67,6 @@ import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
-import org.utbot.common.filterWhen
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtError
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.util.isKnownSyntheticMethod
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -176,7 +181,7 @@ fun runGeneration(
     val currentContext = utContext
 
     val timeBudgetMs = timeLimitSec * 1000
-    val generationTimeout: Long = timeBudgetMs - timeBudgetMs*15/100 // 4000 ms for terminate all activities and finalize code in file
+    val generationTimeout: Long = timeBudgetMs - timeBudgetMs * 15 / 100 // 4000 ms for terminate all activities and finalize code in file
 
     logger.debug { "-----------------------------------------------------------------------------" }
     logger.info(
@@ -215,19 +220,6 @@ fun runGeneration(
             forceStaticMocking = forceStaticMocking,
             generateWarningsForStaticMocking = false
         )
-
-    // Doesn't work
-/*    val concreteExecutorForCoverage =
-        if (estimateCoverage)
-            ConcreteExecutor(
-                instrumentation = CoverageInstrumentation,
-                pathsToUserClasses = cut.classfileDir.toPath().toString(),
-                pathsToDependencyClasses = System.getProperty("java.class.path")
-            ).apply {
-                setKryoClassLoader(utContext.classLoader)
-            }
-        else null*/
-
 
     logger.info().bracket("class ${cut.fqn}", { statsForClass }) {
 
@@ -327,8 +319,17 @@ fun runGeneration(
                                     is UtExecution -> {
                                         try {
                                             val testMethodName = testMethodName(method.toString(), ++testsCounter)
+                                            val className = Type.getInternalName(method.clazz.java)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }
                                             statsForMethod.testsGeneratedCount++
+                                            result.coverage?.let {
+                                                statsForClass.updateCoverage(
+                                                    newCoverage = it,
+                                                    isNewClass = !statsForClass.testedClassNames.contains(className),
+                                                    fromFuzzing = result is UtFuzzedExecution
+                                                )
+                                            }
+                                            statsForClass.testedClassNames.add(className)
 
                                             //TODO: it is a strange hack to create fake test case for one [UtResult]
                                             testSets.add(UtMethodTestSet(method, listOf(result)))
@@ -376,7 +377,7 @@ fun runGeneration(
         withTimeoutOrNull(remainingBudget() + 200 /* Give job some time to finish gracefully */) {
             try {
                 engineJob.join()
-            } catch (e: CancellationException) {
+            } catch (_: CancellationException) {
             } catch (e: Exception) { // need isolation because we want to write tests for class in any case
                 logger.error(e) { "Error in engine invocation on class [${cut.fqn}]" }
             }
@@ -388,27 +389,6 @@ fun runGeneration(
         }
         //write classes
     }
-
-
-    //Optional step that doesn't run in actual contest
-    // Doesn't work
-/*
-    if (concreteExecutorForCoverage != null) {
-        logger.info().bracket("Estimating coverage") {
-            require(estimateCoverage)
-            try {
-                for ((name, testCase) in testCases) {
-                    logger.debug {"-> estimate for $name" }
-                    concreteExecutorForCoverage.executeTestCase(testCase.toValueTestCase())
-                }
-                statsForClass.coverage = concreteExecutorForCoverage.collectCoverage(cut.classId.jClass)
-            } catch (e: Throwable) {
-                logger.error(e) { "Error during coverage estimation" }
-            }
-        }
-    }
-*/
-
 
     statsForClass
 }
@@ -499,3 +479,28 @@ internal fun testMethodName(name: String, num: Int): String = "test${name.capita
 internal val Method.isVisibleFromGeneratedTest: Boolean
     get() = (this.modifiers and Modifier.ABSTRACT) == 0
             && (this.modifiers and Modifier.NATIVE) == 0
+
+private fun StatsForClass.updateCoverage(newCoverage: Coverage, isNewClass: Boolean, fromFuzzing: Boolean) {
+    coverage.update(newCoverage, isNewClass)
+    // other coverage type updates by empty coverage to respect new class
+    val emptyCoverage = newCoverage.copy(
+        coveredInstructions = emptyList()
+    )
+    if (fromFuzzing) {
+        fuzzedCoverage to concolicCoverage
+    } else {
+        concolicCoverage to fuzzedCoverage
+    }.let { (targetSource, otherSource) ->
+        targetSource.update(newCoverage, isNewClass)
+        otherSource.update(emptyCoverage, isNewClass)
+    }
+}
+
+private fun CoverageInstructionsSet.update(newCoverage: Coverage, isNewClass: Boolean) {
+    if (isNewClass) {
+        newCoverage.instructionsCount?.let {
+            totalInstructions += it
+        }
+    }
+    coveredInstructions.addAll(newCoverage.coveredInstructions)
+}

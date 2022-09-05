@@ -1,21 +1,25 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+
 //noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
-compileKotlin {
-    dependsOn project(':utbot-instrumentation').tasks.jar
-    kotlinOptions {
-        allWarningsAsErrors = false
-    }
-}
-
 dependencies {
-    api project(':utbot-framework-api')
     implementation project(':utbot-framework')
-    api project(':utbot-summary')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     // Without this dependency testng tests do not run.
@@ -56,9 +60,6 @@ classes {
 }
 
 jar {
-    dependsOn project(':utbot-framework').tasks.jar
-    dependsOn project(':utbot-summary').tasks.jar
-
     manifest {
         attributes 'Main-Class': 'org.utbot.cli.ApplicationKt'
         attributes 'Bundle-SymbolicName': 'org.utbot.cli'
@@ -69,6 +70,7 @@ jar {
 
     archiveVersion.set(project.version as String)
 
+    dependsOn configurations.runtimeClasspath
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }

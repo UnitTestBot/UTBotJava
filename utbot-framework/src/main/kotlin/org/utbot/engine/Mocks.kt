@@ -19,6 +19,7 @@ import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction5
 import kotlinx.collections.immutable.persistentListOf
 import org.utbot.engine.util.mockListeners.MockListenerController
+import org.utbot.framework.util.isInaccessibleViaReflection
 import soot.BooleanType
 import soot.RefType
 import soot.Scene
@@ -183,6 +184,7 @@ class Mocker(
         if (isUtMockAssume(mockInfo)) return false // never mock UtMock.assume invocation
         if (isUtMockAssumeOrExecuteConcretely(mockInfo)) return false // never mock UtMock.assumeOrExecuteConcretely invocation
         if (isOverriddenClass(type)) return false  // never mock overriden classes
+        if (type.isInaccessibleViaReflection) return false // never mock classes that we can't process with reflection
         if (isMakeSymbolic(mockInfo)) return true // support for makeSymbolic
         if (type.sootClass.isArtificialEntity) return false // never mock artificial types, i.e. Maps$lambda_computeValue_1__7
         if (!isEngineClass(type) && (type.sootClass.isInnerClass || type.sootClass.isLocal || type.sootClass.isAnonymous)) return false // there is no reason (and maybe no possibility) to mock such classes

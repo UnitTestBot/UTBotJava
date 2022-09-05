@@ -15,7 +15,6 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
@@ -27,16 +26,21 @@ import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
 import org.utbot.framework.plugin.api.samples.SampleEnum
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.fuzzer.FuzzedContext
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
+import kotlin.random.Random
 
 class ModelProviderTest {
 
@@ -105,12 +109,12 @@ class ModelProviderTest {
         val models = collect(ConstantsModelProvider,
             parameters = listOf(intClassId),
             constants = listOf(
-                FuzzedConcreteValue(intClassId, 10, FuzzedOp.EQ),
-                FuzzedConcreteValue(intClassId, 20, FuzzedOp.NE),
-                FuzzedConcreteValue(intClassId, 30, FuzzedOp.LT),
-                FuzzedConcreteValue(intClassId, 40, FuzzedOp.LE),
-                FuzzedConcreteValue(intClassId, 50, FuzzedOp.GT),
-                FuzzedConcreteValue(intClassId, 60, FuzzedOp.GE),
+                FuzzedConcreteValue(intClassId, 10, FuzzedContext.Comparison.EQ),
+                FuzzedConcreteValue(intClassId, 20, FuzzedContext.Comparison.NE),
+                FuzzedConcreteValue(intClassId, 30, FuzzedContext.Comparison.LT),
+                FuzzedConcreteValue(intClassId, 40, FuzzedContext.Comparison.LE),
+                FuzzedConcreteValue(intClassId, 50, FuzzedContext.Comparison.GT),
+                FuzzedConcreteValue(intClassId, 60, FuzzedContext.Comparison.GE),
             )
         )
 
@@ -127,7 +131,7 @@ class ModelProviderTest {
         val models = collect(StringConstantModelProvider,
             parameters = listOf(stringClassId),
             constants = listOf(
-                FuzzedConcreteValue(stringClassId, "", FuzzedOp.CH),
+                FuzzedConcreteValue(stringClassId, ""),
             )
         )
 
@@ -141,7 +145,7 @@ class ModelProviderTest {
         val models = collect(StringConstantModelProvider,
             parameters = listOf(stringClassId),
             constants = listOf(
-                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedOp.NONE),
+                FuzzedConcreteValue(stringClassId, "nonemptystring"),
             )
         )
 
@@ -152,18 +156,31 @@ class ModelProviderTest {
 
     @Test
     fun `test non-empty string is mutated if modification operation is set`() {
-        val models = collect(StringConstantModelProvider,
-            parameters = listOf(stringClassId),
-            constants = listOf(
-                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedOp.CH),
+        val method = String::class.java.getDeclaredMethod("subSequence", Int::class.java, Int::class.java)
+
+        val description = FuzzedMethodDescription(
+            "method",
+            voidClassId,
+            listOf(stringClassId),
+            listOf(
+                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedContext.Call(method.executableId))
             )
         )
 
+        val models = mutableMapOf<Int, MutableList<FuzzedValue>>().apply {
+            StringConstantModelProvider.generate(description).forEach { (i, m) ->
+                computeIfAbsent(i) { mutableListOf() }.add(m)
+            }
+        }
+
         assertEquals(1, models.size)
         assertEquals(1, models[0]!!.size)
-        listOf("nonemptystring").forEach {
-            assertTrue( models[0]!!.contains(UtPrimitiveModel(it))) { "Failed to find string $it in list ${models[0]}" }
-        }
+
+        val mutate = StringRandomMutator.mutate(description, listOf(models[0]!![0]), Random(0))
+
+        assertEquals(1, mutate.size)
+        assertEquals(UtPrimitiveModel("nonemptystring"), models[0]!![0].model)
+        assertEquals(UtPrimitiveModel("nonemptstring"), mutate[0].value.model)
     }
 
     @Test
@@ -179,7 +196,7 @@ class ModelProviderTest {
             val classId = A::class.java.id
             val models = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                    modelProvider = ModelProvider.of(PrimitiveDefaultsModelProvider)
+                    modelProviderForRecursiveCalls = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
                 parameters = listOf(classId)
             )
@@ -465,7 +482,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                modelProvider = PrimitiveDefaultsModelProvider
+                modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(FieldSetterClass::class.java.id))
             assertEquals(1, result.size)
             assertEquals(2, result[0]!!.size)
@@ -493,7 +510,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                modelProvider = PrimitiveDefaultsModelProvider
+                modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
                 packageName = PackagePrivateFieldAndClass::class.java.`package`.name
             }

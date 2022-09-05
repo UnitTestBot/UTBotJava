@@ -36,7 +36,7 @@ import org.utbot.engine.selectors.coveredNewSelector
 import org.utbot.engine.selectors.cpInstSelector
 import org.utbot.engine.selectors.forkDepthSelector
 import org.utbot.engine.selectors.inheritorsSelector
-import org.utbot.engine.selectors.nnRewardGuidedSelector
+import org.utbot.engine.selectors.mlSelector
 import org.utbot.engine.selectors.nurs.NonUniformRandomSearch
 import org.utbot.engine.selectors.pollUntilFastSAT
 import org.utbot.engine.selectors.randomPathSelector
@@ -68,6 +68,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
@@ -137,7 +138,10 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
         PathSelectorType.FORK_DEPTH_SELECTOR -> forkDepthSelector(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
-        PathSelectorType.NN_REWARD_GUIDED_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
+        PathSelectorType.ML_SELECTOR -> mlSelector(graph, StrategyOption.DISTANCE) {
+            withStepsLimit(pathSelectorStepsLimit)
+        }
+        PathSelectorType.TORCH_SELECTOR -> mlSelector(graph, StrategyOption.DISTANCE) {
             withStepsLimit(pathSelectorStepsLimit)
         }
         PathSelectorType.RANDOM_SELECTOR -> randomSelector(graph, StrategyOption.DISTANCE) {
@@ -439,7 +443,7 @@ class UtBotSymbolicEngine(
                 packageName = executableId.classId.packageName
             }
             fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
-                limitValuesCreatedByFieldAccessors = 500
+                totalLimit = 500
             })
         }.withMutations(
             TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()
@@ -515,9 +519,8 @@ class UtBotSymbolicEngine(
         stateBefore: EnvironmentModels,
         e: ConcreteExecutionFailureException
     ) {
-        val failedConcreteExecution = UtExecution(
+        val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
-            stateAfter = MissingState,
             result = UtConcreteExecutionFailure(e)
         )
 

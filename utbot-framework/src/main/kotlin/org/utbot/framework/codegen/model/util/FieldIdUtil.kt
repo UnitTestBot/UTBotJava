@@ -22,11 +22,3 @@ fun FieldId.isAccessibleFrom(packageName: String): Boolean {
  * Whether or not a field can be set without reflection
  */
 fun FieldId.canBeSetIn(packageName: String): Boolean = isAccessibleFrom(packageName) && !isFinal
-
-private val systemClassId = System::class.id
-
-/**
- * Security field is inaccessible in Runtime even via reflection.
- */
-val FieldId.isInaccessible: Boolean
-    get() = name == "security" && declaringClass == systemClassId

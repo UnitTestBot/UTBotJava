@@ -61,6 +61,7 @@ class ProcessingStorage {
     private val idToClassMethod = mutableMapOf<Int, ClassToMethod>()
 
     private val instructionsData = mutableMapOf<Long, InstructionData>()
+    private val classToInstructionsCount = mutableMapOf<String, Long>()
 
     fun addClass(className: String): Int {
         val id = classToId.getOrPut(className) { classToId.size }
@@ -86,8 +87,15 @@ class ProcessingStorage {
     }
 
     fun addInstruction(id: Long, instructionData: InstructionData) {
-        instructionsData.putIfAbsent(id, instructionData)
+        instructionsData.computeIfAbsent(id) {
+            val (className, _) = computeClassNameAndLocalId(id)
+            classToInstructionsCount.merge(className, 1, Long::plus)
+            instructionData
+        }
     }
+
+    fun getInstructionsCount(className: String): Long? =
+        classToInstructionsCount[className]
 
     fun getInstruction(id: Long): InstructionData {
         return instructionsData.getValue(id)
@@ -177,7 +185,7 @@ class TraceInstructionBytecodeInserter {
 }
 
 class TraceHandler {
-    private val processingStorage = ProcessingStorage()
+    val processingStorage = ProcessingStorage()
     private val inserter = TraceInstructionBytecodeInserter()
 
     private var instructionsList: List<EtInstruction>? = null

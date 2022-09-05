@@ -28,7 +28,7 @@ env:
 jobs:
     publish_plugin_and_cli:
       runs-on: ubuntu-20.04
-      container: unittestbot/java-env:java11-zulu-jdk-fx-gradle7.4.2-kotlinc1.7.0
+      container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
       
       steps:
       - name: Print environment variables
@@ -50,10 +50,11 @@ jobs:
 
       - name: Build UTBot IntelliJ IDEA plugin
         run: |
-          gradle buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
+          gradle clean buildPlugin --no-daemon -PsemVer=${{ env.VERSION }}
           cd utbot-intellij/build/distributions
           unzip utbot-intellij-${{ env.VERSION }}.zip
           rm utbot-intellij-${{ env.VERSION }}.zip
+
       - name: Archive UTBot IntelliJ IDEA plugin
         uses: actions/upload-artifact@v3
         with:
@@ -63,7 +64,7 @@ jobs:
       - name: Build UTBot CLI
         run: |
           cd utbot-cli
-          gradle build --no-daemon -PsemVer=${{ env.VERSION }}
+          gradle clean build --no-daemon -PsemVer=${{ env.VERSION }}
           
       - name: Archive UTBot CLI
         uses: actions/upload-artifact@v3

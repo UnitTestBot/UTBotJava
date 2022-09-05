@@ -5,34 +5,20 @@ import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.any
 import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
 import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
 import org.utbot.framework.codegen.model.constructor.builtin.setAccessible
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
 import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.getAmbiguousOverloadsOf
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
+import org.utbot.framework.codegen.model.constructor.util.isUtil
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgAssignment
@@ -121,13 +107,14 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun newMethodCall(methodId: MethodId) {
-        if (methodId.isUtil) requiredUtilMethods += methodId
+        if (isUtil(methodId)) requiredUtilMethods += methodId
         importIfNeeded(methodId)
 
         //Builtin methods does not have jClass, so [methodId.method] will crash on it,
         //so we need to collect required exceptions manually from source codes
         if (methodId is BuiltinMethodId) {
-            methodId.findExceptionTypes().forEach { addExceptionIfNeeded(it) }
+            findExceptionTypesOf(methodId)
+                .forEach { addExceptionIfNeeded(it) }
             return
         }
 
@@ -152,33 +139,6 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         importIfNeeded(constructorId.classId)
         for (exception in constructorId.exceptions) {
             addExceptionIfNeeded(exception)
-        }
-    }
-
-    //WARN: if you make changes in the following sets of exceptions,
-    //don't forget to change them in hardcoded [UtilMethods] as well
-    private fun BuiltinMethodId.findExceptionTypes(): Set<ClassId> {
-        if (!this.isUtil) return emptySet()
-
-        with(outerMostTestClass) {
-            return when (this@findExceptionTypes) {
-                getEnumConstantByNameMethodId -> setOf(IllegalAccessException::class.id)
-                getStaticFieldValueMethodId,
-                getFieldValueMethodId,
-                setStaticFieldMethodId,
-                setFieldMethodId -> setOf(IllegalAccessException::class.id, NoSuchFieldException::class.id)
-                createInstanceMethodId -> setOf(Exception::class.id)
-                getUnsafeInstanceMethodId -> setOf(ClassNotFoundException::class.id, NoSuchFieldException::class.id, IllegalAccessException::class.id)
-                createArrayMethodId -> setOf(ClassNotFoundException::class.id)
-                deepEqualsMethodId,
-                arraysDeepEqualsMethodId,
-                iterablesDeepEqualsMethodId,
-                streamsDeepEqualsMethodId,
-                mapsDeepEqualsMethodId,
-                hasCustomEqualsMethodId,
-                getArrayLengthMethodId -> emptySet()
-                else -> error("Unknown util method $this")
-            }
         }
     }
 
@@ -265,7 +225,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
      * @return true if a method can be called with the given arguments without reflection
      */
     private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean =
-        (isUtil || isAccessibleFrom(testClassPackageName))
+        (isUtil(this) || isAccessibleFrom(testClassPackageName))
                 && caller canBeReceiverOf this
                 && args canBeArgsOf this
 
@@ -403,5 +363,36 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
         return argumentsArrayVariable
+    }
+
+    //WARN: if you make changes in the following sets of exceptions,
+    //don't forget to change them in hardcoded [UtilMethods] as well
+    private fun findExceptionTypesOf(methodId: MethodId): Set<ClassId> {
+        // TODO: at the moment we treat BuiltinMethodIds that are not util method ids
+        // as if they have no exceptions. This should be fixed by storing exception types in BuiltinMethodId
+        // or allowing us to access actual java.lang.Class for classes from mockito and other libraries
+        // (this could be possibly solved by using user project's class loaders in UtContext)
+        if (methodId !in utilMethodProvider.utilMethodIds) return emptySet()
+
+        with(utilMethodProvider) {
+            return when (methodId) {
+                getEnumConstantByNameMethodId -> setOf(java.lang.IllegalAccessException::class.id)
+                getStaticFieldValueMethodId,
+                getFieldValueMethodId,
+                setStaticFieldMethodId,
+                setFieldMethodId -> setOf(java.lang.IllegalAccessException::class.id, java.lang.NoSuchFieldException::class.id)
+                createInstanceMethodId -> setOf(Exception::class.id)
+                getUnsafeInstanceMethodId -> setOf(java.lang.ClassNotFoundException::class.id, java.lang.NoSuchFieldException::class.id, java.lang.IllegalAccessException::class.id)
+                createArrayMethodId -> setOf(java.lang.ClassNotFoundException::class.id)
+                deepEqualsMethodId,
+                arraysDeepEqualsMethodId,
+                iterablesDeepEqualsMethodId,
+                streamsDeepEqualsMethodId,
+                mapsDeepEqualsMethodId,
+                hasCustomEqualsMethodId,
+                getArrayLengthMethodId -> emptySet()
+                else -> error("Unknown util method $this")
+            }
+        }
     }
 }

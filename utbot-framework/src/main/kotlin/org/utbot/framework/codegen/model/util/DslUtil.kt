@@ -1,6 +1,7 @@
 package org.utbot.framework.codegen.model.util
 
-import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
+import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.tree.CgMethodConstructor
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgDecrement
 import org.utbot.framework.codegen.model.tree.CgEqualTo
@@ -15,12 +16,10 @@ import org.utbot.framework.codegen.model.tree.CgIncrement
 import org.utbot.framework.codegen.model.tree.CgLessThan
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
-import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
 import org.utbot.framework.plugin.api.util.charClassId
@@ -82,19 +81,15 @@ operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess =
 // Get array length
 
 /**
- * Returns length field access for array type variable and [getArrayLengthMethodId] call otherwise.
+ * Returns length field access for array type variable and [UtilMethodProvider.getArrayLengthMethodId] call otherwise.
  */
-fun CgVariable.length(
-    cgCallableAccessManager: CgCallableAccessManager,
-    thisInstance: CgThisInstance,
-    getArrayLengthMethodId: MethodId
-): CgExpression {
+internal fun CgVariable.length(methodConstructor: CgMethodConstructor): CgExpression {
     val thisVariable = this
 
     return if (type.isArray) {
         CgGetLength(thisVariable)
     } else {
-        with(cgCallableAccessManager) { thisInstance[getArrayLengthMethodId](thisVariable) }
+        with(methodConstructor) { utilsClassId[getArrayLength](thisVariable) }
     }
 }
 

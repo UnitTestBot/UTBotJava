@@ -8,10 +8,11 @@ import org.jetbrains.kotlin.psi.KtClassOrObject
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
-import org.jetbrains.kotlin.psi.psiUtil.parents
+import org.jetbrains.kotlin.psi.psiUtil.parentsWithSelf
 import org.jetbrains.uast.toUElement
 
 class KotlinPsiElementHandler(
+    // TODO: KtClassOrObject?
     override val classClass: Class<KtClass> = KtClass::class.java,
     override val methodClass: Class<KtNamedFunction> = KtNamedFunction::class.java,
 ) : PsiElementHandler {
@@ -27,9 +28,9 @@ class KotlinPsiElementHandler(
         getTarget(element)?.let { KotlinCreateTestIntention().applicabilityRange(it) != null } ?: false
 
     private fun getTarget(element: PsiElement?): KtNamedDeclaration? =
-        element?.parents
+        element?.parentsWithSelf
             ?.firstOrNull { it is KtClassOrObject || it is KtNamedDeclaration && it.parent is KtFile } as? KtNamedDeclaration
 
     override fun containingClass(element: PsiElement): PsiClass? =
-         (element.parents.firstOrNull { it is KtClassOrObject })?.let { toPsi(it, PsiClass::class.java) }
+         element.parentsWithSelf.firstOrNull { it is KtClassOrObject }?.let { toPsi(it, PsiClass::class.java) }
 }

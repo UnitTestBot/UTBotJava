@@ -36,9 +36,7 @@ interface ModelMutator {
         index: Int,
         value: FuzzedValue,
         random: Random
-    ) : FuzzedValue? {
-        return null
-    }
+    ) : FuzzedValue?
 
     fun UtModel.mutatedFrom(template: FuzzedValue, block: FuzzedValue.() -> Unit = {}): FuzzedValue {
         return FuzzedValue(this, template.createdBy).apply(block)

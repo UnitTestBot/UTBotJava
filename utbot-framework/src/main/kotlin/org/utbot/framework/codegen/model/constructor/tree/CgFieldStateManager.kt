@@ -231,7 +231,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
             val expression = when (val newElement = path[index++]) {
                 is FieldAccess -> {
                     val field = newElement.field
-                    testClassThisInstance[getFieldValue](prev, stringLiteral(field.name))
+                    utilsClassId[getFieldValue](prev, stringLiteral(field.name))
                 }
                 is ArrayElementAccess -> {
                     Array::class.id[getArrayElement](prev, newElement.index)
@@ -256,7 +256,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
             } else {
                 newVar(classCgClassId) { Class::class.id[forName](owner.name) }
             }
-            newVar(objectClassId) { testClassThisInstance[getStaticFieldValue](ownerClass, stringLiteral(firstField.name)) }
+            newVar(objectClassId) { utilsClassId[getStaticFieldValue](ownerClass, stringLiteral(firstField.name)) }
         }
         val path = fieldPath.elements
         val remainingPath = fieldPath.copy(elements = path.drop(1))

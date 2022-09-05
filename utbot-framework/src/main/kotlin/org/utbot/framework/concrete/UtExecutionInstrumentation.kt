@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.withReflection
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
@@ -41,6 +42,8 @@ import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
 import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
+import org.objectweb.asm.Type
+import org.utbot.framework.plugin.api.MissingState
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -142,7 +145,18 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         traceHandler.resetTrace()
 
         return MockValueConstructor(instrumentationContext).use { constructor ->
-            val params = constructor.constructMethodParameters(parametersModels)
+            val params = try {
+                constructor.constructMethodParameters(parametersModels)
+            } catch (e: Throwable) {
+                if (e.cause is AccessControlException) {
+                    return@use UtConcreteExecutionResult(
+                        MissingState,
+                        UtSandboxFailure(e.cause!!),
+                        Coverage()
+                    )
+                }
+                throw e
+            }
             val staticFields = constructor
                 .constructStatics(
                     stateBefore
@@ -200,7 +214,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     UtConcreteExecutionResult(
                         stateAfter,
                         concreteUtModelResult,
-                        traceList.toApiCoverage()
+                        traceList.toApiCoverage(
+                            traceHandler.processingStorage.getInstructionsCount(
+                                Type.getInternalName(clazz)
+                            )
+                        )
                     )
                 }
             }
@@ -209,15 +227,6 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         }
         }
     }
-
-    private val inaccessibleViaReflectionFields = setOf(
-        "security" to "java.lang.System",
-        "fieldFilterMap" to "sun.reflect.Reflection",
-        "methodFilterMap" to "sun.reflect.Reflection"
-    )
-
-    private val FieldId.isInaccessibleViaReflection: Boolean
-        get() = (name to declaringClass.name) in inaccessibleViaReflectionFields
 
     private fun sortOutException(exception: Throwable): UtExecutionFailure {
         if (exception is TimeoutException) {
@@ -295,7 +304,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 /**
  * Transforms a list of internal [EtInstruction]s to a list of api [Instruction]s.
  */
-private fun List<EtInstruction>.toApiCoverage(): Coverage =
+private fun List<EtInstruction>.toApiCoverage(instructionsCount: Long? = null): Coverage =
     Coverage(
-        map { Instruction(it.className, it.methodSignature, it.line, it.id) }
+        map { Instruction(it.className, it.methodSignature, it.line, it.id) },
+        instructionsCount
     )

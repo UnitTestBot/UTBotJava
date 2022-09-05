@@ -44,7 +44,7 @@ import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
-import org.utbot.common.withAccessibility
+import org.utbot.instrumentation.process.runSandbox
 
 /**
  * Constructs values (including mocks) from models.
@@ -441,17 +441,13 @@ class MockValueConstructor(
     }
 
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
-        method.run {
-            withAccessibility {
-                invokeCatching(obj = instance, args = args).getOrThrow()
-            }
+        method.runSandbox {
+            invokeCatching(obj = instance, args = args).getOrThrow()
         }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.run {
-            withAccessibility {
-                newInstance(*args.toTypedArray())
-            }
+        constructor.runSandbox {
+            newInstance(*args.toTypedArray())
         }
 
     /**

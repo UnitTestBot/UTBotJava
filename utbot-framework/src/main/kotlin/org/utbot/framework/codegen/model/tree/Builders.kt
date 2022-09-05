@@ -12,15 +12,38 @@ interface CgBuilder<T : CgElement> {
 
 // Code entities
 
+class CgRegularClassFileBuilder : CgBuilder<CgRegularClassFile> {
+    val imports: MutableList<Import> = mutableListOf()
+    lateinit var declaredClass: CgRegularClass
+
+    override fun build() = CgRegularClassFile(imports, declaredClass)
+}
+
+fun buildRegularClassFile(init: CgRegularClassFileBuilder.() -> Unit) = CgRegularClassFileBuilder().apply(init).build()
+
 class CgTestClassFileBuilder : CgBuilder<CgTestClassFile> {
     val imports: MutableList<Import> = mutableListOf()
-    lateinit var testClass: CgTestClass
+    lateinit var declaredClass: CgTestClass
     lateinit var testsGenerationReport: TestsGenerationReport
 
-    override fun build() = CgTestClassFile(imports, testClass, testsGenerationReport)
+    override fun build() = CgTestClassFile(imports, declaredClass, testsGenerationReport)
 }
 
 fun buildTestClassFile(init: CgTestClassFileBuilder.() -> Unit) = CgTestClassFileBuilder().apply(init).build()
+
+class CgRegularClassBuilder : CgBuilder<CgRegularClass> {
+    lateinit var id: ClassId
+    val annotations: MutableList<CgAnnotation> = mutableListOf()
+    var superclass: ClassId? = null
+    val interfaces: MutableList<ClassId> = mutableListOf()
+    lateinit var body: CgRegularClassBody
+    var isStatic: Boolean = false
+    var isNested: Boolean = false
+
+    override fun build() = CgRegularClass(id, annotations, superclass, interfaces, body, isStatic, isNested)
+}
+
+fun buildRegularClass(init: CgRegularClassBuilder.() -> Unit) = CgRegularClassBuilder().apply(init).build()
 
 class CgTestClassBuilder : CgBuilder<CgTestClass> {
     lateinit var id: ClassId
@@ -38,15 +61,21 @@ fun buildTestClass(init: CgTestClassBuilder.() -> Unit) = CgTestClassBuilder().a
 
 class CgTestClassBodyBuilder : CgBuilder<CgTestClassBody> {
     val testMethodRegions: MutableList<CgExecutableUnderTestCluster> = mutableListOf()
-
-    val dataProvidersAndUtilMethodsRegion: MutableList<CgRegion<CgElement>> = mutableListOf()
-
+    val staticDeclarationRegions: MutableList<CgStaticsRegion> = mutableListOf()
     val nestedClassRegions: MutableList<CgRegion<CgTestClass>> = mutableListOf()
 
-    override fun build() = CgTestClassBody(testMethodRegions, dataProvidersAndUtilMethodsRegion, nestedClassRegions)
+    override fun build() = CgTestClassBody(testMethodRegions, staticDeclarationRegions, nestedClassRegions)
 }
 
 fun buildTestClassBody(init: CgTestClassBodyBuilder.() -> Unit) = CgTestClassBodyBuilder().apply(init).build()
+
+class CgRegularClassBodyBuilder : CgBuilder<CgRegularClassBody> {
+    val content: MutableList<CgElement> = mutableListOf()
+
+    override fun build() = CgRegularClassBody(content)
+}
+
+fun buildRegularClassBody(init: CgRegularClassBodyBuilder.() -> Unit) = CgRegularClassBodyBuilder().apply(init).build()
 
 // Methods
 

@@ -4,6 +4,7 @@ import org.utbot.common.appendHtmlLine
 import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -48,7 +49,7 @@ internal class CgTestClassConstructor(val context: CgContext) :
      */
     fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
-            this.testClass = withTestClassScope { constructTestClass(testClassModel) }
+            this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
@@ -91,17 +92,19 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     testMethodRegions += executableUnderTestCluster
                 }
 
-                val utilMethods = if (currentTestClass == outerMostTestClass)
-                    createUtilMethods()
-                else
-                    emptyList()
+                val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
+                if (currentTestClassDataProviderMethods.isNotEmpty()) {
+                    staticDeclarationRegions += CgStaticsRegion("Data providers", currentTestClassDataProviderMethods)
+                }
 
-                val additionalMethods = currentTestClassContext.cgDataProviderMethods + utilMethods
-
-                dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
-                    "Data providers and utils methods",
-                    additionalMethods
-                )
+                if (currentTestClass == outerMostTestClass) {
+                    val utilMethods = collectUtilMethods()
+                    // If utilMethodProvider is TestClassUtilMethodProvider, then util methods should be declared
+                    // in the test class. Otherwise, util methods will be located elsewhere (e.g. another class or library).
+                    if (utilMethodProvider is TestClassUtilMethodProvider && utilMethods.isNotEmpty()) {
+                        staticDeclarationRegions += CgStaticsRegion("Util methods", utilMethods)
+                    }
+                }
             }
             // It is important that annotations, superclass and interfaces assignment is run after
             // all methods are generated so that all necessary info is already present in the context
@@ -118,11 +121,13 @@ internal class CgTestClassConstructor(val context: CgContext) :
             return null
         }
 
+        allExecutions = testSet.executions
+
         val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
-        when (context.parameterizedTestSource) {
+        when (context.parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
                 for ((clusterSummary, executionIndices) in clustersInfo) {
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
@@ -195,8 +200,17 @@ internal class CgTestClassConstructor(val context: CgContext) :
         }.onFailure { error -> processFailure(testSet, error) }
     }
 
-    // TODO: collect imports of util methods
-    private fun createUtilMethods(): List<CgUtilMethod> {
+    /**
+     * This method collects a list of util methods needed by the class.
+     * By the end of the test method generation [requiredUtilMethods] may not contain all the methods needed.
+     * That's because some util methods may not be directly used in tests, but they may be used from other util methods.
+     * We define such method dependencies in [MethodId.dependencies].
+     *
+     * Once all dependencies are collected, they are also added to [requiredUtilMethods].
+     *
+     * @return a list of [CgUtilMethod] representing required util methods (including dependencies).
+     */
+    private fun collectUtilMethods(): List<CgUtilMethod> {
         val utilMethods = mutableListOf<CgUtilMethod>()
         // some util methods depend on the others
         // using this loop we make sure that all the
@@ -206,11 +220,18 @@ internal class CgTestClassConstructor(val context: CgContext) :
             requiredUtilMethods.remove(method)
             if (method.name !in existingMethodNames) {
                 utilMethods += CgUtilMethod(method)
-                importUtilMethodDependencies(method)
+                // we only need imports from util methods if these util methods are declared in the test class
+                if (utilMethodProvider is TestClassUtilMethodProvider) {
+                    importUtilMethodDependencies(method)
+                }
                 existingMethodNames += method.name
                 requiredUtilMethods += method.dependencies()
             }
         }
+        // Collect all util methods back into requiredUtilMethods.
+        // Now there will also be util methods that weren't present in requiredUtilMethods at first,
+        // but were needed for the present util methods to work.
+        requiredUtilMethods += utilMethods.map { method -> method.id }
         return utilMethods
     }
 

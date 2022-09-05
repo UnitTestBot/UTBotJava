@@ -357,7 +357,11 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
     /**
      * Finds most appropriate constructor in class.
      *
-     * We prefer constructor that allows to set more fields than others
+     * If the [compositeModel].fields is empty, we don't care about affected fields, we would like to take an empty
+     * constructor if the declaring class is from [java.util] package or an appropriate constructor with the least
+     * number of arguments.
+     *
+     * Otherwise, we prefer constructor that allows to set more fields than others
      * and use only simple assignments like "this.a = a".
      *
      * Returns null if no one appropriate constructor is found.
@@ -366,11 +370,20 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         val classId = compositeModel.classId
         if (!classId.isVisible || classId.isInner) return null
 
-        return classId.jClass.declaredConstructors
+        val constructorIds = classId.jClass.declaredConstructors
             .filter { it.isVisible }
-            .sortedByDescending { it.parameterCount }
             .map { it.executableId }
-            .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+
+        return if (compositeModel.fields.isEmpty()) {
+            val fromUtilPackage = classId.packageName.startsWith("java.util")
+            constructorIds
+                .sortedBy { it.parameters.size }
+                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || constructorAnalyzer.isAppropriate(it) }
+        } else {
+            constructorIds
+                .sortedByDescending { it.parameters.size }
+                .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+        }
     }
 
     private val ClassId.isVisible : Boolean

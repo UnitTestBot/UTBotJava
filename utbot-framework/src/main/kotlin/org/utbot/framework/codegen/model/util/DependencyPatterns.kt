@@ -26,6 +26,23 @@ fun TestFramework.patterns(): Patterns {
     return Patterns(moduleLibraryPatterns, libraryPatterns)
 }
 
+
+fun TestFramework.parametrizedTestsPatterns(): Patterns {
+    val moduleLibraryPatterns = when (this) {
+        Junit4 -> emptyList()
+        Junit5 -> emptyList()   // emptyList here because JUnit5 module may not be enough for parametrized tests if :junit-jupiter-params: is not installed
+        TestNg -> testNgModulePatterns
+    }
+    val libraryPatterns = when (this) {
+        Junit4 -> emptyList()
+        Junit5 -> junit5ParametrizedTestsPatterns
+        TestNg -> testNgPatterns
+    }
+
+    return Patterns(moduleLibraryPatterns, libraryPatterns)
+}
+
+
 fun MockFramework.patterns(): Patterns {
     val moduleLibraryPatterns = when (this) {
         MockFramework.MOCKITO -> mockitoModulePatterns
@@ -47,11 +64,16 @@ val JUNIT_5_MVN_PATTERN = Regex("org\\.junit\\.jupiter:junit-jupiter-api:5(\\.[0
 val JUNIT_5_BASIC_PATTERN = Regex("JUnit5\\.4")
 val junit5Patterns = listOf(JUNIT_5_JAR_PATTERN, JUNIT_5_MVN_PATTERN, JUNIT_5_BASIC_PATTERN)
 
+val JUNIT_5_PARAMETRIZED_JAR_PATTERN = Regex("junit-jupiter-params-5(\\.[0-9]+){1,2}")
+val JUNIT_5_PARAMETRIZED_MVN_PATTERN = Regex("org\\.junit\\.jupiter\\.junit-jupiter-params:5(\\.[0-9]+){1,2}")
+val junit5ParametrizedTestsPatterns = listOf(JUNIT_5_JAR_PATTERN, JUNIT_5_BASIC_PATTERN,
+    JUNIT_5_PARAMETRIZED_JAR_PATTERN, JUNIT_5_PARAMETRIZED_MVN_PATTERN)
+
 val JUNIT5_BASIC_MODULE_PATTERN = Regex("junit-jupiter")
 val junit5ModulePatterns = listOf(JUNIT5_BASIC_MODULE_PATTERN)
 
 val TEST_NG_JAR_PATTERN = Regex("testng-[0-9](\\.[0-9]+){2}")
-val TEST_NG_MVN_PATTERN = Regex("org\\.testng:testng:(\\.[0-9]+){3}")
+val TEST_NG_MVN_PATTERN = Regex("org\\.testng:testng:[0-9](\\.[0-9]+){2}")
 val TEST_NG_BASIC_PATTERN = Regex("testng")
 val testNgPatterns = listOf(TEST_NG_JAR_PATTERN, TEST_NG_MVN_PATTERN, TEST_NG_BASIC_PATTERN)
 

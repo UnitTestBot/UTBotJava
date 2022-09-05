@@ -1,6 +1,6 @@
 package org.utbot.examples.objects
 
-import org.utbot.examples.Full
+import org.utbot.tests.infrastructure.Full
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.isException
 import org.junit.jupiter.api.Test

@@ -312,7 +312,7 @@ internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: 
  * @param elementType the element type of the returned array class id
  * @param isNullable a flag whether returned array is nullable or not
  */
-internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
+fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
     val arrayIdName = "[${elementType.arrayLikeName}"
     return when (elementType) {
         is BuiltinClassId -> BuiltinClassId(

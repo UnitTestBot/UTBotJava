@@ -9,8 +9,8 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockFramework
+import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.id
-import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.util.Arrays
 import java.util.Objects
@@ -815,7 +815,6 @@ private fun TestClassUtilMethodProvider.regularImportsByUtilMethod(
     id: MethodId,
     codegenLanguage: CodegenLanguage
 ): List<ClassId> {
-    val fieldClassId = Field::class.id
     return when (id) {
         getUnsafeInstanceMethodId -> listOf(fieldClassId)
         createInstanceMethodId -> listOf(java.lang.reflect.InvocationTargetException::class.id)

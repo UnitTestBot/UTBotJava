@@ -45,6 +45,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
@@ -351,7 +352,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
             CgGetJavaClass(classId)
         } else {
-            Class::class.id[forName](classId.name)
+            classClassId[forName](classId.name)
         }
 
         return newVar(Class::class.id, baseName) { init }

@@ -50,7 +50,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.executable
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isNotSubtypeOf
 import org.utbot.framework.plugin.api.util.isSubtypeOf
@@ -67,7 +66,10 @@ import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.util.classClassId
+import org.utbot.framework.plugin.api.util.constructorClassId
+import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.framework.plugin.api.util.methodClassId
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -306,15 +308,15 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     }
 
     override fun createFieldVariable(fieldId: FieldId): CgVariable {
-        val declaringClass = newVar(Class::class.id) { Class::class.id[forName](fieldId.declaringClass.name) }
+        val declaringClass = newVar(classClassId) { classClassId[forName](fieldId.declaringClass.name) }
         val name = fieldId.name + "Field"
-        return newVar(java.lang.reflect.Field::class.id, name) {
+        return newVar(fieldClassId, name) {
             declaringClass[getDeclaredField](fieldId.name)
         }
     }
 
     override fun createExecutableVariable(executableId: ExecutableId, arguments: List<CgExpression>): CgVariable {
-        val declaringClass = newVar(Class::class.id) { Class::class.id[forName](executableId.classId.name) }
+        val declaringClass = newVar(classClassId) { classClassId[forName](executableId.classId.name) }
         val argTypes = (arguments zip executableId.parameters).map { (argument, parameterType) ->
             val baseName = when (argument) {
                 is CgVariable -> "${argument.name}Type"
@@ -324,7 +326,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 if (parameterType.isPrimitive) {
                     CgGetJavaClass(parameterType)
                 } else {
-                    Class::class.id[forName](parameterType.name)
+                    classClassId[forName](parameterType.name)
                 }
             }
         }
@@ -332,13 +334,13 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         return when (executableId) {
             is MethodId -> {
                 val name = executableId.name + "Method"
-                newVar(java.lang.reflect.Method::class.id, name) {
+                newVar(methodClassId, name) {
                     declaringClass[getDeclaredMethod](executableId.name, *argTypes.toTypedArray())
                 }
             }
             is ConstructorId -> {
                 val name = executableId.classId.prettifiedName.decapitalize() + "Constructor"
-                newVar(java.lang.reflect.Constructor::class.id, name) {
+                newVar(constructorClassId, name) {
                     declaringClass[getDeclaredConstructor](*argTypes.toTypedArray())
                 }
             }
@@ -467,9 +469,9 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     // utils
 
     private fun classRefOrNull(type: ClassId, expr: CgExpression): ClassId? {
-        if (type == Class::class.id && expr is CgGetClass) return expr.classId
+        if (type == classClassId && expr is CgGetClass) return expr.classId
 
-        if (type == Class::class.id && expr is CgExecutableCall && expr.executableId == forName) {
+        if (type == classClassId && expr is CgExecutableCall && expr.executableId == forName) {
             val name = (expr.arguments.getOrNull(0) as? CgLiteral)?.value as? String
 
             if (name != null) {
@@ -487,7 +489,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
             ExpressionWithType(enumClass, access)
         } else {
             val enumClassVariable = newVar(classCgClassId) {
-                Class::class.id[forName](enumClass.name)
+                classClassId[forName](enumClass.name)
             }
 
             ExpressionWithType(objectClassId, utilsClassId[getEnumConstantByName](enumClassVariable, constant))

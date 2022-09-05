@@ -55,6 +55,8 @@ import soot.toolkits.graph.ExceptionalUnitGraph
 object SootUtils {
     /**
      * Runs Soot in tests if it hasn't already been done.
+     *
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to the class buildDir.
      */
     fun runSoot(clazz: KClass<*>, forceReload: kotlin.Boolean) {
         val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
@@ -63,6 +65,11 @@ object SootUtils {
         runSoot(buildDirPath, null, forceReload)
     }
 
+
+    /**
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to [buildDirPath] and
+     * [previousClassPath] equals to [classPath].
+     */
     fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean) {
         synchronized(this) {
             if (buildDirPath != previousBuildDir || classPath != previousClassPath || forceReload) {

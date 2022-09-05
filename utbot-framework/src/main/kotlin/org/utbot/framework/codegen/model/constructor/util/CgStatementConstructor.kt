@@ -320,7 +320,7 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         return if (classId isAccessibleFrom testClassPackageName) {
             CgGetJavaClass(classId)
         } else {
-            newVar(classCgClassId) { Class::class.id[forName](classId.name) }
+            newVar(classCgClassId) { classClassId[forName](classId.name) }
         }
     }
 

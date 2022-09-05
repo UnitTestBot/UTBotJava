@@ -56,11 +56,10 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
 
 /**
  * Constructs CgValue or CgVariable given a UtModel

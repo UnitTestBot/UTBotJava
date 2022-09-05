@@ -1302,7 +1302,7 @@ private fun capturedArgumentClass(language: CodegenLanguage) =
              * Captured values are represented as arguments of a synthetic method that lambda is compiled into,
              * hence the name of the class.
              */
-            static class CapturedArgument {
+            public static class CapturedArgument {
                 private Class<?> type;
                 private Object value;
         

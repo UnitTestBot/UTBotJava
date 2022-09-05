@@ -11,7 +11,6 @@ package org.utbot.framework.plugin.api
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
 import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -1084,10 +1083,15 @@ class BuiltinConstructorId(
     classId: ClassId,
     parameters: List<ClassId>,
     // by default, we assume that the builtin constructor is public
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false
-) : ConstructorId(classId, parameters)
+    isPublic: Boolean = true,
+    isProtected: Boolean = false,
+    isPrivate: Boolean = false
+) : ConstructorId(classId, parameters) {
+    override val modifiers: Int =
+        (if (isPublic) Modifier.PUBLIC else 0) or
+            (if (isProtected) Modifier.PROTECTED else 0) or
+            (if (isPrivate) Modifier.PRIVATE else 0)
+}
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 

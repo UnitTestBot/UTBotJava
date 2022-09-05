@@ -155,7 +155,7 @@ internal fun constructLambda(
     samType: Class<*>,
     declaringClass: Class<*>,
     lambdaName: String,
-    capturedReceiver: Any,
+    capturedReceiver: Any?,
     vararg capturedArguments: CapturedArgument
 ): Any {
     val (caller, invokedName, samMethodType, lambdaMethod, lambdaMethodType) =
@@ -164,7 +164,7 @@ internal fun constructLambda(
     val lambdaMethodHandle = caller.findVirtual(declaringClass, lambdaName, lambdaMethodType)
 
     val capturedArgumentTypes = capturedArguments.map { it.type }.toTypedArray()
-    val invokedType = MethodType.methodType(samType, capturedReceiver.javaClass, *capturedArgumentTypes)
+    val invokedType = MethodType.methodType(samType, declaringClass, *capturedArgumentTypes)
     val instantiatedMethodType = getInstantiatedMethodType(lambdaMethod, capturedArgumentTypes)
 
     // Create a CallSite for the given lambda.

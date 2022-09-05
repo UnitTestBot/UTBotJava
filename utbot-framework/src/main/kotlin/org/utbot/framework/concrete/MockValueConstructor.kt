@@ -48,6 +48,7 @@ import org.utbot.engine.util.lambda.CapturedArgument
 import org.utbot.engine.util.lambda.constructLambda
 import org.utbot.engine.util.lambda.constructStaticLambda
 import org.utbot.framework.plugin.api.UtLambdaModel
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.instrumentation.process.runSandbox
 
 /**
@@ -369,6 +370,7 @@ class MockValueConstructor(
     }
 
     private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
+        constructedObjects[lambdaModel]?.let { return it }
         // A class representing a functional interface.
         val samType: Class<*> = lambdaModel.samType.jClass
         // A class where the lambda is declared.
@@ -376,7 +378,7 @@ class MockValueConstructor(
         // A name of the synthetic method that represents a lambda.
         val lambdaName = lambdaModel.lambdaName
 
-        return if (lambdaModel.lambdaMethodId.isStatic) {
+        val lambda = if (lambdaModel.lambdaMethodId.isStatic) {
             val capturedArguments = lambdaModel.capturedValues
                 .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
                 .toTypedArray()
@@ -386,12 +388,14 @@ class MockValueConstructor(
                 ?: error("Non-static lambda must capture `this` instance, so there must be at least one captured value")
 
             // Values that the given lambda has captured.
-            val capturedReceiver = value(capturedReceiverModel) ?: error("Captured receiver of lambda must not be null")
+            val capturedReceiver = value(capturedReceiverModel)
             val capturedArguments = lambdaModel.capturedValues.subList(1, lambdaModel.capturedValues.size)
                 .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
                 .toTypedArray()
             constructLambda(samType, declaringClass, lambdaName, capturedReceiver, *capturedArguments)
         }
+        constructedObjects[lambdaModel] = lambda
+        return lambda
     }
 
     /**

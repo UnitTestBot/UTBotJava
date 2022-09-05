@@ -56,17 +56,17 @@ object SootUtils {
     /**
      * Runs Soot in tests if it hasn't already been done.
      */
-    fun runSoot(clazz: KClass<*>) {
+    fun runSoot(clazz: KClass<*>, forceReload: kotlin.Boolean) {
         val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
         val buildDirPath = buildDir.toPath()
 
-        runSoot(buildDirPath, null)
+        runSoot(buildDirPath, null, forceReload)
     }
 
-    fun runSoot(buildDirPath: Path, classPath: String?) {
+    fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean) {
         synchronized(this) {
-            if (buildDirPath != previousBuildDir || classPath != previousClassPath) {
-                org.utbot.framework.util.runSoot(buildDirPath, classPath)
+            if (buildDirPath != previousBuildDir || classPath != previousClassPath || forceReload) {
+                initSoot(buildDirPath, classPath)
                 previousBuildDir = buildDirPath
                 previousClassPath = classPath
             }
@@ -80,7 +80,7 @@ object SootUtils {
 /**
 Convert code to Jimple
  */
-private fun runSoot(buildDir: Path, classpath: String?) {
+private fun initSoot(buildDir: Path, classpath: String?) {
     G.reset()
     val options = Options.v()
 

@@ -59,6 +59,7 @@ open class TestCaseGenerator(
     private val dependencyPaths: String,
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
+    val forceSootReload: Boolean = true
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -78,7 +79,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                SootUtils.runSoot(buildDir, classpath)
+                SootUtils.runSoot(buildDir, classpath, forceSootReload)
             }
 
             //warmup

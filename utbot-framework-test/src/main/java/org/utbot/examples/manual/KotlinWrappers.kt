@@ -8,7 +8,7 @@ import org.utbot.framework.plugin.api.UtPrimitiveModel
 object SootUtils {
     @JvmStatic
     fun runSoot(clazz: Class<*>) {
-        org.utbot.framework.util.SootUtils.runSoot(clazz.kotlin)
+        org.utbot.framework.util.SootUtils.runSoot(clazz.kotlin, forceReload = false)
     }
 }
 

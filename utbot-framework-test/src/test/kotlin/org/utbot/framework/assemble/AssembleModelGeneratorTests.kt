@@ -70,7 +70,7 @@ class AssembleModelGeneratorTests {
         instanceCounter.set(0)
         modelIdCounter.set(0)
         statementsChain = mutableListOf()
-        SootUtils.runSoot(AssembleTestUtils::class)
+        SootUtils.runSoot(AssembleTestUtils::class, forceReload = false)
         context = setUtContext(UtContext(AssembleTestUtils::class.java.classLoader))
     }
 

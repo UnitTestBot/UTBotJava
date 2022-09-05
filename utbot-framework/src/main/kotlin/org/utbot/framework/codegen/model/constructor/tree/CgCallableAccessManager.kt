@@ -41,6 +41,7 @@ import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
@@ -132,9 +133,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
     }
 
-    override operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess {
-        return CgStaticFieldAccess(fieldId)
-    }
+    override operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess = CgStaticFieldAccess(fieldId)
 
     private fun newMethodCall(methodId: MethodId) {
         if (isUtil(methodId)) requiredUtilMethods += methodId
@@ -172,15 +171,14 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
     }
 
-    private infix fun CgExpression.canBeReceiverOf(executable: MethodId): Boolean {
-        return when {
+    private infix fun CgExpression.canBeReceiverOf(executable: MethodId): Boolean =
+        when {
             // method of the current test class can be called on its 'this' instance
             currentTestClass == executable.classId && this isThisInstanceOf currentTestClass -> true
             // method of a class can be called on an object of this class or any of its subtypes
             this.type isSubtypeOf executable.classId -> true
             else -> false
         }
-    }
 
     private infix fun CgExpression.canBeArgOf(type: ClassId): Boolean {
         // TODO: SAT-1210 support generics so that we wouldn't need to check specific cases such as this one
@@ -257,25 +255,28 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
      * @return true if a method can be called with the given arguments without reflection
      */
     private fun MethodId.canBeCalledWith(caller: CgExpression?, args: List<CgExpression>): Boolean {
-        // check method accessibility
+        // Check method accessibility.
         if (!isAccessibleFrom(testClassPackageName)) {
             return false
         }
 
-        // check arguments suitability
+        // Check arguments suitability.
         if (!(args canBeArgsOf this)) {
             return false
         }
 
-        // If method is static, then it must not have a caller.
-        if (this.isStatic) {
-            require(caller == null) { "Caller expression of a static method call must be null" }
+        // If method is static, then it may not have a caller.
+        if (this.isStatic && caller == null) {
             return true
         }
 
-        // If method is from current test class, then it may or may not have a caller
-        if (this.classId == currentTestClass) {
-            return caller?.canBeReceiverOf(this) ?: true
+        if (this.isStatic && caller != null && codegenLanguage == CodegenLanguage.KOTLIN) {
+            error("In Kotlin, unlike Java, static methods cannot be called on an object")
+        }
+
+        // If method is from current test class, then it may not have a caller.
+        if (this.classId == currentTestClass && caller == null) {
+            return true
         }
 
         requireNotNull(caller) { "Method must have a caller, unless it is the method of the current test class or a static method" }
@@ -283,10 +284,18 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
     }
 
     private fun FieldId.accessSuitability(accessor: CgExpression?): FieldAccessorSuitability {
-        // if field is static
-        if (this.isStatic) {
-            require(accessor == null) { "Accessor expression of a static field access must be null" }
+        // Check field accessibility.
+        if (!isAccessibleFrom(testClassPackageName)) {
+            return ReflectionOnly
+        }
+
+        // If field is static, then it may not have an accessor.
+        if (this.isStatic && accessor == null) {
             return Suitable
+        }
+
+        if (this.isStatic && accessor != null && codegenLanguage == CodegenLanguage.KOTLIN) {
+            error("In Kotlin, unlike Java, static fields cannot be accessed by an object")
         }
 
         // if field is declared in the current test class
@@ -317,53 +326,106 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         val accessorType = accessor.type
 
         if (fieldDeclaringClassType is BuiltinClassId || accessorType is BuiltinClassId) {
-            // The rest of the logic of this method processes hidden fields.
-            // We cannot check the fields of builtin classes, so we assume that we work correctly with them,
-            // because they are well known library classes (e.g. Mockito) that are unlikely to have hidden fields.
             return Suitable
         }
 
-        val fieldName = this.name
+        // The rest of the logic of this method processes hidden fields.
+        // We cannot check the fields of builtin classes, so we assume that we work correctly with them,
+        // because they are well known library classes (e.g. Mockito) that are unlikely to have hidden fields.
 
-        if (accessorType isSubtypeOf fieldDeclaringClassType || fieldDeclaringClassType isSubtypeOf accessorType) {
-            if (fieldName.isNameOfFieldsInBothClasses(accessorType, fieldDeclaringClassType)) {
-                // classes are in an inheritance relation, and they both have a field with the same name,
-                // which means that field shadowing is found
-                return when {
-                    // if we can access the declaring class of field,
-                    // then we can use a type cast the accessor to it
-                    fieldDeclaringClassType isAccessibleFrom testClassPackageName -> {
-                        RequiresTypeCast(fieldDeclaringClassType)
-                    }
-                    // otherwise, we can only use reflection
-                    else -> ReflectionOnly
+        return when {
+            accessorType isSubtypeOf fieldDeclaringClassType -> {
+                if (this isFieldHiddenIn accessorType.jClass) {
+                    // We know that declaring class of field is accessible,
+                    // because it was checked in `isAccessibleFrom` call at the start of this method,
+                    // so we can safely do a type cast.
+                    RequiresTypeCast(fieldDeclaringClassType)
+                } else {
+                    Suitable
                 }
             }
-            // if no field shadowing is found, we can just access the field directly
-            return Suitable
+            fieldDeclaringClassType isSubtypeOf accessorType -> {
+                // We know that declaring class of field is accessible,
+                // because it was checked in `isAccessibleFrom` call at the start of this method,
+                // so we can safely do a type cast.
+                RequiresTypeCast(fieldDeclaringClassType)
+            }
+            // Accessor type is not subtype or supertype of the field's declaring class.
+            // So the only remaining option to access the field is to use reflection.
+            else -> ReflectionOnly
         }
-
-        // Accessor type is not subtype or supertype of the field's declaring class.
-        // So the only remaining option to access the field is to use reflection.
-        return ReflectionOnly
     }
 
     /**
-     * Determine if each of the classes [left] and [right] has their own field with name specified by the [String] receiver.
+     * Check if the field represented by @receiver is hidden when accessed from an instance of [subclass].
+     *
+     * For example, given classes:
+     * ```
+     * class A { int x; }
+     * class B extends A { int x; }
+     * ```
+     * we can say that field `x` of class `A` is hidden when we are dealing with instances of a subclass `B`:
+     * ```
+     * B b = new B();
+     * b.x = 10;
+     * ```
+     * There is no way to access field `x` of class `A` from variable `b` without using type casts or reflection.
+     *
+     * So the result of [isFieldHiddenIn] for field `x` of class `A` and a subclass `B` would be `true`.
+     *
+     * **NOTE** that there can be more complicated cases. For example, interfaces can also have fields (they are always static).
+     * Fields of an interface will be available to the classes and interfaces that inherit from it.
+     * That means that when checking if a field is hidden we have to take **both** classes and interfaces into account.
+     *
+     * **However**, there is an important detail. We **do not** consider superclasses and superinterfaces
+     * of the type where the field (represented by @receiver) was declared. Consider the following example:
+     * ```
+     * class A { int x; }
+     * class B extends A { int x; }
+     * class C extends B { }
+     * ```
+     * If we are checking if the field `x` of class `B` is hidden when accessed by an instance of class `C`,
+     * then [isFieldHiddenIn] will return `false`, because the field `x` of class `A` does not stand in the way
+     * and is itself hidden by `B.x`. That is why we **can** access `B.x` from a variable of type `C`.
+     *
+     * Lastly, another **important** example:
+     * ```
+     * class A { int x; }
+     * interface I1 { int x = 10; }
+     * class B extends A implements I1 { }
+     * ```
+     * Unlike previous examples, here we have class `B` which has different "branches" of supertypes.
+     * On the one hand we have superclass `A` and on the other we have interface `I1`.
+     * `A` and `I1` do not have any relationship with each other, but `B` **can** access fields `x` from both of them.
+     * However, it **must** be done with a type cast (to `A` or `I1`), because otherwise accessing field `x` will
+     * be ambiguous. Method [isFieldHiddenIn] **does consider** such cases as well.
+     *
+     * **These examples show** that when checking if a field is hidden we **must** consider all supertypes
+     * in all "branches" **up to** the type where the field is declared (**exclusively**).
+     * Then we check if any of these types has a field with the same name.
+     * If such field is found, then the field is hidden, otherwise - not.
      */
-    private fun String.isNameOfFieldsInBothClasses(left: ClassId, right: ClassId): Boolean {
-        // make sure that non-builtin class ids are passed to this method
-        require(left !is BuiltinClassId && right !is BuiltinClassId) {
-            "The given class ids must not be builtin, because this method works with their jClass"
+    private infix fun FieldId.isFieldHiddenIn(subclass: Class<*>): Boolean {
+        // supertypes (classes and interfaces) from subclass (inclusive) up to superclass (exclusive)
+        val supertypes = sequence {
+            var types = generateSequence(subclass) { it.superclass }
+                .takeWhile { it != declaringClass.jClass }
+                .toList()
+            while (types.isNotEmpty()) {
+                yieldAll(types)
+                types = types.flatMap { it.interfaces.toList() }
+            }
         }
 
-        val leftClass = left.jClass
-        val rightClass = right.jClass
+        // check if any of the collected supertypes declare a field with the same name
+        val fieldHidingTypes = supertypes.toList()
+            .filter { type ->
+                val fieldNames = type.declaredFields.map { it.name }
+                this.name in fieldNames
+            }
 
-        val leftField = leftClass.declaredFields.find { it.name == this }
-        val rightField = rightClass.declaredFields.find { it.name == this }
-
-        return leftField != null && rightField != null
+        // if we found at least one type that hides the field, then the field is hidden
+        return fieldHidingTypes.isNotEmpty()
     }
 
     /**

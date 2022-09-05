@@ -1261,13 +1261,6 @@ private fun StringBuilder.appendOptional(name: String, value: Map<*, *>) {
 }
 
 /**
- * Enum that represents different type of engines that produce tests.
- */
-enum class UtExecutionCreator {
-    FUZZER, SYMBOLIC_ENGINE
-}
-
-/**
  * Entity that represents cluster information that should appear in the comment.
  */
 data class UtClusterInfo(
@@ -1279,7 +1272,6 @@ data class UtClusterInfo(
  * Entity that represents cluster of executions.
  */
 data class UtExecutionCluster(val clusterInfo: UtClusterInfo, val executions: List<UtExecution>)
-
 
 /**
  * Entity that represents various types of statements in comments.

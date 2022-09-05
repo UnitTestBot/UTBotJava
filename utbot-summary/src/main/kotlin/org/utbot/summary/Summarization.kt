@@ -16,7 +16,7 @@ import org.utbot.summary.UtSummarySettings.GENERATE_NAMES
 import org.utbot.summary.analysis.ExecutionStructureAnalysis
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.ast.SourceCodeParser
-import org.utbot.summary.comment.SimpleClusterCommentBuilder
+import org.utbot.summary.comment.SymbolicExecutionClusterCommentBuilder
 import org.utbot.summary.comment.SimpleCommentBuilder
 import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
@@ -40,7 +40,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
         makeDiverseExecutions(this)
         val invokeDescriptions = invokeDescriptions(this, searchDirectory)
         // every cluster has summary and list of executions
-        val executionClusters = Summarization(sourceFile, invokeDescriptions).summary(this)
+        val executionClusters = Summarization(sourceFile, invokeDescriptions).fillSummaries(this)
         val updatedExecutions = executionClusters.flatMap { it.executions }
         var pos = 0
         val clustersInfo = executionClusters.map {
@@ -64,7 +64,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
     private val tagGenerator = TagGenerator()
     private val jimpleBodyAnalysis = ExecutionStructureAnalysis()
 
-    fun summary(testSet: UtMethodTestSet): List<UtExecutionCluster> {
+    fun fillSummaries(testSet: UtMethodTestSet): List<UtExecutionCluster> {
         val namesCounter = mutableMapOf<String, Int>()
 
         if (testSet.executions.isEmpty()) {
@@ -99,9 +99,11 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 utExecution.displayName =  testMethodName?.displayName
             }
 
+            val clusterHeader = buildFuzzerClusterHeader(testSet)
+
             clustersToReturn.add(
                 UtExecutionCluster(
-                    UtClusterInfo(), // TODO: add something https://github.com/UnitTestBot/UTBotJava/issues/430
+                    UtClusterInfo(clusterHeader, null),
                     executionsProducedByFuzzer
                 )
             )
@@ -113,14 +115,14 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         if (executionsWithEmptyPaths.isNotEmpty()) {
             executionsWithEmptyPaths.forEach {
                 logger.info {
-                    "Test is created by Symbolic Engine. The path for test ${it.testMethodName} " +
+                    "Test is created by Symbolic Execution Engine. The path for test ${it.testMethodName} " +
                             "for method ${testSet.method.clazz.qualifiedName} is empty and summaries could not be generated."
                 }
             }
 
             clustersToReturn.add(
                 UtExecutionCluster(
-                    UtClusterInfo(), // TODO: https://github.com/UnitTestBot/UTBotJava/issues/430
+                    UtClusterInfo(),
                     executionsWithEmptyPaths
                 )
             )
@@ -135,13 +137,13 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
             jimpleBodyAnalysis.traceStructuralAnalysis(jimpleBody, clusteredTags, methodUnderTest, invokeDescriptions)
             val numberOfSuccessfulClusters = clusteredTags.filter { it.isSuccessful }.size
             for (clusterTraceTags in clusteredTags) {
-                val clusterHeader = clusterTraceTags.summary.takeIf { GENERATE_CLUSTER_COMMENTS }
+                val clusterHeader = clusterTraceTags.clusterHeader.takeIf { GENERATE_CLUSTER_COMMENTS }
                 val clusterContent = if (
                     GENERATE_CLUSTER_COMMENTS && clusterTraceTags.isSuccessful // add only for successful executions
                     && numberOfSuccessfulClusters > 1 // there is more than one successful execution
                     && clusterTraceTags.traceTags.size > 1 // add if there is more than 1 execution
                 ) {
-                    SimpleClusterCommentBuilder(clusterTraceTags.commonStepsTraceTag, sootToAST)
+                    SymbolicExecutionClusterCommentBuilder(clusterTraceTags.commonStepsTraceTag, sootToAST)
                         .buildString(methodUnderTest)
                         .takeIf { it.isNotBlank() }
                         ?.let {
@@ -202,6 +204,13 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
         // if there is no Jimple body or no AST, return one cluster with empty summary and all executions
         return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
+    }
+
+    private fun buildFuzzerClusterHeader(testSet: UtMethodTestSet): String {
+        val commentPrefix = "FUZZER:"
+        val commentPostfix = "for method ${testSet.method.humanReadableName}"
+
+        return "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix"
     }
 
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {

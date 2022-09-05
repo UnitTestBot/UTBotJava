@@ -16,7 +16,7 @@ import soot.jimple.Stmt
 import soot.jimple.internal.JReturnStmt
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SimpleClusterCommentBuilderTest {
+class SymbolicExecutionClusterCommentBuilderTest {
     private lateinit var traceTag: TraceTag
     private lateinit var jimpleToASTMap: JimpleToASTMap
     private lateinit var sootToAst: MutableMap<SootMethod, JimpleToASTMap>
@@ -46,14 +46,14 @@ class SimpleClusterCommentBuilderTest {
 
     @Test
     fun `builds empty comment if execution result is null`() {
-        val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
+        val commentBuilder = SymbolicExecutionClusterCommentBuilder(traceTag, sootToAst)
         val comment = commentBuilder.buildString(sootMethod)
         assertEquals(" ", comment)
     }
 
     @Test
     fun `builds empty doc statement if execution result is null`() {
-        val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
+        val commentBuilder = SymbolicExecutionClusterCommentBuilder(traceTag, sootToAst)
         val statements = commentBuilder.buildDocStmts(sootMethod)
         assertEquals(statements.size, 1)
         assertEquals(statements[0].toString(), " ")

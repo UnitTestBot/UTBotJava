@@ -397,7 +397,6 @@ data class CgContext(
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
-    val collectedSysPaths: MutableSet<String> = mutableSetOf(),
     override val importedStaticMethods: MutableSet<MethodId> = mutableSetOf(),
     override val importedClasses: MutableSet<ClassId> = mutableSetOf(),
     override val requiredUtilMethods: MutableSet<MethodId> = mutableSetOf(),

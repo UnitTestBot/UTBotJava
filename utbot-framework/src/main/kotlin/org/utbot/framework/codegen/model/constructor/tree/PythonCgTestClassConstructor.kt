@@ -1,12 +1,10 @@
 package org.utbot.framework.codegen.model.constructor.tree;
 
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.PythonUserImport
-import org.utbot.framework.codegen.Unittest
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.context.CgContext
+import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.plugin.api.PythonClassId
 
@@ -19,7 +17,6 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
             }
             imports.addAll(context.collectedImports)
             existingVariableNames = existingVariableNames.addAll(context.collectedImports.map { it.qualifiedName })
-            sysPaths.addAll(context.collectedSysPaths.map { CgPythonSysPath(it) })
             testsGenerationReport = this@PythonCgTestClassConstructor.testsGenerationReport
         }
     }
@@ -53,7 +50,9 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
 
                 for (testSet in testClassModel.methodTestSets) {
                     updateCurrentExecutable(testSet.executableId)
-                    context.collectedSysPaths.addAll(testSet.sysPaths)
+                    context.collectedImports.addAll(testSet.sysPaths.map {
+                        PythonSysPathImport(it)
+                    })
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
                     val executableUnderTestCluster = CgExecutableUnderTestCluster(
                         "Test suites for executable $currentExecutable",
@@ -74,6 +73,7 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
             with (currentTestClassContext) {
                 annotations += collectedTestClassAnnotations
                 superclass = testFramework.testSuperClass
+                superclass?.let { importIfNeeded(it as PythonClassId) }
                 interfaces += collectedTestClassInterfaces
             }
         }

@@ -35,7 +35,7 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun visit(element: CgTestClassFile) {
         renderPythonImport(PythonSystemImport("sys"))
-        renderSysPaths(element)
+//        renderSysPaths(element)
         element.imports.filterIsInstance<PythonImport>().forEach {
             renderPythonImport(it)
         }
@@ -212,14 +212,14 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
         TODO("Not yet implemented")
     }
 
-    override fun renderPythonImport(pythonImport: PythonSysPathImport) {
-        println("sys.path.append('${pythonImport.sysPath}')")
-    }
-
     override fun renderPythonImport(pythonImport: PythonImport) {
-        if (pythonImport.moduleName == null) {
+        if (pythonImport is PythonSysPathImport) {
+            println("sys.path.append('${pythonImport.sysPath}')")
+        }
+        else if (pythonImport.moduleName == null) {
             println("import ${pythonImport.importName}")
-        } else {
+        }
+        else {
             println("from ${pythonImport.moduleName} import ${pythonImport.importName}")
         }
     }

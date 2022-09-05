@@ -3,8 +3,6 @@ package org.utbot.framework.codegen.model.constructor.tree
 import org.utbot.common.appendHtmlLine
 import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.Unittest
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
@@ -25,7 +23,6 @@ import org.utbot.framework.codegen.model.tree.CgTestMethodType.*
 import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.plugin.api.util.description

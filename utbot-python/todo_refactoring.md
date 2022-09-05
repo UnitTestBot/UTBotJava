@@ -20,7 +20,7 @@
 - [ ] Убрать if-ы из Cg... с Python -> (перенес логику из CgMethodConstructor в PythonCgMethodConstructor)
 - [ ] Перенести Python модели из Api.kt в PythonApi???
 - [ ] Все изменения положить в отдельные пакеты
-- [ ] Обработка исключений (writeWarningAboutFunciton)
+- [ ] Обработка исключений (writeWarningAboutFunction)
   
   Чтобы сделать нормальную обработку, надо в UtExecutionFailure отказаться от хранения Throwable, заменить его на какую-то абстракцию.
   

@@ -14,11 +14,10 @@ interface CgBuilder<T : CgElement> {
 
 class CgTestClassFileBuilder : CgBuilder<CgTestClassFile> {
     var imports: MutableList<Import> = mutableListOf()
-    var sysPaths: MutableSet<CgPythonSysPath> = mutableSetOf()
     lateinit var testClass: CgTestClass
     lateinit var testsGenerationReport: TestsGenerationReport
 
-    override fun build() = CgTestClassFile(imports, testClass, testsGenerationReport, sysPaths.toList())
+    override fun build() = CgTestClassFile(imports, testClass, testsGenerationReport)
 }
 
 fun buildTestClassFile(init: CgTestClassFileBuilder.() -> Unit) = CgTestClassFileBuilder().apply(init).build()

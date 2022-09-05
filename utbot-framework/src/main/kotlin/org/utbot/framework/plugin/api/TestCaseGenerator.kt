@@ -60,10 +60,10 @@ open class TestCaseGenerator(
     private val buildDir: Path,
     private val classpath: String?,
     private val dependencyPaths: String,
-    val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
     val forceSootReload: Boolean = true
 ) {
+    val engineActions: EngineActionsController = EngineActionsController()
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
 
@@ -121,9 +121,9 @@ open class TestCaseGenerator(
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
     ): Flow<UtResult> {
-        val engine = createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
-        engineActions.map { engine.apply(it) }
-        engineActions.clear()
+        val engine =
+            createSymbolicEngine(controller, method, mockStrategy, chosenClassesToMockAlways, executionTimeEstimator)
+            .also { engine -> engineActions.apply(engine) }
         return defaultTestFlow(engine, executionTimeEstimator.userTimeout)
     }
 
@@ -160,10 +160,7 @@ open class TestCaseGenerator(
                             mockStrategy,
                             chosenClassesToMockAlways,
                             executionTimeEstimator
-                        )
-
-                        engineActions.map { engine.apply(it) }
-                        engineActions.clear()
+                        ).also { engine -> engineActions.apply(engine) }
 
                         generate(engine)
                             .catch {

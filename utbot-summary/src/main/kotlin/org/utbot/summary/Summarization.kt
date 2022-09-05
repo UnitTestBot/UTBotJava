@@ -23,6 +23,13 @@ import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import mu.KotlinLogging
+import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
+import org.utbot.framework.plugin.api.UtExecutionSuccess
+import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtImplicitlyThrownException
+import org.utbot.framework.plugin.api.UtOverflowFailure
+import org.utbot.framework.plugin.api.UtSandboxFailure
+import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -83,6 +90,8 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
         // handles tests produced by fuzzing
         val executionsProducedByFuzzer = testSet.executions.filterIsInstance<UtFuzzedExecution>()
+        val successfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
+        val unsuccessfulFuzzerExecutions = mutableListOf<UtFuzzedExecution>()
 
         if (executionsProducedByFuzzer.isNotEmpty()) {
             executionsProducedByFuzzer.forEach { utExecution ->
@@ -97,16 +106,39 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
                 utExecution.testMethodName = testMethodName?.testName
                 utExecution.displayName =  testMethodName?.displayName
+
+                when (utExecution.result) {
+                    is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtExplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtImplicitlyThrownException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtOverflowFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtSandboxFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtTimeoutException -> unsuccessfulFuzzerExecutions.add(utExecution)
+                    is UtExecutionSuccess -> successfulFuzzerExecutions.add(utExecution)
+                }
             }
 
-            val clusterHeader = buildFuzzerClusterHeader(testSet)
+            if(successfulFuzzerExecutions.isNotEmpty()) {
+                val clusterHeader = buildFuzzerClusterHeaderForSuccessfulExecutions(testSet)
 
-            clustersToReturn.add(
-                UtExecutionCluster(
-                    UtClusterInfo(clusterHeader, null),
-                    executionsProducedByFuzzer
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(clusterHeader, null),
+                        successfulFuzzerExecutions
+                    )
                 )
-            )
+            }
+
+            if(unsuccessfulFuzzerExecutions.isNotEmpty()) {
+                val clusterHeader = buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet)
+
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(clusterHeader, null),
+                        unsuccessfulFuzzerExecutions
+                    )
+                )
+            }
         }
 
         // handles tests produced by symbolic engine, but with empty paths
@@ -206,11 +238,18 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
     }
 
-    private fun buildFuzzerClusterHeader(testSet: UtMethodTestSet): String {
+    private fun buildFuzzerClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {
         val commentPrefix = "FUZZER:"
         val commentPostfix = "for method ${testSet.method.humanReadableName}"
 
         return "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix"
+    }
+
+    private fun buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet: UtMethodTestSet): String {
+        val commentPrefix = "FUZZER:"
+        val commentPostfix = "for method ${testSet.method.humanReadableName}"
+
+        return "$commentPrefix ${ExecutionGroup.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS} $commentPostfix"
     }
 
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {

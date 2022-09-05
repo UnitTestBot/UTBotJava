@@ -7,23 +7,23 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
+import mu.KotlinLogging
 import org.utbot.common.PathUtil.toPath
+import org.utbot.common.filterWhen
 import org.utbot.engine.Mocker
+import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.util.isKnownSyntheticMethod
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategyDefault
+import java.lang.reflect.Modifier
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
-import kotlin.reflect.KClass
-import mu.KotlinLogging
-import org.utbot.common.filterWhen
-import org.utbot.framework.UtSettings
-import org.utbot.framework.util.isKnownSyntheticMethod
 
 
 private val logger = KotlinLogging.logger {}
@@ -93,20 +93,20 @@ class GenerateTestsCommand :
             logger.debug { "Generating test for [$targetClassFqn] - started" }
             logger.debug { "Classpath to be used: ${newline()} $classPath ${newline()}" }
 
-            val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
-            val targetMethods = classUnderTest.targetMethods()
-                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
-                .filterNot { it.callable.isAbstract }
-            val testCaseGenerator = initializeGenerator(workingDirectory)
+            // utContext is used in `targetMethods`, `generate`, `generateTest`, `generateReport`
+            withUtContext(UtContext(classLoader)) {
+                val classIdUnderTest = ClassId(targetClassFqn)
+                val targetMethods = classIdUnderTest.targetMethods()
+                    .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+                    .filterNot { Modifier.isAbstract(it.modifiers) }
+                val testCaseGenerator = initializeGenerator(workingDirectory)
 
-            if (targetMethods.isEmpty()) {
-                throw Exception("Nothing to process. No methods were provided")
-            }
-            // utContext is used in `generate`, `generateTest`, `generateReport`
-            withUtContext(UtContext(targetMethods.first().clazz.java.classLoader)) {
+                if (targetMethods.isEmpty()) {
+                    throw Exception("Nothing to process. No methods were provided")
+                }
 
                 val testClassName = output?.toPath()?.toFile()?.nameWithoutExtension
-                    ?: "${classUnderTest.simpleName}Test"
+                    ?: "${classIdUnderTest.simpleName}Test"
                 val testSets = generateTestSets(
                     testCaseGenerator,
                     targetMethods,
@@ -115,7 +115,7 @@ class GenerateTestsCommand :
                     chosenClassesToMockAlways = (Mocker.defaultSuperClassesToMockAlwaysNames + classesToMockAlways)
                         .mapTo(mutableSetOf()) { ClassId(it) }
                 )
-                val testClassBody = generateTest(classUnderTest, testClassName, testSets)
+                val testClassBody = generateTest(classIdUnderTest, testClassName, testSets)
 
                 if (printToStdOut) {
                     logger.info { testClassBody }

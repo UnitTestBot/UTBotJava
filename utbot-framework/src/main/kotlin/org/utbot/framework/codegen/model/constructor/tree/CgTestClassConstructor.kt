@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.appendHtmlLine
-import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
@@ -31,6 +30,7 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.plugin.api.util.displayName
 import org.utbot.framework.plugin.api.util.kClass
 import kotlin.reflect.KClass
 

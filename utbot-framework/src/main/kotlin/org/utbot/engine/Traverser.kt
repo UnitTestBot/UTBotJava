@@ -1,3 +1,4 @@
+@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")
 package org.utbot.engine
 
 import kotlinx.collections.immutable.persistentHashMapOf
@@ -88,13 +89,12 @@ import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.signature
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
@@ -104,9 +104,6 @@ import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -200,7 +197,7 @@ import java.util.concurrent.atomic.AtomicInteger
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: UtMethod<*>,
+    private val methodUnderTest: SootMethod,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
@@ -957,23 +954,23 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.callable
+        val callable = methodUnderTest.executableId.executable
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
-                methodUnderTest.javaConstructor?.annotatedReturnType?.type
+                callable.annotatedReturnType?.type
             } else {
-                callable.instanceParameter?.type?.javaType
-                    ?: error("No instanceParameter for ${callable.signature} found")
+                callable.declaringClass // same as it was, but it isn't parametrized type
+                    ?: error("No instanceParameter for ${callable} found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
                 val index = (identityRef as ParameterRef).index
-                val valueParameters = callable.valueParameters
+                val valueParameters = callable.genericParameterTypes
 
                 if (index > valueParameters.lastIndex) return
-                valueParameters[index].type.javaType
+                valueParameters[index]
             }
         }
 

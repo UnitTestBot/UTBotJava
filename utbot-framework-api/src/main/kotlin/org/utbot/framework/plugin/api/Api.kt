@@ -52,50 +52,11 @@ import java.io.File
 import java.lang.reflect.Modifier
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
-import kotlin.jvm.internal.CallableReference
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaType
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
-data class UtMethod<R>(
-    val callable: KCallable<R>,
-    val clazz: KClass<*>
-) {
-    companion object {
-        fun <R> from(function: KCallable<R>): UtMethod<R> {
-            val kClass = when (function) {
-                is CallableReference -> function.owner as? KClass<*>
-                else -> function.instanceParameter?.type?.classifier as? KClass<*>
-            } ?: tryConstructor(function) ?: error("Can't get parent class for $function")
-
-            return UtMethod(function, kClass)
-        }
-
-        /**
-         * Workaround for constructors from tests.
-         */
-        private fun <R> tryConstructor(function: KCallable<R>): KClass<out Any>? {
-            val declaringClass: Class<*>? = (function as? KFunction<*>)?.javaConstructor?.declaringClass
-            return declaringClass?.kotlin
-        }
-    }
-
-    override fun toString(): String {
-        return "${clazz.qualifiedName}.${callable.name}" +
-                callable.parameters.drop(if (callable.instanceParameter != null) 1 else 0)
-                    .joinToString(", ", "(", ")") {
-                        it.type.javaType.typeName.substringBefore('<').substringAfterLast(".")
-                    }
-    }
-}
-
 data class UtMethodTestSet(
-    val method: UtMethod<*>,
+    val method: ExecutableId,
     val executions: List<UtExecution> = emptyList(),
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
@@ -996,9 +957,16 @@ sealed class ExecutableId : StatementId() {
     abstract val returnType: ClassId
     abstract val parameters: List<ClassId>
 
-    abstract val isPublic: Boolean
-    abstract val isProtected: Boolean
-    abstract val isPrivate: Boolean
+    abstract val modifiers: Int
+
+    val isPublic: Boolean
+        get() = Modifier.isPublic(modifiers)
+    val isProtected: Boolean
+        get() = Modifier.isProtected(modifiers)
+    val isPrivate: Boolean
+        get() = Modifier.isPrivate(modifiers)
+    val isStatic: Boolean
+        get() = Modifier.isStatic(modifiers)
 
     val isPackagePrivate: Boolean
         get() = !(isPublic || isProtected || isPrivate)
@@ -1041,19 +1009,10 @@ open class MethodId(
     override val classId: ClassId,
     override val name: String,
     override val returnType: ClassId,
-    override val parameters: List<ClassId>
+    override val parameters: List<ClassId>,
 ) : ExecutableId() {
-    open val isStatic: Boolean
-        get() = Modifier.isStatic(method.modifiers)
-
-    override val isPublic: Boolean
-        get() = Modifier.isPublic(method.modifiers)
-
-    override val isProtected: Boolean
-        get() = Modifier.isProtected(method.modifiers)
-
-    override val isPrivate: Boolean
-        get() = Modifier.isPrivate(method.modifiers)
+    override val modifiers: Int
+        get() = method.modifiers
 }
 
 class ConstructorId(
@@ -1063,14 +1022,9 @@ class ConstructorId(
     override val name: String = "<init>"
     override val returnType: ClassId = voidClassId
 
-    override val isPublic: Boolean
-        get() = Modifier.isPublic(constructor.modifiers)
+    override val modifiers: Int
+        get() = constructor.modifiers
 
-    override val isProtected: Boolean
-        get() = Modifier.isProtected(constructor.modifiers)
-
-    override val isPrivate: Boolean
-        get() = Modifier.isPrivate(constructor.modifiers)
 }
 
 class BuiltinMethodId(
@@ -1079,11 +1033,17 @@ class BuiltinMethodId(
     returnType: ClassId,
     parameters: List<ClassId>,
     // by default we assume that the builtin method is non-static and public
-    override val isStatic: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters)
+    isStatic: Boolean = false,
+    isPublic: Boolean = true,
+    isProtected: Boolean = false,
+    isPrivate: Boolean = false
+) : MethodId(classId, name, returnType, parameters) {
+    override val modifiers: Int =
+        (if (isStatic) Modifier.STATIC else 0) or
+            (if (isPublic) Modifier.PUBLIC else 0) or
+            (if (isProtected) Modifier.PROTECTED else 0) or
+            (if (isPrivate) Modifier.PRIVATE else 0)
+}
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 

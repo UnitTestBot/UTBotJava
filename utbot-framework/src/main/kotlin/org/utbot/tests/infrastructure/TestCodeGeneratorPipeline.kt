@@ -231,7 +231,8 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     private fun ClassPipeline.retrieveTestClassName(testSuffix: String): String =
         stageContext.classUnderTest.let { "${it.java.`package`.name}.${it.simpleName}" } + testSuffix
 
-    private fun List<KClass<*>>.createBuildDirectory() = FileUtil.isolateClassFiles(*toTypedArray()).toPath()
+    private fun List<KClass<*>>.createBuildDirectory() =
+        FileUtil.isolateClassFiles(*(map { it.java }.toTypedArray())).toPath()
 
     private fun List<ClassPipeline>.retrieveClasses() = map { it.stageContext.classUnderTest }
 

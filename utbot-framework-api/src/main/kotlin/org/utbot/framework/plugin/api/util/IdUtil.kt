@@ -17,12 +17,12 @@ import java.lang.reflect.Method
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
+import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaGetter
@@ -383,6 +383,13 @@ val KCallable<*>.executableId: ExecutableId
         else -> error("Unknown KCallable type: ${this::class}")
     }
 
+val Executable.executableId: ExecutableId
+    get() = when (this) {
+        is Method -> executableId
+        is Constructor<*> -> executableId
+        else -> error("Unknown Executable type: ${this::class}")
+    }
+
 val Method.executableId: MethodId
     get() {
         val classId = declaringClass.id
@@ -398,23 +405,33 @@ val Constructor<*>.executableId: ConstructorId
         return constructorId(classId, *arguments)
     }
 
-@ExperimentalContracts
-fun ExecutableId.isMethod(): Boolean {
-    contract {
-        returns(true) implies (this@isMethod is MethodId)
-        returns(false) implies (this@isMethod is ConstructorId)
+val ExecutableId.displayName: String
+    get() {
+        val executableName = this.name
+        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        return "$executableName($parameters)"
     }
-    return this is MethodId
-}
 
-@ExperimentalContracts
-fun ExecutableId.isConstructor(): Boolean {
-    contract {
-        returns(true) implies (this@isConstructor is ConstructorId)
-        returns(false) implies (this@isConstructor is MethodId)
-    }
-    return this is ConstructorId
-}
+val Constructor<*>.displayName: String
+    get() = executableId.displayName
+
+val Method.displayName: String
+    get() = executableId.displayName
+
+val KCallable<*>.declaringClazz: Class<*>
+    get() = when (this) {
+        is CallableReference -> owner as? KClass<*>
+        else -> instanceParameter?.type?.classifier as? KClass<*>
+    }?.java ?: tryConstructor(this) ?: error("Can't get parent class for $this")
+
+private fun <R> tryConstructor(function: KCallable<R>): Class<*>? =
+    (function as? KFunction<*>)?.javaConstructor?.declaringClass
+
+val ExecutableId.isMethod: Boolean
+    get() = this is MethodId
+
+val ExecutableId.isConstructor: Boolean
+    get() = this is ConstructorId
 
 /**
  * Construct MethodId

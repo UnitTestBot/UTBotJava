@@ -37,7 +37,6 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -55,7 +54,10 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.util.SootUtils
+import org.utbot.framework.util.sootMethod
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
@@ -70,7 +72,7 @@ class AssembleModelGeneratorTests {
         instanceCounter.set(0)
         modelIdCounter.set(0)
         statementsChain = mutableListOf()
-        SootUtils.runSoot(AssembleTestUtils::class, forceReload = false)
+        SootUtils.runSoot(AssembleTestUtils::class.java, forceReload = false)
         context = setUtContext(UtContext(AssembleTestUtils::class.java.classLoader))
     }
 
@@ -149,7 +151,7 @@ class AssembleModelGeneratorTests {
         val methodFromAnotherPackage =
             MethodUnderTest::class.functions.first()
 
-        createModelAndAssert(compositeModel, null, UtMethod.from(methodFromAnotherPackage))
+        createModelAndAssert(compositeModel, null, methodFromAnotherPackage.executableId)
     }
 
     @Test
@@ -1424,7 +1426,7 @@ class AssembleModelGeneratorTests {
     private fun createModelAndAssert(
         model: UtModel,
         expectedModelRepresentation: String?,
-        methodUnderTest: UtMethod<*> = UtMethod.from(AssembleTestUtils::class.functions.first()),
+        methodUnderTest: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) = createModelsAndAssert(listOf(model), listOf(expectedModelRepresentation), methodUnderTest)
 
     /**
@@ -1444,9 +1446,9 @@ class AssembleModelGeneratorTests {
     private fun createModelsAndAssert(
         models: List<UtModel>,
         expectedModelRepresentations: List<String?>,
-        assembleTestUtils: UtMethod<*> = UtMethod.from(AssembleTestUtils::class.functions.first()),
+        assembleTestUtils: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) {
-        val modelsMap = AssembleModelGenerator(assembleTestUtils).createAssembleModels(models)
+        val modelsMap = AssembleModelGenerator(assembleTestUtils.sootMethod).createAssembleModels(models) // TODO: rewrite usages
         //we sort values to fix order of models somehow (IdentityHashMap does not guarantee the order)
         val assembleModels = modelsMap.values
             .filterIsInstance<UtAssembleModel>()

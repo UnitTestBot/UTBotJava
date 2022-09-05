@@ -46,7 +46,6 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -87,6 +86,7 @@ import soot.Scene
 import soot.ShortType
 import soot.SootClass
 import soot.SootField
+import soot.SootMethod
 import soot.Type
 import soot.VoidType
 import java.security.AccessControlException
@@ -118,7 +118,7 @@ class Resolver(
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
-    methodUnderTest: UtMethod<*>,
+    methodUnderTest: SootMethod,
     private val softMaxArraySize: Int
 ) {
 

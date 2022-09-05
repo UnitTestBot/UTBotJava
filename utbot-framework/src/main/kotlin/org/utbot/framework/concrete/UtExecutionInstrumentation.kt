@@ -1,5 +1,6 @@
 package org.utbot.framework.concrete
 
+import org.objectweb.asm.Type
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
@@ -9,6 +10,7 @@ import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutionFailure
@@ -17,15 +19,14 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -39,11 +40,10 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import soot.SootMethod
 import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
-import org.objectweb.asm.Type
-import org.utbot.framework.plugin.api.MissingState
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -99,7 +99,7 @@ class UtConcreteExecutionResult(
      * @return [UtConcreteExecutionResult] with converted models.
      */
     fun convertToAssemble(
-        methodUnderTest: UtMethod<*>
+        methodUnderTest: SootMethod
     ): UtConcreteExecutionResult {
         val allModels = collectAllModels()
 

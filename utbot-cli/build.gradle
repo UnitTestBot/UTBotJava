@@ -19,9 +19,7 @@ configurations {
 }
 
 dependencies {
-    implementation project(':utbot-framework-api')
     implementation project(':utbot-framework')
-    implementation project(':utbot-summary')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     // Without this dependency testng tests do not run.

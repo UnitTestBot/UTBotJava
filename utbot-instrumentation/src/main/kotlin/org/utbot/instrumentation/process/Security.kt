@@ -2,7 +2,9 @@
 
 package org.utbot.instrumentation.process
 
+import org.utbot.common.withAccessibility
 import sun.security.provider.PolicyFile
+import java.lang.reflect.AccessibleObject
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -29,6 +31,15 @@ internal fun permissions(block: SimplePolicy.() -> Unit) {
 }
 
 /**
+ * Make this [AccessibleObject] accessible and run a block inside sandbox.
+ */
+fun <O: AccessibleObject, R> O.runSandbox(block: O.() -> R): R {
+    return withAccessibility {
+        sandbox { block() }
+    }
+}
+
+/**
  * Run [block] in sandbox mode.
  *
  * When running in sandbox by default only necessary to instrumentation permissions are enabled.
@@ -45,15 +56,17 @@ internal fun permissions(block: SimplePolicy.() -> Unit) {
  * ```
  * Read more [about policy file and syntax](https://docs.oracle.com/javase/7/docs/technotes/guides/security/PolicyFiles.html#Examples)
  */
-internal fun <T> sandbox(block: () -> T): T {
+fun <T> sandbox(block: () -> T): T {
     val policyPath = Paths.get(System.getProperty("user.home"), ".utbot", "sandbox.policy")
     return sandbox(policyPath.toUri()) { block() }
 }
 
-internal fun <T> sandbox(file: URI, block: () -> T): T {
+fun <T> sandbox(file: URI, block: () -> T): T {
     val path = Paths.get(file)
     val perms = mutableListOf<Permission>(
-        RuntimePermission("accessDeclaredMembers")
+        RuntimePermission("accessDeclaredMembers"),
+        RuntimePermission("getStackWalkerWithClassReference"),
+        RuntimePermission("getClassLoader"),
     )
     val allCodeSource = CodeSource(null, emptyArray<Certificate>())
     if (Files.exists(path)) {
@@ -64,12 +77,12 @@ internal fun <T> sandbox(file: URI, block: () -> T): T {
     return sandbox(perms, allCodeSource) { block() }
 }
 
-internal fun <T> sandbox(permission: List<Permission>, cs: CodeSource, block: () -> T): T {
+fun <T> sandbox(permission: List<Permission>, cs: CodeSource, block: () -> T): T {
     val perms = permission.fold(Permissions()) { acc, p -> acc.add(p); acc }
     return sandbox(perms, cs) { block() }
 }
 
-internal fun <T> sandbox(perms: PermissionCollection, cs: CodeSource, block: () -> T): T {
+fun <T> sandbox(perms: PermissionCollection, cs: CodeSource, block: () -> T): T {
     val acc = AccessControlContext(arrayOf(ProtectionDomain(cs, perms)))
     return try {
         AccessController.doPrivileged(PrivilegedAction { block() }, acc)

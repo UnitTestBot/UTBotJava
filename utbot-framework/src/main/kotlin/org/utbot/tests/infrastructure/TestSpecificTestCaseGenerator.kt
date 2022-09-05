@@ -31,7 +31,7 @@ class TestSpecificTestCaseGenerator(
     dependencyPaths: String,
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
-): TestCaseGenerator(buildDir, classpath, dependencyPaths, engineActions, isCanceled) {
+): TestCaseGenerator(buildDir, classpath, dependencyPaths, engineActions, isCanceled, forceSootReload = false) {
 
     private val logger = KotlinLogging.logger {}
 

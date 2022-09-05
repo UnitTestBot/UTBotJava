@@ -52,6 +52,9 @@ import kotlin.reflect.KCallable
  *
  * Note: the instantiating of [TestCaseGenerator] may take some time,
  * because it requires initializing Soot for the current [buildDir] and [classpath].
+ *
+ * @param forceSootReload forces to reinitialize Soot even if the previous buildDir equals to [buildDir] and previous
+ * classpath equals to [classpath]. This is the case for plugin scenario, as the source code may be modified.
  */
 open class TestCaseGenerator(
     private val buildDir: Path,
@@ -59,6 +62,7 @@ open class TestCaseGenerator(
     private val dependencyPaths: String,
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
+    val forceSootReload: Boolean = true
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -78,7 +82,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                SootUtils.runSoot(buildDir, classpath)
+                SootUtils.runSoot(buildDir, classpath, forceSootReload)
             }
 
             //warmup

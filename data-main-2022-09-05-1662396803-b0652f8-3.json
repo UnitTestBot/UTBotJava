@@ -1,0 +1,75 @@
+{
+    "version": 1,
+    "targets": [
+        {
+            "id": "guava",
+            "version": "0",
+            "parameters": [
+                {
+                    "class_timeout_sec": 20,
+                    "run_timeout_min": 20
+                },
+                {
+                    "class_timeout_sec": 20,
+                    "run_timeout_min": 20
+                }
+            ],
+            "metrics": [
+                {
+                    "duration_ms": 495598,
+                    "classes_for_generation": 20,
+                    "testcases_generated": 2094,
+                    "classes_without_problems": 11,
+                    "classes_canceled_by_timeout": 5,
+                    "total_methods_for_generation": 519,
+                    "methods_with_at_least_one_testcase_generated": 364,
+                    "methods_with_exceptions": 42,
+                    "suspicious_methods": 89,
+                    "test_classes_failed_to_compile": 5,
+                    "covered_instructions": 5341,
+                    "covered_instructions_by_fuzzing": 4321,
+                    "covered_instructions_by_concolic": 2317,
+                    "total_instructions": 10525,
+                    "avg_coverage": 62.14214411291954
+                },
+                {
+                    "duration_ms": 489778,
+                    "classes_for_generation": 20,
+                    "testcases_generated": 2242,
+                    "classes_without_problems": 11,
+                    "classes_canceled_by_timeout": 4,
+                    "total_methods_for_generation": 519,
+                    "methods_with_at_least_one_testcase_generated": 371,
+                    "methods_with_exceptions": 45,
+                    "suspicious_methods": 80,
+                    "test_classes_failed_to_compile": 5,
+                    "covered_instructions": 5328,
+                    "covered_instructions_by_fuzzing": 4209,
+                    "covered_instructions_by_concolic": 2322,
+                    "total_instructions": 10525,
+                    "avg_coverage": 62.3116717403901
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "source": {
+            "type": "github-action",
+            "id": "2994807097-3"
+        },
+        "commit_hash": "b0652f820cba22ec0ea480373ad9835d636580ad",
+        "branch": "main",
+        "build_number": "2022.9",
+        "timestamp": 1662396803,
+        "date": "2022-09-05T16:53:23",
+        "environment": {
+            "host": "f68fcb5b7860",
+            "OS": "Linux version #20~20.04.1-Ubuntu SMP Fri Aug 5 12:16:53 UTC 2022",
+            "java_version": "openjdk version \"11.0.15\" 2022-04-19 LTS\nOpenJDK Runtime Environment Zulu11.56+19-CA (build 11.0.15+10-LTS)\nOpenJDK 64-Bit Server VM Zulu11.56+19-CA (build 11.0.15+10-LTS, mixed mode)\n",
+            "gradle_version": "Gradle 7.4.2",
+            "JAVA_HOME": "/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64",
+            "KOTLIN_HOME": "/opt/kotlin/kotlinc",
+            "PATH": "/__t/Python/3.9.13/x64/bin:/__t/Python/3.9.13/x64:/opt/zulu11.56.19-ca-fx-jdk11.0.15-linux_x64/bin:/opt/gradle/gradle-7.4.2/bin:/opt/kotlin/kotlinc/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        }
+    }
+}

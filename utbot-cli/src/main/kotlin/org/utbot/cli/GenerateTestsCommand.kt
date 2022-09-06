@@ -21,6 +21,7 @@ import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
 import kotlin.reflect.KClass
 import mu.KotlinLogging
+import org.utbot.common.allNestedClasses
 import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
 import org.utbot.framework.util.isKnownSyntheticMethod
@@ -94,9 +95,11 @@ class GenerateTestsCommand :
             logger.debug { "Classpath to be used: ${newline()} $classPath ${newline()}" }
 
             val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
-            val targetMethods = classUnderTest.targetMethods()
-                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
-                .filterNot { it.callable.isAbstract }
+            val targetMethods = classUnderTest.allNestedClasses.flatMap { clazz ->
+                clazz.targetMethods()
+                    .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
+                    .filterNot { it.callable.isAbstract }
+            }
             val testCaseGenerator = initializeGenerator(workingDirectory)
 
             if (targetMethods.isEmpty()) {

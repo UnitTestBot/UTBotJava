@@ -27,16 +27,9 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override val langPackage: String = "python"
 
-    private fun renderSysPaths(element: CgTestClassFile) {
-        element.sysPaths.forEach {
-            visit(it)
-        }
-    }
-
     override fun visit(element: CgTestClassFile) {
         renderPythonImport(PythonSystemImport("sys"))
-//        renderSysPaths(element)
-        element.imports.filterIsInstance<PythonImport>().forEach {
+        element.imports.filterIsInstance<PythonImport>().sortedBy { it.order } .forEach {
             renderPythonImport(it)
         }
 
@@ -271,23 +264,23 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     }
 
     override fun toStringConstantImpl(byte: Byte): String {
-        return "str($byte)"
+        return "b'$byte'"
     }
 
     override fun toStringConstantImpl(short: Short): String {
-        return "str($short)"
+        return "$short"
     }
 
     override fun toStringConstantImpl(int: Int): String {
-        return "str($int)"
+        return "$int"
     }
 
     override fun toStringConstantImpl(long: Long): String {
-        return "str($long)"
+        return "$long"
     }
 
     override fun toStringConstantImpl(float: Float): String {
-        return "str($float)"
+        return "$float"
     }
 
     override fun renderAccess(caller: CgExpression) {

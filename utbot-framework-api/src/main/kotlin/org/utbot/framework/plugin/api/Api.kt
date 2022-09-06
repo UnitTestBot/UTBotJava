@@ -289,6 +289,7 @@ class PythonClassId(
         }
     override val packageName = moduleName
     override val canonicalName = name
+    val enclosingClass = this
 }
 
 open class RawPythonAnnotation(

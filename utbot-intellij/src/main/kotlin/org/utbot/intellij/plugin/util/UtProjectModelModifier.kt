@@ -17,9 +17,9 @@ import com.intellij.util.PathUtil
 import com.intellij.util.containers.ContainerUtil
 import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.resolvedPromise
-import org.jetbrains.idea.maven.utils.library.RepositoryLibraryDescription
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryProperties
 import org.jetbrains.jps.model.library.JpsMavenRepositoryLibraryDescriptor
+import org.utbot.intellij.plugin.models.mavenCoordinates
 
 class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(project) {
     override fun addExternalLibraryDependency(
@@ -77,9 +77,5 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
             }
         }
         return resolvedPromise()
-    }
-
-    private fun ExternalLibraryDescriptor.mavenCoordinates(): String {
-        return "$libraryGroupId:$libraryArtifactId:${preferredVersion ?: RepositoryLibraryDescription.ReleaseVersionId}"
     }
 }

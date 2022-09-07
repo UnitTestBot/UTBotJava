@@ -152,11 +152,15 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
+        DoubleStream afterPeek;
         if (list.contains(null)) {
-            doubles.peek(action);
+            afterPeek = doubles.peek(action);
         } else {
-            doubles.peek(action);
+            afterPeek = doubles.peek(action);
         }
+
+        // use terminal operation to force peek action
+        afterPeek.count();
 
         return beforeStaticValue;
     }
@@ -167,10 +171,10 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
-        if (list.size() <= 5) {
-            return doubles.limit(5).toArray();
+        if (list.size() <= 2) {
+            return doubles.limit(2).toArray();
         } else {
-            return doubles.limit(5).toArray();
+            return doubles.limit(2).toArray();
         }
     }
 
@@ -180,10 +184,10 @@ public class DoubleStreamExample {
         final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
-        if (list.size() <= 5) {
-            return doubles.skip(5).toArray();
+        if (list.size() <= 2) {
+            return doubles.skip(2).toArray();
         } else {
-            return doubles.skip(5).toArray();
+            return doubles.skip(2).toArray();
         }
     }
 

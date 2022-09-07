@@ -154,11 +154,15 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
+        LongStream afterPeek;
         if (list.contains(null)) {
-            longs.peek(action);
+            afterPeek = longs.peek(action);
         } else {
-            longs.peek(action);
+            afterPeek = longs.peek(action);
         }
+
+        // use terminal operation to force peek action
+        afterPeek.count();
 
         return beforeStaticValue;
     }
@@ -169,10 +173,10 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
-        if (list.size() <= 5) {
-            return longs.limit(5).toArray();
+        if (list.size() <= 2) {
+            return longs.limit(2).toArray();
         } else {
-            return longs.limit(5).toArray();
+            return longs.limit(2).toArray();
         }
     }
 
@@ -182,10 +186,10 @@ public class LongStreamExample {
         final ToLongFunction<Short> shortToLongFunction = value -> value == null ? 0 : value.longValue();
         final LongStream longs = list.stream().mapToLong(shortToLongFunction);
 
-        if (list.size() <= 5) {
-            return longs.skip(5).toArray();
+        if (list.size() <= 2) {
+            return longs.skip(2).toArray();
         } else {
-            return longs.skip(5).toArray();
+            return longs.skip(2).toArray();
         }
     }
 

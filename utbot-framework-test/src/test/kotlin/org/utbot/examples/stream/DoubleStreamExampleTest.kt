@@ -1,6 +1,5 @@
 package org.utbot.examples.stream
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
@@ -175,7 +174,6 @@ class DoubleStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("TODO wrong returned value")
     fun testPeekExample() {
         checkThisAndStaticsAfter(
             DoubleStreamExample::peekExample,
@@ -190,8 +188,8 @@ class DoubleStreamExampleTest : UtValueTestCaseChecker(
         check(
             DoubleStreamExample::limitExample,
             ignoreExecutionsNumber,
-            { c, r -> c.size <= 5 && c.doubles().contentEquals(r) },
-            { c, r -> c.size > 5 && c.take(5).doubles().contentEquals(r) },
+            { c, r -> c.size <= 2 && c.doubles().contentEquals(r) },
+            { c, r -> c.size > 2 && c.take(2).doubles().contentEquals(r) },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
@@ -201,8 +199,8 @@ class DoubleStreamExampleTest : UtValueTestCaseChecker(
         check(
             DoubleStreamExample::skipExample,
             ignoreExecutionsNumber,
-            { c, r -> c.size > 5 && c.drop(5).doubles().contentEquals(r) },
-            { c, r -> c.size <= 5 && r!!.isEmpty() },
+            { c, r -> c.size > 2 && c.drop(2).doubles().contentEquals(r) },
+            { c, r -> c.size <= 2 && r!!.isEmpty() },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }

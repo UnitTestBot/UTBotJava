@@ -2,11 +2,11 @@ package org.utbot.examples.stream
 
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withPathSelectorStepsLimit
 import org.utbot.testcheckers.withoutConcrete
 import org.utbot.tests.infrastructure.*
-import org.utbot.framework.plugin.api.CodegenLanguage
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import java.util.stream.IntStream
@@ -187,8 +187,8 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
         check(
             IntStreamExample::limitExample,
             ignoreExecutionsNumber,
-            { c, r -> c.size <= 5 && c.ints().contentEquals(r) },
-            { c, r -> c.size > 5 && c.take(5).ints().contentEquals(r) },
+            { c, r -> c.size <= 2 && c.ints().contentEquals(r) },
+            { c, r -> c.size > 2 && c.take(2).ints().contentEquals(r) },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
@@ -198,8 +198,8 @@ class IntStreamExampleTest : UtValueTestCaseChecker(
         check(
             IntStreamExample::skipExample,
             ignoreExecutionsNumber,
-            { c, r -> c.size > 5 && c.drop(5).ints().contentEquals(r) },
-            { c, r -> c.size <= 5 && r!!.isEmpty() },
+            { c, r -> c.size > 2 && c.drop(2).ints().contentEquals(r) },
+            { c, r -> c.size <= 2 && r!!.isEmpty() },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }

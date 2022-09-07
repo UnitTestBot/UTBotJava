@@ -38,7 +38,6 @@ import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.util.nextModelName
-import soot.SootMethod
 import java.lang.reflect.Constructor
 import java.util.IdentityHashMap
 
@@ -50,8 +49,7 @@ import java.util.IdentityHashMap
  *
  * Note: Caches class related information, can be reused if classes don't change.
  */
-class AssembleModelGenerator(private val methodUnderTest: SootMethod) {
-    private val methodPackageName = methodUnderTest.declaringClass.packageName
+class AssembleModelGenerator(private val methodPackageName: String) {
 
     //Instantiated models are stored to avoid cyclic references during reference graph analysis
     private val instantiatedModels: IdentityHashMap<UtModel, UtReferenceModel> =

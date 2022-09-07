@@ -40,7 +40,6 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
-import soot.SootMethod
 import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
@@ -99,11 +98,11 @@ class UtConcreteExecutionResult(
      * @return [UtConcreteExecutionResult] with converted models.
      */
     fun convertToAssemble(
-        methodUnderTest: SootMethod
+        packageName: String
     ): UtConcreteExecutionResult {
         val allModels = collectAllModels()
 
-        val modelsToAssembleModels = AssembleModelGenerator(methodUnderTest).createAssembleModels(allModels)
+        val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)
         return updateWithAssembleModels(modelsToAssembleModels)
     }
 }

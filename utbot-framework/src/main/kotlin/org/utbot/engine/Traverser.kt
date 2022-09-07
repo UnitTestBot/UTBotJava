@@ -87,6 +87,7 @@ import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.classId
@@ -95,6 +96,7 @@ import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
@@ -197,7 +199,7 @@ import java.util.concurrent.atomic.AtomicInteger
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: SootMethod,
+    private val methodUnderTest: ExecutableId,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
@@ -954,7 +956,7 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.executableId.executable
+        val callable = methodUnderTest.executable
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {

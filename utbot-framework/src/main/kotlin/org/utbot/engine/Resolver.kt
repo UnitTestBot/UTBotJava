@@ -25,8 +25,8 @@ import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.z3.intValue
 import org.utbot.engine.z3.value
 import org.utbot.framework.assemble.AssembleModelGenerator
@@ -34,6 +34,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.SYMBOLIC_NULL_ADDR
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -51,6 +52,7 @@ import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.classId
@@ -62,16 +64,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.nextModelName
-import java.awt.color.ICC_ProfileRGB
-import java.io.PrintStream
-import java.security.AccessControlContext
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.max
-import kotlin.math.min
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import org.utbot.framework.plugin.api.SYMBOLIC_NULL_ADDR
-import org.utbot.framework.plugin.api.UtSandboxFailure
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -86,10 +78,17 @@ import soot.Scene
 import soot.ShortType
 import soot.SootClass
 import soot.SootField
-import soot.SootMethod
 import soot.Type
 import soot.VoidType
+import java.awt.color.ICC_ProfileRGB
+import java.io.PrintStream
+import java.security.AccessControlContext
 import java.security.AccessControlException
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
+import kotlin.math.min
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -118,7 +117,7 @@ class Resolver(
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
-    methodUnderTest: SootMethod,
+    methodUnderTest: ExecutableId,
     private val softMaxArraySize: Int
 ) {
 
@@ -133,7 +132,7 @@ class Resolver(
     private val instrumentation = mutableListOf<UtInstrumentation>()
     private val requiredInstanceFields = mutableMapOf<Address, Set<FieldId>>()
 
-    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest)
+    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest.classId.packageName)
 
     /**
      * Contains FieldId of the static field which is construction at the moment and null of there is no such field.

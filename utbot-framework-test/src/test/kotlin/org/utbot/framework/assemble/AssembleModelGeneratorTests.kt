@@ -1448,7 +1448,7 @@ class AssembleModelGeneratorTests {
         expectedModelRepresentations: List<String?>,
         assembleTestUtils: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) {
-        val modelsMap = AssembleModelGenerator(assembleTestUtils.sootMethod).createAssembleModels(models) // TODO: rewrite usages
+        val modelsMap = AssembleModelGenerator(assembleTestUtils.classId.packageName).createAssembleModels(models) // TODO: rewrite usages
         //we sort values to fix order of models somehow (IdentityHashMap does not guarantee the order)
         val assembleModels = modelsMap.values
             .filterIsInstance<UtAssembleModel>()

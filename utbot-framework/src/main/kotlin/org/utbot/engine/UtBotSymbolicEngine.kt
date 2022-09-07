@@ -60,10 +60,10 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.voidClassId
@@ -85,7 +85,6 @@ import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.fuzzer.withMutations
 import org.utbot.instrumentation.ConcreteExecutor
-import soot.SootMethod
 import soot.jimple.Stmt
 import soot.tagkit.ParamNamesTag
 import java.lang.reflect.Method
@@ -154,16 +153,14 @@ private fun pathSelector(graph: InterProceduralUnitGraph, typeRegistry: TypeRegi
 
 class UtBotSymbolicEngine(
     private val controller: EngineController,
-    private val executableId: ExecutableId,
+    private val methodUnderTest: ExecutableId,
     classpath: String,
     dependencyPaths: String,
     mockStrategy: MockStrategy = NO_MOCKS,
     chosenClassesToMockAlways: Set<ClassId>,
     private val solverTimeoutInMillis: Int = checkSolverTimeoutMillis
 ) : UtContextInitializer() {
-    private val methodUnderTest = executableId.sootMethod
-
-    private val graph = methodUnderTest.jimpleBody().apply {
+    private val graph = methodUnderTest.sootMethod.jimpleBody().apply {
         logger.trace { "JIMPLE for $methodUnderTest:\n$this" }
     }.graph()
 
@@ -177,7 +174,7 @@ class UtBotSymbolicEngine(
     // TODO HACK violation of encapsulation
     internal val typeResolver: TypeResolver = TypeResolver(typeRegistry, hierarchy)
 
-    private val classUnderTest: ClassId = methodUnderTest.declaringClass.id
+    private val classUnderTest: ClassId = methodUnderTest.classId
 
     private val mocker: Mocker = Mocker(
         mockStrategy,
@@ -384,7 +381,7 @@ class UtBotSymbolicEngine(
      * @param modelProvider provides model values for a method
      */
     fun fuzzing(until: Long = Long.MAX_VALUE, modelProvider: (ModelProvider) -> ModelProvider = { it }) = flow {
-        val isFuzzable = executableId.parameters.all { classId ->
+        val isFuzzable = methodUnderTest.parameters.all { classId ->
             classId != Method::class.java.id && // causes the child process crash at invocation
                 classId != Class::class.java.id  // causes java.lang.IllegalAccessException: java.lang.Class at sun.misc.Unsafe.allocateInstance(Native Method)
         }
@@ -417,8 +414,8 @@ class UtBotSymbolicEngine(
             }
         }
 
-        val methodUnderTestDescription = FuzzedMethodDescription(executableId, collectConstantsForFuzzer(graph)).apply {
-            compilableName = if (!methodUnderTest.isConstructor) executableId.name else null
+        val methodUnderTestDescription = FuzzedMethodDescription(methodUnderTest, collectConstantsForFuzzer(graph)).apply {
+            compilableName = if (!methodUnderTest.isConstructor) methodUnderTest.name else null
             className = classUnderTest.simpleName
             packageName = classUnderTest.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
@@ -428,7 +425,7 @@ class UtBotSymbolicEngine(
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
         var attempts = 0
         val attemptsLimit = UtSettings.fuzzingMaxAttempts
-        val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
+        val hasMethodUnderTestParametersToFuzz = methodUnderTest.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {
@@ -627,7 +624,7 @@ class UtBotSymbolicEngine(
     }
 }
 
-private fun ResolvedModels.constructStateForMethod(methodUnderTest: SootMethod): EnvironmentModels {
+private fun ResolvedModels.constructStateForMethod(methodUnderTest: ExecutableId): EnvironmentModels {
     val (thisInstanceBefore, paramsBefore) = when {
         methodUnderTest.isStatic -> null to parameters
         methodUnderTest.isConstructor -> null to parameters.drop(1)
@@ -637,15 +634,15 @@ private fun ResolvedModels.constructStateForMethod(methodUnderTest: SootMethod):
 }
 
 private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
-    methodUnderTest: SootMethod,
+    methodUnderTest: ExecutableId,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>
 ): UtConcreteExecutionResult = executeAsync(
-    methodUnderTest.declaringClass.name,
-    methodUnderTest.pureJavaSignature,
+    methodUnderTest.classId.name,
+    methodUnderTest.signature,
     arrayOf(),
     parameters = UtConcreteExecutionData(stateBefore, instrumentation)
-).convertToAssemble(methodUnderTest)
+).convertToAssemble(methodUnderTest.classId.packageName)
 
 /**
  * Before pushing our states for concrete execution, we have to be sure that every state is consistent.

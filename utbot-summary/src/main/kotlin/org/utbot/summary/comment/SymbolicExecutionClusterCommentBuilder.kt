@@ -20,7 +20,7 @@ import soot.jimple.internal.JVirtualInvokeExpr
 /**
  * Inherits from SimpleCommentBuilder
  */
-class SimpleClusterCommentBuilder(
+class SymbolicExecutionClusterCommentBuilder(
     traceTag: TraceTagWithoutExecution,
     sootToAST: MutableMap<SootMethod, JimpleToASTMap>
 ) : SimpleCommentBuilder(traceTag, sootToAST, stringTemplates = StringsTemplatesPlural()) {

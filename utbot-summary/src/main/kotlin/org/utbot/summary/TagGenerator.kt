@@ -37,7 +37,7 @@ class TagGenerator {
             // we only want to find intersections if there is more than one successful execution
             if (numberOfSuccessfulClusters > 1 && REMOVE_INTERSECTIONS) {
                 val commonStepsInSuccessfulEx = listOfSplitSteps
-                    .filterIndexed { i, _ -> clusteredExecutions[i] is SuccessfulExecutionCluster } //search only in successful
+                    .filterIndexed { i, _ -> clusteredExecutions[i] is SuccessfulExecutionCluster } // search only in successful
                     .map { it.commonSteps }
                     .filter { it.isNotEmpty() }
                 if (commonStepsInSuccessfulEx.size > 1) {
@@ -98,11 +98,12 @@ private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSt
 private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster> {
     val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
     val clusters = mutableListOf<ExecutionCluster>()
-    val commentPostfix = "for method ${testSet.method.displayName}"
+    val commentPrefix =  "SYMBOLIC EXECUTION ENGINE:"
+    val commentPostfix = "for method ${testSet.method.humanReadableName}"
 
     val grouped = methodExecutions.groupBy { it.result.clusterKind() }
 
-    val successfulExecutions = grouped[ClusterKind.SUCCESSFUL_EXECUTIONS] ?: emptyList()
+    val successfulExecutions = grouped[ExecutionGroup.SUCCESSFUL_EXECUTIONS] ?: emptyList()
     if (successfulExecutions.isNotEmpty()) {
         val clustered =
             if (successfulExecutions.size >= MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING) {
@@ -113,28 +114,29 @@ private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster
             for (c in clustered) {
                 clusters +=
                     SuccessfulExecutionCluster(
-                        "${ClusterKind.SUCCESSFUL_EXECUTIONS.displayName} #${clustered.keys.indexOf(c.key)} $commentPostfix",
+                        "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} #${clustered.keys.indexOf(c.key)} $commentPostfix",
                         c.value.toList()
                     )
             }
         } else {
             clusters +=
                 SuccessfulExecutionCluster(
-                    "${ClusterKind.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix",
+                    "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix",
                     successfulExecutions.toList()
                 )
         }
     }
 
     clusters += grouped
-        .filterNot { (kind, _) -> kind == ClusterKind.SUCCESSFUL_EXECUTIONS }
+        .filterNot { (kind, _) -> kind == ExecutionGroup.SUCCESSFUL_EXECUTIONS }
         .map { (suffixId, group) ->
-        FailedExecutionCluster("${suffixId.displayName} $commentPostfix", group)
+        FailedExecutionCluster("$commentPrefix ${suffixId.displayName} $commentPostfix", group)
     }
     return clusters
 }
 
-enum class ClusterKind {
+/** The group of execution to be presented in the generated source file with tests. */
+enum class ExecutionGroup {
     SUCCESSFUL_EXECUTIONS,
     ERROR_SUITE,
     CHECKED_EXCEPTIONS,
@@ -148,13 +150,13 @@ enum class ClusterKind {
 }
 
 private fun UtExecutionResult.clusterKind() = when (this) {
-    is UtExecutionSuccess -> ClusterKind.SUCCESSFUL_EXECUTIONS
-    is UtImplicitlyThrownException -> if (this.exception.isCheckedException) ClusterKind.CHECKED_EXCEPTIONS else ClusterKind.ERROR_SUITE
-    is UtExplicitlyThrownException -> if (this.exception.isCheckedException) ClusterKind.CHECKED_EXCEPTIONS else ClusterKind.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS
-    is UtOverflowFailure -> ClusterKind.OVERFLOWS
-    is UtTimeoutException -> ClusterKind.TIMEOUTS
-    is UtConcreteExecutionFailure -> ClusterKind.CRASH_SUITE
-    is UtSandboxFailure -> ClusterKind.SECURITY
+    is UtExecutionSuccess -> ExecutionGroup.SUCCESSFUL_EXECUTIONS
+    is UtImplicitlyThrownException -> if (this.exception.isCheckedException) ExecutionGroup.CHECKED_EXCEPTIONS else ExecutionGroup.ERROR_SUITE
+    is UtExplicitlyThrownException -> if (this.exception.isCheckedException) ExecutionGroup.CHECKED_EXCEPTIONS else ExecutionGroup.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS
+    is UtOverflowFailure -> ExecutionGroup.OVERFLOWS
+    is UtTimeoutException -> ExecutionGroup.TIMEOUTS
+    is UtConcreteExecutionFailure -> ExecutionGroup.CRASH_SUITE
+    is UtSandboxFailure -> ExecutionGroup.SECURITY
 }
 
 /**
@@ -185,7 +187,7 @@ private const val REMOVE_INTERSECTIONS: Boolean = true
  * Contains the entities required for summarization
  */
 data class TraceTagCluster(
-    var summary: String,
+    var clusterHeader: String,
     val traceTags: List<TraceTag>,
     val commonStepsTraceTag: TraceTagWithoutExecution,
     val isSuccessful: Boolean

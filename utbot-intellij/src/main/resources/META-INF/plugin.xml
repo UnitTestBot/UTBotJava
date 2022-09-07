@@ -35,6 +35,7 @@
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
         <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>
         <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtProjectModelModifier"/>
+        <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtAndroidGradleJavaProjectModelModifier" order="first"/>
         <!--Documentation-->
         <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
         <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>

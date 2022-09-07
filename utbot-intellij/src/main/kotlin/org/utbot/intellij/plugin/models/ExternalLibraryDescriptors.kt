@@ -3,10 +3,10 @@ package org.utbot.intellij.plugin.models
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
 import org.jetbrains.idea.maven.utils.library.RepositoryLibraryDescription
 
-fun ExternalLibraryDescriptor.mavenCoordinates(): String =
-    "$libraryGroupId:$libraryArtifactId:${preferredVersion ?: RepositoryLibraryDescription.ReleaseVersionId}"
+val ExternalLibraryDescriptor.mavenCoordinates: String
+    get() = "$libraryGroupId:$libraryArtifactId:${preferredVersion ?: RepositoryLibraryDescription.ReleaseVersionId}"
 
-val ExternalLibraryDescriptor.id
+val ExternalLibraryDescriptor.id: String
         get() = "$libraryGroupId:$libraryArtifactId"
 
 //TODO: think about using JUnitExternalLibraryDescriptor from intellij-community sources (difficult to install)

@@ -38,7 +38,7 @@ class UtProjectModelModifier(val project: Project) : IdeaProjectModelModifier(pr
         } else {
             val roots = JarRepositoryManager.loadDependenciesModal(
                 project,
-                RepositoryLibraryProperties(JpsMavenRepositoryLibraryDescriptor(descriptor.mavenCoordinates())),
+                RepositoryLibraryProperties(JpsMavenRepositoryLibraryDescriptor(descriptor.mavenCoordinates)),
                 /* loadSources = */ false,
                 /* loadJavadoc = */ false,
                 /* copyTo = */ null,

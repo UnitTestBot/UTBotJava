@@ -26,12 +26,12 @@ import org.utbot.framework.codegen.MockitoStaticMocking;
 import org.utbot.framework.plugin.api.*;
 import org.utbot.framework.plugin.api.util.UtContext;
 import org.utbot.framework.util.Snippet;
+import org.utbot.framework.util.SootUtils;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1226,7 +1226,7 @@ public class UtBotJavaApiTest {
 
     @Test
     public void testFuzzingSimple() {
-        SootUtils.runSoot(StringSwitchExample.class);
+        SootUtils.INSTANCE.runSoot(StringSwitchExample.class, false);
         UtBotJavaApi.setStopConcreteExecutorOnExit(false);
 
         String classpath = getClassPath(StringSwitchExample.class);

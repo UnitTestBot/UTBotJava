@@ -1,11 +1,10 @@
 package org.utbot.framework.plugin.sarif
 
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.isPrivate
 import org.utbot.framework.plugin.api.util.executableId
 import java.io.File
-import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
-import kotlin.reflect.jvm.kotlinFunction
 
 /**
  * Contains information about the class for which we are creating a SARIF report.
@@ -21,7 +20,7 @@ data class TargetClassWrapper(
     /**
      * Returns the methods of the class [classUnderTest] declared by the user.
      */
-    val targetMethods: List<UtMethod<*>> = run {
+    val targetMethods: List<ExecutableId> = run {
         val allDeclaredMethods = classUnderTest.java.declaredMethods
         val neededDeclaredMethods = if (testPrivateMethods) {
             allDeclaredMethods.toList()
@@ -30,8 +29,6 @@ data class TargetClassWrapper(
                 !it.executableId.isPrivate
             }
         }
-        neededDeclaredMethods.map {
-            UtMethod(it.kotlinFunction as KCallable<*>, classUnderTest)
-        }
+        neededDeclaredMethods.map { it.executableId }
     }
 }

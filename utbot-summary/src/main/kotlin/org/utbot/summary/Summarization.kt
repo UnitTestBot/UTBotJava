@@ -30,6 +30,8 @@ import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtTimeoutException
+import org.utbot.framework.plugin.api.util.humanReadableName
+import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
@@ -67,7 +69,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
 }
 
 fun UtMethodTestSet.summarize(searchDirectory: Path): UtMethodTestSet =
-    this.summarize(Instrumenter.computeSourceFileByClass(this.method.clazz.java, searchDirectory), searchDirectory)
+    this.summarize(Instrumenter.computeSourceFileByClass(this.method.classId.jClass, searchDirectory), searchDirectory)
 
 
 class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDescription>) {
@@ -80,7 +82,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         if (testSet.executions.isEmpty()) {
             logger.info {
                 "No execution traces found in test case " +
-                        "for method ${testSet.method.clazz.qualifiedName}, " + "${testSet.jimpleBody}"
+                        "for method ${testSet.method.classId.name}, " + "${testSet.jimpleBody}"
             }
             return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
         }
@@ -157,7 +159,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
             executionsWithEmptyPaths.forEach {
                 logger.info {
                     "Test is created by Symbolic Execution Engine. The path for test ${it.testMethodName} " +
-                            "for method ${testSet.method.clazz.qualifiedName} is empty and summaries could not be generated."
+                            "for method ${testSet.method.classId.name} is empty and summaries could not be generated."
                 }
             }
 

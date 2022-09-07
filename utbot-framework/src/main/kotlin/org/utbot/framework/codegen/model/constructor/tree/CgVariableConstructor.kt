@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import org.utbot.common.isStatic
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -432,15 +433,3 @@ internal class CgVariableConstructor(val context: CgContext) :
     private fun String.toVarName(): String = nameGenerator.variableName(this)
 
 }
-
-private val Field.isPublic: Boolean
-    get() = Modifier.isPublic(modifiers)
-
-private val Field.isPrivate: Boolean
-    get() = Modifier.isPrivate(modifiers)
-
-val Field.isStatic: Boolean
-    get() = Modifier.isStatic(modifiers)
-
-private val Field.isFinal: Boolean
-    get() = Modifier.isFinal(modifiers)

@@ -1,11 +1,12 @@
 package org.utbot.framework.util
 
-import org.utbot.engine.displayName
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.humanReadableName
+import org.utbot.framework.plugin.api.util.isEnum
 
-fun isKnownSyntheticMethod(method: UtMethod<*>): Boolean =
-    if (method.clazz.java.isEnum)
-        method.displayName.substringBefore('(') in KnownSyntheticMethodNames.enumSyntheticMethodNames
+fun isKnownSyntheticMethod(method: ExecutableId): Boolean =
+    if (method.classId.isEnum)
+        method.humanReadableName.substringBefore('(') in KnownSyntheticMethodNames.enumSyntheticMethodNames
     else
         false
 

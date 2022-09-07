@@ -4,9 +4,9 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import org.junit.Test
 import org.mockito.Mockito
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtSymbolicExecution
@@ -52,8 +52,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecutionAIOBE.stateBefore.parameters).thenReturn(listOf())
 
         val testSets = listOf(
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecutionNPE)),
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecutionAIOBE))
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecutionNPE)),
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecutionAIOBE))
         )
 
         val report = SarifReport(
@@ -195,8 +195,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution.result).thenReturn(UtImplicitlyThrownException(NullPointerException(), false))
 
         val testSets = listOf(
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution)),
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution)) // duplicate
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution)),
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution)) // duplicate
         )
 
         val report = SarifReport(
@@ -220,8 +220,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution2.result).thenReturn(UtImplicitlyThrownException(ArithmeticException(), false))
 
         val testSets = listOf(
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution1)),
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution2)) // not a duplicate
         )
 
         val report = SarifReport(
@@ -249,8 +249,8 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution2.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(22)
 
         val testSets = listOf(
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution1)),
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution2)) // not a duplicate
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution2)) // not a duplicate
         )
 
         val report = SarifReport(
@@ -283,8 +283,8 @@ class SarifReportTest {
         Mockito.`when`(mockNPE2.stackTrace).thenReturn(arrayOf(stackTraceElement1, stackTraceElement2))
 
         val testSets = listOf(
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution1)),
-            UtMethodTestSet(mockUtMethod, listOf(mockUtExecution2)) // duplicate with a longer stack trace
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution1)),
+            UtMethodTestSet(mockExecutableId, listOf(mockUtExecution2)) // duplicate with a longer stack trace
         )
 
         val report = SarifReport(
@@ -299,15 +299,15 @@ class SarifReportTest {
 
     // internal
 
-    private val mockUtMethod = Mockito.mock(UtMethod::class.java, Mockito.RETURNS_DEEP_STUBS)
+    private val mockExecutableId = Mockito.mock(ExecutableId::class.java, Mockito.RETURNS_DEEP_STUBS)
 
     private val mockUtExecution = Mockito.mock(UtSymbolicExecution::class.java, Mockito.RETURNS_DEEP_STUBS)
 
-    private val testSet = UtMethodTestSet(mockUtMethod, listOf(mockUtExecution))
+    private val testSet = UtMethodTestSet(mockExecutableId, listOf(mockUtExecution))
 
     private fun mockUtMethodNames() {
-        Mockito.`when`(mockUtMethod.callable.name).thenReturn("main")
-        Mockito.`when`(mockUtMethod.clazz.qualifiedName).thenReturn("Main")
+        Mockito.`when`(mockExecutableId.name).thenReturn("main")
+        Mockito.`when`(mockExecutableId.classId.name).thenReturn("Main")
     }
 
     private fun String.toSarif(): Sarif = jacksonObjectMapper().readValue(this)

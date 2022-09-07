@@ -231,9 +231,10 @@ class TestCodeGeneratorPipeline(private val testFrameworkConfiguration: TestFram
     private fun ClassPipeline.retrieveTestClassName(testSuffix: String): String =
         stageContext.classUnderTest.let { "${it.java.`package`.name}.${it.simpleName}" } + testSuffix
 
-    private fun List<KClass<*>>.createBuildDirectory() = FileUtil.isolateClassFiles(*toTypedArray()).toPath()
+    private fun List<Class<*>>.createBuildDirectory() =
+        FileUtil.isolateClassFiles(*toTypedArray()).toPath()
 
-    private fun List<ClassPipeline>.retrieveClasses() = map { it.stageContext.classUnderTest }
+    private fun List<ClassPipeline>.retrieveClasses() = map { it.stageContext.classUnderTest.java }
 
     @Suppress("UNCHECKED_CAST")
     private fun processTestExecutionStages(classesPipelines: List<ClassPipeline>) {

@@ -27,7 +27,7 @@ internal class LoggerExampleTest : UtValueTestCaseChecker(
             eq(2),
             { _, instrumentation, _ -> theOnlyStaticMockValue(instrumentation).isNull() },
             { mocks, instrumentation, r -> mocks.size == 3 && instrumentation.size == 1 && r == 15 },
-            additionalDependencies = arrayOf(org.slf4j.Logger::class),
+            additionalDependencies = arrayOf(org.slf4j.Logger::class.java),
             coverage = DoNotCalculate
         )
     }
@@ -44,7 +44,7 @@ internal class LoggerExampleTest : UtValueTestCaseChecker(
             { mocks, instrumentation, r ->
                 (mocks.single().values.single() as UtConcreteValue<*>).value == true && instrumentation.size == 1 && r == 1
             },
-            additionalDependencies = arrayOf(org.slf4j.Logger::class),
+            additionalDependencies = arrayOf(org.slf4j.Logger::class.java),
             coverage = DoNotCalculate
         )
     }

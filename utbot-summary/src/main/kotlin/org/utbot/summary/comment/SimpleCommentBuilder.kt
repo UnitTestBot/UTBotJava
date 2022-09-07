@@ -29,6 +29,7 @@ import soot.jimple.internal.JInvokeStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 
 private const val JVM_CRASH_REASON = "JVM crash"
+const val EMPTY_STRING = ""
 
 open class SimpleCommentBuilder(
     traceTag: TraceTagWithoutExecution,
@@ -46,7 +47,11 @@ open class SimpleCommentBuilder(
         skippedIterations()
         buildSentenceBlock(traceTag.rootStatementTag, root, currentMethod)
         var sentence = toSentence(root)
-        if (sentence.isEmpty()) return genWarnNotification()
+
+        if (sentence.isEmpty()) {
+            return EMPTY_STRING
+        }
+
         sentence = splitLongSentence(sentence)
         sentence = lastCommaToDot(sentence)
 
@@ -72,7 +77,7 @@ open class SimpleCommentBuilder(
         val docStmts = toDocStmts(sentenceBlock)
 
         if (docStmts.isEmpty()) {
-            return listOf(DocRegularStmt(genWarnNotification())) //TODO SAT-1310
+            return emptyList()
         }
 //        sentence = splitLongSentence(sentence) //TODO SAT-1309
 //        sentence = lastCommaToDot(sentence) //TODO SAT-1309
@@ -87,8 +92,6 @@ open class SimpleCommentBuilder(
         buildSentenceBlock(traceTag.rootStatementTag, rootSentenceBlock, currentMethod)
         return rootSentenceBlock
     }
-
-    protected fun genWarnNotification(): String = " " //why is it empty?
 
     /**
      * Transforms rootSentenceBlock into String

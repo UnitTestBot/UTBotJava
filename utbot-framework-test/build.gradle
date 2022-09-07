@@ -67,7 +67,6 @@ dependencies {
     z3native group: 'com.microsoft.z3', name: 'z3-native-osx', version: z3Version, ext: 'zip'
 }
 
-
 test {
 
     minHeapSize = "128m"

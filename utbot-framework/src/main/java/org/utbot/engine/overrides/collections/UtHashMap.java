@@ -11,10 +11,14 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.IntFunction;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.utbot.engine.overrides.UtArrayMock;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.api.mock.UtMock.makeSymbolic;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.doesntThrow;
@@ -446,30 +450,49 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
     }
 
     public final class LinkedKeySet extends AbstractSet<K> {
-        public final int size() {
+        public int size() {
             preconditionCheck();
             return keys.end;
         }
 
-        public final void clear() {
+        public void clear() {
             preconditionCheck();
             UtHashMap.this.clear();
         }
 
         @NotNull
-        public final Iterator<K> iterator() {
+        public Iterator<K> iterator() {
             preconditionCheck();
             return new LinkedKeyIterator();
         }
 
-        public final boolean contains(Object o) {
+        public boolean contains(Object o) {
             preconditionCheck();
             return containsKey(o);
         }
 
-        public final boolean remove(Object key) {
+        public boolean remove(Object key) {
             preconditionCheck();
             return UtHashMap.this.remove(key) != null;
+        }
+
+        public Object[] toArray() {
+            preconditionCheck();
+            return keys.toArray(keys.begin, keys.end);
+        }
+
+        public <T> T[] toArray(@NotNull T[] a) {
+            preconditionCheck();
+            Object[] data = toArray();
+            UtArrayMock.arraycopy(data, 0, a, 0, data.length);
+            return a;
+        }
+
+        @SuppressWarnings("Since15")
+        public <T> T[] toArray(@NotNull IntFunction<T[]> generator) {
+            preconditionCheck();
+            T[] a = generator.apply(size());
+            return toArray(a);
         }
     }
 
@@ -481,25 +504,54 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
     }
 
     public final class LinkedValues extends AbstractCollection<V> {
-        public final int size() {
+        public int size() {
             preconditionCheck();
             return keys.end;
         }
 
-        public final void clear() {
+        public void clear() {
             preconditionCheck();
             UtHashMap.this.clear();
         }
 
         @NotNull
-        public final Iterator<V> iterator() {
+        public Iterator<V> iterator() {
             preconditionCheck();
             return new LinkedValueIterator();
         }
 
-        public final boolean contains(Object o) {
+        public boolean contains(Object o) {
             preconditionCheck();
             return containsValue(o);
+        }
+
+        @NotNull
+        @Override
+        public Object[] toArray() {
+            preconditionCheck();
+            final int size = size();
+            final int end = keys.end;
+            assumeOrExecuteConcretely(end < 3);
+            Object[] data = new Object[size];
+            for (int i = 0; i < end; i++) {
+                data[i] = values.select(keys.get(i));
+            }
+            return data;
+        }
+
+        @Override
+        public <T> T[] toArray(@NotNull T[] a) {
+            preconditionCheck();
+            Object[] data = toArray();
+            UtArrayMock.arraycopy(data, 0, a, 0, data.length);
+            return a;
+        }
+
+        @SuppressWarnings("Since15")
+        public <T> T[] toArray(@NotNull IntFunction<T[]> generator) {
+            preconditionCheck();
+            T[] a = generator.apply(size());
+            return toArray(a);
         }
     }
 
@@ -511,23 +563,23 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
     }
 
     public final class LinkedEntrySet extends AbstractSet<Map.Entry<K, V>> {
-        public final int size() {
+        public int size() {
             preconditionCheck();
             return keys.end;
         }
 
-        public final void clear() {
+        public void clear() {
             preconditionCheck();
             UtHashMap.this.clear();
         }
 
         @NotNull
-        public final Iterator<Map.Entry<K, V>> iterator() {
+        public Iterator<Map.Entry<K, V>> iterator() {
             preconditionCheck();
             return new LinkedEntryIterator();
         }
 
-        public final boolean contains(Object o) {
+        public boolean contains(Object o) {
             preconditionCheck();
             if (!(o instanceof Map.Entry))
                 return false;
@@ -537,7 +589,7 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
             return index != -1 && Objects.equals(e.getValue(), values.select(keys.get(index)));
         }
 
-        public final boolean remove(Object o) {
+        public boolean remove(Object o) {
             preconditionCheck();
             if (o instanceof Map.Entry) {
                 Map.Entry<?, ?> e = (Map.Entry<?, ?>) o;
@@ -550,6 +602,35 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
                 }
             }
             return false;
+        }
+
+        @NotNull
+        @Override
+        public Object[] toArray() {
+            preconditionCheck();
+            Object[] data = new Object[size()];
+            for (int index = keys.begin; index < keys.end; index++) {
+                data[index] = new Entry(index);
+            }
+            return data;
+        }
+
+        @SuppressWarnings("unchecked")
+        @NotNull
+        @Override
+        public <T> T[] toArray(@NotNull T[] a) {
+            preconditionCheck();
+            T[] data = (T[]) toArray();
+            UtArrayMock.arraycopy(data, 0, a, 0, size());
+            return a;
+        }
+
+        @SuppressWarnings("Since15")
+        @NotNull
+        public <T> T[] toArray(IntFunction<T[]> generator) {
+            preconditionCheck();
+            T[] a = generator.apply(size());
+            return toArray(a);
         }
     }
 
@@ -696,7 +777,7 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
 
     public final class LinkedEntryIterator extends LinkedHashIterator
             implements Iterator<Map.Entry<K, V>> {
-        public final Map.Entry<K, V> next() {
+        public Map.Entry<K, V> next() {
             preconditionCheck();
             return new Entry(nextEntry());
         }

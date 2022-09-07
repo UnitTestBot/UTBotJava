@@ -840,6 +840,13 @@ class Resolver(
         }
 
         val evaluatedType = workaround(HACK) { memory.findTypeForArrayOrNull(instance.addr) ?: instance.type }
+
+        // Instead of previous line, we can try to get element type from the solver, but something will break
+        // val evaluatedType = holder.constructTypeOrNull(instance.addr, instance.type) as? ArrayType ?: instance.type
+
+        // GENERAL IDEA: check for ArrayStoreException when processing array store, not `toArray` or like.
+        // See as ClassCastException is implemented (and NPE as well)
+
         val evaluatedBaseType = evaluatedType.baseType
 
         val chunkId = typeRegistry.arrayChunkId(evaluatedType)

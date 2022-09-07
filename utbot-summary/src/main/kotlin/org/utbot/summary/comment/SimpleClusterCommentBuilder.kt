@@ -33,9 +33,11 @@ class SimpleClusterCommentBuilder(
         skippedIterations()
         buildSentenceBlock(traceTag.rootStatementTag, root, currentMethod)
         var sentence = toSentence(root)
+
         if (sentence.isEmpty()) {
-            return genWarnNotification()
+            return EMPTY_STRING
         }
+
         sentence = splitLongSentence(sentence)
         sentence = lastCommaToDot(sentence)
 
@@ -50,7 +52,7 @@ class SimpleClusterCommentBuilder(
         val sentence = toDocStmts(root)
 
         if (sentence.isEmpty()) {
-            return listOf(DocRegularStmt(genWarnNotification())) //TODO SAT-1310
+            return emptyList()
         }
 //        sentence = splitLongSentence(sentence) //TODO SAT-1309
 //        sentence = lastCommaToDot(sentence) //TODO SAT-1309

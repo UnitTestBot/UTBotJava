@@ -56,10 +56,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
     }
 
     public UtStream(E[] data, int length) {
-        visit(this);
-        elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
-        elementData.end = length;
+        this(data, 0, length);
     }
 
     public UtStream(E[] data, int startInclusive, int endExclusive) {
@@ -185,6 +182,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
 
         int size = elementData.end;
         Double[] data = new Double[size];
+        assume(data.length == elementData.end);
         for (int i = 0; i < size; i++) {
             final Object object = elementData.get(i);
             UtMock.disableClassCastExceptionCheck(object);

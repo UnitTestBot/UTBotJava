@@ -51,10 +51,17 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     }
 
     public UtDoubleStream(Double[] data, int length) {
+        this(data, 0, length);
+    }
+
+    public UtDoubleStream(Double[] data, int startInclusive, int endExclusive) {
         visit(this);
+
+        int size = endExclusive - startInclusive;
+
         elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
-        elementData.end = length;
+        elementData.setRange(0, data, startInclusive, size);
+        elementData.end = endExclusive;
     }
 
     /**

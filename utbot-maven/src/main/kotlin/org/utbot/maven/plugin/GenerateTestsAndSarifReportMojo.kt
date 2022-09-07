@@ -139,7 +139,8 @@ class GenerateTestsAndSarifReportMojo : AbstractMojo() {
     lateinit var rootMavenProjectWrapper: MavenProjectWrapper
 
     private val dependencyPaths by lazy {
-        val thisClassLoader = this::class.java.classLoader as URLClassLoader
+        val thisClassLoader = this::class.java.classLoader as? URLClassLoader
+            ?: return@lazy System.getProperty("java.class.path")
         thisClassLoader.urLs.joinToString(File.pathSeparator) { it.path }
     }
 

@@ -20,7 +20,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.childrenOfType
+import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import com.intellij.testFramework.MapDataContext
 import mu.KotlinLogging
 import org.utbot.intellij.plugin.models.GenerateTestsModel

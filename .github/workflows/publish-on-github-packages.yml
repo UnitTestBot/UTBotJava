@@ -18,6 +18,7 @@ jobs:
     uses: ./.github/workflows/build-and-run-tests-from-branch.yml
     with:
       commit_sha: ${{ github.event.inputs.commit_sha }}
+    secrets: inherit
 
   publish_on_github_packages:
     needs: build-and-run-tests

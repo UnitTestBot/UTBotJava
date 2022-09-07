@@ -4,7 +4,8 @@
     <id>org.utbot.intellij.plugin.id</id>
     <name>UnitTestBot</name>
     <vendor>utbot.org</vendor>
-    <idea-version since-build="202.8194.7"/>
+    <!-- Do not insert, it is updated from build.gradle-->
+    <!-- <idea-version since-build="202.8194.7"/>-->
     <version>2022.7-beta</version>
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.java</depends>
@@ -34,6 +35,9 @@
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>
         <postStartupActivity implementation="org.utbot.intellij.plugin.ui.GotItTooltipActivity"/>
         <projectModelModifier implementation="org.utbot.intellij.plugin.util.UtProjectModelModifier"/>
+        <!--Documentation-->
+        <customJavadocTagProvider implementation="org.utbot.intellij.plugin.javadoc.UtCustomJavaDocTagProvider"/>
+        <lang.documentationProvider language="JAVA" order="first" implementationClass="org.utbot.intellij.plugin.javadoc.UtDocumentationProvider"/>
     </extensions>
 
     <!-- Minimum and maximum build of IDE compatible with the plugin -->

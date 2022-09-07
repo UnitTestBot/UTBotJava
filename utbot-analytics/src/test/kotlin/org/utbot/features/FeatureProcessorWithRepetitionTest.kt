@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.utbot.analytics.EngineAnalyticsContext
-import org.utbot.examples.UtValueTestCaseChecker
-import org.utbot.examples.eq
-import org.utbot.examples.withFeaturePath
+import org.utbot.tests.infrastructure.UtValueTestCaseChecker
+import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withFeaturePath
 import java.io.File
 import java.io.FileInputStream
 
-class FeatureProcessorWithRepetitionTest : UtValueTestCaseChecker(OnePath::class, false) {
+class FeatureProcessorWithRepetitionTest: UtValueTestCaseChecker(OnePath::class, false) {
     companion object {
         const val featureDir = "src/test/resources/features"
         fun reward(coverage: Double, time: Double) = RewardEstimator.reward(coverage, time)
@@ -96,6 +96,11 @@ class FeatureProcessorWithRepetitionTest : UtValueTestCaseChecker(OnePath::class
 
     /**
      * Test, that we correctly add test cases and dump them into file
+     *
+     * NOTE: works only if the
+     * ```
+     * UtSettings.pathSelectorType == PathSelectorType.INHERITORS_SELECTOR
+     * ```
      */
     @Test
     fun addTestCaseTest() {

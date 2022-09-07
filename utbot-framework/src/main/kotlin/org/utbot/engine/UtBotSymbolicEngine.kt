@@ -57,6 +57,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtFailedExecution
 import org.utbot.framework.plugin.api.UtInstrumentation
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtNullModel
@@ -79,9 +80,13 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.Trie
+import org.utbot.fuzzer.TrieBasedFuzzerStatistics
 import org.utbot.fuzzer.UtFuzzedExecution
+import org.utbot.fuzzer.withMutations
 import org.utbot.fuzzer.collectConstantsForFuzzer
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.defaultModelMutators
+import org.utbot.fuzzer.flipCoin
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.providers.ObjectModelProvider
 import org.utbot.instrumentation.ConcreteExecutor
@@ -111,16 +116,16 @@ private var stateSelectedCount = 0
 internal val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
 private fun pathSelector(
-    type: PathSelectorType,
     graph: InterProceduralUnitGraph,
+    typeRegistry: TypeRegistry,
     traverser: Traverser,
     postConditionConstructor: PostConditionConstructor
-) = when (type) {
+) = when (pathSelectorType) {
     PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
-    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, traverser.typeRegistry) {
+    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
@@ -136,7 +141,11 @@ private fun pathSelector(
         withStepsLimit(pathSelectorStepsLimit)
     }
 
-    PathSelectorType.NN_REWARD_GUIDED_SELECTOR -> nnRewardGuidedSelector(graph, StrategyOption.DISTANCE) {
+    PathSelectorType.ML_SELECTOR -> mlSelector(graph, StrategyOption.DISTANCE) {
+        withStepsLimit(pathSelectorStepsLimit)
+    }
+
+    PathSelectorType.TORCH_SELECTOR -> mlSelector(graph, StrategyOption.DISTANCE) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
@@ -447,6 +456,7 @@ class UtBotSymbolicEngine(
         val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
+        val random = Random(0)
         val thisInstance = when {
             utMethod.isStatic -> null
             utMethod.isConstructor -> if (
@@ -458,15 +468,11 @@ class UtBotSymbolicEngine(
                 null
             }
 
+
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
-                    FuzzedMethodDescription(
-                        "thisInstance",
-                        voidClassId,
-                        listOf(utMethod.clazz.id),
-                        constantValues
-                    )
-                ).take(10).shuffled(Random(0)).map { it.value.model }.first().apply {
+                    FuzzedMethodDescription("thisInstance", voidClassId, listOf(utMethod.clazz.id), constantValues)
+                ).take(10).shuffled(random).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
                     }
@@ -482,8 +488,9 @@ class UtBotSymbolicEngine(
             parameterNameMap = { index -> names?.getOrNull(index) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
-        val coveredInstructionValues = mutableMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
-        var attempts = UtSettings.fuzzingMaxAttempts
+        val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()
+        var attempts = 0
+        val attemptsLimit = UtSettings.fuzzingMaxAttempts
         val hasMethodUnderTestParametersToFuzz = executableId.parameters.isNotEmpty()
         val fuzzedValues = if (hasMethodUnderTestParametersToFuzz) {
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
@@ -499,9 +506,11 @@ class UtBotSymbolicEngine(
                 packageName = executableId.classId.packageName
             }
             fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
-                limitValuesCreatedByFieldAccessors = 500
+                totalLimit = 500
             })
-        }
+        }.withMutations(
+            TrieBasedFuzzerStatistics(coveredInstructionValues), methodUnderTestDescription, *defaultModelMutators().toTypedArray()
+        )
         fuzzedValues.forEach { values ->
             if (controller.job?.isActive == false || System.currentTimeMillis() >= until) {
                 logger.info { "Fuzzing overtime: $methodUnderTest" }
@@ -539,14 +548,19 @@ class UtBotSymbolicEngine(
 
             val coveredInstructions = concreteExecutionResult.coverage.coveredInstructions
             if (coveredInstructions.isNotEmpty()) {
-                val count = coveredInstructionTracker.add(coveredInstructions)
-                if (count.count > 1) {
-                    if (--attempts < 0) {
+                val coverageKey = coveredInstructionTracker.add(coveredInstructions)
+                if (coverageKey.count > 1) {
+                    if (++attempts >= attemptsLimit) {
                         return@flow
+                    }
+                    // Update the seeded values sometimes
+                    // This is necessary because some values cannot do a good values in mutation in any case
+                    if (random.flipCoin(probability = 50)) {
+                        coveredInstructionValues[coverageKey] = values
                     }
                     return@forEach
                 }
-                coveredInstructionValues[count] = values
+                coveredInstructionValues[coverageKey] = values
             } else {
                 logger.error { "Coverage is empty for $methodUnderTest with ${values.map { it.model }}" }
             }
@@ -568,9 +582,8 @@ class UtBotSymbolicEngine(
         stateBefore: EnvironmentModels,
         e: ConcreteExecutionFailureException
     ) {
-        val failedConcreteExecution = UtExecution(
+        val failedConcreteExecution = UtFailedExecution(
             stateBefore = stateBefore,
-            stateAfter = MissingState,
             result = UtConcreteExecutionFailure(e)
         )
 

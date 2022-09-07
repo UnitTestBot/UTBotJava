@@ -7,6 +7,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.framework.util.nextModelName
+import java.util.concurrent.CopyOnWriteArrayList
 
 private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleModelConstructorBase>(
     /**
@@ -24,17 +25,32 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
     java.util.ArrayList::class.java to { CollectionConstructor() },
     java.util.AbstractList::class.java to { CollectionConstructor() },
     java.util.List::class.java to { CollectionConstructor() },
-    java.util.Deque::class.java to { CollectionConstructor() },
+    java.util.concurrent.CopyOnWriteArrayList::class.java to { CollectionConstructor() },
+
+
+    /**
+     * Queues, deques
+     */
+    java.util.PriorityQueue::class.java to { CollectionConstructor() },
     java.util.ArrayDeque::class.java to { CollectionConstructor() },
+    java.util.concurrent.LinkedBlockingQueue::class.java to { CollectionConstructor() },
     java.util.concurrent.LinkedBlockingDeque::class.java to { CollectionConstructor() },
+    java.util.concurrent.ConcurrentLinkedQueue::class.java to { CollectionConstructor() },
+    java.util.concurrent.ConcurrentLinkedDeque::class.java to { CollectionConstructor() },
+    java.util.Queue::class.java to { CollectionConstructor() },
+    java.util.Deque::class.java to { CollectionConstructor() },
+
 
     /**
      * Sets
      */
     java.util.HashSet::class.java to { CollectionConstructor() },
+    java.util.TreeSet::class.java to { CollectionConstructor() },
     java.util.LinkedHashSet::class.java to { CollectionConstructor() },
     java.util.AbstractSet::class.java to { CollectionConstructor() },
     java.util.Set::class.java to { CollectionConstructor() },
+
+
 
     /**
      * Maps

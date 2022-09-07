@@ -28,6 +28,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
+import org.utbot.summary.comment.CustomJavaDocCommentBuilder
 import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}
@@ -155,8 +156,13 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
                 for (traceTags in clusterTraceTags.traceTags) {
                     if (GENERATE_COMMENTS) {
-                        traceTags.execution.summary =
-                            SimpleCommentBuilder(traceTags, sootToAST).buildDocStmts(methodUnderTest)
+                        if (UtSettings.useCustomJavaDocTags) {
+                            traceTags.execution.summary =
+                                CustomJavaDocCommentBuilder(traceTags, sootToAST).buildDocStatements(methodUnderTest)
+                        } else {
+                            traceTags.execution.summary =
+                                SimpleCommentBuilder(traceTags, sootToAST).buildDocStmts(methodUnderTest)
+                        }
                     }
 
                     if (GENERATE_DISPLAY_NAMES || GENERATE_NAMES) {

@@ -1,0 +1,15 @@
+name: "UTBot Java: night statistics monitoring"
+
+on:
+   schedule:
+     - cron: '0 0 * * *'
+
+jobs:
+  run_monitoring:
+    uses: ./.github/workflows/collect-statistics.yml
+    secrets: inherit
+    with:
+      runners: 3
+      run_number: 1
+      message_prefix: night-monitoring
+      aggregate: true

@@ -1,7 +1,5 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-compileTestJava.dependsOn project(':utbot-instrumentation').tasks.jar
-
 //noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
@@ -16,6 +14,8 @@ dependencies {
     testImplementation configurations.fetchInstrumentationJar
     testImplementation project(':utbot-sample')
     testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 }
 
 processResources {

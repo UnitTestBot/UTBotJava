@@ -39,14 +39,11 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiManager
-import com.intellij.psi.PsiMethod
-import com.intellij.psi.SyntheticElement
 import com.intellij.refactoring.PackageWrapper
 import com.intellij.refactoring.ui.MemberSelectionTable
 import com.intellij.refactoring.ui.PackageNameReferenceEditorCombo
 import com.intellij.refactoring.util.RefactoringUtil
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.HyperlinkLabel
@@ -97,7 +94,6 @@ import org.jetbrains.concurrency.Promise
 import org.jetbrains.concurrency.thenRun
 import org.jetbrains.kotlin.asJava.classes.KtUltraLightClass
 import org.utbot.common.PathUtil.toPath
-import org.utbot.common.filterWhen
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
@@ -120,6 +116,7 @@ import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
+import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
 import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
@@ -129,13 +126,15 @@ import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
 import org.utbot.intellij.plugin.ui.utils.allLibraries
 import org.utbot.intellij.plugin.ui.utils.findFrameworkLibrary
+import org.utbot.intellij.plugin.ui.utils.findParametrizedTestsLibrary
 import org.utbot.intellij.plugin.ui.utils.getOrCreateTestResourcesPath
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.kotlinTargetPlatform
 import org.utbot.intellij.plugin.ui.utils.parseVersion
 import org.utbot.intellij.plugin.ui.utils.testResourceRootTypes
 import org.utbot.intellij.plugin.ui.utils.testRootType
 import org.utbot.intellij.plugin.util.IntelliJApiHelper
-import org.utbot.intellij.plugin.util.isAbstract
+import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 
 private const val RECENTS_KEY = "org.utbot.recents"
 
@@ -199,6 +198,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         TestFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
+            it.isParametrizedTestsConfigured = findParametrizedTestsLibrary(model.project, model.testModule, it) != null
         }
         MockFramework.allItems.forEach {
             it.isInstalled = findFrameworkLibrary(model.project, model.testModule, it) != null
@@ -383,17 +383,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateMembersTable() {
         val srcClasses = model.srcClasses
 
-        val items: List<MemberInfo>
-        if (srcClasses.size == 1) {
-            items = TestIntegrationUtils.extractClassMethods(srcClasses.single(), false)
-                .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { it.member !is SyntheticElement }
-                .filterNot { it.isAbstract }
-            updateMethodsTable(items)
+        val items = if (model.extractMembersFromSrcClasses) {
+            srcClasses.flatMap { it.extractFirstLevelMembers(false) }
         } else {
-            items = srcClasses.map { MemberInfo(it) }
-            updateClassesTable(items)
+            srcClasses.map { MemberInfo(it) }
         }
 
+        checkMembers(items)
+        membersTable.setMemberInfos(items)
         if (items.isEmpty()) isOKActionEnabled = false
 
         // fix issue with MemberSelectionTable height, set it directly.
@@ -402,27 +399,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         membersTable.preferredScrollableViewportSize = size(-1, height)
     }
 
-    private fun updateMethodsTable(allMethods: List<MemberInfo>) {
-        val selectedDisplayNames = model.selectedMethods?.map { it.displayName } ?: emptyList()
-        val selectedMethods = if (selectedDisplayNames.isEmpty())
-            allMethods
-            else allMethods.filter { it.displayName in selectedDisplayNames }
+    private fun checkMembers(allMembers: List<MemberInfo>) {
+        val selectedDisplayNames = model.selectedMembers?.map { it.displayName } ?: emptyList()
+        val selectedMembers = allMembers.filter { it.displayName in selectedDisplayNames }
 
-        if (selectedMethods.isEmpty()) {
-            checkMembers(allMethods)
-        } else {
-            checkMembers(selectedMethods)
-        }
-
-        membersTable.setMemberInfos(allMethods)
+        val methodsToCheck = selectedMembers.ifEmpty { allMembers }
+        methodsToCheck.forEach { it.isChecked = true }
     }
-
-    private fun updateClassesTable(srcClasses: List<MemberInfo>) {
-        checkMembers(srcClasses)
-        membersTable.setMemberInfos(srcClasses)
-    }
-
-    private fun checkMembers(members: List<MemberInfo>) = members.forEach { it.isChecked = true }
 
     private fun getTestRoot() : VirtualFile? {
         model.testSourceRoot?.let {
@@ -435,7 +418,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val testRoot = getTestRoot()
             ?: return ValidationInfo("Test source root is not configured", testSourceFolderField.childComponent)
 
-        if (findReadOnlyContentEntry(testRoot) == null) {
+        if (!model.project.isBuildWithGradle && findReadOnlyContentEntry(testRoot) == null) {
             return ValidationInfo("Test source root is located out of content entry", testSourceFolderField.childComponent)
         }
 
@@ -496,12 +479,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             if (testPackageField.text != SAME_PACKAGE_LABEL) testPackageField.text else ""
 
         val selectedMembers = membersTable.selectedMemberInfos
-        model.srcClasses = selectedMembers
-            .mapNotNull { it.member as? PsiClass ?: it.member.containingClass }
-            .toSet()
-
-        val selectedMethods = selectedMembers.filter { it.member is PsiMethod }.toSet()
-        model.selectedMethods = if (selectedMethods.any()) selectedMethods else null
+        if (!model.extractMembersFromSrcClasses) {
+            model.srcClasses = selectedMembers
+                .mapNotNull { it.member as? PsiClass }
+                .toSet()
+        }
+        model.selectedMembers = selectedMembers.toSet()
 
         model.testFramework = testFrameworks.item
         model.mockStrategy = mockStrategies.item
@@ -531,10 +514,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         // then process force static mocking case
         model.generateWarningsForStaticMocking = model.staticsMocking is NoStaticMocking
         if (model.forceStaticMocking == ForceStaticMocking.FORCE) {
-            // we have to use mock framework to mock statics, no user provided => choose default
-            if (model.mockFramework == null) {
-                model.mockFramework = MockFramework.defaultItem
-            }
             // we need mock framework extension to mock statics, no user provided => choose default
             if (model.staticsMocking is NoStaticMocking) {
                 model.staticsMocking = StaticsMocking.defaultItem
@@ -556,6 +535,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         configureTestFrameworkIfRequired()
         configureMockFrameworkIfRequired()
         configureStaticMockingIfRequired()
+        configureParametrizedTestsIfRequired()
 
         super.doOKAction()
     }
@@ -689,8 +669,14 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     //region configure frameworks
 
     private fun configureTestFrameworkIfRequired() {
-        if (!testFrameworks.item.isInstalled) {
+        val testFramework = testFrameworks.item
+        if (!testFramework.isInstalled) {
             configureTestFramework()
+
+            // Configuring framework will configure parametrized tests automatically
+            // TODO: do something more general here
+            // Note: we can't just update isParametrizedTestsConfigured as before because project.allLibraries() won't be updated immediately
+            testFramework.isParametrizedTestsConfigured = true
         }
 
         model.conflictTriggers[Conflict.TestFrameworkConflict] = TestFramework.allItems.count { it.isInstalled  } > 1
@@ -705,6 +691,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun configureStaticMockingIfRequired() {
         if (staticsMocking.item != NoStaticMocking && !staticsMocking.item.isConfigured) {
             configureStaticMocking()
+        }
+    }
+
+    private fun configureParametrizedTestsIfRequired() {
+        if (parametrizedTestSources.item != ParametrizedTestSource.DO_NOT_PARAMETRIZE && !testFrameworks.item.isParametrizedTestsConfigured) {
+            configureParametrizedTests()
         }
     }
 
@@ -763,6 +755,27 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         if (!mockitoMockMakerPath.exists()) {
             Files.createFile(mockitoMockMakerPath)
             Files.write(mockitoMockMakerPath, MOCKITO_EXTENSIONS_FILE_CONTENT)
+        }
+    }
+
+    private fun configureParametrizedTests() {
+        // TODO: currently first three declarations are copy-pasted from configureTestFramework(), maybe fix this somehow?
+        val selectedTestFramework = testFrameworks.item
+
+        val libraryInProject =
+            findFrameworkLibrary(model.project, model.testModule, selectedTestFramework, LibrarySearchScope.Project)
+        val versionInProject = libraryInProject?.libraryName?.parseVersion()
+
+        val libraryDescriptor: ExternalLibraryDescriptor? = when (selectedTestFramework) {
+            Junit4 -> error("Parametrized tests are not supported for JUnit 4")
+            Junit5 -> jUnit5ParametrizedTestsLibraryDescriptor(versionInProject)
+            TestNg -> null // Parametrized tests come with TestNG by default
+        }
+
+        selectedTestFramework.isParametrizedTestsConfigured = true
+        libraryDescriptor?.let {
+            addDependency(model.testModule, it)
+                .onError { selectedTestFramework.isParametrizedTestsConfigured = false }
         }
     }
 

@@ -26,8 +26,9 @@ data class GenerateTestsModel(
     val srcModule: Module,
     val potentialTestModules: List<Module>,
     var srcClasses: Set<PsiClass>,
-    var selectedMethods: Set<MemberInfo>?,
-    var timeout:Long,
+    val extractMembersFromSrcClasses: Boolean,
+    var selectedMembers: Set<MemberInfo>?, // TODO: maybe we should make it not nullable?
+    var timeout: Long,
     var generateWarningsForStaticMocking: Boolean = false,
     var fuzzingValue: Double = 0.05
 ) {
@@ -36,6 +37,7 @@ data class GenerateTestsModel(
     var testModule: Module = potentialTestModules.firstOrNull() ?: error("Empty list of test modules in model")
 
     var testSourceRoot: VirtualFile? = null
+
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)
         testSourceRoot = newTestSourceRoot
@@ -46,7 +48,7 @@ data class GenerateTestsModel(
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
-    var mockFramework: MockFramework? = null
+    lateinit var mockFramework: MockFramework
     lateinit var staticsMocking: StaticsMocking
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var codegenLanguage: CodegenLanguage

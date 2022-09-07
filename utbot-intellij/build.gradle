@@ -2,8 +2,15 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 compileKotlin {
     kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
         allWarningsAsErrors = false
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 buildscript {
@@ -29,8 +36,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
 
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
-    implementation(project(":utbot-fuzzers"))
-
+    // implementation project(':utbot-analytics') // to reduce the plugin size
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))
     testApi(project(":utbot-framework"))
@@ -38,7 +44,9 @@ dependencies {
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = "2022.1"
+    // https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html#intellij-platform-based-products-of-recent-ide-versions
+    // https://confluence.jetbrains.com/display/IDEADEV/IDEA+2021.2+latest+builds
+    version = "212.5712.43"
     type = "IC"
     plugins = ['java',
                // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
@@ -47,7 +55,8 @@ intellij {
                'org.jetbrains.android']
 
     patchPluginXml {
-        version = project.version
+        sinceBuild = '212'
+        untilBuild = '221.*'
     }
 }
 
@@ -55,6 +64,6 @@ tasks {
     runIde {
         jvmArgs("-Xmx2048m")
         //// Uncomment and set correct path to Android Studio to run it
-        // ideDirectory = file('d:/AS2021')
+         //ideDir = file('d:/AS2021')
     }
 }

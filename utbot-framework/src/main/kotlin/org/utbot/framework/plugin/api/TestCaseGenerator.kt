@@ -5,7 +5,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -40,10 +39,11 @@ import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
+import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
-import org.utbot.framework.util.runSoot
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.warmup
 import org.utbot.instrumentation.warmup.Warmup
 import soot.SootMethod
 import java.io.File
@@ -58,6 +58,9 @@ import kotlin.reflect.KCallable
  *
  * Note: the instantiating of [TestCaseGenerator] may take some time,
  * because it requires initializing Soot for the current [buildDir] and [classpath].
+ *
+ * @param forceSootReload forces to reinitialize Soot even if the previous buildDir equals to [buildDir] and previous
+ * classpath equals to [classpath]. This is the case for plugin scenario, as the source code may be modified.
  */
 open class TestCaseGenerator(
     private val buildDir: Path,
@@ -65,6 +68,7 @@ open class TestCaseGenerator(
     private val dependencyPaths: String,
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
+    val forceSootReload: Boolean = true
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -84,7 +88,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                runSoot(buildDir, classpath)
+                SootUtils.runSoot(buildDir, classpath, forceSootReload)
             }
 
             //warmup

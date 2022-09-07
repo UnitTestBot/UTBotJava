@@ -4,20 +4,6 @@ plugins {
 
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-compileKotlin {
-    dependsOn project(':utbot-api').tasks.jar
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
-        allWarningsAsErrors = false
-    }
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 dependencies {
     api project(':utbot-core')
     api project(':utbot-api')

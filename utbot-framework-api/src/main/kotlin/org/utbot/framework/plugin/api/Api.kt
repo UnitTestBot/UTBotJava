@@ -144,7 +144,7 @@ sealed class UtResult
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
  * - comments, method names and display names created by utbot-summary module.
  */
-open class UtExecution(
+abstract class UtExecution(
     val stateBefore: EnvironmentModels,
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
@@ -231,6 +231,27 @@ class UtSymbolicExecution(
     }
 }
 
+/**
+ * Execution that result in an error (e.g., JVM crash or another concrete execution error).
+ *
+ * Contains:
+ * - state before the execution;
+ * - result (a [UtExecutionFailure] or its subclass);
+ * - coverage information (instructions) if this execution was obtained from the concrete execution.
+ * - comments, method names and display names created by utbot-summary module.
+ *
+ * This execution does not contain any "after" state, as it is generally impossible to obtain
+ * in case of failure. [MissingState] is used instead.
+ */
+class UtFailedExecution(
+    stateBefore: EnvironmentModels,
+    result: UtExecutionFailure,
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+
 open class EnvironmentModels(
     val thisInstance: UtModel?,
     val parameters: List<UtModel>,
@@ -289,12 +310,12 @@ sealed class UtReferenceModel(
 ) : UtModel(classId)
 
 /**
- * Checks if [UtModel] is a null.
+ * Checks if [UtModel] is a [UtNullModel].
  */
 fun UtModel.isNull() = this is UtNullModel
 
 /**
- * Checks if [UtModel] is not a null.
+ * Checks if [UtModel] is not a [UtNullModel].
  */
 fun UtModel.isNotNull() = !isNull()
 
@@ -1004,7 +1025,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = safeJField.toString()
+    override fun toString() = safeJField?.toString() ?: "[unresolved] $declaringClass.$name"
 }
 
 inline fun <T> withReflection(block: () -> T): T {
@@ -1358,6 +1379,9 @@ class DocPreTagStatement(content: List<DocStatement>) : DocTagStatement(content)
     override fun hashCode(): Int = content.hashCode()
 }
 
+data class DocCustomTagStatement(val statements: List<DocStatement>) : DocTagStatement(statements) {
+    override fun toString(): String = content.joinToString(separator = "")
+}
 
 open class DocClassLinkStmt(val className: String) : DocStatement() {
     override fun toString(): String = className

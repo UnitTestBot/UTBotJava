@@ -2,6 +2,7 @@ package org.utbot.engine.z3
 
 import com.microsoft.z3.Context
 import com.microsoft.z3.Global
+import com.microsoft.z3.Native
 import org.utbot.common.FileUtil
 import java.io.File
 import java.nio.file.Files.createTempDirectory
@@ -61,6 +62,7 @@ abstract class Z3Initializer : AutoCloseable {
             }
 
             allLibraries.forEach { System.load("$libFolder/$it$ext") }
+            Native.globalParamSet("memory_max_size", "${8L * 1024 * 1024 * 1024}")
         }
 
         init {

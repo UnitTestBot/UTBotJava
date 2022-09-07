@@ -2,8 +2,8 @@ package org.utbot.fuzzer.providers
 
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.isPrimitive
+import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
@@ -32,9 +32,9 @@ object ConstantsModelProvider : ModelProvider {
         }
     }
 
-    private fun modifyValue(value: Any, op: FuzzedOp): FuzzedValue? {
-        if (!op.isComparisonOp()) return null
-        val multiplier = if (op == FuzzedOp.LT || op == FuzzedOp.GE) -1 else 1
+    private fun modifyValue(value: Any, op: FuzzedContext): FuzzedValue? {
+        if (op !is FuzzedContext.Comparison) return null
+        val multiplier = if (op == FuzzedContext.Comparison.LT || op == FuzzedContext.Comparison.GE) -1 else 1
         return when(value) {
             is Boolean -> value.not()
             is Byte -> value + multiplier.toByte()
@@ -46,8 +46,8 @@ object ConstantsModelProvider : ModelProvider {
             is Double -> value + multiplier.toDouble()
             else -> null
         }?.let { UtPrimitiveModel(it).fuzzed { summary = "%var% ${
-            (if (op == FuzzedOp.EQ || op == FuzzedOp.LE || op == FuzzedOp.GE) {
-                op.reverseOrNull() ?: error("cannot find reverse operation for $op")
+            (if (op == FuzzedContext.Comparison.EQ || op == FuzzedContext.Comparison.LE || op == FuzzedContext.Comparison.GE) { 
+                op.reverse() 
             } else op).sign
         } $value" } }
     }

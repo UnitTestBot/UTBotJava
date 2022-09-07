@@ -23,8 +23,10 @@ data class Instruction(
  * Some other useful information (e.g., covered branches, etc.) may be added in the future.
  *
  * @param coveredInstructions a list of the covered instructions in the order they are visited.
+ * @param instructionsCount a number of all instructions in the current class.
  *
  */
-class Coverage(
-    val coveredInstructions: List<Instruction> = emptyList()
+data class Coverage(
+    val coveredInstructions: List<Instruction> = emptyList(),
+    val instructionsCount: Long? = null
 )

@@ -1,7 +1,7 @@
 package org.utbot.instrumentation.instrumentation
 
-import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.util.signature
+import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
@@ -52,7 +52,7 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
         methodOrConstructor.run {
             val result = when (this) {
                 is Method ->
-                    withAccessibility {
+                    runSandbox {
                         runCatching {
                             invoke(thisObject, *realArgs.toTypedArray()).let {
                                 if (returnType != Void.TYPE) it else Unit
@@ -61,7 +61,7 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
                     }
 
                 is Constructor<*> ->
-                    withAccessibility {
+                    runSandbox {
                         runCatching {
                             newInstance(*realArgs.toTypedArray())
                         }

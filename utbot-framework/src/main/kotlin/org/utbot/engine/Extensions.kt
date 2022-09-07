@@ -74,6 +74,13 @@ import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.tagkit.ArtificialEntityTag
 import java.lang.reflect.ParameterizedType
+import java.util.LinkedList
+import java.util.ArrayDeque
+import java.util.Deque
+import java.util.Queue
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -256,7 +263,9 @@ val libraryTargets: Map<String, List<String>> = mapOf(
     Collection::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
     List::class.java.name to listOf(ArrayList::class.java.name),
     Set::class.java.name to listOf(HashSet::class.java.name),
-    Map::class.java.name to listOf(HashMap::class.java.name)
+    Map::class.java.name to listOf(HashMap::class.java.name),
+    Queue::class.java.name to listOf(LinkedList::class.java.name, ArrayDeque::class.java.name),
+    Deque::class.java.name to listOf(LinkedList::class.java.name, ArrayDeque::class.java.name)
 )
 
 fun Collection<*>.prettify() = joinToString("\n", "\n", "\n")

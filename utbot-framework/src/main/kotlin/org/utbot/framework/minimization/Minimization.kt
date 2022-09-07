@@ -93,6 +93,7 @@ private fun groupByBranchInstructions(
      * 2. {2, 3, 2, 6}
      * 3. {2, 3, 4, 3}
      * branch instructions are {2 -> (3, 4, 5, 6), 3 -> (2, 4), 4 -> (2, 3)}
+     *
      * we will build these lists representing their behaviour:
      * 1. {2 -> 3, 3 -> 2} (because of {__2__, __3__, 2, 4, 2, 5})
      * 2. {2 -> 3, 3 -> 2} (because of {__2__, __3__, 2, 6})

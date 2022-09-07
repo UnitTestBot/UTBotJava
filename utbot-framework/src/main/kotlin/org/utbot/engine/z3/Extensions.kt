@@ -52,7 +52,7 @@ internal fun Expr.boolValue() = this.value() as Boolean
  *
  * @throws IllegalStateException if given expression cannot be convert to given sort
  */
-internal fun Context.convertVar(variable: Z3Variable, toType: Type): Z3Variable {
+fun Context.convertVar(variable: Z3Variable, toType: Type): Z3Variable {
     if (toType == variable.type) return variable
     if (variable.type is ByteType && toType is CharType) {
         return convertVar(convertVar(variable, IntType.v()), toType)
@@ -151,7 +151,7 @@ fun Context.makeFP(const: Number, sort: FPSort): FPExpr = when (const) {
     else -> error("Wrong type ${const::class}")
 }
 
-internal fun Context.toSort(type: Type): Sort =
+fun Context.toSort(type: Type): Sort =
     when (type) {
         is ByteType -> mkBitVecSort(Byte.SIZE_BITS)
         is ShortType -> mkBitVecSort(Short.SIZE_BITS)

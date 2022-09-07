@@ -33,7 +33,7 @@ data class NNJson(
 }
 
 internal fun loadModel(path: String): NNJson {
-    val modelFile = Paths.get(UtSettings.rewardModelPath, path).toFile()
+    val modelFile = Paths.get(UtSettings.modelPath, path).toFile()
     lateinit var nnJson: NNJson
 
     try {

@@ -100,6 +100,7 @@ import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostConditi
 import org.utbot.framework.synthesis.postcondition.constructors.PostConditionConstructor
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
+import org.utbot.framework.util.isInaccessibleViaReflection
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
@@ -637,7 +638,7 @@ class Traverser(
 
         // so, we have to make an update for the local $r0
 
-        return if (stmt is JAssignStmt) {
+        return if (stmt is JAssignStmt && stmt.leftOp is JimpleLocal) {
             val local = stmt.leftOp as JimpleLocal
 
             localMemoryUpdate(local.variable to symbolicValue)
@@ -1808,6 +1809,8 @@ class Traverser(
      */
     private fun isStaticFieldMeaningful(field: SootField) =
         !Modifier.isSynthetic(field.modifiers) &&
+            // we don't want to set fields that cannot be set via reflection anyway
+            !field.fieldId.isInaccessibleViaReflection &&
             // we don't want to set fields from library classes
             !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
                 ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
@@ -2454,6 +2457,9 @@ class Traverser(
         val method = invokeExpr.retrieveMethod()
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
+
+        // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
+        // TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
         return commonInvokePart(invocation)
     }
 
@@ -2472,7 +2478,23 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
-        // First, check if there is override for the invocation itself, not for the targets
+        /**
+         * First, check if there is override for the invocation itself, not for the targets.
+         *
+         * Note that calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers,
+         * so here we resolve [invocation] to the inherited method invocation if it's something like:
+         *
+         * ```java
+         * public class InheritedWrapper extends BaseWrapper {
+         *     public void add(Object o) {
+         *         // some stuff
+         *         super.add(o); // this resolves to InheritedWrapper::add instead of BaseWrapper::add
+         *     }
+         * }
+         * ```
+         *
+         * TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
+         */
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
 
         // If so, return the result of the override

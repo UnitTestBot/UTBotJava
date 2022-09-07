@@ -1,7 +1,6 @@
 package org.utbot.framework.codegen.model.util
 
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.util.id
 
 /**
  * For now we will count field accessible if it is not private and its class is also accessible,
@@ -10,7 +9,7 @@ import org.utbot.framework.plugin.api.util.id
  *
  * @param packageName name of the package we check accessibility from
  */
-fun FieldId.isAccessibleFrom(packageName: String): Boolean {
+infix fun FieldId.isAccessibleFrom(packageName: String): Boolean {
     val isClassAccessible = declaringClass.isAccessibleFrom(packageName)
     val isAccessibleByVisibility = isPublic || (declaringClass.packageName == packageName && (isPackagePrivate || isProtected))
     val isAccessibleFromPackageByModifiers = isAccessibleByVisibility && !isSynthetic

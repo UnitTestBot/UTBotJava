@@ -67,14 +67,12 @@ import org.utbot.framework.codegen.model.tree.convertDocToCg
 import org.utbot.framework.codegen.model.tree.toStatement
 import org.utbot.framework.codegen.model.util.canBeSetIn
 import org.utbot.framework.codegen.model.util.equalTo
-import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.length
 import org.utbot.framework.codegen.model.util.lessThan
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -1048,7 +1046,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
-            utilsClassId[getFieldValue](variable, stringLiteral(name))
+            utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
         }
 
     /**

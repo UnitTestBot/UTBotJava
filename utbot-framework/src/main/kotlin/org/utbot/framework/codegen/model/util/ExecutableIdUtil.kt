@@ -1,6 +1,9 @@
 package org.utbot.framework.codegen.model.util
 
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.isPackagePrivate
+import org.utbot.framework.plugin.api.util.isProtected
+import org.utbot.framework.plugin.api.util.isPublic
 
 /**
  * For now we will count executable accessible if it is whether public

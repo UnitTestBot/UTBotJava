@@ -20,7 +20,7 @@ object SarifReportIdea {
         sourceFinding: SourceFindingStrategyIdea
     ) {
         // building the path to the report file
-        val classFqn = testSets.firstOrNull()?.method?.clazz?.qualifiedName ?: return
+        val classFqn = testSets.firstOrNull()?.method?.classId?.name ?: return
         val sarifReportsPath = model.testModule.getOrCreateSarifReportsPath(model.testSourceRoot)
         val reportFilePath = sarifReportsPath.resolve("${classFqnToPath(classFqn)}Report.sarif")
 

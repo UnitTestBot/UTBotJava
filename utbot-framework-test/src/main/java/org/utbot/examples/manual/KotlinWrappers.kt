@@ -5,13 +5,6 @@ import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 
-object SootUtils {
-    @JvmStatic
-    fun runSoot(clazz: Class<*>) {
-        org.utbot.framework.util.SootUtils.runSoot(clazz.kotlin, forceReload = false)
-    }
-}
-
 fun fields(
     classId: ClassId,
     vararg fields: Pair<String, Any>

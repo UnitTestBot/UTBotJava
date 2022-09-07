@@ -56,7 +56,10 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
             pos += clusterSize
             it.clusterInfo to indices
         }
-        this.copy(executions = updatedExecutions, clustersInfo = clustersInfo) // TODO: looks weird and don't create the real copy
+        this.copy(
+            executions = updatedExecutions,
+            clustersInfo = clustersInfo
+        ) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
         logger.info(e) { "Summary generation error" }
         this
@@ -98,14 +101,20 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
                 val nameSuggester = sequenceOf(ModelBasedNameSuggester(), MethodBasedNameSuggester())
                 val testMethodName = try {
-                    nameSuggester.flatMap { it.suggest(utExecution.fuzzedMethodDescription as FuzzedMethodDescription, utExecution.fuzzingValues as List<FuzzedValue>, utExecution.result) }.firstOrNull()
+                    nameSuggester.flatMap {
+                        it.suggest(
+                            utExecution.fuzzedMethodDescription as FuzzedMethodDescription,
+                            utExecution.fuzzingValues as List<FuzzedValue>,
+                            utExecution.result
+                        )
+                    }.firstOrNull()
                 } catch (t: Throwable) {
                     logger.error(t) { "Cannot create suggested test name for $utExecution" } // TODO: add better explanation or default behavoiur
                     null
                 }
 
                 utExecution.testMethodName = testMethodName?.testName
-                utExecution.displayName =  testMethodName?.displayName
+                utExecution.displayName = testMethodName?.displayName
 
                 when (utExecution.result) {
                     is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)
@@ -118,7 +127,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 }
             }
 
-            if(successfulFuzzerExecutions.isNotEmpty()) {
+            if (successfulFuzzerExecutions.isNotEmpty()) {
                 val clusterHeader = buildFuzzerClusterHeaderForSuccessfulExecutions(testSet)
 
                 clustersToReturn.add(
@@ -129,7 +138,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                 )
             }
 
-            if(unsuccessfulFuzzerExecutions.isNotEmpty()) {
+            if (unsuccessfulFuzzerExecutions.isNotEmpty()) {
                 val clusterHeader = buildFuzzerClusterHeaderForUnsuccessfulExecutions(testSet)
 
                 clustersToReturn.add(
@@ -326,7 +335,8 @@ private fun makeDiverseExecutions(testSet: UtMethodTestSet) {
 }
 
 private fun invokeDescriptions(testSet: UtMethodTestSet, searchDirectory: Path): List<InvokeDescription> {
-    val sootInvokes = testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path.invokeJimpleMethods() }.toSet()
+    val sootInvokes =
+        testSet.executions.filterIsInstance<UtSymbolicExecution>().flatMap { it.path.invokeJimpleMethods() }.toSet()
     return sootInvokes
         //TODO(SAT-1170)
         .filterNot { "\$lambda" in it.declaringClass.name }

@@ -5,9 +5,6 @@ import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.builtin.any
 import org.utbot.framework.codegen.model.constructor.builtin.anyOfClass
-import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredConstructor
-import org.utbot.framework.codegen.model.constructor.builtin.getDeclaredMethod
 import org.utbot.framework.codegen.model.constructor.builtin.getMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
@@ -271,7 +268,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
         if (this.isStatic && caller != null && codegenLanguage == CodegenLanguage.KOTLIN) {
-            error("In Kotlin, unlike Java, static methods cannot be called on an object")
+            error("In Kotlin, unlike Java, static methods cannot be called on an instance: $this")
         }
 
         // If method is from current test class, then it may not have a caller.
@@ -279,7 +276,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
             return true
         }
 
-        requireNotNull(caller) { "Method must have a caller, unless it is the method of the current test class or a static method" }
+        requireNotNull(caller) { "Method must have a caller, unless it is the method of the current test class or a static method: $this" }
         return caller canBeReceiverOf this
     }
 
@@ -295,7 +292,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
         if (this.isStatic && accessor != null && codegenLanguage == CodegenLanguage.KOTLIN) {
-            error("In Kotlin, unlike Java, static fields cannot be accessed by an object")
+            error("In Kotlin, unlike Java, static fields cannot be accessed by an object: $this")
         }
 
         // if field is declared in the current test class
@@ -313,7 +310,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
         }
 
         requireNotNull(accessor) {
-            "Field access must have a non-null accessor, unless it is the field of the current test class or a static field"
+            "Field access must have a non-null accessor, unless it is the field of the current test class or a static field: $this"
         }
 
         if (this.declaringClass == accessor.type) {
@@ -358,6 +355,20 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     /**
      * Check if the field represented by @receiver is hidden when accessed from an instance of [subclass].
+     *
+     * Brief description: this method collects all types from hierarchy in between [subclass] (inclusive)
+     * up to the class where the field is declared (exclusive) and checks if any of these classes declare
+     * a field with the same name (thus hiding the given field). For examples and more details read documentation below.
+     *
+     * The **contract** of this method is as follows:
+     * [subclass] must be a subclass of `this.declaringClass` (and they **must not** be the same class).
+     * That is because if they are equal (we try to access field from instance of its own class),
+     * then the field is not hidden. And if [subclass] is actually not a subclass, but a superclass of a class
+     * where the field is declared, then this check makes no sense (superclass cannot hide field of a subclass).
+     * Lastly, if these classes are not related in terms of inheritance, then there must be some error,
+     * because such checks also make no sense.
+     *
+     * **Examples**.
      *
      * For example, given classes:
      * ```
@@ -406,6 +417,11 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
      * If such field is found, then the field is hidden, otherwise - not.
      */
     private infix fun FieldId.isFieldHiddenIn(subclass: Class<*>): Boolean {
+        // see the documentation of this method for more details on this requirement
+        require(subclass.id != this.declaringClass) {
+            "A given subclass must not be equal to the declaring class of the field: $subclass"
+        }
+
         // supertypes (classes and interfaces) from subclass (inclusive) up to superclass (exclusive)
         val supertypes = sequence {
             var types = generateSequence(subclass) { it.superclass }

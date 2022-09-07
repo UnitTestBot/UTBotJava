@@ -406,7 +406,7 @@ val Constructor<*>.executableId: ConstructorId
         return constructorId(classId, *arguments)
     }
 
-val ExecutableId.displayName: String
+val ExecutableId.humanReadableName: String
     get() {
         val executableName = this.name
         val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
@@ -414,10 +414,10 @@ val ExecutableId.displayName: String
     }
 
 val Constructor<*>.displayName: String
-    get() = executableId.displayName
+    get() = executableId.humanReadableName
 
 val Method.displayName: String
-    get() = executableId.displayName
+    get() = executableId.humanReadableName
 
 val KCallable<*>.declaringClazz: Class<*>
     get() = when (this) {

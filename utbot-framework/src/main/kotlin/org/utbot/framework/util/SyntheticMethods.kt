@@ -1,12 +1,12 @@
 package org.utbot.framework.util
 
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.util.displayName
+import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.isEnum
 
 fun isKnownSyntheticMethod(method: ExecutableId): Boolean =
     if (method.classId.isEnum)
-        method.displayName.substringBefore('(') in KnownSyntheticMethodNames.enumSyntheticMethodNames
+        method.humanReadableName.substringBefore('(') in KnownSyntheticMethodNames.enumSyntheticMethodNames
     else
         false
 

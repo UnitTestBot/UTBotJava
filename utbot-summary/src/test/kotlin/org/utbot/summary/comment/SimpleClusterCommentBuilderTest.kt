@@ -48,15 +48,14 @@ class SimpleClusterCommentBuilderTest {
     fun `builds empty comment if execution result is null`() {
         val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
         val comment = commentBuilder.buildString(sootMethod)
-        assertEquals(" ", comment)
+        assertEquals("", comment)
     }
 
     @Test
-    fun `builds empty doc statement if execution result is null`() {
+    fun `does not build any statements for javadoc if execution result is null`() {
         val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
         val statements = commentBuilder.buildDocStmts(sootMethod)
-        assertEquals(statements.size, 1)
-        assertEquals(statements[0].toString(), " ")
+        assertEquals(statements.size, 0)
     }
 
 }

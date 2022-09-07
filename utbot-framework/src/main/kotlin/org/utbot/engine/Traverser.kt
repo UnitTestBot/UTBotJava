@@ -194,6 +194,8 @@ import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
@@ -956,6 +958,8 @@ class Traverser(
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
         val callable = methodUnderTest.executable
+        val kCallable = ::updateGenericTypeInfo
+        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {

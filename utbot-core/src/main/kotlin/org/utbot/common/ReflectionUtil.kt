@@ -89,10 +89,10 @@ val Member.isPrivate
 val Member.isPublic
     get() = Modifier.isPublic(modifiers)
 
-val Member.isFinal: Boolean
+val Member.isFinal
     get() = Modifier.isFinal(modifiers)
 
-val Member.isProtected: Boolean
+val Member.isProtected
     get() = Modifier.isProtected(modifiers)
 
 val Class<*>.isAbstract
@@ -107,8 +107,8 @@ val Class<*>.isPrivate
 val Class<*>.isPublic
     get() = Modifier.isPublic(modifiers)
 
-val Class<*>.isFinal: Boolean
+val Class<*>.isFinal
     get() = Modifier.isFinal(modifiers)
 
-val Class<*>.isProtected: Boolean
+val Class<*>.isProtected
     get() = Modifier.isProtected(modifiers)

@@ -1,4 +1,4 @@
-package org.utbot.summary.comment
+package org.utbot.summary.comment.classic
 
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.stmt.CatchClause
@@ -16,6 +16,12 @@ import org.utbot.framework.plugin.api.exceptionOrNull
 import org.utbot.summary.AbstractTextBuilder
 import org.utbot.summary.SummarySentenceConstants.CARRIAGE_RETURN
 import org.utbot.summary.ast.JimpleToASTMap
+import org.utbot.summary.comment.getExceptionReason
+import org.utbot.summary.comment.getTextIterationDescription
+import org.utbot.summary.comment.isLoopStatement
+import org.utbot.summary.comment.lastCommaToDot
+import org.utbot.summary.comment.shouldSkipInvoke
+import org.utbot.summary.comment.splitLongSentence
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.CallOrderTag
 import org.utbot.summary.tag.StatementTag

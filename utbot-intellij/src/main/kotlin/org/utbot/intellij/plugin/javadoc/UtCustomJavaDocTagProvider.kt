@@ -6,8 +6,8 @@ import com.intellij.psi.PsiReference
 import com.intellij.psi.javadoc.CustomJavadocTagProvider
 import com.intellij.psi.javadoc.JavadocTagInfo
 import com.intellij.psi.javadoc.PsiDocTagValue
-import org.utbot.summary.comment.CustomJavaDocTag
-import org.utbot.summary.comment.CustomJavaDocTagProvider
+import org.utbot.summary.comment.customtags.symbolic.CustomJavaDocTag
+import org.utbot.summary.comment.customtags.symbolic.CustomJavaDocTagProvider
 
 /**
  * Provides plugin's custom JavaDoc tags to make test summaries structured.

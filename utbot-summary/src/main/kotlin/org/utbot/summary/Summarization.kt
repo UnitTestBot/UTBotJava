@@ -16,8 +16,8 @@ import org.utbot.summary.UtSummarySettings.GENERATE_NAMES
 import org.utbot.summary.analysis.ExecutionStructureAnalysis
 import org.utbot.summary.ast.JimpleToASTMap
 import org.utbot.summary.ast.SourceCodeParser
-import org.utbot.summary.comment.SymbolicExecutionClusterCommentBuilder
-import org.utbot.summary.comment.SimpleCommentBuilder
+import org.utbot.summary.comment.classic.SymbolicExecutionClusterCommentBuilder
+import org.utbot.summary.comment.classic.SimpleCommentBuilder
 import org.utbot.summary.name.SimpleNameBuilder
 import java.io.File
 import java.nio.file.Path
@@ -35,7 +35,7 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.summary.fuzzer.names.MethodBasedNameSuggester
 import org.utbot.summary.fuzzer.names.ModelBasedNameSuggester
-import org.utbot.summary.comment.CustomJavaDocCommentBuilder
+import org.utbot.summary.comment.customtags.symbolic.CustomJavaDocCommentBuilder
 import soot.SootMethod
 
 private val logger = KotlinLogging.logger {}

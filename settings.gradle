@@ -29,5 +29,6 @@ include 'utbot-gradle'
 include 'utbot-maven'
 include 'utbot-summary-tests'
 include 'utbot-framework-test'
+include 'utbot-framework-test-java11'
 include 'utbot-rd'
 

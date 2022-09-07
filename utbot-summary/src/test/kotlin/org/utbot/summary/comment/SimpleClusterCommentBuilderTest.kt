@@ -15,6 +15,8 @@ import soot.SootMethod
 import soot.jimple.Stmt
 import soot.jimple.internal.JReturnStmt
 
+private const val EMPTY_STRING = ""
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SimpleClusterCommentBuilderTest {
     private lateinit var traceTag: TraceTag
@@ -48,7 +50,7 @@ class SimpleClusterCommentBuilderTest {
     fun `builds empty comment if execution result is null`() {
         val commentBuilder = SimpleClusterCommentBuilder(traceTag, sootToAst)
         val comment = commentBuilder.buildString(sootMethod)
-        assertEquals("", comment)
+        assertEquals(EMPTY_STRING, comment)
     }
 
     @Test
@@ -57,5 +59,4 @@ class SimpleClusterCommentBuilderTest {
         val statements = commentBuilder.buildDocStmts(sootMethod)
         assertEquals(statements.size, 0)
     }
-
 }

@@ -43,7 +43,7 @@ open class SummaryTestCaseGeneratorTest(
         cookie.close()
     }
 
-    fun <R> summaryCheck(
+    inline fun <reified R> summaryCheck(
         method: KFunction<R>,
         mockStrategy: MockStrategyApi,
         coverageMatcher: CoverageMatcher,

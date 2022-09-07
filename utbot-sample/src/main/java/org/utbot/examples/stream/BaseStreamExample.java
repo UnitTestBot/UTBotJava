@@ -173,11 +173,17 @@ public class BaseStreamExample {
         int beforeStaticValue = x;
 
         final Consumer<Integer> action = value -> x += value;
+        final Stream<Integer> stream = list.stream();
+
+        Stream<Integer> afterPeek;
         if (list.contains(null)) {
-            list.stream().peek(action);
+            afterPeek = stream.peek(action);
         } else {
-            list.stream().peek(action);
+            afterPeek = stream.peek(action);
         }
+
+        // use terminal operation to force peek action
+        afterPeek.count();
 
         return beforeStaticValue;
     }

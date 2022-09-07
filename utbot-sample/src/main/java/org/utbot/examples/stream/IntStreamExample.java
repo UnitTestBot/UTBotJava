@@ -155,11 +155,15 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
+        IntStream afterPeek;
         if (list.contains(null)) {
-            ints.peek(action);
+            afterPeek = ints.peek(action);
         } else {
-            ints.peek(action);
+            afterPeek = ints.peek(action);
         }
+
+        // use terminal operation to force peek action
+        afterPeek.count();
 
         return beforeStaticValue;
     }
@@ -170,10 +174,10 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
-        if (list.size() <= 5) {
-            return ints.limit(5).toArray();
+        if (list.size() <= 2) {
+            return ints.limit(2).toArray();
         } else {
-            return ints.limit(5).toArray();
+            return ints.limit(2).toArray();
         }
     }
 
@@ -183,10 +187,10 @@ public class IntStreamExample {
         final ToIntFunction<Short> shortToIntFunction = value -> value == null ? 0 : value.intValue();
         final IntStream ints = list.stream().mapToInt(shortToIntFunction);
 
-        if (list.size() <= 5) {
-            return ints.skip(5).toArray();
+        if (list.size() <= 2) {
+            return ints.skip(2).toArray();
         } else {
-            return ints.skip(5).toArray();
+            return ints.skip(2).toArray();
         }
     }
 

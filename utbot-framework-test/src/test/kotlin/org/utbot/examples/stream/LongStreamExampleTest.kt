@@ -131,8 +131,8 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
             LongStreamExample::flatMapExample,
             ignoreExecutionsNumber,
             { c, r ->
-                val intLists = c.mapNotNull {
-                    it.toLong().let { i -> listOf(i, i) }
+                val intLists = c.map {
+                    (it?.toLong() ?: 0L).let { i -> listOf(i, i) }
                 }
 
                 r!!.contentEquals(intLists.flatten().toLongArray())
@@ -187,8 +187,8 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
         check(
             LongStreamExample::limitExample,
             ignoreExecutionsNumber,
-            { c, r -> c.size <= 5 && c.longs().contentEquals(r) },
-            { c, r -> c.size > 5 && c.take(5).longs().contentEquals(r) },
+            { c, r -> c.size <= 2 && c.longs().contentEquals(r) },
+            { c, r -> c.size > 2 && c.take(2).longs().contentEquals(r) },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
@@ -198,8 +198,8 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
         check(
             LongStreamExample::skipExample,
             ignoreExecutionsNumber,
-            { c, r -> c.size > 5 && c.drop(5).longs().contentEquals(r) },
-            { c, r -> c.size <= 5 && r!!.isEmpty() },
+            { c, r -> c.size > 2 && c.drop(2).longs().contentEquals(r) },
+            { c, r -> c.size <= 2 && r!!.isEmpty() },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }
@@ -241,7 +241,11 @@ class LongStreamExampleTest : UtValueTestCaseChecker(
             LongStreamExample::optionalReduceExample,
             ignoreExecutionsNumber,
             { c, r -> c.isEmpty() && r.getOrThrow() == OptionalLong.empty() },
-            { c: List<Short?>, r -> c.isNotEmpty() && r.getOrThrow() == OptionalLong.of(c.filterNotNull().sum().toLong()) },
+            { c: List<Short?>, r ->
+                c.isNotEmpty() && r.getOrThrow() == OptionalLong.of(
+                    c.filterNotNull().sum().toLong()
+                )
+            },
             coverage = FullWithAssumptions(assumeCallsNumber = 1)
         )
     }

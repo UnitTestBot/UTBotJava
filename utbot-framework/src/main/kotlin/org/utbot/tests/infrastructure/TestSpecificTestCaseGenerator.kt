@@ -6,6 +6,7 @@ import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.engine.EngineController
 import org.utbot.engine.Mocker
+import org.utbot.engine.SymbolicEngineTarget
 import org.utbot.engine.UtBotSymbolicEngine
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
@@ -18,6 +19,7 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.synthesis.postcondition.constructors.EmptyPostCondition
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
 
@@ -31,7 +33,7 @@ class TestSpecificTestCaseGenerator(
     dependencyPaths: String,
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
-): TestCaseGenerator(buildDir, classpath, dependencyPaths, engineActions, isCanceled, forceSootReload = false) {
+) : TestCaseGenerator(buildDir, classpath, dependencyPaths, engineActions, isCanceled, forceSootReload = false) {
 
     private val logger = KotlinLogging.logger {}
 
@@ -61,14 +63,20 @@ class TestSpecificTestCaseGenerator(
             runBlockingWithCancellationPredicate(isCanceled) {
                 val controller = EngineController()
                 controller.job = launch {
-                    super
-                        .generateAsync(controller, method, mockStrategy, mockAlwaysDefaults, defaultTimeEstimator)
-                        .collect {
-                            when (it) {
-                                is UtExecution -> executions += it
-                                is UtError -> errors.merge(it.description, 1, Int::plus)
-                            }
+                    super.generateAsync(
+                        controller,
+                        SymbolicEngineTarget.from(method),
+                        mockStrategy,
+                        mockAlwaysDefaults,
+                        defaultTimeEstimator,
+                        UtSettings.enableSynthesis,
+                        EmptyPostCondition
+                    ).collect {
+                        when (it) {
+                            is UtExecution -> executions += it
+                            is UtError -> errors.merge(it.description, 1, Int::plus)
                         }
+                    }
                 }
             }
         }

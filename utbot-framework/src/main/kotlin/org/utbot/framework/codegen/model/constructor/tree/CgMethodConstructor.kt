@@ -77,42 +77,7 @@ import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
-import org.utbot.framework.plugin.api.BuiltinClassId
-import org.utbot.framework.plugin.api.BuiltinMethodId
-import org.utbot.framework.plugin.api.ClassId
-import org.utbot.framework.plugin.api.CodegenLanguage
-import org.utbot.framework.plugin.api.ConcreteExecutionFailureException
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.TimeoutException
-import org.utbot.framework.plugin.api.TypeParameters
-import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtClassRefModel
-import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtConcreteExecutionFailure
-import org.utbot.framework.plugin.api.UtDirectSetFieldModel
-import org.utbot.framework.plugin.api.UtEnumConstantModel
-import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtExecutionFailure
-import org.utbot.framework.plugin.api.UtExecutionSuccess
-import org.utbot.framework.plugin.api.UtExplicitlyThrownException
-import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
-import org.utbot.framework.plugin.api.UtNullModel
-import org.utbot.framework.plugin.api.UtPrimitiveModel
-import org.utbot.framework.plugin.api.UtReferenceModel
-import org.utbot.framework.plugin.api.UtSandboxFailure
-import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
-import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtTimeoutException
-import org.utbot.framework.plugin.api.UtVoidModel
-import org.utbot.framework.plugin.api.isNotNull
-import org.utbot.framework.plugin.api.isNull
-import org.utbot.framework.plugin.api.onFailure
-import org.utbot.framework.plugin.api.onSuccess
+import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -187,7 +152,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             instrumentation
                 .filterIsInstance<UtStaticMethodInstrumentation>()
                 .groupBy { it.methodId.classId }
-                .forEach { (classId, methodMocks) -> mockFrameworkManager.mockStaticMethodsOfClass(classId, methodMocks) }
+                .forEach { (classId, methodMocks) ->
+                    mockFrameworkManager.mockStaticMethodsOfClass(
+                        classId,
+                        methodMocks
+                    )
+                }
 
             if (generateWarningsForStaticMocking && forceStaticMocking == ForceStaticMocking.FORCE) {
                 // warn user about forced using static mocks
@@ -315,6 +285,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         processExecutionFailure(currentExecution, exception)
                     }
             }
+
             else -> {} // TODO: check this specific case
         }
     }
@@ -354,11 +325,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 methodType = CRASH
                 writeWarningAboutCrash()
             }
+
             is AccessControlException -> {
                 methodType = CRASH
                 writeWarningAboutFailureTest(exception)
                 return
             }
+
             else -> {
                 methodType = FAILING
                 writeWarningAboutFailureTest(exception)
@@ -414,7 +387,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         +CgMultilineComment(warningLine + neededStackTraceLines.reversed())
     }
 
-    private fun String.escapeControlChars() : String {
+    private fun String.escapeControlChars(): String {
         return this.replace("\b", "\\b").replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
     }
 
@@ -450,6 +423,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                     .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
             }
+
             else -> {} // TODO: check this specific case
         }
     }
@@ -530,12 +504,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 typeCast(floatClassId, actual, isSafetyCast = false),
                                 floatDelta
                             )
+
                         (expected.type == doubleClassId || expected.type == doubleWrapperClassId) ->
                             assertions[assertDoubleEquals]( // cast have to be not safe here because of signature
                                 typeCast(doubleClassId, expected, isSafetyCast = false),
                                 typeCast(doubleClassId, actual, isSafetyCast = false),
                                 doubleDelta
                             )
+
                         expectedModel.value is Boolean -> {
                             when (parametrizedTestSource) {
                                 ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
@@ -544,6 +520,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                     } else {
                                         assertions[assertFalse](actual)
                                     }
+
                                 ParametrizedTestSource.PARAMETRIZE ->
                                     assertions[assertEquals](expected, actual)
                             }
@@ -557,12 +534,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         }
                     }.toStatement()
                 }
+
                 is UtEnumConstantModel -> {
                     currentBlock += assertions[assertEquals](
                         expected,
                         actual
                     ).toStatement()
                 }
+
                 is UtClassRefModel -> {
                     // TODO this stuff is needed because Kotlin has javaclass property instead of Java getClass method
                     //  probably it is better to change getClass method behaviour in the future
@@ -572,6 +551,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             baseName = variableConstructor.constructVarName("actualObject"),
                             init = { CgTypeCast(objectClassId, actual) }
                         )
+
                         else -> actual
                     }
 
@@ -580,9 +560,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         actualObject[getClass]()
                     ).toStatement()
                 }
+
                 is UtNullModel -> {
                     currentBlock += assertions[assertNull](actual).toStatement()
                 }
+
                 is UtArrayModel -> {
                     val arrayInfo = expectedModel.collectArrayInfo()
                     val nestedElementClassId = arrayInfo.nestedElementClassId
@@ -617,6 +599,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         typeCast(expectedModel.classId, actual, isSafetyCast = true)
                     ).toStatement()
                 }
+
                 is UtAssembleModel -> {
                     if (expectedModel.classId.isPrimitiveWrapper) {
                         currentBlock += assertions[assertEquals](expected, actual).toStatement()
@@ -670,6 +653,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         )
                     }
                 }
+
                 is UtCompositeModel -> {
                     // Basically, to compare two iterables or maps, we need to iterate over them and compare each entry.
                     // But it leads to a lot of trash code in each test method, and it is more clear to use
@@ -706,10 +690,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         )
                     }
                 }
+
                 is UtVoidModel -> {
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
                 }
+
                 else -> {
                     error("Unexpected ${expectedModel::class.java} in deep equals")
                 }
@@ -759,6 +745,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     typeCast(floatArrayClassId, actual, isSafetyCast = true),
                     floatDelta
                 )
+
                 else -> getDoubleArrayEqualsAssertion(
                     typeCast(doubleArrayClassId, expected, isSafetyCast = true),
                     typeCast(doubleArrayClassId, actual, isSafetyCast = true),
@@ -978,6 +965,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 is UtArrayModel,
                 is UtClassRefModel,
                 is UtEnumConstantModel,
+                is UtConstraintModel,
                 is UtVoidModel -> {
                     // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
                 }
@@ -1017,6 +1005,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             is UtArrayModel,
             is UtClassRefModel,
             is UtEnumConstantModel,
+            is UtConstraintModel,
             is UtVoidModel -> {
                 // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
             }
@@ -1046,7 +1035,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
-        // Can directly access field only if it is declared in variable class (or in its ancestors)
+    // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
         if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
@@ -1103,11 +1092,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         typeCast(floatArrayClassId, actual, isSafetyCast = true),
                         floatDelta
                     )
+
                     doubleClassId -> testFrameworkManager.assertDoubleArrayEquals(
                         typeCast(doubleArrayClassId, expected, isSafetyCast = true),
                         typeCast(doubleArrayClassId, actual, isSafetyCast = true),
                         doubleDelta
                     )
+
                     else -> {
                         val targetType = when {
                             expected.type.isPrimitiveArray -> expected.type
@@ -1139,6 +1130,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     }
                 }
             }
+
             else -> when {
                 (expected.type == floatClassId || expected.type == floatWrapperClassId) -> {
                     testFrameworkManager.assertFloatEquals(
@@ -1147,6 +1139,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         floatDelta
                     )
                 }
+
                 (expected.type == doubleClassId || expected.type == doubleWrapperClassId) -> {
                     testFrameworkManager.assertDoubleEquals(
                         typeCast(doubleClassId, expected, isSafetyCast = true),
@@ -1154,15 +1147,18 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         doubleDelta
                     )
                 }
+
                 expected == nullLiteral() -> testFrameworkManager.assertNull(actual)
                 expected is CgLiteral && expected.value is Boolean -> {
                     when (parametrizedTestSource) {
                         ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
                             testFrameworkManager.assertBoolean(expected.value, actual)
+
                         ParametrizedTestSource.PARAMETRIZE ->
                             testFrameworkManager.assertEquals(expected, actual)
                     }
                 }
+
                 else -> {
                     when (expected) {
                         is CgLiteral -> testFrameworkManager.assertEquals(expected, actual)
@@ -1252,6 +1248,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     // there is nothing to generate for constructors
                     return
                 }
+
                 is BuiltinMethodId -> error("Unexpected BuiltinMethodId $currentExecutable while generating actual result")
                 is MethodId -> {
                     // TODO possible engine bug - void method return type and result not UtVoidModel
@@ -1266,6 +1263,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         thisInstance[executable](*methodArguments.toTypedArray())
                     }
                 }
+
                 else -> {} // TODO: check this specific case
             }
         }
@@ -1377,7 +1375,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     substituteStaticFields(statics, isParametrized = true)
 
                     // build this instance
-                    thisInstance = genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
+                    thisInstance =
+                        genericExecution.stateBefore.thisInstance?.let { currentMethodParameters[CgParameterKind.ThisInstance] }
 
                     // build arguments for method under test and parameterized test
                     for (index in genericExecution.stateBefore.parameters.indices) {
@@ -1746,7 +1745,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return testMethod
     }
 
-    private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
+    private fun dataProviderMethod(
+        dataProviderMethodName: String,
+        body: () -> Unit
+    ): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
             returnType = testFramework.argListClassId
@@ -1794,7 +1796,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val pureJvmReportPath = jvmReportPath.substringAfter("# ")
 
         // \n is here because IntellijIdea cannot process other separators
-        return PathUtil.toHtmlLinkTag(PathUtil.replaceSeparator(pureJvmReportPath), fileName = "JVM crash report") + "\n"
+        return PathUtil.toHtmlLinkTag(
+            PathUtil.replaceSeparator(pureJvmReportPath),
+            fileName = "JVM crash report"
+        ) + "\n"
     }
 
     private fun UtConcreteExecutionFailure.extractJvmReportPathOrNull(): String? =

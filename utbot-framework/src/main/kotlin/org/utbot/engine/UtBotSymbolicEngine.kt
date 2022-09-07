@@ -117,15 +117,15 @@ internal val defaultIdGenerator = ReferencePreservingIntIdGenerator()
 
 private fun pathSelector(
     graph: InterProceduralUnitGraph,
-    typeRegistry: TypeRegistry,
     traverser: Traverser,
+    pathSelectorType: PathSelectorType,
     postConditionConstructor: PostConditionConstructor
 ) = when (pathSelectorType) {
     PathSelectorType.COVERED_NEW_SELECTOR -> coveredNewSelector(graph) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
-    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, typeRegistry) {
+    PathSelectorType.INHERITORS_SELECTOR -> inheritorsSelector(graph, traverser.typeRegistry) {
         withStepsLimit(pathSelectorStepsLimit)
     }
 
@@ -242,9 +242,9 @@ class UtBotSymbolicEngine(
         postConditionConstructor
     )
     private val pathSelector: PathSelector = pathSelector(
-        pathSelectorType,
         globalGraph,
         traverser,
+        pathSelectorType,
         postConditionConstructor
     )
 

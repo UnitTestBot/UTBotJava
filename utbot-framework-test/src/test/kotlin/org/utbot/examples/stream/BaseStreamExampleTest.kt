@@ -3,7 +3,6 @@ package org.utbot.examples.stream
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AtLeast
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.Full
@@ -14,6 +13,7 @@ import org.utbot.tests.infrastructure.isException
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
 import org.utbot.testcheckers.withoutConcrete
+import org.utbot.tests.infrastructure.AtLeast
 import org.utbot.tests.infrastructure.CodeGeneration
 import java.util.Optional
 import java.util.stream.Stream

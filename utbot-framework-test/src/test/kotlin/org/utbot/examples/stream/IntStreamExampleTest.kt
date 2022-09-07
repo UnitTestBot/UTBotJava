@@ -2,16 +2,10 @@ package org.utbot.examples.stream
 
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
-import org.utbot.examples.AtLeast
-import org.utbot.examples.UtValueTestCaseChecker
-import org.utbot.examples.Full
-import org.utbot.examples.FullWithAssumptions
-import org.utbot.examples.eq
-import org.utbot.examples.ignoreExecutionsNumber
-import org.utbot.examples.isException
-import org.utbot.examples.withPathSelectorStepsLimit
-import org.utbot.examples.withoutConcrete
-import org.utbot.framework.codegen.CodeGeneration
+import org.utbot.testcheckers.eq
+import org.utbot.testcheckers.withPathSelectorStepsLimit
+import org.utbot.testcheckers.withoutConcrete
+import org.utbot.tests.infrastructure.*
 import org.utbot.framework.plugin.api.CodegenLanguage
 import java.util.OptionalDouble
 import java.util.OptionalInt

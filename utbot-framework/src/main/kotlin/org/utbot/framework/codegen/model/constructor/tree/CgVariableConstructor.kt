@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import org.utbot.common.isStatic
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -24,7 +25,6 @@ import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.canBeSetIn
-import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.lessThan
@@ -46,6 +46,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
@@ -146,7 +147,7 @@ internal class CgVariableConstructor(val context: CgContext) :
                 fieldAccess `=` variableForField
             } else {
                 // composite models must not have info about static fields, hence only non-static fields are set here
-                +utilsClassId[setField](obj, fieldId.name, variableForField)
+                +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, variableForField)
             }
         }
         return obj
@@ -352,7 +353,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
             CgGetJavaClass(classId)
         } else {
-            classId[forName](classId.name)
+            classClassId[forName](classId.name)
         }
 
         return newVar(Class::class.id, baseName) { init }
@@ -432,15 +433,3 @@ internal class CgVariableConstructor(val context: CgContext) :
     private fun String.toVarName(): String = nameGenerator.variableName(this)
 
 }
-
-private val Field.isPublic: Boolean
-    get() = Modifier.isPublic(modifiers)
-
-private val Field.isPrivate: Boolean
-    get() = Modifier.isPrivate(modifiers)
-
-val Field.isStatic: Boolean
-    get() = Modifier.isStatic(modifiers)
-
-private val Field.isFinal: Boolean
-    get() = Modifier.isFinal(modifiers)

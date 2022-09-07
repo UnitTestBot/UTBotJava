@@ -8,7 +8,6 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import soot.jimple.JimpleBody
@@ -23,7 +22,7 @@ data class CgMethodTestSet private constructor(
         private set
 
     constructor(from: UtMethodTestSet) : this(
-        from.method.callable.executableId,
+        from.method,
         from.jimpleBody,
         from.errors,
         from.clustersInfo

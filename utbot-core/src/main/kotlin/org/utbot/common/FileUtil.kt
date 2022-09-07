@@ -15,12 +15,11 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipFile
 import kotlin.concurrent.thread
-import kotlin.reflect.KClass
 import kotlin.streams.asSequence
 import mu.KotlinLogging
 
-fun KClass<*>.toClassFilePath(): String {
-    val name = requireNotNull(java.name) { "Class is local or anonymous" }
+fun Class<*>.toClassFilePath(): String {
+    val name = requireNotNull(name) { "Class is local or anonymous" }
 
     return "${name.replace('.', '/')}.class"
 }
@@ -83,12 +82,12 @@ object FileUtil {
      * Copy the class file for given [classes] to temporary folder.
      * It can be used for Soot analysis.
      */
-    fun isolateClassFiles(vararg classes: KClass<*>): File {
+    fun isolateClassFiles(vararg classes: Class<*>): File {
         val tempDir = createTempDirectory("generated-").toFile()
 
         for (clazz in classes) {
             val path = clazz.toClassFilePath()
-            val resource = clazz.java.classLoader.getResource(path) ?: error("No such file: $path")
+            val resource = clazz.classLoader.getResource(path) ?: error("No such file: $path")
 
             if (resource.toURI().scheme == "jar") {
                 val jarLocation = resource.toURI().extractJarName()
@@ -107,7 +106,7 @@ object FileUtil {
 
     private fun URI.extractJarName(): URI = URI(this.schemeSpecificPart.substringBefore("!").replace(" ", "%20"))
 
-    private fun extractClassFromArchive(archiveFile: Path, clazz: KClass<*>, destPath: Path) {
+    private fun extractClassFromArchive(archiveFile: Path, clazz: Class<*>, destPath: Path) {
         val classFilePath = clazz.toClassFilePath()
         ZipFile(archiveFile.toFile()).use { archive ->
             val entry = archive.stream().asSequence().filter { it.name.normalizePath() == classFilePath }.single()
@@ -121,9 +120,9 @@ object FileUtil {
      * Locates class path by class.
      * It can be used for Soot analysis.
      */
-    fun locateClassPath(clazz: KClass<*>): File? {
+    fun locateClassPath(clazz: Class<*>): File? {
         val path = clazz.toClassFilePath()
-        val resource = requireNotNull(clazz.java.classLoader.getResource(path)) { "No such file: $path" }
+        val resource = requireNotNull(clazz.classLoader.getResource(path)) { "No such file: $path" }
         if (resource.toURI().scheme == "jar") return null
         val fullPath = resource.path.removeSuffix(path)
         return File(fullPath)
@@ -132,9 +131,9 @@ object FileUtil {
     /**
      * Locates class and returns class location. Could be directory or jar based.
      */
-    fun locateClass(clazz: KClass<*>): ClassLocation {
+    fun locateClass(clazz: Class<*>): ClassLocation {
         val path = clazz.toClassFilePath()
-        val resource = requireNotNull(clazz.java.classLoader.getResource(path)) { "No such file: $path" }
+        val resource = requireNotNull(clazz.classLoader.getResource(path)) { "No such file: $path" }
         return if (resource.toURI().scheme == "jar") {
             val jarLocation = resource.toURI().extractJarName()
             JarClassLocation(Paths.get(jarLocation))

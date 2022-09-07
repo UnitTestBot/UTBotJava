@@ -108,13 +108,11 @@ def build_targets(stats_array: List[dict]) -> List[dict]:
 
 def insert_metadata(args: argparse.Namespace) -> dict:
     """
-    Collect metadata and statistics from specified file and merge them into result
+    Collect metadata and statistics from specified files and merge them into result
     :param args: parsed program arguments
     :return: dictionary with statistics and metadata
     """
-    stats_array = load(args.stats_file)
-    if stats_array is None:
-        raise FileNotFoundError("File with stats does not exist!")
+    stats_array = [item for f in args.stats_file for item in load(f)]
     result = {
         'version': JSON_VERSION,
         'targets': build_targets(stats_array),
@@ -126,8 +124,8 @@ def insert_metadata(args: argparse.Namespace) -> dict:
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--stats_file', required=True,
-        help='file with statistics', type=str
+        '--stats_file', required=True, nargs='+',
+        help='files (one or more) with statistics', type=str
     )
     parser.add_argument(
         '--commit', help='commit hash', type=str

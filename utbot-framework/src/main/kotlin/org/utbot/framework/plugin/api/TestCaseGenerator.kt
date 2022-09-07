@@ -116,7 +116,7 @@ open class TestCaseGenerator(
     @Throws(CancellationException::class)
     fun generateAsync(
         controller: EngineController,
-        method: UtMethod<*>,
+        method: ExecutableId,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
@@ -128,7 +128,7 @@ open class TestCaseGenerator(
     }
 
     fun generate(
-        methods: List<UtMethod<*>>,
+        methods: List<ExecutableId>,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
@@ -251,12 +251,11 @@ open class TestCaseGenerator(
 
     private fun createSymbolicEngine(
         controller: EngineController,
-        method: UtMethod<*>,
+        method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
-        // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
         return UtBotSymbolicEngine(
             controller,

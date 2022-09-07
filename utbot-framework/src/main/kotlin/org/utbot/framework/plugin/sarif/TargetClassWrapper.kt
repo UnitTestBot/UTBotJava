@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.sarif
 
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.isPrivate
 import org.utbot.framework.plugin.api.util.executableId
 import java.io.File
 import kotlin.reflect.KClass

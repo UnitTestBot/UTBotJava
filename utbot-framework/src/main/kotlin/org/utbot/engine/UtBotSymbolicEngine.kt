@@ -60,6 +60,7 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.id

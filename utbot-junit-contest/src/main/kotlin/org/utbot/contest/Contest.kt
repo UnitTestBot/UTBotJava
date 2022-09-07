@@ -391,7 +391,7 @@ fun runGeneration(
 private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
     //1. all methods from cut
     val methods = javaClazz.declaredMethods
-        .filterNot { Modifier.isAbstract(it.modifiers) }
+        .filterNot { it.isAbstract }
         .filterNotNull()
 
     //2. all constructors from cut

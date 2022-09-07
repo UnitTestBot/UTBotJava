@@ -16,11 +16,11 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.isAbstract
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.util.isKnownSyntheticMethod
 import org.utbot.sarif.SarifReport
 import org.utbot.sarif.SourceFindingStrategyDefault
-import java.lang.reflect.Modifier
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
@@ -98,7 +98,7 @@ class GenerateTestsCommand :
                 val classIdUnderTest = ClassId(targetClassFqn)
                 val targetMethods = classIdUnderTest.targetMethods()
                     .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
-                    .filterNot { Modifier.isAbstract(it.modifiers) }
+                    .filterNot { it.isAbstract }
                 val testCaseGenerator = initializeGenerator(workingDirectory)
 
                 if (targetMethods.isEmpty()) {

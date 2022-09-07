@@ -959,18 +959,6 @@ sealed class ExecutableId : StatementId() {
 
     abstract val modifiers: Int
 
-    val isPublic: Boolean
-        get() = Modifier.isPublic(modifiers)
-    val isProtected: Boolean
-        get() = Modifier.isProtected(modifiers)
-    val isPrivate: Boolean
-        get() = Modifier.isPrivate(modifiers)
-    val isStatic: Boolean
-        get() = Modifier.isStatic(modifiers)
-
-    val isPackagePrivate: Boolean
-        get() = !(isPublic || isProtected || isPrivate)
-
     val signature: String
         get() {
             val args = parameters.joinToString(separator = "") { it.jvmName }

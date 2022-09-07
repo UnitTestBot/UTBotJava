@@ -1,4 +1,3 @@
-@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")
 package org.utbot.engine
 
 import kotlinx.collections.immutable.persistentHashMapOf

@@ -114,6 +114,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.util.Conflict
 import org.utbot.intellij.plugin.models.GenerateTestsModel
+import org.utbot.intellij.plugin.models.id
 import org.utbot.intellij.plugin.models.jUnit4LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5LibraryDescriptor
 import org.utbot.intellij.plugin.models.jUnit5ParametrizedTestsLibraryDescriptor
@@ -792,7 +793,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             .addDependency(model.testModule, libraryDescriptor, DependencyScope.TEST)
         promise.thenRun {
             module.allLibraries()
-                .lastOrNull { library -> library.libraryName == libraryDescriptor.presentableName }?.let {
+                .lastOrNull { library -> library.presentableName.contains(libraryDescriptor.id) }?.let {
                     ModuleRootModificationUtil.updateModel(module) { model -> placeEntryToCorrectPlace(model, it) }
                 }
         }

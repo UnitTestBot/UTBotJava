@@ -49,20 +49,38 @@ public class DoubleStreamExample {
     }
 
     double[] mapExample(List<Short> list) {
-        UtMock.assume(list != null && !list.isEmpty());
+        UtMock.assume(list != null && list.size() == 1);
 
         final DoubleUnaryOperator mapper = value -> value * 2;
-        final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
+        final ToDoubleFunction<Short> shortToDoubleFunction = Short::doubleValue;
+
+        final Short value = list.get(0);
+        if (value == null) {
+            // NPE branch
+            final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
+
+            return doubles.map(mapper).toArray();
+        }
+
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
         return doubles.map(mapper).toArray();
     }
 
     Object[] mapToObjExample(List<Short> list) {
-        UtMock.assume(list != null && !list.isEmpty());
+        UtMock.assume(list != null && list.size() == 1);
 
         final DoubleFunction<double[]> mapper = value -> new double[]{value, value};
-        final ToDoubleFunction<Short> shortToDoubleFunction = value -> value == null ? 0 : value.doubleValue();
+        final ToDoubleFunction<Short> shortToDoubleFunction = Short::doubleValue;
+
+        final Short value = list.get(0);
+        if (value != null) {
+            // NPE branch
+            final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
+
+            return doubles.mapToObj(mapper).toArray();
+        }
+
         final DoubleStream doubles = list.stream().mapToDouble(shortToDoubleFunction);
 
         return doubles.mapToObj(mapper).toArray();

@@ -2539,6 +2539,7 @@ class Traverser(
 
         val overriddenResults = overridden
             .flatMap { (target, overriddenResult) ->
+/*
                 mutableListOf<MethodResult>().apply {
                     for (result in overriddenResult.results) {
                         when (result) {
@@ -2558,10 +2559,27 @@ class Traverser(
                         }
                     }
                 }
+*/
+                val methodResults = mutableListOf<MethodResult>()
+                val graphResults = mutableListOf<GraphResult>()
+
+                for (result in overriddenResult.results) {
+                    when (result) {
+                        is MethodResult -> methodResults += result
+                        is GraphResult -> graphResults += result
+                    }
+                }
+
+                graphResults.map {
+                    ExecutionStateBasics(it.graph, target.instance, invocation.parameters, target.constraints + it.constraints, isLibraryMethod = true)
+                }.let { pushToPathSelectorFirstReachableStates(it) }
+
+                methodResults
             }
 
         // Add results for the targets that should be processed without override
         val originResults = original.flatMap { (target: InvocationTarget, _) ->
+            // TODO use pushToPathSelectorFirstReachableStates here
             invoke(target, invocation.parameters)
         }
 

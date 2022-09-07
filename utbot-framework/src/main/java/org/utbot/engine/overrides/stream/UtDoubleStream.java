@@ -247,10 +247,14 @@ public class UtDoubleStream implements DoubleStream, UtGenericStorage<Double> {
     public DoubleStream distinct() {
         preconditionCheckWithClosingStream();
 
-        final DistinctAction distinctAction = new DistinctAction();
-        actions.insert(actions.end++, distinctAction);
+        // TODO too slow
+        executeConcretely();
+        return null;
 
-        return new UtDoubleStream(this);
+//        final DistinctAction distinctAction = new DistinctAction();
+//        actions.insert(actions.end++, distinctAction);
+//
+//        return new UtDoubleStream(this);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188

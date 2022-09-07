@@ -9,19 +9,15 @@ import java.util.stream.Stream;
 public interface Collection<E> extends java.util.Collection<E> {
     @SuppressWarnings("unchecked")
     @Override
-    default Stream<E> parallelStream() {
+    default Stream<E> stream() {
         Object[] data = toArray();
         int size = data.length;
 
         return new UtStream<>((E[]) data, size);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    default Stream<E> stream() {
-        Object[] data = toArray();
-        int size = data.length;
-
-        return new UtStream<>((E[]) data, size);
+    default Stream<E> parallelStream() {
+        return stream();
     }
 }

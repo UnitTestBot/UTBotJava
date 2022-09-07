@@ -52,10 +52,17 @@ public class UtLongStream implements LongStream, UtGenericStorage<Long> {
     }
 
     public UtLongStream(Long[] data, int length) {
+        this(data, 0, length);
+    }
+
+    public UtLongStream(Long[] data, int startInclusive, int endExclusive) {
         visit(this);
+
+        int size = endExclusive - startInclusive;
+
         elementData = new RangeModifiableUnlimitedArray<>();
-        elementData.setRange(0, data, 0, length);
-        elementData.end = length;
+        elementData.setRange(0, data, startInclusive, size);
+        elementData.end = endExclusive;
     }
 
     /**

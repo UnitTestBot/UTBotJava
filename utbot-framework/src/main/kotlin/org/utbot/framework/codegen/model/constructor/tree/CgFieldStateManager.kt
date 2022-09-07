@@ -17,7 +17,6 @@ import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
-import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ArrayElementAccess
@@ -230,8 +229,8 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
             val name = if (index == path.lastIndex) customName else getFieldVariableName(prev, passedPath)
             val expression = when (val newElement = path[index++]) {
                 is FieldAccess -> {
-                    val field = newElement.field
-                    utilsClassId[getFieldValue](prev, stringLiteral(field.name))
+                    val fieldId = newElement.field
+                    utilsClassId[getFieldValue](prev, fieldId.declaringClass.name, fieldId.name)
                 }
                 is ArrayElementAccess -> {
                     Array::class.id[getArrayElement](prev, newElement.index)

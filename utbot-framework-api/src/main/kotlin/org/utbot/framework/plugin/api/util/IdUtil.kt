@@ -144,6 +144,9 @@ val floatWrapperClassId = java.lang.Float::class.id
 val doubleWrapperClassId = java.lang.Double::class.id
 
 val classClassId = java.lang.Class::class.id
+val fieldClassId = java.lang.reflect.Field::class.id
+val methodClassId = java.lang.reflect.Method::class.id
+val constructorClassId = java.lang.reflect.Constructor::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here

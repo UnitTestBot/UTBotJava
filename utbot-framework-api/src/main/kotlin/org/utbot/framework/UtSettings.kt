@@ -374,10 +374,15 @@ object UtSettings : AbstractSettings(
     var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
 
     /**
-     * Disable sandbox in the concrete executor. All unsafe/dangerous calls will be permitted.
+     * Use the sandbox in the concrete executor.
+     *
+     * If true (default), the sandbox will prevent potentially dangerous calls, e.g., file access, reading
+     * or modifying the environment, calls to `Unsafe` methods etc.
+     *
+     * If false, all these operations will be enabled and may lead to data loss during code analysis
+     * and test generation.
      */
-    var disableSandbox by getBooleanProperty(false)
-
+    var useSandbox by getBooleanProperty(true)
 }
 
 /**

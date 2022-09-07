@@ -78,7 +78,7 @@ val <R> UtMethod<R>.javaConstructor: Constructor<*>?
 val <R> UtMethod<R>.javaMethod: Method?
     get() = (callable as? KFunction<*>)?.javaMethod ?: (callable as? KProperty<*>)?.getter?.javaMethod
 
-val <R> UtMethod<R>.displayName: String
+val <R> UtMethod<R>.humanReadableName: String
     get() {
         val methodName = this.callable.name
         val javaMethod = this.javaMethod ?: this.javaConstructor

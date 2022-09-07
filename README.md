@@ -1,32 +1,37 @@
-[![UTBot Java: build and run tests](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests.yml/badge.svg)](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests.yml)
+[![UnitTestBot: build and run tests](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests.yml/badge.svg)](https://github.com/UnitTestBot/UTBotJava/actions/workflows/build-and-run-tests.yml)
 [![Plugin and CLI: publish as archives](https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli.yml/badge.svg)](https://github.com/UnitTestBot/UTBotJava/actions/workflows/publish-plugin-and-cli.yml)
 
-👉 Find UTBot Java on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/19445-unittestbot).
+👉 Find UnitTestBot on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/19445-unittestbot).
 
-👉 Visit the [official UTBot website](https://www.utbot.org/).
+👉 Visit the [official UnitTestBot website](https://www.utbot.org/).
 
-# What is UTBot Java?
-UTBot Java is the tool for **automated unit test generation**. It produces ready-to-use test cases for Java — with valid inputs and comments. It can even predict whether the tests fail or pass. You can analyze them, run them, show coverage — as if you've created them personally.
+# What is UnitTestBot?
+UnitTestBot is the tool for **automated unit test generation** and **precise code analysis**. It produces ready-to-use 
+test 
+cases for 
+Java — with 
+valid inputs and comments. It can even predict whether the tests fail or pass. You can analyze them, run them, show coverage — as if you've created them personally.
 
-The **symbolic execution engine** paired with a **smart fuzzing technique** constitutes the core of UTBot Java. It helps to **find errors** and **prevent regressions** in the code in a much more efficient way — UTBot Java **maximizes path coverage** while **minimizing the number of tests and false positives**.
+The **symbolic execution engine** paired with a **smart fuzzing technique** constitutes the core of UnitTestBot. It helps to **find errors** and **prevent regressions** in the code in a much more efficient way — UnitTestBot **maximizes path coverage** while **minimizing the number of tests and false positives**.
 
-UTBot Java represents all the test summaries in a **human-readable format**. The intelligible test method names and comments help you to control the whole testing process. Test failed? The summary refers you to the related branch or the condition under test.
+UnitTestBot represents all the test summaries in a **human-readable format**. The intelligible test method names and comments help you to control the whole testing process. Test failed? The summary refers you to the related branch or the condition under test.
 
 # Get started
 Try the **[online demo](https://www.utbot.org/utbot/)** to generate unit tests with one click.
 
-Get to know the **full version** of UTBot Java plugin with this quick guide:
+Get to know the **full version** of UnitTestBot plugin with this quick guide:
 
 <details>
-  <summary>Install UTBot Java plugin for IntelliJ IDEA</summary>
+  <summary>Install UnitTestBot plugin for IntelliJ IDEA</summary>
 
-Try the most straightforward path to start using UTBot plugin.
-1. Open your IntelliJ IDEA. If you don't have one, get it from [JetBrains](https://www.jetbrains.com/idea/download/#section=windows).
-2. Go to **File → Settings... → Plugins → Marketplace**.
-3. In the search field type *UTBot* — you'll see the UnitTestBot plugin page.
-4. Press the **Install** button and wait until it changes to **Installed**, then click **OK**.
+Try the most straightforward path to start using UnitTestBot plugin.
+1. Please check the [system requirements](SystemRequirements.md).
+2. Open your IntelliJ IDEA.
+3. Go to **File → Settings... → Plugins → Marketplace**.
+4. In the search field type *UnitTestBot* — you'll see the UnitTestBot plugin page.
+5. Press the **Install** button and wait until it changes to **Installed**, then click **OK**.
 
-Now you can find the UTBot plugin enabled in the **File → Settings → Plugins** window.
+Now you can find the UnitTestBot plugin enabled in the **File → Settings → Plugins** window.
 
 ____________
 </details>
@@ -73,8 +78,8 @@ Right-click the test class, choose **More Run/Debug → Run ... with Coverage**.
 ____________
 </details>
 
-# Contribute to UTBot Java
-UTBot Java is an open source project. We welcome everyone who wants to make UTBot Java better — introduce a new feature or report a bug. We have only one kind request for our contributors: we expect you to prove the necessity and quality of the suggested changes.
+# Contribute to UnitTestBot
+UnitTestBot is an open source project. We welcome everyone who wants to make UnitTestBot better — introduce a new feature or report a bug. We have only one kind request for our contributors: we expect you to prove the necessity and quality of the suggested changes.
 
 How can you do this? Refer to our [Contributing guide](https://github.com/UnitTestBot/UTBotJava/blob/main/CONTRIBUTING.md).
 
@@ -83,9 +88,9 @@ Feel free to join the [Discussions](https://github.com/UnitTestBot/UTBotJava/dis
 And thank you for your time and effort! ⭐
 
 # Find support
-Having troubles with using UTBot Java? Contact us [directly](https://www.utbot.org/contact).
+Having troubles with using UnitTestBot? Contact us [directly](https://www.utbot.org/contact).
 
-# Find more UTBot products
-[UTBot Cpp](https://github.com/UnitTestBot/UTBotCpp) — try it yourself and tell your friends: it is the tool for automated unit test generation developed especially for C/C++.
+# Find more UnitTestBot products
+You can also try [UnitTestBot](https://github.com/UnitTestBot/UTBotCpp) developed especially for C/C++.
 
 You are welcome to [contribute](https://github.com/UnitTestBot/UTBotCpp/blob/main/CONTRIBUTING.md) to it too!

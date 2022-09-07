@@ -64,7 +64,8 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
     private val logger: KLogger = org.utbot.gradle.plugin.logger
 
     private val dependencyPaths by lazy {
-        val thisClassLoader = this::class.java.classLoader as URLClassLoader
+        val thisClassLoader = this::class.java.classLoader as? URLClassLoader
+            ?: return@lazy System.getProperty("java.class.path")
         thisClassLoader.urLs.joinToString(File.pathSeparator) { it.path }
     }
 

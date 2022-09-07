@@ -29,10 +29,10 @@ sealed class CustomJavaDocTag(
     private val valueRetrieverFuzzer: ((CommentWithCustomTagForTestProducedByFuzzer) -> Any)? // TODO: remove after refactoring
 ) {
     object ClassUnderTest :
-        CustomJavaDocTag("utbot.classUnderTest", "Class under test", CustomJavaDocComment::classUnderTest, null)
+        CustomJavaDocTag("utbot.classUnderTest", "Class under test", CustomJavaDocComment::classUnderTest, CommentWithCustomTagForTestProducedByFuzzer::classUnderTest,)
 
     object MethodUnderTest :
-        CustomJavaDocTag("utbot.methodUnderTest", "Method under test", CustomJavaDocComment::methodUnderTest, null)
+        CustomJavaDocTag("utbot.methodUnderTest", "Method under test", CustomJavaDocComment::methodUnderTest, CommentWithCustomTagForTestProducedByFuzzer::methodUnderTest,)
 
     object ExpectedResult :
         CustomJavaDocTag("utbot.expectedResult", "Expected result", CustomJavaDocComment::expectedResult, null)
@@ -63,18 +63,22 @@ sealed class CustomJavaDocTag(
         }
 
     // TODO: could be universal with the function above after creation of hierarchy data classes related to the comments
-    fun generateDocStatementForTestProducedByFuzzer(comment: CommentWithCustomTagForTestProducedByFuzzer): DocRegularStmt? =
-        when (val value = valueRetrieverFuzzer!!.invoke(comment)) {
-            is String -> value.takeIf { it.isNotEmpty() }?.let {
-                DocRegularStmt("@$name $value\n")
+    fun generateDocStatementForTestProducedByFuzzer(comment: CommentWithCustomTagForTestProducedByFuzzer): DocRegularStmt? {
+        if(valueRetrieverFuzzer != null) { //TODO: it required only when we have two different retrievers
+            return when (val value = valueRetrieverFuzzer!!.invoke(comment)) { // TODO: unsafe !! - resolve
+                is String -> value.takeIf { it.isNotEmpty() }?.let {
+                    DocRegularStmt("@$name $value\n")
+                }
+
+                is List<*> -> value.takeIf { it.isNotEmpty() }?.let {
+                    val valueToString = value.joinToString(separator = ",\n", postfix = "\n")
+
+                    DocRegularStmt("@$name $valueToString")
+                }
+
+                else -> null
             }
-
-            is List<*> -> value.takeIf { it.isNotEmpty() }?.let {
-                val valueToString = value.joinToString(separator = ",\n", postfix = "\n")
-
-                DocRegularStmt("@$name $valueToString")
-            }
-
-            else -> null
         }
+        return null
+    }
 }

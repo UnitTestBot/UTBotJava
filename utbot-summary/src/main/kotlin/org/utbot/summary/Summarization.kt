@@ -115,6 +115,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
                 utExecution.testMethodName = testMethodName?.testName
                 utExecution.displayName = testMethodName?.displayName
+                utExecution.summary = testMethodName?.javaDoc
 
                 when (utExecution.result) {
                     is UtConcreteExecutionFailure -> unsuccessfulFuzzerExecutions.add(utExecution)

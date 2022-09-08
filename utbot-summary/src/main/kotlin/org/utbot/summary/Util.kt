@@ -2,15 +2,8 @@ package org.utbot.summary
 
 import org.utbot.framework.plugin.api.Step
 import org.utbot.framework.plugin.api.UtSymbolicExecution
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.summary.tag.BasicTypeTag
 import org.utbot.summary.tag.getBasicTypeTag
-import java.lang.reflect.Constructor
-import java.lang.reflect.Method
-import kotlin.reflect.KFunction
-import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaMethod
 import soot.SootClass
 import soot.SootMethod
 import soot.jimple.JimpleBody
@@ -71,20 +64,3 @@ fun SootMethod.jimpleBody(): JimpleBody {
     declaringClass.adjustLevel(SootClass.BODIES)
     return retrieveActiveBody() as JimpleBody
 }
-
-val <R> UtMethod<R>.javaConstructor: Constructor<*>?
-    get() = (callable as? KFunction<*>)?.javaConstructor
-
-val <R> UtMethod<R>.javaMethod: Method?
-    get() = (callable as? KFunction<*>)?.javaMethod ?: (callable as? KProperty<*>)?.getter?.javaMethod
-
-val <R> UtMethod<R>.displayName: String
-    get() {
-        val methodName = this.callable.name
-        val javaMethod = this.javaMethod ?: this.javaConstructor
-        if (javaMethod != null) {
-            val parameters = javaMethod.parameters.joinToString(separator = ", ") { it.type.canonicalName }
-            return "${methodName}($parameters)"
-        }
-        return "${methodName}()"
-    }

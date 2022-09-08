@@ -51,7 +51,7 @@ class ChildProcessRunner {
         val directory = WorkingDirService.provide().toFile()
         val commandsWithOptions = buildList {
             addAll(cmds)
-            if (UtSettings.disableSandbox) {
+            if (!UtSettings.useSandbox) {
                 add(DISABLE_SANDBOX_OPTION)
             }
             add(portArgument)
@@ -62,7 +62,7 @@ class ChildProcessRunner {
             .directory(directory)
 
         return processBuilder.start().also {
-            logger.debug { "Process started with PID=${it.pid()}" }
+            logger.debug { "Process started with PID=${it.getPid}" }
 
             if (UtSettings.logConcreteExecutionErrors) {
                 logger.debug { "Child process error log: ${errorLogFile.absolutePath}" }
@@ -99,7 +99,7 @@ class ChildProcessRunner {
                 run {
                     logger.debug("Trying to find jar in the resources.")
                     val tempDir = utBotTempDirectory.toFile()
-                    val unzippedJarName = "$UTBOT_INSTRUMENTATION-${ProcessHandle.current().pid()}.jar"
+                    val unzippedJarName = "$UTBOT_INSTRUMENTATION-${currentProcessPid}.jar"
                     val instrumentationJarFile = File(tempDir, unzippedJarName)
 
                     ChildProcessRunner::class.java.classLoader

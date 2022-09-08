@@ -86,15 +86,16 @@ import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.signature
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
@@ -104,9 +105,6 @@ import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -196,11 +194,13 @@ import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: UtMethod<*>,
+    private val methodUnderTest: ExecutableId,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
@@ -957,23 +957,25 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.callable
+        val callable = methodUnderTest.executable
+        val kCallable = ::updateGenericTypeInfo
+        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
-                methodUnderTest.javaConstructor?.annotatedReturnType?.type
+                callable.annotatedReturnType?.type
             } else {
-                callable.instanceParameter?.type?.javaType
-                    ?: error("No instanceParameter for ${callable.signature} found")
+                callable.declaringClass // same as it was, but it isn't parametrized type
+                    ?: error("No instanceParameter for ${callable} found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
                 val index = (identityRef as ParameterRef).index
-                val valueParameters = callable.valueParameters
+                val valueParameters = callable.genericParameterTypes
 
                 if (index > valueParameters.lastIndex) return
-                valueParameters[index].type.javaType
+                valueParameters[index]
             }
         }
 
@@ -2437,6 +2439,9 @@ class Traverser(
         val method = invokeExpr.retrieveMethod()
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
+
+        // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
+        // TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
         return commonInvokePart(invocation)
     }
 
@@ -2455,7 +2460,23 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
-        // First, check if there is override for the invocation itself, not for the targets
+        /**
+         * First, check if there is override for the invocation itself, not for the targets.
+         *
+         * Note that calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers,
+         * so here we resolve [invocation] to the inherited method invocation if it's something like:
+         *
+         * ```java
+         * public class InheritedWrapper extends BaseWrapper {
+         *     public void add(Object o) {
+         *         // some stuff
+         *         super.add(o); // this resolves to InheritedWrapper::add instead of BaseWrapper::add
+         *     }
+         * }
+         * ```
+         *
+         * TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
+         */
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
 
         // If so, return the result of the override

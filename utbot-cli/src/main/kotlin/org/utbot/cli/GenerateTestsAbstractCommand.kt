@@ -24,24 +24,20 @@ import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.testFrameworkByName
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.MockStrategyApi
-import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.util.id
 import org.utbot.summary.summarize
 import java.io.File
-import java.lang.reflect.Method
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.jvm.kotlinFunction
 
 private const val LONG_GENERATION_TIMEOUT = 1_200_000L
 
@@ -151,12 +147,9 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         return Paths.get(classAbsolutePath)
     }
 
-    protected fun loadClassBySpecifiedFqn(classFqn: String): KClass<*> =
-        classLoader.loadClass(classFqn).kotlin
-
     protected fun generateTestSets(
         testCaseGenerator: TestCaseGenerator,
-        targetMethods: List<UtMethod<*>>,
+        targetMethods: List<ExecutableId>,
         sourceCodeFile: Path? = null,
         searchDirectory: Path,
         chosenClassesToMockAlways: Set<ClassId>
@@ -186,7 +179,7 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         }
     }
 
-    protected fun generateTest(classUnderTest: KClass<*>, testClassname: String, testSets: List<UtMethodTestSet>): String =
+    protected fun generateTest(classUnderTest: ClassId, testClassname: String, testSets: List<UtMethodTestSet>): String =
         initializeCodeGenerator(
             testFramework,
             classUnderTest
@@ -201,12 +194,12 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         return TestCaseGenerator(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
     }
 
-    private fun initializeCodeGenerator(testFramework: String, classUnderTest: KClass<*>): CodeGenerator {
+    private fun initializeCodeGenerator(testFramework: String, classUnderTest: ClassId): CodeGenerator {
         val generateWarningsForStaticMocking =
             forceStaticMocking == ForceStaticMocking.FORCE && staticsMocking is NoStaticMocking
         return CodeGenerator(
             testFramework = testFrameworkByName(testFramework),
-            classUnderTest = classUnderTest.id,
+            classUnderTest = classUnderTest,
             codegenLanguage = codegenLanguage,
             staticsMocking = staticsMocking,
             forceStaticMocking = forceStaticMocking,
@@ -214,18 +207,8 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         )
     }
 
-    protected fun KClass<*>.targetMethods() =
-        this.java.declaredMethods.mapNotNull {
-            toUtMethod(it, kClass = this)
-        }
-
-    private fun toUtMethod(method: Method, kClass: KClass<*>): UtMethod<*>? =
-        method.kotlinFunction?.let {
-            UtMethod(it as KCallable<*>, kClass)
-        } ?: run {
-            logger.info("Method does not have a kotlin function: $method")
-            null
-        }
+    protected fun ClassId.targetMethods(): List<MethodId> =
+        allMethods.filter { it.classId == this }.toList() // only declared methods
 
     protected fun saveToFile(snippet: String, outputPath: String?) =
         outputPath?.let {

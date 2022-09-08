@@ -4,13 +4,7 @@ import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.TestClassContext
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.builtin.forName
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -122,19 +116,20 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     }
 
     open fun getDeepEqualsAssertion(expected: CgExpression, actual: CgExpression): CgMethodCall {
-        requiredUtilMethods += outerMostTestClass.deepEqualsMethodId
-        requiredUtilMethods += outerMostTestClass.arraysDeepEqualsMethodId
-        requiredUtilMethods += outerMostTestClass.iterablesDeepEqualsMethodId
-        requiredUtilMethods += outerMostTestClass.streamsDeepEqualsMethodId
-        requiredUtilMethods += outerMostTestClass.mapsDeepEqualsMethodId
-        requiredUtilMethods += outerMostTestClass.hasCustomEqualsMethodId
-
+        requiredUtilMethods += setOf(
+            utilMethodProvider.deepEqualsMethodId,
+            utilMethodProvider.arraysDeepEqualsMethodId,
+            utilMethodProvider.iterablesDeepEqualsMethodId,
+            utilMethodProvider.streamsDeepEqualsMethodId,
+            utilMethodProvider.mapsDeepEqualsMethodId,
+            utilMethodProvider.hasCustomEqualsMethodId
+        )
         // TODO we cannot use common assertEquals because of using custom deepEquals
         //  For this reason we have to use assertTrue here
         //  Unfortunately, if test with assertTrue fails, it gives non informative message false != true
         //  Thus, we need to provide custom message to assertTrue showing compared objects correctly
         //  SAT-1345
-        return assertions[assertTrue](testClassThisInstance[deepEquals](expected, actual))
+        return assertions[assertTrue](utilsClassId[deepEquals](expected, actual))
     }
 
     @Suppress("unused")

@@ -1,10 +1,10 @@
 package org.utbot.framework.assemble
 
+import org.utbot.common.isPrivate
+import org.utbot.common.isPublic
 import org.utbot.common.packageName
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
-import org.utbot.engine.isPrivate
-import org.utbot.engine.isPublic
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
@@ -24,7 +24,6 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -50,8 +49,7 @@ import java.util.IdentityHashMap
  *
  * Note: Caches class related information, can be reused if classes don't change.
  */
-class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
-    private val methodPackageName = methodUnderTest.clazz.java.packageName
+class AssembleModelGenerator(private val methodPackageName: String) {
 
     //Instantiated models are stored to avoid cyclic references during reference graph analysis
     private val instantiatedModels: IdentityHashMap<UtModel, UtReferenceModel> =
@@ -357,7 +355,11 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
     /**
      * Finds most appropriate constructor in class.
      *
-     * We prefer constructor that allows to set more fields than others
+     * If the [compositeModel].fields is empty, we don't care about affected fields, we would like to take an empty
+     * constructor if the declaring class is from [java.util] package or an appropriate constructor with the least
+     * number of arguments.
+     *
+     * Otherwise, we prefer constructor that allows to set more fields than others
      * and use only simple assignments like "this.a = a".
      *
      * Returns null if no one appropriate constructor is found.
@@ -366,11 +368,20 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         val classId = compositeModel.classId
         if (!classId.isVisible || classId.isInner) return null
 
-        return classId.jClass.declaredConstructors
+        val constructorIds = classId.jClass.declaredConstructors
             .filter { it.isVisible }
-            .sortedByDescending { it.parameterCount }
             .map { it.executableId }
-            .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+
+        return if (compositeModel.fields.isEmpty()) {
+            val fromUtilPackage = classId.packageName.startsWith("java.util")
+            constructorIds
+                .sortedBy { it.parameters.size }
+                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || constructorAnalyzer.isAppropriate(it) }
+        } else {
+            constructorIds
+                .sortedByDescending { it.parameters.size }
+                .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+        }
     }
 
     private val ClassId.isVisible : Boolean

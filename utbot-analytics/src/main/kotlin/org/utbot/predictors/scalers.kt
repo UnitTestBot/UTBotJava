@@ -13,7 +13,7 @@ data class StandardScaler(val mean: Matrix?, val variance: Matrix?)
 
 internal fun loadScaler(path: String): StandardScaler =
     try {
-        Paths.get(UtSettings.rewardModelPath, path).toFile().bufferedReader().use {
+        Paths.get(UtSettings.modelPath, path).toFile().bufferedReader().use {
             val mean = it.readLine()?.splitByCommaIntoDoubleArray() ?: error("There is not mean in $path")
             val variance = it.readLine()?.splitByCommaIntoDoubleArray() ?: error("There is not variance in $path")
             StandardScaler(Matrix(mean), Matrix(variance))

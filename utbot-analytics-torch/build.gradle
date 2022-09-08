@@ -1,0 +1,61 @@
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+configurations {
+    torchmodels
+}
+
+def osName = System.getProperty('os.name').toLowerCase().split()[0]
+if (osName == "mac") osName = "macosx"
+String classifier = osName + "-x86_64"
+
+evaluationDependsOn(':utbot-framework')
+compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
+
+dependencies {
+    api project(':utbot-analytics')
+    testImplementation project(':utbot-sample')
+    testImplementation group: 'junit', name: 'junit', version: junit4_version
+
+    implementation group: 'org.bytedeco', name: 'javacpp', version: javacpp_version, classifier: "$classifier"
+    implementation group: 'org.jsoup', name: 'jsoup', version: jsoup_version
+
+    implementation "ai.djl:api:$djl_api_version"
+    implementation "ai.djl.pytorch:pytorch-engine:$djl_api_version"
+    implementation "ai.djl.pytorch:pytorch-native-auto:$pytorch_native_version"
+
+    testImplementation project(':utbot-framework').sourceSets.test.output
+}
+
+test {
+    minHeapSize = "128m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
+
+    useJUnitPlatform() {
+        excludeTags 'slow', 'IntegrationTest'
+    }
+}
+
+processResources {
+    configurations.torchmodels.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+        from(zipTree(artifact.getFile())) {
+            into "models"
+        }
+    }
+}
+
+jar {
+    dependsOn classes
+    manifest {
+        attributes 'Main-Class': 'org.utbot.QualityAnalysisKt'
+    }
+
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    zip64 = true
+}

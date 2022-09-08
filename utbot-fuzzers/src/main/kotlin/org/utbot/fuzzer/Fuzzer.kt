@@ -164,21 +164,27 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
 }
 
 /**
- * Creates a model provider for [ObjectModelProvider] that generates values for object constructor.
+ * Creates a model provider from a list of providers that we want to use by default in [RecursiveModelProvider]
  */
-fun objectModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): ModelProvider {
-    return ModelProvider.of(
+internal fun modelProviderForRecursiveCalls(idGenerator: IdentityPreservingIdGenerator<Int>, recursionDepth: Int): ModelProvider {
+    val nonRecursiveProviders = ModelProvider.of(
         CollectionModelProvider(idGenerator),
-        ArrayModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
         StringConstantModelProvider,
-        RegexModelProvider,
         CharToStringModelProvider,
         ConstantsModelProvider,
         PrimitiveDefaultsModelProvider,
         PrimitiveWrapperModelProvider,
     )
+
+    return if (recursionDepth >= 0)
+        nonRecursiveProviders
+            .with(ObjectModelProvider(idGenerator, recursionDepth))
+            .with(ArrayModelProvider(idGenerator, recursionDepth))
+    else
+        nonRecursiveProviders
 }
+
 
 fun defaultModelMutators(): List<ModelMutator> = listOf(
     StringRandomMutator,

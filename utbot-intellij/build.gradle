@@ -35,8 +35,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
 
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
-    implementation(project(":utbot-fuzzers"))
-    api project(':utbot-analytics')
+    // implementation project(':utbot-analytics') // to reduce the plugin size
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))
     testApi(project(":utbot-framework"))
@@ -64,6 +63,6 @@ tasks {
     runIde {
         jvmArgs("-Xmx2048m")
         //// Uncomment and set correct path to Android Studio to run it
-        // ideDirectory = file('d:/AS2021')
+         //ideDir = file('d:/AS2021')
     }
 }

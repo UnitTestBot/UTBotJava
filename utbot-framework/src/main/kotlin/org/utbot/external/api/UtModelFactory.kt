@@ -5,17 +5,14 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtArrayModel
-import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.util.id
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.IdentityHashMap
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.reflect.jvm.kotlinFunction
 
 
 class UtModelFactory(
@@ -50,8 +47,9 @@ class UtModelFactory(
         methodUnderTest: Method,
         classUnderTest: Class<*>,
         models: List<UtModel>
-    ): IdentityHashMap<UtModel, UtModel> = AssembleModelGenerator(UtMethod(methodUnderTest.kotlinFunction!!, classUnderTest.kotlin)).
-    createAssembleModels(models)
+    ): IdentityHashMap<UtModel, UtModel> =
+        AssembleModelGenerator(classUnderTest.packageName)
+            .createAssembleModels(models)
 
     @JvmOverloads
     fun produceArrayModel(

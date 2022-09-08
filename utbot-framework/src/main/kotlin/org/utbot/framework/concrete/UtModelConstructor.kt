@@ -53,7 +53,7 @@ internal interface UtModelConstructorInterface {
  * @param compositeModelStrategy decides whether we should construct a composite model for a certain value or not.
  * searches in [objectToModelCache] for [UtReferenceModel.id].
  */
-internal class UtModelConstructor(
+class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
     private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy
 ) : UtModelConstructorInterface {
@@ -294,7 +294,7 @@ internal class UtModelConstructor(
 /**
  * Decides, should we construct a UtCompositeModel from a value or not.
  */
-internal interface UtCompositeModelStrategy {
+interface UtCompositeModelStrategy {
     fun shouldConstruct(value: Any, clazz: Class<*>): Boolean
 }
 

@@ -21,10 +21,10 @@ import java.lang.reflect.InvocationTargetException
 
 internal val reflectionBuiltins: Set<MethodId>
          get() = setOf(
-                setAccessible, invoke, newInstance, get, forName,
+                setAccessible, invoke, newInstance, getMethodId, forName,
                 getDeclaredMethod, getDeclaredConstructor, allocateInstance,
                 getClass, getDeclaredField, isEnumConstant, getFieldName,
-                equals, getSuperclass, set, newArrayInstance,
+                equals, getSuperclass, setMethodId, newArrayInstance,
                 setArrayElement, getArrayElement, getTargetException,
         )
 
@@ -49,7 +49,7 @@ internal val newInstance = methodId(
         arguments = arrayOf(Array<Any>::class.id)
 )
 
-internal val get = methodId(
+internal val getMethodId = methodId(
         classId = Field::class.id,
         name = "get",
         returnType = objectClassId,
@@ -132,7 +132,7 @@ internal val getSuperclass = methodId(
         returnType = Class::class.id
 )
 
-internal val set = methodId(
+internal val setMethodId = methodId(
         classId = Field::class.id,
         name = "set",
         returnType = voidClassId,

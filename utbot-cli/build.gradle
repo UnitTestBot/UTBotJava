@@ -1,14 +1,25 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+
 //noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
 dependencies {
-    implementation project(':utbot-framework-api')
     implementation project(':utbot-framework')
-    implementation project(':utbot-summary')
 
     implementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
     // Without this dependency testng tests do not run.

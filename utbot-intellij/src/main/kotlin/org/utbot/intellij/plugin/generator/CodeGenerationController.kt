@@ -118,7 +118,6 @@ object CodeGenerationController {
         val latch = CountDownLatch(testSetsByClass.size)
 
         val reports = mutableListOf<TestsGenerationReport>()
-
         val testFilesPointers = mutableListOf<SmartPsiElementPointer<PsiFile>>()
         val utilClassListener = UtilClassListener()
         for (srcClass in testSetsByClass.keys) {
@@ -127,7 +126,6 @@ object CodeGenerationController {
                 val classPackageName = model.getTestClassPackageNameFor(srcClass)
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
-
                 val testFilePointer = SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(testClass.containingFile)
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
@@ -625,9 +623,7 @@ object CodeGenerationController {
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             // uploading formatted code
-
                             val file = filePointer.containingFile
-
                             val codeGenerationResultFormatted =
                                 codeGenerationResult.copy(generatedCode = file?.text?: generatedTestsCode)
 

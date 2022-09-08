@@ -15,6 +15,7 @@ object TrustedLibraries {
      */
     private val defaultTrustedLibraries: List<String> = listOf(
         "java",
+        "jdk",
         "sun",
         "javax",
         "com.sun",

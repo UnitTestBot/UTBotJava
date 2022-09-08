@@ -2,6 +2,14 @@ package org.utbot.instrumentation.process
 
 import com.jetbrains.rd.util.*
 import com.jetbrains.rd.util.lifetime.Lifetime
+import java.io.File
+import java.io.OutputStream
+import java.io.PrintStream
+import java.net.URLClassLoader
+import java.security.AllPermission
+import kotlin.system.measureTimeMillis
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.*
 import org.utbot.common.*
 import org.utbot.framework.plugin.api.util.UtContext
@@ -17,14 +25,6 @@ import org.utbot.rd.CallsSynchronizer
 import org.utbot.rd.ClientProtocolBuilder
 import org.utbot.rd.findRdPort
 import org.utbot.rd.loggers.UtRdConsoleLoggerFactory
-import java.io.File
-import java.io.OutputStream
-import java.io.PrintStream
-import java.net.URLClassLoader
-import java.security.AllPermission
-import kotlin.system.measureTimeMillis
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * We use this ClassLoader to separate user's classes and our dependency classes.
@@ -33,19 +33,6 @@ import kotlin.time.Duration.Companion.seconds
 internal object HandlerClassesLoader : URLClassLoader(emptyArray()) {
     fun addUrls(urls: Iterable<String>) {
         urls.forEach { super.addURL(File(it).toURI().toURL()) }
-    }
-
-    /**
-     * System classloader can find org.slf4j thus when we want to mock something from org.slf4j
-     * we also want this class will be loaded by [HandlerClassesLoader]
-     */
-    override fun loadClass(name: String, resolve: Boolean): Class<*> {
-        if (name.startsWith("org.slf4j")) {
-            return (findLoadedClass(name) ?: findClass(name)).apply {
-                if (resolve) resolveClass(this)
-            }
-        }
-        return super.loadClass(name, resolve)
     }
 }
 

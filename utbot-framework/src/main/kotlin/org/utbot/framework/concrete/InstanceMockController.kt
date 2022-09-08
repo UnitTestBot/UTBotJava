@@ -6,17 +6,17 @@ import org.objectweb.asm.Type
 
 class InstanceMockController(
     clazz: ClassId,
-    instances: List<Any?>,
-    callSites: Set<String>,
+    private val instances: List<Any?>,
+    private val callSites: Set<String>,
 ) : MockController {
     private val type = Type.getInternalName(clazz.jClass)
 
-    init {
-        InstrumentationContext.MockGetter.updateCallSites(type, callSites)
-        InstrumentationContext.MockGetter.updateMocks(null, "$type.<init>", instances)
+    override fun init() {
+        MockGetter.updateCallSites(type, callSites)
+        MockGetter.updateMocks(type, instances)
     }
 
     override fun close() {
-        InstrumentationContext.MockGetter.updateCallSites(type, emptySet())
+        MockGetter.updateCallSites(type, emptySet())
     }
 }

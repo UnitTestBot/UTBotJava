@@ -31,11 +31,16 @@ class ThreadBasedExecutor {
 
 
     /**
-     * Invoke [action] with timeout.
+     * Invoke [action] with timeout and call [prepare] before without timeout.
      *
-     * [stopWatch] is used to respect specific situations (such as class loading and transforming) while invoking.
+     * @param stopWatch is used to respect specific situations (such as class loading and transforming) while invoking.
      */
-    fun invokeWithTimeout(timeoutMillis: Long, stopWatch: StopWatch? = null, action:() -> Any?) : Result<Any?>? {
+    fun invokeWithTimeout(
+        timeoutMillis: Long,
+        stopWatch: StopWatch? = null,
+        prepare: () -> Unit = {},
+        action: () -> Any?
+    ) : Result<Any?>? {
         if (thread?.isAlive != true) {
             requestQueue = ArrayBlockingQueue<() -> Any?>(1)
             responseQueue = ArrayBlockingQueue<Result<Any?>>(1)
@@ -49,6 +54,9 @@ class ThreadBasedExecutor {
                 } catch (_: InterruptedException) {}
             }
         }
+
+        requestQueue.offer(prepare)
+        responseQueue.take().getOrThrow()
 
         requestQueue.offer {
             try {

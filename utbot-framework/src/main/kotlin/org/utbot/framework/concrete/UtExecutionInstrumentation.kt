@@ -1,5 +1,9 @@
 package org.utbot.framework.concrete
 
+import java.security.AccessControlException
+import java.security.ProtectionDomain
+import java.util.IdentityHashMap
+import kotlin.reflect.jvm.javaMethod
 import org.objectweb.asm.Type
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
@@ -42,10 +46,6 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
-import java.security.AccessControlException
-import java.security.ProtectionDomain
-import java.util.IdentityHashMap
-import kotlin.reflect.jvm.javaMethod
 
 /**
  * Consists of the data needed to execute the method concretely. Also includes method arguments stored in models.
@@ -117,8 +117,6 @@ class UtConcreteExecutionResult(
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
     private val delegateInstrumentation = InvokeInstrumentation()
 
-    private val instrumentationContext = InstrumentationContext()
-
     private val traceHandler = TraceHandler()
     private val pathsToUserClasses = mutableSetOf<String>()
 
@@ -150,7 +148,7 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         val returnClassId = methodId.returnType
         traceHandler.resetTrace()
 
-        return MockValueConstructor(instrumentationContext).use { constructor ->
+        return MockValueConstructor().use { constructor ->
             val params = try {
                 constructor.constructMethodParameters(parametersModels)
             } catch (e: Throwable) {
@@ -178,10 +176,16 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                 val newInstanceInstrumentation = instrumentations.filterIsInstance<UtNewInstanceInstrumentation>()
                 constructor.mockNewInstances(newInstanceInstrumentation)
 
-                traceHandler.resetTrace()
                 val stopWatch = StopWatch()
                 val context = UtContext(utContext.classLoader, stopWatch)
-                val concreteResult = ThreadBasedExecutor.threadLocal.invokeWithTimeout(timeout, stopWatch) {
+                val concreteResult = ThreadBasedExecutor.threadLocal.invokeWithTimeout(
+                    timeout,
+                    stopWatch,
+                    prepare = { // it's needed to call mockStatic on invocation's thread
+                        constructor.controllers.forEach(MockController::init)
+                        traceHandler.resetTrace()
+                    }
+                ) {
                     withUtContext(context) {
                         delegateInstrumentation.invoke(clazz, methodSignature, params.map { it.value })
                     }
@@ -282,17 +286,13 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         traceHandler.registerClass(className)
         instrumenter.visitInstructions(traceHandler.computeInstructionVisitor(className))
 
-        val mockClassVisitor = instrumenter.visitClass { writer ->
+        instrumenter.visitClass { writer ->
             MockClassVisitor(
                 writer,
-                InstrumentationContext.MockGetter::getMock.javaMethod!!,
-                InstrumentationContext.MockGetter::checkCallSite.javaMethod!!,
-                InstrumentationContext.MockGetter::hasMock.javaMethod!!
+                MockGetter::getMock.javaMethod!!,
+                MockGetter::checkCallSite.javaMethod!!,
+                MockGetter::hasMock.javaMethod!!
             )
-        }
-
-        mockClassVisitor.signatureToId.forEach { (method, id) ->
-            instrumentationContext.methodSignatureToId += method to id
         }
 
         return instrumenter.classByteCode

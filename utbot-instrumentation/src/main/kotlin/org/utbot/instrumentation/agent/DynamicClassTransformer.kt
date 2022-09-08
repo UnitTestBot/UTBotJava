@@ -52,7 +52,6 @@ class DynamicClassTransformer : ClassFileTransformer {
     companion object {
 
         private val packsToAlwaysTransform = listOf(
-            "org/slf4j",
             "org/utbot/instrumentation/warmup"
         )
 

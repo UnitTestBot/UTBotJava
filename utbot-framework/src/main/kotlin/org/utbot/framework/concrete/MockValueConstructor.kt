@@ -1,6 +1,17 @@
 package org.utbot.framework.concrete
 
+import java.io.Closeable
+import java.lang.reflect.Field
+import java.lang.reflect.Modifier
+import java.util.IdentityHashMap
+import kotlin.reflect.KClass
+import org.mockito.Mockito
+import org.mockito.stubbing.Answer
+import org.objectweb.asm.Type
 import org.utbot.common.invokeCatching
+import org.utbot.engine.util.lambda.CapturedArgument
+import org.utbot.engine.util.lambda.constructLambda
+import org.utbot.engine.util.lambda.constructStaticLambda
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -20,6 +31,7 @@ import org.utbot.framework.plugin.api.UtConcreteValue
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtMockValue
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
@@ -30,25 +42,12 @@ import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.isMockModel
 import org.utbot.framework.plugin.api.util.constructor
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.plugin.api.util.jField
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.jClass
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
-import java.io.Closeable
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
-import java.util.IdentityHashMap
-import kotlin.reflect.KClass
-import org.mockito.Mockito
-import org.mockito.stubbing.Answer
-import org.objectweb.asm.Type
-import org.utbot.engine.util.lambda.CapturedArgument
-import org.utbot.engine.util.lambda.constructLambda
-import org.utbot.engine.util.lambda.constructStaticLambda
-import org.utbot.framework.plugin.api.UtLambdaModel
-import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.instrumentation.process.runSandbox
 
 /**
@@ -62,9 +61,7 @@ import org.utbot.instrumentation.process.runSandbox
  * Note that `clearState` was deleted!
  */
 // TODO: JIRA:1379 -- Refactor ValueConstructor and MockValueConstructor
-class MockValueConstructor(
-    private val instrumentationContext: InstrumentationContext
-) : Closeable {
+class MockValueConstructor : Closeable {
     private val classLoader: ClassLoader
         get() = utContext.classLoader
 
@@ -86,7 +83,7 @@ class MockValueConstructor(
     /**
      * Controllers contain info about mocked methods and have to be closed to restore initial state.
      */
-    private val controllers = mutableListOf<MockController>()
+    val controllers = mutableListOf<MockController>()
 
     /**
      * Sets mock context (possible mock target) before block execution and restores previous one after block execution.
@@ -202,8 +199,7 @@ class MockValueConstructor(
         return classInstance
     }
 
-    private fun generateMockitoAnswer(methodToValues: Map<in ExecutableId, List<UtModel>>): Answer<*> {
-        val pointers = methodToValues.mapValues { (_, _) -> 0 }.toMutableMap()
+    private fun generateMockitoAnswer(methodToValues: Map<out ExecutableId, List<UtModel>>): Answer<*> {
         val concreteValues = methodToValues.mapValues { (_, models) ->
             models.map { model ->
                 val mockId = MockId("mock${++mockCounter}")
@@ -212,60 +208,28 @@ class MockValueConstructor(
                 // This model has to be already constructed, so it is OK to pass null as a target
             }
         }
-        return Answer { invocation ->
-            with(invocation.method) {
-                pointers[executableId].let { pointer ->
-                    concreteValues[executableId].let { values ->
-                        if (pointer != null && values != null && pointer < values.size) {
-                            pointers[executableId] = pointer + 1
-                            values[pointer]
-                        } else {
-                            invocation.callRealMethod()
-                        }
-                    }
-                }
-            }
-        }
+        return buildAnswer(concreteValues)
     }
 
     private fun generateMockitoMock(clazz: Class<*>, mocks: Map<ExecutableId, List<UtModel>>): Any {
         return Mockito.mock(clazz, generateMockitoAnswer(mocks))
     }
 
-    private fun computeConcreteValuesForMethods(
-        methodToValues: Map<ExecutableId, List<UtModel>>,
-    ): Map<ExecutableId, List<Any?>> = methodToValues.mapValues { (_, models) ->
+    private fun <T : ExecutableId> computeConcreteValuesForMethods(
+        methodToValues: Map<T, List<UtModel>>,
+    ): Map<T, List<Any?>> = methodToValues.mapValues { (_, models) ->
         models.map { mockAndGet(it) }
     }
 
-    /**
-     * Mocks methods on [instance] with supplied [methodToValues].
-     *
-     * Also add new controllers to [controllers]. Each controller corresponds to one method. If it is a static method, then the controller
-     * must be closed. If it is a non-static method and you don't change the mocks behaviour on the passed instance,
-     * then the controller doesn't have to be closed
-     *
-     * @param [instance] must be non-`null` for non-static methods.
-     * @param [methodToValues] return values for methods.
-     */
-    private fun mockMethods(
-        instance: Any?,
-        methodToValues: Map<ExecutableId, List<UtModel>>,
-    ) {
-        controllers += computeConcreteValuesForMethods(methodToValues).map { (method, values) ->
-            if (method !is MethodId) {
-                throw IllegalArgumentException("Expected MethodId, but got: $method")
+    private fun <T : ExecutableId> groupByClass(
+        methodToModels: Map<T, List<UtModel>>
+    ): Map<ClassId, Map<T, List<UtModel>>> =
+        methodToModels
+            .asIterable()
+            .groupBy { it.key.classId }
+            .mapValues { (_, entries) ->
+                entries.associate { it.key to it.value }
             }
-            MethodMockController(
-                method.classId.jClass,
-                method.method,
-                instance,
-                values,
-                instrumentationContext
-            )
-        }
-
-    }
 
     /**
      * Mocks static methods according to instrumentations.
@@ -273,8 +237,12 @@ class MockValueConstructor(
     fun mockStaticMethods(
         instrumentations: List<UtStaticMethodInstrumentation>,
     ) {
-        val methodToValues = instrumentations.associate { it.methodId as ExecutableId to it.values }
-        mockMethods(null, methodToValues)
+        val methodToModels = instrumentations.associate { it.methodId to it.values }
+        val methodToModelsGroupedByClass = groupByClass(methodToModels)
+        controllers += methodToModelsGroupedByClass.map { (classId, m2m) ->
+            val methodToValues = computeConcreteValuesForMethods(m2m)
+            StaticMethodMockController(classId.jClass, methodToValues)
+        }
     }
 
     /**

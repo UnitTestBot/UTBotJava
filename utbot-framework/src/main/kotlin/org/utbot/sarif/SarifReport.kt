@@ -273,18 +273,21 @@ class SarifReport(
         )
     }
 
+    private val testsBodyLines by lazy {
+        generatedTestsCode.split('\n')
+    }
+
     private fun findMethodCallInTestBody(testMethodName: String?, methodName: String): SarifPhysicalLocation? {
         if (testMethodName == null)
             return null
 
         // searching needed test
-        val testsBodyLines = generatedTestsCode.split('\n')
         val testMethodStartsAt = testsBodyLines.indexOfFirst { line ->
             line.contains(testMethodName)
         }
         if (testMethodStartsAt == -1)
             return null
-        /**
+        /*
          * ...
          * public void testMethodName() { // <- `testMethodStartsAt`
          *     ...
@@ -294,8 +297,10 @@ class SarifReport(
          */
 
         // searching needed method call
-        val publicMethodCallPattern = "$methodName("
-        val privateMethodCallPattern = Regex("""$methodName.*\.invoke\(""") // using reflection
+        // Regex("[^:]*") satisfies every character except ':'
+        // It is necessary to avoid strings from the stacktrace, such as "className.methodName(FileName.java:10)"
+        val publicMethodCallPattern = Regex("""$methodName\([^:]*\)""")
+        val privateMethodCallPattern = Regex("""$methodName.*\.invoke\([^:]*\)""") // using reflection
         val methodCallShiftInTestMethod = testsBodyLines
             .drop(testMethodStartsAt + 1) // for search after it
             .indexOfFirst { line ->

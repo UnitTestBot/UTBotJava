@@ -11,6 +11,10 @@ data class CustomJavaDocComment(
     var executesCondition: List<String> = listOf(),
     var invokes: List<String> = listOf(),
     var iterates: List<String> = listOf(),
+    var switchCase: String = "",
+    var recursion: String = "",
     var returnsFrom: String = "",
+    var countedReturn: String = "",
+    var caughtException: String = "",
     var throwsException: String = ""
 )

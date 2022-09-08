@@ -23,6 +23,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 import com.intellij.psi.search.GlobalSearchScopesCore
@@ -79,6 +81,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
+import org.utbot.engine.logger
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
@@ -95,7 +98,7 @@ object CodeGenerationController {
         val latch = CountDownLatch(testSetsByClass.size)
 
         val reports = mutableListOf<TestsGenerationReport>()
-        val testFiles = mutableListOf<PsiFile>()
+        val testFilesPointers = mutableListOf<SmartPsiElementPointer<PsiFile>>()
         for (srcClass in testSetsByClass.keys) {
             val testSets = testSetsByClass[srcClass] ?: continue
             try {
@@ -103,17 +106,19 @@ object CodeGenerationController {
                     srcClass.containingFile.containingDirectory.getPackage()?.qualifiedName else model.testPackageName
                 val testDirectory = allTestPackages[classPackageName] ?: baseTestDirectory
                 val testClass = createTestClass(srcClass, testDirectory, model) ?: continue
-                val file = testClass.containingFile
+                val testFilePointer = SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(testClass.containingFile)
                 val cut = psi2KClass[srcClass] ?: error("Didn't find KClass instance for class ${srcClass.name}")
                 runWriteCommandAction(model.project, "Generate tests with UtBot", null, {
                     try {
-                        generateCodeAndReport(srcClass, cut, testClass, file, testSets, model, latch, reports)
-                        testFiles.add(file)
+                        generateCodeAndReport(srcClass, cut, testClass, testFilePointer, testSets, model, latch, reports)
+                        testFilesPointers.add(testFilePointer)
                     } catch (e: IncorrectOperationException) {
+                        logger.error { e }
                         showCreatingClassError(model.project, createTestClassName(srcClass))
                     }
                 })
             } catch (e: IncorrectOperationException) {
+                logger.error { e }
                 showCreatingClassError(model.project, createTestClassName(srcClass))
             }
         }
@@ -138,7 +143,7 @@ object CodeGenerationController {
 
                     mergeSarifReports(model, sarifReportsPath)
                     if (model.runGeneratedTestsWithCoverage) {
-                        RunConfigurationHelper.runTestsWithCoverage(model, testFiles)
+                        RunConfigurationHelper.runTestsWithCoverage(model, testFilesPointers)
                     }
                 }
             }
@@ -249,7 +254,7 @@ object CodeGenerationController {
         srcClass: PsiClass,
         classUnderTest: KClass<*>,
         testClass: PsiClass,
-        file: PsiFile,
+        filePointer: SmartPsiElementPointer<PsiFile>,
         testSets: List<UtMethodTestSet>,
         model: GenerateTestsModel,
         reportsCountDown: CountDownLatch,
@@ -275,7 +280,7 @@ object CodeGenerationController {
                 testClassPackageName = testClass.packageName
             )
 
-        val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, file, testClass)
+        val editor = CodeInsightUtil.positionCursorAtLBrace(testClass.project, filePointer.containingFile, testClass)
         //TODO: Use PsiDocumentManager.getInstance(model.project).getDocument(file)
         // if we don't want to open _all_ new files with tests in editor one-by-one
         run(THREAD_POOL) {
@@ -286,27 +291,28 @@ object CodeGenerationController {
                     unblockDocument(testClass.project, editor.document)
                     // TODO: JIRA:1246 - display warnings if we rewrite the file
                     executeCommand(testClass.project, "Insert Generated Tests") {
-                        editor.document.setText(generatedTestsCode)
+                        editor.document.setText(generatedTestsCode.replace("jdk.internal.misc.Unsafe", "sun.misc.Unsafe"))
                     }
                     unblockDocument(testClass.project, editor.document)
 
                     // after committing the document the `testClass` is invalid in PsiTree,
                     // so we have to reload it from the corresponding `file`
-                    val testClassUpdated = (file as PsiClassOwner).classes.first() // only one class in the file
+                    val testClassUpdated = (filePointer.containingFile as PsiClassOwner).classes.first() // only one class in the file
 
                     // reformatting before creating reports due to
                     // SarifReport requires the final version of the generated tests code
                     run(THREAD_POOL) {
-                        IntentionHelper(model.project, editor, file).applyIntentions()
+                        IntentionHelper(model.project, editor, filePointer).applyIntentions()
                         run(EDT_LATER) {
                             runWriteCommandAction(testClassUpdated.project, "UtBot tests reformatting", null, {
-                                reformat(model, file, testClassUpdated)
+                                reformat(model, filePointer, testClassUpdated)
                             })
                             unblockDocument(testClassUpdated.project, editor.document)
 
                             // uploading formatted code
+                            val file = filePointer.containingFile
                             val testsCodeWithTestReportFormatted =
-                                testsCodeWithTestReport.copy(generatedCode = file.text)
+                                testsCodeWithTestReport.copy(generatedCode = file?.text?: generatedTestsCode)
 
                             // creating and saving reports
                             reports += testsCodeWithTestReportFormatted.testsGenerationReport
@@ -328,9 +334,10 @@ object CodeGenerationController {
         }
     }
 
-    private fun reformat(model: GenerateTestsModel, file: PsiFile, testClass: PsiClass) {
+    private fun reformat(model: GenerateTestsModel, smartPointer: SmartPsiElementPointer<PsiFile>, testClass: PsiClass) {
         val project = model.project
         val codeStyleManager = CodeStyleManager.getInstance(project)
+        val file = smartPointer.containingFile?: return
         codeStyleManager.reformat(file)
         when (model.codegenLanguage) {
             CodegenLanguage.JAVA -> {
@@ -370,6 +377,7 @@ object CodeGenerationController {
                 SarifReportIdea.createAndSave(model, testSets, generatedTestsCode, sourceFinding)
             }
         } catch (e: Exception) {
+            logger.error { e }
             showErrorDialogLater(
                 project,
                 message = "Cannot save Sarif report via generated tests: error occurred '${e.message}'",

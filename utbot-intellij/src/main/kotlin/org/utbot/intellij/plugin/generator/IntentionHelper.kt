@@ -13,57 +13,66 @@ import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import com.intellij.psi.SmartPsiElementPointer
+import mu.KotlinLogging
+import org.utbot.intellij.plugin.util.IntelliJApiHelper
+import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
-class IntentionHelper(val project: Project, private val editor: Editor, private val testFile: PsiFile) {
+private val logger = KotlinLogging.logger {}
+
+class IntentionHelper(val project: Project, private val editor: Editor, private val testFile: SmartPsiElementPointer<PsiFile>) {
     fun applyIntentions() {
-        while (true) {
-            val actions =
-                DumbService.getInstance(project).runReadActionInSmartMode(Computable<Map<IntentionAction, String>> {
-                    val daemonProgressIndicator = DaemonProgressIndicator()
-                    Disposer.register(project, daemonProgressIndicator)//check it
-                    val list = ProgressManager.getInstance().runProcess(Computable<List<HighlightInfo>> {
+        val actions =
+            DumbService.getInstance(project).runReadActionInSmartMode(Computable<Map<IntentionAction, String>> {
+                val daemonProgressIndicator = DaemonProgressIndicator()
+                Disposer.register(project, daemonProgressIndicator)//check it
+                val list = ProgressManager.getInstance().runProcess(Computable<List<HighlightInfo>> {
+                    try {
+                        val containingFile = testFile.containingFile ?: return@Computable emptyList()
+                        DaemonCodeAnalyzerEx.getInstanceEx(project).runMainPasses(
+                            containingFile,
+                            editor.document,
+                            daemonProgressIndicator
+                        )
+                    } catch (e: Exception) {
+                        logger.info { e }
+                        emptyList()// 'Cannot obtain read-action' rare case
+                    }
+                }, daemonProgressIndicator)
+                val actions = mutableMapOf<IntentionAction, String>()
+                list.forEach { info ->
+                    val quickFixActionRanges = info.quickFixActionRanges
+                    if (!quickFixActionRanges.isNullOrEmpty()) {
+                        val toList =
+                            quickFixActionRanges.map { pair: com.intellij.openapi.util.Pair<HighlightInfo.IntentionActionDescriptor, TextRange> -> pair.first.action }
+                                .toList()
+                        toList.forEach { intentionAction -> actions[intentionAction] = intentionAction.familyName }
+                    }
+                }
+                actions
+            })
+        actions.forEach {
+            if (it.value.isApplicable()) {
+                if (it.key.startInWriteAction()) {
+                    WriteCommandAction.runWriteCommandAction(project) {
                         try {
-                            DaemonCodeAnalyzerEx.getInstanceEx(project).runMainPasses(
-                                testFile,
-                                editor.document,
-                                daemonProgressIndicator
-                            )
+                            it.key.invoke(project, editor, testFile.containingFile)
                         } catch (e: Exception) {
-                            emptyList()// 'Cannot obtain read-action' rare case
-                        }
-                    }, daemonProgressIndicator)
-                    val actions = mutableMapOf<IntentionAction, String>()
-                    list.forEach { info ->
-                        val quickFixActionRanges = info.quickFixActionRanges
-                        if (!quickFixActionRanges.isNullOrEmpty()) {
-                            val toList =
-                                quickFixActionRanges.map { pair: com.intellij.openapi.util.Pair<HighlightInfo.IntentionActionDescriptor, TextRange> -> pair.first.action }
-                                    .toList()
-                            toList.forEach { intentionAction -> actions[intentionAction] = intentionAction.familyName }
+                            logger.error { e }
                         }
                     }
-                    actions
-                })
-            if (actions.isEmpty()) break
-
-            var someWereApplied = false
-            actions.forEach {
-                if (it.value.isApplicable()) {
-                    someWereApplied = true
-                    if (it.key.startInWriteAction()) {
-                        WriteCommandAction.runWriteCommandAction(project) {
-                            editor.document.isInBulkUpdate = true
-                            it.key.invoke(project, editor, testFile)
-                            editor.document.isInBulkUpdate = false
+                } else {
+                    run(IntelliJApiHelper.Target.EDT_LATER) {
+                        run(IntelliJApiHelper.Target.READ_ACTION) {
+                            try {
+                                it.key.invoke(project, editor, testFile.containingFile)
+                            } catch (e: Exception) {
+                                logger.error { e }
+                            }
                         }
-                    } else {
-                        editor.document.isInBulkUpdate = true
-                        it.key.invoke(project, editor, testFile)
-                        editor.document.isInBulkUpdate = false
                     }
                 }
             }
-            if (!someWereApplied) break
         }
     }
 

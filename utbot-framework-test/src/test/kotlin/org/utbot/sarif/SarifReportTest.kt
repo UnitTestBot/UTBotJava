@@ -159,7 +159,7 @@ class SarifReportTest {
             it.location.physicalLocation
         }
         assert(codeFlowPhysicalLocations[0].artifactLocation.uri.contains("MainTest.java"))
-        assert(codeFlowPhysicalLocations[0].region.startLine == 3)
+        assert(codeFlowPhysicalLocations[0].region.startLine == 5)
         assert(codeFlowPhysicalLocations[0].region.startColumn == 7)
     }
 
@@ -183,7 +183,7 @@ class SarifReportTest {
             it.location.physicalLocation
         }
         assert(codeFlowPhysicalLocations[0].artifactLocation.uri.contains("MainTest.java"))
-        assert(codeFlowPhysicalLocations[0].region.startLine == 4)
+        assert(codeFlowPhysicalLocations[0].region.startLine == 6)
         assert(codeFlowPhysicalLocations[0].region.startColumn == 5)
     }
 
@@ -330,6 +330,8 @@ class SarifReportTest {
 
     private val generatedTestsCodeMain = """
         public void testMain_ThrowArithmeticException() {
+            /* This test fails because method [Main.main] produces [java.lang.ArithmeticException: / by zero]
+                Main.main(Main.java:15) */
             Main main = new Main();
               main.main(0); // shift for `startColumn` == 7
         }
@@ -337,6 +339,8 @@ class SarifReportTest {
 
     private val generatedTestsCodePrivateMain = """
         public void testMain_ThrowArithmeticException() {
+            /* This test fails because method [Main.main] produces [java.lang.ArithmeticException: / by zero]
+                Main.main(Main.java:15) */
             Main main = new Main();
             // ...
             mainMethod.invoke(main, mainMethodArguments);

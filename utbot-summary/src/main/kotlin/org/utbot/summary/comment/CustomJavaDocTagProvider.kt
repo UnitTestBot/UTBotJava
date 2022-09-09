@@ -16,7 +16,10 @@ class CustomJavaDocTagProvider {
             CustomJavaDocTag.Executes,
             CustomJavaDocTag.Invokes,
             CustomJavaDocTag.Iterates,
+            CustomJavaDocTag.SwitchCase,
+            CustomJavaDocTag.Recursion,
             CustomJavaDocTag.ReturnsFrom,
+            CustomJavaDocTag.CaughtException,
             CustomJavaDocTag.ThrowsException,
         )
 }
@@ -41,7 +44,14 @@ sealed class CustomJavaDocTag(
 
     object Invokes : CustomJavaDocTag("utbot.invokes", "Invokes", CustomJavaDocComment::invokes)
     object Iterates : CustomJavaDocTag("utbot.iterates", "Iterates", CustomJavaDocComment::iterates)
+    object SwitchCase : CustomJavaDocTag("utbot.activatesSwitch", "Activates switch", CustomJavaDocComment::switchCase)
+    object Recursion :
+        CustomJavaDocTag("utbot.triggersRecursion", "Triggers recursion ", CustomJavaDocComment::recursion)
+
     object ReturnsFrom : CustomJavaDocTag("utbot.returnsFrom", "Returns from", CustomJavaDocComment::returnsFrom)
+    object CaughtException :
+        CustomJavaDocTag("utbot.caughtException", "Caught exception", CustomJavaDocComment::caughtException)
+
     object ThrowsException :
         CustomJavaDocTag("utbot.throwsException", "Throws exception", CustomJavaDocComment::throwsException)
 

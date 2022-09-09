@@ -31,7 +31,6 @@ import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.framework.plugin.api.util.UtContext
@@ -54,6 +53,8 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.PathSelectorType
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.settings.Settings
@@ -161,7 +162,7 @@ object UtTestsDialogProcessor {
                             )
 
                             for (srcClass in model.srcClasses) {
-                                val methods = ReadAction.nonBlocking<List<UtMethod<*>>> {
+                                val methods = ReadAction.nonBlocking<List<ExecutableId>> {
                                     val canonicalName = srcClass.canonicalName
                                     val clazz = classLoader.loadClass(canonicalName).kotlin
                                     psi2KClass[srcClass] = clazz
@@ -303,24 +304,37 @@ object UtTestsDialogProcessor {
     private fun configureML() {
         logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
 
-        if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
             val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
-            try {
-                Class.forName(analyticsConfigurationClassPath)
-                Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+            tryToSetUpMLSelector(analyticsConfigurationClassPath)
+        }
 
-                logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
-            } catch (e: ClassNotFoundException) {
-                logger.error {
-                    "Configuration of the predictors from the utbot-analytics module described in the class: " +
-                            "$analyticsConfigurationClassPath is not found!"
-                }
+        if (UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
+            val analyticsConfigurationClassPath = UtSettings.analyticsTorchConfigurationClassPath
+            tryToSetUpMLSelector(analyticsConfigurationClassPath)
+        }
+    }
 
-                logger.info(e) {
-                    "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
-                }
-                UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+    private fun tryToSetUpMLSelector(analyticsConfigurationClassPath: String) {
+        try {
+            Class.forName(analyticsConfigurationClassPath)
+            Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
+
+            logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
+        } catch (e: ClassNotFoundException) {
+            logger.error {
+                "Configuration of the predictors from the utbot-analytics module described in the class: " +
+                        "$analyticsConfigurationClassPath is not found!"
             }
+
+            logger.info(e) {
+                "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
+            }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+        }
+        catch (e: Exception) { // engine not found, for example
+            logger.error { e.message }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }
     }
 
@@ -334,12 +348,12 @@ object UtTestsDialogProcessor {
     private fun findMethodsInClassMatchingSelected(
         clazz: KClass<*>,
         selectedMethods: List<MemberInfo>
-    ): List<UtMethod<*>> {
+    ): List<ExecutableId> {
         val selectedSignatures = selectedMethods.map { it.signature() }
         return clazz.functions
             .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
             .filter { it.signature().normalized() in selectedSignatures }
-            .map { UtMethod(it, clazz) }
+            .map { it.executableId }
     }
 
     private fun urlClassLoader(classpath: List<String>) =

@@ -173,6 +173,7 @@ sealed class TestFramework(
     override val displayName: String,
     override val description: String = "Use $displayName as test framework",
 ) : CodeGenerationSettingItem {
+    var isParametrizedTestsConfigured = false
     var isInstalled: Boolean = false
     abstract val mainPackage: String
     abstract val assertionsClass: ClassId

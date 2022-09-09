@@ -1,7 +1,7 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
-    api project(':utbot-framework-api')
+    implementation project(':utbot-framework-api')
     implementation project(':utbot-rd')
 
     implementation group: 'org.ow2.asm', name: 'asm', version: asm_version

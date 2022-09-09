@@ -169,7 +169,7 @@ internal class UtBotFieldModificatorsTest {
     }
 
     private fun initAnalysis() {
-        SootUtils.runSoot(PrimitiveModifications::class)
+        SootUtils.runSoot(PrimitiveModifications::class.java, forceReload = false)
         fieldsModificatorsSearcher = UtBotFieldsModificatorsSearcher()
     }
 

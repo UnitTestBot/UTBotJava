@@ -1,10 +1,10 @@
 package org.utbot.analytics
 
 import org.utbot.engine.InterProceduralUnitGraph
-import org.utbot.engine.selectors.NNRewardGuidedSelectorFactory
-import org.utbot.engine.selectors.NNRewardGuidedSelectorWithRecalculationFactory
-import org.utbot.engine.selectors.NNRewardGuidedSelectorWithoutRecalculationFactory
-import org.utbot.framework.NNRewardGuidedSelectorType
+import org.utbot.engine.selectors.MLSelectorFactory
+import org.utbot.engine.selectors.MLSelectorWithRecalculationFactory
+import org.utbot.engine.selectors.MLSelectorWithoutRecalculationFactory
+import org.utbot.framework.MLSelectorRecalculationType
 import org.utbot.framework.UtSettings
 
 /**
@@ -23,14 +23,14 @@ object EngineAnalyticsContext {
         }
     }
 
-    val nnRewardGuidedSelectorFactory: NNRewardGuidedSelectorFactory = when (UtSettings.nnRewardGuidedSelectorType) {
-        NNRewardGuidedSelectorType.WITHOUT_RECALCULATION -> NNRewardGuidedSelectorWithoutRecalculationFactory()
-        NNRewardGuidedSelectorType.WITH_RECALCULATION -> NNRewardGuidedSelectorWithRecalculationFactory()
+    val mlSelectorFactory: MLSelectorFactory = when (UtSettings.mlSelectorRecalculationType) {
+        MLSelectorRecalculationType.WITHOUT_RECALCULATION -> MLSelectorWithoutRecalculationFactory()
+        MLSelectorRecalculationType.WITH_RECALCULATION -> MLSelectorWithRecalculationFactory()
     }
 
-    var stateRewardPredictorFactory: StateRewardPredictorFactory = object : StateRewardPredictorFactory {
-        override fun invoke(): StateRewardPredictor {
-            error("NNStateRewardPredictor factory wasn't provided")
+    var mlPredictorFactory: MLPredictorFactory = object : MLPredictorFactory {
+        override fun invoke(): MLPredictor {
+            error("MLPredictor factory wasn't provided")
         }
     }
 }

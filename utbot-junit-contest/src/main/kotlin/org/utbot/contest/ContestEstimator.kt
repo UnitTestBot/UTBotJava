@@ -33,7 +33,7 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.instrumentation.ConcreteExecutor
-import org.utbot.predictors.StateRewardPredictorFactoryImpl
+import org.utbot.predictors.MLPredictorFactoryImpl
 import kotlin.concurrent.thread
 import kotlin.math.min
 
@@ -328,14 +328,14 @@ fun runEstimator(
 
     EngineAnalyticsContext.featureProcessorFactory = FeatureProcessorWithStatesRepetitionFactory()
     EngineAnalyticsContext.featureExtractorFactory = FeatureExtractorFactoryImpl()
-    EngineAnalyticsContext.stateRewardPredictorFactory = StateRewardPredictorFactoryImpl()
-    if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
-        Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+    EngineAnalyticsContext.mlPredictorFactory = MLPredictorFactoryImpl()
+    if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
+        Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
     }
     
     logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
-    if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
-        logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
+    if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR || UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
+        logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
     }
 
     // fix for CTRL-ALT-SHIFT-C from IDEA, which copies in class#method form

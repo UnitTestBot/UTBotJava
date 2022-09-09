@@ -1,6 +1,7 @@
 package org.utbot.contest
 
 import java.io.File
+import java.util.concurrent.ConcurrentSkipListSet
 import org.utbot.common.MutableMultiset
 import org.utbot.common.mutableMultisetOf
 import org.utbot.framework.plugin.api.Instruction
@@ -48,13 +49,13 @@ class GlobalStats {
         get() = statsForClasses.count { it.failedToCompile }
 
     val coveredInstructions: Int
-        get() = statsForClasses.sumOf { it.coverage.getCoverageInfo(it.className).covered }
+        get() = statsForClasses.sumOf { it.coverage.getCoverageInfo(it.testedClassNames).covered }
 
     val coveredInstructionsByFuzzing: Int
-        get() = statsForClasses.sumOf { it.fuzzedCoverage.getCoverageInfo(it.className).covered }
+        get() = statsForClasses.sumOf { it.fuzzedCoverage.getCoverageInfo(it.testedClassNames).covered }
 
     val coveredInstructionsByConcolic: Int
-        get() = statsForClasses.sumOf { it.concolicCoverage.getCoverageInfo(it.className).covered }
+        get() = statsForClasses.sumOf { it.concolicCoverage.getCoverageInfo(it.testedClassNames).covered }
 
     val totalInstructions: Int
         get() = statsForClasses.sumOf { it.coverage.totalInstructions.toInt() }
@@ -62,7 +63,7 @@ class GlobalStats {
     val avgCoverage: Double
         get() = statsForClasses
             .filter { it.coverage.totalInstructions != 0L }
-            .map { it.coverage.getCoverageInfo(it.className).run { 100.0 * covered / total } }
+            .map { it.coverage.getCoverageInfo(it.testedClassNames).run { 100.0 * covered / total } }
             .average().run {
                 if (isNaN()) 0.0
                 else this
@@ -108,7 +109,9 @@ class GlobalStats {
             avgCoverage.format(PRECISION) + " %"
 }
 
-class StatsForClass(val className: String) {
+class StatsForClass {
+    val testedClassNames: MutableSet<String> = ConcurrentSkipListSet()
+
     var methodsCount: Int = -1
     val statsForMethods = mutableListOf<StatsForMethod>()
 
@@ -123,8 +126,15 @@ class StatsForClass(val className: String) {
     var fuzzedCoverage = CoverageInstructionsSet()
     var concolicCoverage = CoverageInstructionsSet()
 
+    /**
+     * Add class [className] to respect coverage from this class.
+     */
+    fun addTestedClass(className: String) {
+        testedClassNames.add(className)
+    }
+
     private fun CoverageInstructionsSet.prettyInfo(): String =
-        getCoverageInfo(className).run { "$covered/$total" }
+        getCoverageInfo(testedClassNames).run { "$covered/$total" }
 
     override fun toString(): String = "\n<StatsForClass> :" +
             "\n\tcanceled by timeout = $canceledByTimeout" +
@@ -191,12 +201,12 @@ data class CoverageInstructionsSet(
 data class CoverageStatistic(val covered: Int, val total: Int)
 
 /**
- * Compute coverage of class named [className] with its anonymous, nested and inner classes.
+ * Compute coverage of classes with names in [classNames].
  */
-private fun CoverageInstructionsSet?.getCoverageInfo(className: String): CoverageStatistic = this?.run {
+private fun CoverageInstructionsSet?.getCoverageInfo(classNames: Set<String>): CoverageStatistic = this?.run {
     CoverageStatistic(
         coveredInstructions.filter {
-            instr -> instr.className.startsWith(className)
+            instr -> classNames.contains(instr.className)
         }.toSet().size,
         totalInstructions.toInt()
     )

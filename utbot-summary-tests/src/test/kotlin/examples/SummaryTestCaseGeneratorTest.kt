@@ -10,6 +10,7 @@ import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
 import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.summary.comment.nextSynonyms
 import org.utbot.summary.summarize
 import org.utbot.tests.infrastructure.TestExecution
@@ -57,8 +58,7 @@ open class SummaryTestCaseGeneratorTest(
             checkNpeInNestedMethods = true
             checkNpeInNestedNotPrivateMethods = true
         }
-        val utMethod = UtMethod.from(method)
-        val testSet = executionsModel(utMethod, mockStrategy)
+        val testSet = executionsModel(method.executableId, mockStrategy)
         val testSetWithSummarization = testSet.summarize(searchDirectory)
 
         testSetWithSummarization.executions.checkMatchersWithTextSummary(summaryKeys)

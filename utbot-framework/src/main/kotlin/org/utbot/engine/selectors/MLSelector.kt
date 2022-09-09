@@ -14,11 +14,11 @@ import org.utbot.engine.selectors.strategies.StoppingStrategy
  *
  * Calculates reward using neural network, when state is offered, and then peeks state with maximum reward
  *
- * @see choosingStrategy [ChossingStrategy] for [GreedySearch]
+ * @see choosingStrategy [ChoosingStrategy] for [GreedySearch]
  *
  * [GreedySearch]
  */
-abstract class NNRewardGuidedSelector(
+abstract class MLSelector(
     protected val generatedTestCountingStatistics: GeneratedTestCountingStatistics,
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy,
@@ -35,13 +35,13 @@ abstract class NNRewardGuidedSelector(
  * Calculate weight of execution state only when it is offered. It has advantage, because it works faster,
  * than with recalculation but disadvantage is that some features of execution state can change.
  */
-class NNRewardGuidedSelectorWithoutWeightsRecalculation(
+class MLSelectorWithoutWeightsRecalculation(
     generatedTestCountingStatistics: GeneratedTestCountingStatistics,
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy,
     seed: Int = 42,
     graph: InterProceduralUnitGraph
-) : NNRewardGuidedSelector(generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph) {
+) : MLSelector(generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph) {
     override fun offerImpl(state: ExecutionState) {
         super.offerImpl(state)
         featureExtractor.extractFeatures(state, generatedTestCountingStatistics.generatedTestsCount)
@@ -58,13 +58,13 @@ class NNRewardGuidedSelectorWithoutWeightsRecalculation(
  * Calculate weight of execution state every time when it needed. It works slower,
  * than without recalculation but features are always relevant
  */
-class NNRewardGuidedSelectorWithWeightsRecalculation(
+class MLSelectorWithWeightsRecalculation(
     generatedTestCountingStatistics: GeneratedTestCountingStatistics,
     choosingStrategy: ChoosingStrategy,
     stoppingStrategy: StoppingStrategy,
     seed: Int = 42,
     graph: InterProceduralUnitGraph
-) : NNRewardGuidedSelector(generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph) {
+) : MLSelector(generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph) {
     override val ExecutionState.weight: Double
         get() {
             featureExtractor.extractFeatures(this, generatedTestCountingStatistics.generatedTestsCount)

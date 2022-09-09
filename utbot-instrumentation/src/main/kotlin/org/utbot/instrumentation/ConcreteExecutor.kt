@@ -16,7 +16,7 @@ import org.utbot.framework.plugin.api.util.signature
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.process.ChildProcessRunner
 import org.utbot.instrumentation.rd.UtInstrumentationProcess
-import org.utbot.instrumentation.rd.UtRdLoggerFactory
+import org.utbot.rd.UtRdLoggerFactory
 import org.utbot.instrumentation.rd.generated.InvokeMethodCommandParams
 import org.utbot.instrumentation.util.ChildProcessError
 import java.io.Closeable
@@ -231,6 +231,25 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         }
     }
 
+    suspend fun executeAsync(
+        className: String,
+        signature: String,
+        arguments: Array<Any?>,
+        parameters: Any?
+    ): TIResult = try {
+        withProcess {
+            val argumentsByteArray = kryoHelper.writeObject(arguments.asList())
+            val parametersByteArray = kryoHelper.writeObject(parameters)
+            val params = InvokeMethodCommandParams(className, signature, argumentsByteArray, parametersByteArray)
+
+            val ba = protocolModel.invokeMethodCommand.startSuspending(lifetime, params).result
+            kryoHelper.readObject(ba)
+        }
+    } catch (e: Throwable) {
+        logger.trace { "executeAsync, response(ERROR): $e" }
+        throw e
+    }
+
     /**
      * Executes [kCallable] in the child process with the supplied [arguments] and [parameters], e.g. static environment.
      *
@@ -241,28 +260,16 @@ class ConcreteExecutor<TIResult, TInstrumentation : Instrumentation<TIResult>> p
         arguments: Array<Any?>,
         parameters: Any?
     ): TIResult {
-        val (clazz, signature) = when (kCallable) {
-            is KFunction<*> -> kCallable.javaMethod?.run { declaringClass to signature }
-                ?: kCallable.javaConstructor?.run { declaringClass to signature }
+        val (className, signature) = when (kCallable) {
+            is KFunction<*> -> kCallable.javaMethod?.run { declaringClass.name to signature }
+                ?: kCallable.javaConstructor?.run { declaringClass.name to signature }
                 ?: error("Not a constructor or a method")
-            is KProperty<*> -> kCallable.javaGetter?.run { declaringClass to signature }
+            is KProperty<*> -> kCallable.javaGetter?.run { declaringClass.name to signature }
                 ?: error("Not a getter")
             else -> error("Unknown KCallable: $kCallable")
         } // actually executableId implements the same logic, but it requires UtContext
 
-        try {
-            return withProcess {
-                val argumentsByteArray = kryoHelper.writeObject(arguments.asList())
-                val parametersByteArray = kryoHelper.writeObject(parameters)
-                val params = InvokeMethodCommandParams(clazz.name, signature, argumentsByteArray, parametersByteArray)
-
-                val ba = protocolModel.invokeMethodCommand.startSuspending(lifetime, params).result
-                kryoHelper.readObject(ba)
-            }
-        } catch (e: Throwable) {
-            logger.trace { "executeAsync, response(ERROR): $e" }
-            throw e
-        }
+        return executeAsync(className, signature, arguments, parameters)
     }
 
     override fun close() {

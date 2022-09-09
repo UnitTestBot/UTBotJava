@@ -6,16 +6,17 @@ import ai.djl.ndarray.NDArray
 import ai.djl.ndarray.NDList
 import ai.djl.translate.Translator
 import ai.djl.translate.TranslatorContext
-import org.utbot.analytics.StateRewardPredictor
+import org.utbot.analytics.MLPredictor
 import org.utbot.framework.UtSettings
 import java.io.Closeable
 import java.nio.file.Paths
 
-class StateRewardPredictorTorch : StateRewardPredictor, Closeable {
-    val model: Model = Model.newInstance("model")
+class TorchPredictor : MLPredictor, Closeable {
+    val model: Model
 
     init {
-        model.load(Paths.get(UtSettings.rewardModelPath, "model.pt1"))
+        model = Model.newInstance("model")
+        model.load(Paths.get(UtSettings.modelPath, "model.pt1"))
     }
 
     private val predictor: Predictor<List<Float>, Float> = model.newPredictor(object : Translator<List<Float>, Float> {

@@ -6,44 +6,44 @@ import org.utbot.engine.selectors.strategies.GeneratedTestCountingStatistics
 import org.utbot.engine.selectors.strategies.StoppingStrategy
 
 /**
- * Creates [NNRewardGuidedSelector]
+ * Creates [MLSelector]
  */
-interface NNRewardGuidedSelectorFactory {
+interface MLSelectorFactory {
     operator fun invoke(
         generatedTestCountingStatistics: GeneratedTestCountingStatistics,
         choosingStrategy: ChoosingStrategy,
         stoppingStrategy: StoppingStrategy,
         seed: Int = 42,
         graph: InterProceduralUnitGraph
-    ): NNRewardGuidedSelector
+    ): MLSelector
 }
 
 /**
- * Creates [NNRewardGuidedSelectorWithWeightsRecalculation]
+ * Creates [MLSelectorWithWeightsRecalculation]
  */
-class NNRewardGuidedSelectorWithRecalculationFactory : NNRewardGuidedSelectorFactory {
+class MLSelectorWithRecalculationFactory : MLSelectorFactory {
     override fun invoke(
         generatedTestCountingStatistics: GeneratedTestCountingStatistics,
         choosingStrategy: ChoosingStrategy,
         stoppingStrategy: StoppingStrategy,
         seed: Int,
         graph: InterProceduralUnitGraph
-    ): NNRewardGuidedSelector = NNRewardGuidedSelectorWithWeightsRecalculation(
+    ): MLSelector = MLSelectorWithWeightsRecalculation(
         generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph
     )
 }
 
 /**
- * Creates [NNRewardGuidedSelectorWithoutWeightsRecalculation]
+ * Creates [MLSelectorWithoutWeightsRecalculation]
  */
-class NNRewardGuidedSelectorWithoutRecalculationFactory : NNRewardGuidedSelectorFactory {
+class MLSelectorWithoutRecalculationFactory : MLSelectorFactory {
     override fun invoke(
         generatedTestCountingStatistics: GeneratedTestCountingStatistics,
         choosingStrategy: ChoosingStrategy,
         stoppingStrategy: StoppingStrategy,
         seed: Int,
         graph: InterProceduralUnitGraph
-    ): NNRewardGuidedSelector = NNRewardGuidedSelectorWithoutWeightsRecalculation(
+    ): MLSelector = MLSelectorWithoutWeightsRecalculation(
         generatedTestCountingStatistics, choosingStrategy, stoppingStrategy, seed, graph
     )
 }

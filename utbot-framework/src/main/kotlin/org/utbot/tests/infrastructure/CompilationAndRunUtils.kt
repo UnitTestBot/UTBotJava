@@ -3,7 +3,6 @@ package org.utbot.tests.infrastructure
 import org.utbot.framework.plugin.api.CodegenLanguage
 import java.io.File
 import java.nio.file.Path
-import mu.KotlinLogging
 import org.utbot.common.FileUtil
 import org.utbot.engine.logger
 import org.utbot.framework.codegen.Junit5
@@ -14,6 +13,13 @@ data class ClassUnderTest(
     val packageName: String,
     val generatedTestFile: File
 )
+
+fun writeFile(fileContents: String, targetFile: File): File {
+    val targetDir = targetFile.parentFile
+    targetDir.mkdirs()
+    targetFile.writeText(fileContents)
+    return targetFile
+}
 
 fun writeTest(
     testContents: String,
@@ -27,13 +33,10 @@ fun writeTest(
         File(buildDirectory.toFile(), "${testClassName.substringAfterLast(".")}${generatedLanguage.extension}")
     )
 
-    val targetDir = classUnderTest.generatedTestFile.parentFile
-    targetDir.mkdirs()
     logger.info {
         "File size for ${classUnderTest.testClassSimpleName}: ${FileUtil.byteCountToDisplaySize(testContents.length.toLong())}"
     }
-    classUnderTest.generatedTestFile.writeText(testContents)
-    return classUnderTest.generatedTestFile
+    return writeFile(testContents, classUnderTest.generatedTestFile)
 }
 
 fun compileTests(

@@ -1,4 +1,4 @@
-package org.utbot.instrumentation.rd
+package org.utbot.rd
 
 import com.jetbrains.rd.util.ILoggerFactory
 import com.jetbrains.rd.util.LogLevel

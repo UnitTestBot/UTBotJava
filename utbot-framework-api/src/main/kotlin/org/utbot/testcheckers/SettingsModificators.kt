@@ -39,13 +39,13 @@ inline fun <reified T> withPathSelectorType(pathSelectorType: PathSelectorType, 
     }
 }
 
-inline fun <reified T> withRewardModelPath(rewardModelPath: String, block: () -> T): T {
-    val prev = UtSettings.rewardModelPath
-    UtSettings.rewardModelPath = rewardModelPath
+inline fun <reified T> withModelPath(modelPath: String, block: () -> T): T {
+    val prev = UtSettings.modelPath
+    UtSettings.modelPath = modelPath
     try {
         return block()
     } finally {
-        UtSettings.rewardModelPath = prev
+        UtSettings.modelPath = prev
     }
 }
 
@@ -113,11 +113,11 @@ inline fun <reified T> withoutConcrete(block: () -> T): T {
  * Run [block] with disabled sandbox in the concrete executor
  */
 inline fun <reified T> withoutSandbox(block: () -> T): T {
-    val prev = UtSettings.disableSandbox
-    UtSettings.disableSandbox = true
+    val prev = UtSettings.useSandbox
+    UtSettings.useSandbox = false
     try {
         return block()
     } finally {
-        UtSettings.disableSandbox = prev
+        UtSettings.useSandbox = prev
     }
 }

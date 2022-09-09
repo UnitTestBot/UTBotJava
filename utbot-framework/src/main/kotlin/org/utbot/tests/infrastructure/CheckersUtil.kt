@@ -26,6 +26,7 @@ data class TestFrameworkConfiguration(
     val codegenLanguage: CodegenLanguage,
     val forceStaticMocking: ForceStaticMocking,
     val resetNonFinalFieldsAfterClinit: Boolean = true,
+    val generateUtilClassFile: Boolean,
     val runtimeExceptionTestsBehaviour: RuntimeExceptionTestsBehaviour = RuntimeExceptionTestsBehaviour.PASS,
     val enableTestsTimeout: Boolean = false // our tests should not fail due to timeout
 ) {
@@ -83,7 +84,19 @@ val allTestFrameworkConfigurations: List<TestFrameworkConfiguration> = run {
                             parametrizedTestSource,
                             codegenLanguage,
                             forceStaticMocking,
-                            resetNonFinalFieldsAfterClinit
+                            resetNonFinalFieldsAfterClinit,
+                            generateUtilClassFile = false
+                        )
+                        possibleConfiguration += TestFrameworkConfiguration(
+                            testFramework,
+                            mockFramework,
+                            mockStrategy,
+                            staticsMocking,
+                            parametrizedTestSource,
+                            codegenLanguage,
+                            forceStaticMocking,
+                            resetNonFinalFieldsAfterClinit,
+                            generateUtilClassFile = true
                         )
                     }
                 }

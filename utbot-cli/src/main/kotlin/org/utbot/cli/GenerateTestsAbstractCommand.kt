@@ -30,6 +30,7 @@ import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 import org.utbot.framework.plugin.api.UtMethodTestSet
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.summary.summarize
 import java.io.File
 import java.net.URLClassLoader
@@ -46,7 +47,7 @@ private val logger = KotlinLogging.logger {}
 abstract class GenerateTestsAbstractCommand(name: String, help: String) :
     CliktCommand(name = name, help = help) {
 
-    abstract val classPath:String?
+    abstract val classPath: String?
 
     private val mockStrategy by option("-m", "--mock-strategy", help = "Defines the mock strategy")
         .choice(
@@ -179,7 +180,11 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         }
     }
 
-    protected fun generateTest(classUnderTest: ClassId, testClassname: String, testSets: List<UtMethodTestSet>): String =
+    protected fun generateTest(
+        classUnderTest: ClassId,
+        testClassname: String,
+        testSets: List<UtMethodTestSet>
+    ): String =
         initializeCodeGenerator(
             testFramework,
             classUnderTest
@@ -191,7 +196,12 @@ abstract class GenerateTestsAbstractCommand(name: String, help: String) :
         // TODO: SAT-1566 Set UtSettings parameters.
         UtSettings.treatOverflowAsError = treatOverflowAsError == TreatOverflowAsError.AS_ERROR
 
-        return TestCaseGenerator(workingDirectory, classPathNormalized, System.getProperty("java.class.path"))
+        return TestCaseGenerator(
+            workingDirectory,
+            classPathNormalized,
+            System.getProperty("java.class.path"),
+            JdkInfoDefaultProvider().info
+        )
     }
 
     private fun initializeCodeGenerator(testFramework: String, classUnderTest: ClassId): CodeGenerator {

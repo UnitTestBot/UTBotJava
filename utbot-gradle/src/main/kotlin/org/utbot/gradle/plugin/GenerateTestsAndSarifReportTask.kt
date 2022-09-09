@@ -14,6 +14,7 @@ import org.utbot.gradle.plugin.wrappers.GradleProjectWrapper
 import org.utbot.gradle.plugin.wrappers.SourceFindingStrategyGradle
 import org.utbot.gradle.plugin.wrappers.SourceSetWrapper
 import org.utbot.framework.plugin.sarif.TargetClassWrapper
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import java.io.File
 import java.net.URLClassLoader
 import javax.inject.Inject
@@ -88,7 +89,12 @@ open class GenerateTestsAndSarifReportTask @Inject constructor(
         logger.debug().bracket("Generating tests for the '${sourceSet.sourceSet.name}' source set") {
             withUtContext(UtContext(sourceSet.classLoader)) {
                 val testCaseGenerator =
-                    TestCaseGenerator(sourceSet.workingDirectory, sourceSet.runtimeClasspath, dependencyPaths)
+                    TestCaseGenerator(
+                        sourceSet.workingDirectory,
+                        sourceSet.runtimeClasspath,
+                        dependencyPaths,
+                        JdkInfoDefaultProvider().info
+                    )
                 sourceSet.targetClasses.forEach { targetClass ->
                     generateForClass(sourceSet, targetClass, testCaseGenerator)
                 }

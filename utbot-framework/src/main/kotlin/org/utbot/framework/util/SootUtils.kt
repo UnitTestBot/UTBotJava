@@ -40,6 +40,7 @@ import org.utbot.engine.overrides.strings.UtStringBuffer
 import org.utbot.engine.overrides.strings.UtStringBuilder
 import org.utbot.engine.pureJavaSignature
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
 import soot.Scene
@@ -55,24 +56,28 @@ object SootUtils {
     /**
      * Runs Soot in tests if it hasn't already been done.
      *
+     * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
+     * code.
      * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to the class buildDir.
      */
-    fun runSoot(clazz: java.lang.Class<*>, forceReload: kotlin.Boolean) {
+    fun runSoot(clazz: java.lang.Class<*>, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
         val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
         val buildDirPath = buildDir.toPath()
 
-        runSoot(buildDirPath, null, forceReload)
+        runSoot(buildDirPath, null, forceReload, jdkInfo)
     }
 
 
     /**
+     * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
+     * code.
      * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to [buildDirPath] and
      * [previousClassPath] equals to [classPath].
      */
-    fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean) {
+    fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
         synchronized(this) {
             if (buildDirPath != previousBuildDir || classPath != previousClassPath || forceReload) {
-                initSoot(buildDirPath, classPath)
+                initSoot(buildDirPath, classPath, jdkInfo)
                 previousBuildDir = buildDirPath
                 previousClassPath = classPath
             }
@@ -84,11 +89,13 @@ object SootUtils {
 }
 
 /**
-Convert code to Jimple
+ * Convert code to Jimple
  */
-private fun initSoot(buildDir: Path, classpath: String?) {
+private fun initSoot(buildDir: Path, classpath: String?, jdkInfo: JdkInfo) {
     G.reset()
     val options = Options.v()
+
+    G.v().initJdk(G.JreInfo(jdkInfo.path.toString(), jdkInfo.version)) // init Soot with the right jdk
 
     options.apply {
         set_prepend_classpath(true)

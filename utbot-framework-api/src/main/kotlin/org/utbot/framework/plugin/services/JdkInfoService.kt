@@ -5,7 +5,6 @@ import java.nio.file.Paths
 
 data class JdkInfo(
     val path: Path,
-    @Suppress("unused")
     val version: Int
 )
 
@@ -26,6 +25,9 @@ interface JdkInfoProvider {
     val info: JdkInfo
 }
 
+/**
+ * Gets [JdkInfo] from the current process.
+ */
 open class JdkInfoDefaultProvider : JdkInfoProvider {
     override val info: JdkInfo =
         JdkInfo(Paths.get(System.getProperty("java.home")), fetchJavaVersion(System.getProperty("java.version")))

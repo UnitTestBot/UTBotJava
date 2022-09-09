@@ -260,7 +260,7 @@ open class SimpleCommentBuilder(
 
         if (recursion != null) {
             if (stmt is JAssignStmt) {
-                val name = (stmt.rightBox.value as JVirtualInvokeExpr).method.name
+                val name = (stmt.rightOp as JVirtualInvokeExpr).method.name
                 val sentenceRecursionBlock = SimpleSentenceBlock(stringTemplates = stringTemplates)
                 buildSentenceBlock(recursion, sentenceRecursionBlock, currentMethod)
                 sentenceBlock.recursion = Pair(name, sentenceRecursionBlock)

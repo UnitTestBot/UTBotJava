@@ -2151,10 +2151,10 @@ abstract class UtValueTestCaseChecker(
     )
 
     // checks mutations in this, parameters and statics
-    protected inline fun <reified T> checkAllMutationsWithThis(
-        method: KFunction1<T, *>,
+    protected inline fun <reified T, reified R> checkAllMutationsWithThis(
+        method: KFunction1<T, R>,
         branches: ExecutionsNumberMatcher,
-        vararg matchers: (T, StaticsType, T, StaticsType) -> Boolean,
+        vararg matchers: (T, StaticsType, T, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
         additionalDependencies: Array<Class<*>> = emptyArray(),
@@ -2170,10 +2170,10 @@ abstract class UtValueTestCaseChecker(
         summaryDisplayNameChecks = summaryDisplayNameChecks
     )
 
-    protected inline fun <reified T, reified T1> checkAllMutationsWithThis(
+    protected inline fun <reified T, reified T1, reified R> checkAllMutationsWithThis(
         method: KFunction2<T, T1, *>,
         branches: ExecutionsNumberMatcher,
-        vararg matchers: (T, T1, StaticsType, T, T1, StaticsType) -> Boolean,
+        vararg matchers: (T, T1, StaticsType, T, T1, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
         additionalDependencies: Array<Class<*>> = emptyArray(),
@@ -2189,10 +2189,10 @@ abstract class UtValueTestCaseChecker(
         summaryDisplayNameChecks = summaryDisplayNameChecks
     )
 
-    protected inline fun <reified T, reified T1, reified T2> checkAllMutationsWithThis(
+    protected inline fun <reified T, reified T1, reified T2, reified R> checkAllMutationsWithThis(
         method: KFunction3<T, T1, T2, *>,
         branches: ExecutionsNumberMatcher,
-        vararg matchers: (T, T1, T2, StaticsType, T, T1, T2, StaticsType) -> Boolean,
+        vararg matchers: (T, T1, T2, StaticsType, T, T1, T2, StaticsType, R) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
         additionalDependencies: Array<Class<*>> = emptyArray(),
@@ -2208,7 +2208,7 @@ abstract class UtValueTestCaseChecker(
         summaryDisplayNameChecks = summaryDisplayNameChecks
     )
 
-    protected inline fun <reified T, reified T1, reified T2, reified T3> checkAllMutationsWithThis(
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified R> checkAllMutationsWithThis(
         method: KFunction4<T, T1, T2, T3, *>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (T, T1, T2, T3, StaticsType, T, T1, T2, T3, StaticsType) -> Boolean,
@@ -2227,7 +2227,7 @@ abstract class UtValueTestCaseChecker(
         summaryDisplayNameChecks = summaryDisplayNameChecks
     )
 
-    protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4> checkAllMutationsWithThis(
+    protected inline fun <reified T, reified T1, reified T2, reified T3, reified T4, reified R> checkAllMutationsWithThis(
         method: KFunction5<T, T1, T2, T3, T4, *>,
         branches: ExecutionsNumberMatcher,
         vararg matchers: (T, T1, T2, T3, T4, StaticsType, T, T1, T2, T3, T4, StaticsType) -> Boolean,
@@ -2798,7 +2798,7 @@ fun withMutationsAndThis(ex: UtValueExecution<*>) =
         addAll(ex.paramsAfter)
         add(ex.staticsAfter)
 
-        add(ex.returnValue)
+        add(ex.evaluatedResult)
     }
 
 private val UtValueExecution<*>.callerBefore get() = stateBefore.caller!!.value

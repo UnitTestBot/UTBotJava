@@ -229,7 +229,9 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
             if (index > path.lastIndex) return@generateSequence null
             val passedPath = FieldPath(path.subList(0, index + 1))
             val name = if (index == path.lastIndex) customName else getFieldVariableName(prev, passedPath)
-            val expression = when (val newElement = path[index++]) {
+
+            val newElement = path[index++]
+            val expression = when (newElement) {
                 is FieldAccess -> {
                     val fieldId = newElement.field
                     utilsClassId[getFieldValue](prev, fieldId.declaringClass.name, fieldId.name)
@@ -238,7 +240,7 @@ internal class CgFieldStateManagerImpl(val context: CgContext)
                     Array::class.id[getArrayElement](prev, newElement.index)
                 }
             }
-            newVar(objectClassId, name) { expression }
+            newVar(newElement.type, name) { expression }
         }.last()
     }
 

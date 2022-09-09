@@ -61,6 +61,7 @@ processResources {
     }
 }
 
+/*
 jar {
     dependsOn classes
     manifest {
@@ -74,4 +75,4 @@ jar {
 
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     zip64 = true
-}
+}*/

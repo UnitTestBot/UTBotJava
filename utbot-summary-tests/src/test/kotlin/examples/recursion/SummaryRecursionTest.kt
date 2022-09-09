@@ -74,7 +74,8 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
     fun testFactorial() {
         val summary1 = "@utbot.classUnderTest {@link Recursion}\n" +
                 "@utbot.methodUnderTest {@link org.utbot.examples.recursion.Recursion#factorial(int)}\n" +
-                //TODO: this condition is lost in both SimpleCommentBuilder ans CustomJavaDocCommentBuilder
+                //TODO: Lost information about executed condition,
+                // see [issue-900](https://github.com/UnitTestBot/UTBotJava/issues/900)
                 //"@utbot.executesCondition {@code (n == 0): True}\n"
                 "@utbot.returnsFrom {@code return 1;}"
         val summary2 = "@utbot.classUnderTest {@link Recursion}\n" +
@@ -90,7 +91,7 @@ class SummaryRecursionTest : SummaryTestCaseGeneratorTest(
         val methodName2 = "testFactorial_NNotEqualsZero"
         val methodName3 = "testFactorial_NLessThanZero"
 
-        //TODO: display names are not complete,
+        //TODO: Display names are not complete, see [issue-899](https://github.com/UnitTestBot/UTBotJava/issues/899).
         //they should be equal "n == 0 : True -> return 1" and "n == 0 : False -> return n * factorial(n - 1)" respectively
         val displayName1 = "-> return 1"
         val displayName2 = "-> return 1"

@@ -5,6 +5,7 @@ import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
@@ -19,6 +20,8 @@ import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import java.util.*
+import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.utils.addIfNotNull
 
 class GenerateTestsAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
@@ -63,12 +66,12 @@ class GenerateTestsAction : AnAction() {
             val srcClasses = mutableSetOf<PsiClass>()
             var selectedMethod: MemberInfo? = null
             var extractMembersFromSrcClasses = false
-            val element = e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+            val element = e.getData(CommonDataKeys.PSI_ELEMENT)
             if (element is PsiFileSystemItem) {
                 e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
                     srcClasses += getAllClasses(project, it)
                 }
-            } else {
+            } else if (element is PsiElement){
                 val file = element.containingFile ?: return null
                 val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
@@ -83,6 +86,12 @@ class GenerateTestsAction : AnAction() {
                     if (element is PsiMethod) {
                         selectedMethod = MemberInfo(element)
                     }
+                }
+            } else {
+                val someSelection = e.getData(PlatformDataKeys.SELECTED_ITEMS)?: return null
+                someSelection.forEach {
+                    if (it is PsiClass) srcClasses.add(it)
+                    else if (it is PsiElement) srcClasses.addIfNotNull(it.getContainingClass())
                 }
             }
             srcClasses.removeIf { it.isInterface }

@@ -138,7 +138,7 @@ open class CgVariableConstructor(val context: CgContext) :
         return obj
     }
 
-    private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
+    fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
         for (statementModel in model.allStatementsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {

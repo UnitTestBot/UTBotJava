@@ -1,7 +1,6 @@
 package org.utbot.python.providers
 
 import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
-import org.utbot.framework.plugin.api.PythonClassId
 import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.framework.plugin.api.pythonNoneClassId
 import org.utbot.fuzzer.FuzzedParameter

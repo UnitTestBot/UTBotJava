@@ -8,9 +8,6 @@ import org.utbot.python.typing.AnnotationFinder.findAnnotations
 import org.utbot.python.typing.MypyAnnotations
 import org.utbot.python.utils.AnnotationNormalizer.annotationFromProjectToClassId
 import java.nio.file.Path
-import kotlin.io.path.Path
-import kotlin.io.path.name
-import kotlin.io.path.pathString
 
 private val logger = KotlinLogging.logger {}
 

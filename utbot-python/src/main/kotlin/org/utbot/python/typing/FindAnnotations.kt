@@ -7,7 +7,6 @@ import org.utbot.framework.plugin.api.pythonAnyClassId
 import org.utbot.python.PythonMethod
 import org.utbot.python.code.ArgInfoCollector
 import org.utbot.python.utils.*
-import java.io.File
 
 private val logger = KotlinLogging.logger {}
 

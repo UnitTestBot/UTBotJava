@@ -18,7 +18,6 @@ import org.utbot.python.utils.getLineOfFunction
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.name
 import kotlin.io.path.pathString
 
 object PythonTestGenerationProcessor {

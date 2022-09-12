@@ -4,6 +4,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.psi.PsiElement
+import com.intellij.refactoring.classMembers.MemberInfoBase
+import com.intellij.refactoring.ui.AbstractMemberSelectionTable
 import com.intellij.ui.ContextHelpLabel
 import com.intellij.ui.JBIntSpinner
 import com.intellij.ui.components.Panel
@@ -20,7 +23,7 @@ import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import java.awt.BorderLayout
+import org.utbot.intellij.python.PythonDialogWindowUtils
 import java.util.concurrent.TimeUnit
 import javax.swing.*
 
@@ -29,7 +32,7 @@ private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
-    private val functionsTable = PyMemberSelectionTable(emptyList(), null, false)
+    private var functionsTable = PythonDialogWindowUtils.initFunctionsTable()
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
@@ -51,11 +54,6 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
 
     private lateinit var panel: DialogPanel
 
-    @Suppress("UNCHECKED_CAST")
-    private val itemsToHelpTooltip = hashMapOf(
-        (testFrameworks as ComboBox<CodeGenerationSettingItem>) to ContextHelpLabel.create(""),
-    )
-
     init {
         title = "Generate tests with UtBot"
         isResizable = false
@@ -70,14 +68,13 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
                 component(testSourceFolderField)
             }
             row("Test framework:") {
-                makePanelWithHelpTooltip(
-                    testFrameworks as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[testFrameworks]
-                )
+                testFrameworks as ComboBox<CodeGenerationSettingItem>
             }
             row("Generate test methods for:") {}
-            row {
-                scrollPane(functionsTable)
+            functionsTable?.let {
+                row {
+                    scrollPane(it)
+                }
             }
             row("Timeout for all selected functions:") {
                 component(timeoutSpinnerForTotalTimeout)
@@ -121,8 +118,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     private fun updateFunctionsTable() {
         val items = pyFunctionsToPyMemberInfo(model.project, model.functionsToDisplay, model.containingClass)
         updateMethodsTable(items)
-        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
-        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
+        val height = functionsTable!!.rowHeight * (items.size.coerceAtMost(12) + 1)
+        functionsTable!!.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
     private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
@@ -137,22 +134,14 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             checkMembers(selectedMethods)
         }
 
-        functionsTable.setMemberInfos(allMethods)
+        functionsTable!!.setMemberInfos(allMethods as Collection<MemberInfoBase<PsiElement>>)
     }
 
     private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
 
-    private fun Row.makePanelWithHelpTooltip(
-        mainComponent: JComponent,
-        contextHelpLabel: ContextHelpLabel?
-    ): CellBuilder<JPanel> =
-        component(Panel().apply {
-            add(mainComponent, BorderLayout.LINE_START)
-            contextHelpLabel?.let { add(it, BorderLayout.LINE_END) }
-        })
-
     override fun doOKAction() {
-        val selectedMembers = functionsTable.selectedMemberInfos
+        val selectedMembers = functionsTable!!.selectedMemberInfos
+
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.testFramework = testFrameworks.item
         model.codegenLanguage = CodegenLanguage.PYTHON

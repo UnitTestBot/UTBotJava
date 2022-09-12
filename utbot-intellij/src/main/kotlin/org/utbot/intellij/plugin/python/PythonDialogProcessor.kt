@@ -33,9 +33,7 @@ import org.utbot.python.utils.camelToSnakeCase
 import org.utbot.python.PythonTestGenerationProcessor.processTestGeneration
 import org.utbot.python.utils.RequirementsUtils.installRequirements
 import org.utbot.python.utils.RequirementsUtils.requirements
-import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.pathString
 
 const val DEFAULT_TIMEOUT_FOR_RUN_IN_MILLIS = 2000L
 

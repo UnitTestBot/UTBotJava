@@ -42,18 +42,20 @@ dependencies {
     testApi(project(":utbot-framework"))
 
     api project(':utbot-python')
+    api project(':utbot-intellij-python')
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = "2022.1"
+    version = "212.5712.43"
     type = "IC"
     plugins = ['java',
-               'PythonCore:221.5080.210',
                // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
                //https://mvnrepository.com/artifact/org.jetbrains.kotlin/gradle-idea
-               "org.jetbrains.kotlin",
-               'org.jetbrains.android']
+               'PythonCore:212.5712.43',
+               'org.jetbrains.kotlin:212-1.7.10-release-333-IJ5457.46',
+               'org.jetbrains.android'
+               ]
 
     patchPluginXml {
         version = project.version

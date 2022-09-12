@@ -1,0 +1,56 @@
+apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
+
+group 'org.utbot'
+version '1.0-SNAPSHOT'
+
+compileKotlin {
+    kotlinOptions {
+        allWarningsAsErrors = false
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath group: 'org.jetbrains.intellij.plugins', name: 'gradle-intellij-plugin', version: intellij_plugin_version
+    }
+}
+
+apply plugin: "org.jetbrains.intellij"
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+intellij {
+    // https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html#intellij-platform-based-products-of-recent-ide-versions
+    // https://confluence.jetbrains.com/display/IDEADEV/IDEA+2021.2+latest+builds
+    // 202.6397.94, 212.5712.43, 221.5080.210, 221.5921.2
+    version = "212.5712.43"
+    type = "IC"
+    plugins = ['java',
+               // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
+               //https://mvnrepository.com/artifact/org.jetbrains.kotlin/gradle-idea
+               'PythonCore:212.5712.43',
+               'org.jetbrains.kotlin:212-1.7.10-release-333-IJ5457.46',
+               'org.jetbrains.android'
+    ]
+
+    patchPluginXml {
+        sinceBuild = '212'
+        untilBuild = '221.*'
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

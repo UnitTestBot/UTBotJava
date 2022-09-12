@@ -18,5 +18,5 @@ include 'utbot-gradle'
 //include 'utbot-maven'
 include 'utbot-summary-tests'
 include 'utbot-python'
-include 'utbot-python'
+include 'utbot-intellij-python'
 

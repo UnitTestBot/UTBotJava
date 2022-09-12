@@ -1,5 +1,9 @@
 package org.utbot.examples.java11.collections;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.AbstractCollection;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -7,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class ToArrayWithGenerator {
+public class ToArrayWithGenerator<T> {
     @SuppressWarnings("MismatchedReadAndWriteOfArray")
     public boolean checkSetSize(int size) {
         Set<Integer> set = new HashSet<>();
@@ -78,6 +82,26 @@ public class ToArrayWithGenerator {
         return entries.toArray(Map.Entry[]::new).length;
     }
 
+    public int getCollectionArgumentSize(@NotNull Collection<Integer> arg) {
+        return arg.toArray(Integer[]::new).length;
+    }
+
+    public int getSetArgumentSize(@NotNull Set<Integer> arg) {
+        return arg.toArray(Integer[]::new).length;
+    }
+
+    public int getListArgumentSize(@NotNull List<Integer> arg) {
+        return arg.toArray(Integer[]::new).length;
+    }
+
+    public int getAbstractCollectionArgumentSize(@NotNull AbstractCollection<Integer> arg) {
+        return arg.toArray(Integer[]::new).length;
+    }
+
+    public int getGenericCollectionArgumentSize(@NotNull Collection<T> arg) {
+        // return arg.toArray(Object[]::new).length;
+        return arg.size();
+    }
 
 }
 

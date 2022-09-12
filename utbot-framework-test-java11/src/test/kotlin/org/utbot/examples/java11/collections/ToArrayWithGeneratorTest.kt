@@ -13,7 +13,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckSetSize() {
         check(
-            ToArrayWithGenerator::checkSetSize,
+            ToArrayWithGenerator<*>::checkSetSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -23,7 +23,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckSetSizeArrayStoreException() {
         checkWithException(
-            ToArrayWithGenerator::checkSetSizeArrayStoreException,
+            ToArrayWithGenerator<*>::checkSetSizeArrayStoreException,
             eq(3),
             { size, result -> size < 0 && result.isSuccess && result.getOrNull() == false },
             { size, result -> size == 0 && result.isSuccess && result.getOrNull() == true },
@@ -34,7 +34,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckListSize() {
         check(
-            ToArrayWithGenerator::checkListSize,
+            ToArrayWithGenerator<*>::checkListSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -44,7 +44,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckMapKeysSize() {
         check(
-            ToArrayWithGenerator::checkMapKeysSize,
+            ToArrayWithGenerator<*>::checkMapKeysSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -54,7 +54,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckMapValuesSize() {
         check(
-            ToArrayWithGenerator::checkMapValuesSize,
+            ToArrayWithGenerator<*>::checkMapValuesSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -64,7 +64,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testGetMapEntrySetArrayStoreException() {
         checkWithException(
-            ToArrayWithGenerator::getMapEntrySetArrayStoreException,
+            ToArrayWithGenerator<*>::getMapEntrySetArrayStoreException,
             eq(1),
             { result -> result.isFailure && result.isException<ArrayStoreException>() },
             coverage = DoNotCalculate
@@ -74,9 +74,55 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testGetMapEntrySetSize() {
         check(
-            ToArrayWithGenerator::getMapEntrySetSize,
+            ToArrayWithGenerator<*>::getMapEntrySetSize,
             eq(1),
             { result -> result == 2 }
+        )
+    }
+
+    @Test
+    fun testGetCollectionArgumentSize() {
+        check(
+            ToArrayWithGenerator<*>::getCollectionArgumentSize,
+            ignoreExecutionsNumber,
+            { arg, result -> result == arg.size }
+        )
+    }
+
+    @Test
+    fun testSetCollectionArgumentSize() {
+        check(
+            ToArrayWithGenerator<*>::getSetArgumentSize,
+            ignoreExecutionsNumber,
+            { arg, result -> result == arg.size }
+        )
+    }
+
+    @Test
+    fun testListCollectionArgumentSize() {
+        check(
+            ToArrayWithGenerator<*>::getListArgumentSize,
+            ignoreExecutionsNumber,
+            { arg, result -> result == arg.size }
+        )
+    }
+
+    @Test
+    fun testGetAbstractCollectionArgumentSize() {
+        check(
+            ToArrayWithGenerator<*>::getAbstractCollectionArgumentSize,
+            ignoreExecutionsNumber,
+            { arg, result -> result == arg.size }
+        )
+    }
+
+    @Test
+    fun testGetGenericCollectionArgumentSize() {
+        check(
+            ToArrayWithGenerator<Int>::getGenericCollectionArgumentSize,
+            ignoreExecutionsNumber,
+            { arg, result -> result == arg.size },
+            coverage = DoNotCalculate
         )
     }
 }

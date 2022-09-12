@@ -105,6 +105,13 @@ class UtConcreteExecutionResult(
         val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)
         return updateWithAssembleModels(modelsToAssembleModels)
     }
+
+    override fun toString(): String = buildString {
+        appendLine("UtConcreteExecutionResult(")
+        appendLine("stateAfter=$stateAfter")
+        appendLine("result=$result")
+        appendLine("coverage=$coverage)")
+    }
 }
 
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {

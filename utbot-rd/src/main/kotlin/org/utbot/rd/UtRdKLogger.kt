@@ -4,18 +4,16 @@ import com.jetbrains.rd.util.ILoggerFactory
 import com.jetbrains.rd.util.LogLevel
 import com.jetbrains.rd.util.Logger
 import com.jetbrains.rd.util.defaultLogFormat
+import mu.KLogger
 import mu.KotlinLogging
 
-private val logger = KotlinLogging.logger {}
-
-object UtRdLoggerFactory : ILoggerFactory {
+object UtRdKLoggerFactory : ILoggerFactory {
     override fun getLogger(category: String): Logger {
-        logger.trace { "getting logger for category: $category" }
-        return UtRdLogger(category)
+        return UtRdKLogger(KotlinLogging.logger(category), category)
     }
 }
 
-class UtRdLogger(private val category: String) : Logger {
+class UtRdKLogger(private val logger: KLogger, private val category: String) : Logger {
     override fun isEnabled(level: LogLevel): Boolean {
         return when (level) {
             LogLevel.Trace -> logger.isTraceEnabled

@@ -401,7 +401,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun checkMembers(allMembers: List<MemberInfo>) {
-        val selectedDisplayNames = model.selectedMembers?.map { it.displayName } ?: emptyList()
+        val selectedDisplayNames = model.selectedMembers.map { it.displayName }
         val selectedMembers = allMembers.filter { it.displayName in selectedDisplayNames }
 
         val methodsToCheck = selectedMembers.ifEmpty { allMembers }

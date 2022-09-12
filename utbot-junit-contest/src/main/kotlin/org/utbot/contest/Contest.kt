@@ -1,5 +1,16 @@
 package org.utbot.contest
 
+import java.io.File
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.net.URL
+import java.net.URLClassLoader
+import java.nio.file.Paths
+import kotlin.concurrent.thread
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.reflect.KCallable
+import kotlin.reflect.jvm.isAccessible
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
@@ -39,8 +50,6 @@ import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isConstructor
-import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
@@ -50,18 +59,6 @@ import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.warmup.Warmup
-import java.io.File
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import java.net.URL
-import java.net.URLClassLoader
-import java.nio.file.Paths
-import java.util.concurrent.ConcurrentSkipListSet
-import kotlin.concurrent.thread
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.reflect.KCallable
-import kotlin.reflect.jvm.isAccessible
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -396,14 +393,13 @@ private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<E
 
     //2. all constructors from cut
     val constructors =
-        if (javaClazz.isAbstract) emptyList() else javaClazz.declaredConstructors.filterNotNull()
+        if (javaClazz.isAbstract || javaClazz.isEnum) emptyList() else javaClazz.declaredConstructors.filterNotNull()
 
     //3. Now join methods and constructors together
     val methodsToGenerate = methods.filter { it.isVisibleFromGeneratedTest } + constructors
 
     val classFilteredMethods = methodsToGenerate
         .map { it.executableId }
-        .filterNot { it.isConstructor && it.classId.isEnum }
         .filter { methodNameFilter?.equals(it.name) ?: true }
         .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
         .toList()

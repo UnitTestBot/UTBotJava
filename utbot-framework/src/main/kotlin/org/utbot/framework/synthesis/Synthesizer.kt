@@ -47,7 +47,6 @@ class Synthesizer(
         storage.update(parameters.map { it.classId }.expandable())
     }
 
-    private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
     private val unitChecker = SynthesisUnitChecker(testCaseGenerator, objectClassId.toSoot())
 
     private fun splitModels(): Set<Set<UtModel>> {
@@ -169,7 +168,7 @@ class SynthesisUnitContext(
         return SynthesisUnitContext(models, newMapping)
     }
 
-    fun SynthesisUnit.isFullyDefined(): Boolean = when (this) {
+    private fun SynthesisUnit.isFullyDefined(): Boolean = when (this) {
         is NullUnit -> true
         is ReferenceToUnit -> true
         is ObjectUnit -> isPrimitive()

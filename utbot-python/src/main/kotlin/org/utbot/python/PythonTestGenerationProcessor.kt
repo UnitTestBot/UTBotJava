@@ -129,6 +129,21 @@ object PythonTestGenerationProcessor {
                 methodIds[testSet.method] as ExecutableId to testSet.method.arguments.map { it.name }
             }.toMutableMap()
 
+            val importParamModules = notEmptyTests.flatMap { testSet ->
+                testSet.executions.flatMap { execution ->
+                    execution.stateBefore.parameters.flatMap { utModel ->
+                        (utModel as PythonModel).let {
+                            it.allContainingClassIds.map { classId ->
+                                classId.moduleName
+                            }
+                        }
+                    }
+                }
+            }
+            val testRootModules = notEmptyTests.mapNotNull { testSet ->
+                methodIds[testSet.method]?.moduleName?.split('.')?.get(0)
+            }
+
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {
                 val codegen = CodeGenerator(
@@ -145,7 +160,8 @@ object PythonTestGenerationProcessor {
                             testSet.executions,
                             relativizePaths(pythonRunRoot, directoriesForSysPath),
                         )
-                    }
+                    },
+                    importParamModules + testRootModules
                 ).generatedCode
                 val testFile = FileManager.createPermanentFile(outputFilename, testCode)
                 generatedFileWithTestsAction(testFile)

@@ -12,9 +12,6 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
     override fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
             this.testClass = withTestClassScope { constructTestClass(testClassModel) }
-            if (testFramework is Unittest) {
-                context.collectedImports.add(PythonUserImport("unittest"))
-            }
             imports.addAll(context.collectedImports)
             existingVariableNames = existingVariableNames.addAll(context.collectedImports.map { it.qualifiedName })
             testsGenerationReport = this@PythonCgTestClassConstructor.testsGenerationReport
@@ -50,9 +47,6 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
 
                 for (testSet in testClassModel.methodTestSets) {
                     updateCurrentExecutable(testSet.executableId)
-                    context.collectedImports.addAll(testSet.sysPaths.map {
-                        PythonSysPathImport(it)
-                    })
                     val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
                     val executableUnderTestCluster = CgExecutableUnderTestCluster(
                         "Test suites for executable $currentExecutable",

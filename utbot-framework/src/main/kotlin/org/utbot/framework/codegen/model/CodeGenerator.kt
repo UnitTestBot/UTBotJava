@@ -1,11 +1,6 @@
 package org.utbot.framework.codegen.model
 
-import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.HangingTestsTimeout
-import org.utbot.framework.codegen.ParametrizedTestSource
-import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
-import org.utbot.framework.codegen.StaticsMocking
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.tree.CgTestClassConstructor
@@ -78,8 +73,10 @@ class CodeGenerator(
 
     fun pythonGenerateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
+        importModules: List<String>,
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
+        context.collectedImports.addAll(importModules.map{PythonUserImport(it)})
         context.withTestClassFileScope {
             val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
             val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)

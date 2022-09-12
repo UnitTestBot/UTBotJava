@@ -10,10 +10,6 @@ import java.util.*
 internal class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(context_) {
 
     override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
-        if (type is PythonClassId) {
-            val moduleName = type.moduleName
-            existingVariableNames = existingVariableNames.add(moduleName)
-        }
         val baseName = base?.toSnakeCase() ?: nameFrom(type)
         return variableName(baseName.toSnakeCase().replaceFirstChar { it.lowercase(Locale.getDefault()) }, isMock)
     }

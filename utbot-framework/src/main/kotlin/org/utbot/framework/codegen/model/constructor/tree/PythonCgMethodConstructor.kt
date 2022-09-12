@@ -1,9 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
-import org.utbot.framework.codegen.PythonImport
 import org.utbot.framework.codegen.PythonUserImport
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.constructor.util.plus
 import org.utbot.framework.codegen.model.tree.*
 import org.utbot.framework.fields.ExecutionStateAnalyzer
@@ -51,19 +49,7 @@ internal class PythonCgMethodConstructor(context: CgContext) : CgMethodConstruct
                     // build arguments
                     for ((index, param) in execution.stateBefore.parameters.withIndex()) {
                         val name = paramNames[executableId]?.get(index)
-                        if (param is PythonModel) {
-                            param.allContainingClassIds.forEach {
-                                existingVariableNames += it.moduleName
-                                importIfNeeded(it)
-                            }
-                        }
                         methodArguments += variableConstructor.getOrCreateVariable(param, name)
-                    }
-                    if (executableId is PythonMethodId) {
-                        existingVariableNames += executableId.name
-                        executableId.moduleName.split('.').forEach {
-                            existingVariableNames += it
-                        }
                     }
                     rememberInitialEnvironmentState(modificationInfo)
                     recordActualResult()

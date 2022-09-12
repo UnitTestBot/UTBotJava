@@ -43,7 +43,7 @@ class ObjectModelProvider(
         description: FuzzedMethodDescription,
         classId: ClassId
     ): List<ModelConstructor> {
-        if (classId == stringClassId || classId.isPrimitiveWrapper || classId.isEnum)
+        if (classId == stringClassId || classId.isPrimitiveWrapper || classId.isEnum || classId.isAbstract)
             return listOf()
 
         val constructors = collectConstructors(classId) { javaConstructor ->

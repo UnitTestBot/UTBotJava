@@ -41,6 +41,7 @@ class Synthesizer(
         }
     }
 
+    private val parametersMap = parameters.withIndex().associate { it.value to it.index }
     private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
     private val statementStorage = StatementsStorage().also { storage ->
         storage.update(parameters.map { it.classId }.expandable())
@@ -49,22 +50,66 @@ class Synthesizer(
     private val queueIterator = SynthesisUnitContextQueue(parameters, statementStorage, depth)
     private val unitChecker = SynthesisUnitChecker(testCaseGenerator, objectClassId.toSoot())
 
-    fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel>? {
+    private fun splitModels(): Set<Set<UtModel>> {
+        val result = parameters.map { setOf(it) }.toMutableSet()
+        while (true) {
+            var changed = false
+            loopExit@ for (current in result) {
+                for (next in result) {
+                    if (current == next) continue
+
+                    for (currentModel in current.filterIsInstance<UtConstraintModel>()) {
+                        for (nextModel in next.filterIsInstance<UtConstraintModel>()) {
+                            if (nextModel.utConstraints.any { currentModel.variable in it }) {
+                                result.remove(next)
+                                result.remove(current)
+                                result.add(current + next)
+                                changed = true
+                                break@loopExit
+                            }
+                        }
+                    }
+                }
+            }
+            if (!changed) break
+        }
+        return result
+    }
+
+    fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel?> {
+        val splittedModels = splitModels()
         val currentTime = { System.currentTimeMillis() }
         val startTime = currentTime()
-        while (queueIterator.hasNext() && ((currentTime() - startTime) < timeLimit)) {
-            val units = queueIterator.next()
-            if (!units.isFullyDefined) continue
 
-            val assembleModel = unitChecker.tryGenerate(units, parameters)
-            if (assembleModel != null) {
-                logger.debug { "Found $assembleModel" }
-                success()
-                return assembleModel
+        val result = MutableList<UtModel?>(parameters.size) { null }
+        for (models in splittedModels) {
+            val modelsList = models.toList()
+            val queueIterator = SynthesisUnitContextQueue(modelsList, statementStorage, depth)
+            var found = false
+
+            while (
+                queueIterator.hasNext() &&
+                (currentTime() - startTime) < timeLimit &&
+                !found
+            ) {
+                val units = queueIterator.next()
+                if (!units.isFullyDefined) continue
+
+                val assembleModel = unitChecker.tryGenerate(units, modelsList)
+                if (assembleModel != null) {
+                    logger.debug { "Found $assembleModel" }
+                    success()
+                    for ((model, assemble) in modelsList.zip(assembleModel)) {
+                        result[parametersMap[model]!!] = assemble
+                    }
+                    found = true
+                }
             }
+
+            if (found) success()
+            else failure()
         }
-        failure()
-        return null
+        return result
     }
 }
 
@@ -211,7 +256,8 @@ class SynthesisUnitContextQueue(
                         if (newValueLeafs.isEmpty()) {
                             for (i in 0..index) {
                                 currentContext = currentContext.set(currentKeyModel, currentContext[currentValueModel])
-                                currentContext = currentContext.set(currentValueModel, currentContext[currentValueModel])
+                                currentContext =
+                                    currentContext.set(currentValueModel, currentContext[currentValueModel])
                             }
                             index++
                         } else {

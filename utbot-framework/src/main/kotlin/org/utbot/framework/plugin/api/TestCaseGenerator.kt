@@ -392,14 +392,17 @@ open class TestCaseGenerator(
             val constrainedExecution = symbolicExecution.constrainedExecution ?: return@map execution
             val aa = Synthesizer(this@TestCaseGenerator, constrainedExecution.modelsAfter)
             val synthesizedModels = try {
-                aa.synthesize() ?: return@map execution
+                aa.synthesize()
             } catch (e: Throwable) {
                 logger.debug(e) { "Failure during constraint synthesis" }
                 return@map execution
             }
 
-            val newThisModel = oldStateBefore.thisInstance?.let { synthesizedModels.first() }
-            val newParameters = oldStateBefore.thisInstance?.let { synthesizedModels.drop(1) } ?: synthesizedModels
+            val (synthesizedThis, synthesizedParameters) = oldStateBefore.thisInstance?.let {
+                synthesizedModels.first() to synthesizedModels.drop(1)
+            } ?: (null to synthesizedModels)
+            val newThisModel = oldStateBefore.thisInstance?.let { synthesizedThis ?: it }
+            val newParameters = oldStateBefore.parameters.zip(synthesizedParameters).map { it.second ?: it.first }
 
             symbolicExecution.copy(
                 EnvironmentModels(

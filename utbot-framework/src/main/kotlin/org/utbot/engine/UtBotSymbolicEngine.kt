@@ -393,6 +393,12 @@ class UtBotSymbolicEngine(
         val fallbackModelProvider = FallbackModelProvider(defaultIdGenerator)
         val constantValues = collectConstantsForFuzzer(graph)
 
+        val syntheticMethodForFuzzingThisInstanceDescription =
+            FuzzedMethodDescription("thisInstance", voidClassId, listOf(classUnderTest), constantValues).apply {
+                className = classUnderTest.simpleName
+                packageName = classUnderTest.packageName
+            }
+
         val random = Random(0)
         val thisInstance = when {
             methodUnderTest.isStatic -> null
@@ -406,7 +412,7 @@ class UtBotSymbolicEngine(
             }
             else -> {
                 ObjectModelProvider(defaultIdGenerator).withFallback(fallbackModelProvider).generate(
-                    FuzzedMethodDescription("thisInstance", voidClassId, listOf(classUnderTest), constantValues)
+                    syntheticMethodForFuzzingThisInstanceDescription
                 ).take(10).shuffled(random).map { it.value.model }.first().apply {
                     if (this is UtNullModel) { // it will definitely fail because of NPE,
                         return@flow
@@ -431,11 +437,7 @@ class UtBotSymbolicEngine(
             fuzz(methodUnderTestDescription, modelProvider(defaultModelProviders(defaultIdGenerator)))
         } else {
             // in case a method with no parameters is passed fuzzing tries to fuzz this instance with different constructors, setters and field mutators
-            val thisMethodDescription = FuzzedMethodDescription("thisInstance", voidClassId, listOf(classUnderTest), constantValues).apply {
-                className = classUnderTest.simpleName
-                packageName = classUnderTest.packageName
-            }
-            fuzz(thisMethodDescription, ObjectModelProvider(defaultIdGenerator).apply {
+            fuzz(syntheticMethodForFuzzingThisInstanceDescription, ObjectModelProvider(defaultIdGenerator).apply {
                 totalLimit = 500
             })
         }.withMutations(

@@ -23,7 +23,8 @@ class ProtocolModel private constructor(
     private val _setInstrumentation: RdCall<SetInstrumentationParams, Unit>,
     private val _invokeMethodCommand: RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>,
     private val _stopProcess: RdCall<Unit, Unit>,
-    private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>
+    private val _collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult>,
+    private val _computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>
 ) : RdExtBase() {
     //companion
     
@@ -36,6 +37,8 @@ class ProtocolModel private constructor(
             serializers.register(InvokeMethodCommandResult)
             serializers.register(CollectCoverageParams)
             serializers.register(CollectCoverageResult)
+            serializers.register(ComputeStaticFieldParams)
+            serializers.register(ComputeStaticFieldResult)
         }
         
         
@@ -59,7 +62,7 @@ class ProtocolModel private constructor(
         }
         
         
-        const val serializationHash = -983308496809975144L
+        const val serializationHash = -3299689793276292923L
         
     }
     override val serializersOwner: ISerializersOwner get() = ProtocolModel
@@ -99,6 +102,12 @@ class ProtocolModel private constructor(
     [clazz]
      */
     val collectCoverage: RdCall<CollectCoverageParams, CollectCoverageResult> get() = _collectCoverage
+    
+    /**
+     * This command is sent to the child process from the [ConcreteExecutor] if user wants to get value of static field
+    [fieldId]
+     */
+    val computeStaticField: RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult> get() = _computeStaticField
     //methods
     //initializer
     init {
@@ -108,6 +117,7 @@ class ProtocolModel private constructor(
         _invokeMethodCommand.async = true
         _stopProcess.async = true
         _collectCoverage.async = true
+        _computeStaticField.async = true
     }
     
     init {
@@ -117,6 +127,7 @@ class ProtocolModel private constructor(
         bindableChildren.add("invokeMethodCommand" to _invokeMethodCommand)
         bindableChildren.add("stopProcess" to _stopProcess)
         bindableChildren.add("collectCoverage" to _collectCoverage)
+        bindableChildren.add("computeStaticField" to _computeStaticField)
     }
     
     //secondary constructor
@@ -127,7 +138,8 @@ class ProtocolModel private constructor(
         RdCall<SetInstrumentationParams, Unit>(SetInstrumentationParams, FrameworkMarshallers.Void),
         RdCall<InvokeMethodCommandParams, InvokeMethodCommandResult>(InvokeMethodCommandParams, InvokeMethodCommandResult),
         RdCall<Unit, Unit>(FrameworkMarshallers.Void, FrameworkMarshallers.Void),
-        RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult)
+        RdCall<CollectCoverageParams, CollectCoverageResult>(CollectCoverageParams, CollectCoverageResult),
+        RdCall<ComputeStaticFieldParams, ComputeStaticFieldResult>(ComputeStaticFieldParams, ComputeStaticFieldResult)
     )
     
     //equals trait
@@ -142,6 +154,7 @@ class ProtocolModel private constructor(
             print("invokeMethodCommand = "); _invokeMethodCommand.print(printer); println()
             print("stopProcess = "); _stopProcess.print(printer); println()
             print("collectCoverage = "); _collectCoverage.print(printer); println()
+            print("computeStaticField = "); _computeStaticField.print(printer); println()
         }
         printer.print(")")
     }
@@ -153,7 +166,8 @@ class ProtocolModel private constructor(
             _setInstrumentation.deepClonePolymorphic(),
             _invokeMethodCommand.deepClonePolymorphic(),
             _stopProcess.deepClonePolymorphic(),
-            _collectCoverage.deepClonePolymorphic()
+            _collectCoverage.deepClonePolymorphic(),
+            _computeStaticField.deepClonePolymorphic()
         )
     }
     //contexts
@@ -331,6 +345,120 @@ data class CollectCoverageResult (
         printer.println("CollectCoverageResult (")
         printer.indent {
             print("coverageInfo = "); coverageInfo.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [ProtocolRoot.kt:36]
+ */
+data class ComputeStaticFieldParams (
+    val fieldId: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<ComputeStaticFieldParams> {
+        override val _type: KClass<ComputeStaticFieldParams> = ComputeStaticFieldParams::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ComputeStaticFieldParams  {
+            val fieldId = buffer.readByteArray()
+            return ComputeStaticFieldParams(fieldId)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ComputeStaticFieldParams)  {
+            buffer.writeByteArray(value.fieldId)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as ComputeStaticFieldParams
+        
+        if (!(fieldId contentEquals other.fieldId)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + fieldId.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("ComputeStaticFieldParams (")
+        printer.indent {
+            print("fieldId = "); fieldId.print(printer); println()
+        }
+        printer.print(")")
+    }
+    //deepClone
+    //contexts
+}
+
+
+/**
+ * #### Generated from [ProtocolRoot.kt:40]
+ */
+data class ComputeStaticFieldResult (
+    val result: ByteArray
+) : IPrintable {
+    //companion
+    
+    companion object : IMarshaller<ComputeStaticFieldResult> {
+        override val _type: KClass<ComputeStaticFieldResult> = ComputeStaticFieldResult::class
+        
+        @Suppress("UNCHECKED_CAST")
+        override fun read(ctx: SerializationCtx, buffer: AbstractBuffer): ComputeStaticFieldResult  {
+            val result = buffer.readByteArray()
+            return ComputeStaticFieldResult(result)
+        }
+        
+        override fun write(ctx: SerializationCtx, buffer: AbstractBuffer, value: ComputeStaticFieldResult)  {
+            buffer.writeByteArray(value.result)
+        }
+        
+        
+    }
+    //fields
+    //methods
+    //initializer
+    //secondary constructor
+    //equals trait
+    override fun equals(other: Any?): Boolean  {
+        if (this === other) return true
+        if (other == null || other::class != this::class) return false
+        
+        other as ComputeStaticFieldResult
+        
+        if (!(result contentEquals other.result)) return false
+        
+        return true
+    }
+    //hash code trait
+    override fun hashCode(): Int  {
+        var __r = 0
+        __r = __r*31 + result.contentHashCode()
+        return __r
+    }
+    //pretty print
+    override fun print(printer: PrettyPrinter)  {
+        printer.println("ComputeStaticFieldResult (")
+        printer.indent {
+            print("result = "); result.print(printer); println()
         }
         printer.print(")")
     }

@@ -38,6 +38,8 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.instrumentation.rd.generated.ComputeStaticFieldResult
 
 /**
  * We use this ClassLoader to separate user's classes and our dependency classes.
@@ -199,7 +201,7 @@ private fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) 
     }
 }
 
-private suspend fun ProtocolModel.setup(kryoHelper: KryoHelper, onStop: () -> Unit) {
+private fun ProtocolModel.setup(kryoHelper: KryoHelper, onStop: () -> Unit) {
     warmup.measureExecutionForTermination {
         logDebug { "received warmup request" }
         val time = measureTimeMillis {
@@ -249,6 +251,11 @@ private suspend fun ProtocolModel.setup(kryoHelper: KryoHelper, onStop: () -> Un
         logTrace { "class - ${anyClass.name}" }
         val result = (instrumentation as CoverageInstrumentation).collectCoverageInfo(anyClass)
         CollectCoverageResult(kryoHelper.writeObject(result))
+    }
+    computeStaticField.measureExecutionForTermination { params ->
+        val fieldId = kryoHelper.readObject<FieldId>(params.fieldId)
+        val result = instrumentation.getStaticField(fieldId)
+        ComputeStaticFieldResult(kryoHelper.writeObject(result))
     }
 }
 

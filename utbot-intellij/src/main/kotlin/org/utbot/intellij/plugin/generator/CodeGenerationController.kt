@@ -93,11 +93,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
-import org.utbot.engine.logger
+import mu.KotlinLogging
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.Target.*
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 object CodeGenerationController {
+    private val logger = KotlinLogging.logger {}
 
     private class UtilClassListener {
         var requiredUtilClassKind: UtilClassKind? = null
@@ -270,7 +271,7 @@ object CodeGenerationController {
         }
 
         runWriteCommandAction(model.project, "UtBot util class reformatting", null, {
-            reformat(model, utUtilsFile, utUtilsClass)
+            reformat(model, SmartPointerManager.getInstance(model.project).createSmartPsiElementPointer(utUtilsFile), utUtilsClass)
         })
 
         val utUtilsDocument = PsiDocumentManager
@@ -296,7 +297,7 @@ object CodeGenerationController {
             run(WRITE_ACTION) {
                 unblockDocument(model.project, utilsClassDocument)
                 executeCommand {
-                    utilsClassDocument.setText(utUtilsText)
+                    utilsClassDocument.setText(utUtilsText.replace("jdk.internal.misc", "sun.misc"))
                 }
                 unblockDocument(model.project, utilsClassDocument)
             }

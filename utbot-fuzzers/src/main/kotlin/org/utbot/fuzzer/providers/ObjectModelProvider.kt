@@ -22,6 +22,7 @@ import java.lang.reflect.Field
 import java.lang.reflect.Member
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier.*
+import org.utbot.framework.plugin.api.util.isEnum
 
 /**
  * Creates [UtAssembleModel] for objects which have public constructors
@@ -42,7 +43,7 @@ class ObjectModelProvider(
         description: FuzzedMethodDescription,
         classId: ClassId
     ): List<ModelConstructor> {
-        if (classId == stringClassId || classId.isPrimitiveWrapper)
+        if (classId == stringClassId || classId.isPrimitiveWrapper || classId.isEnum)
             return listOf()
 
         val constructors = collectConstructors(classId) { javaConstructor ->

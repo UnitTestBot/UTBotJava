@@ -72,9 +72,9 @@ object UtTestsDialogProcessor {
         project: Project,
         srcClasses: Set<PsiClass>,
         extractMembersFromSrcClasses: Boolean,
-        focusedMethod: MemberInfo?,
+        focusedMethods: Set<MemberInfo>,
     ) {
-        createDialog(project, srcClasses, extractMembersFromSrcClasses, focusedMethod)?.let {
+        createDialog(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)?.let {
             if (it.showAndGet()) createTests(project, it.model)
         }
     }
@@ -83,7 +83,7 @@ object UtTestsDialogProcessor {
         project: Project,
         srcClasses: Set<PsiClass>,
         extractMembersFromSrcClasses: Boolean,
-        focusedMethod: MemberInfo?,
+        focusedMethods: Set<MemberInfo>,
     ): GenerateTestsDialogWindow? {
         val srcModule = findSrcModule(srcClasses)
         val testModules = srcModule.testModules(project)
@@ -108,7 +108,7 @@ object UtTestsDialogProcessor {
                 testModules,
                 srcClasses,
                 extractMembersFromSrcClasses,
-                if (focusedMethod != null) setOf(focusedMethod) else null,
+                focusedMethods,
                 UtSettings.utBotGenerationTimeoutInMillis,
             )
         )
@@ -168,8 +168,8 @@ object UtTestsDialogProcessor {
                                     psi2KClass[srcClass] = clazz
 
                                     val srcMethods = if (model.extractMembersFromSrcClasses) {
-                                        val chosenMethods = model.selectedMembers?.filter { it.member is PsiMethod } ?: listOf()
-                                        val chosenNestedClasses = model.selectedMembers?.mapNotNull { it.member as? PsiClass } ?: listOf()
+                                        val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
+                                        val chosenNestedClasses = model.selectedMembers.mapNotNull { it.member as? PsiClass }
                                         chosenMethods + chosenNestedClasses.flatMap {
                                             it.extractClassMethodsIncludingNested(false)
                                         }

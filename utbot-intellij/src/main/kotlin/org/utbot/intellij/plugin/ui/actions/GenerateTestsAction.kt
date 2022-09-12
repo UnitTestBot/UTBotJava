@@ -5,6 +5,7 @@ import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.PlatformDataKeys
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
@@ -19,19 +20,21 @@ import org.jetbrains.kotlin.idea.core.util.toPsiDirectory
 import org.jetbrains.kotlin.idea.core.util.toPsiFile
 import org.utbot.intellij.plugin.util.extractFirstLevelMembers
 import java.util.*
+import org.jetbrains.kotlin.j2k.getContainingClass
+import org.jetbrains.kotlin.utils.addIfNotNull
 
 class GenerateTestsAction : AnAction() {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val (srcClasses, focusedMethod, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
-        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethod)
+        val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
+        UtTestsDialogProcessor.createDialogAndGenerateTests(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)
     }
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 
-    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, MemberInfo?, Boolean>? {
+    private fun getPsiTargets(e: AnActionEvent): Triple<Set<PsiClass>, Set<MemberInfo>, Boolean>? {
         val project = e.project ?: return null
         val editor = e.getData(CommonDataKeys.EDITOR)
         if (editor != null) {
@@ -56,19 +59,19 @@ class GenerateTestsAction : AnAction() {
                     return null
                 }
 
-                return Triple(setOf(srcClass), focusedMethod, true)
+                return Triple(setOf(srcClass), if (focusedMethod != null) setOf(focusedMethod) else emptySet(), true)
             }
         } else {
             // The action is being called from 'Project' tool window 
             val srcClasses = mutableSetOf<PsiClass>()
-            var selectedMethod: MemberInfo? = null
+            val selectedMethods = mutableSetOf<MemberInfo>()
             var extractMembersFromSrcClasses = false
-            val element = e.getData(CommonDataKeys.PSI_ELEMENT) ?: return null
+            val element = e.getData(CommonDataKeys.PSI_ELEMENT)
             if (element is PsiFileSystemItem) {
                 e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.let {
                     srcClasses += getAllClasses(project, it)
                 }
-            } else {
+            } else if (element is PsiElement){
                 val file = element.containingFile ?: return null
                 val psiElementHandler = PsiElementHandler.makePsiElementHandler(file)
 
@@ -81,11 +84,29 @@ class GenerateTestsAction : AnAction() {
                     }
 
                     if (element is PsiMethod) {
-                        selectedMethod = MemberInfo(element)
+                        selectedMethods.add(MemberInfo(element))
+                    }
+                }
+            } else {
+                val someSelection = e.getData(PlatformDataKeys.SELECTED_ITEMS)?: return null
+                someSelection.forEach {
+                    when(it) {
+                        is PsiFileSystemItem  -> srcClasses += getAllClasses(project, arrayOf(it.virtualFile))
+                        is PsiClass -> srcClasses.add(it)
+                        is PsiElement -> {
+                            srcClasses.addIfNotNull(it.getContainingClass())
+                            if (it is PsiMethod) {
+                                selectedMethods.add(MemberInfo(it))
+                                extractMembersFromSrcClasses = true
+                            }
+                        }
                     }
                 }
             }
             srcClasses.removeIf { it.isInterface }
+            if (srcClasses.size > 1) {
+                extractMembersFromSrcClasses = false
+            }
             var commonSourceRoot = null as VirtualFile?
             for (srcClass in srcClasses) {
                 if (commonSourceRoot == null) {
@@ -100,7 +121,7 @@ class GenerateTestsAction : AnAction() {
                      .filter { folder -> !folder.rootType.isForTests && folder.file == commonSourceRoot}
                      .findAny().isPresent ) return null
 
-            return Triple(srcClasses.toSet(), selectedMethod, extractMembersFromSrcClasses)
+            return Triple(srcClasses.toSet(), selectedMethods.toSet(), extractMembersFromSrcClasses)
         }
         return null
     }

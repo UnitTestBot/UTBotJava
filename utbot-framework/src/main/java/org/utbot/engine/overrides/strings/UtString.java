@@ -824,6 +824,16 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         return toString().replace(target, replacement);
     }
 
+    public String[] splitWithLimitImpl(String regex, int limit) {
+        return toString().split(regex, limit);
+    }
+
+    public String[] split(String regex, int limit) {
+        preconditionCheck();
+        return splitWithLimitImpl(regex, limit);
+    }
+
+    /*
     public String[] split(String regex, int limit) {
         preconditionCheck();
         if (regex == null) {
@@ -844,7 +854,18 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         executeConcretely();
         return toStringImpl().split(regex, limit);
     }
+     */
 
+    public String[] splitImpl(String regex) {
+        return toString().split(regex);
+    }
+
+    public String[] split(String regex) {
+        preconditionCheck();
+        return splitImpl(regex);
+    }
+
+    /*
     public String[] split(String regex) {
         preconditionCheck();
         if (regex == null) {
@@ -861,6 +882,7 @@ public class UtString implements java.io.Serializable, Comparable<String>, CharS
         executeConcretely();
         return toStringImpl().split(regex);
     }
+     */
 
     public String toLowerCase(Locale locale) {
         preconditionCheck();

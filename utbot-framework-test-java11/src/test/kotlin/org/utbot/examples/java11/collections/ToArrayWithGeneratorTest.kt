@@ -31,6 +31,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("TODO: we can't yet model throwing ArrayStoreException")
     fun testCheckSetSizeArrayStoreException() {
         checkWithException(
             ToArrayWithGenerator<Int>::checkSetSizeArrayStoreException,
@@ -72,6 +73,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("TODO: we can't yet model throwing ArrayStoreException")
     fun testGetMapEntrySetArrayStoreException() {
         checkWithException(
             ToArrayWithGenerator<Int>::getMapEntrySetArrayStoreException,

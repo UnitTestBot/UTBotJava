@@ -15,8 +15,7 @@ class SynthesisUnitChecker(
     val declaringClass: SootClass,
 ) {
     private val logger = KotlinLogging.logger("ConstrainedSynthesisUnitChecker")
-
-    var id = 0
+    private var id = 0
 
     fun tryGenerate(synthesisUnitContext: SynthesisUnitContext, parameters: List<UtModel>): List<UtModel>? {
         if (!synthesisUnitContext.isFullyDefined) return null

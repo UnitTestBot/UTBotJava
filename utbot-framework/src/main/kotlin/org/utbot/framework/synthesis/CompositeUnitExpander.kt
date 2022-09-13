@@ -9,11 +9,20 @@ import org.utbot.framework.plugin.api.MethodId
 class CompositeUnitExpander(
     private val statementsStorage: StatementsStorage
 ) {
+    private fun ExecutableId.thisParamOrEmptyList() =
+        if (this is MethodId && !this.isStatic) {
+            listOf(this.classId)
+        } else {
+            emptyList()
+        }
+
+    private val StatementsStorage.definedClasses get() = items.keys.map { it.classId }.toSet()
+
     fun expand(objectUnit: ObjectUnit): List<MethodUnit> {
         if (objectUnit.isPrimitive()) {
             return emptyList()
         }
-        if (objectUnit.classId !in statementsStorage.items.keys.map { it.classId }.toSet()) {
+        if (objectUnit.classId !in statementsStorage.definedClasses) {
             statementsStorage.update(setOf(objectUnit.classId).expandable())
         }
         val mutators = findAllMutators(objectUnit.classId)
@@ -32,7 +41,7 @@ class CompositeUnitExpander(
 
     private fun findConstructors(classId: ClassId): List<ExecutableId> =
         statementsStorage.items
-            .filter { (method, _) -> method.classId == classId }
+            .filterKeys { method -> method.classId == classId }
             .keys
             .filterIsInstance<ConstructorId>()
             .toList()
@@ -49,10 +58,3 @@ class CompositeUnitExpander(
             .filterIsInstance<ExecutableId>()
             .toList()
 }
-
-private fun ExecutableId.thisParamOrEmptyList() =
-    if (this is MethodId && !this.isStatic) {
-        listOf(this.classId)
-    } else {
-        emptyList()
-    }

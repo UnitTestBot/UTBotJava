@@ -125,7 +125,7 @@ class SynthesisMethodContext(
                 this is ConstructorId -> synthesizeConstructorInvoke(this, parameterLocals)
                 this is MethodId && isStatic -> synthesizeStaticInvoke(this, parameterLocals)
                 this is MethodId -> synthesizeVirtualInvoke(this, parameterLocals)
-                else -> TODO()
+                else -> error("Unexpected method unit in synthesizer: $unit")
             }
         }
         return result

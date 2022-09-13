@@ -76,12 +76,12 @@ class Synthesizer(
     }
 
     fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel?> {
-        val splittedModels = splitModels()
+        val modelSubsets = splitModels()
         val currentTime = { System.currentTimeMillis() }
         val startTime = currentTime()
 
         val result = MutableList<UtModel?>(parameters.size) { null }
-        for (models in splittedModels) {
+        for (models in modelSubsets) {
             val modelsList = models.toList()
             val queueIterator = SynthesisUnitContextQueue(modelsList, statementStorage, depth)
             var found = false

@@ -13,7 +13,6 @@ class Resolver(
 ) {
     private val unitToModel = IdentityHashMap<SynthesisUnit, UtModel>().apply {
         unitToParameter.toList().forEach { (it, parameter) -> this[it] = parameterModels[parameter.number] }
-
     }
 
     fun resolve(unit: SynthesisUnit): UtModel =
@@ -29,19 +28,16 @@ class Resolver(
         }
 
     private fun resolveMethodUnit(unit: MethodUnit): UtModel =
-        with(unit.method) {
-            when {
-                this is ConstructorId -> resolveConstructorInvoke(unit, this)
-                this is MethodId && isStatic -> TODO()
-                this is MethodId -> resolveVirtualInvoke(unit, this)
-                else -> TODO()
+            when (val method = unit.method) {
+                is ConstructorId -> resolveConstructorInvoke(unit, method)
+                is MethodId -> resolveVirtualInvoke(unit, method)
+                else -> error("Unexpected method unit in resolver: $unit")
             }
-        }
 
     private fun resolveVirtualInvoke(unit: MethodUnit, method: MethodId): UtModel {
         val resolvedModels = unit.params.map { resolve(it) }
 
-        val thisModel = resolvedModels.firstOrNull() ?: error("No this parameter found for $method")
+        val thisModel = resolvedModels.firstOrNull() ?: error("No `this` parameter found for $method")
         val modelsWithoutThis = resolvedModels.drop(1)
 
         if (thisModel !is UtAssembleModel) {

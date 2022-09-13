@@ -132,16 +132,6 @@ class ConstraintScoringStrategy(
             }
         }
 
-        is UtElementContainerConstraintModel -> {
-            val scorer = UtConstraintScorer(
-                holder,
-                UtConstraint2ExpressionConverter(traverser),
-                typeRegistry,
-                typeResolver
-            )
-            model.allConstraints.sumOf { it.accept(scorer) }
-        }
-
         is UtConstraintModel -> {
             val scorer = UtConstraintScorer(
                 holder,

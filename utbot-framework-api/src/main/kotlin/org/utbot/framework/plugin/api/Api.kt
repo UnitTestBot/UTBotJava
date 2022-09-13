@@ -518,22 +518,22 @@ data class UtArrayModel(
  * Models for values with constraints
  */
 sealed class UtConstraintModel(
-    open val variable: UtConstraintVariable,
-    open val utConstraints: Set<UtConstraint>
+    open val variable: UtConstraintVariable
 ) : UtModel(variable.classId) {
+    abstract val utConstraints: Set<UtConstraint>
 }
 
 data class UtPrimitiveConstraintModel(
     override val variable: UtConstraintVariable,
     override val utConstraints: Set<UtConstraint>,
-    val  concrete: Any? = null
-) : UtConstraintModel(variable, utConstraints) {
+    val concrete: Any? = null
+) : UtConstraintModel(variable) {
 }
 
 data class UtReferenceConstraintModel(
     override val variable: UtConstraintVariable,
     override val utConstraints: Set<UtConstraint>,
-) : UtConstraintModel(variable, utConstraints) {
+) : UtConstraintModel(variable) {
     fun isNull() = utConstraints.any {
         it is UtRefEqConstraint && it.lhv == variable && it.rhv is UtConstraintNull
     }
@@ -543,20 +543,19 @@ data class UtReferenceToConstraintModel(
     override val variable: UtConstraintVariable,
     val reference: UtModel,
     override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtConstraintModel(variable, utConstraints)
+) : UtConstraintModel(variable)
 
 sealed class UtElementContainerConstraintModel(
     override val variable: UtConstraintVariable,
     open val length: UtModel,
     open val elements: Map<UtModel, UtModel>,
-    override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtConstraintModel(variable, utConstraints) {
-    val allConstraints: Set<UtConstraint>
-        get() = elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
+    open val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtConstraintModel(variable) {
+    final override val utConstraints: Set<UtConstraint> get() =
+        baseConstraints + elements.toList().fold((length as UtConstraintModel).utConstraints) { acc, pair ->
             acc +
                     ((pair.first as? UtConstraintModel)?.utConstraints ?: emptySet()) +
-                    ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet()) +
-                    ((pair.second as? UtArrayConstraintModel)?.allConstraints ?: emptySet())
+                    ((pair.second as? UtConstraintModel)?.utConstraints ?: emptySet())
         }
 }
 
@@ -564,29 +563,29 @@ data class UtArrayConstraintModel(
     override val variable: UtConstraintVariable,
     override val length: UtModel,
     override val elements: Map<UtModel, UtModel>,
-    override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
 
 data class UtListConstraintModel(
     override val variable: UtConstraintVariable,
     override val length: UtModel,
     override val elements: Map<UtModel, UtModel>,
-    override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
 
 data class UtSetConstraintModel(
     override val variable: UtConstraintVariable,
     override val length: UtModel,
     override val elements: Map<UtModel, UtModel>,
-    override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
 
 data class UtMapConstraintModel(
     override val variable: UtConstraintVariable,
     override val length: UtModel,
     override val elements: Map<UtModel, UtModel>,
-    override val utConstraints: Set<UtConstraint> = emptySet()
-) : UtElementContainerConstraintModel(variable, length, elements, utConstraints)
+    override val baseConstraints: Set<UtConstraint> = emptySet()
+) : UtElementContainerConstraintModel(variable, length, elements)
 
 
 /**

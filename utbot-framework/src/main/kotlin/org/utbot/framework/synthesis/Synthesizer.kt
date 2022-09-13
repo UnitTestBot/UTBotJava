@@ -235,9 +235,9 @@ class SynthesisUnitContextQueue(
             context.set(model, it)
         }
 
-        is ElementContainingUnit -> {
-            if (unit.isPrimitive()) emptyList()
-            else {
+        is ElementContainingUnit -> when {
+            unit.isPrimitive() -> emptyList()
+            else -> {
                 var currentContext = context
                 var result = emptyList<SynthesisUnitContext>()
                 var index = 0
@@ -275,8 +275,7 @@ class SynthesisUnitContextQueue(
 
     private fun produce(state: SynthesisUnit): List<SynthesisUnit> =
         when (state) {
-            is MethodUnit -> {
-                val results = state.params.run {
+            is MethodUnit -> state.params.run {
                     flatMapIndexed { idx, leaf ->
                         val newLeafs = produce(leaf)
                         newLeafs.map { newLeaf ->
@@ -286,8 +285,6 @@ class SynthesisUnitContextQueue(
                         }
                     }
                 }
-                results
-            }
 
             is ObjectUnit -> {
                 val leafs = leafExpander.expand(state)

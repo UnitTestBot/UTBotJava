@@ -439,7 +439,10 @@ class ConstraintResolver(
         is UtPrimitiveConstraintModel -> copy(utConstraints = utConstraints + constraints)
         is UtReferenceConstraintModel -> copy(utConstraints = utConstraints + constraints)
         is UtReferenceToConstraintModel -> copy(utConstraints = utConstraints + constraints)
-        is UtArrayConstraintModel -> copy(utConstraints = utConstraints + constraints)
+        is UtArrayConstraintModel -> copy(baseConstraints = baseConstraints + constraints)
+        is UtListConstraintModel -> copy(baseConstraints = baseConstraints + constraints)
+        is UtSetConstraintModel -> copy(baseConstraints = baseConstraints + constraints)
+        is UtMapConstraintModel -> copy(baseConstraints = baseConstraints + constraints)
         else -> this
     }
 

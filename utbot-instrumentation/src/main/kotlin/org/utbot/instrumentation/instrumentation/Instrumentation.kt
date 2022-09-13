@@ -1,6 +1,7 @@
 package org.utbot.instrumentation.instrumentation
 
 import java.lang.instrument.ClassFileTransformer
+import org.utbot.framework.plugin.api.FieldId
 
 /**
  * Abstract class for the instrumentation.
@@ -23,6 +24,8 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
         arguments: ArgumentList,
         parameters: Any? = null
     ): TInvocationInstrumentation
+
+    fun getStaticField(fieldId: FieldId): Result<*>
 
     /**
      * Will be called in the very beginning in the child process.

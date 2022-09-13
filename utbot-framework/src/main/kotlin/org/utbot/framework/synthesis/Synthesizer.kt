@@ -11,8 +11,21 @@ import org.utbot.framework.plugin.api.util.objectClassId
 
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
+private object SynthesisCache {
+    private val successfulInitializers =
+        mutableMapOf<UtMethod<*>, MutableMap<List<Int>, MutableList<SynthesisUnitContext>>>()
+
+    operator fun get(utMethod: UtMethod<*>, parameters: List<Int>): List<SynthesisUnitContext> =
+        successfulInitializers.getOrPut(utMethod, ::mutableMapOf).getOrPut(parameters, ::mutableListOf)
+
+    operator fun set(utMethod: UtMethod<*>, parameters: List<Int>, synthesisUnitContext: SynthesisUnitContext) =
+        successfulInitializers.getOrPut(utMethod, ::mutableMapOf).getOrPut(parameters, ::mutableListOf)
+            .add(synthesisUnitContext)
+}
+
 class Synthesizer(
     val testCaseGenerator: TestCaseGenerator,
+    val method: UtMethod<*>,
     val parameters: List<UtModel>,
     val depth: Int = synthesisMaxDepth
 ) {
@@ -49,9 +62,8 @@ class Synthesizer(
 
     private val unitChecker = SynthesisUnitChecker(testCaseGenerator, objectClassId.toSoot())
 
-    private fun splitModels(): Set<Set<UtModel>> {
-        val modelComparator = compareBy<UtModel> { parametersMap[it]!! }
-        val result = parameters.map { sortedSetOf(modelComparator, it) }.toMutableSet()
+    private fun splitModels(): Set<List<UtModel>> {
+        val result = parameters.map { mutableSetOf(it) }.toMutableSet()
         while (true) {
             var changed = false
             loopExit@ for (current in result) {
@@ -72,41 +84,68 @@ class Synthesizer(
             }
             if (!changed) break
         }
-        return result.map { it.sortedBy { parametersMap[it] }.toSet() }.toSet()
+        return result.map { models -> models.sortedBy { parametersMap[it] } }.toSet()
     }
 
     fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel?> {
         val modelSubsets = splitModels()
-        val currentTime = { System.currentTimeMillis() }
-        val startTime = currentTime()
+        val startTime = System.currentTimeMillis()
+        val timeLimitExceeded = { System.currentTimeMillis() - startTime > timeLimit }
 
         val result = MutableList<UtModel?>(parameters.size) { null }
         for (models in modelSubsets) {
-            val modelsList = models.toList()
-            val queueIterator = SynthesisUnitContextQueue(modelsList, statementStorage, depth)
+            val modelIndices = models.map { parametersMap[it]!! }
             var found = false
 
+            for (cachedUnits in SynthesisCache[method, modelIndices]) {
+                if (timeLimitExceeded()) break
+
+                val assembleModel = try {
+                    val mappedUnits = cachedUnits.copyWithNewModelsOrNull(models) ?: continue
+                    unitChecker.tryGenerate(mappedUnits, models)
+                } catch (e: Throwable) {
+                    logger.warn { "Error during assemble model generation from cached unit context" }
+                    null
+                }
+                if (assembleModel != null) {
+                    logger.debug { "Found $assembleModel" }
+                    found = true
+                    break
+                }
+            }
+
+            val queueIterator = SynthesisUnitContextQueue(models, statementStorage, depth)
             while (
                 queueIterator.hasNext() &&
-                (currentTime() - startTime) < timeLimit &&
+                !timeLimitExceeded() &&
                 !found
             ) {
                 val units = queueIterator.next()
                 if (!units.isFullyDefined) continue
 
-                val assembleModel = unitChecker.tryGenerate(units, modelsList)
+                val assembleModel = try {
+                    unitChecker.tryGenerate(units, models)
+                } catch (e: Throwable) {
+                    logger.error { "Error during assemble model generation" }
+                    logger.error(e.message)
+                    logger.error(e.stackTraceToString())
+                    null
+                }
+
                 if (assembleModel != null) {
                     logger.debug { "Found $assembleModel" }
-                    success()
-                    for ((model, assemble) in modelsList.zip(assembleModel)) {
-                        result[parametersMap[model]!!] = assemble
+                    for ((index, assemble) in modelIndices.zip(assembleModel)) {
+                        result[index] = assemble
                     }
+                    SynthesisCache[method, modelIndices] = units
                     found = true
                 }
             }
 
-            if (found) success()
-            else failure()
+            when {
+                found -> success()
+                else -> failure()
+            }
         }
         return result
     }
@@ -177,6 +216,16 @@ class SynthesisUnitContext(
         }
 
         is MethodUnit -> params.all { it.isFullyDefined() }
+    }
+
+    fun copyWithNewModelsOrNull(newModels: List<UtModel>): SynthesisUnitContext? {
+        // if current context contains some internal models -- we cannot copy it
+        if (mapping.size != models.size) return null
+
+        val modelMapping = models.zip(newModels).toMap()
+        return SynthesisUnitContext(newModels, mapping.mapKeys {
+            modelMapping[it.key] ?: return null
+        })
     }
 }
 
@@ -276,15 +325,15 @@ class SynthesisUnitContextQueue(
     private fun produce(state: SynthesisUnit): List<SynthesisUnit> =
         when (state) {
             is MethodUnit -> state.params.run {
-                    flatMapIndexed { idx, leaf ->
-                        val newLeafs = produce(leaf)
-                        newLeafs.map { newLeaf ->
-                            val newParams = toMutableList()
-                            newParams[idx] = newLeaf
-                            state.copy(params = newParams)
-                        }
+                flatMapIndexed { idx, leaf ->
+                    val newLeafs = produce(leaf)
+                    newLeafs.map { newLeaf ->
+                        val newParams = toMutableList()
+                        newParams[idx] = newLeaf
+                        state.copy(params = newParams)
                     }
                 }
+            }
 
             is ObjectUnit -> {
                 val leafs = leafExpander.expand(state)

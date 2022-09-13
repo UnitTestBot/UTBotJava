@@ -233,7 +233,7 @@ open class TestCaseGenerator(
         return methods.map { method ->
             UtMethodTestSet(
                 method,
-                minimizeExecutions(method2executions.getValue(method).toAssemble()),
+                minimizeExecutions(method2executions.getValue(method).toAssemble(method)),
                 jimpleBody(method),
                 method2errors.getValue(method)
             )
@@ -384,19 +384,14 @@ open class TestCaseGenerator(
         return minimizedExecutions
     }
 
-    private fun List<UtExecution>.toAssemble(): List<UtExecution> =
+    private fun List<UtExecution>.toAssemble(method: UtMethod<*>): List<UtExecution> =
         map { execution ->
             val symbolicExecution = (execution as? UtSymbolicExecution) ?: return@map execution
             val oldStateBefore = execution.stateBefore
 
             val constrainedExecution = symbolicExecution.constrainedExecution ?: return@map execution
-            val aa = Synthesizer(this@TestCaseGenerator, constrainedExecution.modelsAfter)
-            val synthesizedModels = try {
-                aa.synthesize()
-            } catch (e: Throwable) {
-                logger.debug(e) { "Failure during constraint synthesis" }
-                return@map execution
-            }
+            val aa = Synthesizer(this@TestCaseGenerator, method, constrainedExecution.modelsAfter)
+            val synthesizedModels = aa.synthesize()
 
             val (synthesizedThis, synthesizedParameters) = oldStateBefore.thisInstance?.let {
                 synthesizedModels.first() to synthesizedModels.drop(1)

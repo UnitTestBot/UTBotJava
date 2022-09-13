@@ -1,5 +1,6 @@
 package org.utbot.framework.synthesis
 
+import com.jetbrains.rd.util.AtomicInteger
 import mu.KotlinLogging
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.UtSettings
@@ -14,14 +15,17 @@ class SynthesisUnitChecker(
     val testCaseGenerator: TestCaseGenerator,
     val declaringClass: SootClass,
 ) {
+    companion object {
+        private val initializerMethodId = AtomicInteger()
+    }
+
     private val logger = KotlinLogging.logger("ConstrainedSynthesisUnitChecker")
-    private var id = 0
 
     fun tryGenerate(synthesisUnitContext: SynthesisUnitContext, parameters: List<UtModel>): List<UtModel>? {
         if (!synthesisUnitContext.isFullyDefined) return null
 
         val synthesisMethodContext = SynthesisMethodContext(synthesisUnitContext)
-        val method = synthesisMethodContext.method("\$initializer_${id++}", declaringClass)
+        val method = synthesisMethodContext.method("\$initializer_${initializerMethodId.getAndIncrement()}", declaringClass)
 
         val execution = run {
             val executions = testCaseGenerator.generateWithPostCondition(

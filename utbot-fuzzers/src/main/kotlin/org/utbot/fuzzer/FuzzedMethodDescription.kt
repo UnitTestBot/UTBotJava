@@ -41,6 +41,21 @@ class FuzzedMethodDescription(
     var parameterNameMap: (Int) -> String? = { null }
 
     /**
+     * For every parameter returns a list with acceptable types.
+     * Usually it keeps upper bound.
+     *
+     * Every parameter can have several parameter types.
+     * For example [Map] has two type parameters, [Collection] has only one.
+     *
+     * Fuzzer doesn't care about interconnection between these types, therefore it waits
+     * that function already has all necessary information to bound this values.
+     *
+     * If `K <: Number` and `V <: K` for map this method can return values like:
+     * `K contains {Number, Integer} and V contains only {Integer}`.
+     */
+    var fuzzerType: (Int) -> FuzzedType? = { null }
+
+    /**
      * Map class id to indices of this class in parameters list.
      */
     val parametersMap: Map<ClassId, List<Int>> by lazy {

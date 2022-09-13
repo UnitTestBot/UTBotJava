@@ -103,6 +103,9 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.yield
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtLambdaModel
+import org.utbot.framework.plugin.api.util.executable
+import org.utbot.fuzzer.FuzzedType
+import org.utbot.fuzzer.toFuzzerType
 
 val logger = KotlinLogging.logger {}
 val pathLogger = KotlinLogging.logger(logger.name + ".path")
@@ -426,6 +429,7 @@ class UtBotSymbolicEngine(
             packageName = classUnderTest.packageName
             val names = graph.body.method.tags.filterIsInstance<ParamNamesTag>().firstOrNull()?.names
             parameterNameMap = { index -> names?.getOrNull(index) }
+            fuzzerType = { toFuzzerType(methodUnderTest.executable.genericParameterTypes[it]) }
         }
         val coveredInstructionTracker = Trie(Instruction::id)
         val coveredInstructionValues = linkedMapOf<Trie.Node<Instruction>, List<FuzzedValue>>()

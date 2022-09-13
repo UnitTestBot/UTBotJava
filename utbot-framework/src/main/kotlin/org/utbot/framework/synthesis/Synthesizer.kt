@@ -50,7 +50,8 @@ class Synthesizer(
     private val unitChecker = SynthesisUnitChecker(testCaseGenerator, objectClassId.toSoot())
 
     private fun splitModels(): Set<Set<UtModel>> {
-        val result = parameters.map { setOf(it) }.toMutableSet()
+        val modelComparator = compareBy<UtModel> { parametersMap[it]!! }
+        val result = parameters.map { sortedSetOf(modelComparator, it) }.toMutableSet()
         while (true) {
             var changed = false
             loopExit@ for (current in result) {
@@ -61,8 +62,7 @@ class Synthesizer(
                         for (nextModel in next.filterIsInstance<UtConstraintModel>()) {
                             if (nextModel.utConstraints.any { currentModel.variable in it }) {
                                 result.remove(next)
-                                result.remove(current)
-                                result.add(current + next)
+                                current.addAll(next)
                                 changed = true
                                 break@loopExit
                             }
@@ -72,7 +72,7 @@ class Synthesizer(
             }
             if (!changed) break
         }
-        return result
+        return result.map { it.sortedBy { parametersMap[it] }.toSet() }.toSet()
     }
 
     fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel?> {

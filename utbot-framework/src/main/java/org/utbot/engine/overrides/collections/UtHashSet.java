@@ -138,8 +138,7 @@ public class UtHashSet<E> extends AbstractSet<E> implements UtGenericStorage<E> 
     @SuppressWarnings({"unchecked"})
     @NotNull
     @Override
-    public <T> T[] toArray(@NotNull T[] a) {
-        Objects.requireNonNull(a);
+    public <T> T[] toArray(T[] a) {
         preconditionCheck();
         if (a.length < elementData.end) {
             return (T[]) toArray();

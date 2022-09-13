@@ -69,36 +69,32 @@ private val logLevel = ChildProcessLogLevel.Info
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
-private fun log(level: ChildProcessLogLevel, any: () -> Any?) {
+private inline fun log(level: ChildProcessLogLevel, any: () -> Any?) {
     if (level < logLevel)
         return
 
-    System.err.println(LocalDateTime.now().format(dateFormatter) + " | ${any()}")
+    System.err.println(LocalDateTime.now().format(dateFormatter) + " ${level.name.uppercase()}| ${any()}")
 }
 
 // errors that must be address
-private fun logError(any: () -> Any?) {
+internal inline fun logError(any: () -> Any?) {
     log(ChildProcessLogLevel.Error, any)
 }
 
-private fun logException(e: Throwable) {
-    log(ChildProcessLogLevel.Error) { "$e |> ${e.stackTraceToString()}" }
-}
-
 // default log level for irregular useful messages that does not pollute log
-private fun logInfo(any: () -> Any?) {
+internal inline fun logInfo(any: () -> Any?) {
     log(ChildProcessLogLevel.Info, any)
 }
 
 // log level for frequent messages useful for debugging
-private fun logDebug(any: () -> Any?) {
+internal inline fun logDebug(any: () -> Any?) {
     log(ChildProcessLogLevel.Debug, any)
 }
 
 // log level for internal rd logs and frequent messages
 // heavily pollutes log, useful only when debugging rpc
 // probably contains no info about utbot
-private fun logTrace(any: () -> Any?) {
+internal fun logTrace(any: () -> Any?) {
     log(ChildProcessLogLevel.Trace, any)
 }
 
@@ -193,7 +189,7 @@ private fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) 
                 try {
                     block(it)
                 } catch (e: Throwable) {
-                    logException(e)
+                    logError { e.stackTraceToString() }
                     throw e
                 }
             }
@@ -319,7 +315,6 @@ private suspend fun initiate(lifetime: Lifetime, port: Int, pid: Int) {
         logInfo { "starting instrumenting" }
         deferred.await()
     } catch (e: Throwable) {
-        logError { "Terminating process because exception occurred" }
-        logException(e)
+        logError { "Terminating process because exception occurred: ${e.stackTraceToString()}" }
     }
 }

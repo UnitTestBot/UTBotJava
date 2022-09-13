@@ -5,7 +5,9 @@ import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.actionSystem.UpdateInBackground
 import com.intellij.openapi.actionSystem.PlatformDataKeys
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
@@ -23,7 +25,7 @@ import java.util.*
 import org.jetbrains.kotlin.j2k.getContainingClass
 import org.jetbrains.kotlin.utils.addIfNotNull
 
-class GenerateTestsAction : AnAction() {
+class GenerateTestsAction : AnAction(), UpdateInBackground {
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val (srcClasses, focusedMethods, extractMembersFromSrcClasses) = getPsiTargets(e) ?: return
@@ -79,7 +81,10 @@ class GenerateTestsAction : AnAction() {
                     psiElementHandler.containingClass(element)?.let {
                         srcClasses += setOf(it)
                         extractMembersFromSrcClasses = true
-                        if (it.extractFirstLevelMembers(false).isEmpty())
+                        val memberInfoList = runReadAction<List<MemberInfo>> {
+                            it.extractFirstLevelMembers(false)
+                        }
+                        if (memberInfoList.isNullOrEmpty())
                             return null
                     }
 

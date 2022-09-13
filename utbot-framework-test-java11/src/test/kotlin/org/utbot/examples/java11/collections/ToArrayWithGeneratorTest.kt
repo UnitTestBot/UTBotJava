@@ -1,14 +1,22 @@
 package org.utbot.examples.java11.collections
 
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.tests.infrastructure.isException
 
 class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
-    testClass = ToArrayWithGenerator::class
+    testClass = ToArrayWithGenerator::class,
+    testCodeGeneration = true,
+    languagePipelines = listOf(
+        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+        // TODO: We are generating Kotlin code for generic collections that will not compile
+        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, lastStage = CodeGeneration)
+)
 ) {
     @Test
     fun testCheckSetSize() {

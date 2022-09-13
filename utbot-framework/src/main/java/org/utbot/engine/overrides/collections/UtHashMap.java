@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import org.utbot.engine.overrides.UtArrayMock;
 
 import static org.utbot.api.mock.UtMock.assume;
+import static org.utbot.api.mock.UtMock.assumeOrExecuteConcretely;
 import static org.utbot.api.mock.UtMock.makeSymbolic;
 import static org.utbot.engine.overrides.UtOverrideMock.alreadyVisited;
 import static org.utbot.engine.overrides.UtOverrideMock.doesntThrow;
@@ -528,8 +529,11 @@ public class UtHashMap<K, V> implements Map<K, V>, UtGenericStorage<K>, UtGeneri
         @Override
         public Object[] toArray() {
             preconditionCheck();
-            Object[] data = new Object[size()];
-            for (int i = keys.begin; i < keys.end; i++) {
+            final int size = size();
+            final int end = keys.end;
+            assumeOrExecuteConcretely(end < 3);
+            Object[] data = new Object[size];
+            for (int i = 0; i < end; i++) {
                 data[i] = values.select(keys.get(i));
             }
             return data;

@@ -12,8 +12,10 @@ public abstract class AbstractCollection<E> implements java.util.Collection<E> {
         return makeSymbolic();
     }
 
+    @SuppressWarnings("Since15")
     public <T> T[] toArray(IntFunction<T[]> generator) {
-        T[] data = generator.apply(size());
+        final int size = size();
+        T[] data = generator.apply(size);
         return toArray(data);
     }
 }

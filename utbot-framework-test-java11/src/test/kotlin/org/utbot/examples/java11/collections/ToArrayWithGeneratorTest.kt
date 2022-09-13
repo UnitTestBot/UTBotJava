@@ -1,5 +1,6 @@
 package org.utbot.examples.java11.collections
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
@@ -21,7 +22,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckSetSize() {
         check(
-            ToArrayWithGenerator<*>::checkSetSize,
+            ToArrayWithGenerator<Int>::checkSetSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -31,7 +32,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckSetSizeArrayStoreException() {
         checkWithException(
-            ToArrayWithGenerator<*>::checkSetSizeArrayStoreException,
+            ToArrayWithGenerator<Int>::checkSetSizeArrayStoreException,
             eq(3),
             { size, result -> size < 0 && result.isSuccess && result.getOrNull() == false },
             { size, result -> size == 0 && result.isSuccess && result.getOrNull() == true },
@@ -42,7 +43,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckListSize() {
         check(
-            ToArrayWithGenerator<*>::checkListSize,
+            ToArrayWithGenerator<Int>::checkListSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -52,7 +53,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckMapKeysSize() {
         check(
-            ToArrayWithGenerator<*>::checkMapKeysSize,
+            ToArrayWithGenerator<Int>::checkMapKeysSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -62,7 +63,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testCheckMapValuesSize() {
         check(
-            ToArrayWithGenerator<*>::checkMapValuesSize,
+            ToArrayWithGenerator<Int>::checkMapValuesSize,
             ignoreExecutionsNumber,
             { size, result -> size < 0 && result == false },
             { size, result -> size >= 0 && result == true }
@@ -72,7 +73,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testGetMapEntrySetArrayStoreException() {
         checkWithException(
-            ToArrayWithGenerator<*>::getMapEntrySetArrayStoreException,
+            ToArrayWithGenerator<Int>::getMapEntrySetArrayStoreException,
             eq(1),
             { result -> result.isFailure && result.isException<ArrayStoreException>() },
             coverage = DoNotCalculate
@@ -82,7 +83,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testGetMapEntrySetSize() {
         check(
-            ToArrayWithGenerator<*>::getMapEntrySetSize,
+            ToArrayWithGenerator<Int>::getMapEntrySetSize,
             eq(1),
             { result -> result == 2 }
         )
@@ -91,7 +92,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testGetCollectionArgumentSize() {
         check(
-            ToArrayWithGenerator<*>::getCollectionArgumentSize,
+            ToArrayWithGenerator<Int>::getCollectionArgumentSize,
             ignoreExecutionsNumber,
             { arg, result -> result == arg.size }
         )
@@ -100,7 +101,7 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testSetCollectionArgumentSize() {
         check(
-            ToArrayWithGenerator<*>::getSetArgumentSize,
+            ToArrayWithGenerator<Int>::getSetArgumentSize,
             ignoreExecutionsNumber,
             { arg, result -> result == arg.size }
         )
@@ -109,16 +110,17 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     @Test
     fun testListCollectionArgumentSize() {
         check(
-            ToArrayWithGenerator<*>::getListArgumentSize,
+            ToArrayWithGenerator<Int>::getListArgumentSize,
             ignoreExecutionsNumber,
             { arg, result -> result == arg.size }
         )
     }
 
     @Test
+    @Disabled("TODO: this test takes too long and results in non-instantiable concrete type substitutions")
     fun testGetAbstractCollectionArgumentSize() {
         check(
-            ToArrayWithGenerator<*>::getAbstractCollectionArgumentSize,
+            ToArrayWithGenerator<Int>::getAbstractCollectionArgumentSize,
             ignoreExecutionsNumber,
             { arg, result -> result == arg.size }
         )

@@ -3,6 +3,7 @@ package org.utbot.examples.java11.collections
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.testcheckers.between
 import org.utbot.testcheckers.eq
 import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.DoNotCalculate
@@ -127,12 +128,25 @@ class ToArrayWithGeneratorTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("TODO: translate of UtArrayApplyForAll expression (#630)")
     fun testGetGenericCollectionArgumentSize() {
         check(
             ToArrayWithGenerator<Int>::getGenericCollectionArgumentSize,
             ignoreExecutionsNumber,
             { arg, result -> result == arg.size },
             coverage = DoNotCalculate
+        )
+    }
+
+    @Test
+    fun testCountMatchingElements() {
+        check(
+            ToArrayWithGenerator<Int>::countMatchingElements,
+            between(3..4),
+            { arg, result -> arg.isEmpty() && result == 0 },
+            { arg, result -> arg.contains(null) && result == arg.size },
+            { arg, result -> arg.isNotEmpty() && !arg.contains(null) && result == arg.size },
+            coverage = DoNotCalculate // TODO: investigate the incomplete coverage
         )
     }
 }

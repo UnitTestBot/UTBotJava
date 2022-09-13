@@ -3,12 +3,14 @@ package org.utbot.examples.java11.collections;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.AbstractCollection;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class ToArrayWithGenerator<T> {
@@ -99,9 +101,34 @@ public class ToArrayWithGenerator<T> {
     }
 
     public int getGenericCollectionArgumentSize(@NotNull Collection<T> arg) {
-        // return arg.toArray(Object[]::new).length;
-        return arg.size();
+        return arg.toArray(Object[]::new).length;
+    }
+
+    public int countMatchingElements(@NotNull ArrayList<Integer> arrayList) {
+        int size = arrayList.size();
+        Integer[] array = arrayList.toArray(Integer[]::new);
+        if (array.length != size) {
+            return -1;
+        }
+
+        int count = 0;
+        for (int i = 0; i < size; i++) {
+            Integer arrayElement = array[i];
+            Integer listElement = arrayList.get(i);
+            if (arrayElement == null) {
+                if (listElement == null) {
+                    count++;
+                } else {
+                    return -2;
+                }
+            } else {
+                if (arrayElement.equals(listElement)) {
+                    count++;
+                }
+            }
+        }
+
+        return count;
     }
 
 }
-

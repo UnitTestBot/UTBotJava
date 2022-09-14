@@ -29,12 +29,7 @@ class GenerateTestsAction : AnAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-<<<<<<< Updated upstream
         if (getLanguage(e) == PythonActionMethods.pythonID) {
-=======
-        val lang = getLanguage(e)
-        if (getLanguage(e) == PythonActionMethods.pythonLanguage) {
->>>>>>> Stashed changes
             PythonActionMethods.actionPerformed(e)
             return
         }

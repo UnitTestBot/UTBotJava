@@ -2,6 +2,9 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.PythonSystemImport
+import org.utbot.framework.codegen.PythonUserImport
 import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
@@ -133,15 +136,21 @@ object PythonTestGenerationProcessor {
                     execution.stateBefore.parameters.flatMap { utModel ->
                         (utModel as PythonModel).let {
                             it.allContainingClassIds.map { classId ->
-                                classId.moduleName
+                                PythonUserImport(classId.moduleName)
                             }
                         }
                     }
                 }
             }
             val testRootModules = notEmptyTests.mapNotNull { testSet ->
-                methodIds[testSet.method]?.moduleName?.split('.')?.get(0)
+                methodIds[testSet.method]?.rootModuleName?.let { PythonUserImport(it) }
             }
+            val testFrameworkModule = PythonSystemImport(
+                (testFramework.testSuperClass as PythonClassId).rootModuleName
+            )
+            val sysImport = PythonSystemImport("sys")
+
+            val allImports = importParamModules + testRootModules + listOf(testFrameworkModule, sysImport)
 
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {
@@ -160,7 +169,7 @@ object PythonTestGenerationProcessor {
                             relativizePaths(pythonRunRoot, directoriesForSysPath),
                         )
                     },
-                    importParamModules + testRootModules
+                    allImports
                 ).generatedCode
                 val testFile = FileManager.createPermanentFile(outputFilename, testCode)
                 generatedFileWithTestsAction(testFile)

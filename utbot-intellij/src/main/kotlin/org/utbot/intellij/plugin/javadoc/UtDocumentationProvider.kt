@@ -1,7 +1,7 @@
 package org.utbot.intellij.plugin.javadoc
 
 import com.intellij.codeInsight.javadoc.JavaDocExternalFilter
-import com.intellij.codeInsight.javadoc.JavaDocInfoGeneratorFactory
+import com.intellij.codeInsight.javadoc.JavaDocInfoGenerator
 import com.intellij.lang.java.JavaDocumentationProvider
 import com.intellij.psi.PsiDocCommentBase
 import com.intellij.psi.PsiJavaDocumentedElement
@@ -18,14 +18,19 @@ class UtDocumentationProvider : JavaDocumentationProvider() {
             return ""
         }
 
-        val baseJavaDocInfoGenerator = JavaDocInfoGeneratorFactory.getBuilder(target.getProject())
-            .setPsiElement(target)
-            .setIsGenerationForRenderedDoc(true)
-            .create()
+        val docComment = target.docComment ?: return ""
 
-        val finalDocContent = replaceTagNamesWithMessages(baseJavaDocInfoGenerator.generateRenderedDocInfo())
+        val baseJavaDocInfoGenerator = JavaDocInfoGenerator(target.project, target)
 
-        return JavaDocExternalFilter.filterInternalDocInfo(finalDocContent)
+        // get JavaDoc comment rendered by the platform.
+        val baseJavaDocInfo = baseJavaDocInfoGenerator.generateRenderedDocInfo()
+
+        // add UTBot sections with custom tags.
+        val utJavaDocInfoGenerator = UtJavaDocInfoGenerator()
+        val javaDocInfoWithUtSections =
+            utJavaDocInfoGenerator.addUtBotSpecificSectionsToJavaDoc(baseJavaDocInfo, docComment)
+
+        return JavaDocExternalFilter.filterInternalDocInfo(javaDocInfoWithUtSections)
     }
 
     /**

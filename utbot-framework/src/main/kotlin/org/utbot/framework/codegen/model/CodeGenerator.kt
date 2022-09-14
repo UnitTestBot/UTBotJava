@@ -73,10 +73,10 @@ class CodeGenerator(
 
     fun pythonGenerateAsStringWithTestReport(
         cgTestSets: List<CgMethodTestSet>,
-        importModules: List<String>,
+        importModules: Set<PythonImport>,
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
-        context.collectedImports.addAll(importModules.map{PythonUserImport(it)})
+        context.collectedImports.addAll(importModules)
         context.withTestClassFileScope {
             val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
             val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)

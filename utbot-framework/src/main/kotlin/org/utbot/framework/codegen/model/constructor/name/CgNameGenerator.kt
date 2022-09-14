@@ -128,7 +128,7 @@ internal open class CgNameGeneratorImpl(private val context: CgContext)
     /**
      * Creates a new indexed variable name by [base] name.
      */
-    private fun nextIndexedVarName(base: String): String =
+    fun nextIndexedVarName(base: String): String =
         infiniteInts()
             .map { "$base$it" }
             .first { it !in existingVariableNames }
@@ -143,7 +143,7 @@ internal open class CgNameGeneratorImpl(private val context: CgContext)
             .map { if (skipOne && it == 1) base else "$base$it" }
             .first { it !in existingMethodNames }
 
-    private fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
+    fun createNameFromKeyword(baseName: String): String = when(codegenLanguage) {
         CodegenLanguage.JAVA -> nextIndexedVarName(baseName)
         CodegenLanguage.KOTLIN -> {
             // use backticks for first variable with keyword name and use indexed names for all next such variables

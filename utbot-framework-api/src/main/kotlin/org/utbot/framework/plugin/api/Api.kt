@@ -289,6 +289,7 @@ class PythonClassId(
         }
     override val packageName = moduleName
     override val canonicalName = name
+    val rootModuleName: String = this.toString().split(".")[0]
     val enclosingClass = this
 }
 
@@ -307,6 +308,7 @@ class PythonMethodId(
     override val parameters: List<RawPythonAnnotation>,
 ) : MethodId(classId, name, returnType, parameters) {
     val moduleName: String = classId.moduleName
+    val rootModuleName: String = this.toString().split(".")[0]
     override fun toString(): String = if (moduleName.isNotEmpty()) "$moduleName.$name" else name
 }
 

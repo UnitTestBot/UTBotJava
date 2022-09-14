@@ -67,7 +67,6 @@ internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassCon
             with (currentTestClassContext) {
                 annotations += collectedTestClassAnnotations
                 superclass = testFramework.testSuperClass
-                superclass?.let { importIfNeeded(it as PythonClassId) }
                 interfaces += collectedTestClassInterfaces
             }
         }

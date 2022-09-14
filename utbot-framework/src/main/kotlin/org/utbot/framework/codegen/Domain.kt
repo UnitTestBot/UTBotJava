@@ -296,7 +296,7 @@ object Pytest : TestFramework(displayName = "pytest") {
 }
 
 object Unittest : TestFramework(displayName = "Unittest") {
-    override val testSuperClass: ClassId? = PythonClassId("unittest.TestCase")
+    override val testSuperClass: ClassId = PythonClassId("unittest.TestCase")
     override val mainPackage: String = "unittest"
     override val assertionsClass: ClassId = PythonClassId("self")
     override val arraysAssertionsClass: ClassId = assertionsClass

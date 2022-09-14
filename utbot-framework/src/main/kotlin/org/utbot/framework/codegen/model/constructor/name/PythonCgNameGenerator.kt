@@ -1,5 +1,7 @@
 package org.utbot.framework.codegen.model.constructor.name
 
+import org.utbot.framework.codegen.PythonImport
+import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
@@ -11,7 +13,17 @@ internal class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(c
 
     override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
         val baseName = base?.toSnakeCase() ?: nameFrom(type)
-        return variableName(baseName.toSnakeCase().replaceFirstChar { it.lowercase(Locale.getDefault()) }, isMock)
+        val importedModuleNames = collectedImports.mapNotNull {
+            if (it is PythonImport) it.rootModuleName else null
+        }
+        return when {
+            baseName in existingVariableNames -> nextIndexedVarName(baseName)
+            baseName in importedModuleNames -> nextIndexedVarName(baseName)
+            isLanguageKeyword(baseName, codegenLanguage) -> createNameFromKeyword(baseName)
+            else -> baseName
+        }.also {
+            existingVariableNames = existingVariableNames.add(it)
+        }
     }
 
     override fun testMethodNameFor(executableId: ExecutableId, customName: String?): String {

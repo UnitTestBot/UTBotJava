@@ -2346,8 +2346,15 @@ class Traverser(
         // for objects (especially objects with type equals to type parameter of generic)
         // better than engine.
         val types = instanceOfConstraint?.typeStorage?.possibleConcreteTypes ?: instance.possibleConcreteTypes
-        val methodInvocationTargets = findLibraryTargets(instance.type, methodSubSignature)
-            ?: findMethodInvocationTargets(types, methodSubSignature)
+
+        val allConcreteInvocationTargets = findMethodInvocationTargets(types, methodSubSignature)
+        val libraryTargets = findLibraryTargets(instance.type, methodSubSignature)
+
+        // to choose only "good" targets take only library targets in case they present in all targets,
+        // otherwise take all targets
+        val methodInvocationTargets = libraryTargets?.takeIf {
+            allConcreteInvocationTargets.containsAll(it)
+        } ?: allConcreteInvocationTargets
 
         return methodInvocationTargets
             .map { (method, implementationClass, possibleTypes) ->

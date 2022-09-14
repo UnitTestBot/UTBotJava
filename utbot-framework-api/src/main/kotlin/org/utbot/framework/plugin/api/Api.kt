@@ -1053,13 +1053,13 @@ enum class MockStrategyApi(
     override val displayName: String,
     override val description: String
 ) : CodeGenerationSettingItem {
-    NO_MOCKS("No mocks", "Do not use mock frameworks at all"),
+    NO_MOCKS("Do not mock", "Do not use mock frameworks at all"),
     OTHER_PACKAGES(
-        "Other packages: $MOCKITO",
+        "Mock package environment",
         "Mock all classes outside the current package except system ones"
     ),
     OTHER_CLASSES(
-        "Other classes: $MOCKITO",
+        "Mock class environment",
         "Mock all classes outside the class under test except system ones"
     );
 

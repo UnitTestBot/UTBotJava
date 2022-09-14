@@ -17,7 +17,7 @@
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
                 class="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
-                text="Create Tests with UTBot..."
+                text="Generate Tests with UnitTestBot..."
                 description="Cover code with auto-generated tests">
             <add-to-group group-id="ProjectViewPopupMenu"/>
             <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>

@@ -104,12 +104,12 @@ class Synthesizer(
             var found = false
 
             if (enableCache) {
-                for (cachedUnits in SynthesisCache[method, modelIndices]) {
+                for (cachedUnitContext in SynthesisCache[method, modelIndices]) {
                     if (timeLimitExceeded()) break
 
                     val assembleModel = try {
-                        val mappedUnits = cachedUnits.copyWithNewModelsOrNull(models) ?: continue
-                        unitChecker.tryGenerate(mappedUnits, models)
+                        val mappedUnitContext = cachedUnitContext.copyWithNewModelsOrNull(models) ?: continue
+                        unitChecker.tryGenerate(mappedUnitContext, models)
                     } catch (e: Throwable) {
                         logger.warn { "Error during assemble model generation from cached unit context" }
                         null
@@ -129,11 +129,11 @@ class Synthesizer(
                 !timeLimitExceeded() &&
                 !found
             ) {
-                val units = queueIterator.next()
-                if (!units.isFullyDefined) continue
+                val unitContext = queueIterator.next()
+                if (!unitContext.isFullyDefined) continue
 
                 val assembleModel = try {
-                    unitChecker.tryGenerate(units, models)
+                    unitChecker.tryGenerate(unitContext, models)
                 } catch (e: Throwable) {
                     logger.error { "Error during assemble model generation" }
                     logger.error(e.message)
@@ -146,7 +146,7 @@ class Synthesizer(
                     for ((index, assemble) in modelIndices.zip(assembleModel)) {
                         result[index] = assemble
                     }
-                    SynthesisCache[method, modelIndices] = units
+                    SynthesisCache[method, modelIndices] = unitContext
                     found = true
                 }
             }

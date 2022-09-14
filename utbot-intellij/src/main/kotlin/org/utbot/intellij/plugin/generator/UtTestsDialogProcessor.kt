@@ -162,7 +162,7 @@ object UtTestsDialogProcessor {
                                 isCanceled = { indicator.isCanceled })
 
                             for (srcClass in model.srcClasses) {
-                                val methods = ReadAction.nonBlocking<List<ExecutableId>> {
+                                val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
                                     val canonicalName = srcClass.canonicalName
                                     val clazz = classLoader.loadClass(canonicalName).kotlin
                                     psi2KClass[srcClass] = clazz
@@ -180,10 +180,9 @@ object UtTestsDialogProcessor {
                                         clazz.allNestedClasses.flatMap {
                                             findMethodsInClassMatchingSelected(it, srcMethods)
                                         }
-                                    })
+                                    }) to srcClass.name
                                 }.executeSynchronously()
 
-                                val className = srcClass.name
                                 if (methods.isEmpty()) {
                                     logger.error { "No methods matching selected found in class $className." }
                                     continue

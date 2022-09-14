@@ -126,7 +126,7 @@ open class TestCaseGenerator(
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1),
-        useSynthesis: Boolean = false,
+        useSynthesis: Boolean = enableSynthesis,
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
     ): Flow<UtResult> {
         val engine = createSymbolicEngine(
@@ -273,7 +273,7 @@ open class TestCaseGenerator(
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator,
-        useSynthesis: Boolean = false,
+        useSynthesis: Boolean,
         postConditionConstructor: PostConditionConstructor = EmptyPostCondition,
     ): UtBotSymbolicEngine {
         // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
@@ -384,32 +384,47 @@ open class TestCaseGenerator(
         return minimizedExecutions
     }
 
-    private fun List<UtExecution>.toAssemble(method: UtMethod<*>): List<UtExecution> =
+    protected fun List<UtExecution>.toAssemble(method: UtMethod<*>): List<UtExecution> =
         map { execution ->
-            val symbolicExecution = (execution as? UtSymbolicExecution) ?: return@map execution
-            val oldStateBefore = execution.stateBefore
+            val symbolicExecution = (execution as? UtSymbolicExecution)
+                ?: return@map execution
 
-            val constrainedExecution = symbolicExecution.constrainedExecution ?: return@map execution
-            val aa = Synthesizer(this@TestCaseGenerator, method, constrainedExecution.modelsAfter)
-            val synthesizedModels = aa.synthesize()
-
-            val (synthesizedThis, synthesizedParameters) = oldStateBefore.thisInstance?.let {
-                synthesizedModels.first() to synthesizedModels.drop(1)
-            } ?: (null to synthesizedModels)
-            val newThisModel = oldStateBefore.thisInstance?.let { synthesizedThis ?: it }
-            val newParameters = oldStateBefore.parameters.zip(synthesizedParameters).map { it.second ?: it.first }
+            val newBeforeState = mapEnvironmentModels(method, symbolicExecution, symbolicExecution.stateBefore) {
+                it.modelsBefore
+            } ?: return@map execution
+            val newAfterState = mapEnvironmentModels(method, symbolicExecution, symbolicExecution.stateAfter) {
+                it.modelsAfter
+            } ?: return@map execution
 
             symbolicExecution.copy(
-                EnvironmentModels(
-                    newThisModel,
-                    newParameters,
-                    oldStateBefore.statics
-                ),
-                symbolicExecution.stateAfter,
+                newBeforeState,
+                newAfterState,
                 symbolicExecution.result,
                 symbolicExecution.coverage
             )
         }
+
+    private fun mapEnvironmentModels(
+        method: UtMethod<*>,
+        symbolicExecution: UtSymbolicExecution,
+        models: EnvironmentModels,
+        selector: (ConstrainedExecution) -> List<UtModel>
+    ): EnvironmentModels? {
+        val constrainedExecution = symbolicExecution.constrainedExecution ?: return null
+        val aa = Synthesizer(this@TestCaseGenerator, method, selector(constrainedExecution))
+        val synthesizedModels = aa.synthesize()
+
+        val (synthesizedThis, synthesizedParameters) = models.thisInstance?.let {
+            synthesizedModels.first() to synthesizedModels.drop(1)
+        } ?: (null to synthesizedModels)
+        val newThisModel = models.thisInstance?.let { synthesizedThis ?: it }
+        val newParameters = models.parameters.zip(synthesizedParameters).map { it.second ?: it.first }
+        return EnvironmentModels(
+            newThisModel,
+            newParameters,
+            models.statics
+        )
+    }
 }
 
 

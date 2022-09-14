@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.*
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.synthesis.postcondition.constructors.ConstraintBasedPostConditionException
 
 internal fun Collection<ClassId>.expandable() = filter { !it.isArray && !it.isPrimitive }.toSet()
 
@@ -36,13 +37,25 @@ class Synthesizer(
         private var successes = 0
         private var cacheHits = 0
 
+        val successRate: Double
+            get() = when (attempts) {
+                0 -> 0.0
+                else -> successes.toDouble() / attempts
+            }
+
+        fun cleanStats() {
+            attempts = 0
+            successes = 0
+            cacheHits = 0
+        }
+
 
         private fun stats(): String = buildString {
             appendLine("Synthesizer stats:")
             appendLine("Total attempts - $attempts")
             appendLine("Successful attempts - $successes")
             appendLine("Cache hits - $cacheHits")
-            appendLine("Success rate - ${String.format("%.2f", 100.0 * successes.toDouble() / attempts)}")
+            appendLine("Success rate - ${String.format("%.2f", 100.0 * successRate)}")
         }
 
         private fun success() {
@@ -110,7 +123,7 @@ class Synthesizer(
                     val assembleModel = try {
                         val mappedUnitContext = cachedUnitContext.copyWithNewModelsOrNull(models) ?: continue
                         unitChecker.tryGenerate(mappedUnitContext, models)
-                    } catch (e: Throwable) {
+                    } catch (e: ConstraintBasedPostConditionException) {
                         logger.warn { "Error during assemble model generation from cached unit context" }
                         null
                     }
@@ -232,6 +245,13 @@ class SynthesisUnitContext(
         if (mapping.size != models.size) return null
 
         val modelMapping = models.zip(newModels).toMap()
+
+        // if we have non-null model matched to a null unit (or vice-versa) -- we don't need to create a copy
+        if (modelMapping.any {
+                (it.value is UtNullModel && mapping[it.key] !is NullUnit)
+                        || (it.key is UtNullModel && mapping[it.value] !is NullUnit)
+            }) return null
+
         return SynthesisUnitContext(newModels, mapping.mapKeys {
             modelMapping[it.key] ?: return null
         })

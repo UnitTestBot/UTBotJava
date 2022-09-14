@@ -18,6 +18,8 @@ import soot.ArrayType
 import soot.RefType
 
 
+class ConstraintBasedPostConditionException(msg: String) : Exception(msg)
+
 class ConstraintBasedPostConditionConstructor(
     private val models: List<UtModel>,
     private val unitContext: SynthesisUnitContext,
@@ -80,7 +82,8 @@ class ConstraintBasedPostConditionConstructor(
     ): Set<UtBoolExpression> = buildSet {
         val modelUnit = unitContext[model]
         val symbolicValue = when {
-            model.classId.isPrimitive -> parameters[methodContext.unitToParameter[modelUnit]!!.number]
+            model.classId.isPrimitive -> methodContext.unitToParameter[modelUnit]?.let { parameters[it.number] }
+                ?: throw ConstraintBasedPostConditionException("$modelUnit does not map to any parameter")
             else -> localVariableMemory.local(methodContext.unitToLocal[modelUnit]!!.variable)
                 ?: return@buildSet
         }

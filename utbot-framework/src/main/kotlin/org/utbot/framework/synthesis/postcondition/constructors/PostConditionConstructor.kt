@@ -6,11 +6,10 @@ import org.utbot.engine.selectors.strategies.defaultScoringStrategy
 import org.utbot.engine.symbolic.SymbolicState
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 
-// TODO: refactor this to `symbolic state` visitor or something like this when engine will be refactored.
 interface PostConditionConstructor {
     fun constructPostCondition(
         traverser: Traverser,
-        symbolicResult: SymbolicResult? // TODO: refactor this with `symbolic state` (this, result, parameters, statics)
+        symbolicResult: SymbolicResult?
     ): SymbolicStateUpdate
 
     fun constructSoftPostCondition(

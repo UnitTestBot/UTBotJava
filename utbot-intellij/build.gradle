@@ -28,7 +28,6 @@ apply plugin: "org.jetbrains.intellij"
 
 dependencies {
     api group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryo_version
-    implementation("com.esotericsoftware:kryo:5.3.0")
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
     implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version

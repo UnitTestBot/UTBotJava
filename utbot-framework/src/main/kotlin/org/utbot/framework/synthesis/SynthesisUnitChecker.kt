@@ -45,12 +45,4 @@ class SynthesisUnitChecker(
 
         return synthesisMethodContext.resolve(listOfNotNull(execution.stateBefore.thisInstance) + execution.stateBefore.parameters)
     }
-
-    private fun <T> withPathSelector(pathSelectorType: PathSelectorType, body: () -> T): T {
-        val oldSelector = UtSettings.pathSelectorType
-        UtSettings.pathSelectorType = pathSelectorType
-        val res = body()
-        UtSettings.pathSelectorType = oldSelector
-        return res
-    }
 }

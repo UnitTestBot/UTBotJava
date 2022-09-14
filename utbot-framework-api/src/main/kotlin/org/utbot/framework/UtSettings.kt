@@ -379,6 +379,11 @@ object UtSettings : AbstractSettings(
     var enableSynthesis by getBooleanProperty(true)
 
     /**
+     * Flag for enabling model synthesis
+     */
+    var enableSynthesisCache by getBooleanProperty(true)
+
+    /**
      * Timeout model synthesis
      *
      */

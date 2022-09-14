@@ -1,6 +1,7 @@
 package org.utbot.framework.synthesis
 
 import mu.KotlinLogging
+import org.utbot.framework.UtSettings.enableSynthesisCache
 import org.utbot.framework.UtSettings.synthesisMaxDepth
 import org.utbot.framework.UtSettings.synthesisTimeoutInMillis
 import org.utbot.framework.modifications.StatementsStorage
@@ -33,12 +34,14 @@ class Synthesizer(
         private val logger = KotlinLogging.logger("ConstrainedSynthesizer")
         private var attempts = 0
         private var successes = 0
+        private var cacheHits = 0
 
 
         private fun stats(): String = buildString {
             appendLine("Synthesizer stats:")
             appendLine("Total attempts - $attempts")
             appendLine("Successful attempts - $successes")
+            appendLine("Cache hits - $cacheHits")
             appendLine("Success rate - ${String.format("%.2f", 100.0 * successes.toDouble() / attempts)}")
         }
 
@@ -87,7 +90,10 @@ class Synthesizer(
         return result.map { models -> models.sortedBy { parametersMap[it] } }.toSet()
     }
 
-    fun synthesize(timeLimit: Long = synthesisTimeoutInMillis): List<UtModel?> {
+    fun synthesize(
+        timeLimit: Long = synthesisTimeoutInMillis,
+        enableCache: Boolean = enableSynthesisCache
+    ): List<UtModel?> {
         val modelSubsets = splitModels()
         val startTime = System.currentTimeMillis()
         val timeLimitExceeded = { System.currentTimeMillis() - startTime > timeLimit }
@@ -97,20 +103,23 @@ class Synthesizer(
             val modelIndices = models.map { parametersMap[it]!! }
             var found = false
 
-            for (cachedUnits in SynthesisCache[method, modelIndices]) {
-                if (timeLimitExceeded()) break
+            if (enableCache) {
+                for (cachedUnits in SynthesisCache[method, modelIndices]) {
+                    if (timeLimitExceeded()) break
 
-                val assembleModel = try {
-                    val mappedUnits = cachedUnits.copyWithNewModelsOrNull(models) ?: continue
-                    unitChecker.tryGenerate(mappedUnits, models)
-                } catch (e: Throwable) {
-                    logger.warn { "Error during assemble model generation from cached unit context" }
-                    null
-                }
-                if (assembleModel != null) {
-                    logger.debug { "Found $assembleModel" }
-                    found = true
-                    break
+                    val assembleModel = try {
+                        val mappedUnits = cachedUnits.copyWithNewModelsOrNull(models) ?: continue
+                        unitChecker.tryGenerate(mappedUnits, models)
+                    } catch (e: Throwable) {
+                        logger.warn { "Error during assemble model generation from cached unit context" }
+                        null
+                    }
+                    if (assembleModel != null) {
+                        logger.debug { "Found $assembleModel" }
+                        cacheHits++
+                        found = true
+                        break
+                    }
                 }
             }
 

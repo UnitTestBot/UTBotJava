@@ -152,6 +152,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Disabled("TODO UtArrayApplyForAll translation error https://github.com/UnitTestBot/UTBotJava/issues/630")
     fun testDistinctExample() {
         check(
             BaseStreamExample::distinctExample,

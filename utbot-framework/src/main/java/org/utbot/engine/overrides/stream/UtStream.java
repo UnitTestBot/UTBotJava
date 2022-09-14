@@ -224,15 +224,12 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Stream<E> distinct() {
         preconditionCheckWithClosingStream();
 
-        // commented code is too difficult to analyze, so we have to use concrete execution here
-        executeConcretely();
-        return null;
-
-        /*int size = elementData.end;
+        int size = elementData.end;
         Object[] distinctElements = new Object[size];
         int distinctSize = 0;
         for (int i = 0; i < size; i++) {
@@ -262,7 +259,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             }
         }
 
-        return new UtStream<>((E[]) distinctElements, distinctSize);*/
+        return new UtStream<>((E[]) distinctElements, distinctSize);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188

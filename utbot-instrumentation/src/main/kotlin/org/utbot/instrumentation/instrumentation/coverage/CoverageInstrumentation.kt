@@ -13,6 +13,8 @@ import org.utbot.instrumentation.util.CastProbesArrayException
 import org.utbot.instrumentation.util.ChildProcessError
 import org.utbot.instrumentation.util.NoProbesArrayException
 import java.security.ProtectionDomain
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.util.jField
 
 data class CoverageInfo(
     val methodToInstrRange: Map<String, IntRange>,
@@ -47,6 +49,8 @@ object CoverageInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
+    override fun getStaticField(fieldId: FieldId): Result<*> =
+        invokeWithStatics.getStaticField(fieldId)
 
     /**
      * Collects coverage from the given [clazz] via reflection.

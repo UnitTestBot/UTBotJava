@@ -1,10 +1,13 @@
 package org.utbot.rd
 
+import com.jetbrains.rd.util.error
+import com.jetbrains.rd.util.getLogger
 import com.jetbrains.rd.util.threading.SingleThreadSchedulerBase
 
-class UtSingleThreadScheduler(name: String = "UtRdScheduler", private val log: (() -> String) -> Unit) :
-    SingleThreadSchedulerBase(name) {
+private val logger = getLogger<UtSingleThreadScheduler>()
+
+class UtSingleThreadScheduler(name: String) : SingleThreadSchedulerBase(name) {
     override fun onException(ex: Throwable) {
-        log { ex.toString() }
+        logger.error { "exception on scheduler $name: $ex |> ${ex.stackTraceToString()}" }
     }
 }

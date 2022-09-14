@@ -1,5 +1,11 @@
 package org.utbot.framework.assemble
 
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.utbot.examples.assemble.AssembleTestUtils
 import org.utbot.examples.assemble.ComplexField
 import org.utbot.examples.assemble.DirectAccess
@@ -23,15 +29,16 @@ import org.utbot.examples.assemble.constructors.InheritComplexConstructor
 import org.utbot.examples.assemble.constructors.InheritPrimitiveConstructor
 import org.utbot.examples.assemble.constructors.PrimitiveConstructor
 import org.utbot.examples.assemble.constructors.PrimitiveConstructorWithDefaultField
+import org.utbot.examples.assemble.constructors.PrivateConstructor
 import org.utbot.examples.assemble.constructors.PseudoComplexConstructor
 import org.utbot.examples.assemble.defaults.DefaultField
 import org.utbot.examples.assemble.defaults.DefaultFieldModifiedInConstructor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithDirectAccessor
-import org.utbot.examples.assemble.constructors.PrivateConstructor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithSetter
 import org.utbot.examples.assemble.defaults.DefaultPackagePrivateField
 import org.utbot.examples.assemble.statics.StaticField
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -42,22 +49,15 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
 import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.util.executableId
-import org.utbot.framework.util.SootUtils
-import org.utbot.framework.util.sootMethod
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
@@ -72,7 +72,7 @@ class AssembleModelGeneratorTests {
         instanceCounter.set(0)
         modelIdCounter.set(0)
         statementsChain = mutableListOf()
-        SootUtils.runSoot(AssembleTestUtils::class.java, forceReload = false)
+        SootUtils.runSoot(AssembleTestUtils::class.java, forceReload = false, jdkInfo = JdkInfoDefaultProvider().info)
         context = setUtContext(UtContext(AssembleTestUtils::class.java.classLoader))
     }
 

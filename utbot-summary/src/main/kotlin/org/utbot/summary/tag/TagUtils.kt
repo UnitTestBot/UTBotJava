@@ -60,7 +60,7 @@ fun getBasicTypeTag(stmt: Stmt): BasicTypeTag = when (stmt) {
 }
 
 fun basicIdentityTag(stmt: JIdentityStmt): BasicTypeTag {
-    if (stmt.rightBox.value is JCaughtExceptionRef) {
+    if (stmt.rightOp is JCaughtExceptionRef) {
         return BasicTypeTag.CaughtException
     }
     return BasicTypeTag.Initialization

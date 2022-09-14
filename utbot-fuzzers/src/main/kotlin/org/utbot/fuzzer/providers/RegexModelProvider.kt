@@ -56,9 +56,10 @@ object RegexModelProvider : ModelProvider {
 
     private fun FuzzedContext.isPatterMatchingContext(): Boolean {
         if (this !is FuzzedContext.Call) return false
+        val stringMethodWithRegexArguments = setOf("matches", "split")
         return when {
             method.classId == Pattern::class.java.id -> true
-            method.classId == String::class.java.id && method.name == "matches" -> true
+            method.classId == String::class.java.id && stringMethodWithRegexArguments.contains(method.name) -> true
             else -> false
         }
     }

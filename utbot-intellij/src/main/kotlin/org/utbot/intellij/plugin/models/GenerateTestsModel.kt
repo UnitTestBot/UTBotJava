@@ -27,7 +27,7 @@ data class GenerateTestsModel(
     val potentialTestModules: List<Module>,
     var srcClasses: Set<PsiClass>,
     val extractMembersFromSrcClasses: Boolean,
-    var selectedMembers: Set<MemberInfo>?, // TODO: maybe we should make it not nullable?
+    var selectedMembers: Set<MemberInfo>,
     var timeout: Long,
     var generateWarningsForStaticMocking: Boolean = false,
     var fuzzingValue: Double = 0.05

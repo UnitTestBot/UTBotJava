@@ -29,6 +29,7 @@ import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
@@ -112,7 +113,7 @@ object UtBotJavaApi {
 
         testSets.addAll(withUtContext(utContext) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath)
+            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId
@@ -172,7 +173,7 @@ object UtBotJavaApi {
 
         return withUtContext(UtContext(classUnderTest.classLoader)) {
             val buildPath = FileUtil.isolateClassFiles(classUnderTest).toPath()
-            TestCaseGenerator(buildPath, classpath, dependencyClassPath)
+            TestCaseGenerator(buildPath, classpath, dependencyClassPath, jdkInfo = JdkInfoDefaultProvider().info)
                 .generate(
                     methodsForAutomaticGeneration.map {
                         it.methodToBeTestedFromUserInput.executableId

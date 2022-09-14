@@ -1,19 +1,5 @@
 package org.utbot.contest
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.objectweb.asm.Type
 import org.utbot.common.FileUtil
@@ -39,11 +25,10 @@ import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.isConstructor
-import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.util.isKnownSyntheticMethod
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
@@ -56,12 +41,25 @@ import java.lang.reflect.Modifier
 import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Paths
-import java.util.concurrent.ConcurrentSkipListSet
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.reflect.KCallable
 import kotlin.reflect.jvm.isAccessible
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -188,7 +186,7 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath, JdkInfoService.provide())
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
             prepareClass(ConcreteExecutorPool::class.java, "")
@@ -229,7 +227,7 @@ fun runGeneration(
 
         val testCaseGenerator =
             logger.info().bracket("2nd optional soot initialization") {
-                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
+                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath, JdkInfoService.provide())
             }
 
 
@@ -396,14 +394,13 @@ private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<E
 
     //2. all constructors from cut
     val constructors =
-        if (javaClazz.isAbstract) emptyList() else javaClazz.declaredConstructors.filterNotNull()
+        if (javaClazz.isAbstract || javaClazz.isEnum) emptyList() else javaClazz.declaredConstructors.filterNotNull()
 
     //3. Now join methods and constructors together
     val methodsToGenerate = methods.filter { it.isVisibleFromGeneratedTest } + constructors
 
     val classFilteredMethods = methodsToGenerate
         .map { it.executableId }
-        .filterNot { it.isConstructor && it.classId.isEnum }
         .filter { methodNameFilter?.equals(it.name) ?: true }
         .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
         .toList()

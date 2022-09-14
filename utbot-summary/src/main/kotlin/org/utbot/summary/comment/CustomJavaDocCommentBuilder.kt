@@ -33,7 +33,7 @@ class CustomJavaDocCommentBuilder(
         )
         val classReference = getClassReference(currentMethod.declaringClass.javaStyleName)
 
-        val customJavaDocComment = CustomJavaDocComment(
+        val comment = CustomJavaDocComment(
             classUnderTest = classReference,
             methodUnderTest = methodReference,
         )
@@ -49,33 +49,46 @@ class CustomJavaDocCommentBuilder(
             val exceptionName = thrownException.javaClass.name
             val reason = findExceptionReason(currentMethod, thrownException)
 
-            customJavaDocComment.throwsException = "{@link $exceptionName} $reason"
+            comment.throwsException = "{@link $exceptionName} $reason"
         }
 
-        // builds Iterates section
-        rootSentenceBlock.iterationSentenceBlocks.forEach { (loopDesc, sentenceBlocks) ->
-            customJavaDocComment.iterates += stringTemplates.iterationSentence.format(
-                stringTemplates.codeSentence.format(loopDesc),
-                numberOccurrencesToText(
-                    sentenceBlocks.size
-                )
-            )
-        }
-
-        // builds Invoke, Execute, Return sections
         generateSequence(rootSentenceBlock) { it.nextBlock }.forEach {
-            for (statement in it.stmtTexts) {
-                when (statement.stmtType) {
-                    StmtType.Invoke -> customJavaDocComment.invokes += "{@code ${statement.description}}"
-                    StmtType.Condition -> customJavaDocComment.executesCondition += "{@code ${statement.description}}"
-                    StmtType.Return -> customJavaDocComment.returnsFrom = "{@code ${statement.description}}"
-                    else -> {
-                        //TODO: see [issue-773](https://github.com/UnitTestBot/UTBotJava/issues/773)
-                    }
+            it.stmtTexts.forEach { statement ->
+                processStatement(statement, comment)
+            }
+
+            it.invokeSentenceBlock?.let {
+                comment.invokes += it.first
+                it.second.stmtTexts.forEach { statement ->
+                    processStatement(statement, comment)
                 }
+            }
+
+            it.iterationSentenceBlocks.forEach { (loopDesc, sentenceBlocks) ->
+                comment.iterates += stringTemplates.iterationSentence.format(
+                    stringTemplates.codeSentence.format(loopDesc),
+                    numberOccurrencesToText(
+                        sentenceBlocks.size
+                    )
+                )
             }
         }
 
-        return customJavaDocComment
+        return comment
+    }
+
+    private fun processStatement(
+        statement: StmtDescription,
+        comment: CustomJavaDocComment
+    ) {
+        when (statement.stmtType) {
+            StmtType.Invoke -> comment.invokes += "{@code ${statement.description}}"
+            StmtType.Condition -> comment.executesCondition += "{@code ${statement.description}}"
+            StmtType.Return -> comment.returnsFrom = "{@code ${statement.description}}"
+            StmtType.CaughtException -> comment.caughtException = "{@code ${statement.description}}"
+            StmtType.SwitchCase -> comment.switchCase = "{@code case ${statement.description}}"
+            StmtType.CountedReturn -> comment.countedReturn = "{@code ${statement.description}}"
+            StmtType.RecursionAssignment -> comment.recursion = "of {@code ${statement.description}}"
+        }
     }
 }

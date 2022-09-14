@@ -193,7 +193,7 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
         }
 
         val testFolder = sourceFolders.firstOrNull { it.rootType in testSourceRootTypes }
-        val contentEntry = testFolder?.contentEntry ?: rootModel.contentEntries.first()
+        val contentEntry = testFolder?.getModifiableContentEntry() ?: rootModel.contentEntries.first()
 
         val parentFolderUrl = testFolder?.let { getParentPath(testFolder.url) }
         val testResourcesUrl =
@@ -216,6 +216,9 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
     } finally {
         if (!rootModel.isDisposed && rootModel.isWritable) rootModel.dispose()
     }
+}
+fun SourceFolder.getModifiableContentEntry() : ContentEntry? {
+    return ModuleRootManager.getInstance(contentEntry.rootModel.module).modifiableModel.contentEntries.find { entry -> entry.url == url }
 }
 
 fun ContentEntry.addSourceRootIfAbsent(

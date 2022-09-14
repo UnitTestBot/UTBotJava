@@ -37,6 +37,7 @@ jobs:
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
         run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
       - id: set-matrix
@@ -69,6 +70,7 @@ jobs:
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
         run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
       - name: Run monitoring
@@ -123,6 +125,7 @@ jobs:
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
         run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
       - uses: actions/checkout@v3

@@ -18,6 +18,7 @@ import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
 import org.utbot.framework.util.jimpleBody
 import java.nio.file.Path
 
@@ -31,7 +32,15 @@ class TestSpecificTestCaseGenerator(
     dependencyPaths: String,
     engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     isCanceled: () -> Boolean = { false },
-): TestCaseGenerator(buildDir, classpath, dependencyPaths, engineActions, isCanceled, forceSootReload = false) {
+): TestCaseGenerator(
+    buildDir,
+    classpath,
+    dependencyPaths,
+    JdkInfoDefaultProvider().info,
+    engineActions,
+    isCanceled,
+    forceSootReload = false
+) {
 
     private val logger = KotlinLogging.logger {}
 

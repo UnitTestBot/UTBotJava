@@ -33,6 +33,14 @@ object ProtocolModel : Ext(ProtocolRoot) {
         field("coverageInfo", array(PredefinedType.byte))
     }
 
+    val ComputeStaticFieldParams = structdef {
+        field("fieldId", array(PredefinedType.byte))
+    }
+
+    val ComputeStaticFieldResult = structdef {
+        field("result", array(PredefinedType.byte))
+    }
+
     init {
         call("AddPaths", AddPathsParams, PredefinedType.void).apply {
             async
@@ -66,6 +74,12 @@ object ProtocolModel : Ext(ProtocolRoot) {
             documentation =
                 "This command is sent to the child process from the [ConcreteExecutor] if user wants to collect coverage for the\n" +
                         "[clazz]"
+        }
+        call("ComputeStaticField", ComputeStaticFieldParams, ComputeStaticFieldResult).apply {
+            async
+            documentation =
+                "This command is sent to the child process from the [ConcreteExecutor] if user wants to get value of static field\n" +
+                        "[fieldId]"
         }
     }
 }

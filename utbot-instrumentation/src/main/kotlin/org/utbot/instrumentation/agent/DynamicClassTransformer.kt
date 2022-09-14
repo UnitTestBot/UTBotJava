@@ -2,6 +2,8 @@ package org.utbot.instrumentation.agent
 
 import org.utbot.common.asPathToFile
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.instrumentation.process.logError
+import org.utbot.instrumentation.process.logInfo
 import java.lang.instrument.ClassFileTransformer
 import java.security.ProtectionDomain
 
@@ -30,13 +32,13 @@ class DynamicClassTransformer : ClassFileTransformer {
             return if (pathToClassfile in pathsToUserClasses ||
                 packsToAlwaysTransform.any(className::startsWith)
             ) {
-                System.err.println("Transforming: $className")
+                logInfo { "Transforming: $className" }
                 transformer.transform(loader, className, classBeingRedefined, protectionDomain, classfileBuffer)
             } else {
                 null
             }
         } catch (e: Throwable) {
-            System.err.println("Error while transforming: ${e.stackTraceToString()}")
+            logError { "Error while transforming: ${e.stackTraceToString()}" }
             throw e
         } finally {
             UtContext.currentContext()?.stopWatch?.start()

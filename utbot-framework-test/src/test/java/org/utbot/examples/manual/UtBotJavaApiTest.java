@@ -25,6 +25,7 @@ import org.utbot.framework.codegen.Junit4;
 import org.utbot.framework.codegen.MockitoStaticMocking;
 import org.utbot.framework.plugin.api.*;
 import org.utbot.framework.plugin.api.util.UtContext;
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider;
 import org.utbot.framework.util.Snippet;
 import org.utbot.framework.util.SootUtils;
 
@@ -1226,7 +1227,7 @@ public class UtBotJavaApiTest {
 
     @Test
     public void testFuzzingSimple() {
-        SootUtils.INSTANCE.runSoot(StringSwitchExample.class, false);
+        SootUtils.INSTANCE.runSoot(StringSwitchExample.class, false, new JdkInfoDefaultProvider().getInfo());
         UtBotJavaApi.setStopConcreteExecutorOnExit(false);
 
         String classpath = getClassPath(StringSwitchExample.class);

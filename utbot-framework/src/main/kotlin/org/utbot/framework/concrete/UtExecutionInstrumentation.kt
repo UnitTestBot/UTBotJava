@@ -105,6 +105,13 @@ class UtConcreteExecutionResult(
         val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)
         return updateWithAssembleModels(modelsToAssembleModels)
     }
+
+    override fun toString(): String = buildString {
+        appendLine("UtConcreteExecutionResult(")
+        appendLine("stateAfter=$stateAfter")
+        appendLine("result=$result")
+        appendLine("coverage=$coverage)")
+    }
 }
 
 object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
@@ -226,6 +233,17 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         }
         }
     }
+
+    override fun getStaticField(fieldId: FieldId): Result<UtModel> =
+        delegateInstrumentation.getStaticField(fieldId).map { value ->
+            val cache = IdentityHashMap<Any, UtModel>()
+            val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
+                pathsToUserClasses, cache
+            )
+            UtModelConstructor(cache, strategy).run {
+                construct(value, fieldId.type)
+            }
+        }
 
     private fun sortOutException(exception: Throwable): UtExecutionFailure {
         if (exception is TimeoutException) {

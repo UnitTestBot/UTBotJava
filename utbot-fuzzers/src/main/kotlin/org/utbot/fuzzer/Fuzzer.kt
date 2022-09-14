@@ -18,6 +18,7 @@ import org.utbot.fuzzer.providers.StringConstantModelProvider
 import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
+import org.utbot.fuzzer.providers.DateConstantModelProvider
 
 private val logger by lazy { KotlinLogging.logger {} }
 
@@ -154,6 +155,7 @@ fun defaultModelProviders(idGenerator: IdentityPreservingIdGenerator<Int>): Mode
         CollectionModelProvider(idGenerator),
         ArrayModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
+        DateConstantModelProvider(idGenerator),
         ConstantsModelProvider,
         StringConstantModelProvider,
         RegexModelProvider,
@@ -170,6 +172,7 @@ internal fun modelProviderForRecursiveCalls(idGenerator: IdentityPreservingIdGen
     val nonRecursiveProviders = ModelProvider.of(
         CollectionModelProvider(idGenerator),
         EnumModelProvider(idGenerator),
+        DateConstantModelProvider(idGenerator),
         StringConstantModelProvider,
         CharToStringModelProvider,
         ConstantsModelProvider,

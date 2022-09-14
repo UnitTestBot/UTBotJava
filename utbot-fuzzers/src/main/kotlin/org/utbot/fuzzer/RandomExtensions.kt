@@ -1,6 +1,10 @@
 package org.utbot.fuzzer
 
 import kotlin.random.Random
+import org.utbot.framework.plugin.api.ConstructorId
+import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtStatementModel
 
 /**
  * Chooses a random value using frequencies.
@@ -34,3 +38,22 @@ fun Random.flipCoin(probability: Int): Boolean {
 fun Long.invertBit(bitIndex: Int): Long {
     return this xor (1L shl bitIndex)
 }
+
+
+fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
+    val instantiationChain = mutableListOf<UtStatementModel>()
+    return UtAssembleModel(
+        id,
+        constructorId.classId,
+        "${constructorId.classId.name}${constructorId.parameters}#" + id.hex(),
+        instantiationChain = instantiationChain,
+        modificationsChain = mutableListOf()
+    ).apply {
+        instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model }, this)
+    }.fuzzed {
+        summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
+    }
+}
+
+fun Int.hex(): String =
+    toString(16)

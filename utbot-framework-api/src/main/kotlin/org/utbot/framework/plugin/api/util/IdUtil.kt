@@ -213,6 +213,8 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
 
+val dateClassId = java.util.Date::class.id
+
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(
     java.lang.Void.TYPE to voidClassId,

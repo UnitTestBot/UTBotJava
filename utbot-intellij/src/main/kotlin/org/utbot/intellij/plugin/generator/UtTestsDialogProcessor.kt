@@ -158,8 +158,8 @@ object UtTestsDialogProcessor {
                                 Paths.get(buildDir),
                                 classpath,
                                 pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                isCanceled = { indicator.isCanceled }
-                            )
+                                JdkInfoService.provide(),
+                                isCanceled = { indicator.isCanceled })
 
                             for (srcClass in model.srcClasses) {
                                 val methods = ReadAction.nonBlocking<List<ExecutableId>> {

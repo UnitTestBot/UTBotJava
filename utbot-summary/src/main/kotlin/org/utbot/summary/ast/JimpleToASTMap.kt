@@ -167,7 +167,7 @@ class JimpleToASTMap(stmts: Iterable<Unit>, methodDeclaration: MethodDeclaration
         val stmts = stmtToASTNode.keys.toTypedArray()
         for (index in stmts.indices) {
             val stmt = stmts[index]
-            if (stmt is JIdentityStmt && stmt.rightBox.value is JCaughtExceptionRef) {
+            if (stmt is JIdentityStmt && stmt.rightOp is JCaughtExceptionRef) {
                 if (index + 1 < stmts.size) {
                     val nextASTNode = stmtToASTNode[stmts[index + 1]]
                     if (nextASTNode != null) {

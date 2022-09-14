@@ -169,7 +169,7 @@ object PythonTestGenerationProcessor {
                             relativizePaths(pythonRunRoot, directoriesForSysPath),
                         )
                     },
-                    allImports
+                    allImports.toSet()
                 ).generatedCode
                 val testFile = FileManager.createPermanentFile(outputFilename, testCode)
                 generatedFileWithTestsAction(testFile)

@@ -65,9 +65,6 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.symbolic.HardConstraint
-import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.symbolic.Assumption
 import org.utbot.engine.symbolic.emptyAssumption
 import org.utbot.engine.symbolic.emptyHardConstraint
 import org.utbot.engine.symbolic.emptySoftConstraint
@@ -768,6 +765,34 @@ class Traverser(
     }
 
     /**
+     * Check for [ArrayStoreException] when an array element is assigned
+     *
+     * @param arrayInstance Symbolic value corresponding to the array being updated
+     * @param value Symbolic value corresponding to the right side of the assignment
+     */
+    private fun TraversalContext.arrayStoreExceptionCheck(arrayInstance: SymbolicValue, value: SymbolicValue) {
+        require(arrayInstance is ArrayValue)
+        val valueBaseType = value.type.baseType
+        val arrayElementType = arrayInstance.type.elementType
+        val arrayTypeStorage = typeResolver.constructTypeStorage(arrayElementType, useConcreteType = false)
+
+        if (valueBaseType is RefType) {
+            // Generate ASE only if [value] is not a subtype of the type of array elements
+            val isExpression = typeRegistry.typeConstraint(value.addr, arrayTypeStorage).isConstraint()
+            val notIsExpression = mkNot(isExpression)
+
+            // `null` is compatible with any reference type, so we should not throw ASE when `null` is assigned
+            val nullEqualityConstraint = addrEq(value.addr, nullObjectAddr)
+            val notNull = mkNot(nullEqualityConstraint)
+
+            implicitlyThrowException(ArrayStoreException(), setOf(notIsExpression, notNull))
+
+            // If ASE is not thrown, we know that either the value is null, or it has a compatible type
+            queuedSymbolicStateUpdates += mkOr(isExpression, nullEqualityConstraint).asHardConstraint()
+        }
+    }
+
+    /**
      * Traverses left part of assignment i.e. where to store resolved value.
      */
     private fun TraversalContext.traverseAssignLeftPart(left: Value, value: SymbolicValue): SymbolicStateUpdate = when (left) {
@@ -782,12 +807,11 @@ class Traverser(
 
             queuedSymbolicStateUpdates += Le(length, softMaxArraySize).asHardConstraint() // TODO: fix big array length
 
-            // TODO array store exception
+            arrayStoreExceptionCheck(arrayInstance, value)
 
             // add constraint for possible array type
             val valueType = value.type
             val valueBaseType = valueType.baseType
-
             if (valueBaseType is RefType) {
                 val valueTypeAncestors = typeResolver.findOrConstructAncestorsIncludingTypes(valueBaseType)
                 val valuePossibleBaseTypes = value.typeStorage.possibleConcreteTypes.map { it.baseType }

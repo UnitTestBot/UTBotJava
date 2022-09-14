@@ -26,7 +26,7 @@ import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.fuzzer.FuzzedMethodDescription
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
-import org.utbot.fuzzer.assembleModel
+import org.utbot.fuzzer.objects.assembleModel
 
 /**
  * Creates [UtAssembleModel] for objects which have public constructors

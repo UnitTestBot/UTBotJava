@@ -20,10 +20,10 @@ import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.IdentityPreservingIdGenerator
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.ModelProvider.Companion.yieldAllValues
-import org.utbot.fuzzer.assembleModel
 import org.utbot.fuzzer.defaultModelProviders
 import org.utbot.fuzzer.fuzz
 import org.utbot.fuzzer.hex
+import org.utbot.fuzzer.objects.assembleModel
 
 class DateConstantModelProvider(
     private val idGenerator: IdentityPreservingIdGenerator<Int>,
@@ -63,7 +63,7 @@ class DateConstantModelProvider(
         return sequence {
             constructorsFromNumbers.forEach { constructor ->
                 yieldAll(
-                    fuzzValuesRecursively(
+                    fuzzValues(
                         constructor.neededTypes,
                         baseMethodDescription,
                         defaultModelProviders(idGenerator)
@@ -113,7 +113,7 @@ class DateConstantModelProvider(
         }.take(totalLimit)
     }
 
-    private fun fuzzValuesRecursively(
+    private fun fuzzValues(
         types: List<ClassId>,
         baseMethodDescription: FuzzedMethodDescription,
         modelProvider: ModelProvider,

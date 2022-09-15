@@ -1141,7 +1141,7 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        additionalDependencies: Array<Class<*>> = emptyArray(),
         summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
         summaryNameChecks: List<(String?) -> Boolean> = listOf(),
         summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
@@ -1160,7 +1160,7 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        additionalDependencies: Array<Class<*>> = emptyArray(),
         summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
         summaryNameChecks: List<(String?) -> Boolean> = listOf(),
         summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
@@ -1179,7 +1179,7 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        additionalDependencies: Array<Class<*>> = emptyArray(),
         summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
         summaryNameChecks: List<(String?) -> Boolean> = listOf(),
         summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
@@ -1198,7 +1198,7 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        additionalDependencies: Array<Class<*>> = emptyArray(),
         summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
         summaryNameChecks: List<(String?) -> Boolean> = listOf(),
         summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()
@@ -1217,7 +1217,7 @@ abstract class UtValueTestCaseChecker(
         vararg matchers: (T1, T2, T3, T4, StaticsType, Result<R>) -> Boolean,
         coverage: CoverageMatcher = Full,
         mockStrategy: MockStrategyApi = NO_MOCKS,
-        additionalDependencies: Array<KClass<*>> = emptyArray(),
+        additionalDependencies: Array<Class<*>> = emptyArray(),
         summaryTextChecks: List<(List<DocStatement>?) -> Boolean> = listOf(),
         summaryNameChecks: List<(String?) -> Boolean> = listOf(),
         summaryDisplayNameChecks: List<(String?) -> Boolean> = listOf()

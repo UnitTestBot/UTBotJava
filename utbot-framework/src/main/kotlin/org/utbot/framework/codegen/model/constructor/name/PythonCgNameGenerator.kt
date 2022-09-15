@@ -5,11 +5,15 @@ import org.utbot.framework.codegen.isLanguageKeyword
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.PythonClassId
+import org.utbot.framework.plugin.api.NormalizedPythonAnnotation
 import org.utbot.framework.plugin.api.python.util.toSnakeCase
-import java.util.*
 
 internal class PythonCgNameGenerator(context_: CgContext): CgNameGeneratorImpl(context_) {
+    override fun nameFrom(id: ClassId): String =
+        when (id) {
+            is NormalizedPythonAnnotation -> "var"
+            else -> id.simpleName.toSnakeCase()
+        }
 
     override fun variableName(type: ClassId, base: String?, isMock: Boolean): String {
         val baseName = base?.toSnakeCase() ?: nameFrom(type)

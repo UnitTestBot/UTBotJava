@@ -4,9 +4,7 @@ import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.constructor.context.CgContext
-import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
 import org.utbot.framework.codegen.model.tree.*
-import org.utbot.framework.plugin.api.PythonClassId
 
 internal class PythonCgTestClassConstructor(context: CgContext) : CgTestClassConstructor(context) {
     override fun construct(testClassModel: TestClassModel): CgTestClassFile {

@@ -28,15 +28,12 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
     override val langPackage: String = "python"
 
     override fun visit(element: CgTestClassFile) {
-        renderPythonImport(PythonSystemImport("sys"))
-        element.imports.filterIsInstance<PythonImport>().sortedBy { it.order } .forEach {
-            renderPythonImport(it)
-        }
+        renderClassFileImports(element)
 
         println()
         println()
 
-        super.visit(element)
+        element.testClass.accept(this)
     }
 
     override fun visit(element: CgCommentedAnnotation) {
@@ -203,6 +200,14 @@ internal class CgPythonRenderer(context: CgContext, printer: CgPrinter = CgPrint
 
     override fun renderStaticImport(staticImport: StaticImport) {
         TODO("Not yet implemented")
+    }
+
+     override fun renderClassFileImports(element: CgTestClassFile) {
+        element.imports
+            .toSet()
+            .filterIsInstance<PythonImport>()
+            .sortedBy { it.order }
+            .forEach { renderPythonImport(it) }
     }
 
     override fun renderPythonImport(pythonImport: PythonImport) {

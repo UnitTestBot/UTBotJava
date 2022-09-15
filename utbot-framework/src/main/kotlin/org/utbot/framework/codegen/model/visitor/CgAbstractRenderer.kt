@@ -837,7 +837,7 @@ internal abstract class CgAbstractRenderer(val context: CgContext, val printer: 
         }
     }
 
-    private fun renderClassFileImports(element: CgTestClassFile) {
+    open fun renderClassFileImports(element: CgTestClassFile) {
         val regularImports = element.imports.filterIsInstance<RegularImport>()
         val staticImports = element.imports.filterIsInstance<StaticImport>()
 

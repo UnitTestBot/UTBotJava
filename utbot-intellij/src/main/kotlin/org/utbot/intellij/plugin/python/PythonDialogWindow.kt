@@ -23,7 +23,6 @@ import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
-import org.utbot.intellij.python.PythonDialogWindowUtils
 import java.util.concurrent.TimeUnit
 import javax.swing.*
 
@@ -32,7 +31,7 @@ private const val MINIMUM_TIMEOUT_VALUE_IN_SECONDS = 1
 
 class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.project) {
 
-    private var functionsTable = PythonDialogWindowUtils.initFunctionsTable()
+    private var functionsTable = PyMemberSelectionTable(emptyList(), null, false)
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
     private val timeoutSpinnerForTotalTimeout =
         JBIntSpinner(
@@ -118,8 +117,8 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
     private fun updateFunctionsTable() {
         val items = pyFunctionsToPyMemberInfo(model.project, model.functionsToDisplay, model.containingClass)
         updateMethodsTable(items)
-        val height = functionsTable!!.rowHeight * (items.size.coerceAtMost(12) + 1)
-        functionsTable!!.preferredScrollableViewportSize = JBUI.size(-1, height)
+        val height = functionsTable.rowHeight * (items.size.coerceAtMost(12) + 1)
+        functionsTable.preferredScrollableViewportSize = JBUI.size(-1, height)
     }
 
     private fun updateMethodsTable(allMethods: Collection<PyMemberInfo<PyElement>>) {
@@ -134,13 +133,13 @@ class PythonDialogWindow(val model: PythonTestsModel): DialogWrapper(model.proje
             checkMembers(selectedMethods)
         }
 
-        functionsTable!!.setMemberInfos(allMethods as Collection<MemberInfoBase<PsiElement>>)
+        functionsTable.setMemberInfos(allMethods)
     }
 
     private fun checkMembers(members: Collection<PyMemberInfo<PyElement>>) = members.forEach { it.isChecked = true }
 
     override fun doOKAction() {
-        val selectedMembers = functionsTable!!.selectedMemberInfos
+        val selectedMembers = functionsTable.selectedMemberInfos
 
         model.selectedFunctions = selectedMembers.mapNotNull { it.member as? PyFunction }.toSet()
         model.testFramework = testFrameworks.item

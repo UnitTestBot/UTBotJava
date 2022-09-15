@@ -76,9 +76,9 @@ class CodeGenerator(
         importModules: Set<PythonImport>,
         testClassCustomName: String? = null,
     ): TestsCodeWithTestReport = withCustomContext(testClassCustomName) {
-        context.collectedImports.addAll(importModules)
         context.withTestClassFileScope {
             val testClassModel = TestClassModel.fromTestSets(classUnderTest, cgTestSets)
+            context.collectedImports.addAll(importModules)
             val testClassFile = PythonCgTestClassConstructor(context).construct(testClassModel)
             TestsCodeWithTestReport(renderClassFile(testClassFile), testClassFile.testsGenerationReport)
         }

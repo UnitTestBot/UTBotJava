@@ -42,7 +42,6 @@ dependencies {
     testApi(project(":utbot-framework"))
 
     api project(':utbot-python')
-    api project(':utbot-intellij-python')
 }
 
 // See https://github.com/JetBrains/gradle-intellij-plugin/

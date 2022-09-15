@@ -2,10 +2,7 @@ package org.utbot.python
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.utbot.framework.codegen.PythonImport
-import org.utbot.framework.codegen.PythonSystemImport
-import org.utbot.framework.codegen.PythonUserImport
-import org.utbot.framework.codegen.TestFramework
+import org.utbot.framework.codegen.*
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.plugin.api.*
@@ -149,8 +146,9 @@ object PythonTestGenerationProcessor {
                 (testFramework.testSuperClass as PythonClassId).rootModuleName
             )
             val sysImport = PythonSystemImport("sys")
+            val sysPathImports = relativizePaths(pythonRunRoot, directoriesForSysPath).map { PythonSysPathImport(it) }
 
-            val allImports = importParamModules + testRootModules + listOf(testFrameworkModule, sysImport)
+            val allImports = importParamModules + testRootModules + sysPathImports + listOf(testFrameworkModule, sysImport)
 
             val context = UtContext(this::class.java.classLoader)
             withUtContext(context) {
@@ -166,7 +164,6 @@ object PythonTestGenerationProcessor {
                         CgMethodTestSet(
                             methodIds[testSet.method] as ExecutableId,
                             testSet.executions,
-                            relativizePaths(pythonRunRoot, directoriesForSysPath),
                         )
                     },
                     allImports.toSet()

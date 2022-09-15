@@ -128,7 +128,6 @@ data class CgTestClassFile(
     val imports: List<Import>,
     val testClass: CgTestClass,
     val testsGenerationReport: TestsGenerationReport,
-    val sysPaths: List<CgPythonSysPath> = emptyList(),
 ) : CgElement
 
 data class CgTestClass(

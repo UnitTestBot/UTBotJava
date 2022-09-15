@@ -593,11 +593,11 @@ enum class RuntimeExceptionTestsBehaviour(
     override val description: String
 ) : CodeGenerationSettingItem {
     PASS(
-        displayName = "Fail",
+        displayName = "Pass",
         description = "Tests that produce Runtime exceptions should pass (by inserting throwable assertion)"
     ),
     FAIL(
-        displayName = "Pass",
+        displayName = "Fail",
         description = "Tests that produce Runtime exceptions should fail" +
                 "(WARNING!: failing tests may appear in testing class)"
     );

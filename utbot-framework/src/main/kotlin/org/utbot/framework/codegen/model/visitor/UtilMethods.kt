@@ -1285,7 +1285,7 @@ private fun getSingleAbstractMethod(language: CodegenLanguage) =
              * @return a [java.lang.reflect.Method] for the single abstract method of the given functional interface `clazz`.
              */
             private fun getSingleAbstractMethod(clazz: Class<*>): java.lang.reflect.Method {
-                val abstractMethods = clazz.methods.filter { Modifier.isAbstract(it.modifiers) }
+                val abstractMethods = clazz.methods.filter { java.lang.reflect.Modifier.isAbstract(it.modifiers) }
                 require(abstractMethods.isNotEmpty()) { "No abstract methods found in class: " + clazz.canonicalName }
                 require(abstractMethods.size <= 1) { "More than one abstract method found in class: " + clazz.canonicalName }
                 return abstractMethods[0]

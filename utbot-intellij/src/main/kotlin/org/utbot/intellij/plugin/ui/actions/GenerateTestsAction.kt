@@ -1,5 +1,6 @@
 package org.utbot.intellij.plugin.ui.actions
 
+import com.intellij.openapi.actionSystem.ActionPlaces
 import org.utbot.intellij.plugin.generator.UtTestsDialogProcessor
 import org.utbot.intellij.plugin.ui.utils.PsiElementHandler
 import com.intellij.openapi.actionSystem.AnAction
@@ -33,6 +34,9 @@ class GenerateTestsAction : AnAction(), UpdateInBackground {
     }
 
     override fun update(e: AnActionEvent) {
+        if (e.place == ActionPlaces.POPUP) {
+            e.presentation.text = "Tests with UnitTestBot..."
+        }
         e.presentation.isEnabled = getPsiTargets(e) != null
     }
 

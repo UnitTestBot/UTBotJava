@@ -17,7 +17,7 @@
     <actions>
         <action id="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
                 class="org.utbot.intellij.plugin.ui.actions.GenerateTestsAction"
-                text="Create Tests with UTBot..."
+                text="Generate Tests with UnitTestBot..."
                 description="Cover code with auto-generated tests">
             <add-to-group group-id="ProjectViewPopupMenu"/>
             <add-to-group group-id="GenerateGroup" anchor="after" relative-to-action="JavaGenerateGroup1"/>
@@ -29,7 +29,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable parentId="tools" instance="org.utbot.intellij.plugin.settings.Configurable"
                                  id="org.utbot.intellij.plugin.settings.Configurable"
-                                 displayName="UtBot"/>
+                                 displayName="UnitTestBot"/>
         <!--suppress PluginXmlValidity -->
         <projectService serviceImplementation="org.utbot.intellij.plugin.settings.Settings" preload="true"/>
         <registryKey defaultValue="false" description="Enable editing Kotlin test files" key="kotlin.ultra.light.classes.empty.text.range"/>

@@ -60,7 +60,6 @@ import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
 import org.utbot.examples.assemble.*
 import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
-import org.utbot.framework.util.SootUtils
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.

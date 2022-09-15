@@ -128,9 +128,6 @@ jobs:
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ env.COMMIT_SHA }}
 
       - name: Run monitoring
         run: |

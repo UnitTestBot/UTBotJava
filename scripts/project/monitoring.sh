@@ -19,23 +19,23 @@ PORT_CADVISOR=9280
 PORT_NODE_EXPORTER=9100
 
 # container metrics
-if ! netstat -tulpn | grep -q ${PORT_CADVISOR} ; then
-  docker run -d --name cadvisor \
-                --volume=/:/rootfs:ro \
-                --volume=/var/run:/var/run:ro \
-                --volume=/sys:/sys:ro \
-                --volume=/var/lib/docker/:/var/lib/docker:ro \
-                --volume=/dev/disk/:/dev/disk:ro \
-                --publish=9280:8080 \
-                --privileged \
-                --device=/dev/kmsg \
-                    gcr.io/cadvisor/cadvisor:${VERSION_CADVISOR}
-  docker run -d --name curl-container \
-                --net="host" \
-                --entrypoint=/bin/sh \
-                    curlimages/curl:${VERSION_CURL} \
-                  "-c" "while true; do curl localhost:9280/metrics | grep -v 'id=\"\/\(system\|user\).slice' | sed -r 's/(^.*} .*) ([0-9]*)/\1/' | curl -u ${PUSHGATEWAY_USER}:${PUSHGATEWAY_PASSWORD} --data-binary @- https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${PROM_ADDITIONAL_LABELS} ; sleep ${SLEEP_TIME_SECONDS}; done"
-fi
+#if ! netstat -tulpn | grep -q ${PORT_CADVISOR} ; then
+#  docker run -d --name cadvisor \
+#                --volume=/:/rootfs:ro \
+#                --volume=/var/run:/var/run:ro \
+#                --volume=/sys:/sys:ro \
+#                --volume=/var/lib/docker/:/var/lib/docker:ro \
+#                --volume=/dev/disk/:/dev/disk:ro \
+#                --publish=9280:8080 \
+#                --privileged \
+#                --device=/dev/kmsg \
+#                    gcr.io/cadvisor/cadvisor:${VERSION_CADVISOR}
+#  docker run -d --name curl-container \
+#                --net="host" \
+#                --entrypoint=/bin/sh \
+#                    curlimages/curl:${VERSION_CURL} \
+#                  "-c" "while true; do curl localhost:9280/metrics | grep -v 'id=\"\/\(system\|user\).slice' | sed -r 's/(^.*} .*) ([0-9]*)/\1/' | curl -u ${PUSHGATEWAY_USER}:${PUSHGATEWAY_PASSWORD} --data-binary @- https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${PROM_ADDITIONAL_LABELS} ; sleep ${SLEEP_TIME_SECONDS}; done"
+#fi
 
 # base linux system metrics
 if ! netstat -tulpn | grep -q ${PORT_NODE_EXPORTER} ; then
@@ -63,10 +63,10 @@ done &
 #
 # to enable this part of monitoring you also need to pass -javaagent option to org.gradle.jvmargs of GRADLE_OPTS variable, for example:
 #   GRADLE_OPTS: "-Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -javaagent:/tmp/jmx-exporter.jar=12345:/tmp/jmx-exporter.yml -Dorg.gradle.daemon=false'"
-curl ${JMX_EXPORTER_URL} -o ${JMX_EXPORTER_JAR}
-chmod +x ${JMX_EXPORTER_JAR}
-printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
-while true; do
-  curl localhost:${JMX_EXPORTER_PORT} 2>/dev/null | curl -u "${PUSHGATEWAY_USER}":"${PUSHGATEWAY_PASSWORD}" --data-binary @- "https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${PROM_ADDITIONAL_LABELS}" 2>/dev/null
-  sleep ${SLEEP_TIME_SECONDS}
-done &
+#curl ${JMX_EXPORTER_URL} -o ${JMX_EXPORTER_JAR}
+#chmod +x ${JMX_EXPORTER_JAR}
+#printf "rules:\n- pattern: \".*\"\n" > ${JMX_EXPORTER_CONFIG}
+#while true; do
+#  curl localhost:${JMX_EXPORTER_PORT} 2>/dev/null | curl -u "${PUSHGATEWAY_USER}":"${PUSHGATEWAY_PASSWORD}" --data-binary @- "https://${PUSHGATEWAY_HOSTNAME}${PUSHGATEWAY_ADDITIONAL_PATH}/metrics/job/pushgateway/instance/${GITHUB_RUN_ID}-${HOSTNAME}${PROM_ADDITIONAL_LABELS}" 2>/dev/null
+#  sleep ${SLEEP_TIME_SECONDS}
+#done &

@@ -70,6 +70,7 @@ import org.utbot.framework.plugin.api.util.constructorClassId
 import org.utbot.framework.plugin.api.util.fieldClassId
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.methodClassId
+import org.utbot.framework.plugin.api.util.denotableType
 import java.lang.reflect.Constructor
 import java.lang.reflect.Method
 import kotlin.reflect.KFunction
@@ -244,9 +245,12 @@ internal class CgStatementConstructorImpl(context: CgContext) :
         isMutable: Boolean,
         init: () -> CgExpression
     ): CgVariable {
+        // it is important that we use a denotable type for declaration, because that allows
+        // us to avoid creating `Object` variables for instances of anonymous classes,
+        // where we can instead use the supertype of the anonymous class
         val declarationOrVar: Either<CgDeclaration, CgVariable> =
             createDeclarationForNewVarAndUpdateVariableScopeOrGetExistingVariable(
-                baseType,
+                baseType.denotableType,
                 model,
                 baseName,
                 isMock,
@@ -558,8 +562,8 @@ internal class CgStatementConstructorImpl(context: CgContext) :
                 val isGetFieldUtilMethod = (expression is CgMethodCall && expression.executableId.isGetFieldUtilMethod)
                 val shouldCastBeSafety = expression == nullLiteral() || isGetFieldUtilMethod
 
-                type = baseType
                 expr = typeCast(baseType, expression, shouldCastBeSafety)
+                type = expr.type
             }
             expression.type isNotSubtypeOf baseType && !typeAccessible -> {
                 type = if (expression.type.isArray) objectArrayClassId else objectClassId

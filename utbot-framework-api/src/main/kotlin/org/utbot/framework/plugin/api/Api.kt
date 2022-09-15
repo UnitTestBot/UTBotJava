@@ -794,6 +794,12 @@ open class ClassId @JvmOverloads constructor(
     open val outerClass: Class<*>?
         get() = jClass.enclosingClass
 
+    open val superclass: Class<*>?
+        get() = jClass.superclass
+
+    open val interfaces: Array<Class<*>>
+        get() = jClass.interfaces
+
     /**
      * For member classes returns a name including
      * enclosing classes' simple names e.g. `A.B`.
@@ -846,7 +852,7 @@ class BuiltinClassId(
     elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
-    // by default we assume that the class is not a member class
+    // by default, we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
     override val isNullable: Boolean = false,
     override val isPublic: Boolean = true,
@@ -864,6 +870,10 @@ class BuiltinClassId(
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),
     override val outerClass: Class<*>? = null,
+    // by default, we assume that the class does not have a superclass (other than Object)
+    override val superclass: Class<*>? = java.lang.Object::class.java,
+    // by default, we assume that the class does not implement any interfaces
+    override val interfaces: Array<Class<*>> = emptyArray(),
     override val packageName: String =
         when (val index = canonicalName.lastIndexOf('.')) {
             -1, 0 -> ""

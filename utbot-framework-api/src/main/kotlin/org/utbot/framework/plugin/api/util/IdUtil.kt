@@ -118,17 +118,19 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
     if (left == right) {
         return true
     }
-    val leftClass = this.jClass
+    val leftClass = this
     val interfaces = sequence {
         var types = listOf(leftClass)
         while (types.isNotEmpty()) {
             yieldAll(types)
-            types = types.map { it.interfaces }.flatMap { it.toList() }
+            types = types
+                .flatMap { it.interfaces.toList() }
+                .map { it.id }
         }
     }
-    val superclasses = generateSequence(leftClass) { it.superclass }
+    val superclasses = generateSequence(leftClass) { it.superclass?.id }
     val superTypes = interfaces + superclasses
-    return right in superTypes.map { it.id }
+    return right in superTypes
 }
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)

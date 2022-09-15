@@ -901,8 +901,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         parametrizedTestSources.addActionListener { event ->
-            val comboBox = event.source as ComboBox<*>
-            val parametrizedTestSource = comboBox.item as ParametrizedTestSource
+            val parametrizedTestSource = if (parametrizedTestSources.isSelected) {
+                ParametrizedTestSource.PARAMETRIZE
+            } else {
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE
+            }
 
             val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
 

@@ -19,20 +19,18 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Computable
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiClass
-import com.intellij.psi.SyntheticElement
+import com.intellij.psi.PsiMethod
 import com.intellij.refactoring.util.classMembers.MemberInfo
-import com.intellij.testIntegration.TestIntegrationUtils
 import com.intellij.util.concurrency.AppExecutorUtil
 import mu.KotlinLogging
 import org.jetbrains.kotlin.idea.util.module
 import org.utbot.analytics.EngineAnalyticsContext
 import org.utbot.analytics.Predictors
-import org.utbot.common.filterWhen
+import org.utbot.common.allNestedClasses
 import org.utbot.engine.util.mockListeners.ForceMockListener
 import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.UtSettings
 import org.utbot.framework.plugin.api.TestCaseGenerator
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.testFlow
 import org.utbot.framework.plugin.api.util.UtContext
@@ -55,12 +53,14 @@ import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.PathSelectorType
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.services.WorkingDirService
+import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.util.extractClassMethodsIncludingNested
 import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
-import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 import org.utbot.intellij.plugin.util.PluginWorkingDirProvider
-import org.utbot.intellij.plugin.util.isAbstract
 import kotlin.reflect.KClass
 import kotlin.reflect.full.functions
 
@@ -71,9 +71,10 @@ object UtTestsDialogProcessor {
     fun createDialogAndGenerateTests(
         project: Project,
         srcClasses: Set<PsiClass>,
-        focusedMethod: MemberInfo?,
+        extractMembersFromSrcClasses: Boolean,
+        focusedMethods: Set<MemberInfo>,
     ) {
-        createDialog(project, srcClasses, focusedMethod)?.let {
+        createDialog(project, srcClasses, extractMembersFromSrcClasses, focusedMethods)?.let {
             if (it.showAndGet()) createTests(project, it.model)
         }
     }
@@ -81,7 +82,8 @@ object UtTestsDialogProcessor {
     private fun createDialog(
         project: Project,
         srcClasses: Set<PsiClass>,
-        focusedMethod: MemberInfo?,
+        extractMembersFromSrcClasses: Boolean,
+        focusedMethods: Set<MemberInfo>,
     ): GenerateTestsDialogWindow? {
         val srcModule = findSrcModule(srcClasses)
         val testModules = srcModule.testModules(project)
@@ -105,7 +107,8 @@ object UtTestsDialogProcessor {
                 srcModule,
                 testModules,
                 srcClasses,
-                if (focusedMethod != null) setOf(focusedMethod) else null,
+                extractMembersFromSrcClasses,
+                focusedMethods,
                 UtSettings.utBotGenerationTimeoutInMillis,
             )
         )
@@ -145,6 +148,7 @@ object UtTestsDialogProcessor {
                             val context = UtContext(classLoader)
 
                             val testSetsByClass = mutableMapOf<PsiClass, List<UtMethodTestSet>>()
+                            val psi2KClass = mutableMapOf<PsiClass, KClass<*>>()
                             var processedClasses = 0
                             val totalClasses = model.srcClasses.size
 
@@ -154,27 +158,31 @@ object UtTestsDialogProcessor {
                                 Paths.get(buildDir),
                                 classpath,
                                 pluginJarsPath.joinToString(separator = File.pathSeparator),
-                                isCanceled = { indicator.isCanceled }
-                            )
+                                JdkInfoService.provide(),
+                                isCanceled = { indicator.isCanceled })
 
                             for (srcClass in model.srcClasses) {
-                                val methods = ReadAction.nonBlocking<List<UtMethod<*>>> {
-                                    val clazz = classLoader.loadClass(srcClass.qualifiedName).kotlin
-                                    val srcMethods =
-                                        model.selectedMethods?.toList() ?: TestIntegrationUtils.extractClassMethods(
-                                            srcClass,
-                                            false
-                                        )
-                                            .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) {
-                                                it.member !is SyntheticElement
-                                            }
-                                            .filterNot { it.isAbstract }
+                                val (methods, className) = ReadAction.nonBlocking<Pair<List<ExecutableId>, String?>> {
+                                    val canonicalName = srcClass.canonicalName
+                                    val clazz = classLoader.loadClass(canonicalName).kotlin
+                                    psi2KClass[srcClass] = clazz
+
+                                    val srcMethods = if (model.extractMembersFromSrcClasses) {
+                                        val chosenMethods = model.selectedMembers.filter { it.member is PsiMethod }
+                                        val chosenNestedClasses = model.selectedMembers.mapNotNull { it.member as? PsiClass }
+                                        chosenMethods + chosenNestedClasses.flatMap {
+                                            it.extractClassMethodsIncludingNested(false)
+                                        }
+                                    } else {
+                                        srcClass.extractClassMethodsIncludingNested(false)
+                                    }
                                     DumbService.getInstance(project).runReadActionInSmartMode(Computable {
-                                        findMethodsInClassMatchingSelected(clazz, srcMethods)
-                                    })
+                                        clazz.allNestedClasses.flatMap {
+                                            findMethodsInClassMatchingSelected(it, srcMethods)
+                                        }
+                                    }) to srcClass.name
                                 }.executeSynchronously()
 
-                                val className = srcClass.name
                                 if (methods.isEmpty()) {
                                     logger.error { "No methods matching selected found in class $className." }
                                     continue
@@ -264,7 +272,7 @@ object UtTestsDialogProcessor {
 
                             invokeLater {
                                 withUtContext(context) {
-                                    generateTests(model, testSetsByClass)
+                                    generateTests(model, testSetsByClass, psi2KClass)
                                 }
                             }
                         }
@@ -272,6 +280,19 @@ object UtTestsDialogProcessor {
                 }
             }
     }
+
+    private val PsiClass.canonicalName: String
+        get() {
+            return if (packageName.isEmpty()) {
+                qualifiedName?.replace(".", "$") ?: ""
+            } else {
+                val name = qualifiedName
+                    ?.substringAfter("$packageName.")
+                    ?.replace(".", "$")
+                    ?: ""
+                "$packageName.$name"
+            }
+        }
 
     /**
      * Configures utbot-analytics models for the better path selection.
@@ -282,24 +303,37 @@ object UtTestsDialogProcessor {
     private fun configureML() {
         logger.info { "PathSelectorType: ${UtSettings.pathSelectorType}" }
 
-        if (UtSettings.pathSelectorType == PathSelectorType.NN_REWARD_GUIDED_SELECTOR) {
+        if (UtSettings.pathSelectorType == PathSelectorType.ML_SELECTOR) {
             val analyticsConfigurationClassPath = UtSettings.analyticsConfigurationClassPath
-            try {
-                Class.forName(analyticsConfigurationClassPath)
-                Predictors.stateRewardPredictor = EngineAnalyticsContext.stateRewardPredictorFactory()
+            tryToSetUpMLSelector(analyticsConfigurationClassPath)
+        }
 
-                logger.info { "RewardModelPath: ${UtSettings.rewardModelPath}" }
-            } catch (e: ClassNotFoundException) {
-                logger.error {
-                    "Configuration of the predictors from the utbot-analytics module described in the class: " +
-                            "$analyticsConfigurationClassPath is not found!"
-                }
+        if (UtSettings.pathSelectorType == PathSelectorType.TORCH_SELECTOR) {
+            val analyticsConfigurationClassPath = UtSettings.analyticsTorchConfigurationClassPath
+            tryToSetUpMLSelector(analyticsConfigurationClassPath)
+        }
+    }
 
-                logger.info(e) {
-                    "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
-                }
-                UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+    private fun tryToSetUpMLSelector(analyticsConfigurationClassPath: String) {
+        try {
+            Class.forName(analyticsConfigurationClassPath)
+            Predictors.stateRewardPredictor = EngineAnalyticsContext.mlPredictorFactory()
+
+            logger.info { "RewardModelPath: ${UtSettings.modelPath}" }
+        } catch (e: ClassNotFoundException) {
+            logger.error {
+                "Configuration of the predictors from the utbot-analytics module described in the class: " +
+                        "$analyticsConfigurationClassPath is not found!"
             }
+
+            logger.info(e) {
+                "Error while initialization of ${UtSettings.pathSelectorType}. Changing pathSelectorType on INHERITORS_SELECTOR"
+            }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
+        }
+        catch (e: Exception) { // engine not found, for example
+            logger.error { e.message }
+            UtSettings.pathSelectorType = PathSelectorType.INHERITORS_SELECTOR
         }
     }
 
@@ -313,12 +347,12 @@ object UtTestsDialogProcessor {
     private fun findMethodsInClassMatchingSelected(
         clazz: KClass<*>,
         selectedMethods: List<MemberInfo>
-    ): List<UtMethod<*>> {
+    ): List<ExecutableId> {
         val selectedSignatures = selectedMethods.map { it.signature() }
         return clazz.functions
             .sortedWith(compareBy { selectedSignatures.indexOf(it.signature()) })
             .filter { it.signature().normalized() in selectedSignatures }
-            .map { UtMethod(it, clazz) }
+            .map { it.executableId }
     }
 
     private fun urlClassLoader(classpath: List<String>) =

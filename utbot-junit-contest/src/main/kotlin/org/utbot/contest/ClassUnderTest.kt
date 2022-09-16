@@ -17,19 +17,18 @@ class ClassUnderTest(
         get() = classId.name
     val classLoader: ClassLoader
         get() = utContext.classLoader
-    val kotlinClass
-        get() = classLoader.loadClass(fqn).kotlin
+    val clazz
+        get() = classLoader.loadClass(fqn)
 
     /**
      * Directory where this .class file is located without package folder structure
      * E.g. for gradle projects it's `project/build/classes`.
      */
     val classfileDir: File by lazy {
-        (
-                FileUtil.locateClassPath(kotlinClass)
-                    ?: classfileDirSecondaryLocation
-                    ?: FileUtil.isolateClassFiles(kotlinClass)
-                ).absoluteFile
+        (FileUtil.locateClassPath(clazz)
+            ?: classfileDirSecondaryLocation
+            ?: FileUtil.isolateClassFiles(clazz)
+            ).absoluteFile
     }
 //    val classpathDir : File get() = FileUtil.locateClassPath(kotlinClass)?.absoluteFile !!
 
@@ -47,11 +46,11 @@ class ClassUnderTest(
 
     override fun toString(): String {
         return "ClassUnderTest[ FQN: $fqn" +
-                "\n    classfileDir: $classfileDir" +
-                "\n    testClassSimpleName: $testClassSimpleName" +
-                "\n    generatedTestFile: $generatedTestFile" +
-                "\n    generatedTestsSourcesDir: $generatedTestsSourcesDir" +
-                "\n]"
+            "\n    classfileDir: $classfileDir" +
+            "\n    testClassSimpleName: $testClassSimpleName" +
+            "\n    generatedTestFile: $generatedTestFile" +
+            "\n    generatedTestsSourcesDir: $generatedTestsSourcesDir" +
+            "\n]"
     }
 
 

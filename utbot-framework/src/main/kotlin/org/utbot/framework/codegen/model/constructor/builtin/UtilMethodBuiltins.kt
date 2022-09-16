@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.constructor.builtin
 import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.model.constructor.util.utilMethodId
 import org.utbot.framework.codegen.model.tree.CgClassId
+import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
@@ -16,134 +17,169 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import sun.misc.Unsafe
 
 /**
- * Set of ids of all possible util methods for a given class
+ * Set of ids of all possible util methods for a given class.
+ *
  * The class may actually not have some of these methods if they
- * are not required in the process of code generation
+ * are not required in the process of code generation (this is the case for [TestClassUtilMethodProvider]).
  */
-internal val ClassId.possibleUtilMethodIds: Set<MethodId>
-    get() = setOf(
-        getUnsafeInstanceMethodId,
-        createInstanceMethodId,
-        createArrayMethodId,
-        setFieldMethodId,
-        setStaticFieldMethodId,
-        getFieldValueMethodId,
-        getStaticFieldValueMethodId,
-        getEnumConstantByNameMethodId,
-        deepEqualsMethodId,
-        arraysDeepEqualsMethodId,
-        iterablesDeepEqualsMethodId,
-        streamsDeepEqualsMethodId,
-        mapsDeepEqualsMethodId,
-        hasCustomEqualsMethodId,
-        getArrayLengthMethodId
-    )
+internal abstract class UtilMethodProvider(val utilClassId: ClassId) {
+    val utilMethodIds: Set<MethodId>
+        get() = setOf(
+            getUnsafeInstanceMethodId,
+            createInstanceMethodId,
+            createArrayMethodId,
+            setFieldMethodId,
+            setStaticFieldMethodId,
+            getFieldValueMethodId,
+            getStaticFieldValueMethodId,
+            getEnumConstantByNameMethodId,
+            deepEqualsMethodId,
+            arraysDeepEqualsMethodId,
+            iterablesDeepEqualsMethodId,
+            streamsDeepEqualsMethodId,
+            mapsDeepEqualsMethodId,
+            hasCustomEqualsMethodId,
+            getArrayLengthMethodId
+        )
 
-internal val ClassId.getUnsafeInstanceMethodId: MethodId
-    get() = utilMethodId(
+    val getUnsafeInstanceMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "getUnsafeInstance",
             returnType = Unsafe::class.id,
-    )
+        )
 
-/**
- * Method that creates instance using Unsafe
- */
-internal val ClassId.createInstanceMethodId: MethodId
-    get() = utilMethodId(
+    /**
+     * Method that creates instance using Unsafe
+     */
+    val createInstanceMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "createInstance",
             returnType = CgClassId(objectClassId, isNullable = true),
             arguments = arrayOf(stringClassId)
-    )
+        )
 
-internal val ClassId.createArrayMethodId: MethodId
-    get() = utilMethodId(
+    val createArrayMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "createArray",
             returnType = Array<Any>::class.id,
             arguments = arrayOf(stringClassId, intClassId, Array<Any>::class.id)
-    )
+        )
 
-internal val ClassId.setFieldMethodId: MethodId
-    get() = utilMethodId(
+    val setFieldMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "setField",
             returnType = voidClassId,
-            arguments = arrayOf(objectClassId, stringClassId, objectClassId)
-    )
+            arguments = arrayOf(objectClassId, stringClassId, stringClassId, objectClassId)
+        )
 
-internal val ClassId.setStaticFieldMethodId: MethodId
-    get() = utilMethodId(
+    val setStaticFieldMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "setStaticField",
             returnType = voidClassId,
             arguments = arrayOf(Class::class.id, stringClassId, objectClassId)
-    )
+        )
 
-internal val ClassId.getFieldValueMethodId: MethodId
-    get() = utilMethodId(
+    val getFieldValueMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "getFieldValue",
             returnType = objectClassId,
-            arguments = arrayOf(objectClassId, stringClassId)
-    )
+            arguments = arrayOf(objectClassId, stringClassId, stringClassId)
+        )
 
-internal val ClassId.getStaticFieldValueMethodId: MethodId
-    get() = utilMethodId(
+    val getStaticFieldValueMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "getStaticFieldValue",
             returnType = objectClassId,
             arguments = arrayOf(Class::class.id, stringClassId)
-    )
+        )
 
-internal val ClassId.getEnumConstantByNameMethodId: MethodId
-    get() = utilMethodId(
+    val getEnumConstantByNameMethodId: MethodId
+        get() = utilClassId.utilMethodId(
             name = "getEnumConstantByName",
             returnType = objectClassId,
             arguments = arrayOf(Class::class.id, stringClassId)
-    )
+        )
 
-internal val ClassId.deepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "deepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(objectClassId, objectClassId)
-    )
+    val deepEqualsMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "deepEquals",
+            returnType = booleanClassId,
+            arguments = arrayOf(objectClassId, objectClassId)
+        )
 
-internal val ClassId.arraysDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "arraysDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(objectClassId, objectClassId)
-    )
+    val arraysDeepEqualsMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "arraysDeepEquals",
+            returnType = booleanClassId,
+            arguments = arrayOf(objectClassId, objectClassId)
+        )
 
-internal val ClassId.iterablesDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "iterablesDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
-    )
+    val iterablesDeepEqualsMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "iterablesDeepEquals",
+            returnType = booleanClassId,
+            arguments = arrayOf(java.lang.Iterable::class.id, java.lang.Iterable::class.id)
+        )
 
-internal val ClassId.streamsDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "streamsDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
-    )
+    val streamsDeepEqualsMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "streamsDeepEquals",
+            returnType = booleanClassId,
+            arguments = arrayOf(java.util.stream.Stream::class.id, java.util.stream.Stream::class.id)
+        )
 
-internal val ClassId.mapsDeepEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "mapsDeepEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(java.util.Map::class.id, java.util.Map::class.id)
-    )
+    val mapsDeepEqualsMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "mapsDeepEquals",
+            returnType = booleanClassId,
+            arguments = arrayOf(java.util.Map::class.id, java.util.Map::class.id)
+        )
 
-internal val ClassId.hasCustomEqualsMethodId: MethodId
-    get() = utilMethodId(
-        name = "hasCustomEquals",
-        returnType = booleanClassId,
-        arguments = arrayOf(Class::class.id)
-    )
+    val hasCustomEqualsMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "hasCustomEquals",
+            returnType = booleanClassId,
+            arguments = arrayOf(Class::class.id)
+        )
 
-internal val ClassId.getArrayLengthMethodId: MethodId
-    get() = utilMethodId(
-        name = "getArrayLength",
-        returnType = intClassId,
-        arguments = arrayOf(objectClassId)
+    val getArrayLengthMethodId: MethodId
+        get() = utilClassId.utilMethodId(
+            name = "getArrayLength",
+            returnType = intClassId,
+            arguments = arrayOf(objectClassId)
+        )
+}
+
+/**
+ * This provider represents an util class file that is generated and put into the user's test module.
+ * The generated class is UtUtils (its id is defined at [utUtilsClassId]).
+ *
+ * Content of this util class may be different (due to mocks in deepEquals), but the methods (and their ids) are the same.
+ */
+internal object UtilClassFileMethodProvider : UtilMethodProvider(utUtilsClassId) {
+    /**
+     * This property contains the current version of util class.
+     * This version will be written to the util class file inside a comment.
+     *
+     * Whenever we want to create an util class, we first check if there is an already existing one.
+     * If there is, then we decide whether we need to overwrite it or not. One of the factors here
+     * is the version of this existing class. If the version of existing class is older than the one
+     * that is currently stored in [UtilClassFileMethodProvider.UTIL_CLASS_VERSION], then we need to
+     * overwrite an util class, because it might have been changed in the new version.
+     *
+     * **IMPORTANT** if you make any changes to util methods (see [utilMethodTextById]), do not forget to update this version.
+     */
+    const val UTIL_CLASS_VERSION = "1.0"
+}
+
+internal class TestClassUtilMethodProvider(testClassId: ClassId) : UtilMethodProvider(testClassId)
+
+internal val utUtilsClassId: ClassId
+    get() = BuiltinClassId(
+        name = "org.utbot.runtime.utils.UtUtils",
+        canonicalName = "org.utbot.runtime.utils.UtUtils",
+        simpleName = "UtUtils",
+        isFinal = true
     )
 
 /**

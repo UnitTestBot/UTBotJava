@@ -1,5 +1,8 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.utbot.framework.codegen.model.tree.AbstractCgClass
+import org.utbot.framework.codegen.model.tree.AbstractCgClassBody
+import org.utbot.framework.codegen.model.tree.AbstractCgClassFile
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
@@ -58,6 +61,9 @@ import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
+import org.utbot.framework.codegen.model.tree.CgRegularClass
+import org.utbot.framework.codegen.model.tree.CgRegularClassBody
+import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
@@ -87,10 +93,16 @@ import org.utbot.framework.codegen.model.tree.CgWhileLoop
 interface CgVisitor<R> {
     fun visit(element: CgElement): R
 
+    fun visit(element: AbstractCgClassFile<*>): R
+    fun visit(element: CgRegularClassFile): R
     fun visit(element: CgTestClassFile): R
 
+    fun visit(element: AbstractCgClass<*>): R
+    fun visit(element: CgRegularClass): R
     fun visit(element: CgTestClass): R
 
+    fun visit(element: AbstractCgClassBody): R
+    fun visit(element: CgRegularClassBody): R
     fun visit(element: CgTestClassBody): R
 
     fun visit(element: CgStaticsRegion): R

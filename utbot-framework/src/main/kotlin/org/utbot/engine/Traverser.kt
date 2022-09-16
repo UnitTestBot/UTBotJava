@@ -69,6 +69,9 @@ import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.Assumption
+import org.utbot.engine.symbolic.emptyAssumption
+import org.utbot.engine.symbolic.emptyHardConstraint
+import org.utbot.engine.symbolic.emptySoftConstraint
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
@@ -86,15 +89,16 @@ import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.signature
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
@@ -104,9 +108,6 @@ import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -196,11 +197,13 @@ import java.lang.reflect.GenericArrayType
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: UtMethod<*>,
+    private val methodUnderTest: ExecutableId,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
@@ -957,23 +960,25 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.callable
+        val callable = methodUnderTest.executable
+        val kCallable = ::updateGenericTypeInfo
+        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
-                methodUnderTest.javaConstructor?.annotatedReturnType?.type
+                callable.annotatedReturnType?.type
             } else {
-                callable.instanceParameter?.type?.javaType
-                    ?: error("No instanceParameter for ${callable.signature} found")
+                callable.declaringClass // same as it was, but it isn't parametrized type
+                    ?: error("No instanceParameter for ${callable} found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
                 val index = (identityRef as ParameterRef).index
-                val valueParameters = callable.valueParameters
+                val valueParameters = callable.genericParameterTypes
 
                 if (index > valueParameters.lastIndex) return
-                valueParameters[index].type.javaType
+                valueParameters[index]
             }
         }
 
@@ -1074,8 +1079,8 @@ class Traverser(
         }
 
         // Depending on existance of assumeExpr we have to add corresponding hardConstraints and assumptions
-        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else HardConstraint()
-        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else Assumption()
+        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else emptyHardConstraint()
+        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else emptyAssumption()
 
         val negativeCaseState = environment.state.updateQueued(
             negativeCaseEdge,
@@ -2437,6 +2442,9 @@ class Traverser(
         val method = invokeExpr.retrieveMethod()
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
+
+        // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
+        // TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
         return commonInvokePart(invocation)
     }
 
@@ -2455,7 +2463,23 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
-        // First, check if there is override for the invocation itself, not for the targets
+        /**
+         * First, check if there is override for the invocation itself, not for the targets.
+         *
+         * Note that calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers,
+         * so here we resolve [invocation] to the inherited method invocation if it's something like:
+         *
+         * ```java
+         * public class InheritedWrapper extends BaseWrapper {
+         *     public void add(Object o) {
+         *         // some stuff
+         *         super.add(o); // this resolves to InheritedWrapper::add instead of BaseWrapper::add
+         *     }
+         * }
+         * ```
+         *
+         * TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
+         */
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
 
         // If so, return the result of the override
@@ -2937,8 +2961,9 @@ class Traverser(
         return when (expr) {
             is UtInstanceOfExpression -> { // for now only this type of expression produces deferred updates
                 val onlyMemoryUpdates = expr.symbolicStateUpdate.copy(
-                    hardConstraints = HardConstraint(),
-                    softConstraints = SoftConstraint()
+                    hardConstraints = emptyHardConstraint(),
+                    softConstraints = emptySoftConstraint(),
+                    assumptions = emptyAssumption()
                 )
                 SymbolicStateUpdateForResolvedCondition(onlyMemoryUpdates)
             }
@@ -3384,9 +3409,18 @@ class Traverser(
         if (returnValue != null) {
             queuedSymbolicStateUpdates += constructConstraintForType(returnValue, returnValue.possibleConcreteTypes).asSoftConstraint()
 
+            // We only remove anonymous classes if there are regular classes available.
+            // If there are no other options, then we do use anonymous classes.
             workaround(REMOVE_ANONYMOUS_CLASSES) {
                 val sootClass = returnValue.type.sootClass
-                if (!environment.state.isInNestedMethod() && (sootClass.isAnonymous || sootClass.isArtificialEntity)) {
+                val isInNestedMethod = environment.state.isInNestedMethod()
+
+                if (!isInNestedMethod && sootClass.isArtificialEntity) {
+                    return
+                }
+
+                val onlyAnonymousTypesAvailable = returnValue.typeStorage.possibleConcreteTypes.all { (it as? RefType)?.sootClass?.isAnonymous == true }
+                if (!isInNestedMethod && sootClass.isAnonymous && !onlyAnonymousTypesAvailable) {
                     return
                 }
             }

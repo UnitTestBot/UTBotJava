@@ -1,8 +1,8 @@
 ---
 name: Manual testing checklist
 about: Checklist of testing process
-title: ''
-labels: ''
+title: 'Manual testing of build#'
+labels: 'qa'
 assignees: ''
 
 ---
@@ -28,31 +28,28 @@ assignees: ''
 - [ ] Open the utbot-sample/src/main/java/org/utbot/examples/algorithms/ArraysQuickSort.java file
 - [ ] Generate tests for the class
 - [ ] Remove results
-- [ ] Generate tests for the methods
+- [ ] Generate and Run test for a method
  
-
 **Manual scenario #2**
 
 - [ ] Use default plugin settings
 - [ ] Open the utbot-sample/src/main/java/org/utbot/examples/mock/CommonMocksExample.java file
-- [ ] Generate tests with all available (mocking) options
+- [ ] Generate tests with different Mocking options combinations
  
-
 **Manual scenario #3**
 
-- [ ] Create a new Gradle project
+- [ ] Create a new Gradle project with JDK 8
 - [ ] Add a simple java file to test
-- [ ] Generate a test with a new test root
+- [ ] Generate a test in the existing test root
  
-
 **Manual scenario #4**
 
-- [ ] Create a new Maven project
+- [ ] Create a new Maven project with JDK 8
 - [ ] Add a simple java file to test
 - [ ] Generate a test with a new test root
 
 **Manual scenario #5**
 
-- [ ] Create a new Idea project
+- [ ] Create a new Idea project with JDK 11
 - [ ] Add a simple java file to test
 - [ ] Generate tests for several classes

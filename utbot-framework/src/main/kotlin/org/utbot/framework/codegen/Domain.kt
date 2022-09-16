@@ -173,6 +173,7 @@ sealed class TestFramework(
     override val displayName: String,
     override val description: String = "Use $displayName as test framework",
 ) : CodeGenerationSettingItem {
+    var isParametrizedTestsConfigured = false
     var isInstalled: Boolean = false
     abstract val mainPackage: String
     abstract val assertionsClass: ClassId
@@ -592,11 +593,11 @@ enum class RuntimeExceptionTestsBehaviour(
     override val description: String
 ) : CodeGenerationSettingItem {
     PASS(
-        displayName = "Passing",
+        displayName = "Pass",
         description = "Tests that produce Runtime exceptions should pass (by inserting throwable assertion)"
     ),
     FAIL(
-        displayName = "Failing",
+        displayName = "Fail",
         description = "Tests that produce Runtime exceptions should fail" +
                 "(WARNING!: failing tests may appear in testing class)"
     );

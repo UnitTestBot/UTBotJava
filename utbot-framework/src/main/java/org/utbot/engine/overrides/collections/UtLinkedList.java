@@ -72,7 +72,7 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
      * <li> elementData is marked as parameter </li>
      * <li> elementData.storage and it's elements are marked as parameters </li>
      */
-    private void preconditionCheck() {
+    protected void preconditionCheck() {
         if (alreadyVisited(this)) {
             return;
         }
@@ -88,13 +88,13 @@ public class UtLinkedList<E> extends AbstractSequentialList<E>
         visit(this);
     }
 
-    private void rangeCheck(int index) {
+    protected void rangeCheck(int index) {
         if (index < 0 || index >= elementData.end - elementData.begin) {
             throw new IndexOutOfBoundsException();
         }
     }
 
-    private void rangeCheckForAdd(int index) {
+    protected void rangeCheckForAdd(int index) {
         if (index < 0 || index > elementData.end - elementData.begin) {
             throw new IndexOutOfBoundsException();
         }

@@ -1,11 +1,7 @@
 package org.utbot.instrumentation.process
 
 import mu.KotlinLogging
-import org.utbot.common.bracket
-import org.utbot.common.debug
-import org.utbot.common.firstOrNullResourceIS
-import org.utbot.common.getCurrentProcessId
-import org.utbot.common.pid
+import org.utbot.common.*
 import org.utbot.common.scanForResourcesContaining
 import org.utbot.common.utBotTempDirectory
 import org.utbot.framework.plugin.services.JdkInfoService
@@ -14,11 +10,14 @@ import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.agent.DynamicClassTransformer
 import java.io.File
+import kotlin.random.Random
 
 private val logger = KotlinLogging.logger {}
-private var processSeqN = 0
+const val serverPortProcessArgumentTag = "serverPort"
 
 class ChildProcessRunner {
+    private val id = Random.nextLong()
+    private var processSeqN = 0
     private val cmds: List<String> by lazy {
         val debugCmd =
             listOfNotNull(DEBUG_RUN_CMD.takeIf { Settings.runChildProcessWithDebug} )
@@ -38,22 +37,24 @@ class ChildProcessRunner {
 
     var errorLogFile: File = NULL_FILE
 
-    fun start(): Process {
-        logger.debug { "Starting child process: ${cmds.joinToString(" ")}" }
+    fun start(port: Int): Process {
+        val portArgument = "$serverPortProcessArgumentTag=$port"
+
+        logger.debug { "Starting child process: ${cmds.joinToString(" ")} $portArgument" }
         processSeqN++
 
         if (UtSettings.logConcreteExecutionErrors) {
             UT_BOT_TEMP_DIR.mkdirs()
-            errorLogFile = File(UT_BOT_TEMP_DIR, "${hashCode()}-${processSeqN}.log")
+            errorLogFile = File(UT_BOT_TEMP_DIR, "${id}-${processSeqN}.log")
         }
 
         val directory = WorkingDirService.provide().toFile()
-
         val commandsWithOptions = buildList {
             addAll(cmds)
-            if (UtSettings.disableSandbox) {
+            if (!UtSettings.useSandbox) {
                 add(DISABLE_SANDBOX_OPTION)
             }
+            add(portArgument)
         }
 
         val processBuilder = ProcessBuilder(commandsWithOptions)
@@ -61,7 +62,7 @@ class ChildProcessRunner {
             .directory(directory)
 
         return processBuilder.start().also {
-            logger.debug { "Process started with PID=${it.pid}" }
+            logger.debug { "Process started with PID=${it.getPid}" }
 
             if (UtSettings.logConcreteExecutionErrors) {
                 logger.debug { "Child process error log: ${errorLogFile.absolutePath}" }
@@ -98,7 +99,7 @@ class ChildProcessRunner {
                 run {
                     logger.debug("Trying to find jar in the resources.")
                     val tempDir = utBotTempDirectory.toFile()
-                    val unzippedJarName = "$UTBOT_INSTRUMENTATION-${getCurrentProcessId()}.jar"
+                    val unzippedJarName = "$UTBOT_INSTRUMENTATION-${currentProcessPid}.jar"
                     val instrumentationJarFile = File(tempDir, unzippedJarName)
 
                     ChildProcessRunner::class.java.classLoader

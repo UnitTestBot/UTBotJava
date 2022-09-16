@@ -1,13 +1,15 @@
 package org.utbot.instrumentation.instrumentation
 
-import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.util.signature
-import org.utbot.instrumentation.process.sandbox
+import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.security.ProtectionDomain
+import org.utbot.common.withAccessibility
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.util.jField
 
 typealias ArgumentList = List<Any?>
 
@@ -53,18 +55,18 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
         methodOrConstructor.run {
             val result = when (this) {
                 is Method ->
-                    withAccessibility {
+                    runSandbox {
                         runCatching {
-                            sandbox { invoke(thisObject, *realArgs.toTypedArray()) }.let {
+                            invoke(thisObject, *realArgs.toTypedArray()).let {
                                 if (returnType != Void.TYPE) it else Unit
                             } // invocation on method returning void will return null, so we replace it with Unit
                         }
                     }
 
                 is Constructor<*> ->
-                    withAccessibility {
+                    runSandbox {
                         runCatching {
-                            sandbox { newInstance(*realArgs.toTypedArray()) }
+                            newInstance(*realArgs.toTypedArray())
                         }
                     }
 
@@ -90,6 +92,19 @@ class InvokeInstrumentation : Instrumentation<Result<*>> {
         }
     }
 
+    /**
+     * Get field by reflection and return raw value.
+     */
+    override fun getStaticField(fieldId: FieldId): Result<Any?> =
+        if (!fieldId.isStatic) {
+            Result.failure(IllegalArgumentException("Field must be static!"))
+        } else {
+            val field = fieldId.jField
+            val value = field.withAccessibility {
+                field.get(null)
+            }
+            Result.success(value)
+        }
 
     /**
      * Does not change bytecode.

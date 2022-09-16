@@ -48,12 +48,12 @@ abstract class BoolOperator(
     onBool: (Context, BoolExpr, BoolExpr) -> BoolExpr = { _, _, _ -> TODO() }
 ) : Operator<BoolExpr>(onBitVec, onFP, onBool)
 
-internal object Le : BoolOperator(Context::mkBVSLE, Context::mkFPLEq)
-internal object Lt : BoolOperator(Context::mkBVSLT, Context::mkFPLt)
-internal object Ge : BoolOperator(Context::mkBVSGE, Context::mkFPGEq)
-internal object Gt : BoolOperator(Context::mkBVSGT, Context::mkFPGt)
-internal object Eq : BoolOperator(Context::mkEq, Context::mkFPEq, Context::mkEq)
-internal object Ne : BoolOperator(::ne, ::fpNe, ::ne)
+object Le : BoolOperator(Context::mkBVSLE, Context::mkFPLEq)
+object Lt : BoolOperator(Context::mkBVSLT, Context::mkFPLt)
+object Ge : BoolOperator(Context::mkBVSGE, Context::mkFPGEq)
+object Gt : BoolOperator(Context::mkBVSGT, Context::mkFPGt)
+object Eq : BoolOperator(Context::mkEq, Context::mkFPEq, Context::mkEq)
+object Ne : BoolOperator(::ne, ::fpNe, ::ne)
 
 private fun ne(context: Context, left: Expr, right: Expr): BoolExpr = context.mkNot(context.mkEq(left, right))
 private fun fpNe(context: Context, left: FPExpr, right: FPExpr): BoolExpr = context.mkNot(context.mkFPEq(left, right))
@@ -183,7 +183,7 @@ fun negate(context: Context, variable: Z3Variable): Expr = when (variable.expr) 
  * @see <a href="https://docs.oracle.com/javase/specs/jls/se11/html/jls-5.html#jls-5.6.2">
  * Java Language Specification: Binary Numeric Promotion</a>
  */
-internal fun Context.alignVars(left: Z3Variable, right: Z3Variable): Pair<Expr, Expr> {
+fun Context.alignVars(left: Z3Variable, right: Z3Variable): Pair<Expr, Expr> {
     val maxSort = maxOf(left.expr.sort, right.expr.sort, mkBitVecSort(Int.SIZE_BITS), compareBy { it.rank() })
     return convertVar(left, maxSort) to convertVar(right, maxSort)
 }
@@ -210,7 +210,7 @@ internal fun Context.alignVarAndConst(left: Z3Variable, right: Number): Pair<Exp
  * @see <a href="https://docs.oracle.com/javase/specs/jls/se11/html/jls-5.html#jls-5.6.1">
  * Java Language Specification: Unary Numeric Promotion</a>
  */
-internal fun Context.alignVar(variable: Z3Variable): Z3Variable = when (variable.type) {
+fun Context.alignVar(variable: Z3Variable): Z3Variable = when (variable.type) {
     is ByteType, is ShortType, is CharType -> convertVar(variable, IntType.v())
     else -> variable
 }

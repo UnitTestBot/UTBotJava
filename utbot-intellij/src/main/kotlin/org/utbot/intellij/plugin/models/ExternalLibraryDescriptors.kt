@@ -1,6 +1,13 @@
 package org.utbot.intellij.plugin.models
 
 import com.intellij.openapi.roots.ExternalLibraryDescriptor
+import org.jetbrains.idea.maven.utils.library.RepositoryLibraryDescription
+
+val ExternalLibraryDescriptor.mavenCoordinates: String
+    get() = "$libraryGroupId:$libraryArtifactId:${preferredVersion ?: RepositoryLibraryDescription.ReleaseVersionId}"
+
+val ExternalLibraryDescriptor.id: String
+        get() = "$libraryGroupId:$libraryArtifactId"
 
 //TODO: think about using JUnitExternalLibraryDescriptor from intellij-community sources (difficult to install)
 fun jUnit4LibraryDescriptor(versionInProject: String?) =
@@ -10,7 +17,10 @@ fun jUnit5LibraryDescriptor(versionInProject: String?) =
     ExternalLibraryDescriptor("org.junit.jupiter", "junit-jupiter", "5.8.1", null, versionInProject ?: "5.8.1")
 
 fun testNgLibraryDescriptor(versionInProject: String?) =
-    ExternalLibraryDescriptor("org.testng", "testng", "6.8.8", null, versionInProject ?: "6.9.6")
+    ExternalLibraryDescriptor("org.testng", "testng", "7.6.0", null, versionInProject ?: "7.6.0")
+
+fun jUnit5ParametrizedTestsLibraryDescriptor(versionInProject: String?) =
+    ExternalLibraryDescriptor("org.junit.jupiter", "junit-jupiter-params", "5.8.1", null, versionInProject ?: "5.8.1")
 
 fun mockitoCoreLibraryDescriptor(versionInProject: String?) =
     ExternalLibraryDescriptor("org.mockito", "mockito-core", "3.5.0", "4.2.0", versionInProject ?: "4.2.0")

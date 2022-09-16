@@ -15,6 +15,7 @@ import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
@@ -26,8 +27,9 @@ data class GenerateTestsModel(
     val srcModule: Module,
     val potentialTestModules: List<Module>,
     var srcClasses: Set<PsiClass>,
-    var selectedMethods: Set<MemberInfo>?,
-    var timeout:Long,
+    val extractMembersFromSrcClasses: Boolean,
+    var selectedMembers: Set<MemberInfo>,
+    var timeout: Long,
     var generateWarningsForStaticMocking: Boolean = false,
     var fuzzingValue: Double = 0.05
 ) {
@@ -36,17 +38,26 @@ data class GenerateTestsModel(
     var testModule: Module = potentialTestModules.firstOrNull() ?: error("Empty list of test modules in model")
 
     var testSourceRoot: VirtualFile? = null
+
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)
         testSourceRoot = newTestSourceRoot
-        testModule = ModuleUtil.findModuleForFile(newTestSourceRoot, project)
+        var target = newTestSourceRoot
+        while(target != null && target is FakeVirtualFile) {
+            target = target.parent
+        }
+        if (target == null) {
+            error("Could not find module for $newTestSourceRoot")
+        }
+
+        testModule = ModuleUtil.findModuleForFile(target, project)
             ?: error("Could not find module for $newTestSourceRoot")
     }
 
     var testPackageName: String? = null
     lateinit var testFramework: TestFramework
     lateinit var mockStrategy: MockStrategyApi
-    var mockFramework: MockFramework? = null
+    lateinit var mockFramework: MockFramework
     lateinit var staticsMocking: StaticsMocking
     lateinit var parametrizedTestSource: ParametrizedTestSource
     lateinit var codegenLanguage: CodegenLanguage

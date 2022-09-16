@@ -29,7 +29,7 @@ on:
 
 env:
   # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -javaagent:/tmp/jmx-exporter.jar=12345:/tmp/jmx-exporter.yml -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
 
 jobs:
     run-chosen-tests:
@@ -45,8 +45,8 @@ jobs:
       - name: Run monitoring
         run: |
           echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
-          chmod +x ./scripts/monitoring.sh
-          ./scripts/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+          chmod +x ./scripts/project/monitoring.sh
+          ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
           
       - name: Run chosen tests
         run: |

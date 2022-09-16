@@ -1,6 +1,5 @@
 package org.utbot.framework.codegen.model.util
 
-import org.utbot.framework.codegen.TestFramework
 import org.utbot.framework.concrete.UtExecutionInstrumentation
 import org.utbot.framework.plugin.api.MockFramework
 import java.io.File

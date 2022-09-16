@@ -1,35 +1,13 @@
 package org.utbot.contest
 
-import java.io.File
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import java.net.URL
-import java.net.URLClassLoader
-import java.nio.file.Paths
-import java.util.concurrent.ConcurrentSkipListSet
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
 import mu.KotlinLogging
 import org.objectweb.asm.Type
 import org.utbot.common.FileUtil
 import org.utbot.common.bracket
 import org.utbot.common.filterWhen
 import org.utbot.common.info
+import org.utbot.common.isAbstract
 import org.utbot.engine.EngineController
-import org.utbot.engine.isConstructor
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
@@ -38,35 +16,50 @@ import org.utbot.framework.codegen.junitByVersion
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.Coverage
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.TestCaseGenerator
 import org.utbot.framework.plugin.api.UtError
 import org.utbot.framework.plugin.api.UtExecution
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.util.UtContext
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.services.JdkInfoService
 import org.utbot.framework.util.isKnownSyntheticMethod
 import org.utbot.fuzzer.UtFuzzedExecution
 import org.utbot.instrumentation.ConcreteExecutor
 import org.utbot.instrumentation.ConcreteExecutorPool
 import org.utbot.instrumentation.Settings
 import org.utbot.instrumentation.warmup.Warmup
+import java.io.File
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.net.URL
+import java.net.URLClassLoader
+import java.nio.file.Paths
 import kotlin.concurrent.thread
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.KProperty
-import kotlin.reflect.full.declaredMembers
 import kotlin.reflect.jvm.isAccessible
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaGetter
-import kotlin.reflect.jvm.javaMethod
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 
 internal const val junitVersion = 4
 private val logger = KotlinLogging.logger {}
@@ -124,8 +117,8 @@ fun main(args: Array<String>) {
 
     withUtContext(context) {
         logger.info().bracket("warmup: kotlin reflection :: init") {
-            prepareClass(ConcreteExecutorPool::class, "")
-            prepareClass(Warmup::class, "")
+            prepareClass(ConcreteExecutorPool::class.java, "")
+            prepareClass(Warmup::class.java, "")
         }
 
         println("${ContestMessage.INIT}")
@@ -193,11 +186,11 @@ fun runGeneration(
         setOptions()
         //will not be executed in real contest
         logger.info().bracket("warmup: 1st optional soot initialization and executor warmup (not to be counted in time budget)") {
-            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
+            TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath, JdkInfoService.provide())
         }
         logger.info().bracket("warmup (first): kotlin reflection :: init") {
-            prepareClass(ConcreteExecutorPool::class, "")
-            prepareClass(Warmup::class, "")
+            prepareClass(ConcreteExecutorPool::class.java, "")
+            prepareClass(Warmup::class.java, "")
         }
     }
 
@@ -211,9 +204,7 @@ fun runGeneration(
         logger.error("Seems like classloader for cut not valid (maybe it was backported to system): ${cut.classLoader}")
     }
 
-    val statsForClass = StatsForClass(Type.getInternalName(cut.classId.jClass))
-
-    val testedClasses = ConcurrentSkipListSet<String>()
+    val statsForClass = StatsForClass()
 
     val codeGenerator = CodeGenerator(
             cut.classId,
@@ -225,8 +216,8 @@ fun runGeneration(
 
     logger.info().bracket("class ${cut.fqn}", { statsForClass }) {
 
-        val filteredMethods = logger.info().bracket("preparation class ${cut.kotlinClass}: kotlin reflection :: run") {
-            prepareClass(cut.kotlinClass, methodNameFilter)
+        val filteredMethods = logger.info().bracket("preparation class ${cut.clazz}: kotlin reflection :: run") {
+            prepareClass(cut.clazz, methodNameFilter)
         }
 
         statsForClass.methodsCount = filteredMethods.size
@@ -236,7 +227,7 @@ fun runGeneration(
 
         val testCaseGenerator =
             logger.info().bracket("2nd optional soot initialization") {
-                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath)
+                TestCaseGenerator(cut.classfileDir.toPath(), classpathString, dependencyPath, JdkInfoService.provide())
             }
 
 
@@ -255,7 +246,7 @@ fun runGeneration(
                     val methodJob = currentCoroutineContext().job
 
                     logger.debug { " ... " }
-                    val statsForMethod = StatsForMethod("${method.clazz.simpleName}#${method.callable.name}")
+                    val statsForMethod = StatsForMethod("${method.classId.simpleName}#${method.name}")
                     statsForClass.statsForMethods.add(statsForMethod)
 
 
@@ -321,17 +312,17 @@ fun runGeneration(
                                     is UtExecution -> {
                                         try {
                                             val testMethodName = testMethodName(method.toString(), ++testsCounter)
-                                            val className = method.clazz.qualifiedName
+                                            val className = Type.getInternalName(method.classId.jClass)
                                             logger.debug { "--new testCase collected, to generate: $testMethodName" }
                                             statsForMethod.testsGeneratedCount++
                                             result.coverage?.let {
                                                 statsForClass.updateCoverage(
                                                     newCoverage = it,
-                                                    isNewClass = !testedClasses.contains(className),
+                                                    isNewClass = !statsForClass.testedClassNames.contains(className),
                                                     fromFuzzing = result is UtFuzzedExecution
                                                 )
                                             }
-                                            testedClasses.add(className)
+                                            statsForClass.testedClassNames.add(className)
 
                                             //TODO: it is a strange hack to create fake test case for one [UtResult]
                                             testSets.add(UtMethodTestSet(method, listOf(result)))
@@ -395,41 +386,30 @@ fun runGeneration(
     statsForClass
 }
 
-private fun prepareClass(kotlinClass: KClass<*>, methodNameFilter: String?): List<UtMethod<*>> {
-    //1. all methods and properties from cut
-    val kotlin2java = kotlinClass.declaredMembers
+private fun prepareClass(javaClazz: Class<*>, methodNameFilter: String?): List<ExecutableId> {
+    //1. all methods from cut
+    val methods = javaClazz.declaredMethods
         .filterNot { it.isAbstract }
-        .map {
-            it to when (it) {
-                is KFunction -> it.javaMethod
-                is KProperty -> it.javaGetter
-                else -> null
-            }
-        }
+        .filterNotNull()
 
     //2. all constructors from cut
-    val kotlin2javaCtors =
-        if (kotlinClass.isAbstract) emptyList() else kotlinClass.constructors.map { it to it.javaConstructor }
+    val constructors =
+        if (javaClazz.isAbstract || javaClazz.isEnum) emptyList() else javaClazz.declaredConstructors.filterNotNull()
 
-    //3. Now join properties, methods and constructors together
-    val methodsToGenerate = kotlin2java
-        //filter out abstract and native methods
-        .filter { (_, javaMethod) -> javaMethod?.isVisibleFromGeneratedTest == true }
-        //join
-        .union(kotlin2javaCtors)
+    //3. Now join methods and constructors together
+    val methodsToGenerate = methods.filter { it.isVisibleFromGeneratedTest } + constructors
 
-    val classFilteredMethods = methodsToGenerate.asSequence()
-        .map { UtMethod(it.first, kotlinClass) }
-        .filter { methodNameFilter?.equals(it.callable.name) ?: true }
-        .filterNot { it.isConstructor && (it.clazz.isAbstract || it.clazz.java.isEnum) }
+    val classFilteredMethods = methodsToGenerate
+        .map { it.executableId }
+        .filter { methodNameFilter?.equals(it.name) ?: true }
         .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { !isKnownSyntheticMethod(it) }
-        .filterNot { it.callable.isAbstract }
         .toList()
 
-    return if (kotlinClass.nestedClasses.isEmpty()) {
+
+    return if (javaClazz.declaredClasses.isEmpty()) {
         classFilteredMethods
     } else {
-        val nestedFilteredMethods = kotlinClass.nestedClasses.flatMap { prepareClass(it, methodNameFilter) }
+        val nestedFilteredMethods = javaClazz.declaredClasses.flatMap { prepareClass(it, methodNameFilter) }
         classFilteredMethods + nestedFilteredMethods
     }
 }

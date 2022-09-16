@@ -1,7 +1,6 @@
 package org.utbot.engine
 
 import org.utbot.common.invokeCatching
-import org.utbot.common.withAccessibility
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.EnvironmentModels
@@ -41,6 +40,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.method
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.anyInstance
+import org.utbot.instrumentation.process.runSandbox
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import kotlin.reflect.KClass
@@ -405,17 +405,13 @@ class ValueConstructor {
     private fun value(model: UtModel) = construct(model, null).value
 
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
-        method.run {
-            withAccessibility {
-                invokeCatching(obj = instance, args = args).getOrThrow()
-            }
+        method.runSandbox {
+            invokeCatching(obj = instance, args = args).getOrThrow()
         }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.run {
-            withAccessibility {
-                newInstance(*args.toTypedArray())
-            }
+        constructor.runSandbox {
+            newInstance(*args.toTypedArray())
         }
 
     /**

@@ -49,7 +49,6 @@ jobs:
           echo "::set-output name=combined-projects-matrix::$COMBINED_PROJECTS"
           echo $FRAMEWORK_TESTS
           echo $COMBINED_PROJECTS
-
   framework-tests:
     needs: prepare-matrices
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 

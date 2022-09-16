@@ -3,7 +3,7 @@ package math
 import examples.SummaryTestCaseGeneratorTest
 import guava.examples.math.IntMath
 import org.junit.jupiter.api.Test
-import org.utbot.examples.DoNotCalculate
+import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.framework.plugin.api.MockStrategyApi
 import org.utbot.framework.plugin.api.UtClusterInfo
 
@@ -137,7 +137,7 @@ class SummaryIntMathTest : SummaryTestCaseGeneratorTest(
         )
 
         val clusterInfo = listOf(
-            Pair(UtClusterInfo("SUCCESSFUL EXECUTIONS for method pow(int, int)", null), 14)
+            Pair(UtClusterInfo("SYMBOLIC EXECUTION ENGINE: SUCCESSFUL EXECUTIONS for method pow(int, int)", null), 14)
         )
 
         val method = IntMath::pow

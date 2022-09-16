@@ -1,6 +1,14 @@
 package org.utbot.fuzzer.providers
 
-import mu.KotlinLogging
+import java.lang.reflect.Constructor
+import java.lang.reflect.Field
+import java.lang.reflect.Member
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier.isFinal
+import java.lang.reflect.Modifier.isPrivate
+import java.lang.reflect.Modifier.isProtected
+import java.lang.reflect.Modifier.isPublic
+import java.lang.reflect.Modifier.isStatic
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.FieldId
@@ -8,134 +16,109 @@ import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
+import org.utbot.framework.plugin.api.util.dateClassId
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.stringClassId
-import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.fuzzer.IdentityPreservingIdGenerator
-import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedParameter
 import org.utbot.fuzzer.FuzzedValue
-import org.utbot.fuzzer.ModelProvider
-import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
-import org.utbot.fuzzer.TooManyCombinationsException
-import org.utbot.fuzzer.exceptIsInstance
-import org.utbot.fuzzer.fuzz
-import org.utbot.fuzzer.objectModelProviders
-import org.utbot.fuzzer.providers.ConstantsModelProvider.fuzzed
-import java.lang.reflect.Constructor
-import java.lang.reflect.Field
-import java.lang.reflect.Member
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier.*
-
-private val logger by lazy { KotlinLogging.logger {} }
+import org.utbot.fuzzer.IdentityPreservingIdGenerator
+import org.utbot.fuzzer.objects.assembleModel
 
 /**
- * Creates [UtAssembleModel] for objects which have public constructors with primitives types and String as parameters.
+ * Creates [UtAssembleModel] for objects which have public constructors
  */
 class ObjectModelProvider(
-    private val idGenerator: IdentityPreservingIdGenerator<Int>,
-    private val limit: Int = Int.MAX_VALUE,
-    private val recursion: Int = 1
-) : ModelProvider {
-
-    var modelProvider: ModelProvider = objectModelProviders(idGenerator)
-    var limitValuesCreatedByFieldAccessors: Int = 100
-        set(value) {
-            field = maxOf(0, value)
-        }
-
-    private val nonRecursiveModelProvider: ModelProvider
-        get() {
-            val modelProviderWithoutRecursion = modelProvider.exceptIsInstance<ObjectModelProvider>()
-            return if (recursion > 0) {
-                ObjectModelProvider(idGenerator, limit = 1, recursion - 1).with(modelProviderWithoutRecursion)
-            } else {
-                modelProviderWithoutRecursion.withFallback(NullModelProvider)
+    idGenerator: IdentityPreservingIdGenerator<Int>,
+    recursionDepthLeft: Int = 1,
+) : RecursiveModelProvider(idGenerator, recursionDepthLeft) {
+    override fun createNewInstance(parentProvider: RecursiveModelProvider, newTotalLimit: Int): RecursiveModelProvider =
+        ObjectModelProvider(parentProvider.idGenerator, parentProvider.recursionDepthLeft - 1)
+            .copySettingsFrom(parentProvider)
+            .apply {
+                totalLimit = newTotalLimit
+                branchingLimit = 1     // When called recursively, we will use only simplest constructor
             }
-        }
 
-    override fun generate(description: FuzzedMethodDescription): Sequence<FuzzedParameter> = sequence {
-        val fuzzedValues = with(description) {
-            parameters.asSequence()
-                .filterNot { it == stringClassId || it.isPrimitiveWrapper }
-                .flatMap { classId ->
-                    collectConstructors(classId) { javaConstructor ->
-                        isAccessible(javaConstructor, description.packageName)
-                    }.sortedWith(
-                        primitiveParameterizedConstructorsFirstAndThenByParameterCount
-                    ).take(limit)
-                }
-                .associateWith { constructorId ->
-                    fuzzParameters(
-                        constructorId,
-                        nonRecursiveModelProvider
+    override fun generateModelConstructors(
+        description: FuzzedMethodDescription,
+        classId: ClassId
+    ): List<ModelConstructor> {
+        if (unwantedConstructorsClasses.contains(classId) ||
+            classId.isPrimitiveWrapper || classId.isEnum || classId.isAbstract
+        ) return listOf()
+
+        val constructors = collectConstructors(classId) { javaConstructor ->
+            isAccessible(javaConstructor, description.packageName)
+        }.sortedWith(
+            primitiveParameterizedConstructorsFirstAndThenByParameterCount
+        )
+
+        return buildList {
+
+            constructors.forEach { constructorId ->
+                with(constructorId) {
+                    add(
+                        ModelConstructor(parameters) { assembleModel(idGenerator.createId(), constructorId, it) }
                     )
-                }
-                .flatMap { (constructorId, fuzzedParameters) ->
-                    if (constructorId.parameters.isEmpty()) {
-                        sequenceOf(assembleModel(idGenerator.createId(), constructorId, emptyList())) +
-                                generateModelsWithFieldsInitialization(constructorId, description, concreteValues)
-                    }
-                    else {
-                        fuzzedParameters.map { params ->
-                            assembleModel(idGenerator.createId(), constructorId, params)
+                    if (parameters.isEmpty()) {
+                        val fields = findSuitableFields(this.classId, description)
+                        if (fields.isNotEmpty()) {
+                            add(
+                                ModelConstructor(fields.map { it.classId }) {
+                                    generateModelsWithFieldsInitialization(this, fields, it)
+                                }
+                            )
                         }
                     }
                 }
-        }
-
-        fuzzedValues.forEach { fuzzedValue ->
-            description.parametersMap[fuzzedValue.model.classId]?.forEach { index ->
-                yieldValue(index, fuzzedValue)
             }
         }
     }
 
-    private fun generateModelsWithFieldsInitialization(constructorId: ConstructorId, description: FuzzedMethodDescription, concreteValues: Collection<FuzzedConcreteValue>): Sequence<FuzzedValue> {
-        if (limitValuesCreatedByFieldAccessors == 0) return emptySequence()
-        val fields = findSuitableFields(constructorId.classId, description)
-        val syntheticClassFieldsSetterMethodDescription = FuzzedMethodDescription(
-            "${constructorId.classId.simpleName}<syntheticClassFieldSetter>",
-            voidClassId,
-            fields.map { it.classId },
-            concreteValues
-        ).apply {
-            packageName = description.packageName
-        }
-
-        return fuzz(syntheticClassFieldsSetterMethodDescription, nonRecursiveModelProvider)
-            .take(limitValuesCreatedByFieldAccessors) // limit the number of fuzzed values in this particular case
-            .map { fieldValues ->
-                val fuzzedModel = assembleModel(idGenerator.createId(), constructorId, emptyList())
-                val assembleModel = fuzzedModel.model as? UtAssembleModel ?: error("Expected UtAssembleModel but ${fuzzedModel.model::class.java} found")
-                val modificationChain = assembleModel.modificationsChain as? MutableList ?: error("Modification chain must be mutable")
-                fieldValues.asSequence().mapIndexedNotNull { index, value ->
-                    val field = fields[index]
-                    when {
-                        field.canBeSetDirectly -> UtDirectSetFieldModel(
-                            fuzzedModel.model,
-                            FieldId(constructorId.classId, field.name),
-                            value.model
-                        )
-                        field.setter != null -> UtExecutableCallModel(
-                            fuzzedModel.model,
-                            MethodId(constructorId.classId, field.setter.name, field.setter.returnType.id, listOf(field.classId)),
-                            listOf(value.model)
-                        )
-                        else -> null
-                    }
-                }.forEach(modificationChain::add)
-                fuzzedModel
+    private fun generateModelsWithFieldsInitialization(
+        constructorId: ConstructorId,
+        fields: List<FieldDescription>,
+        fieldValues: List<FuzzedValue>
+    ): FuzzedValue {
+        val fuzzedModel = assembleModel(idGenerator.createId(), constructorId, emptyList())
+        val assembleModel = fuzzedModel.model as? UtAssembleModel
+            ?: error("Expected UtAssembleModel but ${fuzzedModel.model::class.java} found")
+        val modificationChain =
+            assembleModel.modificationsChain as? MutableList ?: error("Modification chain must be mutable")
+        fieldValues.asSequence().mapIndexedNotNull { index, value ->
+            val field = fields[index]
+            when {
+                field.canBeSetDirectly -> UtDirectSetFieldModel(
+                    fuzzedModel.model,
+                    FieldId(constructorId.classId, field.name),
+                    value.model
+                )
+                field.setter != null -> UtExecutableCallModel(
+                    fuzzedModel.model,
+                    MethodId(
+                        constructorId.classId,
+                        field.setter.name,
+                        field.setter.returnType.id,
+                        listOf(field.classId)
+                    ),
+                    listOf(value.model)
+                )
+                else -> null
             }
+        }.forEach(modificationChain::add)
+        return fuzzedModel
     }
 
     companion object {
+
+        private val unwantedConstructorsClasses = listOf(
+            stringClassId, dateClassId
+        )
+
         private fun collectConstructors(classId: ClassId, predicate: (Constructor<*>) -> Boolean): Sequence<ConstructorId> {
             return classId.jClass.declaredConstructors.asSequence()
                 .filter(predicate)
@@ -154,36 +137,6 @@ class ObjectModelProvider(
                     || isProtected(modifiers)
                     || isProtected(modifiers)
             return !hasAnyAccessModifier
-        }
-
-        private fun FuzzedMethodDescription.fuzzParameters(constructorId: ConstructorId, vararg modelProviders: ModelProvider): Sequence<List<FuzzedValue>> {
-            val fuzzedMethod = FuzzedMethodDescription(
-                executableId = constructorId,
-                concreteValues = this.concreteValues
-            ).apply {
-                this.packageName = this@fuzzParameters.packageName
-            }
-            return try {
-                fuzz(fuzzedMethod, *modelProviders)
-            } catch (t: TooManyCombinationsException) {
-                logger.warn(t) { "Number of combination of ${parameters.size} parameters is huge. Fuzzing is skipped for $name" }
-                emptySequence()
-            }
-        }
-
-        private fun assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
-            val instantiationChain = mutableListOf<UtStatementModel>()
-            return UtAssembleModel(
-                id,
-                constructorId.classId,
-                "${constructorId.classId.name}${constructorId.parameters}#" + id.toString(16),
-                instantiationChain = instantiationChain,
-                modificationsChain = mutableListOf()
-            ).apply {
-                instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model }, this)
-            }.fuzzed {
-                summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
-            }
         }
 
         private fun findSuitableFields(classId: ClassId, description: FuzzedMethodDescription): List<FieldDescription>  {

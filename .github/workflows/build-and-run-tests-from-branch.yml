@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     # Outputs are used for passing data to dependent jobs.
     outputs:
-      framework-tests-matrix: ${{ steps.set-matrix.outputs.framework-tests-matrix }}
-      combined-projects-matrix: ${{ steps.set-matrix.outputs.combined-projects-matrix }}
+      framework-tests-matrix: ${{ steps.set-matrices.outputs.framework-tests-matrix }}
+      combined-projects-matrix: ${{ steps.set-matrices.outputs.combined-projects-matrix }}
     steps:
       - name: Print environment variables
         run: printenv

@@ -1,5 +1,6 @@
 package org.utbot.fuzzer
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
@@ -10,7 +11,6 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
-import mu.KotlinLogging
 import org.utbot.framework.util.executableId
 import soot.BooleanType
 import soot.ByteType
@@ -36,10 +36,12 @@ import soot.jimple.internal.JEqExpr
 import soot.jimple.internal.JGeExpr
 import soot.jimple.internal.JGtExpr
 import soot.jimple.internal.JIfStmt
+import soot.jimple.internal.JInvokeStmt
 import soot.jimple.internal.JLeExpr
 import soot.jimple.internal.JLookupSwitchStmt
 import soot.jimple.internal.JLtExpr
 import soot.jimple.internal.JNeExpr
+import soot.jimple.internal.JSpecialInvokeExpr
 import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JVirtualInvokeExpr
@@ -52,7 +54,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteValue> {
     return graph.body.units.reversed().asSequence()
-        .filter { it is JIfStmt || it is JAssignStmt || it is AbstractSwitchStmt}
+        .filter { it is JIfStmt || it is JAssignStmt || it is AbstractSwitchStmt || it is JInvokeStmt }
         .flatMap { unit ->
             unit.useBoxes.map { unit to it.value }
         }
@@ -67,6 +69,7 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
                 BoundValuesForDoubleChecks,
                 StringConstant,
                 RegexByVarStringConstant,
+                DateFormatByVarStringConstant,
             ).flatMap { finder ->
                 try {
                     finder.find(graph, unit, value)
@@ -233,6 +236,24 @@ private object RegexByVarStringConstant: ConstantsFinder {
     override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
         if (unit !is JAssignStmt || value !is JStaticInvokeExpr) return emptyList()
         if (value.method.declaringClass.name == "java.util.regex.Pattern") {
+            val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
+            if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
+                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
+            }
+        }
+        return emptyList()
+    }
+}
+
+/**
+ * Finds strings that are used inside DateFormat's constructors.
+ *
+ * Due to compiler optimizations it should work when a string is assigned to a variable or static final field.
+ */
+private object DateFormatByVarStringConstant: ConstantsFinder {
+    override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
+        if (unit !is JInvokeStmt || value !is JSpecialInvokeExpr) return emptyList()
+        if (value.method.isConstructor && value.method.declaringClass.name == "java.text.SimpleDateFormat") {
             val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
             if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
                 return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))

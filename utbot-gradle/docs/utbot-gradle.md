@@ -234,4 +234,4 @@ Please note that the maximum archive size for publishing on the Gradle Plugin Po
 
 ### Requirements
 
-UTBot gradle plugin requires Gradle 6.8+
+UTBot gradle plugin requires Gradle 7.4.2+

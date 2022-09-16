@@ -51,7 +51,7 @@ class ChildProcessRunner {
         val directory = WorkingDirService.provide().toFile()
         val commandsWithOptions = buildList {
             addAll(cmds)
-            if (UtSettings.disableSandbox) {
+            if (!UtSettings.useSandbox) {
                 add(DISABLE_SANDBOX_OPTION)
             }
             add(portArgument)

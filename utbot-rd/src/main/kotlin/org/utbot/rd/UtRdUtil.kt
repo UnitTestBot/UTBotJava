@@ -9,10 +9,6 @@ import com.jetbrains.rd.util.reactive.IScheduler
 import com.jetbrains.rd.util.reactive.ISource
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
-import mu.KotlinLogging
-
-private val logger = KotlinLogging.logger {}
-private val serverScheduler = UtSingleThreadScheduler { logger.info(it) }
 
 inline fun <T> LifetimeDefinition.terminateOnException(block: (Lifetime) -> T): T {
     try {
@@ -54,7 +50,7 @@ suspend fun <T> ISource<T>.adviseForConditionAsync(lifetime: Lifetime, condition
 }
 
 suspend fun ISource<Boolean>.adviseForConditionAsync(lifetime: Lifetime): Deferred<Unit> {
-    return this.adviseForConditionAsync(lifetime) {it}
+    return this.adviseForConditionAsync(lifetime) { it }
 }
 
 /**
@@ -73,8 +69,8 @@ suspend fun startUtProcessWithRdServer(
             "Server",
             Serializers(),
             Identities(IdKind.Server),
-            serverScheduler,
-            SocketWire.Server(it, serverScheduler, port, "ServerSocket"),
+            UtRdCoroutineScope.scheduler,
+            SocketWire.Server(it, UtRdCoroutineScope.scheduler, port, "ServerSocket"),
             it
         )
     }

@@ -5,6 +5,7 @@ import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeWithStaticsInstrumentation
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import java.security.ProtectionDomain
+import org.utbot.framework.plugin.api.FieldId
 
 /**
  * This instrumentation allows to get execution trace during each call.
@@ -33,6 +34,10 @@ class ExecutionTraceInstrumentation : Instrumentation<Trace> {
 
         return trace
     }
+
+    override fun getStaticField(fieldId: FieldId): Result<*> =
+        invokeWithStatics.getStaticField(fieldId)
+
     /**
      * Transforms bytecode such way that it becomes possible to get an execution trace during a call.
      *

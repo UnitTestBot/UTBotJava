@@ -67,17 +67,6 @@ fun charLiteral(c: Char) = CgLiteral(charClassId, c)
 
 fun stringLiteral(string: String) = CgLiteral(stringClassId, string)
 
-// Field access
-
-// non-static fields
-operator fun CgExpression.get(fieldId: FieldId): CgFieldAccess =
-    CgFieldAccess(this, fieldId)
-
-// static fields
-// TODO: unused receiver
-operator fun ClassId.get(fieldId: FieldId): CgStaticFieldAccess =
-    CgStaticFieldAccess(fieldId)
-
 // Get array length
 
 /**

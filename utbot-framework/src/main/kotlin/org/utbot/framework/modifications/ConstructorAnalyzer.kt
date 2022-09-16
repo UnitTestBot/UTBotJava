@@ -209,7 +209,7 @@ class ConstructorAnalyzer {
     private fun hasSuspiciousInstructions(jimpleBody: JimpleBody): Boolean =
         jimpleBody.units.any {
             it !is JIdentityStmt
-                    && !(it is JAssignStmt && it.rightBox.value !is InvokeExpr)
+                    && !(it is JAssignStmt && it.rightOp !is InvokeExpr)
                     && it !is JInvokeStmt
                     && it !is JReturnStmt
                     && it !is JReturnVoidStmt

@@ -1,5 +1,11 @@
 package org.utbot.framework.assemble
 
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
 import org.utbot.examples.assemble.AssembleTestUtils
 import org.utbot.examples.assemble.ComplexField
 import org.utbot.examples.assemble.DirectAccess
@@ -23,39 +29,37 @@ import org.utbot.examples.assemble.constructors.InheritComplexConstructor
 import org.utbot.examples.assemble.constructors.InheritPrimitiveConstructor
 import org.utbot.examples.assemble.constructors.PrimitiveConstructor
 import org.utbot.examples.assemble.constructors.PrimitiveConstructorWithDefaultField
+import org.utbot.examples.assemble.constructors.PrivateConstructor
 import org.utbot.examples.assemble.constructors.PseudoComplexConstructor
 import org.utbot.examples.assemble.defaults.DefaultField
 import org.utbot.examples.assemble.defaults.DefaultFieldModifiedInConstructor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithDirectAccessor
-import org.utbot.examples.assemble.constructors.PrivateConstructor
 import org.utbot.examples.assemble.defaults.DefaultFieldWithSetter
 import org.utbot.examples.assemble.defaults.DefaultPackagePrivateField
 import org.utbot.examples.assemble.statics.StaticField
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtCompositeModel
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.framework.plugin.api.util.UtContext.Companion.setUtContext
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.intClassId
+import org.utbot.framework.plugin.services.JdkInfoDefaultProvider
+import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
 import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
-import org.junit.jupiter.api.Test
-import org.utbot.framework.util.SootUtils
+import org.utbot.examples.assemble.*
+import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
@@ -70,7 +74,7 @@ class AssembleModelGeneratorTests {
         instanceCounter.set(0)
         modelIdCounter.set(0)
         statementsChain = mutableListOf()
-        SootUtils.runSoot(AssembleTestUtils::class, forceReload = false)
+        SootUtils.runSoot(AssembleTestUtils::class.java, forceReload = false, jdkInfo = JdkInfoDefaultProvider().info)
         context = setUtContext(UtContext(AssembleTestUtils::class.java.classLoader))
     }
 
@@ -149,7 +153,7 @@ class AssembleModelGeneratorTests {
         val methodFromAnotherPackage =
             MethodUnderTest::class.functions.first()
 
-        createModelAndAssert(compositeModel, null, UtMethod.from(methodFromAnotherPackage))
+        createModelAndAssert(compositeModel, null, methodFromAnotherPackage.executableId)
     }
 
     @Test
@@ -1115,7 +1119,7 @@ class AssembleModelGeneratorTests {
             testClassId,
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
-                ClassId("[L${innerClassId.canonicalName}", innerClassId),
+                arrayTypeOf(innerClassId),
                 length = 3,
                 UtNullModel(innerClassId),
                 mutableMapOf(
@@ -1185,11 +1189,11 @@ class AssembleModelGeneratorTests {
         val testClassId = ArrayOfComplexArrays::class.id
         val innerClassId = PrimitiveFields::class.id
 
-        val innerArrayClassId = ClassId("[L${innerClassId.canonicalName}", innerClassId)
+        val innerArrayClassId = arrayTypeOf(innerClassId)
 
         val arrayOfArraysModel = UtArrayModel(
             modelIdCounter.incrementAndGet(),
-            ClassId("[Lorg.utbot.examples.assemble.ComplexArray", testClassId),
+            arrayTypeOf(testClassId),
             length = 2,
             UtNullModel(innerArrayClassId),
             mutableMapOf(
@@ -1424,7 +1428,7 @@ class AssembleModelGeneratorTests {
     private fun createModelAndAssert(
         model: UtModel,
         expectedModelRepresentation: String?,
-        methodUnderTest: UtMethod<*> = UtMethod.from(AssembleTestUtils::class.functions.first()),
+        methodUnderTest: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) = createModelsAndAssert(listOf(model), listOf(expectedModelRepresentation), methodUnderTest)
 
     /**
@@ -1444,9 +1448,9 @@ class AssembleModelGeneratorTests {
     private fun createModelsAndAssert(
         models: List<UtModel>,
         expectedModelRepresentations: List<String?>,
-        assembleTestUtils: UtMethod<*> = UtMethod.from(AssembleTestUtils::class.functions.first()),
+        assembleTestUtils: ExecutableId = AssembleTestUtils::class.id.allMethods.first(),
     ) {
-        val modelsMap = AssembleModelGenerator(assembleTestUtils).createAssembleModels(models)
+        val modelsMap = AssembleModelGenerator(assembleTestUtils.classId.packageName).createAssembleModels(models)
         //we sort values to fix order of models somehow (IdentityHashMap does not guarantee the order)
         val assembleModels = modelsMap.values
             .filterIsInstance<UtAssembleModel>()

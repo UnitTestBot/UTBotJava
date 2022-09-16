@@ -2,7 +2,7 @@
 name: Feature request
 about: Suggest an idea for the UTBot project
 title: ''
-labels: ''
+labels: 'enhancement'
 assignees: ''
 
 ---

@@ -2,7 +2,6 @@ package org.utbot.instrumentation.process
 
 import com.jetbrains.rd.framework.*
 import com.jetbrains.rd.framework.impl.RdCall
-import com.jetbrains.rd.framework.util.launchChild
 import com.jetbrains.rd.util.ILoggerFactory
 import com.jetbrains.rd.util.LogLevel
 import com.jetbrains.rd.util.Logger
@@ -10,9 +9,11 @@ import com.jetbrains.rd.util.defaultLogFormat
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.util.lifetime.LifetimeDefinition
 import com.jetbrains.rd.util.lifetime.plusAssign
-import com.jetbrains.rd.util.threading.SingleThreadScheduler
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.utbot.common.*
 import org.utbot.framework.plugin.api.util.UtContext
 import org.utbot.instrumentation.agent.Agent
@@ -26,7 +27,7 @@ import org.utbot.instrumentation.rd.obtainClientIO
 import org.utbot.instrumentation.rd.processSyncDirectory
 import org.utbot.instrumentation.rd.signalChildReady
 import org.utbot.instrumentation.util.KryoHelper
-import org.utbot.rd.UtSingleThreadScheduler
+import org.utbot.rd.UtRdCoroutineScope
 import org.utbot.rd.adviseForConditionAsync
 import java.io.File
 import java.io.OutputStream
@@ -35,9 +36,10 @@ import java.net.URLClassLoader
 import java.security.AllPermission
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlin.system.measureTimeMillis
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.instrumentation.rd.generated.ComputeStaticFieldResult
 
 /**
  * We use this ClassLoader to separate user's classes and our dependency classes.
@@ -63,27 +65,36 @@ private object HandlerClassesLoader : URLClassLoader(emptyArray()) {
 }
 
 private typealias ChildProcessLogLevel = LogLevel
-
 private val logLevel = ChildProcessLogLevel.Info
 
 // Logging
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSS")
-private fun log(level: ChildProcessLogLevel, any: () -> Any?) {
+private inline fun log(level: ChildProcessLogLevel, any: () -> Any?) {
     if (level < logLevel)
         return
 
-    System.err.println(LocalDateTime.now().format(dateFormatter) + " | ${any()}")
+    System.err.println(LocalDateTime.now().format(dateFormatter) + " ${level.name.uppercase()}| ${any()}")
 }
 
-private fun logError(any: () -> Any?) {
+// errors that must be address
+internal inline fun logError(any: () -> Any?) {
     log(ChildProcessLogLevel.Error, any)
 }
 
-private fun logInfo(any: () -> Any?) {
+// default log level for irregular useful messages that does not pollute log
+internal inline fun logInfo(any: () -> Any?) {
     log(ChildProcessLogLevel.Info, any)
 }
 
-private fun logTrace(any: () -> Any?) {
+// log level for frequent messages useful for debugging
+internal inline fun logDebug(any: () -> Any?) {
+    log(ChildProcessLogLevel.Debug, any)
+}
+
+// log level for internal rd logs and frequent messages
+// heavily pollutes log, useful only when debugging rpc
+// probably contains no info about utbot
+internal fun logTrace(any: () -> Any?) {
     log(ChildProcessLogLevel.Trace, any)
 }
 
@@ -119,9 +130,7 @@ suspend fun main(args: Array<String>) = runBlocking {
     val pid = currentProcessPid.toInt()
     val def = LifetimeDefinition()
 
-    SingleThreadScheduler(Lifetime.Eternal, "")
-
-    launchChild(Lifetime.Eternal) {
+    launch {
         var lastState = State.STARTED
         while (true) {
             val current: State? =
@@ -177,20 +186,27 @@ private fun <T, R> RdCall<T, R>.measureExecutionForTermination(block: (T) -> R) 
     this.set { it ->
         runBlocking {
             measureExecutionForTermination<R> {
-                block(it)
+                try {
+                    block(it)
+                } catch (e: Throwable) {
+                    logError { e.stackTraceToString() }
+                    throw e
+                }
             }
         }
     }
 }
 
-private suspend fun ProtocolModel.setup(kryoHelper: KryoHelper, onStop: () -> Unit) {
+private fun ProtocolModel.setup(kryoHelper: KryoHelper, onStop: () -> Unit) {
     warmup.measureExecutionForTermination {
+        logDebug { "received warmup request" }
         val time = measureTimeMillis {
             HandlerClassesLoader.scanForClasses("").toList() // here we transform classes
         }
-        logInfo { "warmup finished in $time ms" }
+        logDebug { "warmup finished in $time ms" }
     }
     invokeMethodCommand.measureExecutionForTermination { params ->
+        logDebug { "received invokeMethod request: ${params.classname}, ${params.signature}" }
         val clazz = HandlerClassesLoader.loadClass(params.classname)
         val res = instrumentation.invoke(
             clazz,
@@ -199,33 +215,43 @@ private suspend fun ProtocolModel.setup(kryoHelper: KryoHelper, onStop: () -> Un
             kryoHelper.readObject(params.parameters)
         )
 
-        logInfo { "sent cmd: $res" }
+        logDebug { "invokeMethod result: $res" }
         InvokeMethodCommandResult(kryoHelper.writeObject(res))
     }
     setInstrumentation.measureExecutionForTermination { params ->
+        logDebug { "setInstrumentation request" }
         instrumentation = kryoHelper.readObject(params.instrumentation)
+        logTrace { "instrumentation - ${instrumentation.javaClass.name} " }
         Agent.dynamicClassTransformer.transformer = instrumentation // classTransformer is set
         Agent.dynamicClassTransformer.addUserPaths(pathsToUserClasses)
         instrumentation.init(pathsToUserClasses)
     }
     addPaths.measureExecutionForTermination { params ->
+        logDebug { "addPaths request" }
+        logTrace { "path to userClasses - ${params.pathsToUserClasses}"}
+        logTrace { "path to dependencyClasses - ${params.pathsToDependencyClasses}"}
         pathsToUserClasses = params.pathsToUserClasses.split(File.pathSeparatorChar).toSet()
         pathsToDependencyClasses = params.pathsToDependencyClasses.split(File.pathSeparatorChar).toSet()
         HandlerClassesLoader.addUrls(pathsToUserClasses)
         HandlerClassesLoader.addUrls(pathsToDependencyClasses)
         kryoHelper.setKryoClassLoader(HandlerClassesLoader) // Now kryo will use our classloader when it encounters unregistered class.
-
-        logTrace { "User classes:" + pathsToUserClasses.joinToString() }
-
         UtContext.setUtContext(UtContext(HandlerClassesLoader))
     }
     stopProcess.measureExecutionForTermination {
+        logDebug { "stop request" }
         onStop()
     }
     collectCoverage.measureExecutionForTermination { params ->
+        logDebug { "collect coverage request" }
         val anyClass: Class<*> = kryoHelper.readObject(params.clazz)
+        logTrace { "class - ${anyClass.name}" }
         val result = (instrumentation as CoverageInstrumentation).collectCoverageInfo(anyClass)
         CollectCoverageResult(kryoHelper.writeObject(result))
+    }
+    computeStaticField.measureExecutionForTermination { params ->
+        val fieldId = kryoHelper.readObject<FieldId>(params.fieldId)
+        val result = instrumentation.getStaticField(fieldId)
+        ComputeStaticFieldResult(kryoHelper.writeObject(result))
     }
 }
 
@@ -256,13 +282,12 @@ private suspend fun initiate(lifetime: Lifetime, port: Int, pid: Int) {
     val kryoHelper = KryoHelper(lifetime)
     logInfo { "kryo created" }
 
-    val scheduler = UtSingleThreadScheduler { logInfo(it) }
     val clientProtocol = Protocol(
         "ChildProcess",
         Serializers(),
         Identities(IdKind.Client),
-        scheduler,
-        SocketWire.Client(lifetime, scheduler, port),
+        UtRdCoroutineScope.scheduler,
+        SocketWire.Client(lifetime, UtRdCoroutineScope.scheduler, port),
         lifetime
     )
     val (sync, protocolModel) = obtainClientIO(lifetime, clientProtocol)

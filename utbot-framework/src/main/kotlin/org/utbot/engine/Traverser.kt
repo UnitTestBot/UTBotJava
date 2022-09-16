@@ -69,6 +69,9 @@ import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.Assumption
+import org.utbot.engine.symbolic.emptyAssumption
+import org.utbot.engine.symbolic.emptyHardConstraint
+import org.utbot.engine.symbolic.emptySoftConstraint
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
@@ -1076,8 +1079,8 @@ class Traverser(
         }
 
         // Depending on existance of assumeExpr we have to add corresponding hardConstraints and assumptions
-        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else HardConstraint()
-        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else Assumption()
+        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else emptyHardConstraint()
+        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else emptyAssumption()
 
         val negativeCaseState = environment.state.updateQueued(
             negativeCaseEdge,
@@ -2958,8 +2961,9 @@ class Traverser(
         return when (expr) {
             is UtInstanceOfExpression -> { // for now only this type of expression produces deferred updates
                 val onlyMemoryUpdates = expr.symbolicStateUpdate.copy(
-                    hardConstraints = HardConstraint(),
-                    softConstraints = SoftConstraint()
+                    hardConstraints = emptyHardConstraint(),
+                    softConstraints = emptySoftConstraint(),
+                    assumptions = emptyAssumption()
                 )
                 SymbolicStateUpdateForResolvedCondition(onlyMemoryUpdates)
             }

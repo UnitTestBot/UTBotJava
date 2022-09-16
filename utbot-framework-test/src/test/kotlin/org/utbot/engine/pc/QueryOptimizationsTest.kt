@@ -51,7 +51,7 @@ fun afterAll() {
 class QueryOptimizationsTest {
 
     private fun BaseQuery.check(vararg exprs: UtBoolExpression, checker: (BaseQuery) -> Unit = {}): BaseQuery =
-        this.with(hard = exprs.toList(), soft = emptyList()).also {
+        this.with(hard = exprs.toList(), soft = emptyList(), assumptions = emptyList()).also {
             checker(it)
         }
 

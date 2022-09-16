@@ -1,0 +1,16 @@
+{
+  "projects": [
+    {
+      "FIRST": "utbot-intellij",
+      "SECOND": "utbot-cli",
+    },
+    {
+      "FIRST": "utbot-instrumentation",
+      "SECOND": "utbot-instrumentation-tests",
+    },
+    {
+      "FIRST": "utbot-summary",
+      "SECOND": "utbot-summary-tests",
+    }
+  ]
+}

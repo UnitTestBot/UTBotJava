@@ -2163,7 +2163,8 @@ class Traverser(
                 SymbolicStateUpdate(
                     hardConstraints = conditions.asHardConstraint(),
                     localMemoryUpdates = localMemoryUpdate(CAUGHT_EXCEPTION to exception.symbolic)
-                )
+                ),
+                resetException = true
             )
         )
         return true
@@ -2914,11 +2915,13 @@ class Traverser(
     private fun ExecutionState.updateQueued(
         edge: Edge,
         update: SymbolicStateUpdate = SymbolicStateUpdate(),
-        doesntThrow: Boolean = false
+        doesntThrow: Boolean = false,
+        resetException: Boolean = false
     ) = this.update(
         edge,
         queuedSymbolicStateUpdates + update,
-        doesntThrow
+        doesntThrow,
+        resetException
     )
 
     private fun TraversalContext.resolveIfCondition(cond: BinopExpr): ResolvedCondition {

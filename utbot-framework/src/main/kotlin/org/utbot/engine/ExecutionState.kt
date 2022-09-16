@@ -213,6 +213,7 @@ data class ExecutionState(
             lastEdge = edge,
             lastMethod = executionStack.last().method,
             methodResult = methodResult,
+            exception = exception,
             label = label,
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
@@ -253,6 +254,7 @@ data class ExecutionState(
             lastEdge = edge,
             lastMethod = stackElement.method,
             label = label,
+            exception = exception,
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }
@@ -268,10 +270,17 @@ data class ExecutionState(
         )
     }
 
+    /**
+     * If you want to remove information about an exception from the state (for example,
+     * for catch block processing), pass true into [resetException] parameter.
+     *
+     * Otherwise, a new state will contain the same exception as the one being copied.
+     */
     fun update(
         edge: Edge,
         symbolicStateUpdate: SymbolicStateUpdate,
         doesntThrow: Boolean,
+        resetException: Boolean
     ): ExecutionState {
         val last = executionStack.last()
         val stackElement = last.update(
@@ -299,6 +308,7 @@ data class ExecutionState(
             lastEdge = edge,
             lastMethod = stackElement.method,
             label = label,
+            exception = exception?.takeIf { !resetException },
             stateAnalyticsProperties = stateAnalyticsProperties.successorProperties(this)
         )
     }

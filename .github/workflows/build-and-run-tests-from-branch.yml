@@ -50,7 +50,7 @@ jobs:
           echo $FRAMEWORK_TESTS
           echo $COMBINED_PROJECTS
 
-  framework:
+  framework-tests:
     needs: prepare-matrices
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs

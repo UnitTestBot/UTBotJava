@@ -27,21 +27,29 @@ open class HardConstraint(
 ) : Constraint<HardConstraint>(constraints) {
     override fun plus(other: HardConstraint): HardConstraint =
         HardConstraint(addConstraints(other.constraints))
+
+    companion object {
+        internal val EMPTY: HardConstraint = HardConstraint()
+    }
 }
 
-object EmptyHardConstraint : HardConstraint()
+fun emptyHardConstraint(): HardConstraint = HardConstraint.EMPTY
 
 /**
  * Represents soft constraints.
  */
-open class SoftConstraint(
+class SoftConstraint(
     constraints: Set<UtBoolExpression> = emptySet()
 ) : Constraint<SoftConstraint>(constraints) {
     override fun plus(other: SoftConstraint): SoftConstraint =
         SoftConstraint(addConstraints(other.constraints))
+
+    companion object {
+        internal val EMPTY: SoftConstraint = SoftConstraint()
+    }
 }
 
-object EmptySoftConstraint : SoftConstraint()
+fun emptySoftConstraint(): SoftConstraint = SoftConstraint.EMPTY
 
 /**
  * Represent constraints that must be satisfied for symbolic execution.
@@ -50,15 +58,19 @@ object EmptySoftConstraint : SoftConstraint()
  *
  * @see
  */
-open class Assumption(
+class Assumption(
     constraints: Set<UtBoolExpression> = emptySet()
 ): Constraint<Assumption>(constraints) {
     override fun plus(other: Assumption): Assumption = Assumption(addConstraints(other.constraints))
 
     override fun toString() = constraints.joinToString(System.lineSeparator())
+
+    companion object {
+        internal val EMPTY: Assumption = Assumption()
+    }
 }
 
-object EmptyAssumption : Assumption()
+fun emptyAssumption(): Assumption = Assumption.EMPTY
 
 /**
  * Represents one or more updates that can be applied to [SymbolicState].
@@ -66,9 +78,9 @@ object EmptyAssumption : Assumption()
  * TODO: move [localMemoryUpdates] to another place
  */
 data class SymbolicStateUpdate(
-    val hardConstraints: HardConstraint = EmptyHardConstraint,
-    val softConstraints: SoftConstraint = EmptySoftConstraint,
-    val assumptions: Assumption = EmptyAssumption,
+    val hardConstraints: HardConstraint = emptyHardConstraint(),
+    val softConstraints: SoftConstraint = emptySoftConstraint(),
+    val assumptions: Assumption = emptyAssumption(),
     val memoryUpdates: MemoryUpdate = MemoryUpdate(),
     val localMemoryUpdates: LocalMemoryUpdate = LocalMemoryUpdate()
 ) {

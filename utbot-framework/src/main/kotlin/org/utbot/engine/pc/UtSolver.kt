@@ -31,7 +31,8 @@ import com.microsoft.z3.Status.UNSATISFIABLE
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
 import mu.KotlinLogging
-import org.utbot.engine.symbolic.EmptyAssumption
+import org.utbot.engine.symbolic.asAssumption
+import org.utbot.engine.symbolic.emptyAssumption
 import soot.ByteType
 import soot.CharType
 import soot.IntType
@@ -132,7 +133,7 @@ data class UtSolver constructor(
     // Constraints that should not be added in the solver as hypothesis.
     // Instead, we use `check` to find out if they are satisfiable.
     // It is required to have unsat cores with them.
-    var assumption: Assumption = EmptyAssumption,
+    var assumption: Assumption = emptyAssumption(),
 
     //new constraints for solver (kind of incremental behavior)
     private var hardConstraintsNotYetAddedToZ3Solver: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
@@ -178,7 +179,7 @@ data class UtSolver constructor(
 
     fun add(hard: HardConstraint, soft: SoftConstraint, assumption: Assumption): UtSolver {
         // status can implicitly change here to UNDEFINED or UNSAT
-        val newConstraints = constraints.with(hard.constraints, soft.constraints, assumption)
+        val newConstraints = constraints.with(hard.constraints, soft.constraints, assumption.constraints)
         val wantClone = (expectUndefined && newConstraints.status is UtSolverStatusUNDEFINED)
                 || (!expectUndefined && newConstraints.status !is UtSolverStatusUNSAT)
 
@@ -205,7 +206,7 @@ data class UtSolver constructor(
             copy(
                 constraints = constraintsWithStatus,
                 hardConstraintsNotYetAddedToZ3Solver = newConstraints.hard,
-                assumption = newConstraints.assumptions,
+                assumption = newConstraints.assumptions.asAssumption(),
                 z3Solver = context.mkSolver().also { it.setParameters(params) },
             )
         }

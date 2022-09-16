@@ -130,17 +130,17 @@ data class MethodResult(
 
     constructor(
         symbolicResult: SymbolicResult,
-        hardConstraints: HardConstraint = EmptyHardConstraint,
-        softConstraints: SoftConstraint = EmptySoftConstraint,
-        assumption: Assumption = EmptyAssumption,
+        hardConstraints: HardConstraint = emptyHardConstraint(),
+        softConstraints: SoftConstraint = emptySoftConstraint(),
+        assumption: Assumption = emptyAssumption(),
         memoryUpdates: MemoryUpdate = MemoryUpdate()
     ) : this(symbolicResult, SymbolicStateUpdate(hardConstraints, softConstraints, assumption, memoryUpdates))
 
     constructor(
         value: SymbolicValue,
-        hardConstraints: HardConstraint = EmptyHardConstraint,
-        softConstraints: SoftConstraint = EmptySoftConstraint,
-        assumption: Assumption = EmptyAssumption,
+        hardConstraints: HardConstraint = emptyHardConstraint(),
+        softConstraints: SoftConstraint = emptySoftConstraint(),
+        assumption: Assumption = emptyAssumption(),
         memoryUpdates: MemoryUpdate = MemoryUpdate(),
     ) : this(SymbolicSuccess(value), hardConstraints, softConstraints, assumption, memoryUpdates)
 }

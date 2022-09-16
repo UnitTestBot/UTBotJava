@@ -34,7 +34,6 @@ import kotlinx.collections.immutable.persistentListOf
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.utbot.engine.symbolic.EmptyAssumption
 
 private var expressionSimplificationValue: Boolean = UtSettings.useExpressionSimplification
 
@@ -52,7 +51,7 @@ fun afterAll() {
 class QueryOptimizationsTest {
 
     private fun BaseQuery.check(vararg exprs: UtBoolExpression, checker: (BaseQuery) -> Unit = {}): BaseQuery =
-        this.with(hard = exprs.toList(), soft = emptyList(), assumptions = EmptyAssumption).also {
+        this.with(hard = exprs.toList(), soft = emptyList(), assumptions = emptyList()).also {
             checker(it)
         }
 

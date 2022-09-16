@@ -19,9 +19,6 @@ import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.toPersistentSet
-import org.utbot.engine.symbolic.Assumption
-import org.utbot.engine.symbolic.EmptyAssumption
-import org.utbot.engine.symbolic.asAssumption
 
 /**
  * Base class that represents immutable query of constraints to solver.
@@ -34,7 +31,7 @@ import org.utbot.engine.symbolic.asAssumption
 sealed class BaseQuery(
     open val hard: PersistentSet<UtBoolExpression>,
     open val soft: PersistentSet<UtBoolExpression>,
-    open val assumptions: Assumption,
+    open val assumptions: PersistentSet<UtBoolExpression>,
     open val status: UtSolverStatus,
     open val lastAdded: Collection<UtBoolExpression>
 ) {
@@ -47,7 +44,7 @@ sealed class BaseQuery(
     abstract fun with(
         hard: Collection<UtBoolExpression>,
         soft: Collection<UtBoolExpression>,
-        assumptions: Assumption
+        assumptions: Collection<UtBoolExpression>
     ): BaseQuery
 
     /**
@@ -66,7 +63,7 @@ sealed class BaseQuery(
 class UnsatQuery(hard: PersistentSet<UtBoolExpression>) : BaseQuery(
     hard,
     soft = persistentHashSetOf(),
-    EmptyAssumption,
+    assumptions = persistentHashSetOf(),
     UtSolverStatusUNSAT(UtSolverStatusKind.UNSAT),
     lastAdded = emptyList()
 ) {
@@ -74,7 +71,7 @@ class UnsatQuery(hard: PersistentSet<UtBoolExpression>) : BaseQuery(
     override fun with(
         hard: Collection<UtBoolExpression>,
         soft: Collection<UtBoolExpression>,
-        assumptions: Assumption
+        assumptions: Collection<UtBoolExpression>
     ): BaseQuery = error("State with UnsatQuery isn't eliminated. Adding constraints to $this isn't allowed.")
 
     override fun withStatus(newStatus: UtSolverStatus) = this
@@ -94,7 +91,7 @@ class UnsatQuery(hard: PersistentSet<UtBoolExpression>) : BaseQuery(
 data class Query(
     override val hard: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
     override val soft: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
-    override val assumptions: Assumption = EmptyAssumption,
+    override val assumptions: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
     override val status: UtSolverStatus = UtSolverStatusUNDEFINED,
     override val lastAdded: Collection<UtBoolExpression> = emptyList(),
     private val eqs: PersistentMap<UtExpression, UtExpression> = persistentHashMapOf(),
@@ -196,7 +193,7 @@ data class Query(
     private fun addSimplified(
         hard: Collection<UtBoolExpression>,
         soft: Collection<UtBoolExpression>,
-        assumptions: Assumption
+        assumptions: Collection<UtBoolExpression>
     ): BaseQuery {
         val addedHard = hard.simplify().filterNot { it is UtTrue }
         if (addedHard.isEmpty() && soft.isEmpty()) {
@@ -287,11 +284,9 @@ data class Query(
         // Apply simplifications to assumptions in query.
         // We do not filter out UtFalse here because we need them to get UNSAT in corresponding cases and run concrete instead.
         val newAssumptions = this.assumptions
-            .plus(assumptions)
-            .constraints
+            .addAll(assumptions)
             .simplify(newEqs, newLts, newGts)
             .toPersistentSet()
-            .asAssumption()
 
         val diffHard = newHard - this.hard
 
@@ -315,7 +310,7 @@ data class Query(
     override fun with(
         hard: Collection<UtBoolExpression>,
         soft: Collection<UtBoolExpression>,
-        assumptions: Assumption
+        assumptions: Collection<UtBoolExpression>
     ): BaseQuery {
         return if (useExpressionSimplification) {
             addSimplified(hard, soft, assumptions)
@@ -323,7 +318,7 @@ data class Query(
             Query(
                 this.hard.addAll(hard),
                 this.soft.addAll(soft),
-                this.assumptions.plus(assumptions),
+                this.assumptions.addAll(assumptions),
                 status.checkFastSatAndReturnStatus(hard),
                 lastAdded = hard,
                 this.eqs

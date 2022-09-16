@@ -15,6 +15,7 @@ import com.intellij.openapi.module.ModuleUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
@@ -41,7 +42,15 @@ data class GenerateTestsModel(
     fun setSourceRootAndFindTestModule(newTestSourceRoot: VirtualFile?) {
         requireNotNull(newTestSourceRoot)
         testSourceRoot = newTestSourceRoot
-        testModule = ModuleUtil.findModuleForFile(newTestSourceRoot, project)
+        var target = newTestSourceRoot
+        while(target != null && target is FakeVirtualFile) {
+            target = target.parent
+        }
+        if (target == null) {
+            error("Could not find module for $newTestSourceRoot")
+        }
+
+        testModule = ModuleUtil.findModuleForFile(target, project)
             ?: error("Could not find module for $newTestSourceRoot")
     }
 

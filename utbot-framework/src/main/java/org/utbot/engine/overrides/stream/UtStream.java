@@ -117,7 +117,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Object[] filtered = new Object[size];
+        E[] filtered = (E[]) new Object[size];
         int j = 0;
         for (int i = 0; i < size; i++) {
             E element = elementData.get(i);
@@ -126,7 +126,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             }
         }
 
-        return new UtStream<>((E[]) filtered, j);
+        return new UtStream<>(filtered, j);
     }
 
     @SuppressWarnings("unchecked")
@@ -230,7 +230,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
         preconditionCheckWithClosingStream();
 
         int size = elementData.end;
-        Object[] distinctElements = new Object[size];
+        E[] distinctElements = (E[]) new Object[size];
         int distinctSize = 0;
         for (int i = 0; i < size; i++) {
             E element = elementData.get(i);
@@ -259,7 +259,7 @@ public class UtStream<E> implements Stream<E>, UtGenericStorage<E> {
             }
         }
 
-        return new UtStream<>((E[]) distinctElements, distinctSize);
+        return new UtStream<>(distinctElements, distinctSize);
     }
 
     // TODO choose the best sorting https://github.com/UnitTestBot/UTBotJava/issues/188

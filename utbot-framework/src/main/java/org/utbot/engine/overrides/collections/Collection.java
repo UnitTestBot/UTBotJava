@@ -1,6 +1,7 @@
 package org.utbot.engine.overrides.collections;
 
 import org.utbot.api.annotation.UtClassMock;
+import org.utbot.api.mock.UtMock;
 import org.utbot.engine.overrides.stream.UtStream;
 
 import java.util.stream.Stream;
@@ -11,6 +12,8 @@ public interface Collection<E> extends java.util.Collection<E> {
     @Override
     default Stream<E> stream() {
         Object[] data = toArray();
+        UtMock.disableClassCastExceptionCheck(data);
+
         int size = data.length;
 
         return new UtStream<>((E[]) data, size);

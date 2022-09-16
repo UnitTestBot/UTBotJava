@@ -22,22 +22,26 @@ sealed class Constraint<T : Constraint<T>>(constraints: Set<UtBoolExpression> = 
 /**
  * Represents hard constraints.
  */
-class HardConstraint(
+open class HardConstraint(
     constraints: Set<UtBoolExpression> = emptySet()
 ) : Constraint<HardConstraint>(constraints) {
     override fun plus(other: HardConstraint): HardConstraint =
         HardConstraint(addConstraints(other.constraints))
 }
 
+object EmptyHardConstraint : HardConstraint()
+
 /**
  * Represents soft constraints.
  */
-class SoftConstraint(
+open class SoftConstraint(
     constraints: Set<UtBoolExpression> = emptySet()
 ) : Constraint<SoftConstraint>(constraints) {
     override fun plus(other: SoftConstraint): SoftConstraint =
         SoftConstraint(addConstraints(other.constraints))
 }
+
+object EmptySoftConstraint : SoftConstraint()
 
 /**
  * Represent constraints that must be satisfied for symbolic execution.
@@ -46,7 +50,7 @@ class SoftConstraint(
  *
  * @see
  */
-class Assumption(
+open class Assumption(
     constraints: Set<UtBoolExpression> = emptySet()
 ): Constraint<Assumption>(constraints) {
     override fun plus(other: Assumption): Assumption = Assumption(addConstraints(other.constraints))
@@ -54,15 +58,17 @@ class Assumption(
     override fun toString() = constraints.joinToString(System.lineSeparator())
 }
 
+object EmptyAssumption : Assumption()
+
 /**
  * Represents one or more updates that can be applied to [SymbolicState].
  *
  * TODO: move [localMemoryUpdates] to another place
  */
 data class SymbolicStateUpdate(
-    val hardConstraints: HardConstraint = HardConstraint(),
-    val softConstraints: SoftConstraint = SoftConstraint(),
-    val assumptions: Assumption = Assumption(),
+    val hardConstraints: HardConstraint = EmptyHardConstraint,
+    val softConstraints: SoftConstraint = EmptySoftConstraint,
+    val assumptions: Assumption = EmptyAssumption,
     val memoryUpdates: MemoryUpdate = MemoryUpdate(),
     val localMemoryUpdates: LocalMemoryUpdate = LocalMemoryUpdate()
 ) {
@@ -107,7 +113,7 @@ fun Collection<UtBoolExpression>.asSoftConstraint() = SoftConstraint(transformTo
 
 fun UtBoolExpression.asSoftConstraint() = SoftConstraint(setOf(this))
 
-fun Collection<UtBoolExpression>.asAssumption() = Assumption(toSet())
+fun Collection<UtBoolExpression>.asAssumption() = Assumption(transformToSet())
 
 fun UtBoolExpression.asAssumption() = Assumption(setOf(this))
 

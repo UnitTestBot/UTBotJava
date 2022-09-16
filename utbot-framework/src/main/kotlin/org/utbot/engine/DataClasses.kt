@@ -8,10 +8,7 @@ import org.utbot.engine.pc.UtIsExpression
 import org.utbot.engine.pc.UtTrue
 import org.utbot.engine.pc.mkAnd
 import org.utbot.engine.pc.mkOr
-import org.utbot.engine.symbolic.Assumption
-import org.utbot.engine.symbolic.HardConstraint
-import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.symbolic.SymbolicStateUpdate
+import org.utbot.engine.symbolic.*
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.UtInstrumentation
 import java.util.Objects
@@ -133,17 +130,17 @@ data class MethodResult(
 
     constructor(
         symbolicResult: SymbolicResult,
-        hardConstraints: HardConstraint = HardConstraint(),
-        softConstraints: SoftConstraint = SoftConstraint(),
-        assumption: Assumption = Assumption(),
+        hardConstraints: HardConstraint = EmptyHardConstraint,
+        softConstraints: SoftConstraint = EmptySoftConstraint,
+        assumption: Assumption = EmptyAssumption,
         memoryUpdates: MemoryUpdate = MemoryUpdate()
     ) : this(symbolicResult, SymbolicStateUpdate(hardConstraints, softConstraints, assumption, memoryUpdates))
 
     constructor(
         value: SymbolicValue,
-        hardConstraints: HardConstraint = HardConstraint(),
-        softConstraints: SoftConstraint = SoftConstraint(),
-        assumption: Assumption = Assumption(),
+        hardConstraints: HardConstraint = EmptyHardConstraint,
+        softConstraints: SoftConstraint = EmptySoftConstraint,
+        assumption: Assumption = EmptyAssumption,
         memoryUpdates: MemoryUpdate = MemoryUpdate(),
     ) : this(SymbolicSuccess(value), hardConstraints, softConstraints, assumption, memoryUpdates)
 }

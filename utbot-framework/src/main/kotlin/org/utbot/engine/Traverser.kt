@@ -66,14 +66,7 @@ import org.utbot.engine.pc.mkNot
 import org.utbot.engine.pc.mkOr
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.symbolic.HardConstraint
-import org.utbot.engine.symbolic.SoftConstraint
-import org.utbot.engine.symbolic.Assumption
-import org.utbot.engine.symbolic.SymbolicStateUpdate
-import org.utbot.engine.symbolic.asHardConstraint
-import org.utbot.engine.symbolic.asSoftConstraint
-import org.utbot.engine.symbolic.asAssumption
-import org.utbot.engine.symbolic.asUpdate
+import org.utbot.engine.symbolic.*
 import org.utbot.engine.util.trusted.isFromTrustedLibrary
 import org.utbot.engine.util.statics.concrete.associateEnumSootFieldsWithConcreteValues
 import org.utbot.engine.util.statics.concrete.isEnumAffectingExternalStatics
@@ -1076,8 +1069,8 @@ class Traverser(
         }
 
         // Depending on existance of assumeExpr we have to add corresponding hardConstraints and assumptions
-        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else HardConstraint()
-        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else Assumption()
+        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else EmptyHardConstraint
+        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else EmptyAssumption
 
         val negativeCaseState = environment.state.updateQueued(
             negativeCaseEdge,
@@ -2958,8 +2951,9 @@ class Traverser(
         return when (expr) {
             is UtInstanceOfExpression -> { // for now only this type of expression produces deferred updates
                 val onlyMemoryUpdates = expr.symbolicStateUpdate.copy(
-                    hardConstraints = HardConstraint(),
-                    softConstraints = SoftConstraint()
+                    hardConstraints = EmptyHardConstraint,
+                    softConstraints = EmptySoftConstraint,
+                    assumptions = EmptyAssumption
                 )
                 SymbolicStateUpdateForResolvedCondition(onlyMemoryUpdates)
             }

@@ -19,6 +19,9 @@ import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.toPersistentSet
+import org.utbot.engine.symbolic.Assumption
+import org.utbot.engine.symbolic.EmptyAssumption
+import org.utbot.engine.symbolic.asAssumption
 
 /**
  * Base class that represents immutable query of constraints to solver.
@@ -31,6 +34,7 @@ import kotlinx.collections.immutable.toPersistentSet
 sealed class BaseQuery(
     open val hard: PersistentSet<UtBoolExpression>,
     open val soft: PersistentSet<UtBoolExpression>,
+    open val assumptions: Assumption,
     open val status: UtSolverStatus,
     open val lastAdded: Collection<UtBoolExpression>
 ) {
@@ -40,7 +44,11 @@ sealed class BaseQuery(
      * @param hard - new constraints that must be satisfied.
      * @param soft - new constraints that are suggested to be satisfied if possible.
      */
-    abstract fun with(hard: Collection<UtBoolExpression>, soft: Collection<UtBoolExpression>): BaseQuery
+    abstract fun with(
+        hard: Collection<UtBoolExpression>,
+        soft: Collection<UtBoolExpression>,
+        assumptions: Assumption
+    ): BaseQuery
 
     /**
      * Set [status] of the query.
@@ -55,11 +63,19 @@ sealed class BaseQuery(
  * UnsatQuery.[status] is [UtSolverStatusUNSAT].
  * UnsatQuery.[lastAdded] = [emptyList]
  */
-class UnsatQuery(hard: PersistentSet<UtBoolExpression>) :
-    BaseQuery(hard, persistentHashSetOf(), UtSolverStatusUNSAT(UtSolverStatusKind.UNSAT), emptyList()) {
+class UnsatQuery(hard: PersistentSet<UtBoolExpression>) : BaseQuery(
+    hard,
+    soft = persistentHashSetOf(),
+    EmptyAssumption,
+    UtSolverStatusUNSAT(UtSolverStatusKind.UNSAT),
+    lastAdded = emptyList()
+) {
 
-    override fun with(hard: Collection<UtBoolExpression>, soft: Collection<UtBoolExpression>): BaseQuery =
-        error("State with UnsatQuery isn't eliminated. Adding constraints to $this isn't allowed.")
+    override fun with(
+        hard: Collection<UtBoolExpression>,
+        soft: Collection<UtBoolExpression>,
+        assumptions: Assumption
+    ): BaseQuery = error("State with UnsatQuery isn't eliminated. Adding constraints to $this isn't allowed.")
 
     override fun withStatus(newStatus: UtSolverStatus) = this
 
@@ -78,12 +94,13 @@ class UnsatQuery(hard: PersistentSet<UtBoolExpression>) :
 data class Query(
     override val hard: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
     override val soft: PersistentSet<UtBoolExpression> = persistentHashSetOf(),
+    override val assumptions: Assumption = EmptyAssumption,
     override val status: UtSolverStatus = UtSolverStatusUNDEFINED,
     override val lastAdded: Collection<UtBoolExpression> = emptyList(),
     private val eqs: PersistentMap<UtExpression, UtExpression> = persistentHashMapOf(),
     private val lts: PersistentMap<UtExpression, Long> = persistentHashMapOf(),
     private val gts: PersistentMap<UtExpression, Long> = persistentHashMapOf()
-) : BaseQuery(hard, soft, status, lastAdded) {
+) : BaseQuery(hard, soft, assumptions, status, lastAdded) {
 
     val rewriter: RewritingVisitor
         get() = RewritingVisitor(eqs, lts, gts)
@@ -179,6 +196,7 @@ data class Query(
     private fun addSimplified(
         hard: Collection<UtBoolExpression>,
         soft: Collection<UtBoolExpression>,
+        assumptions: Assumption
     ): BaseQuery {
         val addedHard = hard.simplify().filterNot { it is UtTrue }
         if (addedHard.isEmpty() && soft.isEmpty()) {
@@ -266,8 +284,27 @@ data class Query(
             .filterNot { it is UtBoolLiteral }
             .toPersistentSet()
 
+        // Apply simplifications to assumptions in query.
+        // We do not filter out UtFalse here because we need them to get UNSAT in corresponding cases and run concrete instead.
+        val newAssumptions = this.assumptions
+            .plus(assumptions)
+            .constraints
+            .simplify(newEqs, newLts, newGts)
+            .toPersistentSet()
+            .asAssumption()
+
         val diffHard = newHard - this.hard
-        return Query(newHard, newSoft, status.checkFastSatAndReturnStatus(diffHard), diffHard, newEqs, newLts, newGts)
+
+        return Query(
+            newHard,
+            newSoft,
+            newAssumptions,
+            status.checkFastSatAndReturnStatus(diffHard),
+            lastAdded = diffHard,
+            newEqs,
+            newLts,
+            newGts
+        )
     }
 
     /**
@@ -275,11 +312,22 @@ data class Query(
      * @param hard - set of constraints that must be satisfied.
      * @param soft - set of constraints that should be satisfied if possible.
      */
-    override fun with(hard: Collection<UtBoolExpression>, soft: Collection<UtBoolExpression>): BaseQuery {
+    override fun with(
+        hard: Collection<UtBoolExpression>,
+        soft: Collection<UtBoolExpression>,
+        assumptions: Assumption
+    ): BaseQuery {
         return if (useExpressionSimplification) {
-            addSimplified(hard, soft)
+            addSimplified(hard, soft, assumptions)
         } else {
-            Query(this.hard.addAll(hard), this.soft.addAll(soft), status.checkFastSatAndReturnStatus(hard), hard, this.eqs)
+            Query(
+                this.hard.addAll(hard),
+                this.soft.addAll(soft),
+                this.assumptions.plus(assumptions),
+                status.checkFastSatAndReturnStatus(hard),
+                lastAdded = hard,
+                this.eqs
+            )
         }
     }
 

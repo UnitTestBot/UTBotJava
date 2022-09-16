@@ -22,7 +22,7 @@ env:
   GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -javaagent:/tmp/jmx-exporter.jar=12345:/tmp/jmx-exporter.yml -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
 
 jobs:
-  prepare-tests-matrix:
+  prepare-matrices:
     runs-on: ubuntu-latest
     # Outputs are used for passing data to dependent jobs.
     outputs:
@@ -39,23 +39,24 @@ jobs:
         run: |
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
-      - id: set-matrix
-        name: Read and print config from framework-tests-matrix.json
+      - id: set-matrices
+        name: Read and print config from framework-tests-matrix.json and combined-projects-matrix.json
         run: |
-          TASKS=$(echo $(cat .github/workflows/framework-tests-matrix.json))
-          echo "::set-output name=matrix::$TASKS"
-          echo $TASKS
+          FRAMEWORK_TESTS=$(echo $(cat .github/workflows/framework-tests-matrix.json))
+          COMBINED_PROJECTS=$(echo $(cat .github/workflows/combined-projects-matrix.json))
+          echo "::set-output name=framework-tests-matrix::$FRAMEWORK_TESTS"
+          echo "::set-output name=combined-projects-matrix::$COMBINED_PROJECTS"
+          echo $FRAMEWORK_TESTS
+          echo $COMBINED_PROJECTS
+
   framework:
-    # This job does not need to wait for 'prepare-tests-matrix' result.
-    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
-    # to start execution early.
-    needs: prepare-tests-matrix
+    needs: prepare-matrices
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
     # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
-      matrix: ${{ fromJson(needs.prepare-tests-matrix.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.prepare-tests-matrix.outputs.framework-tests-matrix) }}
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
@@ -100,16 +101,77 @@ jobs:
         name: test_report ${{ matrix.project.PART_NAME }}
         path: utbot-framework/build/reports/tests/test/*
 
+  combined-projects:
+    # This job does not need to wait for 'prepare-tests-matrix' result.
+    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
+    # to start execution early.
+    needs: prepare-matrices
+    # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
+    # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+    strategy:
+    # The option forces to execute all jobs even though some of them have failed.
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-tests-matrix.outputs.combined-projects-matrix) }}
+    runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
+    steps:
+    - name: Print environment variables
+      run: printenv
 
-  project:
-    needs: prepare-tests-matrix
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Check out ${{ github.event.inputs.commit_sha }} commit
+      if: github.event.inputs.commit_sha != ''
+      run: |
+        git fetch
+        git checkout ${{ github.event.inputs.commit_sha }}
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ env.COMMIT_SHA }}
+
+    - name: Run monitoring
+      run: |
+        echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
+        chmod +x ./scripts/monitoring.sh
+        ./scripts/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+    - name: Build project ${{ matrix.projects.first }}
+      id: first-project
+      run: |
+        cd ${{ matrix.projects.first }}
+        gradle build --no-daemon
+    - name: Build project ${{ matrix.projects.second }}
+      if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
+      run: |
+        cd ${{ matrix.projects.second }}
+        gradle build --no-daemon
+    - name: Upload test report if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: test_report ${{ matrix.projects.first }}
+        path: ${{ matrix.projects.first }}/build/reports/tests/test/*
+
+    - name: Upload test report if tests have failed
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: test_report ${{ matrix.projects.second }}
+        path: ${{ matrix.projects.second }}/build/reports/tests/test/*
+        
+
+  single-project:
+    # This job does not need to wait for 'prepare-tests-matrix' result.
+    # GitHub allocates runners portionally. Framework tests are time consuming. That's why we want to force them 
+    # to start execution early.
+    needs: prepare-matrices
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
     # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
       matrix:
-        project: [utbot-api, utbot-cli, utbot-core, utbot-framework-api, utbot-fuzzers, utbot-gradle, utbot-instrumentation, utbot-instrumentation-tests, utbot-intellij, utbot-junit-contest, utbot-sample, utbot-summary, utbot-summary-tests]
+        project: [utbot-api, utbot-core, utbot-framework-api, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]
     runs-on: ubuntu-20.04
     container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
@@ -143,3 +205,4 @@ jobs:
       with:
         name: test_report ${{ matrix.project }}
         path: ${{ matrix.project }}/build/reports/tests/test/*
+        

@@ -124,6 +124,7 @@ import org.utbot.intellij.plugin.models.mockitoCoreLibraryDescriptor
 import org.utbot.intellij.plugin.models.packageName
 import org.utbot.intellij.plugin.models.testNgLibraryDescriptor
 import org.utbot.intellij.plugin.settings.Settings
+import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 import org.utbot.intellij.plugin.ui.components.TestFolderComboWithBrowseButton
 import org.utbot.intellij.plugin.ui.utils.LibrarySearchScope
 import org.utbot.intellij.plugin.ui.utils.addSourceRootIfAbsent
@@ -168,9 +169,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
     private val testSourceFolderField = TestFolderComboWithBrowseButton(model)
 
-    private val codegenLanguages = ComboBox(DefaultComboBoxModel(CodegenLanguage.values()))
-    private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
-    private val mockStrategies = ComboBox(DefaultComboBoxModel(MockStrategyApi.values()))
+    private val codegenLanguages = createComboBox(CodegenLanguage.values())
+    private val testFrameworks = createComboBox(TestFramework.allItems.toTypedArray())
+    private val mockStrategies = createComboBox(MockStrategyApi.values())
     private val staticsMocking = JCheckBox("Mock static methods")
     private val timeoutSpinner =
         JBIntSpinner(
@@ -190,6 +191,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         staticsMocking to null,
         parametrizedTestSources to null
     )
+
+    private fun <T> createComboBox(values: Array<T>) : ComboBox<T> {
+        return ComboBox<T>(DefaultComboBoxModel(values)).also {
+            it.renderer = CodeGenerationSettingItemRenderer()
+        }
+    }
 
     private fun createHelpLabel(commonTooltip: String? = null) = JBLabel(AllIcons.General.ContextHelp).apply {
         if (!commonTooltip.isNullOrEmpty()) toolTipText = commonTooltip
@@ -239,22 +246,22 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             row("Test source root:") {
                 component(testSourceFolderField)
             }
-            row("Code generation language:") {
-                makePanelWithHelpTooltip(
-                    codegenLanguages as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[codegenLanguages]
-                )
-            }.visible = false
+//            row("Code generation language:") {
+//                makePanelWithHelpTooltip(
+//                    codegenLanguages,
+//                    itemsToHelpTooltip[codegenLanguages]
+//                )
+//            }
             row("Testing framework:") {
                 makePanelWithHelpTooltip(
-                    testFrameworks as ComboBox<CodeGenerationSettingItem>,
+                    testFrameworks,
                     null
                 )
             }
             row { component(parametrizedTestSources) }
             row("Mock strategy:") {
                 makePanelWithHelpTooltip(
-                    mockStrategies as ComboBox<CodeGenerationSettingItem>,
+                    mockStrategies,
                     ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. Otherwise mock nothing.")
                 )
             }
@@ -959,7 +966,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 list: JList<out TestFramework>, value: TestFramework?,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
-                this.append(value.toString(), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                this.append(value?.displayName?:"<null>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 if (value == null || !value.isInstalled) {
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
                 }
@@ -984,7 +991,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 list: JList<out MockStrategyApi>, value: MockStrategyApi?,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
-                this.append(value.toString(), SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                this.append(value?.displayName?:"<null>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 if (value != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled) {
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
                 }

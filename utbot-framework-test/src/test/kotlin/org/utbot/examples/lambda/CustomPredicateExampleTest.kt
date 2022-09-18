@@ -1,12 +1,24 @@
 package org.utbot.examples.lambda
 
 import org.junit.jupiter.api.Test
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.testcheckers.eq
+import org.utbot.tests.infrastructure.CodeGeneration
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.isException
 
-class CustomPredicateExampleTest : UtValueTestCaseChecker(testClass = CustomPredicateExample::class) {
+class CustomPredicateExampleTest : UtValueTestCaseChecker(
+    testClass = CustomPredicateExample::class,
+    languagePipelines = listOf(
+        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+        // TODO: https://github.com/UnitTestBot/UTBotJava/issues/88 (generics in Kotlin)
+        // At the moment, when we create an instance of a functional interface via lambda (through reflection),
+        // we need to do a type cast (e.g. `obj as Predicate<Int>`), but since generics are not supported yet,
+        // we use a raw type (e.g. `Predicate`) instead (which is not allowed in Kotlin).
+        CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
+    )
+) {
     @Test
     fun testNoCapturedValuesPredicateCheck() {
         checkWithException(

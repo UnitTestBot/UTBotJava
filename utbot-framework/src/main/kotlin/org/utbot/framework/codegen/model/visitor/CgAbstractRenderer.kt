@@ -15,6 +15,7 @@ import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgAssignment
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgBreakStatement
 import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
@@ -225,6 +226,12 @@ internal abstract class CgAbstractRenderer(
         if (printLineAfterContentEnd) println()
 
         println(regionEnd)
+    }
+
+    override fun visit(element: CgAuxiliaryClass) {
+        val auxiliaryClassText = element.getText(context)
+        auxiliaryClassText.split("\n")
+            .forEach { line -> println(line) }
     }
 
     override fun visit(element: CgUtilMethod) {

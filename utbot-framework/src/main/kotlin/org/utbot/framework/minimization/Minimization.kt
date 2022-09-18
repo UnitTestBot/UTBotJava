@@ -13,6 +13,7 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -223,6 +224,7 @@ private fun UtModel.calculateSize(used: MutableSet<UtModel> = mutableSetOf()): I
         is UtClassRefModel, is UtEnumConstantModel, is UtArrayModel -> 1
         is UtAssembleModel -> 1 + allStatementsChain.sumOf { it.calculateSize(used) }
         is UtCompositeModel -> 1 + fields.values.sumOf { it.calculateSize(used) }
+        is UtLambdaModel -> 1 + capturedValues.sumOf { it.calculateSize(used) }
     }
 }
 

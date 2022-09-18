@@ -319,6 +319,7 @@ fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
             name = arrayIdName,
             canonicalName = "${elementType.canonicalName}[]",
             simpleName = "${elementType.simpleName}[]",
+            elementClassId = elementType,
             isNullable = isNullable
         )
         else -> ClassId(
@@ -327,12 +328,6 @@ fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
             isNullable = isNullable
         )
     }
-}
-
-@Suppress("unused")
-internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
-    importIfNeeded(classId)
-    return CgGetJavaClass(classId)
 }
 
 internal fun Class<*>.overridesEquals(): Boolean =

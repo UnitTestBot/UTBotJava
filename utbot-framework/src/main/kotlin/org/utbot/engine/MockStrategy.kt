@@ -25,7 +25,7 @@ enum class MockStrategy {
 
     OTHER_CLASSES {
         override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean =
-                classToMock != classUnderTest && !isSystemPackage(classToMock.packageName)
+            classToMock != classUnderTest && !isSystemPackage(classToMock.packageName)
     };
 
     /**

@@ -12,6 +12,7 @@ import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecution
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -230,6 +231,10 @@ private class FieldStateVisitor : UtModelVisitor<FieldData>() {
             val newData = data.copy(path = path)
             field.accept(this, newData)
         }
+    }
+
+    override fun visit(element: UtLambdaModel, data: FieldData) {
+        recordFieldState(data, element)
     }
 
     private fun recordFieldState(data: FieldData, model: UtModel) {

@@ -114,16 +114,6 @@ internal abstract class CgVariableConstructorComponent(val context: CgContext) :
                 else -> if (withExplicitClass) anyOfClass else any
             }
 
-    /**
-     * @return expression for [java.lang.Class] of the given [classId]
-     */
-    protected fun getClassOf(classId: ClassId): CgExpression =
-            if (classId isAccessibleFrom testClassPackageName) {
-                CgGetJavaClass(classId)
-            } else {
-                newVar(classCgClassId) { Class::class.id[forName](classId.name) }
-            }
-
     private fun matchByClass(id: ClassId): CgMethodCall =
             argumentMatchersClassId[anyOfClass](getClassOf(id))
 }

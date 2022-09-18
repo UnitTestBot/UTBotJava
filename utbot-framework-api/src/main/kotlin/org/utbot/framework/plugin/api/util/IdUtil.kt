@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api.util
 
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -51,7 +52,6 @@ val ClassId.denotableType: ClassId
             else -> this
         }
     }
-
 
 @Suppress("unused")
 val ClassId.enclosingClass: ClassId?
@@ -118,17 +118,19 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
     if (left == right) {
         return true
     }
-    val leftClass = this.jClass
+    val leftClass = this
     val interfaces = sequence {
         var types = listOf(leftClass)
         while (types.isNotEmpty()) {
             yieldAll(types)
-            types = types.map { it.interfaces }.flatMap { it.toList() }
+            types = types
+                .flatMap { it.interfaces.toList() }
+                .map { it.id }
         }
     }
-    val superclasses = generateSequence(leftClass) { it.superclass }
+    val superclasses = generateSequence(leftClass) { it.superclass?.id }
     val superTypes = interfaces + superclasses
-    return right in superTypes.map { it.id }
+    return right in superTypes
 }
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)
@@ -524,6 +526,10 @@ fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorId {
 
 fun builtinMethodId(classId: BuiltinClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {
     return BuiltinMethodId(classId, name, returnType, arguments.toList())
+}
+
+fun builtinConstructorId(classId: BuiltinClassId, vararg arguments: ClassId): BuiltinConstructorId {
+    return BuiltinConstructorId(classId, arguments.toList())
 }
 
 fun builtinStaticMethodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {

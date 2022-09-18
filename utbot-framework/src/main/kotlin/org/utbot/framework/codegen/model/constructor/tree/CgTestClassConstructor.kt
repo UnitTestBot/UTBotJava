@@ -29,6 +29,9 @@ import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.codegen.model.constructor.TestClassModel
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
+import org.utbot.framework.codegen.model.tree.CgUtilEntity
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.kClass
@@ -98,11 +101,11 @@ internal class CgTestClassConstructor(val context: CgContext) :
                 }
 
                 if (currentTestClass == outerMostTestClass) {
-                    val utilMethods = collectUtilMethods()
-                    // If utilMethodProvider is TestClassUtilMethodProvider, then util methods should be declared
-                    // in the test class. Otherwise, util methods will be located elsewhere (e.g. another class or library).
-                    if (utilMethodProvider is TestClassUtilMethodProvider && utilMethods.isNotEmpty()) {
-                        staticDeclarationRegions += CgStaticsRegion("Util methods", utilMethods)
+                    val utilEntities = collectUtilEntities()
+                    // If utilMethodProvider is TestClassUtilMethodProvider, then util entities should be declared
+                    // in the test class. Otherwise, util entities will be located elsewhere (e.g. another class).
+                    if (utilMethodProvider is TestClassUtilMethodProvider && utilEntities.isNotEmpty()) {
+                        staticDeclarationRegions += CgStaticsRegion("Util methods", utilEntities)
                     }
                 }
             }
@@ -201,20 +204,24 @@ internal class CgTestClassConstructor(val context: CgContext) :
     }
 
     /**
-     * This method collects a list of util methods needed by the class.
-     * By the end of the test method generation [requiredUtilMethods] may not contain all the methods needed.
+     * This method collects a list of util entities (methods and classes) needed by the class.
+     * By the end of the test method generation [requiredUtilMethods] may not contain all the needed.
      * That's because some util methods may not be directly used in tests, but they may be used from other util methods.
-     * We define such method dependencies in [MethodId.dependencies].
+     * We define such method dependencies in [MethodId.methodDependencies].
      *
-     * Once all dependencies are collected, they are also added to [requiredUtilMethods].
+     * Once all dependencies are collected, required methods are added back to [requiredUtilMethods],
+     * because during the work of this method they are being removed from this list, so we have to put them back in.
      *
-     * @return a list of [CgUtilMethod] representing required util methods (including dependencies).
+     * Also, some util methods may use some classes that also need to be generated.
+     * That is why we collect information about required classes using [MethodId.classDependencies].
+     *
+     * @return a list of [CgUtilEntity] representing required util methods and classes (including their own dependencies).
      */
-    private fun collectUtilMethods(): List<CgUtilMethod> {
+    private fun collectUtilEntities(): List<CgUtilEntity> {
         val utilMethods = mutableListOf<CgUtilMethod>()
-        // some util methods depend on the others
-        // using this loop we make sure that all the
-        // util methods dependencies are taken into account
+        // Some util methods depend on other util methods or some auxiliary classes.
+        // Using this loop we make sure that all the util method dependencies are taken into account.
+        val requiredClasses = mutableSetOf<ClassId>()
         while (requiredUtilMethods.isNotEmpty()) {
             val method = requiredUtilMethods.first()
             requiredUtilMethods.remove(method)
@@ -225,24 +232,41 @@ internal class CgTestClassConstructor(val context: CgContext) :
                     importUtilMethodDependencies(method)
                 }
                 existingMethodNames += method.name
-                requiredUtilMethods += method.dependencies()
+                requiredUtilMethods += method.methodDependencies()
+                requiredClasses += method.classDependencies()
             }
         }
         // Collect all util methods back into requiredUtilMethods.
         // Now there will also be util methods that weren't present in requiredUtilMethods at first,
         // but were needed for the present util methods to work.
         requiredUtilMethods += utilMethods.map { method -> method.id }
-        return utilMethods
+
+        val auxiliaryClasses = requiredClasses.map { CgAuxiliaryClass(it) }
+
+        return utilMethods + auxiliaryClasses
     }
 
     /**
      * If @receiver is an util method, then returns a list of util method ids that @receiver depends on
      * Otherwise, an empty list is returned
      */
-    private fun MethodId.dependencies(): List<MethodId> = when (this) {
+    private fun MethodId.methodDependencies(): List<MethodId> = when (this) {
         createInstance -> listOf(getUnsafeInstance)
         deepEquals -> listOf(arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals, hasCustomEquals)
         arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals -> listOf(deepEquals)
+        buildLambda, buildStaticLambda -> listOf(
+            getLookupIn, getSingleAbstractMethod, getLambdaMethod,
+            getLambdaCapturedArgumentTypes, getInstantiatedMethodType, getLambdaCapturedArgumentValues
+        )
+        else -> emptyList()
+    }
+
+    /**
+     * If @receiver is an util method, then returns a list of auxiliary class ids that @receiver depends on.
+     * Otherwise, an empty list is returned.
+     */
+    private fun MethodId.classDependencies(): List<ClassId> = when (this) {
+        buildLambda, buildStaticLambda -> listOf(capturedArgumentClass)
         else -> emptyList()
     }
 

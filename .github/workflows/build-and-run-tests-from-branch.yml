@@ -44,8 +44,8 @@ jobs:
       - id: set-matrices
         name: Read and print config from framework-tests-matrix.json and combined-projects-matrix.json
         run: |
-          FRAMEWORK_TESTS=$(echo $(cat .github/workflows/framework-tests-matrix.json))
-          COMBINED_PROJECTS=$(echo $(cat .github/workflows/combined-projects-matrix.json))
+          FRAMEWORK_TESTS=$(cat .github/workflows/framework-tests-matrix.json)
+          COMBINED_PROJECTS=$(cat .github/workflows/combined-projects-matrix.json)
           echo "::set-output name=framework-tests-matrix::$FRAMEWORK_TESTS"
           echo "::set-output name=combined-projects-matrix::$COMBINED_PROJECTS"
           echo $FRAMEWORK_TESTS

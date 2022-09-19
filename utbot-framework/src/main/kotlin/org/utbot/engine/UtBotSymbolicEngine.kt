@@ -310,7 +310,7 @@ class UtBotSymbolicEngine(
                                 concreteExecutionResult.stateAfter,
                                 concreteExecutionResult.result,
                                 instrumentation,
-                                path,
+                                mutableListOf(),
                                 listOf(),
                                 concreteExecutionResult.coverage
                             )

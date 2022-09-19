@@ -162,7 +162,7 @@ class DateConstantModelProvider(
             simpleDateFormatId,
             "$simpleDateFormatId[$stringClassId]#" + id.hex(),
             instantiationCall
-        ).apply {
+        ) {
             listOf(UtExecutableCallModel(instance = this, formatSetLenient, listOf(UtPrimitiveModel(false))))
         }
     }

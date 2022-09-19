@@ -25,6 +25,7 @@ import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -37,7 +38,7 @@ class SettingsWindow(val project: Project) {
         val valuesComboBox: LayoutBuilder.(KClass<*>, Array<*>) -> Unit = { loader, values ->
             val serviceLabels = mapOf(
                 CodegenLanguage::class to "Generated test language:",
-                RuntimeExceptionTestsBehaviour::class to "Test with exceptions:",
+                RuntimeExceptionTestsBehaviour::class to "Tests with exceptions:",
                 TreatOverflowAsError::class to "Overflow detection:",
                 JavaDocCommentStyle::class to "Javadoc comment style:"
             )
@@ -51,7 +52,10 @@ class SettingsWindow(val project: Project) {
                         DefaultComboBoxModel(values),
                         getter = { settings.providerNameByServiceLoader(loader) },
                         setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
-                    ).apply { ContextHelpLabel.create(tooltipLabels[loader] ?: return@apply)() }
+                    ).apply {
+                        component.renderer = CodeGenerationSettingItemRenderer()
+                        ContextHelpLabel.create(tooltipLabels[loader] ?: return@apply)()
+                    }
                 }
             }
         }

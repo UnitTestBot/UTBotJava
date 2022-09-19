@@ -1108,6 +1108,7 @@ open class TypeParameters(val parameters: List<ClassId> = emptyList())
 class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface CodeGenerationSettingItem {
+    val id : String
     val displayName: String
     val description: String
 }
@@ -1120,20 +1121,23 @@ interface CodeGenerationSettingBox {
 }
 
 enum class MockStrategyApi(
+    override val id : String,
     override val displayName: String,
     override val description: String
 ) : CodeGenerationSettingItem {
-    NO_MOCKS("Do not mock", "Do not use mock frameworks at all"),
+    NO_MOCKS("No mocks", "Do not mock", "Do not use mock frameworks at all"),
     OTHER_PACKAGES(
+        "Other packages: Mockito",
         "Mock package environment",
         "Mock all classes outside the current package except system ones"
     ),
     OTHER_CLASSES(
+        "Other classes: Mockito",
         "Mock class environment",
         "Mock all classes outside the class under test except system ones"
     );
 
-    override fun toString() = displayName
+    override fun toString() = id
 
     // Get is mandatory because of the initialization order of the inheritors.
     // Otherwise, in some cases we could get an incorrect value
@@ -1144,20 +1148,23 @@ enum class MockStrategyApi(
 }
 
 enum class TreatOverflowAsError(
+    override val id : String,
     override val displayName: String,
     override val description: String,
 ) : CodeGenerationSettingItem {
     AS_ERROR(
+        id = "Treat overflows as errors",
         displayName = "Treat overflows as errors",
         description = "Generate tests that treat possible overflows in arithmetic operations as errors " +
                 "that throw Arithmetic Exception",
     ),
     IGNORE(
+        id = "Ignore overflows",
         displayName = "Ignore overflows",
         description = "Ignore possible overflows in arithmetic operations",
     );
 
-    override fun toString(): String = displayName
+    override fun toString(): String = id
 
     // Get is mandatory because of the initialization order of the inheritors.
     // Otherwise, in some cases we could get an incorrect value
@@ -1189,13 +1196,14 @@ enum class JavaDocCommentStyle(
 }
 
 enum class MockFramework(
+    override val id: String = "Mockito",
     override val displayName: String,
     override val description: String = "Use $displayName as mock framework",
     var isInstalled: Boolean = false
 ) : CodeGenerationSettingItem {
-    MOCKITO("Mockito");
+    MOCKITO(displayName = "Mockito");
 
-    override fun toString() = displayName
+    override fun toString() = id
 
     companion object : CodeGenerationSettingBox {
         override val defaultItem: MockFramework = MOCKITO
@@ -1204,11 +1212,12 @@ enum class MockFramework(
 }
 
 enum class CodegenLanguage(
+    override val id: String,
     override val displayName: String,
     @Suppress("unused") override val description: String = "Generate unit tests in $displayName"
 ) : CodeGenerationSettingItem {
-    JAVA(displayName = "Java"),
-    KOTLIN(displayName = "Kotlin (experimental)");
+    JAVA(id = "Java", displayName = "Java"),
+    KOTLIN(id = "Kotlin", displayName = "Kotlin (experimental)");
 
     enum class OperatingSystem {
         WINDOWS,
@@ -1247,7 +1256,7 @@ enum class CodegenLanguage(
             KOTLIN -> listOf(System.getenv("JAVA_HOME"), "bin", "java")
         }.joinToString(File.separator)
 
-    override fun toString(): String = displayName
+    override fun toString(): String = id
 
     fun getCompilationCommand(buildDirectory: String, classPath: String, sourcesFiles: List<String>): List<String> {
         val arguments = when (this) {

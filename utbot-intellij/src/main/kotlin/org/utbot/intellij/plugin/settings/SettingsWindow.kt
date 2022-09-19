@@ -23,6 +23,7 @@ import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
 
 class SettingsWindow(val project: Project) {
@@ -38,6 +39,7 @@ class SettingsWindow(val project: Project) {
                 CodegenLanguage::class to "Generated test language:",
                 RuntimeExceptionTestsBehaviour::class to "Test with exceptions:",
                 TreatOverflowAsError::class to "Overflow detection:",
+                JavaDocCommentStyle::class to "JavaDoc comment style:"
             )
             val tooltipLabels = mapOf(
                 CodegenLanguage::class to "You can generate test methods in Java or Kotlin regardless of your source code language."
@@ -80,14 +82,14 @@ class SettingsWindow(val project: Project) {
                     }
             }
         }
+
         mapOf(
             RuntimeExceptionTestsBehaviour::class to RuntimeExceptionTestsBehaviour.values(),
-            TreatOverflowAsError::class to TreatOverflowAsError.values()
+            TreatOverflowAsError::class to TreatOverflowAsError.values(),
+            JavaDocCommentStyle::class to JavaDocCommentStyle.values()
         ).forEach { (loader, values) ->
             valuesComboBox(loader, values)
         }
-
-
 
         row {
             cell {

@@ -19,6 +19,7 @@ import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.psi.PsiClass
 import com.intellij.refactoring.util.classMembers.MemberInfo
 import org.jetbrains.kotlin.idea.core.getPackage
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.util.ConflictTriggers
 import org.utbot.intellij.plugin.ui.utils.jdkVersion
 
@@ -65,6 +66,7 @@ data class GenerateTestsModel(
     lateinit var hangingTestsTimeout: HangingTestsTimeout
     lateinit var forceStaticMocking: ForceStaticMocking
     lateinit var chosenClassesToMockAlways: Set<ClassId>
+    lateinit var commentStyle: JavaDocCommentStyle
 
     val conflictTriggers: ConflictTriggers = ConflictTriggers()
 

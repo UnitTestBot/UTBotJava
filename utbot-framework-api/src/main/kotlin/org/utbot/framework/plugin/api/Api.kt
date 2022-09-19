@@ -1167,6 +1167,27 @@ enum class TreatOverflowAsError(
     }
 }
 
+enum class JavaDocCommentStyle(
+    override val displayName: String,
+    override val description: String
+) : CodeGenerationSettingItem {
+    CUSTOM_JAVADOC_TAGS(
+        displayName = "Structured via JavaDoc tags",
+        description = "Uses custom JavaDoc tags to describe test's execution path."
+    ),
+    FULL_SENTENCE_WRITTEN(
+        displayName = "Full sentence written",
+        description = "Describes test's execution path using full sentences."
+    );
+
+    override fun toString(): String = displayName
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem = if (UtSettings.useCustomJavaDocTags) CUSTOM_JAVADOC_TAGS else FULL_SENTENCE_WRITTEN
+        override val allItems = JavaDocCommentStyle.values().toList()
+    }
+}
+
 enum class MockFramework(
     override val displayName: String,
     override val description: String = "Use $displayName as mock framework",

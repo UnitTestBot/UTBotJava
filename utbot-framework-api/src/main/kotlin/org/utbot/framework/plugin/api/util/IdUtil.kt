@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api.util
 
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -30,6 +31,27 @@ import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 
 // ClassId utils
+
+/**
+ * A type is called **non-denotable** if its name cannot be used in the source code.
+ * For example, anonymous classes **are** non-denotable types.
+ * On the other hand, [java.lang.Integer], for example, **is** denotable.
+ *
+ * This property returns the same type for denotable types,
+ * and it returns the supertype when given an anonymous class.
+ *
+ * **NOTE** that in Java there are non-denotable types other than anonymous classes.
+ * For example, null-type, intersection types, capture types.
+ * But [ClassId] cannot contain any of these (at least at the moment).
+ * So we only consider the case of anonymous classes.
+ */
+val ClassId.denotableType: ClassId
+    get() {
+        return when {
+            this.isAnonymous -> this.supertypeOfAnonymousClass
+            else -> this
+        }
+    }
 
 @Suppress("unused")
 val ClassId.enclosingClass: ClassId?
@@ -96,20 +118,53 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
     if (left == right) {
         return true
     }
-    val leftClass = this.jClass
+    val leftClass = this
     val interfaces = sequence {
         var types = listOf(leftClass)
         while (types.isNotEmpty()) {
             yieldAll(types)
-            types = types.map { it.interfaces }.flatMap { it.toList() }
+            types = types
+                .flatMap { it.interfaces.toList() }
+                .map { it.id }
         }
     }
-    val superclasses = generateSequence(leftClass) { it.superclass }
+    val superclasses = generateSequence(leftClass) { it.superclass?.id }
     val superTypes = interfaces + superclasses
-    return right in superTypes.map { it.id }
+    return right in superTypes
 }
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)
+
+/**
+ * - Anonymous class that extends a class will have this class as its superclass and no interfaces.
+ * - Anonymous class that implements an interface, will have the only interface
+ *   and [java.lang.Object] as its superclass.
+ *
+ * @return [ClassId] of a type that the given anonymous class inherits
+ */
+val ClassId.supertypeOfAnonymousClass: ClassId
+    get() {
+        if (this is BuiltinClassId) error("Cannot obtain info about supertypes of BuiltinClassId $canonicalName")
+        require(isAnonymous) { "An anonymous class expected, but got $canonicalName" }
+
+        val clazz = jClass
+        val superclass = clazz.superclass.id
+        val interfaces = clazz.interfaces.map { it.id }
+
+        return when (superclass) {
+            objectClassId -> {
+                // anonymous class actually inherits from Object, e.g. Object obj = new Object() { ... };
+                if (interfaces.isEmpty()) {
+                    objectClassId
+                } else {
+                    // anonymous class implements some interface
+                    interfaces.singleOrNull() ?: error("Anonymous class can have no more than one interface")
+                }
+            }
+            // anonymous class inherits from some class other than java.lang.Object
+            else -> superclass
+        }
+    }
 
 val ClassId.kClass: KClass<*>
     get() = jClass.kotlin
@@ -212,6 +267,8 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
+
+val dateClassId = java.util.Date::class.id
 
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(
@@ -469,6 +526,10 @@ fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorId {
 
 fun builtinMethodId(classId: BuiltinClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {
     return BuiltinMethodId(classId, name, returnType, arguments.toList())
+}
+
+fun builtinConstructorId(classId: BuiltinClassId, vararg arguments: ClassId): BuiltinConstructorId {
+    return BuiltinConstructorId(classId, arguments.toList())
 }
 
 fun builtinStaticMethodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {

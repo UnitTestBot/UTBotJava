@@ -85,6 +85,7 @@ import javax.swing.AbstractAction
 import javax.swing.Action
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JButton
+import javax.swing.JCheckBox
 import javax.swing.JComboBox
 import javax.swing.JComponent
 import javax.swing.JList
@@ -98,6 +99,7 @@ import org.utbot.framework.UtSettings
 import org.utbot.framework.codegen.ForceStaticMocking
 import org.utbot.framework.codegen.Junit4
 import org.utbot.framework.codegen.Junit5
+import org.utbot.framework.codegen.MockitoStaticMocking
 import org.utbot.framework.codegen.NoStaticMocking
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.StaticsMocking
@@ -169,7 +171,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val codegenLanguages = ComboBox(DefaultComboBoxModel(CodegenLanguage.values()))
     private val testFrameworks = ComboBox(DefaultComboBoxModel(TestFramework.allItems.toTypedArray()))
     private val mockStrategies = ComboBox(DefaultComboBoxModel(MockStrategyApi.values()))
-    private val staticsMocking = ComboBox(DefaultComboBoxModel(StaticsMocking.allItems.toTypedArray()))
+    private val staticsMocking = JCheckBox("Mock static methods")
     private val timeoutSpinner =
         JBIntSpinner(
             TimeUnit.MILLISECONDS.toSeconds(UtSettings.utBotGenerationTimeoutInMillis).toInt(),
@@ -177,24 +179,24 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             Int.MAX_VALUE,
             MINIMUM_TIMEOUT_VALUE_IN_SECONDS
         )
-    private val parametrizedTestSources = ComboBox(DefaultComboBoxModel(ParametrizedTestSource.values()))
+    private val parametrizedTestSources = JCheckBox("Parametrized tests")
 
-    private lateinit var mockExtensionRow: Row
     private lateinit var panel: DialogPanel
 
     @Suppress("UNCHECKED_CAST")
     private val itemsToHelpTooltip = hashMapOf(
         (codegenLanguages as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
         (testFrameworks as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
-        (mockStrategies as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
-        (staticsMocking as ComboBox<CodeGenerationSettingItem>) to createHelpLabel(),
-        (parametrizedTestSources as ComboBox<CodeGenerationSettingItem>) to createHelpLabel()
+        staticsMocking to null,
+        parametrizedTestSources to null
     )
 
-    private fun createHelpLabel() = JBLabel(AllIcons.General.ContextHelp)
+    private fun createHelpLabel(commonTooltip: String? = null) = JBLabel(AllIcons.General.ContextHelp).apply {
+        if (!commonTooltip.isNullOrEmpty()) toolTipText = commonTooltip
+    }
 
     init {
-        title = "Generate tests with UtBot"
+        title = "Generate Tests with UnitTestBot"
         setResizable(false)
 
         TestFramework.allItems.forEach {
@@ -242,37 +244,26 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                     codegenLanguages as ComboBox<CodeGenerationSettingItem>,
                     itemsToHelpTooltip[codegenLanguages]
                 )
-            }
-            row("Test framework:") {
+            }.visible = false
+            row("Testing framework:") {
                 makePanelWithHelpTooltip(
                     testFrameworks as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[testFrameworks]
+                    null
                 )
             }
+            row { component(parametrizedTestSources) }
             row("Mock strategy:") {
                 makePanelWithHelpTooltip(
                     mockStrategies as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[mockStrategies]
+                    ContextHelpLabel.create("Mock everything around the target class or the whole package except the system classes. Otherwise mock nothing.")
                 )
             }
-            mockExtensionRow = row("Mock static:") {
-                makePanelWithHelpTooltip(
-                    staticsMocking as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[staticsMocking]
-                )
-            }
-            row("Timeout for class:") {
-                panelWithHelpTooltip("The execution timeout specifies time for symbolic and concrete analysis") {
+            row { component(staticsMocking)}
+            row("Test generation timeout:") {
+                cell{
                     component(timeoutSpinner)
-                    component(JBLabel("sec"))
+                    label("seconds per class")
                 }
-
-            }
-            row("Parametrized test:") {
-                makePanelWithHelpTooltip(
-                    parametrizedTestSources as ComboBox<CodeGenerationSettingItem>,
-                    itemsToHelpTooltip[parametrizedTestSources]
-                )
             }
             row {
                 component(cbSpecifyTestPackage)
@@ -281,7 +272,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 component(testPackageField)
             }.apply { visible = false }
 
-            row("Generate test methods for:") {}
+            row("Generate tests for:") {}
             row {
                 scrollPane(membersTable)
             }
@@ -489,10 +480,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         model.testFramework = testFrameworks.item
         model.mockStrategy = mockStrategies.item
-        model.parametrizedTestSource = parametrizedTestSources.item
+        model.parametrizedTestSource =
+            if (parametrizedTestSources.isSelected) ParametrizedTestSource.PARAMETRIZE else ParametrizedTestSource.DO_NOT_PARAMETRIZE
 
         model.mockFramework = MOCKITO
-        model.staticsMocking = staticsMocking.item
+        model.staticsMocking = if (staticsMocking.isSelected) MockitoStaticMocking else NoStaticMocking
         model.codegenLanguage = codegenLanguages.item
         try {
             timeoutSpinner.commitEdit()
@@ -635,8 +627,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
         val settings = model.project.service<Settings>()
         mockStrategies.item = settings.mockStrategy
-        staticsMocking.item = settings.staticsMocking
-        parametrizedTestSources.item = settings.parametrizedTestSource
+        staticsMocking.isSelected = settings.staticsMocking == MockitoStaticMocking
+        parametrizedTestSources.isSelected = settings.parametrizedTestSource == ParametrizedTestSource.PARAMETRIZE
 
         val areMocksSupported = settings.parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
         mockStrategies.isEnabled = areMocksSupported
@@ -646,9 +638,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             if (model.srcClasses.all { it is KtUltraLightClass }) CodegenLanguage.KOTLIN else CodegenLanguage.JAVA
 
         val installedTestFramework = TestFramework.allItems.singleOrNull { it.isInstalled }
-        currentFrameworkItem = when (parametrizedTestSources.item) {
-            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> installedTestFramework ?: settings.testFramework
-            ParametrizedTestSource.PARAMETRIZE -> installedTestFramework
+        currentFrameworkItem = when (parametrizedTestSources.isSelected) {
+            false -> installedTestFramework ?: settings.testFramework
+            true -> installedTestFramework
                 ?: if (settings.testFramework != Junit4) settings.testFramework else TestFramework.parametrizedDefaultItem
         }
 
@@ -656,9 +648,15 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         updateParametrizationEnabled(currentFrameworkItem)
 
         updateMockStrategyList()
-        updateStaticMockingStrategyList()
 
-        itemsToHelpTooltip.forEach { (box, tooltip) -> tooltip.toolTipText = box.item.description }
+        itemsToHelpTooltip.forEach { (box, tooltip) ->
+            if (tooltip != null && box is ComboBox<*>) {
+                val item = box.item
+                if (item is CodeGenerationSettingItem) {
+                    tooltip.toolTipText = item.description
+                }
+            }
+        }
     }
 
     /**
@@ -690,13 +688,13 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     }
 
     private fun configureStaticMockingIfRequired() {
-        if (staticsMocking.item != NoStaticMocking && !staticsMocking.item.isConfigured) {
+        if (staticsMocking.isSelected && !MockitoStaticMocking.isConfigured) {
             configureStaticMocking()
         }
     }
 
     private fun configureParametrizedTestsIfRequired() {
-        if (parametrizedTestSources.item != ParametrizedTestSource.DO_NOT_PARAMETRIZE && !testFrameworks.item.isParametrizedTestsConfigured) {
+        if (parametrizedTestSources.isSelected && !testFrameworks.item.isParametrizedTestsConfigured) {
             configureParametrizedTests()
         }
     }
@@ -735,8 +733,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         val testResourcesUrl = model.testModule.getOrCreateTestResourcesPath(model.testSourceRoot)
         configureMockitoResources(testResourcesUrl)
 
-        val staticsMockingValue = staticsMocking.item
-        staticsMockingValue.isConfigured = true
+        MockitoStaticMocking.isConfigured = true
     }
 
     /**
@@ -827,11 +824,8 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
      * Note that now we need it for Kotlin plugin only.
      */
     private fun configureJvmTargetIfRequired() {
-        val codegenLanguage = codegenLanguages.item
-        val parametrization = parametrizedTestSources.item
-
-        if (codegenLanguage == CodegenLanguage.KOTLIN
-            && parametrization == ParametrizedTestSource.PARAMETRIZE
+        if (codegenLanguages.item == CodegenLanguage.KOTLIN
+            && parametrizedTestSources.isSelected
             && createKotlinJvmTargetNotificationDialog() == Messages.YES
         ) {
             configureKotlinJvmTarget()
@@ -873,7 +867,9 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private val actualKotlinJvmTarget = "1.8"
 
     private fun setListeners() {
-        itemsToHelpTooltip.forEach { (box, tooltip) -> box.setHelpTooltipTextChanger(tooltip) }
+        itemsToHelpTooltip.forEach { (box, tooltip) -> if (box is ComboBox<*> && tooltip != null) {
+            box.setHelpTooltipTextChanger(tooltip)
+        } }
 
         testSourceFolderField.childComponent.addActionListener { event ->
             with((event.source as JComboBox<*>).selectedItem) {
@@ -892,7 +888,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 
             staticsMocking.isEnabled = item != MockStrategyApi.NO_MOCKS
             if (!staticsMocking.isEnabled) {
-                staticsMocking.item = NoStaticMocking
+                staticsMocking.isSelected = false
             }
         }
 
@@ -905,8 +901,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
 
         parametrizedTestSources.addActionListener { event ->
-            val comboBox = event.source as ComboBox<*>
-            val parametrizedTestSource = comboBox.item as ParametrizedTestSource
+            val parametrizedTestSource = if (parametrizedTestSources.isSelected) {
+                ParametrizedTestSource.PARAMETRIZE
+            } else {
+                ParametrizedTestSource.DO_NOT_PARAMETRIZE
+            }
 
             val areMocksSupported = parametrizedTestSource == ParametrizedTestSource.DO_NOT_PARAMETRIZE
 
@@ -916,7 +915,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 mockStrategies.item = MockStrategyApi.NO_MOCKS
             }
             if (!staticsMocking.isEnabled) {
-                staticsMocking.item = NoStaticMocking
+                staticsMocking.isSelected = false
             }
 
             updateTestFrameworksList(parametrizedTestSource)
@@ -993,20 +992,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         }
     }
 
-    private fun updateStaticMockingStrategyList() {
-        staticsMocking.renderer = object : ColoredListCellRenderer<StaticsMocking>() {
-            override fun customizeCellRenderer(
-                list: JList<out StaticsMocking>, value: StaticsMocking?,
-                index: Int, selected: Boolean, hasFocus: Boolean
-            ) {
-                this.append(value.toString(), SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (value != NoStaticMocking && value?.isConfigured != true) {
-                    this.append(WILL_BE_CONFIGURED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
-                }
-            }
-        }
-    }
-
     private fun staticsMockingConfigured(): Boolean {
         val entries = ModuleRootManager.getInstance(model.testModule).contentEntries
         val hasEntriesWithoutResources = entries
@@ -1038,10 +1023,12 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
 fun GenerateTestsModel.getActionText() : String =
     if (this.runGeneratedTestsWithCoverage) ACTION_GENERATE_AND_RUN else ACTION_GENERATE
 
-private fun ComboBox<CodeGenerationSettingItem>.setHelpTooltipTextChanger(helpLabel: JBLabel) {
+private fun ComboBox<*>.setHelpTooltipTextChanger(helpLabel: JBLabel) {
     addActionListener { event ->
         val comboBox = event.source as ComboBox<*>
-        val item = comboBox.item as CodeGenerationSettingItem
-        helpLabel.toolTipText = item.description
+        val item = comboBox.item
+        if (item is CodeGenerationSettingItem) {
+            helpLabel.toolTipText = item.description
+        }
     }
 }

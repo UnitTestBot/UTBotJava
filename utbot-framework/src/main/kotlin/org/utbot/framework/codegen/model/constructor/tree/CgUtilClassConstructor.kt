@@ -3,6 +3,7 @@ package org.utbot.framework.codegen.model.constructor.tree
 import org.utbot.framework.codegen.model.CodeGenerator
 import org.utbot.framework.codegen.model.UtilClassKind
 import org.utbot.framework.codegen.model.constructor.builtin.utUtilsClassId
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgUtilMethod
 import org.utbot.framework.codegen.model.tree.buildRegularClass
@@ -25,6 +26,7 @@ internal object CgUtilClassConstructor {
                     content += utilClassKind.utilClassVersionComment
                     content += utilClassKind.utilClassKindComment
                     content += utilMethodProvider.utilMethodIds.map { CgUtilMethod(it) }
+                    content += CgAuxiliaryClass(utilMethodProvider.capturedArgumentClassId)
                 }
             }
         }

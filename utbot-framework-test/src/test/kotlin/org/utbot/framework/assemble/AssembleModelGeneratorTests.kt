@@ -58,6 +58,8 @@ import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.instanceCounter
 import org.utbot.framework.util.modelIdCounter
 import kotlin.reflect.full.functions
+import org.utbot.examples.assemble.*
+import org.utbot.framework.codegen.model.constructor.util.arrayTypeOf
 
 /**
  * Test classes must be located in the same folder as [AssembleTestUtils] class.
@@ -1117,7 +1119,7 @@ class AssembleModelGeneratorTests {
             testClassId,
             "array" to UtArrayModel(
                 modelIdCounter.incrementAndGet(),
-                ClassId("[L${innerClassId.canonicalName}", innerClassId),
+                arrayTypeOf(innerClassId),
                 length = 3,
                 UtNullModel(innerClassId),
                 mutableMapOf(
@@ -1187,11 +1189,11 @@ class AssembleModelGeneratorTests {
         val testClassId = ArrayOfComplexArrays::class.id
         val innerClassId = PrimitiveFields::class.id
 
-        val innerArrayClassId = ClassId("[L${innerClassId.canonicalName}", innerClassId)
+        val innerArrayClassId = arrayTypeOf(innerClassId)
 
         val arrayOfArraysModel = UtArrayModel(
             modelIdCounter.incrementAndGet(),
-            ClassId("[Lorg.utbot.examples.assemble.ComplexArray", testClassId),
+            arrayTypeOf(testClassId),
             length = 2,
             UtNullModel(innerArrayClassId),
             mutableMapOf(

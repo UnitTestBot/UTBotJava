@@ -12,6 +12,7 @@ import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import org.utbot.framework.codegen.model.tree.CgAssignment
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgBreakStatement
 import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
@@ -110,6 +111,7 @@ interface CgVisitor<R> {
     fun visit(element: CgTestMethodCluster): R
     fun visit(element: CgExecutableUnderTestCluster): R
 
+    fun visit(element: CgAuxiliaryClass): R
     fun visit(element: CgUtilMethod): R
 
     // Methods

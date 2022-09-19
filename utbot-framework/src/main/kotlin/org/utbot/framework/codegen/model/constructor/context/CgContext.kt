@@ -343,7 +343,10 @@ internal interface CgContextOwner {
 
     val testClassThisInstance: CgThisInstance
 
-    // util methods of current test class
+    // util methods and auxiliary classes of current test class
+
+    val capturedArgumentClass: ClassId
+        get() = utilMethodProvider.capturedArgumentClassId
 
     val getUnsafeInstance: MethodId
         get() = utilMethodProvider.getUnsafeInstanceMethodId
@@ -389,6 +392,30 @@ internal interface CgContextOwner {
 
     val getArrayLength: MethodId
         get() = utilMethodProvider.getArrayLengthMethodId
+
+    val buildStaticLambda: MethodId
+        get() = utilMethodProvider.buildStaticLambdaMethodId
+
+    val buildLambda: MethodId
+        get() = utilMethodProvider.buildLambdaMethodId
+
+    val getLookupIn: MethodId
+        get() = utilMethodProvider.getLookupInMethodId
+
+    val getSingleAbstractMethod: MethodId
+        get() = utilMethodProvider.getSingleAbstractMethodMethodId
+
+    val getLambdaCapturedArgumentTypes: MethodId
+        get() = utilMethodProvider.getLambdaCapturedArgumentTypesMethodId
+
+    val getLambdaCapturedArgumentValues: MethodId
+        get() = utilMethodProvider.getLambdaCapturedArgumentValuesMethodId
+
+    val getInstantiatedMethodType: MethodId
+        get() = utilMethodProvider.getInstantiatedMethodTypeMethodId
+
+    val getLambdaMethod: MethodId
+        get() = utilMethodProvider.getLambdaMethodMethodId
 }
 
 /**

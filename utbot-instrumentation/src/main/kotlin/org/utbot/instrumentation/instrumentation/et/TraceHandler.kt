@@ -9,6 +9,7 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.LocalVariablesSorter
+import org.utbot.instrumentation.process.logError
 
 sealed class InstructionData {
     abstract val line: Int
@@ -111,6 +112,8 @@ class ProcessingStorage {
  * Storage to which instrumented classes will write execution data.
  */
 object RuntimeTraceStorage {
+    internal var alreadyLoggedIncreaseStackSizeTip = false
+
     /**
      * Contains ids of instructions in the order of execution.
      */
@@ -151,7 +154,11 @@ object RuntimeTraceStorage {
             this.`$__trace__`[current] = id
             this.`$__counter__` = current + 1
         } else {
-            System.err.println("Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)")
+            val loggedTip = alreadyLoggedIncreaseStackSizeTip
+            if (!loggedTip) {
+                alreadyLoggedIncreaseStackSizeTip = true
+                logError { "Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)" }
+            }
         }
     }
 }
@@ -289,5 +296,6 @@ class TraceHandler {
     fun resetTrace() {
         instructionsList = null
         RuntimeTraceStorage.`$__counter__` = 0
+        RuntimeTraceStorage.alreadyLoggedIncreaseStackSizeTip = false
     }
 }

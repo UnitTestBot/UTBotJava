@@ -27,9 +27,15 @@ jobs:
     - name: Print environment variables
       run: printenv
 
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.inputs.commit_sha }}
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Check out ${{ github.event.inputs.commit_sha }} commit
+      if: github.event.inputs.commit_sha != ''
+      run: |
+        git config --global --add safe.directory ${GITHUB_WORKSPACE}
+        git fetch
+        git checkout ${{ github.event.inputs.commit_sha }}
 
     - uses: gradle/gradle-build-action@v2
       with:

@@ -19,7 +19,7 @@ env:
   IMAGE_NAME: utbot_java_cli
   DOCKERFILE_PATH: docker/Dockerfile_java_cli
   # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -javaagent:/tmp/jmx-exporter.jar=12345:/tmp/jmx-exporter.yml -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
 
 jobs:
   prepare-tests-matrix:
@@ -128,9 +128,6 @@ jobs:
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ env.COMMIT_SHA }}
 
       - name: Run monitoring
         run: |

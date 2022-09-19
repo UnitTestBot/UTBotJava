@@ -87,7 +87,6 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
-    @Disabled("Java 11 transition -- Yura looks at this. We have similar issue with Strings")
     fun testDistinctExample() {
         check(
             BaseStreamExample::distinctExample,

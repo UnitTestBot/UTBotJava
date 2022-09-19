@@ -31,10 +31,10 @@ jobs:
     steps:
       - name: Print environment variables
         run: printenv
-        
+
       - name: Checkout repository
         uses: actions/checkout@v3
-      
+
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
         run: |
@@ -55,7 +55,7 @@ jobs:
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
-    # The option forces to execute all jobs even though some of them have failed.
+      # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.framework-tests-matrix) }}
     runs-on: ubuntu-20.04
@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: Print environment variables
         run: printenv
-      
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -111,7 +111,7 @@ jobs:
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
-    # The option forces to execute all jobs even though some of them have failed.
+      # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare-matrices.outputs.combined-projects-matrix) }}
     runs-on: ubuntu-20.04
@@ -171,7 +171,7 @@ jobs:
     # Using matrices let create multiple jobs runs based on the combinations of the variables from matrices. 
     # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
     strategy:
-    # The option forces to execute all jobs even though some of them have failed.
+      # The option forces to execute all jobs even though some of them have failed.
       fail-fast: false
       matrix:
         project: [utbot-core, utbot-fuzzers, utbot-gradle, utbot-junit-contest, utbot-sample]

@@ -85,6 +85,38 @@ class TagGenerator {
 private fun generateExecutionTags(executions: List<UtSymbolicExecution>, splitSteps: SplitSteps): List<TraceTag> =
     executions.map { TraceTag(it, splitSteps) }
 
+
+/**
+ * Splits executions into clusters
+ * By default there is 5 types of clusters:
+ *      Success, UnexpectedFail, ExpectedCheckedThrow, ExpectedUncheckedThrow, UnexpectedUncheckedThrow
+ *      These are split by the type of execution result
+ *
+ * @return clustered executions
+ */
+fun groupExecutionsWithEmptyPaths(testSet: UtMethodTestSet): List<ExecutionCluster> {
+    val methodExecutions = testSet.executions.filterIsInstance<UtSymbolicExecution>()
+    val clusters = mutableListOf<ExecutionCluster>()
+    val commentPrefix =  "CONCRETE EXECUTION ENGINE:"
+    val commentPostfix = "for method ${testSet.method.humanReadableName}"
+
+    val grouped = methodExecutions.groupBy { it.result.clusterKind() }
+
+    val successfulExecutions = grouped[ExecutionGroup.SUCCESSFUL_EXECUTIONS] ?: emptyList()
+    if (successfulExecutions.isNotEmpty()) {
+        clusters += SuccessfulExecutionCluster(
+                    "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix",
+                    successfulExecutions.toList())
+    }
+
+    clusters += grouped
+        .filterNot { (kind, _) -> kind == ExecutionGroup.SUCCESSFUL_EXECUTIONS }
+        .map { (suffixId, group) ->
+            FailedExecutionCluster("$commentPrefix ${suffixId.displayName} $commentPostfix", group)
+        }
+    return clusters
+}
+
 /**
  * Splits executions into clusters
  * By default there is 5 types of clusters:
@@ -163,7 +195,7 @@ private fun UtExecutionResult.clusterKind() = when (this) {
 /**
  * Structure used to represent execution cluster with header
  */
-private sealed class ExecutionCluster(var header: String, val executions: List<UtSymbolicExecution>)
+sealed class ExecutionCluster(var header: String, val executions: List<UtSymbolicExecution>)
 
 /**
  * Represents successful execution cluster

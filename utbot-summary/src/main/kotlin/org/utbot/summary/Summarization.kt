@@ -153,22 +153,28 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         }
 
         // handles tests produced by symbolic engine, but with empty paths
-        val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
+        val testSetWithEmptyPaths = prepareTestSetWithEmptyPaths(testSet)
+
+        val executionsWithEmptyPaths = testSetWithEmptyPaths.executions
 
         if (executionsWithEmptyPaths.isNotEmpty()) {
             executionsWithEmptyPaths.forEach {
                 logger.info {
-                    "Test is created by Symbolic Execution Engine. The path for test ${it.testMethodName} " +
+                    "The path for test ${it.testMethodName} " +
                             "for method ${testSet.method.classId.name} is empty and summaries could not be generated."
                 }
             }
 
-            clustersToReturn.add(
-                UtExecutionCluster(
-                    UtClusterInfo(),
-                    executionsWithEmptyPaths
+            val clusteredExecutions = groupExecutionsWithEmptyPaths(testSetWithEmptyPaths)
+
+            clusteredExecutions.forEach {
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(it.header),
+                        it.executions
+                    )
                 )
-            )
+            }
         }
 
         val testSetWithNonEmptyPaths = prepareTestSetForByteCodeAnalysis(testSet)
@@ -286,8 +292,20 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         )
     }
 
-    private fun getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet: UtMethodTestSet) =
-        testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isEmpty() }
+    /** Filter and copies executions with non-empty paths. */
+    private fun prepareTestSetWithEmptyPaths(testSet: UtMethodTestSet): UtMethodTestSet {
+        val executions =
+            testSet.executions.filterIsInstance<UtSymbolicExecution>()
+                .filter { it.path.isEmpty() }
+
+        return UtMethodTestSet(
+            method = testSet.method,
+            executions = executions,
+            jimpleBody = testSet.jimpleBody,
+            errors = testSet.errors,
+            clustersInfo = testSet.clustersInfo
+        )
+    }
 
     /*
     * asts of invokes also included

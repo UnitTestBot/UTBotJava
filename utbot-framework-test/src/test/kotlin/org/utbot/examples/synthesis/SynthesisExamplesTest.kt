@@ -7,13 +7,23 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.synthesis.Synthesizer
 import org.utbot.tests.infrastructure.DoNotCalculate
 import org.utbot.tests.infrastructure.UtValueTestCaseChecker
 import org.utbot.tests.infrastructure.ignoreExecutionsNumber
 import org.utbot.tests.infrastructure.isException
 
-class SynthesisExamplesTest : UtValueTestCaseChecker(testClass = SynthesisExamples::class, testCodeGeneration = true) {
+class SynthesisExamplesTest : UtValueTestCaseChecker(
+    testClass = SynthesisExamples::class,
+    testCodeGeneration = true,
+    languagePipelines = listOf(
+        CodeGenerationLanguageLastStage(CodegenLanguage.JAVA),
+        // kotlin is turned off, because UtBot Kotlin code generation
+        // currently does not support collections
+        //  CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN)
+    )
+) {
     private val initialEnableSynthesizer = UtSettings.enableSynthesis
     private val initialEnableSynthesisCache = UtSettings.enableSynthesisCache
     private val initialTimeoutInMillis = UtSettings.synthesisTimeoutInMillis

@@ -15,10 +15,7 @@ import org.utbot.common.bracket
 import org.utbot.common.runBlockingWithCancellationPredicate
 import org.utbot.common.runIgnoringCancellationException
 import org.utbot.common.trace
-import org.utbot.engine.EngineController
-import org.utbot.engine.Mocker
-import org.utbot.engine.SymbolicEngineTarget
-import org.utbot.engine.UtBotSymbolicEngine
+import org.utbot.engine.*
 import org.utbot.framework.TestSelectionStrategyType
 import org.utbot.framework.UtSettings
 import org.utbot.framework.UtSettings.checkSolverTimeoutMillis
@@ -392,9 +389,7 @@ open class TestCaseGenerator(
             val newBeforeState = mapEnvironmentModels(method, symbolicExecution, symbolicExecution.stateBefore) {
                 it.modelsBefore
             } ?: return@map execution
-            val newAfterState = mapEnvironmentModels(method, symbolicExecution, symbolicExecution.stateAfter) {
-                it.modelsAfter
-            } ?: return@map execution
+            val newAfterState = getConcreteAfterState(method, newBeforeState) ?: return@map execution
 
             symbolicExecution.copy(
                 newBeforeState,
@@ -424,6 +419,24 @@ open class TestCaseGenerator(
             newParameters,
             models.statics
         )
+    }
+
+    private fun getConcreteAfterState(method: UtMethod<*>, stateBefore: EnvironmentModels): EnvironmentModels? = try {
+        val concreteExecutor = ConcreteExecutor(
+            UtExecutionInstrumentation,
+            this.classpath ?: "",
+            dependencyPaths
+        ).apply { this.classLoader = utContext.classLoader }
+        val concreteExecutionResult = runBlocking {
+            concreteExecutor.executeConcretely(
+                method,
+                stateBefore,
+                emptyList()
+            )
+        }
+        concreteExecutionResult.stateAfter
+    } catch (e: Throwable) {
+        null
     }
 }
 

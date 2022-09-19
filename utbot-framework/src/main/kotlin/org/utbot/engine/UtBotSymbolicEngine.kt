@@ -745,7 +745,7 @@ private fun ResolvedModels.constructStateForMethod(method: SootMethod): Environm
     return EnvironmentModels(thisInstanceBefore, paramsBefore, statics)
 }
 
-private suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
+internal suspend fun ConcreteExecutor<UtConcreteExecutionResult, UtExecutionInstrumentation>.executeConcretely(
     methodUnderTest: UtMethod<*>,
     stateBefore: EnvironmentModels,
     instrumentation: List<UtInstrumentation>

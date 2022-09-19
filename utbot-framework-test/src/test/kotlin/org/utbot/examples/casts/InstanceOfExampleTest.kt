@@ -404,6 +404,16 @@ internal class InstanceOfExampleTest : UtValueTestCaseChecker(
         )
     }
 
+    @Test
+    fun testInstanceOfString() {
+        check(
+            InstanceOfExample::instanceOfString,
+            eq(2),
+            { cs, r -> cs == null && r == Unit },
+            { cs, r -> cs is String && r == null }
+        )
+    }
+
 
     private inline fun <reified T : Any> Any?.isInstanceOfArray() =
         (this as? Array<*>)?.run { T::class.java.isAssignableFrom(this::class.java.componentType) } == true

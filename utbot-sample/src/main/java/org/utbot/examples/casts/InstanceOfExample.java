@@ -322,4 +322,10 @@ public class InstanceOfExample {
 
         return array;
     }
+
+    public void instanceOfString(CharSequence cs) {
+        if (cs instanceof String) {
+            throw new IllegalStateException("CharSequence must not be a String");
+        }
+    }
 }

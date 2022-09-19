@@ -25,7 +25,6 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.getIdOrThrow
-import org.utbot.framework.plugin.api.idOrNull
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
@@ -34,6 +33,7 @@ import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import soot.Type
 
 val rangeModifiableArrayId: ClassId = RangeModifiableUnlimitedArray::class.id
 
@@ -264,6 +264,9 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         return resultModel
     }
 
+    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+        setOf(ARRAY_OBJECT_TYPE)
+
     companion object {
         internal val rangeModifiableArrayClass: SootClass
             get() = Scene.v().getSootClass(rangeModifiableArrayId.name)
@@ -277,6 +280,7 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 }
 
 val associativeArrayId: ClassId = AssociativeArray::class.id
+val associativeArrayType: Type = Scene.v().getSootClass(AssociativeArray::class.java.canonicalName).type
 
 class AssociativeArrayWrapper : WrapperInterface {
 
@@ -414,6 +418,9 @@ class AssociativeArrayWrapper : WrapperInterface {
         model.fields[storageField.fieldId] = storageValues
         return model
     }
+
+    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+        setOf(associativeArrayType)
 
     private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, storageField)

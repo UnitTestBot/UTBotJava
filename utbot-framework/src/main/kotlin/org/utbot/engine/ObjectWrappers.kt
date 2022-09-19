@@ -1,5 +1,11 @@
 package org.utbot.engine
 
+import java.util.Optional
+import java.util.OptionalDouble
+import java.util.OptionalInt
+import java.util.OptionalLong
+import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.reflect.KClass
 import org.utbot.common.WorkaroundReason.MAKE_SYMBOLIC
 import org.utbot.common.workaround
 import org.utbot.engine.UtListClass.UT_ARRAY_LIST
@@ -34,12 +40,7 @@ import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootMethod
-import java.util.Optional
-import java.util.OptionalDouble
-import java.util.OptionalInt
-import java.util.OptionalLong
-import java.util.concurrent.CopyOnWriteArrayList
-import kotlin.reflect.KClass
+import soot.Type
 
 typealias TypeToBeWrapped = RefType
 typealias WrapperType = RefType
@@ -222,6 +223,11 @@ interface WrapperInterface {
     ): List<InvokeResult>
 
     fun value(resolver: Resolver, wrapper: ObjectValue): UtModel
+
+    /**
+     * Returns list of types that can be produced by [value] method.
+     */
+    fun getPotentialPossibleTypes(type: Type): Set<Type>
 }
 
 // TODO: perhaps we have to have wrapper around concrete value here
@@ -252,4 +258,7 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
 
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
+
+    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+        setOf(Scene.v().getSootClass(throwable.javaClass.canonicalName).type)
 }

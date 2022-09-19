@@ -26,20 +26,22 @@ import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.getIdOrThrow
-import org.utbot.framework.util.graph
 import org.utbot.framework.plugin.api.id
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.constructorId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
+import org.utbot.framework.util.graph
 import org.utbot.framework.util.nextModelName
+import soot.ArrayType
 import soot.IntType
 import soot.RefType
 import soot.Scene
 import soot.SootClass
 import soot.SootField
 import soot.SootMethod
+import soot.Type
 
 abstract class BaseOverriddenWrapper(protected val overriddenClassName: String) : WrapperInterface {
     val overriddenClass: SootClass = Scene.v().getSootClass(overriddenClassName)
@@ -129,6 +131,9 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
             parameterModels.map { UtExecutableCallModel(this, modificationMethodId, it) }
         }
     }
+
+    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+        setOf(Scene.v().getSootClass(chooseClassIdWithConstructor(type.classId).canonicalName).type)
 
     /**
      * Method returns list of parameter models that will be passed to [modificationMethodId]
@@ -397,6 +402,9 @@ private val UT_GENERIC_ASSOCIATIVE_CLASS
 
 private val UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE =
     UT_GENERIC_ASSOCIATIVE_CLASS.getMethodByName(UtGenericAssociative<*, *>::setEqualGenericType.name).signature
+
+val ARRAY_OBJECT_TYPE: Type
+    get() = ArrayType.v(OBJECT_TYPE, 1)
 
 val ARRAY_LIST_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.ArrayList::class.java.canonicalName).type

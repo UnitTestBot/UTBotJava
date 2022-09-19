@@ -16,6 +16,7 @@ import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.util.nextModelName
 import soot.RefType
 import soot.Scene
+import soot.Type
 
 /**
  * Auxiliary enum class for specifying an implementation for [CommonStreamWrapper], that it will use.
@@ -75,6 +76,9 @@ abstract class StreamWrapper(
 
         UtAssembleModel(addr, utStreamClass.overriddenStreamClassId, modelName, instantiationCall)
     }
+
+    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+        setOf(STREAM_TYPE)
 
     override fun chooseClassIdWithConstructor(classId: ClassId): ClassId = error("No constructor for Stream")
 

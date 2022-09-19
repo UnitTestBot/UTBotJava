@@ -302,9 +302,6 @@ class UtBotSymbolicEngine(
                             val concreteExecutionResult =
                                 concreteExecutor.executeConcretely(methodUnderTest, stateBefore, instrumentation)
 
-                            val path = entryMethodPath(state)
-                            val size = path.size
-
                             val concreteUtExecution = UtSymbolicExecution(
                                 stateBefore,
                                 concreteExecutionResult.stateAfter,

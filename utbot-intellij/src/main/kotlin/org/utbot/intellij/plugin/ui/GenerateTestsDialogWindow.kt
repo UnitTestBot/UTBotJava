@@ -246,12 +246,6 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
             row("Test source root:") {
                 component(testSourceFolderField)
             }
-//            row("Code generation language:") {
-//                makePanelWithHelpTooltip(
-//                    codegenLanguages,
-//                    itemsToHelpTooltip[codegenLanguages]
-//                )
-//            }
             row("Testing framework:") {
                 makePanelWithHelpTooltip(
                     testFrameworks,
@@ -966,6 +960,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 list: JList<out TestFramework>, value: TestFramework?,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
+                // Value cannot be null, but we need visual fallback for abnormal case
                 this.append(value?.displayName?:"<null>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 if (value == null || !value.isInstalled) {
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
@@ -991,6 +986,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
                 list: JList<out MockStrategyApi>, value: MockStrategyApi?,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
+                // Value cannot be null, but we need visual fallback for abnormal case
                 this.append(value?.displayName?:"<null>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 if (value != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled) {
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)

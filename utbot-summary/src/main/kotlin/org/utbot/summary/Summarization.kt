@@ -63,7 +63,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
             clustersInfo = clustersInfo
         ) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
-        logger.info(e) { "Summary generation error" }
+        logger.info(e) { "Summary generation error" } // TODO: step here
         this
     }
 }

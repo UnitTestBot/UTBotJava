@@ -550,7 +550,7 @@ class Resolver(
             val baseModelName = primitiveClassId.name
             val constructorId = constructorId(classId, primitiveClassId)
             val valueModel = fields[FieldId(classId, "value")] ?: primitiveClassId.defaultValueModel()
-            val instantiationCall = UtExecutableCallModel(null, constructorId, listOf(valueModel))
+            val instantiationCall = UtExecutableCallModel(instance = null, constructorId, listOf(valueModel))
             UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationCall)
         }
     }

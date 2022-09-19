@@ -29,7 +29,7 @@ class SecurityManagerWrapper : BaseOverriddenWrapper(utSecurityManagerClass.name
         val modelName = nextModelName(baseModelName)
 
         val instantiationCall = UtExecutableCallModel(
-            null,
+            instance = null,
             System::getSecurityManager.executableId,
             emptyList()
         )

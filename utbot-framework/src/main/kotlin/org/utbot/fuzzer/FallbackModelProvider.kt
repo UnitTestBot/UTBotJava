@@ -98,7 +98,7 @@ open class FallbackModelProvider(
                     id = idGenerator.createId(),
                     kclass.id,
                     kclass.id.toString(),
-                    UtExecutableCallModel(null, defaultConstructor.executableId, listOf())
+                    UtExecutableCallModel(instance = null, defaultConstructor.executableId, listOf())
                 )
             }
             else -> {

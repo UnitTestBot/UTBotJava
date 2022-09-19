@@ -201,8 +201,8 @@ internal class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        val instantiationExecutableCall = model.instantiationCall
-        processInstantiationStatement(model, instantiationExecutableCall, baseName)
+        val instantiationCall = model.instantiationCall
+        processInstantiationStatement(model, instantiationCall, baseName)
 
         for (statementModel in model.modificationsChain) {
             when (statementModel) {

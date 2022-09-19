@@ -19,7 +19,7 @@ internal class CollectionConstructor : UtAssembleModelConstructorBase() {
         @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
         value as java.util.Collection<*>
 
-        // If [valueToConstructFrom] constructed incorrectly (some inner transient fields are null, etc.) this may fail.
+        // If [value] constructed incorrectly (some inner transient fields are null, etc.) this may fail.
         // This value will be constructed as UtCompositeModel.
         val models = value.map { internalConstructor.construct(it, valueToClassId(it)) }
 

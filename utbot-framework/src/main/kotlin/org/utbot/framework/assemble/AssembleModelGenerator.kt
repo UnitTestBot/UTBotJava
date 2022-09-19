@@ -291,7 +291,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
             modelBefore.modelName,
             assembleExecutableCallModel(modelBefore.instantiationCall),
             modelBefore.origin
-        ).apply {
+        ) {
             instantiatedModels[modelBefore] = this
             modelBefore.modificationsChain.map { assembleStatementModel(it) }
         }
@@ -361,7 +361,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                 assembleModel(fieldModel)
             }
 
-        return UtExecutableCallModel(null, constructorInfo.constructorId, constructorParams)
+        return UtExecutableCallModel(instance = null, constructorInfo.constructorId, constructorParams)
     }
 
     /**

@@ -329,12 +329,12 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
         val charValues = CharArray(length) { (values.stores[it] as UtPrimitiveModel).value as Char }
         val stringModel = UtPrimitiveModel(String(charValues))
         val constructorId = constructorId(wrapper.type.classId, STRING_TYPE.classId)
-        val instantiationChain = UtExecutableCallModel(
+        val instantiationCall = UtExecutableCallModel(
             instance = null,
             constructorId,
             listOf(stringModel)
         )
-        return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationChain)
+        return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationCall)
     }
 
     private val SootClass.valueField: SootField

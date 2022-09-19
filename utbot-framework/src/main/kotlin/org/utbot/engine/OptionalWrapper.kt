@@ -106,7 +106,8 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         }
         return if (!isPresent) {
             UtExecutableCallModel(
-                null, MethodId(
+                instance = null,
+                MethodId(
                     classId,
                     "empty",
                     classId,
@@ -115,7 +116,8 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
             )
         } else {
             UtExecutableCallModel(
-                null, MethodId(
+                instance = null,
+                MethodId(
                     classId,
                     "of",
                     classId,

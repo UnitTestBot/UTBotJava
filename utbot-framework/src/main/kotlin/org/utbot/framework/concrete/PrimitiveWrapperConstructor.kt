@@ -19,7 +19,7 @@ internal class PrimitiveWrapperConstructor : UtAssembleModelConstructorBase() {
         checkClassCast(classId.jClass, value::class.java)
 
         return UtExecutableCallModel(
-            null,
+            instance = null,
             constructorId(classId, classId.unbox()),
             listOf(UtPrimitiveModel(value))
         )

@@ -15,7 +15,7 @@ fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: L
         id,
         constructorId.classId,
         "${constructorId.classId.name}${constructorId.parameters}#" + id.hex(),
-        UtExecutableCallModel(null, constructorId, params.map { it.model })
+        UtExecutableCallModel(instance = null, constructorId, params.map { it.model })
     ).fuzzed {
         summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
     }

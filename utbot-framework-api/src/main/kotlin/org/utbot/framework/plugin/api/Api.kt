@@ -473,7 +473,7 @@ data class UtArrayModel(
  *
  * The default constructor is made private to enforce using a safe constructor.
  *
- * @param instantiationCall is an [UtExecutableCallModel] to instantiate represented object.
+ * @param instantiationCall is an [UtExecutableCallModel] to instantiate represented object. It **must** not return `null`.
  * @param modificationsChain is a chain of [UtStatementModel] to construct object state.
  */
 data class UtAssembleModel private constructor(

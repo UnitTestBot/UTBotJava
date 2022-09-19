@@ -242,9 +242,9 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
         val modelName = nextModelName(throwable.javaClass.simpleName.decapitalize())
 
         val instantiationCall = when (val message = throwable.message) {
-            null -> UtExecutableCallModel(null, constructorId(classId), emptyList())
+            null -> UtExecutableCallModel(instance = null, constructorId(classId), emptyList())
             else -> UtExecutableCallModel(
-                null,
+                instance = null,
                 constructorId(classId, stringClassId),
                 listOf(UtPrimitiveModel(message))
             )

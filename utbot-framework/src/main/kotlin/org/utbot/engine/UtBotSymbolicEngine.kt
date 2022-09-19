@@ -59,16 +59,13 @@ import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtResult
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.util.graph
-import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.isStatic
-import org.utbot.framework.plugin.api.onSuccess
 import org.utbot.framework.plugin.api.util.description
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.isEnum
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.voidClassId
-import org.utbot.framework.util.graph
 import org.utbot.framework.util.sootMethod
 import org.utbot.fuzzer.FallbackModelProvider
 import org.utbot.fuzzer.FuzzedMethodDescription

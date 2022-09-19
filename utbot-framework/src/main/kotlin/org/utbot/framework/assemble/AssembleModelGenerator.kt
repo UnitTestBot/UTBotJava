@@ -24,6 +24,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -183,7 +184,8 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                     is UtPrimitiveModel,
                     is UtClassRefModel,
                     is UtVoidModel,
-                    is UtEnumConstantModel -> utModel
+                    is UtEnumConstantModel,
+                    is UtLambdaModel -> utModel
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)

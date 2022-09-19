@@ -11,7 +11,6 @@ package org.utbot.framework.plugin.api
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
 import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -513,6 +512,46 @@ data class UtAssembleModel(
 }
 
 /**
+ * Model for lambdas.
+ *
+ * Lambdas in Java represent the implementation of a single abstract method (SAM) of a functional interface.
+ * They can be used to create an instance of said functional interface, but **they are not classes**.
+ * In Java lambdas are compiled into synthetic methods of a class they are declared in.
+ * Depending on the captured variables, this method will be either static or non-static.
+ *
+ * Since lambdas are not classes we cannot use a class loader to get info about them as we can do for other models.
+ * Hence, the necessity for this specific lambda model that will be processed differently:
+ * instead of working with a class we will be working with the synthetic method that represents our lambda.
+ *
+ * @property id see documentation on [UtReferenceModel.id]
+ * @property samType the type of functional interface that this lambda will be used for (e.g. [java.util.function.Predicate]).
+ * `sam` means single abstract method. See https://kotlinlang.org/docs/fun-interfaces.html for more details about it in Kotlin.
+ * In Java it means the same.
+ * @property declaringClass a class where the lambda is located.
+ * We need this class, because the synthetic method the lambda is compiled into will be located in it.
+ * @property lambdaName the name of synthetic method the lambda is compiled into.
+ * We need it to find this method in the [declaringClass]
+ * @property capturedValues models of values captured by lambda.
+ * Lambdas can capture local variables, method arguments, static and non-static fields.
+ */
+// TODO: what about support for Kotlin lambdas and function types? See https://github.com/UnitTestBot/UTBotJava/issues/852
+class UtLambdaModel(
+    override val id: Int?,
+    val samType: ClassId,
+    val declaringClass: ClassId,
+    val lambdaName: String,
+    val capturedValues: MutableList<UtModel> = mutableListOf(),
+) : UtReferenceModel(id, samType) {
+
+    val lambdaMethodId: MethodId
+        get() = declaringClass.jClass
+            .declaredMethods
+            .singleOrNull { it.name == lambdaName }
+            ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
+            ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+}
+
+/**
  * Model for a step to obtain [UtAssembleModel].
  */
 sealed class UtStatementModel(
@@ -755,6 +794,12 @@ open class ClassId @JvmOverloads constructor(
     open val outerClass: Class<*>?
         get() = jClass.enclosingClass
 
+    open val superclass: Class<*>?
+        get() = jClass.superclass
+
+    open val interfaces: Array<Class<*>>
+        get() = jClass.interfaces
+
     /**
      * For member classes returns a name including
      * enclosing classes' simple names e.g. `A.B`.
@@ -807,7 +852,7 @@ class BuiltinClassId(
     elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
-    // by default we assume that the class is not a member class
+    // by default, we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
     override val isNullable: Boolean = false,
     override val isPublic: Boolean = true,
@@ -825,6 +870,10 @@ class BuiltinClassId(
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),
     override val outerClass: Class<*>? = null,
+    // by default, we assume that the class does not have a superclass (other than Object)
+    override val superclass: Class<*>? = java.lang.Object::class.java,
+    // by default, we assume that the class does not implement any interfaces
+    override val interfaces: Array<Class<*>> = emptyArray(),
     override val packageName: String =
         when (val index = canonicalName.lastIndexOf('.')) {
             -1, 0 -> ""
@@ -1010,12 +1059,12 @@ open class MethodId(
         get() = method.modifiers
 }
 
-class ConstructorId(
+open class ConstructorId(
     override val classId: ClassId,
     override val parameters: List<ClassId>
 ) : ExecutableId() {
-    override val name: String = "<init>"
-    override val returnType: ClassId = voidClassId
+    final override val name: String = "<init>"
+    final override val returnType: ClassId = voidClassId
 
     override val modifiers: Int
         get() = constructor.modifiers
@@ -1036,6 +1085,20 @@ class BuiltinMethodId(
     override val modifiers: Int =
         (if (isStatic) Modifier.STATIC else 0) or
             (if (isPublic) Modifier.PUBLIC else 0) or
+            (if (isProtected) Modifier.PROTECTED else 0) or
+            (if (isPrivate) Modifier.PRIVATE else 0)
+}
+
+class BuiltinConstructorId(
+    classId: ClassId,
+    parameters: List<ClassId>,
+    // by default, we assume that the builtin constructor is public
+    isPublic: Boolean = true,
+    isProtected: Boolean = false,
+    isPrivate: Boolean = false
+) : ConstructorId(classId, parameters) {
+    override val modifiers: Int =
+        (if (isPublic) Modifier.PUBLIC else 0) or
             (if (isProtected) Modifier.PROTECTED else 0) or
             (if (isPrivate) Modifier.PRIVATE else 0)
 }

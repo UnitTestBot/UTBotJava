@@ -205,7 +205,13 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             }
             when {
                 sootClass.isUtMock -> unwantedTypes += it
-                sootClass.isArtificialEntity -> if (keepArtificialEntities) concreteTypes += it else Unit
+                sootClass.isArtificialEntity -> {
+                    if (sootClass.isLambda) {
+                        unwantedTypes += it
+                    } else if (keepArtificialEntities) {
+                        concreteTypes += it
+                    }
+                }
                 workaround(WorkaroundReason.HACK) { leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden } -> Unit
                 else -> concreteTypes += it
             }

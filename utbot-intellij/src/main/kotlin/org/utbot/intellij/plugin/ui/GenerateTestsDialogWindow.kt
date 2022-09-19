@@ -192,7 +192,7 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         parametrizedTestSources to null
     )
 
-    private fun <T> createComboBox(values: Array<T>) : ComboBox<T> {
+    private fun <T : CodeGenerationSettingItem> createComboBox(values: Array<T>) : ComboBox<T> {
         return ComboBox<T>(DefaultComboBoxModel(values)).also {
             it.renderer = CodeGenerationSettingItemRenderer()
         }

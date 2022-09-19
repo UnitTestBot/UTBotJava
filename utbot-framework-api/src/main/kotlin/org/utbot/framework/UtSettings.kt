@@ -124,6 +124,13 @@ object UtSettings : AbstractSettings(
     val copyVisualizationPathToClipboard get() = useDebugVisualization
 
     /**
+     * Set the value to true to show library classes' graphs in visualization.
+     *
+     * False by default.
+     */
+    val showLibraryClassesInVisualization by getBooleanProperty(false)
+
+    /**
      * Method is paused after this timeout to give an opportunity other methods
      * to work
      */

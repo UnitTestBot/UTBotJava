@@ -206,8 +206,7 @@ class ModelProviderTest {
             assertTrue(models[0]!!.all { it is UtAssembleModel && it.classId == classId })
 
             models[0]!!.filterIsInstance<UtAssembleModel>().forEachIndexed { index, model ->
-                assertEquals(1, model.instantiationStatement.size)
-                val stm = model.instantiationStatement[0]
+                val stm = model.instantiationCall
                 val paramCountInConstructorAsTheyListed = index + 1
                 assertEquals(paramCountInConstructorAsTheyListed, stm.params.size)
             }
@@ -247,9 +246,8 @@ class ModelProviderTest {
 
             assertEquals(1, models.size)
             assertTrue(models[0]!!.isNotEmpty())
-            val chain = (models[0]!![0] as UtAssembleModel).instantiationStatement
-            assertEquals(1, chain.size)
-            chain[0].params.forEach {
+            val chain = (models[0]!![0] as UtAssembleModel).instantiationCall
+            chain.params.forEach {
                 assertEquals(intClassId, it.classId)
             }
         }
@@ -366,14 +364,13 @@ class ModelProviderTest {
             assertEquals(1, result[0]!!.size)
             assertInstanceOf(UtAssembleModel::class.java, result[0]!![0])
             assertEquals(A::class.java.id, result[0]!![0].classId)
-            (result[0]!![0] as UtAssembleModel).instantiationStatement.forEach {
+            (result[0]!![0] as UtAssembleModel).instantiationCall.let {
                 assertEquals(1, it.params.size)
                 val objectParamInConstructor = it.params[0]
                 assertInstanceOf(UtAssembleModel::class.java, objectParamInConstructor)
                 val innerAssembledModel = objectParamInConstructor as UtAssembleModel
                 assertEquals(Any::class.java.id, innerAssembledModel.classId)
-                assertEquals(1, innerAssembledModel.instantiationStatement.size)
-                val objectCreation = innerAssembledModel.instantiationStatement.first()
+                val objectCreation = innerAssembledModel.instantiationCall
                 assertEquals(0, objectCreation.params.size)
                 assertInstanceOf(ConstructorId::class.java, objectCreation.executable)
             }
@@ -395,13 +392,12 @@ class ModelProviderTest {
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             val outerModel = result[0]!![0] as UtAssembleModel
-            outerModel.instantiationStatement.forEach {
+            outerModel.instantiationCall.let {
                 val constructorParameters = it.params
                 assertEquals(1, constructorParameters.size)
                 val innerModel = (constructorParameters[0] as UtAssembleModel)
                 assertEquals(MyA::class.java.id, innerModel.classId)
-                assertEquals(1, innerModel.instantiationStatement.size)
-                val innerConstructorParameters = innerModel.instantiationStatement[0]
+                val innerConstructorParameters = innerModel.instantiationCall
                 assertEquals(1, innerConstructorParameters.params.size)
                 assertInstanceOf(UtNullModel::class.java, innerConstructorParameters.params[0])
             }
@@ -437,13 +433,12 @@ class ModelProviderTest {
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             val outerModel = result[0]!![0] as UtAssembleModel
-            outerModel.instantiationStatement.forEach {
+            outerModel.instantiationCall.let {
                 val constructorParameters = it.params
                 assertEquals(1, constructorParameters.size)
                 val innerModel = (constructorParameters[0] as UtAssembleModel)
                 assertEquals(Inner::class.java.id, innerModel.classId)
-                assertEquals(1, innerModel.instantiationStatement.size)
-                val innerConstructorParameters = innerModel.instantiationStatement[0]
+                val innerConstructorParameters = innerModel.instantiationCall
                 assertEquals(2, innerConstructorParameters.params.size)
                 assertTrue(innerConstructorParameters.params.all { param -> param is UtPrimitiveModel })
                 assertEquals(intClassId, innerConstructorParameters.params[0].classId)
@@ -539,7 +534,7 @@ class ModelProviderTest {
 
             for (model in models) {
                 val outerModel = (model as? UtAssembleModel)
-                    ?.instantiationStatement as? UtExecutableCallModel
+                    ?.instantiationCall
                     ?: fail("No final instantiation model found for the outer class")
                 for (param in outerModel.params) {
                     when (param) {
@@ -547,7 +542,7 @@ class ModelProviderTest {
                             assertEquals(expectedIds[param.value], param.id)
                         }
                         is UtAssembleModel -> {
-                            for (enumParam in (param.instantiationStatement as UtExecutableCallModel).params) {
+                            for (enumParam in param.instantiationCall.params) {
                                 enumParam as UtEnumConstantModel
                                 assertEquals(expectedIds[enumParam.value], enumParam.id)
                             }

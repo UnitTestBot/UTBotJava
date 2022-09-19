@@ -39,7 +39,7 @@ class SettingsWindow(val project: Project) {
                 CodegenLanguage::class to "Generated test language:",
                 RuntimeExceptionTestsBehaviour::class to "Test with exceptions:",
                 TreatOverflowAsError::class to "Overflow detection:",
-                JavaDocCommentStyle::class to "JavaDoc comment style:"
+                JavaDocCommentStyle::class to "Javadoc comment style:"
             )
             val tooltipLabels = mapOf(
                 CodegenLanguage::class to "You can generate test methods in Java or Kotlin regardless of your source code language."

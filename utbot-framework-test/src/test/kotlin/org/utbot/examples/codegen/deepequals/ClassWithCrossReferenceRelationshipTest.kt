@@ -16,8 +16,6 @@ class ClassWithCrossReferenceRelationshipTest : UtValueTestCaseChecker(
         CodeGenerationLanguageLastStage(CodegenLanguage.KOTLIN, CodeGeneration)
     )
 ) {
-    // TODO: The test is disabled due to [https://github.com/UnitTestBot/UTBotJava/issues/812]
-    @Disabled
     @Test
     fun testClassWithCrossReferenceRelationship() {
         check(

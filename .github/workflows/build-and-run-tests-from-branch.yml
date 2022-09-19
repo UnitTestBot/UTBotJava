@@ -80,13 +80,13 @@ jobs:
           ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
       - name: Run tests
         run: |
-          gradle --no-daemon :utbot-framework:test ${{ matrix.project.TESTS_TO_RUN }}
+          gradle --no-daemon :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
       - name: Upload logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
         with:
           name: logs ${{ matrix.project.PART_NAME }}
-          path: utbot-framework/logs/*
+          path: utbot-framework-test/logs/*
 
       - name: Upload UTBot temp directory content
         if: ${{ always() }}
@@ -101,7 +101,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test_report ${{ matrix.project.PART_NAME }}
-          path: utbot-framework/build/reports/tests/test/*
+          path: utbot-framework-test/build/reports/tests/test/*
 
   combined-projects:
     # This job does not need to wait for 'prepare-tests-matrix' result.

@@ -108,7 +108,7 @@ private fun toClusterExecutions(testSet: UtMethodTestSet): List<ExecutionCluster
     if (successfulExecutions.isNotEmpty()) {
         val clustered =
             if (successfulExecutions.size >= MIN_NUMBER_OF_EXECUTIONS_FOR_CLUSTERING) {
-                MatrixUniqueness.dbscanClusterExecutions(successfulExecutions)
+                MatrixUniqueness.dbscanClusterExecutions(successfulExecutions) // TODO: only successful?
             } else emptyMap()
 
         if (clustered.size > 1) {

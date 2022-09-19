@@ -124,7 +124,7 @@ open class SimpleCommentBuilder(
                 return JVM_CRASH_REASON
             }
 
-            error("Cannot find last path step for exception $thrownException")
+            error("Cannot find last path step for exception $thrownException") // TODO: shit happens, but we have anough info to write something
         }
 
         return findExceptionReason(path.last(), currentMethod)

@@ -153,7 +153,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         }
 
         // handles tests produced by symbolic engine, but with empty paths
-        val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
+        /*val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
 
         if (executionsWithEmptyPaths.isNotEmpty()) {
             executionsWithEmptyPaths.forEach {
@@ -169,7 +169,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                     executionsWithEmptyPaths
                 )
             )
-        }
+        } */
 
         val testSetForAnalysis = prepareTestSetForByteCodeAnalysis(testSet)
 
@@ -196,7 +196,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                             }
                         }
                 } else {
-                    null
+                    null // TODO: handle it correctly, something like common cluster or something else
                 }
 
                 for (traceTags in clusterTraceTags.traceTags) {
@@ -265,7 +265,8 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {
         val executions =
-            testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isNotEmpty() }
+            testSet.executions.filterIsInstance<UtSymbolicExecution>()
+                //.filter { it.path.isNotEmpty() }
 
         return UtMethodTestSet(
             method = testSet.method,

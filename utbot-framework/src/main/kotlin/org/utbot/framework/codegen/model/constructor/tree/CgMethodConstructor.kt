@@ -468,21 +468,31 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     /**
      * If the given field is _not_ of reference type, then the variable for its 'before' state
      * is not created, because we only need its final state to make an assertion.
-     * For reference type fields, in turn, we make an assertion assertFalse(before == after).
+     * For reference type fields, in turn, we make an assertion assertFalse(before == after)
+     * or assertNotNull(actual).
      */
     private fun assertStatesByPath(cache: FieldStateCache, path: FieldPath) {
         emptyLineIfNeeded()
-        val beforeVariable = cache.before[path]?.variable
+        val (beforeVariable, beforeModel) = cache.before[path]?.let { it.variable to it.model } ?: (null to null)
         val (afterVariable, afterModel) = cache.after[path]!!
 
-        if (afterModel !is UtReferenceModel) {
-            val expectedAfter =
-                variableConstructor.getOrCreateVariable(afterModel, "expected" + afterVariable.name.capitalize())
-            assertEquality(expectedAfter, afterVariable)
-        } else {
-            if (beforeVariable != null)
-                testFrameworkManager.assertBoolean(false, beforeVariable equalTo afterVariable)
-            // TODO: fail here
+        when {
+            afterModel !is UtReferenceModel -> {
+                val expectedAfter =
+                    variableConstructor.getOrCreateVariable(afterModel, "expected" + afterVariable.name.capitalize())
+                assertEquality(expectedAfter, afterVariable)
+            }
+
+            (beforeVariable to beforeModel) != (null to null) -> when (beforeModel) {
+                is UtNullModel -> {
+                    testFrameworkManager.assertNotNull(afterVariable)
+                }
+
+                else -> testFrameworkManager.assertBoolean(
+                    false,
+                    beforeVariable!! equalTo afterVariable
+                )
+            }
         }
     }
 

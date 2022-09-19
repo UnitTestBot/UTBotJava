@@ -219,6 +219,8 @@ sealed class TestFramework(
 
     val assertNull by lazy { assertionId("assertNull", objectClassId) }
 
+    val assertNotNull by lazy { assertionId("assertNotNull", objectClassId) }
+
     val assertFalse by lazy { assertionId("assertFalse", booleanClassId) }
 
     val assertTrue by lazy { assertionId("assertTrue", booleanClassId) }

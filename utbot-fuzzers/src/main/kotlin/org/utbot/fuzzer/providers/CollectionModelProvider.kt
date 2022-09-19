@@ -92,15 +92,13 @@ class CollectionModelProvider(
     private fun Class<*>.methodCall(methodName: String, returnType: Class<*>, params: List<Class<*>> = emptyList()) = MethodId(id, methodName, returnType.id, params.map { it.id })
 
     private fun Class<*>.createdBy(init: ExecutableId, params: List<UtModel> = emptyList()): UtAssembleModel {
-        val instantiationChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(null, init, params)
         val genId = idGenerator.createId()
         return UtAssembleModel(
             genId,
             id,
             "${init.classId.name}${init.parameters}#" + genId.toString(16),
-            instantiationChain
-        ).apply {
-            instantiationChain += UtExecutableCallModel(null, init, params)
-        }
+            instantiationCall
+        )
     }
 }

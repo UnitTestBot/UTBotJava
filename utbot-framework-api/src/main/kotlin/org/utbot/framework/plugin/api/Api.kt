@@ -471,26 +471,52 @@ data class UtArrayModel(
 /**
  * Model for complex objects with assemble instructions.
  *
- * @param instantiationChain is a chain of [UtStatementModel] to instantiate represented object
- * @param modificationsChain is a chain of [UtStatementModel] to construct object state
+ * The default constructor is made private to enforce using a safe constructor.
+ *
+ * @param instantiationCall is an [UtExecutableCallModel] to instantiate represented object.
+ * @param modificationsChain is a chain of [UtStatementModel] to construct object state.
  */
-data class UtAssembleModel(
+data class UtAssembleModel private constructor(
     override val id: Int?,
     override val classId: ClassId,
     override val modelName: String,
-    val instantiationChain: List<UtStatementModel> = emptyList(),
-    val modificationsChain: List<UtStatementModel> = emptyList(),
-    val origin: UtCompositeModel? = null
+    val instantiationCall: UtExecutableCallModel,
+    val modificationsChain: List<UtStatementModel>,
+    val origin: UtCompositeModel?
 ) : UtReferenceModel(id, classId, modelName) {
-    val allStatementsChain
-        get() = instantiationChain + modificationsChain
-    val finalInstantiationModel
-        get() = instantiationChain.lastOrNull()
+
+    /**
+     * Creates a new [UtAssembleModel].
+     *
+     * Please note, that it's the caller responsibility to properly cache [UtModel]s to prevent an infinite recursion.
+     * The order of the calling:
+     * 1. [instantiationCall]
+     * 2. [constructor]
+     * 3. [modificationsChainProvider]. Possible caching should be made at the beginning of this method.
+     *
+     * @param instantiationCall defines the single instruction, which provides a [UtAssembleModel]. It could be a
+     * constructor or a method of another class, which returns the object of the [classId] type.
+     *
+     * @param modificationsChainProvider used for creating modifying statements. Its receiver corresponds to newly
+     * created [UtAssembleModel], so you can use it for caching and for creating [UtExecutableCallModel]s with it
+     * as [UtExecutableCallModel.instance].
+     */
+    constructor(
+        id: Int?,
+        classId: ClassId,
+        modelName: String,
+        instantiationCall: UtExecutableCallModel,
+        origin: UtCompositeModel? = null,
+        modificationsChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { emptyList() }
+    ) : this(id, classId, modelName, instantiationCall, mutableListOf(), origin) {
+        val modificationChainStatements = modificationsChainProvider()
+        (modificationsChain as MutableList<UtStatementModel>).addAll(modificationChainStatements)
+    }
 
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
             append("UtAssembleModel(${classId.simpleName} $modelName) ")
-            append(instantiationChain.joinToString(" "))
+            append(instantiationCall)
             if (modificationsChain.isNotEmpty()) {
                 append(" ")
                 append(modificationsChain.joinToString(" "))
@@ -562,7 +588,6 @@ sealed class UtStatementModel(
  * Step of assemble instruction that calls executable.
  *
  * Contains executable to call, call parameters and an instance model before call.
- * Return value is used for tracking objects and call others methods with these tracking objects as parameters.
  */
 data class UtExecutableCallModel(
     override val instance: UtReferenceModel?,

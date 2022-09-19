@@ -90,12 +90,8 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
-        return UtAssembleModel(addr, classId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                instantiationChain += instantiationFactoryCallModel(classId, wrapper)
-            }
+        val instantiationCall = instantiationFactoryCallModel(classId, wrapper)
+        return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
     private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtExecutableCallModel {

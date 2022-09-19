@@ -10,16 +10,13 @@ import org.utbot.fuzzer.hex
 
 
 fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
-    val instantiationChain = mutableListOf<UtStatementModel>()
+    mutableListOf<UtStatementModel>()
     return UtAssembleModel(
         id,
         constructorId.classId,
         "${constructorId.classId.name}${constructorId.parameters}#" + id.hex(),
-        instantiationChain = instantiationChain,
-        modificationsChain = mutableListOf()
-    ).apply {
-        instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model })
-    }.fuzzed {
+        UtExecutableCallModel(null, constructorId, params.map { it.model })
+    ).fuzzed {
         summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
     }
 }

@@ -179,16 +179,12 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         val charValues = CharArray(length) { (values.stores[it] as UtPrimitiveModel).value as Char }
         val stringModel = UtPrimitiveModel(String(charValues))
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
-        return UtAssembleModel(addr, classId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                instantiationChain += UtExecutableCallModel(
-                    instance = null,
-                    constructorId(classId, STRING_TYPE.classId),
-                    listOf(stringModel)
-                )
-            }
+        val instantiationCall = UtExecutableCallModel(
+            instance = null,
+            constructorId(classId, STRING_TYPE.classId),
+            listOf(stringModel)
+        )
+        return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 }
 
@@ -332,18 +328,13 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
 
         val charValues = CharArray(length) { (values.stores[it] as UtPrimitiveModel).value as Char }
         val stringModel = UtPrimitiveModel(String(charValues))
-
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
         val constructorId = constructorId(wrapper.type.classId, STRING_TYPE.classId)
-        return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                instantiationChain += UtExecutableCallModel(
-                    instance = null,
-                    constructorId,
-                    listOf(stringModel)
-                )
-            }
+        val instantiationChain = UtExecutableCallModel(
+            instance = null,
+            constructorId,
+            listOf(stringModel)
+        )
+        return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationChain)
     }
 
     private val SootClass.valueField: SootField

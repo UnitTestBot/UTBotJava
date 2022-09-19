@@ -135,17 +135,15 @@ class DateConstantModelProvider(
         val simpleDateFormatModel = assembleSimpleDateFormat(idGenerator.createId(), formatString)
         val dateFormatParse = simpleDateFormatModel.classId.jClass
             .getMethod("parse", String::class.java).executableId
-        val instantiationChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(
+            simpleDateFormatModel, dateFormatParse, listOf(UtPrimitiveModel(dateString))
+        )
         return UtAssembleModel(
             id,
             dateClassId,
             "$dateFormatParse#" + id.hex(),
-            instantiationChain
-        ).apply {
-            instantiationChain += UtExecutableCallModel(
-                simpleDateFormatModel, dateFormatParse, listOf(UtPrimitiveModel(dateString))
-            )
-        }.fuzzed {
+            instantiationCall
+        ).fuzzed {
             summary = "%var% = $dateFormatParse($stringClassId)"
         }
     }
@@ -158,21 +156,14 @@ class DateConstantModelProvider(
         val formatSetLenient = SimpleDateFormat::setLenient.executableId
         val formatModel = UtPrimitiveModel(formatString)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(instance = null, formatStringConstructor, listOf(formatModel))
         return UtAssembleModel(
             id,
             simpleDateFormatId,
             "$simpleDateFormatId[$stringClassId]#" + id.hex(),
-            instantiationChain,
-            modificationsChain
+            instantiationCall
         ).apply {
-            instantiationChain += UtExecutableCallModel(
-                instance = null, formatStringConstructor, listOf(formatModel)
-            )
-            modificationsChain += UtExecutableCallModel(
-                instance = this, formatSetLenient, listOf(UtPrimitiveModel(false))
-            )
+            listOf(UtExecutableCallModel(instance = this, formatSetLenient, listOf(UtPrimitiveModel(false))))
         }
     }
 

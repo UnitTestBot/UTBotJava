@@ -201,7 +201,7 @@ internal class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        val instantiationExecutableCall = model.instantiationChain.single() as UtExecutableCallModel
+        val instantiationExecutableCall = model.instantiationCall
         processInstantiationStatement(model, instantiationExecutableCall, baseName)
 
         for (statementModel in model.modificationsChain) {
@@ -236,7 +236,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         // Don't use redundant constructors for primitives and String
         val initExpr = if (isPrimitiveWrapperOrString(type)) cgLiteralForWrapper(params) else cgCall
         newVar(type, model, baseName) { initExpr }
-            .takeIf { executableCall == model.finalInstantiationModel }
+            .takeIf { executableCall == model.instantiationCall }
             ?.also { valueByModelId[model.id] = it }
     }
 

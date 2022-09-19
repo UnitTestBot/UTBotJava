@@ -119,21 +119,15 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
 
         val classId = chooseClassIdWithConstructor(wrapper.type.sootClass.id)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(
+            instance = null,
+            executable = constructorId(classId),
+            params = emptyList()
+        )
 
-        UtAssembleModel(addr, classId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                instantiationChain += UtExecutableCallModel(
-                    instance = null,
-                    executable = constructorId(classId),
-                    params = emptyList()
-                )
-
-                modificationsChain += parameterModels.map {
-                    UtExecutableCallModel(this, modificationMethodId, it)
-                }
-            }
+        UtAssembleModel(addr, classId, modelName, instantiationCall) {
+            parameterModels.map { UtExecutableCallModel(this, modificationMethodId, it) }
+        }
     }
 
     /**

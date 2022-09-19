@@ -94,17 +94,12 @@ open class FallbackModelProvider(
                 UtNullModel(kclass.java.id)
             }
             defaultConstructor != null -> {
-                val chain = mutableListOf<UtStatementModel>()
-                val model = UtAssembleModel(
+                UtAssembleModel(
                     id = idGenerator.createId(),
                     kclass.id,
                     kclass.id.toString(),
-                    chain
+                    UtExecutableCallModel(null, defaultConstructor.executableId, listOf())
                 )
-                chain.add(
-                    UtExecutableCallModel(model, defaultConstructor.executableId, listOf())
-                )
-                model
             }
             else -> {
                 UtCompositeModel(

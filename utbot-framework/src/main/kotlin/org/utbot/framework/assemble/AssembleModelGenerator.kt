@@ -234,24 +234,20 @@ class AssembleModelGenerator(private val methodPackageName: String) {
         try {
             val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
 
-            val instantiationChain = mutableListOf<UtStatementModel>()
-            val modificationsChain = mutableListOf<UtStatementModel>()
+            val constructorId = findBestConstructorOrNull(compositeModel)
+                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.id}")
+
+            val constructorInfo = constructorAnalyzer.analyze(constructorId)
+
+            val instantiationCall = constructorCall(compositeModel, constructorInfo)
             return UtAssembleModel(
                 compositeModel.id,
                 compositeModel.classId,
                 modelName,
-                instantiationChain,
-                modificationsChain,
+                instantiationCall,
                 compositeModel
-            ).apply {
-
-                val constructorId = findBestConstructorOrNull(compositeModel)
-                    ?: throw AssembleException("No default constructor to instantiate an object of the class $classId")
-
-                val constructorInfo = constructorAnalyzer.analyze(constructorId)
-
+            ) {
                 instantiatedModels[compositeModel] = this
-                instantiationChain += constructorCall(compositeModel, constructorInfo)
 
                 compositeModel.fields.forEach { (fieldId, fieldModel) ->
                     if (fieldId.isStatic) {
@@ -274,7 +270,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                     }
                 }
 
-                modificationsChain += callChain.toList()
+                callChain.toList()
             }
         } catch (e: AssembleException) {
             instantiatedModels.remove(compositeModel)
@@ -288,17 +284,16 @@ class AssembleModelGenerator(private val methodPackageName: String) {
     private fun assembleAssembleModel(modelBefore: UtAssembleModel): UtModel {
         instantiatedModels[modelBefore]?.let { return it }
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
 
-        return modelBefore.copy(
-            instantiationChain = instantiationChain,
-            modificationsChain = modificationChain,
+        return UtAssembleModel(
+            modelBefore.id,
+            modelBefore.classId,
+            modelBefore.modelName,
+            assembleExecutableCallModel(modelBefore.instantiationCall),
+            modelBefore.origin
         ).apply {
             instantiatedModels[modelBefore] = this
-
-            instantiationChain += modelBefore.instantiationChain.map { assembleStatementModel(it) }
-            modificationChain += modelBefore.modificationsChain.map { assembleStatementModel(it) }
+            modelBefore.modificationsChain.map { assembleStatementModel(it) }
         }
     }
 
@@ -306,9 +301,21 @@ class AssembleModelGenerator(private val methodPackageName: String) {
      * Assembles internal structure of [UtStatementModel].
      */
     private fun assembleStatementModel(statementModel: UtStatementModel): UtStatementModel = when (statementModel) {
-        is UtExecutableCallModel -> statementModel.copy(params = statementModel.params.map { assembleModel(it) })
-        is UtDirectSetFieldModel -> statementModel.copy(fieldModel = assembleModel(statementModel.fieldModel))
+        is UtExecutableCallModel -> assembleExecutableCallModel(statementModel)
+        is UtDirectSetFieldModel -> assembleDirectSetFieldModel(statementModel)
     }
+
+    private fun assembleDirectSetFieldModel(statementModel: UtDirectSetFieldModel) =
+        statementModel.copy(
+            instance = statementModel.instance.let { assembleModel(it) as UtReferenceModel },
+            fieldModel = assembleModel(statementModel.fieldModel)
+        )
+
+    private fun assembleExecutableCallModel(statementModel: UtExecutableCallModel) =
+        statementModel.copy(
+            instance = statementModel.instance?.let { assembleModel(it) as UtReferenceModel },
+            params = statementModel.params.map { assembleModel(it) }
+        )
 
     /**
      * Assembles internal structure of [UtCompositeModel] if it represents a mock.

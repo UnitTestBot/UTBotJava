@@ -358,7 +358,7 @@ class MockValueConstructor(
     private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any {
         constructedObjects[assembleModel]?.let { return it }
 
-        val instantiationExecutableCall = assembleModel.instantiationChain.single() as UtExecutableCallModel
+        val instantiationExecutableCall = assembleModel.instantiationCall
         val result = updateWithExecutableCallModel(instantiationExecutableCall)
         checkNotNull(result) {
             "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"

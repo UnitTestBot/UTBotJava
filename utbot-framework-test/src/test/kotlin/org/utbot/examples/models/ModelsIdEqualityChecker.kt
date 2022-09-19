@@ -129,7 +129,7 @@ internal class ModelsIdEqualityChecker : UtModelTestCaseChecker(
 
     private fun UtReferenceModel.findFieldId(): Int? {
         this as UtAssembleModel
-        val fieldModel = this.allStatementsChain
+        val fieldModel = this.modificationsChain
             .filterIsInstance<UtDirectSetFieldModel>()
             .single()
             .fieldModel

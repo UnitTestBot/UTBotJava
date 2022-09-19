@@ -63,7 +63,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
             clustersInfo = clustersInfo
         ) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
-        logger.info(e) { "Summary generation error" } // TODO: step here
+        logger.info(e) { "Summary generation error: ${e.message}" } // TODO: step here
         this
     }
 }
@@ -153,7 +153,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         }
 
         // handles tests produced by symbolic engine, but with empty paths
-        /*val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
+        val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
 
         if (executionsWithEmptyPaths.isNotEmpty()) {
             executionsWithEmptyPaths.forEach {
@@ -169,14 +169,14 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                     executionsWithEmptyPaths
                 )
             )
-        } */
+        }
 
-        val testSetForAnalysis = prepareTestSetForByteCodeAnalysis(testSet)
+        val testSetWithNonEmptyPaths = prepareTestSetForByteCodeAnalysis(testSet)
 
         // analyze
         if (jimpleBody != null && sootToAST != null) {
             val methodUnderTest = jimpleBody.method
-            val clusteredTags = tagGenerator.testSetToTags(testSetForAnalysis)
+            val clusteredTags = tagGenerator.testSetToTags(testSetWithNonEmptyPaths)
             jimpleBodyAnalysis.traceStructuralAnalysis(jimpleBody, clusteredTags, methodUnderTest, invokeDescriptions)
             val numberOfSuccessfulClusters = clusteredTags.filter { it.isSuccessful }.size
             for (clusterTraceTags in clusteredTags) {
@@ -249,6 +249,14 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
     }
 
+
+    private fun buildConcreteClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {
+        val commentPrefix = "CONCRETE EXECUTION ENGINE:"
+        val commentPostfix = "for method ${testSet.method.humanReadableName}"
+
+        return "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix"
+    }
+
     private fun buildFuzzerClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {
         val commentPrefix = "FUZZER:"
         val commentPostfix = "for method ${testSet.method.humanReadableName}"
@@ -263,10 +271,11 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         return "$commentPrefix ${ExecutionGroup.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS} $commentPostfix"
     }
 
+    /** Filter and copies executions with non-empty paths. */
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {
         val executions =
             testSet.executions.filterIsInstance<UtSymbolicExecution>()
-                //.filter { it.path.isNotEmpty() }
+                .filter { it.path.isNotEmpty() }
 
         return UtMethodTestSet(
             method = testSet.method,

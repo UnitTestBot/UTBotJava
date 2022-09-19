@@ -957,12 +957,11 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
         testFrameworks.item = if (currentFrameworkItem in enabledTestFrameworks) currentFrameworkItem else defaultItem
         testFrameworks.renderer = object : ColoredListCellRenderer<TestFramework>() {
             override fun customizeCellRenderer(
-                list: JList<out TestFramework>, value: TestFramework?,
+                list: JList<out TestFramework>, value: TestFramework,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
-                // Value cannot be null, but we need visual fallback for abnormal case
-                this.append(value?.displayName?:"<null>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
-                if (value == null || !value.isInstalled) {
+                this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                if (!value.isInstalled) {
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
                 }
             }
@@ -983,11 +982,10 @@ class GenerateTestsDialogWindow(val model: GenerateTestsModel) : DialogWrapper(m
     private fun updateMockStrategyList() {
         mockStrategies.renderer = object : ColoredListCellRenderer<MockStrategyApi>() {
             override fun customizeCellRenderer(
-                list: JList<out MockStrategyApi>, value: MockStrategyApi?,
+                list: JList<out MockStrategyApi>, value: MockStrategyApi,
                 index: Int, selected: Boolean, hasFocus: Boolean
             ) {
-                // Value cannot be null, but we need visual fallback for abnormal case
-                this.append(value?.displayName?:"<null>", SimpleTextAttributes.REGULAR_ATTRIBUTES)
+                this.append(value.displayName, SimpleTextAttributes.REGULAR_ATTRIBUTES)
                 if (value != MockStrategyApi.NO_MOCKS && !MOCKITO.isInstalled) {
                     this.append(WILL_BE_INSTALLED_LABEL, SimpleTextAttributes.ERROR_ATTRIBUTES)
                 }

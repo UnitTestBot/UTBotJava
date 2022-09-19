@@ -100,7 +100,7 @@ class CollectionModelProvider(
             "${init.classId.name}${init.parameters}#" + genId.toString(16),
             instantiationChain
         ).apply {
-            instantiationChain += UtExecutableCallModel(null, init, params, this)
+            instantiationChain += UtExecutableCallModel(null, init, params)
         }
     }
 }

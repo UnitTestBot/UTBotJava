@@ -7,7 +7,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.framework.util.nextModelName
-import java.util.concurrent.CopyOnWriteArrayList
 
 private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleModelConstructorBase>(
     /**

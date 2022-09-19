@@ -1,10 +1,6 @@
 package org.utbot.fuzzer
 
 import kotlin.random.Random
-import org.utbot.framework.plugin.api.ConstructorId
-import org.utbot.framework.plugin.api.UtAssembleModel
-import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
 
 /**
  * Chooses a random value using frequencies.

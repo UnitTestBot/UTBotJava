@@ -143,7 +143,7 @@ class DateConstantModelProvider(
             instantiationChain
         ).apply {
             instantiationChain += UtExecutableCallModel(
-                simpleDateFormatModel, dateFormatParse, listOf(UtPrimitiveModel(dateString)), returnValue = this
+                simpleDateFormatModel, dateFormatParse, listOf(UtPrimitiveModel(dateString))
             )
         }.fuzzed {
             summary = "%var% = $dateFormatParse($stringClassId)"
@@ -168,7 +168,7 @@ class DateConstantModelProvider(
             modificationsChain
         ).apply {
             instantiationChain += UtExecutableCallModel(
-                instance = null, formatStringConstructor, listOf(formatModel), returnValue = this
+                instance = null, formatStringConstructor, listOf(formatModel)
             )
             modificationsChain += UtExecutableCallModel(
                 instance = this, formatSetLenient, listOf(UtPrimitiveModel(false))

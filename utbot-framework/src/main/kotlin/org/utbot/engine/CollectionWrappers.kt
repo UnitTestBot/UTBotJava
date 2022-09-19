@@ -127,8 +127,7 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
                     executable = constructorId(classId),
-                    params = emptyList(),
-                    returnValue = this
+                    params = emptyList()
                 )
 
                 modificationsChain += parameterModels.map {

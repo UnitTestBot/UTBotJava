@@ -186,8 +186,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
                     constructorId(classId, STRING_TYPE.classId),
-                    listOf(stringModel),
-                    this
+                    listOf(stringModel)
                 )
             }
     }
@@ -342,8 +341,7 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
                 instantiationChain += UtExecutableCallModel(
                     instance = null,
                     constructorId,
-                    listOf(stringModel),
-                    this
+                    listOf(stringModel)
                 )
             }
     }

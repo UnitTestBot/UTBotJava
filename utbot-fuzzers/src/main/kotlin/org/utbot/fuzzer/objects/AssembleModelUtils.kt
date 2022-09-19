@@ -18,7 +18,7 @@ fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: L
         instantiationChain = instantiationChain,
         modificationsChain = mutableListOf()
     ).apply {
-        instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model }, this)
+        instantiationChain += UtExecutableCallModel(null, constructorId, params.map { it.model })
     }.fuzzed {
         summary = "%var% = ${constructorId.classId.simpleName}(${constructorId.parameters.joinToString { it.simpleName }})"
     }

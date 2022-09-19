@@ -251,7 +251,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                 val constructorInfo = constructorAnalyzer.analyze(constructorId)
 
                 instantiatedModels[compositeModel] = this
-                instantiationChain += constructorCall(compositeModel, this, constructorInfo)
+                instantiationChain += constructorCall(compositeModel, constructorInfo)
 
                 compositeModel.fields.forEach { (fieldId, fieldModel) ->
                     if (fieldId.isStatic) {
@@ -342,7 +342,6 @@ class AssembleModelGenerator(private val methodPackageName: String) {
      */
     private fun constructorCall(
         compositeModel: UtCompositeModel,
-        instance: UtAssembleModel,
         constructorInfo: ConstructorAssembleInfo,
     ): UtExecutableCallModel {
         val constructorParams = constructorInfo.constructorId.parameters.withIndex()
@@ -355,7 +354,7 @@ class AssembleModelGenerator(private val methodPackageName: String) {
                 assembleModel(fieldModel)
             }
 
-        return UtExecutableCallModel(null, constructorInfo.constructorId, constructorParams, instance)
+        return UtExecutableCallModel(null, constructorInfo.constructorId, constructorParams)
     }
 
     /**

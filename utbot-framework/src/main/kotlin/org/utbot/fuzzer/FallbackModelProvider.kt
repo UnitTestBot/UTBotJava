@@ -102,7 +102,7 @@ open class FallbackModelProvider(
                     chain
                 )
                 chain.add(
-                    UtExecutableCallModel(model, defaultConstructor.executableId, listOf(), model)
+                    UtExecutableCallModel(model, defaultConstructor.executableId, listOf())
                 )
                 model
             }

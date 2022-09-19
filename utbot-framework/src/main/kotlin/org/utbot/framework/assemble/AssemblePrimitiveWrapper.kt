@@ -37,7 +37,6 @@ fun assemble(model: UtPrimitiveModel): UtAssembleModel {
         instance = null,
         executable = constructorCall.executableId,
         params = listOf(model),
-        returnValue = null,
     )
 
     return UtAssembleModel(

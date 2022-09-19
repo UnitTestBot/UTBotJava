@@ -553,7 +553,7 @@ class Resolver(
             val instantiationChain = mutableListOf<UtExecutableCallModel>()
             UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationChain)
                 .apply {
-                    instantiationChain += UtExecutableCallModel(null, constructorId, listOf(valueModel), this)
+                    instantiationChain += UtExecutableCallModel(null, constructorId, listOf(valueModel))
                 }
         }
     }

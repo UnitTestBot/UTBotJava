@@ -328,15 +328,21 @@ class ValueConstructor {
     private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any {
         constructedObjects[assembleModel]?.let { return it }
 
-        assembleModel.allStatementsChain.forEach { statementModel ->
+        val instantiationExecutableCall = assembleModel.instantiationChain.single() as UtExecutableCallModel
+        val result = updateWithExecutableCallModel(instantiationExecutableCall)
+        checkNotNull(result) {
+            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
+        }
+        constructedObjects[assembleModel] = result
+
+        assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
-                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel, assembleModel)
+                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel)
                 is UtDirectSetFieldModel -> updateWithDirectSetFieldModel(statementModel)
             }
         }
 
-        return constructedObjects[assembleModel]
-            ?: error("Can't assemble model: $assembleModel")
+        return constructedObjects[assembleModel] ?: error("Can't assemble model: $assembleModel")
     }
 
     private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
@@ -366,12 +372,13 @@ class ValueConstructor {
     }
 
     /**
-     * Updates instance state with [UtExecutableCallModel] invocation.
+     * Updates instance state with [callModel] invocation.
+     *
+     * @return the result of [callModel] invocation
      */
     private fun updateWithExecutableCallModel(
         callModel: UtExecutableCallModel,
-        assembleModel: UtAssembleModel,
-    ) {
+    ): Any? {
         val executable = callModel.executable
         val instanceValue = callModel.instance?.let { value(it) }
         val params = callModel.params.map { value(it) }
@@ -381,15 +388,7 @@ class ValueConstructor {
             is ConstructorId -> executable.call(params)
         }
 
-        // Ignore result if returnId is null. Otherwise add it to instance cache.
-        callModel.returnValue?.let {
-            checkNotNull(result) { "Tracked instance can't be null for call $executable in model $assembleModel" }
-
-            //If statement is final instantiating, add result to constructed objects cache
-            if (callModel == assembleModel.finalInstantiationModel) {
-                constructedObjects[assembleModel] = result
-            }
-        }
+        return result
     }
 
     /**

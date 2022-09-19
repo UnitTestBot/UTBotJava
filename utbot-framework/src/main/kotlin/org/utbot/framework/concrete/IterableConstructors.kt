@@ -7,7 +7,6 @@ import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.util.valueToClassId
 
@@ -30,8 +29,7 @@ internal class CollectionConstructor : UtAssembleModelConstructorBase() {
         instantiationChain += UtExecutableCallModel(
             instance = null,
             ConstructorId(classId, emptyList()),
-            emptyList(),
-            this
+            emptyList()
         )
 
         val addMethodId = MethodId(classId, "add", booleanClassId, listOf(objectClassId))
@@ -56,8 +54,7 @@ internal class MapConstructor : UtAssembleModelConstructorBase() {
         instantiationChain += UtExecutableCallModel(
             instance = null,
             ConstructorId(classId, emptyList()),
-            emptyList(),
-            this
+            emptyList()
         )
 
         val putMethodId = MethodId(classId, "put", objectClassId, listOf(objectClassId, objectClassId))

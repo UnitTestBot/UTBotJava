@@ -568,7 +568,6 @@ data class UtExecutableCallModel(
     override val instance: UtReferenceModel?,
     val executable: ExecutableId,
     val params: List<UtModel>,
-    val returnValue: UtReferenceModel? = null,
 ) : UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
@@ -578,9 +577,7 @@ data class UtExecutableCallModel(
                 is MethodId -> executable.name
             }
 
-            if (returnValue != null) {
-                append("val ${returnValue.modelName} = ")
-            } else if (instance != null) {
+            if (instance != null) {
                 append("${instance.modelName}.")
             }
 

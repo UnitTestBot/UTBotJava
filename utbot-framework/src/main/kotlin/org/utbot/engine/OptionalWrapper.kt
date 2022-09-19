@@ -94,11 +94,11 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         val modificationsChain = mutableListOf<UtStatementModel>()
         return UtAssembleModel(addr, classId, modelName, instantiationChain, modificationsChain)
             .apply {
-                instantiationChain += instantiationFactoryCallModel(classId, wrapper, this)
+                instantiationChain += instantiationFactoryCallModel(classId, wrapper)
             }
     }
 
-    private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue, model: UtAssembleModel) : UtExecutableCallModel {
+    private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtExecutableCallModel {
         val valueField = FieldId(overriddenClass.id, "value")
         val isPresentFieldId = FieldId(overriddenClass.id, "isPresent")
         val values = collectFieldModels(wrapper.addr, overriddenClass.type)
@@ -115,7 +115,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
                     "empty",
                     classId,
                     emptyList()
-                ), emptyList(), model
+                ), emptyList()
             )
         } else {
             UtExecutableCallModel(
@@ -124,7 +124,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
                     "of",
                     classId,
                     listOf(utOptionalClass.elementClassId)
-                ), listOf(valueModel), model
+                ), listOf(valueModel)
             )
         }
     }

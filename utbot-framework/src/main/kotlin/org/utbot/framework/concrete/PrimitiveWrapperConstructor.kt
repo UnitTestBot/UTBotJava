@@ -22,8 +22,7 @@ internal class PrimitiveWrapperConstructor : UtAssembleModelConstructorBase() {
         instantiationChain += UtExecutableCallModel(
             null,
             constructorId(classId, classId.unbox()),
-            listOf(UtPrimitiveModel(valueToConstructFrom)),
-            this
+            listOf(UtPrimitiveModel(valueToConstructFrom))
         )
     }
 }

@@ -2,7 +2,6 @@ package org.utbot.framework.assemble
 
 import org.utbot.common.isPrivate
 import org.utbot.common.isPublic
-import org.utbot.common.packageName
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
 import org.utbot.framework.UtSettings

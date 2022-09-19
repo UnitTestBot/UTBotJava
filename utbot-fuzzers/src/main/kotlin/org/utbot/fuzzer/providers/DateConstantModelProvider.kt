@@ -142,7 +142,6 @@ class DateConstantModelProvider(
             "$dateFormatParse#" + id.hex(),
             instantiationChain
         ).apply {
-            instantiationChain += simpleDateFormatModel.allStatementsChain
             instantiationChain += UtExecutableCallModel(
                 simpleDateFormatModel, dateFormatParse, listOf(UtPrimitiveModel(dateString)), returnValue = this
             )

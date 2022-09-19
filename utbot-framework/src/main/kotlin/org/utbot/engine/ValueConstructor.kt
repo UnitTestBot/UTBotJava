@@ -62,14 +62,12 @@ class ValueConstructor {
 
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
     private val constructedObjects = HashMap<UtReferenceModel, Any?>()
-    private val resultsCache = HashMap<UtReferenceModel, Any>()
     private val mockInfo = mutableListOf<MockInfo>()
     private var mockTarget: MockTarget? = null
     private var mockCounter = 0
 
     private fun clearState() {
         constructedObjects.clear()
-        resultsCache.clear()
         mockInfo.clear()
         mockTarget = null
         mockCounter = 0
@@ -337,7 +335,7 @@ class ValueConstructor {
             }
         }
 
-        return resultsCache[assembleModel]
+        return constructedObjects[assembleModel]
             ?: error("Can't assemble model: $assembleModel")
     }
 
@@ -375,7 +373,7 @@ class ValueConstructor {
         assembleModel: UtAssembleModel,
     ) {
         val executable = callModel.executable
-        val instanceValue = resultsCache[callModel.instance]
+        val instanceValue = callModel.instance?.let { value(it) }
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {
@@ -386,7 +384,6 @@ class ValueConstructor {
         // Ignore result if returnId is null. Otherwise add it to instance cache.
         callModel.returnValue?.let {
             checkNotNull(result) { "Tracked instance can't be null for call $executable in model $assembleModel" }
-            resultsCache[it] = result
 
             //If statement is final instantiating, add result to constructed objects cache
             if (callModel == assembleModel.finalInstantiationModel) {
@@ -400,7 +397,7 @@ class ValueConstructor {
      */
     private fun updateWithDirectSetFieldModel(directSetterModel: UtDirectSetFieldModel) {
         val instanceModel = directSetterModel.instance
-        val instance = resultsCache[instanceModel] ?: error("Model $instanceModel is not instantiated")
+        val instance = constructedObjects[instanceModel] ?: error("Model $instanceModel is not instantiated")
 
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel

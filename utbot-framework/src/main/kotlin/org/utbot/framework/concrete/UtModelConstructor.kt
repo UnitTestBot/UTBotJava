@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -82,8 +83,13 @@ class UtModelConstructor(
      *
      * Handles cache on stateBefore values.
      */
-    override fun construct(value: Any?, classId: ClassId): UtModel =
-        when (value) {
+    override fun construct(value: Any?, classId: ClassId): UtModel {
+        objectToModelCache[value]?.let { model ->
+            if (model is UtLambdaModel) {
+                return model
+            }
+        }
+        return when (value) {
             null -> UtNullModel(classId)
             is Unit -> UtVoidModel
             is Byte,
@@ -107,6 +113,7 @@ class UtModelConstructor(
             is Class<*> -> constructFromClass(value)
             else -> constructFromAny(value)
         }
+    }
 
     // Q: Is there a way to get rid of duplicated code?
 

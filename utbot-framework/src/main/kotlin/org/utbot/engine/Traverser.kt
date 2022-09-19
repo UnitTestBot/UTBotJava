@@ -9,7 +9,6 @@ import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
 import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
 import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
-import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -3408,22 +3407,6 @@ class Traverser(
         val returnValue = (symbolicResult as? SymbolicSuccess)?.value as? ObjectValue
         if (returnValue != null) {
             queuedSymbolicStateUpdates += constructConstraintForType(returnValue, returnValue.possibleConcreteTypes).asSoftConstraint()
-
-            // We only remove anonymous classes if there are regular classes available.
-            // If there are no other options, then we do use anonymous classes.
-            workaround(REMOVE_ANONYMOUS_CLASSES) {
-                val sootClass = returnValue.type.sootClass
-                val isInNestedMethod = environment.state.isInNestedMethod()
-
-                if (!isInNestedMethod && sootClass.isArtificialEntity) {
-                    return
-                }
-
-                val onlyAnonymousTypesAvailable = returnValue.typeStorage.possibleConcreteTypes.all { (it as? RefType)?.sootClass?.isAnonymous == true }
-                if (!isInNestedMethod && sootClass.isAnonymous && !onlyAnonymousTypesAvailable) {
-                    return
-                }
-            }
         }
 
         //fill arrays with default 0/null and other stuff

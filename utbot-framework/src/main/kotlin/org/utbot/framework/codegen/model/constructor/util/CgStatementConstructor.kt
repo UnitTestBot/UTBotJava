@@ -124,6 +124,8 @@ interface CgStatementConstructor {
     fun doWhileLoop(condition: CgExpression, statements: () -> Unit)
     fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit)
 
+    fun getClassOf(classId: ClassId): CgExpression
+
     /**
      * Create a variable of type [java.lang.reflect.Field] by the given [FieldId].
      */
@@ -310,6 +312,18 @@ internal class CgStatementConstructorImpl(context: CgContext) :
     override fun forEachLoop(init: CgForEachLoopBuilder.() -> Unit) = withNameScope {
         currentBlock += buildCgForEachLoop(init)
     }
+
+    /**
+     * @return expression for [java.lang.Class] of the given [classId]
+     */
+    override fun getClassOf(classId: ClassId): CgExpression {
+        return if (classId isAccessibleFrom testClassPackageName) {
+            CgGetJavaClass(classId)
+        } else {
+            newVar(classCgClassId) { classClassId[forName](classId.name) }
+        }
+    }
+
 
     override fun createFieldVariable(fieldId: FieldId): CgVariable {
         val declaringClass = newVar(classClassId) { classClassId[forName](fieldId.declaringClass.name) }

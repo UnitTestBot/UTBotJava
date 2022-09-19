@@ -28,7 +28,6 @@ class MatrixUniqueness(executions: List<UtSymbolicExecution>) {
      *
      * Every matrix i,j is 1 or 0, as if step in execution or not.
      */
-    // TODO: could create a row with all zeroes for path == 0
     private fun createMatrix(): List<IntArray> {
         val matrix = mutableListOf<IntArray>()
         for (stmtSeq in this.methodExecutions) {

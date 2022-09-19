@@ -63,7 +63,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
             clustersInfo = clustersInfo
         ) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
-        logger.info(e) { "Summary generation error: ${e.message}" } // TODO: step here
+        logger.info(e) { "Summary generation error: ${e.message}" }
         this
     }
 }
@@ -253,14 +253,6 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
 
         // if there is no Jimple body or no AST, return one cluster with empty summary and all executions
         return listOf(UtExecutionCluster(UtClusterInfo(), testSet.executions))
-    }
-
-
-    private fun buildConcreteClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {
-        val commentPrefix = "CONCRETE EXECUTION ENGINE:"
-        val commentPostfix = "for method ${testSet.method.humanReadableName}"
-
-        return "$commentPrefix ${ExecutionGroup.SUCCESSFUL_EXECUTIONS.displayName} $commentPostfix"
     }
 
     private fun buildFuzzerClusterHeaderForSuccessfulExecutions(testSet: UtMethodTestSet): String {

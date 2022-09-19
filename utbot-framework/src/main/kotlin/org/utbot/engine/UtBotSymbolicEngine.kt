@@ -272,7 +272,6 @@ class UtBotSymbolicEngine(
                 }
 
                 if (controller.executeConcretely || statesForConcreteExecution.isNotEmpty()) {
-
                     val state = pathSelector.pollUntilFastSAT()
                         ?: statesForConcreteExecution.pollUntilSat(processUnknownStatesDuringConcreteExecution)
                         ?: break

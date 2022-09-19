@@ -79,7 +79,7 @@ jobs:
           chmod +x ./scripts/project/monitoring.sh
           ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
       - name: Run tests
-        run: |     
+        run: |
           gradle --no-daemon :utbot-framework:test ${{ matrix.project.TESTS_TO_RUN }}
       - name: Upload logs
         if: ${{ always() }}

@@ -1,7 +1,5 @@
 package org.utbot.sarif
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.junit.Test
 import org.mockito.Mockito
 import org.utbot.framework.plugin.api.ExecutableId
@@ -19,7 +17,7 @@ class SarifReportTest {
             testSets = listOf(),
             generatedTestsCode = "",
             sourceFindingEmpty
-        ).createReport()
+        ).createReport().toJson()
 
         assert(actualReport.isNotEmpty())
     }
@@ -30,7 +28,7 @@ class SarifReportTest {
             testSets = listOf(testSet),
             generatedTestsCode = "",
             sourceFindingEmpty
-        ).createReport().toSarif()
+        ).createReport()
 
         assert(sarif.runs.first().results.isEmpty())
     }
@@ -60,7 +58,7 @@ class SarifReportTest {
             testSets = testSets,
             generatedTestsCode = "",
             sourceFindingEmpty
-        ).createReport().toSarif()
+        ).createReport()
 
         assert(report.runs.first().results[0].message.text.contains("NullPointerException"))
         assert(report.runs.first().results[1].message.text.contains("ArrayIndexOutOfBoundsException"))
@@ -77,7 +75,7 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution.path.lastOrNull()?.stmt?.javaSourceStartLineNumber).thenReturn(1337)
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
-        val report = sarifReportMain.createReport().toSarif()
+        val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first()
         val location = result.locations.first().physicalLocation
@@ -105,7 +103,7 @@ class SarifReportTest {
             )
         )
 
-        val report = sarifReportMain.createReport().toSarif()
+        val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first()
         assert(result.message.text.contains("227"))
@@ -128,7 +126,7 @@ class SarifReportTest {
         )
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
 
-        val report = sarifReportMain.createReport().toSarif()
+        val report = sarifReportMain.createReport()
 
         val result = report.runs.first().results.first().codeFlows.first().threadFlows.first().locations.map {
             it.location.physicalLocation
@@ -153,7 +151,7 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
-        val report = sarifReportMain.createReport().toSarif()
+        val report = sarifReportMain.createReport()
 
         val codeFlowPhysicalLocations = report.runs[0].results[0].codeFlows[0].threadFlows[0].locations.map {
             it.location.physicalLocation
@@ -177,7 +175,7 @@ class SarifReportTest {
         Mockito.`when`(mockUtExecution.stateBefore.parameters).thenReturn(listOf())
         Mockito.`when`(mockUtExecution.testMethodName).thenReturn("testMain_ThrowArithmeticException")
 
-        val report = sarifReportPrivateMain.createReport().toSarif()
+        val report = sarifReportPrivateMain.createReport()
 
         val codeFlowPhysicalLocations = report.runs[0].results[0].codeFlows[0].threadFlows[0].locations.map {
             it.location.physicalLocation
@@ -203,7 +201,7 @@ class SarifReportTest {
             testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
-        ).createReport().toSarif()
+        ).createReport()
 
         assert(report.runs.first().results.size == 1) // no duplicates
     }
@@ -228,7 +226,7 @@ class SarifReportTest {
             testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
-        ).createReport().toSarif()
+        ).createReport()
 
         assert(report.runs.first().results.size == 2) // no results have been removed
     }
@@ -257,7 +255,7 @@ class SarifReportTest {
             testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
-        ).createReport().toSarif()
+        ).createReport()
 
         assert(report.runs.first().results.size == 2) // no results have been removed
     }
@@ -291,7 +289,7 @@ class SarifReportTest {
             testSets = testSets,
             generatedTestsCode = "",
             sourceFindingMain
-        ).createReport().toSarif()
+        ).createReport()
 
         assert(report.runs.first().results.size == 1) // no duplicates
         assert(report.runs.first().results.first().totalCodeFlowLocations() == 1) // with a shorter stack trace
@@ -309,8 +307,6 @@ class SarifReportTest {
         Mockito.`when`(mockExecutableId.name).thenReturn("main")
         Mockito.`when`(mockExecutableId.classId.name).thenReturn("Main")
     }
-
-    private fun String.toSarif(): Sarif = jacksonObjectMapper().readValue(this)
 
     // constants
 

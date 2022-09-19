@@ -7,9 +7,8 @@ compileKotlin {
     }
 }
 
-
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
 }
 
@@ -33,8 +32,7 @@ dependencies {
     api project(':utbot-summary')
     api project(':utbot-framework-api')
 
-    implementation(project(":utbot-framework"))
-    testImplementation project(':utbot-sample')
+    implementation project(':utbot-framework')
     testImplementation project(":utbot-framework").sourceSets.test.output
     testImplementation project(":utbot-core").sourceSets.test.output
 
@@ -74,7 +72,6 @@ dependencies {
 }
 
 test {
-
     minHeapSize = "128m"
     maxHeapSize = "2048m"
 
@@ -85,6 +82,7 @@ test {
     useJUnitPlatform() {
         excludeTags 'slow', 'IntegrationTest'
     }
+
     if (System.getProperty('DEBUG', 'false') == 'true') {
         jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=9009'
     }

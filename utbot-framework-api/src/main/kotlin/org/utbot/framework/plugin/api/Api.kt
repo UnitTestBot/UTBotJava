@@ -588,6 +588,8 @@ sealed class UtStatementModel(
  * Step of assemble instruction that calls executable.
  *
  * Contains executable to call, call parameters and an instance model before call.
+ *
+ * @param [instance] **must be** `null` for static methods and constructors
  */
 data class UtExecutableCallModel(
     override val instance: UtReferenceModel?,

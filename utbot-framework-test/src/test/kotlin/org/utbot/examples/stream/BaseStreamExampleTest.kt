@@ -87,6 +87,7 @@ class BaseStreamExampleTest : UtValueTestCaseChecker(
     }
 
     @Test
+    @Tag("slow")
     fun testDistinctExample() {
         check(
             BaseStreamExample::distinctExample,

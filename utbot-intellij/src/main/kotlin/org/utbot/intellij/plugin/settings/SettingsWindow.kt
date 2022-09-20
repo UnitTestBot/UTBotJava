@@ -23,7 +23,9 @@ import org.utbot.framework.codegen.HangingTestsTimeout
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.plugin.api.CodeGenerationSettingItem
 import org.utbot.framework.plugin.api.CodegenLanguage
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.TreatOverflowAsError
+import org.utbot.intellij.plugin.ui.components.CodeGenerationSettingItemRenderer
 
 class SettingsWindow(val project: Project) {
     private val settings = project.service<Settings>()
@@ -36,8 +38,9 @@ class SettingsWindow(val project: Project) {
         val valuesComboBox: LayoutBuilder.(KClass<*>, Array<*>) -> Unit = { loader, values ->
             val serviceLabels = mapOf(
                 CodegenLanguage::class to "Generated test language:",
-                RuntimeExceptionTestsBehaviour::class to "Test with exceptions:",
+                RuntimeExceptionTestsBehaviour::class to "Tests with exceptions:",
                 TreatOverflowAsError::class to "Overflow detection:",
+                JavaDocCommentStyle::class to "Javadoc comment style:"
             )
             val tooltipLabels = mapOf(
                 CodegenLanguage::class to "You can generate test methods in Java or Kotlin regardless of your source code language."
@@ -49,7 +52,10 @@ class SettingsWindow(val project: Project) {
                         DefaultComboBoxModel(values),
                         getter = { settings.providerNameByServiceLoader(loader) },
                         setter = { settings.setProviderByLoader(loader, it as CodeGenerationSettingItem) },
-                    ).apply { ContextHelpLabel.create(tooltipLabels[loader] ?: return@apply)() }
+                    ).apply {
+                        component.renderer = CodeGenerationSettingItemRenderer()
+                        ContextHelpLabel.create(tooltipLabels[loader] ?: return@apply)()
+                    }
                 }
             }
         }
@@ -80,14 +86,14 @@ class SettingsWindow(val project: Project) {
                     }
             }
         }
+
         mapOf(
             RuntimeExceptionTestsBehaviour::class to RuntimeExceptionTestsBehaviour.values(),
-            TreatOverflowAsError::class to TreatOverflowAsError.values()
+            TreatOverflowAsError::class to TreatOverflowAsError.values(),
+            JavaDocCommentStyle::class to JavaDocCommentStyle.values()
         ).forEach { (loader, values) ->
             valuesComboBox(loader, values)
         }
-
-
 
         row {
             cell {

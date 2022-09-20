@@ -155,7 +155,7 @@ object UtSettings : AbstractSettings(
     /**
      * Generate summaries using plugin's custom JavaDoc tags.
      */
-    var useCustomJavaDocTags by getBooleanProperty(false)
+    var useCustomJavaDocTags by getBooleanProperty(true)
 
     /**
      * Enable the machine learning module to generate summaries for methods under test.

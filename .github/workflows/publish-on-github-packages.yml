@@ -3,38 +3,81 @@ name: "[M] Publish on GitHub Packages"
 on:
   workflow_dispatch:
     inputs:
-      commit_sha:
-        type: string
+      image_name:
+        type: choice
+        description: "CLI name."
         required: true
-        description: "commit SHA: e.g. cab4799c"
-        
-env:
-  # Environment variable setting gradle options.
-  GRADLE_OPTS: "-XX:MaxHeapSize=2048m -Dorg.gradle.jvmargs='-XX:MaxHeapSize=2048m -XX:MaxPermSize=512m -Dorg.gradle.daemon=false' -Dorg.gradle.daemon=false"
+        default: python_cli
+        options:
+        - python_cli
+        - javascript_cli
+        - go_cli
 
 jobs:
-  build-and-run-tests:
+  publish-cli-image:
     if: ${{ github.actor == 'korifey' || github.actor == 'denis-fokin' || github.actor == 'victoriafomina' || github.actor == 'bissquit' }}
-    uses: ./.github/workflows/build-and-run-tests-from-branch.yml
-    with:
-      commit_sha: ${{ github.event.inputs.commit_sha }}
-    secrets: inherit
-
-  publish_on_github_packages:
-    needs: build-and-run-tests
     runs-on: ubuntu-20.04
+    container: unittestbot/java-env:java11-zulu-jdk-gradle7.4.2-kotlinc1.7.0
     steps:
     - name: Print environment variables
       run: printenv
 
     - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.inputs.commit_sha }}
 
-    - uses: gradle/gradle-build-action@v2
+    - name: Set environment variables
+      run: |
+        # "You can make an environment variable available to any subsequent steps in a workflow job by 
+        # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
+        echo VERSION="$(date +%Y).$(date +%-m)" >> $GITHUB_ENV
+        echo IMAGE_NAME_UPPERCASE="${{ github.event.inputs.image_name }}^^" >> $GITHUB_ENV
+        
+    - name: Build UTBot Java CLI
+      run: |
+        cd utbot-cli
+        gradle build --no-daemon -x test -PsemVer=${{ env.VERSION }}
+    - name: Set docker tag
+      run:
+        # "You can make an environment variable available to any subsequent steps in a workflow job by 
+        # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
+        echo DOCKER_TAG="$(date +%Y).$(date +%-m).$(date +%-d)-${{ github.sha }}" >> $GITHUB_ENV
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v2
       with:
-        gradle-version: 7.4.2
-        arguments: publish
-      env:
-        GITHUB_ACTOR: ${{ github.actor }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-action@v3
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}/utbot_${{ github.event.inputs.image_name }}
+        tags: |
+          type=raw,value=${{ env.DOCKER_TAG }}
+    - name: Docker Buildx (build and push)
+      run: |
+        docker buildx build \
+          -f docker/Dockerfile_${{ github.event.inputs.image_name }} \
+          --cache-from "type=local,src=/tmp/.buildx-cache" \
+          --cache-to "type=local,dest=/tmp/.buildx-cache-new" \
+          --tag ${{ steps.meta.outputs.tags }} \
+          --build-arg UTBOT_${{ env.IMAGE_NAME_UPPERCASE }}=utbot-cli/build/libs/utbot-cli-${{ env.VERSION }}.jar \
+          --push .
+      # Temp fix
+      # https://github.com/docker/build-push-action/issues/252
+      # https://github.com/moby/buildkit/issues/1896
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache

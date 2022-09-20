@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit
 import org.utbot.engine.util.mockListeners.ForceStaticMockListener
 import org.utbot.framework.PathSelectorType
 import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.api.JavaDocCommentStyle
 import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.services.WorkingDirService
 import org.utbot.intellij.plugin.models.packageName
@@ -196,6 +197,8 @@ object UtTestsDialogProcessor {
 
                                 // set timeout for concrete execution and for generated tests
                                 UtSettings.concreteExecutionTimeoutInChildProcess = model.hangingTestsTimeout.timeoutMs
+
+                                UtSettings.useCustomJavaDocTags = model.commentStyle == JavaDocCommentStyle.CUSTOM_JAVADOC_TAGS
 
                                 val searchDirectory = ReadAction
                                     .nonBlocking<Path> {

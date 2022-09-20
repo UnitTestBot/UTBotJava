@@ -40,7 +40,7 @@ jobs:
         run: |
           # "You can make an environment variable available to any subsequent steps in a workflow job by 
           # defining or updating the environment variable and writing this to the GITHUB_ENV environment file."
-          echo "VERSION="$(date +%Y).$(date +%-m)"" >> $GITHUB_ENV
+          echo "VERSION="$(date +%Y).$(date +%-m).${GITHUB_RUN_NUMBER}"" >> $GITHUB_ENV
           echo "POSTFIX=${{ github.event.inputs.version-postfix }}" >> $GITHUB_ENV
           
       - name: Create version with postfix

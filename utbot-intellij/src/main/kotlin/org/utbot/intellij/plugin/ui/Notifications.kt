@@ -83,13 +83,8 @@ abstract class UrlNotifier : Notifier() {
     protected abstract val urlOpeningListener: NotificationListener
 
     override fun notify(info: String, project: Project?, module: Module?) {
-        notificationGroup
-            .createNotification(
-                titleText,
-                content(project, module, info),
-                notificationType,
-                urlOpeningListener,
-            ).notify(project)
+        notificationGroup.createNotification(content(project, module, info), notificationType)
+            .setTitle(titleText).setListener(urlOpeningListener).notify(project)
     }
 }
 

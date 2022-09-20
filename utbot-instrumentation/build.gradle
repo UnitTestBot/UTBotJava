@@ -1,15 +1,13 @@
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
 dependencies {
     implementation project(':utbot-framework-api')
     implementation project(':utbot-rd')
 
-    implementation group: 'org.ow2.asm', name: 'asm', version: asm_version
-    implementation group: 'org.ow2.asm', name: 'asm-commons', version: asm_version
-    implementation group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryo_version
+    implementation group: 'org.ow2.asm', name: 'asm', version: asmVersion
+    implementation group: 'org.ow2.asm', name: 'asm-commons', version: asmVersion
+    implementation group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryoVersion
     // this is necessary for serialization of some collections
-    implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryo_serializers_version
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+    implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryoSerializersVersion
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
@@ -40,7 +38,6 @@ jar {
     }
 }
 
-//noinspection GroovyAssignabilityCheck
 configurations {
     instrumentationArchive
 }

@@ -1,19 +1,14 @@
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
-//noinspection GroovyAssignabilityCheck
 configurations {
     fetchInstrumentationJar
 }
 
 dependencies {
-    //noinspection GroovyAssignabilityCheck
-    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration:'instrumentationArchive')
-    api project(':utbot-framework-api')
+    fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
     implementation project(':utbot-framework-api')
 
     testImplementation configurations.fetchInstrumentationJar
     testImplementation project(':utbot-sample')
-    testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacoco_version
+    testImplementation group: 'org.jacoco', name: 'org.jacoco.report', version: jacocoVersion
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 }

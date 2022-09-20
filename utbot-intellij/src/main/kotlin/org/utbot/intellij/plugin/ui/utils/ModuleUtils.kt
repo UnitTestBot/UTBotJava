@@ -13,6 +13,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.guessModuleDir
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.JavaSdkVersion
 import com.intellij.openapi.projectRoots.Sdk
@@ -165,8 +166,8 @@ fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<VirtualFile>): Virt
     val moduleInstance = ModuleRootManager.getInstance(this)
     val testFolder = moduleInstance.contentEntries.flatMap { it.sourceFolders.toList() }
         .firstOrNull { it.rootType in testSourceRootTypes }
-    (testFolder?.let { testFolder.file?.parent } ?: (testFolder?.contentEntry
-        ?: moduleInstance.contentEntries.first()).file ?: moduleFile)?.let {
+    (testFolder?.let { testFolder.file?.parent }
+        ?: testFolder?.contentEntry?.file ?: this.guessModuleDir())?.let {
         val file = FakeVirtualFile(it, dedicatedTestSourceRootName)
         testSourceRoots.add(file)
         // We return "true" IFF it's case of not yet created fake directory

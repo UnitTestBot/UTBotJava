@@ -9,11 +9,11 @@ public class ArraysQuickSort {
     }
 
     // implementation from Arrays.sort. All static constants inlined, because we don't support them for now
-    static void sort(int[] a, int left, int right,
+    public static void sort(int[] a, int left, int right,
                      int[] work, int workBase, int workLen) {
         // Use Quicksort on small arrays
         if (right - left < 286) { //QUICKSORT_THRESHOLD
-            sort(a, left, right, true);
+            internalSort(a, left, right, true);
             return;
         }
 
@@ -54,7 +54,7 @@ public class ArraysQuickSort {
              * use Quicksort instead of merge sort.
              */
             if (++count == 67) { // MAX_RUN_COUNT
-                sort(a, left, right, true);
+                internalSort(a, left, right, true);
                 return;
             }
         }
@@ -134,7 +134,7 @@ public class ArraysQuickSort {
         }
     }
 
-    private static void sort(int[] a, int left, int right, boolean leftmost) {
+    private static void internalSort(int[] a, int left, int right, boolean leftmost) {
         int length = right - left + 1;
 
         // Use insertion sort on tiny arrays
@@ -350,8 +350,8 @@ public class ArraysQuickSort {
             a[great + 1] = pivot2;
 
             // Sort left and right parts recursively, excluding known pivots
-            sort(a, left, less - 2, leftmost);
-            sort(a, great + 2, right, false);
+            internalSort(a, left, less - 2, leftmost);
+            internalSort(a, great + 2, right, false);
 
             /*
              * If center part is too large (comprises > 4/7 of the array),
@@ -423,7 +423,7 @@ public class ArraysQuickSort {
             }
 
             // Sort center part recursively
-            sort(a, less, great, false);
+            internalSort(a, less, great, false);
 
         } else { // Partitioning with one pivot
             /*
@@ -490,8 +490,8 @@ public class ArraysQuickSort {
              * All elements from center part are equal
              * and, therefore, already sorted.
              */
-            sort(a, left, less - 1, leftmost);
-            sort(a, great + 1, right, false);
+            internalSort(a, left, less - 1, leftmost);
+            internalSort(a, great + 1, right, false);
         }
     }
 }

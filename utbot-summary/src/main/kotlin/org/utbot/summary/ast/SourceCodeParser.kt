@@ -24,8 +24,8 @@ class SourceCodeParser {
     constructor(sourceFile: File, testSet: UtMethodTestSet) {
         val parser = JavaParser()
         cu = parser.parse(sourceFile)
-        val className = testSet.method.clazz.simpleName
-        val methodName = testSet.method.callable.name
+        val className = testSet.method.classId.simpleName
+        val methodName = testSet.method.name
 
         val lineNumbers = testSet.jimpleBody?.units?.map { it.javaSourceStartLineNumber }
         val maxLineNumber = lineNumbers?.maxOrNull()

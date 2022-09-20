@@ -25,8 +25,8 @@ import org.utbot.engine.pc.mkLong
 import org.utbot.engine.pc.mkShort
 import org.utbot.engine.pc.select
 import org.utbot.engine.pc.store
-import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.symbolic.asHardConstraint
+import org.utbot.engine.util.statics.concrete.isEnumValuesFieldName
 import org.utbot.engine.z3.intValue
 import org.utbot.engine.z3.value
 import org.utbot.framework.assemble.AssembleModelGenerator
@@ -34,6 +34,7 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.SYMBOLIC_NULL_ADDR
 import org.utbot.framework.plugin.api.UtArrayModel
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
@@ -46,12 +47,13 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
 import org.utbot.framework.plugin.api.UtPrimitiveModel
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtVoidModel
 import org.utbot.framework.plugin.api.classId
@@ -63,15 +65,6 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.nextModelName
-import java.awt.color.ICC_ProfileRGB
-import java.io.PrintStream
-import java.security.AccessControlContext
-import java.util.concurrent.atomic.AtomicInteger
-import kotlin.math.max
-import kotlin.math.min
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
-import org.utbot.framework.plugin.api.SYMBOLIC_NULL_ADDR
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -88,7 +81,15 @@ import soot.SootClass
 import soot.SootField
 import soot.Type
 import soot.VoidType
-import sun.java2d.cmm.lcms.LcmsServiceProvider
+import java.awt.color.ICC_ProfileRGB
+import java.io.PrintStream
+import java.security.AccessControlContext
+import java.security.AccessControlException
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.max
+import kotlin.math.min
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 
 // hack
 const val MAX_LIST_SIZE = 10
@@ -117,7 +118,7 @@ class Resolver(
     val typeRegistry: TypeRegistry,
     private val typeResolver: TypeResolver,
     val holder: UtSolverStatusSAT,
-    methodUnderTest: UtMethod<*>,
+    methodUnderTest: ExecutableId,
     private val softMaxArraySize: Int
 ) {
 
@@ -132,7 +133,7 @@ class Resolver(
     private val instrumentation = mutableListOf<UtInstrumentation>()
     private val requiredInstanceFields = mutableMapOf<Address, Set<FieldId>>()
 
-    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest)
+    private val assembleModelGenerator = AssembleModelGenerator(methodUnderTest.classId.packageName)
 
     /**
      * Contains FieldId of the static field which is construction at the moment and null of there is no such field.
@@ -372,12 +373,11 @@ class Resolver(
         return if (explicit) {
             UtExplicitlyThrownException(exception, inNestedMethod)
         } else {
-            // TODO SAT-1561
-            val isOverflow = exception is ArithmeticException && exception.message?.contains("overflow") == true
-            if (isOverflow) {
-                UtOverflowFailure(exception)
-            } else {
-                UtImplicitlyThrownException(exception, inNestedMethod)
+            when {
+                // TODO SAT-1561
+                exception is ArithmeticException && exception.message?.contains("overflow") == true -> UtOverflowFailure(exception)
+                exception is AccessControlException -> UtSandboxFailure(exception)
+                else -> UtImplicitlyThrownException(exception, inNestedMethod)
             }
         }
     }
@@ -510,6 +510,13 @@ class Resolver(
         }
 
         val sootClass = actualType.sootClass
+
+        if (sootClass.isLambda) {
+            return constructLambda(concreteAddr, sootClass).also { lambda ->
+                lambda.capturedValues += collectFieldModels(addr, actualType).values
+            }
+        }
+
         val clazz = classLoader.loadClass(sootClass.name)
 
         if (clazz.isEnum) {
@@ -543,11 +550,8 @@ class Resolver(
             val baseModelName = primitiveClassId.name
             val constructorId = constructorId(classId, primitiveClassId)
             val valueModel = fields[FieldId(classId, "value")] ?: primitiveClassId.defaultValueModel()
-            val instantiationChain = mutableListOf<UtExecutableCallModel>()
-            UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationChain)
-                .apply {
-                    instantiationChain += UtExecutableCallModel(null, constructorId, listOf(valueModel), this)
-                }
+            val instantiationCall = UtExecutableCallModel(instance = null, constructorId, listOf(valueModel))
+            UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationCall)
         }
     }
 
@@ -629,6 +633,41 @@ class Resolver(
 
         val constructedType = if (numDimensions == 0) type else type.makeArrayType(numDimensions)
         return constructedType.classId.jClass
+    }
+
+    private fun constructLambda(addr: Address, sootClass: SootClass): UtLambdaModel {
+        val samType = sootClass.interfaces.singleOrNull()?.id
+            ?: error("Lambda must implement single interface, but ${sootClass.interfaces.size} found for ${sootClass.name}")
+
+        val declaringClass = classLoader.loadClass(sootClass.name.substringBefore("\$lambda"))
+
+        // Java compiles lambdas into synthetic methods with specific names.
+        // However, Soot represents lambdas as classes.
+        // Names of these classes are the modified names of these synthetic methods.
+        // Specifically, Soot replaces some `$` signs by `_`, adds two underscores and some number
+        // to the end of the synthetic method name to form the name of a SootClass for lambda.
+        // For example, given a synthetic method `lambda$foo$1` (lambda declared in method `foo` of class `org.utbot.MyClass`),
+        // Soot will treat this lambda as a class named `org.utbot.MyClass$lambda_foo_1__5` (the last number is probably arbitrary, it's not important).
+        // Here we obtain the synthetic method name of lambda from the name of its SootClass.
+        val lambdaName = sootClass.name
+            .let { name ->
+                val start = name.indexOf("\$lambda") + 1
+                val end = name.lastIndexOf("__")
+                name.substring(start, end)
+            }
+            .let {
+                val builder = StringBuilder(it)
+                builder[it.indexOfFirst { c -> c == '_' }] = '$'
+                builder[it.indexOfLast { c -> c == '_' }] = '$'
+                builder.toString()
+            }
+
+        return UtLambdaModel(
+            id = addr,
+            samType = samType,
+            declaringClass = declaringClass.id,
+            lambdaName = lambdaName
+        )
     }
 
     private fun constructEnum(addr: Address, type: RefType, clazz: Class<*>): UtEnumConstantModel {
@@ -1017,9 +1056,9 @@ val typesOfObjectsToRecreate = listOf(
     "java.lang.CharacterDataLatin1",
     "java.lang.CharacterData00",
     "[Ljava.lang.StackTraceElement",
+    "sun.java2d.cmm.lcms.LcmsServiceProvider",
     PrintStream::class.qualifiedName,
     AccessControlContext::class.qualifiedName,
-    LcmsServiceProvider::class.qualifiedName,
     ICC_ProfileRGB::class.qualifiedName,
     AtomicInteger::class.qualifiedName
 )

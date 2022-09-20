@@ -1,6 +1,7 @@
 package org.utbot.framework.plugin.api.util
 
 import org.utbot.framework.plugin.api.BuiltinClassId
+import org.utbot.framework.plugin.api.BuiltinConstructorId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
@@ -14,19 +15,43 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.Executable
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
+import kotlin.jvm.internal.CallableReference
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KProperty
+import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
 import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.javaMethod
 
 // ClassId utils
+
+/**
+ * A type is called **non-denotable** if its name cannot be used in the source code.
+ * For example, anonymous classes **are** non-denotable types.
+ * On the other hand, [java.lang.Integer], for example, **is** denotable.
+ *
+ * This property returns the same type for denotable types,
+ * and it returns the supertype when given an anonymous class.
+ *
+ * **NOTE** that in Java there are non-denotable types other than anonymous classes.
+ * For example, null-type, intersection types, capture types.
+ * But [ClassId] cannot contain any of these (at least at the moment).
+ * So we only consider the case of anonymous classes.
+ */
+val ClassId.denotableType: ClassId
+    get() {
+        return when {
+            this.isAnonymous -> this.supertypeOfAnonymousClass
+            else -> this
+        }
+    }
 
 @Suppress("unused")
 val ClassId.enclosingClass: ClassId?
@@ -93,20 +118,53 @@ infix fun ClassId.isSubtypeOf(type: ClassId): Boolean {
     if (left == right) {
         return true
     }
-    val leftClass = this.jClass
+    val leftClass = this
     val interfaces = sequence {
         var types = listOf(leftClass)
         while (types.isNotEmpty()) {
             yieldAll(types)
-            types = types.map { it.interfaces }.flatMap { it.toList() }
+            types = types
+                .flatMap { it.interfaces.toList() }
+                .map { it.id }
         }
     }
-    val superclasses = generateSequence(leftClass) { it.superclass }
+    val superclasses = generateSequence(leftClass) { it.superclass?.id }
     val superTypes = interfaces + superclasses
-    return right in superTypes.map { it.id }
+    return right in superTypes
 }
 
 infix fun ClassId.isNotSubtypeOf(type: ClassId): Boolean = !(this isSubtypeOf type)
+
+/**
+ * - Anonymous class that extends a class will have this class as its superclass and no interfaces.
+ * - Anonymous class that implements an interface, will have the only interface
+ *   and [java.lang.Object] as its superclass.
+ *
+ * @return [ClassId] of a type that the given anonymous class inherits
+ */
+val ClassId.supertypeOfAnonymousClass: ClassId
+    get() {
+        if (this is BuiltinClassId) error("Cannot obtain info about supertypes of BuiltinClassId $canonicalName")
+        require(isAnonymous) { "An anonymous class expected, but got $canonicalName" }
+
+        val clazz = jClass
+        val superclass = clazz.superclass.id
+        val interfaces = clazz.interfaces.map { it.id }
+
+        return when (superclass) {
+            objectClassId -> {
+                // anonymous class actually inherits from Object, e.g. Object obj = new Object() { ... };
+                if (interfaces.isEmpty()) {
+                    objectClassId
+                } else {
+                    // anonymous class implements some interface
+                    interfaces.singleOrNull() ?: error("Anonymous class can have no more than one interface")
+                }
+            }
+            // anonymous class inherits from some class other than java.lang.Object
+            else -> superclass
+        }
+    }
 
 val ClassId.kClass: KClass<*>
     get() = jClass.kotlin
@@ -142,6 +200,9 @@ val floatWrapperClassId = java.lang.Float::class.id
 val doubleWrapperClassId = java.lang.Double::class.id
 
 val classClassId = java.lang.Class::class.id
+val fieldClassId = java.lang.reflect.Field::class.id
+val methodClassId = java.lang.reflect.Method::class.id
+val constructorClassId = java.lang.reflect.Constructor::class.id
 
 // We consider void wrapper as primitive wrapper
 // because voidClassId is considered primitive here
@@ -207,6 +268,8 @@ val atomicIntegerGetAndIncrement = MethodId(atomicIntegerClassId, "getAndIncreme
 val iterableClassId = java.lang.Iterable::class.id
 val mapClassId = java.util.Map::class.id
 
+val dateClassId = java.util.Date::class.id
+
 @Suppress("RemoveRedundantQualifierName")
 val primitiveToId: Map<Class<*>, ClassId> = mapOf(
     java.lang.Void.TYPE to voidClassId,
@@ -265,6 +328,13 @@ val Class<*>.id: ClassId
         isPrimitive -> primitiveToId[this]!!
         else -> ClassId(name)
     }
+
+/**
+ * We should specially handle the case of a generic type that is a [Type] and not a [Class].
+ * Returns a [ClassId] for the corresponding raw type.
+ */
+val ParameterizedType.id: ClassId
+    get() = ClassId(this.rawType.typeName)
 
 val KClass<*>.id: ClassId
     get() = java.id
@@ -371,6 +441,13 @@ val KCallable<*>.executableId: ExecutableId
         else -> error("Unknown KCallable type: ${this::class}")
     }
 
+val Executable.executableId: ExecutableId
+    get() = when (this) {
+        is Method -> executableId
+        is Constructor<*> -> executableId
+        else -> error("Unknown Executable type: ${this::class}")
+    }
+
 val Method.executableId: MethodId
     get() {
         val classId = declaringClass.id
@@ -386,23 +463,52 @@ val Constructor<*>.executableId: ConstructorId
         return constructorId(classId, *arguments)
     }
 
-@ExperimentalContracts
-fun ExecutableId.isMethod(): Boolean {
-    contract {
-        returns(true) implies (this@isMethod is MethodId)
-        returns(false) implies (this@isMethod is ConstructorId)
+val ExecutableId.humanReadableName: String
+    get() {
+        val executableName = this.name
+        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
+        return "$executableName($parameters)"
     }
-    return this is MethodId
-}
 
-@ExperimentalContracts
-fun ExecutableId.isConstructor(): Boolean {
-    contract {
-        returns(true) implies (this@isConstructor is ConstructorId)
-        returns(false) implies (this@isConstructor is MethodId)
-    }
-    return this is ConstructorId
-}
+val Constructor<*>.displayName: String
+    get() = executableId.humanReadableName
+
+val Method.displayName: String
+    get() = executableId.humanReadableName
+
+val KCallable<*>.declaringClazz: Class<*>
+    get() = when (this) {
+        is CallableReference -> owner as? KClass<*>
+        else -> instanceParameter?.type?.classifier as? KClass<*>
+    }?.java ?: tryConstructor(this) ?: error("Can't get parent class for $this")
+
+private fun <R> tryConstructor(function: KCallable<R>): Class<*>? =
+    (function as? KFunction<*>)?.javaConstructor?.declaringClass
+
+val ExecutableId.isMethod: Boolean
+    get() = this is MethodId
+
+val ExecutableId.isConstructor: Boolean
+    get() = this is ConstructorId
+
+val ExecutableId.isPublic: Boolean
+    get() = Modifier.isPublic(modifiers)
+
+val ExecutableId.isProtected: Boolean
+    get() = Modifier.isProtected(modifiers)
+
+val ExecutableId.isPrivate: Boolean
+    get() = Modifier.isPrivate(modifiers)
+
+val ExecutableId.isStatic: Boolean
+    get() = Modifier.isStatic(modifiers)
+
+val ExecutableId.isPackagePrivate: Boolean
+    get() = !(isPublic || isProtected || isPrivate)
+
+val ExecutableId.isAbstract: Boolean
+    get() = Modifier.isAbstract(modifiers)
+
 
 /**
  * Construct MethodId
@@ -420,6 +526,10 @@ fun constructorId(classId: ClassId, vararg arguments: ClassId): ConstructorId {
 
 fun builtinMethodId(classId: BuiltinClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {
     return BuiltinMethodId(classId, name, returnType, arguments.toList())
+}
+
+fun builtinConstructorId(classId: BuiltinClassId, vararg arguments: ClassId): BuiltinConstructorId {
+    return BuiltinConstructorId(classId, arguments.toList())
 }
 
 fun builtinStaticMethodId(classId: ClassId, name: String, returnType: ClassId, vararg arguments: ClassId): BuiltinMethodId {

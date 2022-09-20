@@ -6,7 +6,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
+import org.utbot.fuzzer.FuzzedContext
 import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 
@@ -16,12 +16,12 @@ class FuzzedValueDescriptionTest {
     fun testConstantModelProviderTest() {
         val values = mutableListOf<FuzzedValue>()
         val concreteValues = listOf(
-            FuzzedConcreteValue(intClassId, 10, FuzzedOp.EQ),
-            FuzzedConcreteValue(intClassId, 20, FuzzedOp.NE),
-            FuzzedConcreteValue(intClassId, 30, FuzzedOp.LT),
-            FuzzedConcreteValue(intClassId, 40, FuzzedOp.LE),
-            FuzzedConcreteValue(intClassId, 50, FuzzedOp.GT),
-            FuzzedConcreteValue(intClassId, 60, FuzzedOp.GE),
+            FuzzedConcreteValue(intClassId, 10, FuzzedContext.Comparison.EQ),
+            FuzzedConcreteValue(intClassId, 20, FuzzedContext.Comparison.NE),
+            FuzzedConcreteValue(intClassId, 30, FuzzedContext.Comparison.LT),
+            FuzzedConcreteValue(intClassId, 40, FuzzedContext.Comparison.LE),
+            FuzzedConcreteValue(intClassId, 50, FuzzedContext.Comparison.GT),
+            FuzzedConcreteValue(intClassId, 60, FuzzedContext.Comparison.GE),
         )
         val summaries = listOf(
             "%var% = 10" to 10,

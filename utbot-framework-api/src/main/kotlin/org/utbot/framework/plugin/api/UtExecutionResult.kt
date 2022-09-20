@@ -17,6 +17,10 @@ data class UtOverflowFailure(
     override val exception: Throwable,
 ) : UtExecutionFailure()
 
+data class UtSandboxFailure(
+    override val exception: Throwable
+) : UtExecutionFailure()
+
 /**
  * unexpectedFail (when exceptions such as NPE, IOBE, etc. appear, but not thrown by a user, applies both for function under test and nested calls )
  * expectedCheckedThrow (when function under test or nested call explicitly says that checked exception could be thrown and throws it)
@@ -48,13 +52,13 @@ class ConcreteExecutionFailureException(cause: Throwable, errorFile: File, val p
             appendLine("----------------------------------------")
             appendLine("The child process is dead")
             appendLine("Cause:\n${cause.message}")
-            appendLine("Last 20 lines of the error log ${errorFile.absolutePath}:")
+            appendLine("Last 1000 lines of the error log ${errorFile.absolutePath}:")
             appendLine("----------------------------------------")
             errorFile.useLines { lines ->
                 val lastLines = LinkedList<String>()
                 for (line in lines) {
                     lastLines.add(line)
-                    if (lastLines.size > 20) {
+                    if (lastLines.size > 1000) {
                         lastLines.removeFirst()
                     }
                 }

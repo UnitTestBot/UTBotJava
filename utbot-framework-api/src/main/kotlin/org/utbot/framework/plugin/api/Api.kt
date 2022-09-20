@@ -11,7 +11,6 @@ package org.utbot.framework.plugin.api
 import org.utbot.common.isDefaultValue
 import org.utbot.common.withToStringThreadLocalReentrancyGuard
 import org.utbot.framework.UtSettings
-import org.utbot.framework.plugin.api.MockFramework.MOCKITO
 import org.utbot.framework.plugin.api.impl.FieldIdReflectionStrategy
 import org.utbot.framework.plugin.api.impl.FieldIdSootStrategy
 import org.utbot.framework.plugin.api.util.booleanClassId
@@ -28,10 +27,10 @@ import org.utbot.framework.plugin.api.util.isPrimitive
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.method
-import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.primitiveTypeJvmNameOrNull
 import org.utbot.framework.plugin.api.util.safeJField
 import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.toReferenceTypeBytecodeSignature
 import org.utbot.framework.plugin.api.util.voidClassId
 import soot.ArrayType
@@ -53,50 +52,11 @@ import java.io.File
 import java.lang.reflect.Modifier
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
-import kotlin.jvm.internal.CallableReference
-import kotlin.reflect.KCallable
-import kotlin.reflect.KClass
-import kotlin.reflect.KFunction
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaType
 
 const val SYMBOLIC_NULL_ADDR: Int = 0
 
-data class UtMethod<R>(
-    val callable: KCallable<R>,
-    val clazz: KClass<*>
-) {
-    companion object {
-        fun <R> from(function: KCallable<R>): UtMethod<R> {
-            val kClass = when (function) {
-                is CallableReference -> function.owner as? KClass<*>
-                else -> function.instanceParameter?.type?.classifier as? KClass<*>
-            } ?: tryConstructor(function) ?: error("Can't get parent class for $function")
-
-            return UtMethod(function, kClass)
-        }
-
-        /**
-         * Workaround for constructors from tests.
-         */
-        private fun <R> tryConstructor(function: KCallable<R>): KClass<out Any>? {
-            val declaringClass: Class<*>? = (function as? KFunction<*>)?.javaConstructor?.declaringClass
-            return declaringClass?.kotlin
-        }
-    }
-
-    override fun toString(): String {
-        return "${clazz.qualifiedName}.${callable.name}" +
-                callable.parameters.drop(if (callable.instanceParameter != null) 1 else 0)
-                    .joinToString(", ", "(", ")") {
-                        it.type.javaType.typeName.substringBefore('<').substringAfterLast(".")
-                    }
-    }
-}
-
 data class UtMethodTestSet(
-    val method: UtMethod<*>,
+    val method: ExecutableId,
     val executions: List<UtExecution> = emptyList(),
     val jimpleBody: JimpleBody? = null,
     val errors: Map<String, Int> = emptyMap(),
@@ -145,7 +105,7 @@ sealed class UtResult
  * - coverage information (instructions) if this execution was obtained from the concrete execution.
  * - comments, method names and display names created by utbot-summary module.
  */
-open class UtExecution(
+abstract class UtExecution(
     val stateBefore: EnvironmentModels,
     val stateAfter: EnvironmentModels,
     val result: UtExecutionResult,
@@ -225,6 +185,27 @@ class UtSymbolicExecution(
     }
 }
 
+/**
+ * Execution that result in an error (e.g., JVM crash or another concrete execution error).
+ *
+ * Contains:
+ * - state before the execution;
+ * - result (a [UtExecutionFailure] or its subclass);
+ * - coverage information (instructions) if this execution was obtained from the concrete execution.
+ * - comments, method names and display names created by utbot-summary module.
+ *
+ * This execution does not contain any "after" state, as it is generally impossible to obtain
+ * in case of failure. [MissingState] is used instead.
+ */
+class UtFailedExecution(
+    stateBefore: EnvironmentModels,
+    result: UtExecutionFailure,
+    coverage: Coverage? = null,
+    summary: List<DocStatement>? = null,
+    testMethodName: String? = null,
+    displayName: String? = null
+) : UtExecution(stateBefore, MissingState, result, coverage, summary, testMethodName, displayName)
+
 open class EnvironmentModels(
     val thisInstance: UtModel?,
     val parameters: List<UtModel>,
@@ -283,12 +264,12 @@ sealed class UtReferenceModel(
 ) : UtModel(classId)
 
 /**
- * Checks if [UtModel] is a null.
+ * Checks if [UtModel] is a [UtNullModel].
  */
 fun UtModel.isNull() = this is UtNullModel
 
 /**
- * Checks if [UtModel] is not a null.
+ * Checks if [UtModel] is not a [UtNullModel].
  */
 fun UtModel.isNotNull() = !isNull()
 
@@ -490,26 +471,52 @@ data class UtArrayModel(
 /**
  * Model for complex objects with assemble instructions.
  *
- * @param instantiationChain is a chain of [UtStatementModel] to instantiate represented object
- * @param modificationsChain is a chain of [UtStatementModel] to construct object state
+ * The default constructor is made private to enforce using a safe constructor.
+ *
+ * @param instantiationCall is an [UtExecutableCallModel] to instantiate represented object. It **must** not return `null`.
+ * @param modificationsChain is a chain of [UtStatementModel] to construct object state.
  */
-data class UtAssembleModel(
+data class UtAssembleModel private constructor(
     override val id: Int?,
     override val classId: ClassId,
     override val modelName: String,
-    val instantiationChain: List<UtStatementModel> = emptyList(),
-    val modificationsChain: List<UtStatementModel> = emptyList(),
-    val origin: UtCompositeModel? = null
+    val instantiationCall: UtExecutableCallModel,
+    val modificationsChain: List<UtStatementModel>,
+    val origin: UtCompositeModel?
 ) : UtReferenceModel(id, classId, modelName) {
-    val allStatementsChain
-        get() = instantiationChain + modificationsChain
-    val finalInstantiationModel
-        get() = instantiationChain.lastOrNull()
+
+    /**
+     * Creates a new [UtAssembleModel].
+     *
+     * Please note, that it's the caller responsibility to properly cache [UtModel]s to prevent an infinite recursion.
+     * The order of the calling:
+     * 1. [instantiationCall]
+     * 2. [constructor]
+     * 3. [modificationsChainProvider]. Possible caching should be made at the beginning of this method.
+     *
+     * @param instantiationCall defines the single instruction, which provides a [UtAssembleModel]. It could be a
+     * constructor or a method of another class, which returns the object of the [classId] type.
+     *
+     * @param modificationsChainProvider used for creating modifying statements. Its receiver corresponds to newly
+     * created [UtAssembleModel], so you can use it for caching and for creating [UtExecutableCallModel]s with it
+     * as [UtExecutableCallModel.instance].
+     */
+    constructor(
+        id: Int?,
+        classId: ClassId,
+        modelName: String,
+        instantiationCall: UtExecutableCallModel,
+        origin: UtCompositeModel? = null,
+        modificationsChainProvider: UtAssembleModel.() -> List<UtStatementModel> = { emptyList() }
+    ) : this(id, classId, modelName, instantiationCall, mutableListOf(), origin) {
+        val modificationChainStatements = modificationsChainProvider()
+        (modificationsChain as MutableList<UtStatementModel>).addAll(modificationChainStatements)
+    }
 
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
             append("UtAssembleModel(${classId.simpleName} $modelName) ")
-            append(instantiationChain.joinToString(" "))
+            append(instantiationCall)
             if (modificationsChain.isNotEmpty()) {
                 append(" ")
                 append(modificationsChain.joinToString(" "))
@@ -531,6 +538,46 @@ data class UtAssembleModel(
 }
 
 /**
+ * Model for lambdas.
+ *
+ * Lambdas in Java represent the implementation of a single abstract method (SAM) of a functional interface.
+ * They can be used to create an instance of said functional interface, but **they are not classes**.
+ * In Java lambdas are compiled into synthetic methods of a class they are declared in.
+ * Depending on the captured variables, this method will be either static or non-static.
+ *
+ * Since lambdas are not classes we cannot use a class loader to get info about them as we can do for other models.
+ * Hence, the necessity for this specific lambda model that will be processed differently:
+ * instead of working with a class we will be working with the synthetic method that represents our lambda.
+ *
+ * @property id see documentation on [UtReferenceModel.id]
+ * @property samType the type of functional interface that this lambda will be used for (e.g. [java.util.function.Predicate]).
+ * `sam` means single abstract method. See https://kotlinlang.org/docs/fun-interfaces.html for more details about it in Kotlin.
+ * In Java it means the same.
+ * @property declaringClass a class where the lambda is located.
+ * We need this class, because the synthetic method the lambda is compiled into will be located in it.
+ * @property lambdaName the name of synthetic method the lambda is compiled into.
+ * We need it to find this method in the [declaringClass]
+ * @property capturedValues models of values captured by lambda.
+ * Lambdas can capture local variables, method arguments, static and non-static fields.
+ */
+// TODO: what about support for Kotlin lambdas and function types? See https://github.com/UnitTestBot/UTBotJava/issues/852
+class UtLambdaModel(
+    override val id: Int?,
+    val samType: ClassId,
+    val declaringClass: ClassId,
+    val lambdaName: String,
+    val capturedValues: MutableList<UtModel> = mutableListOf(),
+) : UtReferenceModel(id, samType) {
+
+    val lambdaMethodId: MethodId
+        get() = declaringClass.jClass
+            .declaredMethods
+            .singleOrNull { it.name == lambdaName }
+            ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
+            ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+}
+
+/**
  * Model for a step to obtain [UtAssembleModel].
  */
 sealed class UtStatementModel(
@@ -541,13 +588,13 @@ sealed class UtStatementModel(
  * Step of assemble instruction that calls executable.
  *
  * Contains executable to call, call parameters and an instance model before call.
- * Return value is used for tracking objects and call others methods with these tracking objects as parameters.
+ *
+ * @param [instance] **must be** `null` for static methods and constructors
  */
 data class UtExecutableCallModel(
     override val instance: UtReferenceModel?,
     val executable: ExecutableId,
     val params: List<UtModel>,
-    val returnValue: UtReferenceModel? = null,
 ) : UtStatementModel(instance) {
     override fun toString() = withToStringThreadLocalReentrancyGuard {
         buildString {
@@ -557,9 +604,7 @@ data class UtExecutableCallModel(
                 is MethodId -> executable.name
             }
 
-            if (returnValue != null) {
-                append("val ${returnValue.modelName} = ")
-            } else if (instance != null) {
+            if (instance != null) {
                 append("${instance.modelName}.")
             }
 
@@ -698,8 +743,14 @@ open class ClassId @JvmOverloads constructor(
      */
     val prettifiedName: String
         get() {
-            val className = jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
-            return className
+            val baseName = when {
+                // anonymous classes have empty simpleName and their canonicalName is null,
+                // so we create a specific name for them
+                isAnonymous -> "Anonymous${supertypeOfAnonymousClass.prettifiedName}"
+                // in other cases where canonical name is still null, we use ClassId.name instead
+                else -> jClass.canonicalName ?: name // Explicit jClass reference to get null instead of exception
+            }
+            return baseName
                 .substringAfterLast(".")
                 .replace(Regex("[^a-zA-Z0-9]"), "")
                 .let { if (this.isArray) it + "Array" else it }
@@ -767,6 +818,12 @@ open class ClassId @JvmOverloads constructor(
     open val outerClass: Class<*>?
         get() = jClass.enclosingClass
 
+    open val superclass: Class<*>?
+        get() = jClass.superclass
+
+    open val interfaces: Array<Class<*>>
+        get() = jClass.interfaces
+
     /**
      * For member classes returns a name including
      * enclosing classes' simple names e.g. `A.B`.
@@ -819,7 +876,7 @@ class BuiltinClassId(
     elementClassId: ClassId? = null,
     override val canonicalName: String,
     override val simpleName: String,
-    // by default we assume that the class is not a member class
+    // by default, we assume that the class is not a member class
     override val simpleNameWithEnclosings: String = simpleName,
     override val isNullable: Boolean = false,
     override val isPublic: Boolean = true,
@@ -837,6 +894,10 @@ class BuiltinClassId(
     override val allMethods: Sequence<MethodId> = emptySequence(),
     override val allConstructors: Sequence<ConstructorId> = emptySequence(),
     override val outerClass: Class<*>? = null,
+    // by default, we assume that the class does not have a superclass (other than Object)
+    override val superclass: Class<*>? = java.lang.Object::class.java,
+    // by default, we assume that the class does not implement any interfaces
+    override val interfaces: Array<Class<*>> = emptyArray(),
     override val packageName: String =
         when (val index = canonicalName.lastIndexOf('.')) {
             -1, 0 -> ""
@@ -923,7 +984,7 @@ open class FieldId(val declaringClass: ClassId, val name: String) {
         return result
     }
 
-    override fun toString() = safeJField.toString()
+    override fun toString() = safeJField?.toString() ?: "[unresolved] $declaringClass.$name"
 }
 
 inline fun <T> withReflection(block: () -> T): T {
@@ -976,12 +1037,7 @@ sealed class ExecutableId : StatementId() {
     abstract val returnType: ClassId
     abstract val parameters: List<ClassId>
 
-    abstract val isPublic: Boolean
-    abstract val isProtected: Boolean
-    abstract val isPrivate: Boolean
-
-    val isPackagePrivate: Boolean
-        get() = !(isPublic || isProtected || isPrivate)
+    abstract val modifiers: Int
 
     val signature: String
         get() {
@@ -1021,36 +1077,22 @@ open class MethodId(
     override val classId: ClassId,
     override val name: String,
     override val returnType: ClassId,
-    override val parameters: List<ClassId>
+    override val parameters: List<ClassId>,
 ) : ExecutableId() {
-    open val isStatic: Boolean
-        get() = Modifier.isStatic(method.modifiers)
-
-    override val isPublic: Boolean
-        get() = Modifier.isPublic(method.modifiers)
-
-    override val isProtected: Boolean
-        get() = Modifier.isProtected(method.modifiers)
-
-    override val isPrivate: Boolean
-        get() = Modifier.isPrivate(method.modifiers)
+    override val modifiers: Int
+        get() = method.modifiers
 }
 
-class ConstructorId(
+open class ConstructorId(
     override val classId: ClassId,
     override val parameters: List<ClassId>
 ) : ExecutableId() {
-    override val name: String = "<init>"
-    override val returnType: ClassId = voidClassId
+    final override val name: String = "<init>"
+    final override val returnType: ClassId = voidClassId
 
-    override val isPublic: Boolean
-        get() = Modifier.isPublic(constructor.modifiers)
+    override val modifiers: Int
+        get() = constructor.modifiers
 
-    override val isProtected: Boolean
-        get() = Modifier.isProtected(constructor.modifiers)
-
-    override val isPrivate: Boolean
-        get() = Modifier.isPrivate(constructor.modifiers)
 }
 
 class BuiltinMethodId(
@@ -1059,17 +1101,38 @@ class BuiltinMethodId(
     returnType: ClassId,
     parameters: List<ClassId>,
     // by default we assume that the builtin method is non-static and public
-    override val isStatic: Boolean = false,
-    override val isPublic: Boolean = true,
-    override val isProtected: Boolean = false,
-    override val isPrivate: Boolean = false
-) : MethodId(classId, name, returnType, parameters)
+    isStatic: Boolean = false,
+    isPublic: Boolean = true,
+    isProtected: Boolean = false,
+    isPrivate: Boolean = false
+) : MethodId(classId, name, returnType, parameters) {
+    override val modifiers: Int =
+        (if (isStatic) Modifier.STATIC else 0) or
+            (if (isPublic) Modifier.PUBLIC else 0) or
+            (if (isProtected) Modifier.PROTECTED else 0) or
+            (if (isPrivate) Modifier.PRIVATE else 0)
+}
+
+class BuiltinConstructorId(
+    classId: ClassId,
+    parameters: List<ClassId>,
+    // by default, we assume that the builtin constructor is public
+    isPublic: Boolean = true,
+    isProtected: Boolean = false,
+    isPrivate: Boolean = false
+) : ConstructorId(classId, parameters) {
+    override val modifiers: Int =
+        (if (isPublic) Modifier.PUBLIC else 0) or
+            (if (isProtected) Modifier.PROTECTED else 0) or
+            (if (isPrivate) Modifier.PRIVATE else 0)
+}
 
 open class TypeParameters(val parameters: List<ClassId> = emptyList())
 
 class WildcardTypeParameter : TypeParameters(emptyList())
 
 interface CodeGenerationSettingItem {
+    val id : String
     val displayName: String
     val description: String
 }
@@ -1082,20 +1145,23 @@ interface CodeGenerationSettingBox {
 }
 
 enum class MockStrategyApi(
+    override val id : String,
     override val displayName: String,
     override val description: String
 ) : CodeGenerationSettingItem {
-    NO_MOCKS("No mocks", "Do not use mock frameworks at all"),
+    NO_MOCKS("No mocks", "Do not mock", "Do not use mock frameworks at all"),
     OTHER_PACKAGES(
-        "Other packages: $MOCKITO",
+        "Other packages: Mockito",
+        "Mock package environment",
         "Mock all classes outside the current package except system ones"
     ),
     OTHER_CLASSES(
-        "Other classes: $MOCKITO",
+        "Other classes: Mockito",
+        "Mock class environment",
         "Mock all classes outside the class under test except system ones"
     );
 
-    override fun toString() = displayName
+    override fun toString() = id
 
     // Get is mandatory because of the initialization order of the inheritors.
     // Otherwise, in some cases we could get an incorrect value
@@ -1106,20 +1172,23 @@ enum class MockStrategyApi(
 }
 
 enum class TreatOverflowAsError(
+    override val id : String,
     override val displayName: String,
     override val description: String,
 ) : CodeGenerationSettingItem {
     AS_ERROR(
+        id = "Treat overflows as errors",
         displayName = "Treat overflows as errors",
         description = "Generate tests that treat possible overflows in arithmetic operations as errors " +
                 "that throw Arithmetic Exception",
     ),
     IGNORE(
+        id = "Ignore overflows",
         displayName = "Ignore overflows",
         description = "Ignore possible overflows in arithmetic operations",
     );
 
-    override fun toString(): String = displayName
+    override fun toString(): String = id
 
     // Get is mandatory because of the initialization order of the inheritors.
     // Otherwise, in some cases we could get an incorrect value
@@ -1129,14 +1198,39 @@ enum class TreatOverflowAsError(
     }
 }
 
+enum class JavaDocCommentStyle(
+    override val id: String,
+    override val displayName: String,
+    override val description: String,
+) : CodeGenerationSettingItem {
+    CUSTOM_JAVADOC_TAGS(
+        id = "Structured via custom Javadoc tags",
+        displayName = "Structured via custom Javadoc tags",
+        description = "Uses custom Javadoc tags to describe test's execution path."
+    ),
+    FULL_SENTENCE_WRITTEN(
+        id = "Plain text",
+        displayName = "Plain text",
+        description = "Uses plain text to describe test's execution path."
+    );
+
+    override fun toString(): String = displayName
+
+    companion object : CodeGenerationSettingBox {
+        override val defaultItem = if (UtSettings.useCustomJavaDocTags) CUSTOM_JAVADOC_TAGS else FULL_SENTENCE_WRITTEN
+        override val allItems = JavaDocCommentStyle.values().toList()
+    }
+}
+
 enum class MockFramework(
+    override val id: String = "Mockito",
     override val displayName: String,
     override val description: String = "Use $displayName as mock framework",
     var isInstalled: Boolean = false
 ) : CodeGenerationSettingItem {
-    MOCKITO("Mockito");
+    MOCKITO(displayName = "Mockito");
 
-    override fun toString() = displayName
+    override fun toString() = id
 
     companion object : CodeGenerationSettingBox {
         override val defaultItem: MockFramework = MOCKITO
@@ -1145,11 +1239,12 @@ enum class MockFramework(
 }
 
 enum class CodegenLanguage(
+    override val id: String,
     override val displayName: String,
     @Suppress("unused") override val description: String = "Generate unit tests in $displayName"
 ) : CodeGenerationSettingItem {
-    JAVA(displayName = "Java"),
-    KOTLIN(displayName = "Kotlin (experimental)");
+    JAVA(id = "Java", displayName = "Java"),
+    KOTLIN(id = "Kotlin", displayName = "Kotlin (experimental)");
 
     enum class OperatingSystem {
         WINDOWS,
@@ -1188,7 +1283,7 @@ enum class CodegenLanguage(
             KOTLIN -> listOf(System.getenv("JAVA_HOME"), "bin", "java")
         }.joinToString(File.separator)
 
-    override fun toString(): String = displayName
+    override fun toString(): String = id
 
     fun getCompilationCommand(buildDirectory: String, classPath: String, sourcesFiles: List<String>): List<String> {
         val arguments = when (this) {
@@ -1241,13 +1336,6 @@ private fun StringBuilder.appendOptional(name: String, value: Map<*, *>) {
 }
 
 /**
- * Enum that represents different type of engines that produce tests.
- */
-enum class UtExecutionCreator {
-    FUZZER, SYMBOLIC_ENGINE
-}
-
-/**
  * Entity that represents cluster information that should appear in the comment.
  */
 data class UtClusterInfo(
@@ -1259,7 +1347,6 @@ data class UtClusterInfo(
  * Entity that represents cluster of executions.
  */
 data class UtExecutionCluster(val clusterInfo: UtClusterInfo, val executions: List<UtExecution>)
-
 
 /**
  * Entity that represents various types of statements in comments.
@@ -1277,6 +1364,9 @@ class DocPreTagStatement(content: List<DocStatement>) : DocTagStatement(content)
     override fun hashCode(): Int = content.hashCode()
 }
 
+data class DocCustomTagStatement(val statements: List<DocStatement>) : DocTagStatement(statements) {
+    override fun toString(): String = content.joinToString(separator = "")
+}
 
 open class DocClassLinkStmt(val className: String) : DocStatement() {
     override fun toString(): String = className

@@ -2,6 +2,7 @@ package org.utbot.framework.concrete
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
@@ -24,17 +25,32 @@ private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleMode
     java.util.ArrayList::class.java to { CollectionConstructor() },
     java.util.AbstractList::class.java to { CollectionConstructor() },
     java.util.List::class.java to { CollectionConstructor() },
-    java.util.Deque::class.java to { CollectionConstructor() },
+    java.util.concurrent.CopyOnWriteArrayList::class.java to { CollectionConstructor() },
+
+
+    /**
+     * Queues, deques
+     */
+    java.util.PriorityQueue::class.java to { CollectionConstructor() },
     java.util.ArrayDeque::class.java to { CollectionConstructor() },
+    java.util.concurrent.LinkedBlockingQueue::class.java to { CollectionConstructor() },
     java.util.concurrent.LinkedBlockingDeque::class.java to { CollectionConstructor() },
+    java.util.concurrent.ConcurrentLinkedQueue::class.java to { CollectionConstructor() },
+    java.util.concurrent.ConcurrentLinkedDeque::class.java to { CollectionConstructor() },
+    java.util.Queue::class.java to { CollectionConstructor() },
+    java.util.Deque::class.java to { CollectionConstructor() },
+
 
     /**
      * Sets
      */
     java.util.HashSet::class.java to { CollectionConstructor() },
+    java.util.TreeSet::class.java to { CollectionConstructor() },
     java.util.LinkedHashSet::class.java to { CollectionConstructor() },
     java.util.AbstractSet::class.java to { CollectionConstructor() },
     java.util.Set::class.java to { CollectionConstructor() },
+
+
 
     /**
      * Maps
@@ -77,25 +93,29 @@ internal fun findUtAssembleModelConstructor(classId: ClassId): UtAssembleModelCo
 internal abstract class UtAssembleModelConstructorBase {
     fun constructAssembleModel(
         internalConstructor: UtModelConstructorInterface,
-        valueToConstructFrom: Any,
+        value: Any,
         valueClassId: ClassId,
         id: Int?,
         init: (UtAssembleModel) -> Unit
     ): UtAssembleModel {
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
         val baseName = valueClassId.simpleName.decapitalize()
-        return UtAssembleModel(id, valueClassId, nextModelName(baseName), instantiationChain, modificationChain)
-            .also(init)
-            .apply { modifyChains(internalConstructor, instantiationChain, modificationChain, valueToConstructFrom) }
+        val instantiationCall = provideInstantiationCall(internalConstructor, value, valueClassId)
+        return UtAssembleModel(id, valueClassId, nextModelName(baseName), instantiationCall) {
+            init(this)
+            provideModificationChain(internalConstructor, value)
+        }
     }
 
-    protected abstract fun UtAssembleModel.modifyChains(
+    protected abstract fun provideInstantiationCall(
         internalConstructor: UtModelConstructorInterface,
-        instantiationChain: MutableList<UtStatementModel>,
-        modificationChain: MutableList<UtStatementModel>,
-        valueToConstructFrom: Any
-    )
+        value: Any,
+        classId: ClassId
+    ): UtExecutableCallModel
+
+    protected abstract fun UtAssembleModel.provideModificationChain(
+        internalConstructor: UtModelConstructorInterface,
+        value: Any
+    ): List<UtStatementModel>
 }
 
 internal fun UtAssembleModelConstructorBase.checkClassCast(expected: Class<*>, actual: Class<*>) {

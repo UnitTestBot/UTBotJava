@@ -1,5 +1,8 @@
 package org.utbot.framework.codegen.model.visitor
 
+import org.utbot.framework.codegen.model.tree.AbstractCgClass
+import org.utbot.framework.codegen.model.tree.AbstractCgClassBody
+import org.utbot.framework.codegen.model.tree.AbstractCgClassFile
 import org.utbot.framework.codegen.model.tree.CgAbstractFieldAccess
 import org.utbot.framework.codegen.model.tree.CgAbstractMultilineComment
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
@@ -9,6 +12,7 @@ import org.utbot.framework.codegen.model.tree.CgArrayAnnotationArgument
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
 import org.utbot.framework.codegen.model.tree.CgAssignment
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
 import org.utbot.framework.codegen.model.tree.CgBreakStatement
 import org.utbot.framework.codegen.model.tree.CgComment
 import org.utbot.framework.codegen.model.tree.CgCommentedAnnotation
@@ -22,6 +26,7 @@ import org.utbot.framework.codegen.model.tree.CgDocClassLinkStmt
 import org.utbot.framework.codegen.model.tree.CgDocCodeStmt
 import org.utbot.framework.codegen.model.tree.CgDocMethodLinkStmt
 import org.utbot.framework.codegen.model.tree.CgDocPreTagStatement
+import org.utbot.framework.codegen.model.tree.CgCustomTagStatement
 import org.utbot.framework.codegen.model.tree.CgDocRegularStmt
 import org.utbot.framework.codegen.model.tree.CgDocumentationComment
 import org.utbot.framework.codegen.model.tree.CgElement
@@ -57,6 +62,9 @@ import org.utbot.framework.codegen.model.tree.CgNonStaticRunnable
 import org.utbot.framework.codegen.model.tree.CgNotNullAssertion
 import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgParameterizedTestDataProviderMethod
+import org.utbot.framework.codegen.model.tree.CgRegularClass
+import org.utbot.framework.codegen.model.tree.CgRegularClassBody
+import org.utbot.framework.codegen.model.tree.CgRegularClassFile
 import org.utbot.framework.codegen.model.tree.CgReturnStatement
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgSingleArgAnnotation
@@ -86,10 +94,16 @@ import org.utbot.framework.codegen.model.tree.CgWhileLoop
 interface CgVisitor<R> {
     fun visit(element: CgElement): R
 
+    fun visit(element: AbstractCgClassFile<*>): R
+    fun visit(element: CgRegularClassFile): R
     fun visit(element: CgTestClassFile): R
 
+    fun visit(element: AbstractCgClass<*>): R
+    fun visit(element: CgRegularClass): R
     fun visit(element: CgTestClass): R
 
+    fun visit(element: AbstractCgClassBody): R
+    fun visit(element: CgRegularClassBody): R
     fun visit(element: CgTestClassBody): R
 
     fun visit(element: CgStaticsRegion): R
@@ -97,6 +111,7 @@ interface CgVisitor<R> {
     fun visit(element: CgTestMethodCluster): R
     fun visit(element: CgExecutableUnderTestCluster): R
 
+    fun visit(element: CgAuxiliaryClass): R
     fun visit(element: CgUtilMethod): R
 
     // Methods
@@ -122,6 +137,7 @@ interface CgVisitor<R> {
 
     // Comment statements
     fun visit(element: CgDocPreTagStatement): R
+    fun visit(element: CgCustomTagStatement): R
     fun visit(element: CgDocCodeStmt): R
     fun visit(element: CgDocRegularStmt): R
     fun visit(element: CgDocClassLinkStmt): R

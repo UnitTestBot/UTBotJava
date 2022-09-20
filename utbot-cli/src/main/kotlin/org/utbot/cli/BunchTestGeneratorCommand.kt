@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
+import mu.KotlinLogging
 import org.utbot.cli.util.createClassLoader
 import org.utbot.engine.Mocker
 import org.utbot.framework.plugin.api.ClassId
@@ -14,9 +15,6 @@ import java.io.File
 import java.net.URLClassLoader
 import java.nio.file.Paths
 import java.time.temporal.ChronoUnit
-import kotlin.reflect.KClass
-import kotlin.reflect.jvm.jvmName
-import mu.KotlinLogging
 
 
 private val logger = KotlinLogging.logger {}
@@ -93,16 +91,15 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
             logger.debug { "Generating test for [$targetClassFqn] - started" }
             logger.debug { "Classpath to be used: ${newline()} $classPath ${newline()}" }
 
-            val classUnderTest: KClass<*> = loadClassBySpecifiedFqn(targetClassFqn)
-            val targetMethods = classUnderTest.targetMethods()
-            if (targetMethods.isEmpty()) return
-
-            val testCaseGenerator = initializeGenerator(workingDirectory)
-
-            // utContext is used in `generate`, `generateTest`, `generateReport`
+            // utContext is used in `targetMethods`, `generate`, `generateTest`, `generateReport`
             withUtContext(UtContext(classLoader)) {
+                val classIdUnderTest = ClassId(targetClassFqn)
+                val targetMethods = classIdUnderTest.targetMethods()
+                if (targetMethods.isEmpty()) return
 
-                val testClassName = "${classUnderTest.simpleName}Test"
+                val testCaseGenerator = initializeGenerator(workingDirectory)
+
+                val testClassName = "${classIdUnderTest.simpleName}Test"
 
                 val testSets = generateTestSets(
                     testCaseGenerator,
@@ -112,7 +109,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
                         .mapTo(mutableSetOf()) { ClassId(it) }
                 )
 
-                val testClassBody = generateTest(classUnderTest, testClassName, testSets)
+                val testClassBody = generateTest(classIdUnderTest, testClassName, testSets)
 
                 val outputArgAsFile = File(output ?: "")
                 if (!outputArgAsFile.exists()) {
@@ -121,7 +118,7 @@ class BunchTestGeneratorCommand : GenerateTestsAbstractCommand(
 
                 val outputDir = "$outputArgAsFile${File.separator}"
 
-                val packageNameAsList = classUnderTest.jvmName.split('.').dropLast(1)
+                val packageNameAsList = classIdUnderTest.jvmName.split('.').dropLast(1)
                 val path = Paths.get("${outputDir}${packageNameAsList.joinToString(separator = File.separator)}")
                 path.toFile().mkdirs()
 

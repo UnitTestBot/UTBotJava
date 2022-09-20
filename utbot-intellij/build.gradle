@@ -1,10 +1,16 @@
 apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
-// TODO remove when switch plugin baseline to 2020.3 or higher, with kotlin 1.4 inside
 compileKotlin {
     kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
         allWarningsAsErrors = false
     }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 buildscript {
@@ -13,44 +19,43 @@ buildscript {
             url "https://plugins.gradle.org/m2/"
         }
     }
-
     dependencies {
         classpath group: 'org.jetbrains.intellij.plugins', name: 'gradle-intellij-plugin', version: intellij_plugin_version
     }
 }
 
+apply plugin: "org.jetbrains.intellij"
+
 dependencies {
-    api ('com.esotericsoftware:kryo:5.1.1')
+    api group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryo_version
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+    implementation group: 'org.apache.commons', name: 'commons-text', version: apache_commons_text_version
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.1'
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jackson_version
 
     implementation(project(":utbot-framework")) { exclude group: 'org.slf4j', module: 'slf4j-api' }
-    implementation(project(":utbot-fuzzers"))
-
+    // implementation project(':utbot-analytics') // to reduce the plugin size
     testImplementation 'org.mock-server:mockserver-netty:5.4.1'
     testImplementation(project(":utbot-sample"))
     testApi(project(":utbot-framework"))
 }
 
-apply plugin: 'org.jetbrains.intellij'
-
 // See https://github.com/JetBrains/gradle-intellij-plugin/
 intellij {
-    version = '2020.2'
-    // to use local IDEA comment out "version" and add localPath instead:
-    // localPath 'c:/all/tools/idea'
-    plugins = [
-            'java',
-            // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
-            "org.jetbrains.kotlin:${kotlin_version}-release-IJ2020.2-1",
-            'org.jetbrains.android'
-    ]
-    updateSinceUntilBuild false
+    // https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html#intellij-platform-based-products-of-recent-ide-versions
+    // https://confluence.jetbrains.com/display/IDEADEV/IDEA+2021.2+latest+builds
+    version = "212.5712.43"
+    type = "IC"
+    plugins = ['java',
+               // TODO: SAT-1539 - specify version of android plugin to be supported by our kotlin version.
+               //https://mvnrepository.com/artifact/org.jetbrains.kotlin/gradle-idea
+               "org.jetbrains.kotlin",
+               'org.jetbrains.android']
 
     patchPluginXml {
-        sinceBuild = '202'
-        version = project.version
+        sinceBuild = '212'
+        untilBuild = '221.*'
     }
 }
 
@@ -58,6 +63,6 @@ tasks {
     runIde {
         jvmArgs("-Xmx2048m")
         //// Uncomment and set correct path to Android Studio to run it
-        // ideDirectory = file('d:/AS2021')
+         //ideDir = file('d:/AS2021')
     }
 }

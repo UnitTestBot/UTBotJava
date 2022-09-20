@@ -3,14 +3,19 @@ package org.utbot.framework.codegen.model.tree
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
 import org.utbot.framework.codegen.Import
+import org.utbot.framework.codegen.model.constructor.tree.CgUtilClassConstructor
 import org.utbot.framework.codegen.model.constructor.tree.TestsGenerationReport
 import org.utbot.framework.codegen.model.util.CgExceptionHandler
+import org.utbot.framework.codegen.model.visitor.CgRendererContext
 import org.utbot.framework.codegen.model.visitor.CgVisitor
+import org.utbot.framework.codegen.model.visitor.auxiliaryClassTextById
+import org.utbot.framework.codegen.model.visitor.utilMethodTextById
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.DocClassLinkStmt
 import org.utbot.framework.plugin.api.DocCodeStmt
+import org.utbot.framework.plugin.api.DocCustomTagStatement
 import org.utbot.framework.plugin.api.DocMethodLinkStmt
 import org.utbot.framework.plugin.api.DocPreTagStatement
 import org.utbot.framework.plugin.api.DocRegularStmt
@@ -31,13 +36,17 @@ interface CgElement {
     // TODO: order of cases is important here due to inheritance between some of the element types
     fun <R> accept(visitor: CgVisitor<R>): R = visitor.run {
         when (val element = this@CgElement) {
+            is CgRegularClassFile -> visit(element)
             is CgTestClassFile -> visit(element)
+            is CgRegularClass -> visit(element)
             is CgTestClass -> visit(element)
+            is CgRegularClassBody -> visit(element)
             is CgTestClassBody -> visit(element)
             is CgStaticsRegion -> visit(element)
             is CgSimpleRegion<*> -> visit(element)
             is CgTestMethodCluster -> visit(element)
             is CgExecutableUnderTestCluster -> visit(element)
+            is CgAuxiliaryClass -> visit(element)
             is CgUtilMethod -> visit(element)
             is CgTestMethod -> visit(element)
             is CgErrorTestMethod -> visit(element)
@@ -52,6 +61,7 @@ interface CgElement {
             is CgMultilineComment -> visit(element)
             is CgDocumentationComment -> visit(element)
             is CgDocPreTagStatement -> visit(element)
+            is CgCustomTagStatement -> visit(element)
             is CgDocCodeStmt -> visit(element)
             is CgDocRegularStmt -> visit(element)
             is CgDocClassLinkStmt -> visit(element)
@@ -110,30 +120,89 @@ interface CgElement {
 
 // Code entities
 
+sealed class AbstractCgClassFile<T : AbstractCgClass<*>> : CgElement {
+    abstract val imports: List<Import>
+    abstract val declaredClass: T
+}
+
+data class CgRegularClassFile(
+    override val imports: List<Import>,
+    override val declaredClass: CgRegularClass
+) : AbstractCgClassFile<CgRegularClass>()
+
 data class CgTestClassFile(
-    val imports: List<Import>,
-    val testClass: CgTestClass,
+    override val imports: List<Import>,
+    override val declaredClass: CgTestClass,
     val testsGenerationReport: TestsGenerationReport
-) : CgElement
+) : AbstractCgClassFile<CgTestClass>()
+
+sealed class AbstractCgClass<T : AbstractCgClassBody> : CgElement {
+    abstract val id: ClassId
+    abstract val annotations: List<CgAnnotation>
+    abstract val superclass: ClassId?
+    abstract val interfaces: List<ClassId>
+    abstract val body: T
+    abstract val isStatic: Boolean
+    abstract val isNested: Boolean
+
+    val packageName
+        get() = id.packageName
+
+    val simpleName
+        get() = id.simpleName
+}
+
+/**
+ * This class represents any class that we may want to generate other than the test class.
+ * At the moment the only such case is the generation of util class UtUtils.
+ *
+ * The difference with [CgTestClass] is in the body.
+ * The structure of a test class body is fixed (we know what it should contain),
+ * whereas an arbitrary class could contain anything.
+ * For example, the body of UtUtils class contains a comment with information
+ * about the version of UTBot it was generated with, and all the util methods.
+ *
+ * @see CgUtilClassConstructor
+ */
+class CgRegularClass(
+    override val id: ClassId,
+    override val annotations: List<CgAnnotation>,
+    override val superclass: ClassId?,
+    override val interfaces: List<ClassId>,
+    override val body: CgRegularClassBody,
+    override val isStatic: Boolean,
+    override val isNested: Boolean
+) : AbstractCgClass<CgRegularClassBody>()
 
 data class CgTestClass(
-    val id: ClassId,
-    val annotations: List<CgAnnotation>,
-    val superclass: ClassId?,
-    val interfaces: List<ClassId>,
-    val body: CgTestClassBody,
-) : CgElement {
-    val packageName = id.packageName
-    val simpleName = id.simpleName
-}
+    override val id: ClassId,
+    override val annotations: List<CgAnnotation>,
+    override val superclass: ClassId?,
+    override val interfaces: List<ClassId>,
+    override val body: CgTestClassBody,
+    override val isStatic: Boolean,
+    override val isNested: Boolean
+) : AbstractCgClass<CgTestClassBody>()
 
+
+sealed class AbstractCgClassBody : CgElement
+
+data class CgRegularClassBody(val content: List<CgElement>) : AbstractCgClassBody()
+
+/**
+ * Body of the test class.
+ * @property testMethodRegions regions containing the test methods
+ * @property staticDeclarationRegions regions containing static declarations.
+ * This is usually util methods and data providers.
+ * In Kotlin all static declarations must be grouped together in a companion object.
+ * In Java there is no such restriction, but for uniformity we are grouping
+ * Java static declarations together as well. It can also improve code readability.
+ */
 data class CgTestClassBody(
     val testMethodRegions: List<CgExecutableUnderTestCluster>,
-    val utilsRegion: List<CgRegion<CgElement>>
-) : CgElement {
-    val regions: List<CgRegion<*>>
-        get() = testMethodRegions
-}
+    val staticDeclarationRegions: List<CgStaticsRegion>,
+    val nestedClassRegions: List<CgRegion<CgTestClass>>
+) : AbstractCgClassBody()
 
 /**
  * A class representing the IntelliJ IDEA's regions.
@@ -152,7 +221,10 @@ open class CgSimpleRegion<T : CgElement>(
 ) : CgRegion<T>()
 
 /**
- * Stores data providers for parametrized tests and util methods
+ * A region that stores some static declarations, e.g. data providers or util methods.
+ * There may be more than one static region in a class and they all are stored
+ * in a [CgTestClassBody.staticDeclarationRegions].
+ * In case of Kotlin, they all will be rendered inside of a companion object.
  */
 class CgStaticsRegion(
     override val header: String?,
@@ -174,14 +246,45 @@ data class CgExecutableUnderTestCluster(
 ) : CgRegion<CgRegion<CgMethod>>()
 
 /**
+ * Util entity is either an instance of [CgAuxiliaryClass] or [CgUtilMethod].
+ * Util methods are the helper methods that we use in our generated tests,
+ * and auxiliary classes are the classes that util methods use.
+ */
+sealed class CgUtilEntity : CgElement {
+    internal abstract fun getText(rendererContext: CgRendererContext): String
+}
+
+/**
+ * This class represents classes that are required by our util methods.
+ * For example, class `CapturedArgument` that is used by util methods that construct lambda values.
+ *
+ * **Note** that we call such classes **auxiliary** instead of **util** in order to avoid confusion
+ * with class `org.utbot.runtime.utils.UtUtils`, which is generally called an **util class**.
+ * `UtUtils` is a class that contains all our util methods and **auxiliary classes**.
+ */
+data class CgAuxiliaryClass(val id: ClassId) : CgUtilEntity() {
+    override fun getText(rendererContext: CgRendererContext): String {
+        return rendererContext.utilMethodProvider
+            .auxiliaryClassTextById(id, rendererContext.codegenLanguage)
+    }
+}
+
+/**
  * This class does not inherit from [CgMethod], because it only needs an [id],
  * and it does not need to have info about all the other properties of [CgMethod].
  * This is because util methods are hardcoded. On the rendering stage their text
  * is retrieved by their [MethodId].
  *
- * [id] identifier of the util method.
+ * @property id identifier of the util method.
  */
-data class CgUtilMethod(val id: MethodId) : CgElement
+data class CgUtilMethod(val id: MethodId) : CgUtilEntity() {
+    override fun getText(rendererContext: CgRendererContext): String {
+        return with(rendererContext) {
+            rendererContext.utilMethodProvider
+                .utilMethodTextById(id, mockFrameworkUsed, mockFramework, codegenLanguage)
+        }
+    }
+}
 
 // Methods
 
@@ -332,6 +435,11 @@ class CgDocPreTagStatement(content: List<CgDocStatement>) : CgDocTagStatement(co
     override fun hashCode(): Int = content.hashCode()
 }
 
+/**
+ * Represents a type for statements containing custom JavaDoc tags.
+ */
+data class CgCustomTagStatement(val statements: List<CgDocStatement>) : CgDocTagStatement(statements)
+
 class CgDocCodeStmt(val stmt: String) : CgDocStatement() {
     override fun isEmpty(): Boolean = stmt.isEmpty()
 
@@ -375,6 +483,10 @@ fun convertDocToCg(stmt: DocStatement): CgDocStatement {
         is DocPreTagStatement -> {
             val stmts = stmt.content.map { convertDocToCg(it) }
             CgDocPreTagStatement(content = stmts)
+        }
+        is DocCustomTagStatement -> {
+            val stmts = stmt.content.map { convertDocToCg(it) }
+            CgCustomTagStatement(statements = stmts)
         }
         is DocRegularStmt -> CgDocRegularStmt(stmt = stmt.stmt)
         is DocClassLinkStmt -> CgDocClassLinkStmt(className = stmt.className)
@@ -587,11 +699,10 @@ open class CgVariable(
 }
 
 /**
- * A variable with explicit not null annotation if this is required in language.
+ * If expression is a variable, then this is a variable
+ * with explicit not null annotation if this is required in language.
  *
- * Note:
- * - in Java it is an equivalent of [CgVariable]
- * - in Kotlin the difference is in addition of "!!" to the name
+ * In Kotlin the difference is in addition of "!!" to the expression
  */
 class CgNotNullAssertion(val expression: CgExpression) : CgValue {
     override val type: ClassId

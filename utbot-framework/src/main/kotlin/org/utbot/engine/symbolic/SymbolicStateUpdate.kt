@@ -22,12 +22,18 @@ sealed class Constraint<T : Constraint<T>>(constraints: Set<UtBoolExpression> = 
 /**
  * Represents hard constraints.
  */
-class HardConstraint(
+open class HardConstraint(
     constraints: Set<UtBoolExpression> = emptySet()
 ) : Constraint<HardConstraint>(constraints) {
     override fun plus(other: HardConstraint): HardConstraint =
         HardConstraint(addConstraints(other.constraints))
+
+    companion object {
+        internal val EMPTY: HardConstraint = HardConstraint()
+    }
 }
+
+fun emptyHardConstraint(): HardConstraint = HardConstraint.EMPTY
 
 /**
  * Represents soft constraints.
@@ -37,7 +43,13 @@ class SoftConstraint(
 ) : Constraint<SoftConstraint>(constraints) {
     override fun plus(other: SoftConstraint): SoftConstraint =
         SoftConstraint(addConstraints(other.constraints))
+
+    companion object {
+        internal val EMPTY: SoftConstraint = SoftConstraint()
+    }
 }
+
+fun emptySoftConstraint(): SoftConstraint = SoftConstraint.EMPTY
 
 /**
  * Represent constraints that must be satisfied for symbolic execution.
@@ -52,7 +64,13 @@ class Assumption(
     override fun plus(other: Assumption): Assumption = Assumption(addConstraints(other.constraints))
 
     override fun toString() = constraints.joinToString(System.lineSeparator())
+
+    companion object {
+        internal val EMPTY: Assumption = Assumption()
+    }
 }
+
+fun emptyAssumption(): Assumption = Assumption.EMPTY
 
 /**
  * Represents one or more updates that can be applied to [SymbolicState].
@@ -60,9 +78,9 @@ class Assumption(
  * TODO: move [localMemoryUpdates] to another place
  */
 data class SymbolicStateUpdate(
-    val hardConstraints: HardConstraint = HardConstraint(),
-    val softConstraints: SoftConstraint = SoftConstraint(),
-    val assumptions: Assumption = Assumption(),
+    val hardConstraints: HardConstraint = emptyHardConstraint(),
+    val softConstraints: SoftConstraint = emptySoftConstraint(),
+    val assumptions: Assumption = emptyAssumption(),
     val memoryUpdates: MemoryUpdate = MemoryUpdate(),
     val localMemoryUpdates: LocalMemoryUpdate = LocalMemoryUpdate()
 ) {
@@ -107,7 +125,7 @@ fun Collection<UtBoolExpression>.asSoftConstraint() = SoftConstraint(transformTo
 
 fun UtBoolExpression.asSoftConstraint() = SoftConstraint(setOf(this))
 
-fun Collection<UtBoolExpression>.asAssumption() = Assumption(toSet())
+fun Collection<UtBoolExpression>.asAssumption() = Assumption(transformToSet())
 
 fun UtBoolExpression.asAssumption() = Assumption(setOf(this))
 

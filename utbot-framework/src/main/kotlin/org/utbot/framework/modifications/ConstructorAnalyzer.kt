@@ -172,7 +172,7 @@ class ConstructorAnalyzer {
         for (assn in assignments) {
             val jimpleLocal = assn.rightOp as? JimpleLocal ?: continue
 
-            val field = (assn.leftOp as JInstanceFieldRef).field
+            val field = (assn.leftOp as? JInstanceFieldRef)?.field ?: continue
             val parameterIndex = jimpleBody.locals.indexOfFirst { it.name == jimpleLocal.name }
             indexedFields[parameterIndex - 1] = FieldId(field.declaringClass.id, field.name)
         }
@@ -209,7 +209,7 @@ class ConstructorAnalyzer {
     private fun hasSuspiciousInstructions(jimpleBody: JimpleBody): Boolean =
         jimpleBody.units.any {
             it !is JIdentityStmt
-                    && !(it is JAssignStmt && it.rightBox.value !is InvokeExpr)
+                    && !(it is JAssignStmt && it.rightOp !is InvokeExpr)
                     && it !is JInvokeStmt
                     && it !is JReturnStmt
                     && it !is JReturnVoidStmt

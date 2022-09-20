@@ -1,5 +1,6 @@
 package org.utbot.framework.concrete
 
+import org.objectweb.asm.Type
 import org.utbot.common.StopWatch
 import org.utbot.common.ThreadBasedExecutor
 import org.utbot.common.withAccessibility
@@ -9,6 +10,7 @@ import org.utbot.framework.plugin.api.Coverage
 import org.utbot.framework.plugin.api.EnvironmentModels
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.Instruction
+import org.utbot.framework.plugin.api.MissingState
 import org.utbot.framework.plugin.api.TimeoutException
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutionFailure
@@ -17,18 +19,19 @@ import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
 import org.utbot.framework.plugin.api.UtInstrumentation
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.util.UtContext
-import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.id
+import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.singleExecutableId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.framework.plugin.api.withReflection
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.instrumentation.instrumentation.ArgumentList
 import org.utbot.instrumentation.instrumentation.Instrumentation
 import org.utbot.instrumentation.instrumentation.InvokeInstrumentation
@@ -37,6 +40,7 @@ import org.utbot.instrumentation.instrumentation.et.ExplicitThrowInstruction
 import org.utbot.instrumentation.instrumentation.et.TraceHandler
 import org.utbot.instrumentation.instrumentation.instrumenter.Instrumenter
 import org.utbot.instrumentation.instrumentation.mock.MockClassVisitor
+import java.security.AccessControlException
 import java.security.ProtectionDomain
 import java.util.IdentityHashMap
 import kotlin.reflect.jvm.javaMethod
@@ -94,12 +98,19 @@ class UtConcreteExecutionResult(
      * @return [UtConcreteExecutionResult] with converted models.
      */
     fun convertToAssemble(
-        methodUnderTest: UtMethod<*>
+        packageName: String
     ): UtConcreteExecutionResult {
         val allModels = collectAllModels()
 
-        val modelsToAssembleModels = AssembleModelGenerator(methodUnderTest).createAssembleModels(allModels)
+        val modelsToAssembleModels = AssembleModelGenerator(packageName).createAssembleModels(allModels)
         return updateWithAssembleModels(modelsToAssembleModels)
+    }
+
+    override fun toString(): String = buildString {
+        appendLine("UtConcreteExecutionResult(")
+        appendLine("stateAfter=$stateAfter")
+        appendLine("result=$result")
+        appendLine("coverage=$coverage)")
     }
 }
 
@@ -140,7 +151,18 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         traceHandler.resetTrace()
 
         return MockValueConstructor(instrumentationContext).use { constructor ->
-            val params = constructor.constructMethodParameters(parametersModels)
+            val params = try {
+                constructor.constructMethodParameters(parametersModels)
+            } catch (e: Throwable) {
+                if (e.cause is AccessControlException) {
+                    return@use UtConcreteExecutionResult(
+                        MissingState,
+                        UtSandboxFailure(e.cause!!),
+                        Coverage()
+                    )
+                }
+                throw e
+            }
             val staticFields = constructor
                 .constructStatics(
                     stateBefore
@@ -198,7 +220,11 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
                     UtConcreteExecutionResult(
                         stateAfter,
                         concreteUtModelResult,
-                        traceList.toApiCoverage()
+                        traceList.toApiCoverage(
+                            traceHandler.processingStorage.getInstructionsCount(
+                                Type.getInternalName(clazz)
+                            )
+                        )
                     )
                 }
             }
@@ -208,18 +234,23 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
         }
     }
 
-    private val inaccessibleViaReflectionFields = setOf(
-        "security" to "java.lang.System",
-        "fieldFilterMap" to "sun.reflect.Reflection",
-        "methodFilterMap" to "sun.reflect.Reflection"
-    )
-
-    private val FieldId.isInaccessibleViaReflection: Boolean
-        get() = (name to declaringClass.name) in inaccessibleViaReflectionFields
+    override fun getStaticField(fieldId: FieldId): Result<UtModel> =
+        delegateInstrumentation.getStaticField(fieldId).map { value ->
+            val cache = IdentityHashMap<Any, UtModel>()
+            val strategy = ConstructOnlyUserClassesOrCachedObjectsStrategy(
+                pathsToUserClasses, cache
+            )
+            UtModelConstructor(cache, strategy).run {
+                construct(value, fieldId.type)
+            }
+        }
 
     private fun sortOutException(exception: Throwable): UtExecutionFailure {
         if (exception is TimeoutException) {
             return UtTimeoutException(exception)
+        }
+        if (exception is AccessControlException) {
+            return UtSandboxFailure(exception)
         }
         val instrs = traceHandler.computeInstructionList()
         val isNested = if (instrs.isEmpty()) {
@@ -290,7 +321,8 @@ object UtExecutionInstrumentation : Instrumentation<UtConcreteExecutionResult> {
 /**
  * Transforms a list of internal [EtInstruction]s to a list of api [Instruction]s.
  */
-private fun List<EtInstruction>.toApiCoverage(): Coverage =
+private fun List<EtInstruction>.toApiCoverage(instructionsCount: Long? = null): Coverage =
     Coverage(
-        map { Instruction(it.className, it.methodSignature, it.line, it.id) }
+        map { Instruction(it.className, it.methodSignature, it.line, it.id) },
+        instructionsCount
     )

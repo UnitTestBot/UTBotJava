@@ -30,8 +30,11 @@ import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.underlyingType
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentSet
+import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
+import org.utbot.framework.codegen.model.constructor.tree.CgCallableAccessManager
 import org.utbot.framework.codegen.model.tree.CgAllocateInitializedArray
 import org.utbot.framework.codegen.model.tree.CgArrayInitializer
+import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.BuiltinMethodId
 import org.utbot.framework.plugin.api.ClassId
@@ -44,7 +47,13 @@ import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.WildcardTypeParameter
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.arrayLikeName
+import org.utbot.framework.plugin.api.util.builtinStaticMethodId
+import org.utbot.framework.plugin.api.util.denotableType
+import org.utbot.framework.plugin.api.util.methodId
+import org.utbot.framework.plugin.api.util.objectArrayClassId
+import org.utbot.framework.plugin.api.util.objectClassId
 
 internal data class EnvironmentFieldStateCache(
     val thisInstance: FieldStateCache,
@@ -122,7 +131,48 @@ internal data class CgFieldState(val variable: CgVariable, val model: UtModel)
 
 data class ExpressionWithType(val type: ClassId, val expression: CgExpression)
 
+/**
+ * Check if a method is an util method of the current class
+ */
+internal fun CgContextOwner.isUtil(method: MethodId): Boolean {
+    return method in utilMethodProvider.utilMethodIds
+}
+
 val classCgClassId = CgClassId(Class::class.id, typeParameters = WildcardTypeParameter(), isNullable = false)
+
+/**
+ * A [MethodId] to add an item into [ArrayList].
+ */
+internal val addToListMethodId: MethodId
+    get() = methodId(
+        classId = ArrayList::class.id,
+        name = "add",
+        returnType = booleanClassId,
+        arguments = arrayOf(Object::class.id),
+    )
+
+/**
+ * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
+ */
+internal val argumentsClassId: BuiltinClassId
+    get() = BuiltinClassId(
+        name = "org.junit.jupiter.params.provider.Arguments",
+        simpleName = "Arguments",
+        canonicalName = "org.junit.jupiter.params.provider.Arguments",
+        packageName = "org.junit.jupiter.params.provider"
+    )
+
+/**
+ * A [MethodId] to call JUnit Arguments method.
+ */
+internal val argumentsMethodId: BuiltinMethodId
+    get() = builtinStaticMethodId(
+        classId = argumentsClassId,
+        name = "arguments",
+        returnType = argumentsClassId,
+        // vararg of Objects
+        arguments = arrayOf(objectArrayClassId)
+    )
 
 internal fun getStaticFieldVariableName(owner: ClassId, path: FieldPath): String {
     val elements = mutableListOf<String>()
@@ -207,18 +257,42 @@ internal fun CgContextOwner.importIfNeeded(method: MethodId) {
 /**
  * Casts [expression] to [targetType].
  *
+ * This method uses [denotableType] of the given [targetType] to ensure
+ * that we are using a denotable type in the type cast.
+ *
+ * Specifically, if we attempt to do a type cast to an anonymous class,
+ * then we will actually perform a type cast to its supertype.
+ *
+ * @see denotableType
+ *
  * @param isSafetyCast shows if we should render "as?" instead of "as" in Kotlin
  */
 internal fun CgContextOwner.typeCast(
     targetType: ClassId,
     expression: CgExpression,
     isSafetyCast: Boolean = false
-): CgTypeCast {
-    if (targetType.simpleName.isEmpty()) {
-        error("Cannot cast an expression to the anonymous type $targetType")
+): CgExpression {
+    val denotableTargetType = targetType.denotableType
+    importIfNeeded(denotableTargetType)
+    return CgTypeCast(denotableTargetType, expression, isSafetyCast)
+}
+
+/**
+ * Sets an element of arguments array in parameterized test,
+ * if test framework represents arguments as array.
+ */
+internal fun <T> T.setArgumentsArrayElement(
+    array: CgVariable,
+    index: Int,
+    value: CgExpression,
+    constructor: CgStatementConstructor
+) where T : CgContextOwner, T: CgCallableAccessManager {
+    when (array.type) {
+        objectClassId -> {
+            +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
+        }
+        else -> with(constructor) { array.at(index) `=` value }
     }
-    importIfNeeded(targetType)
-    return CgTypeCast(targetType, expression, isSafetyCast)
 }
 
 @Suppress("unused")
@@ -230,6 +304,7 @@ internal fun newArrayOf(elementType: ClassId, values: List<CgExpression>): CgAll
 internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: List<CgExpression>): CgArrayInitializer =
     CgArrayInitializer(arrayType, elementType, values)
 
+
 /**
  * For a given [elementType] returns a [ClassId] of an array with elements of this type.
  * For example, for an id of `int` the result will be an id of `int[]`.
@@ -237,13 +312,14 @@ internal fun arrayInitializer(arrayType: ClassId, elementType: ClassId, values: 
  * @param elementType the element type of the returned array class id
  * @param isNullable a flag whether returned array is nullable or not
  */
-internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
+fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): ClassId {
     val arrayIdName = "[${elementType.arrayLikeName}"
     return when (elementType) {
         is BuiltinClassId -> BuiltinClassId(
             name = arrayIdName,
             canonicalName = "${elementType.canonicalName}[]",
             simpleName = "${elementType.simpleName}[]",
+            elementClassId = elementType,
             isNullable = isNullable
         )
         else -> ClassId(
@@ -252,12 +328,6 @@ internal fun arrayTypeOf(elementType: ClassId, isNullable: Boolean = false): Cla
             isNullable = isNullable
         )
     }
-}
-
-@Suppress("unused")
-internal fun CgContextOwner.getJavaClass(classId: ClassId): CgGetClass {
-    importIfNeeded(classId)
-    return CgGetJavaClass(classId)
 }
 
 internal fun Class<*>.overridesEquals(): Boolean =
@@ -331,8 +401,14 @@ internal infix fun UtModel.isNotDefaultValueOf(type: ClassId): Boolean = !this.i
 internal operator fun UtArrayModel.get(index: Int): UtModel = stores[index] ?: constModel
 
 
-internal fun ClassId.utilMethodId(name: String, returnType: ClassId, vararg arguments: ClassId): MethodId =
-    BuiltinMethodId(this, name, returnType, arguments.toList())
+internal fun ClassId.utilMethodId(
+    name: String,
+    returnType: ClassId,
+    vararg arguments: ClassId,
+    // usually util methods are static, so this argument is true by default
+    isStatic: Boolean = true
+): MethodId =
+    BuiltinMethodId(this, name, returnType, arguments.toList(), isStatic = isStatic)
 
 fun ClassId.toImport(): RegularImport = RegularImport(packageName, simpleNameWithEnclosings)
 

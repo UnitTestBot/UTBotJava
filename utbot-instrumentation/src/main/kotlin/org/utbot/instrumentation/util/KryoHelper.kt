@@ -1,90 +1,76 @@
 package org.utbot.instrumentation.util
 
-import com.esotericsoftware.kryo.Kryo
-import com.esotericsoftware.kryo.Serializer
-import com.esotericsoftware.kryo.SerializerFactory
-import com.esotericsoftware.kryo.io.Input
-import com.esotericsoftware.kryo.io.Output
-import com.esotericsoftware.kryo.serializers.JavaSerializer
-import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy
+import com.esotericsoftware.kryo.kryo5.Kryo
+import com.esotericsoftware.kryo.kryo5.Serializer
+import com.esotericsoftware.kryo.kryo5.SerializerFactory
+import com.esotericsoftware.kryo.kryo5.io.Input
+import com.esotericsoftware.kryo.kryo5.io.Output
+import com.esotericsoftware.kryo.kryo5.objenesis.instantiator.ObjectInstantiator
+import com.esotericsoftware.kryo.kryo5.objenesis.strategy.StdInstantiatorStrategy
+import com.esotericsoftware.kryo.kryo5.serializers.JavaSerializer
+import com.esotericsoftware.kryo.kryo5.util.DefaultInstantiatorStrategy
+import com.jetbrains.rd.util.lifetime.Lifetime
+import com.jetbrains.rd.util.lifetime.throwIfNotAlive
 import org.utbot.framework.plugin.api.TimeoutException
-import de.javakaffee.kryoserializers.GregorianCalendarSerializer
-import de.javakaffee.kryoserializers.JdkProxySerializer
-import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer
-import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer
 import java.io.ByteArrayOutputStream
-import java.io.Closeable
-import java.io.InputStream
-import java.io.OutputStream
-import java.lang.reflect.InvocationHandler
-import java.util.GregorianCalendar
-import org.objenesis.instantiator.ObjectInstantiator
-import org.objenesis.strategy.StdInstantiatorStrategy
 
 /**
  * Helpful class for working with the kryo.
  */
 class KryoHelper internal constructor(
-    inputStream: InputStream,
-    private val outputStream: OutputStream
-) : Closeable {
-    private val temporaryBuffer = ByteArrayOutputStream()
-
-    private val kryoOutput = Output(temporaryBuffer)
-    private val kryoInput = Input(inputStream)
-
+    private val lifetime: Lifetime
+) {
+    private val outputBuffer = ByteArrayOutputStream()
+    private val kryoOutput = Output(outputBuffer)
+    private val kryoInput= Input()
     private val sendKryo: Kryo = TunedKryo()
     private val receiveKryo: Kryo = TunedKryo()
+
+    init {
+        lifetime.onTermination {
+            kryoInput.close()
+            kryoOutput.close()
+        }
+    }
 
     fun setKryoClassLoader(classLoader: ClassLoader) {
         sendKryo.classLoader = classLoader
         receiveKryo.classLoader = classLoader
     }
 
-    fun readLong(): Long {
-        return receiveKryo.readObject(kryoInput, Long::class.java)
-    }
-
     /**
-     * Kryo tries to write the [cmd] to the [temporaryBuffer].
-     * If no exception occurs, the output is flushed to the [outputStream].
+     * Serializes object to ByteArray
      *
-     * If an exception occurs, rethrows it wrapped in [WritingToKryoException].
+     * @throws WritingToKryoException wraps all exceptions
      */
-    fun <T : Protocol.Command> writeCommand(id: Long, cmd: T) {
+    fun <T> writeObject(obj: T): ByteArray {
+        lifetime.throwIfNotAlive()
         try {
-            sendKryo.writeObject(kryoOutput, id)
-            sendKryo.writeClassAndObject(kryoOutput, cmd)
+            sendKryo.writeClassAndObject(kryoOutput, obj)
             kryoOutput.flush()
 
-            temporaryBuffer.writeTo(outputStream)
-            outputStream.flush()
+            return outputBuffer.toByteArray()
         } catch (e: Exception) {
             throw WritingToKryoException(e)
         } finally {
             kryoOutput.reset()
-            temporaryBuffer.reset()
+            outputBuffer.reset()
         }
     }
 
     /**
-     * Kryo tries to read a command.
+     * Deserializes object form ByteArray
      *
-     * If an exception occurs, rethrows it wrapped in [ReadingFromKryoException].
-     *
-     * @return successfully read command.
+     * @throws ReadingFromKryoException wraps all exceptions
      */
-    fun readCommand(): Protocol.Command =
-        try {
-            receiveKryo.readClassAndObject(kryoInput) as Protocol.Command
+    fun <T> readObject(byteArray: ByteArray): T {
+        lifetime.throwIfNotAlive()
+        return try {
+            kryoInput.buffer = byteArray
+            receiveKryo.readClassAndObject(kryoInput) as T
         } catch (e: Exception) {
             throw ReadingFromKryoException(e)
         }
-
-    override fun close() {
-        kryoInput.close()
-        kryoOutput.close()
-        outputStream.close()
     }
 }
 
@@ -112,11 +98,8 @@ internal class TunedKryo : Kryo() {
             }
         }
 
-        register(GregorianCalendar::class.java, GregorianCalendarSerializer())
-        register(InvocationHandler::class.java, JdkProxySerializer())
+        this.setOptimizedGenerics(false)
         register(TimeoutException::class.java, TimeoutExceptionSerializer())
-        UnmodifiableCollectionsSerializer.registerSerializers(this)
-        SynchronizedCollectionsSerializer.registerSerializers(this)
 
         // TODO: JIRA:1492
         addDefaultSerializer(java.lang.Throwable::class.java, JavaSerializer())
@@ -126,11 +109,6 @@ internal class TunedKryo : Kryo() {
         factory.config.serializeTransient = false
         factory.config.fieldsCanBeNull = true
         this.setDefaultSerializer(factory)
-
-        // Registration of the classes of our protocol commands.
-        Protocol::class.nestedClasses.forEach {
-            register(it.java)
-        }
     }
 
     /**

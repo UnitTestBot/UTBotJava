@@ -11,6 +11,7 @@ import org.utbot.engine.isReturn
 import org.utbot.engine.selectors.PathSelector
 import org.utbot.engine.stmts
 import org.utbot.framework.UtSettings.copyVisualizationPathToClipboard
+import org.utbot.framework.UtSettings.showLibraryClassesInVisualization
 import soot.jimple.Stmt
 import soot.toolkits.graph.ExceptionalUnitGraph
 import java.awt.Toolkit
@@ -103,7 +104,11 @@ class GraphViz(
         graph.allEdges.forEach { edge ->
             val (edgeSrc, edgeDst, _) = edge
 
-            if (stmtToSubgraph[edgeSrc] !in libraryGraphs && stmtToSubgraph[edgeDst] !in libraryGraphs) {
+            val srcInLibraryMethod = stmtToSubgraph[edgeSrc] in libraryGraphs
+            val dstInLibraryMethod = stmtToSubgraph[edgeDst] in libraryGraphs
+            val edgeIsRelatedToLibraryMethod = srcInLibraryMethod || dstInLibraryMethod
+
+            if (!edgeIsRelatedToLibraryMethod || showLibraryClassesInVisualization) {
                 dotGlobalGraph.addDotEdge(edge)
             }
         }
@@ -143,8 +148,10 @@ class GraphViz(
         }
 
         // Filter library methods
-        uncompletedStack.removeIf { it.name in libraryGraphs }
-        fullStack.removeIf { it.name in libraryGraphs }
+        if (!showLibraryClassesInVisualization) {
+            uncompletedStack.removeIf { it.name in libraryGraphs }
+            fullStack.removeIf { it.name in libraryGraphs }
+        }
 
         // Update nodes and edges properties
         dotGlobalGraph.updateProperties(executionState)

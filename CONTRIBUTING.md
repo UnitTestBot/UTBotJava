@@ -1,63 +1,117 @@
-# How to contribute to UTBot Java
+# UnitTestBot contributing guide
 
-To begin with, we are very thankful for your time and willingness to read this and contribute! 
+---
 
-The following guideline should help you with suggesting changes to our project, so feel free to use it for your contribution. 😃 
+## Welcome!
 
+Hello and thanks for reading this!
 
-## I\`ve found a bug! How to report?
+As the UnitTestBot core team we develop tools for automated unit test generation to help programmers test their code
+in a more effective way with less effort. We believe that software development is great fun when you spend your time
+finding creative solutions and automate the things you already know. If you are curious about making test generation
+fast, smart and reliable, we are happy to invite you for contributing!
 
-First of all, please check our [Issues](https://github.com/UnitTestBot/UTBotJava/issues) — this bug may have already been reported, and you just don\`t need to spend your time on a new one.
+We welcome absolutely everyone. With one big and kind request: please follow these guidelines to make our communication smooth and to keep UnitTestBot improving.
 
-If you haven\`t found the relevant issue,  don\`t hesitate to [create a new one](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=), including as much detail as possible — the pre-made template will assist you in it.
+## Contributions we are looking for
 
-In case you already have a PR with a solution, please remain so amazing and link it with the created issue.
+There are so many ways to contribute. Choose yours and find the relevant short guide below.
 
+|(1) Choose what you like and check the guideline:| (2) Contribute:                                                                                                                               |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+|Reporting a bug| Create a [bug reporting issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=)          |
+|Suggesting a feature| Create a [feature suggestion issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) |
+|Contributing the code (bug fix or feature implementation)| Create a pull request                                                                                                                         |
+|Reproducing a reported bug| Comment on the issue                                                                                                                          |
+|Testing a pull request| Comment on the pull request                                                                                                                   |
+|Improving documentation| Create an issue<br/>Create a pull request<br/>Comment on issues and PRs                                                                       |
+|Sharing ideas| Start the [Discussion](https://github.com/UnitTestBot/UTBotJava/discussions) or join the existing one                                         |
 
-## I have an improvement suggestion! 
-Want a new feature or to change the existing one? We are very welcome your fresh ideas. 😃
+# How to submit a contribution
 
-Please [create an issue](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) with your proposal and describe your idea with full information about it. By adding some examples you also bring much happiness to our souls!
+## Reporting a bug
 
-Give us some time to review your proposal and provide you with our feedback. It will be decided who is preparing the pull request: we may need your help or we will take care of it all. 🙂
+1. Check if the bug (a true bug!) has already been reported: search through [UnitTestBot issues](https://github.com/UnitTestBot/UTBotJava/issues). Please, don't duplicate.
+2. Check with the [Naming and labeling conventions](Conventions.md).
+3. Make sure you have all the necessary information as per [template](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=bug_report.md&title=) and create the bug reporting issue.
 
+## Requesting a feature
 
-## Coding conventions
-Our team adheres to the defined requirements to coding style to optimize for readability. You can take a look on this [Coding style guide](https://github.com/saveourtool/diktat/blob/master/info/guide/diktat-coding-convention.md) to better understand what we expect to see in your code. 
+1. Check if the feature has already been requested: search through [UnitTestBot issues](https://github.com/UnitTestBot/UTBotJava/issues).
+2. Check with our [Naming and labeling conventions](Conventions.md).
+3. Make sure you are able to provide all the necessary information as per [template](https://github.com/UnitTestBot/UTBotJava/issues/new?assignees=&labels=&template=feature_request.md&title=) and create the feature request issue.
 
+## Contributing the code (bug fix or feature implementation)
 
-## Naming conventions
-We have been using GitHub for a while, and now we have a couple of tips for naming issues, commits and pull requests (PRs). You are welcome to stick to them too 🙂
+### "Good first issue"
 
-Our favorite recipes are:
+If you have little experience in contributing, try to resolve the issues labeled as the ["good first"](https://github.com/UnitTestBot/UTBotJava/contribute) ones.
 
-   **issue title = feature request or bug description + issue ID**
+### Small or "obvious" fixes
 
-   **commit message = PR title = fix description + issue ID + (PR number)**
+Do you need to create an issue if you want to fix a bug?
 
-How to insert the issue ID into the commit message and the PR title?<br>
-—	Manually.
+* Quick fix → no issue → pull request.
+* Takes time to fix → detailed issue → pull request.
 
-How to append the PR number to the PR title?<br>
-—	It appends automatically.
+### General flow for contributing code
 
-How to insert the PR number into the commit message?<br>
-—	*Push* the feature branch + *Create pull request* on GitHub and then →<br>
-1) The preferred and the easiest flow:
-<br>*Squash and merge* on GitHub → the PR number automatically appends to the resulting commit message
-2) The flow for advanced users:
-<br>(a)	squash the commits locally → insert the PR number in parentheses (!) manually into the resulting commit 
-   message + *Force Push* the resulting commit → *Rebase and merge* on GitHub
-<br>or
-<br>(b)	change the commit message locally → insert the PR number in parentheses (!) manually + *Force Push* the 
-   commit → *Rebase and merge* on GitHub
+1. Make sure you've carefully read the [Legal notes](#Legal-notes)!
+2. Create your own fork of the code.
+3. Clone the forked repository to your local machine.
+4. Implement changes. Please refer to the [Developer guide](DEVNOTE.md) for **system requirements**, **code
+   style** and
+   **steps for building the project**.
+5. Test your code:
+   * Before creating the pull request perform the tests you find necessary for your code changes.
+   * When implementing something new, it's great to find real users and ask them to try out your feature — to prove
+     the necessity and quality of your suggestion.
+6. Check with the [Naming and labeling conventions](Conventions.md).
+7. Create the pull request, and you'll see if the automated tests pass on GitHub. Your reviewer will possibly recommend
+   you more tests.
 
+## Reproducing a reported bug
 
-## How to setup development environment?
+If you reproduce an existing issue and it helps to get some additional context on the problem, feel free to comment on the issue.
 
-Please refer [Developer guide](https://github.com/UnitTestBot/UTBotJava/blob/main/DEVNOTE.md) to setup developer environment, build and run UTBot.
+## Testing a pull request
 
+You can merge a pull request into your local copy of the project and test the changes. If you find something you'd like to share, add the outcome of your testing in a comment on the pull request.
 
-## How to test you PR? 
+## Improving documentation
 
-Currently, not all checks are automized. It's required to do manual testing after PR.
+Here at UnitTestBot we regard documentation as code. It means that the general flow for writing and reviewing docs
+is the same as for the code. If you'd like to improve the existing docs or to add something new, please follow the flow:
+
+1. Make sure you've carefully read the [Legal notes](#Legal-notes)!
+2. Create your own fork of the code.
+3. Clone the forked repository to your local machine.
+4. Implement changes to docs (change the existing doc or create a new one). Usually, we create a new doc for a new feature, not for the small fixes. You are not obliged to write a detailed text about the feature you implement. You have to only describe it properly in both the related issue and the pull request, but it will be great if you still provide some docs.
+6. Check with the [Naming and labeling conventions](Conventions.md).
+7. Create the pull request, and we'll review it.
+
+* You can request a new doc — create an issue, using the [guide for a feature request](#Requesting-a-feature).
+* You can comment on the docs-related issues or PRs.
+
+## Sharing ideas
+
+We have a lot of new ideas, but we always need more!
+
+These are our main areas of interest:
+
+* technologies for code analysis, generating unit tests, e. g. symbolic execution, fuzzing, machine learning, etc.;
+* real-life examples of using UnitTestBot, as well as possible use cases, scenarios and user stories;
+* practices and problems or UX research related to unit testing with or without automated test generation tools.
+
+If you are keen on these things too, please share your ideas with us. Even if they are sketchy and not ready for being implemented or even requested right now, go ahead and join the existing [Discussions](https://github.com/UnitTestBot/UTBotJava/discussions) or [start](https://github.com/UnitTestBot/UTBotJava/discussions/new) the new one.
+
+# Code review process
+Please choose [denis-fokin](https://github.com/denis-fokin) as a reviewer. He will reassign your PR to someone else from the core team, if necessary.
+
+We do our best in reviewing, but we can hardly specify the exact timeout for it. Be sure that we'll certainly answer your pull request!
+
+# Legal notes
+
+By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](https://github.com/UnitTestBot/UTBotJava/blob/main/LICENSE).
+
+Feel free to [contact us directly](https://www.utbot.org/contact/) if that's a concern.

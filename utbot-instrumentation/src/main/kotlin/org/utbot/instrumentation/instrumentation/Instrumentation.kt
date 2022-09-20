@@ -1,7 +1,7 @@
 package org.utbot.instrumentation.instrumentation
 
-import org.utbot.instrumentation.util.Protocol
 import java.lang.instrument.ClassFileTransformer
+import org.utbot.framework.plugin.api.FieldId
 
 /**
  * Abstract class for the instrumentation.
@@ -25,15 +25,7 @@ interface Instrumentation<out TInvocationInstrumentation> : ClassFileTransformer
         parameters: Any? = null
     ): TInvocationInstrumentation
 
-    /**
-     * This function will be called from the child process loop every time it receives [Protocol.InstrumentationCommand] from the main process.
-     *
-     * @return Handles [cmd] and returns command which should be sent back to the [org.utbot.instrumentation.ConcreteExecutor].
-     * If returns `null`, nothing will be sent.
-     */
-    fun <T : Protocol.InstrumentationCommand> handle(cmd: T): Protocol.Command? {
-        return null
-    }
+    fun getStaticField(fieldId: FieldId): Result<*>
 
     /**
      * Will be called in the very beginning in the child process.

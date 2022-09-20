@@ -11,21 +11,25 @@ import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.stringClassId
 
 internal class PrimitiveWrapperConstructor : UtAssembleModelConstructorBase() {
-    override fun UtAssembleModel.modifyChains(
+    override fun provideInstantiationCall(
         internalConstructor: UtModelConstructorInterface,
-        instantiationChain: MutableList<UtStatementModel>,
-        modificationChain: MutableList<UtStatementModel>,
-        valueToConstructFrom: Any
-    ) {
-        checkClassCast(classId.jClass, valueToConstructFrom::class.java)
+        value: Any,
+        classId: ClassId
+    ): UtExecutableCallModel {
+        checkClassCast(classId.jClass, value::class.java)
 
-        instantiationChain += UtExecutableCallModel(
-            null,
+        return UtExecutableCallModel(
+            instance = null,
             constructorId(classId, classId.unbox()),
-            listOf(UtPrimitiveModel(valueToConstructFrom)),
-            this
+            listOf(UtPrimitiveModel(value))
         )
+        
     }
+
+    override fun UtAssembleModel.provideModificationChain(
+        internalConstructor: UtModelConstructorInterface,
+        value: Any
+    ): List<UtStatementModel> = emptyList()
 }
 
 

@@ -1,11 +1,11 @@
 package org.utbot.framework.assemble
 
-import org.utbot.common.packageName
+import org.utbot.common.isPrivate
+import org.utbot.common.isPublic
 import org.utbot.engine.ResolvedExecution
 import org.utbot.engine.ResolvedModels
-import org.utbot.engine.isPrivate
-import org.utbot.engine.isPublic
 import org.utbot.framework.UtSettings
+import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.modifications.AnalysisMode.SettersAndDirectAccessors
 import org.utbot.framework.modifications.ConstructorAnalyzer
 import org.utbot.framework.modifications.ConstructorAssembleInfo
@@ -23,7 +23,7 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtMethod
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
@@ -49,8 +49,7 @@ import java.util.IdentityHashMap
  *
  * Note: Caches class related information, can be reused if classes don't change.
  */
-class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
-    private val methodPackageName = methodUnderTest.clazz.java.packageName
+class AssembleModelGenerator(private val methodPackageName: String) {
 
     //Instantiated models are stored to avoid cyclic references during reference graph analysis
     private val instantiatedModels: IdentityHashMap<UtModel, UtReferenceModel> =
@@ -172,6 +171,11 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
     private fun assembleModel(utModel: UtModel): UtModel {
         val collectedCallChain = callChain.toMutableList()
 
+        // we cannot create an assemble model for an anonymous class instance
+        if (utModel.classId.isAnonymous) {
+            return utModel
+        }
+
         val assembledModel = withCleanState {
             try {
                 when (utModel) {
@@ -179,7 +183,8 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     is UtPrimitiveModel,
                     is UtClassRefModel,
                     is UtVoidModel,
-                    is UtEnumConstantModel -> utModel
+                    is UtEnumConstantModel,
+                    is UtLambdaModel -> utModel
                     is UtArrayModel -> assembleArrayModel(utModel)
                     is UtCompositeModel -> assembleCompositeModel(utModel)
                     is UtAssembleModel -> assembleAssembleModel(utModel)
@@ -229,24 +234,20 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         try {
             val modelName = nextModelName(compositeModel.classId.jClass.simpleName.decapitalize())
 
-            val instantiationChain = mutableListOf<UtStatementModel>()
-            val modificationsChain = mutableListOf<UtStatementModel>()
+            val constructorId = findBestConstructorOrNull(compositeModel)
+                ?: throw AssembleException("No default constructor to instantiate an object of the class ${compositeModel.id}")
+
+            val constructorInfo = constructorAnalyzer.analyze(constructorId)
+
+            val instantiationCall = constructorCall(compositeModel, constructorInfo)
             return UtAssembleModel(
                 compositeModel.id,
                 compositeModel.classId,
                 modelName,
-                instantiationChain,
-                modificationsChain,
+                instantiationCall,
                 compositeModel
-            ).apply {
-
-                val constructorId = findBestConstructorOrNull(compositeModel)
-                    ?: throw AssembleException("No default constructor to instantiate an object of the class $classId")
-
-                val constructorInfo = constructorAnalyzer.analyze(constructorId)
-
+            ) {
                 instantiatedModels[compositeModel] = this
-                instantiationChain += constructorCall(compositeModel, this, constructorInfo)
 
                 compositeModel.fields.forEach { (fieldId, fieldModel) ->
                     if (fieldId.isStatic) {
@@ -254,6 +255,11 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     }
                     if (fieldId.isFinal) {
                         throw AssembleException("Final field $fieldId can't be set in an object of the class $classId")
+                    }
+                    if (!fieldId.type.isAccessibleFrom(methodPackageName)) {
+                        throw AssembleException(
+                            "Field $fieldId can't be set in an object of the class $classId because its type is inaccessible"
+                        )
                     }
                     //fill field value if it hasn't been filled by constructor, and it is not default
                     if (fieldId in constructorInfo.affectedFields ||
@@ -264,7 +270,7 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                     }
                 }
 
-                modificationsChain += callChain.toList()
+                callChain.toList()
             }
         } catch (e: AssembleException) {
             instantiatedModels.remove(compositeModel)
@@ -278,17 +284,16 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
     private fun assembleAssembleModel(modelBefore: UtAssembleModel): UtModel {
         instantiatedModels[modelBefore]?.let { return it }
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
 
-        return modelBefore.copy(
-            instantiationChain = instantiationChain,
-            modificationsChain = modificationChain,
-        ).apply {
+        return UtAssembleModel(
+            modelBefore.id,
+            modelBefore.classId,
+            modelBefore.modelName,
+            assembleExecutableCallModel(modelBefore.instantiationCall),
+            modelBefore.origin
+        ) {
             instantiatedModels[modelBefore] = this
-
-            instantiationChain += modelBefore.instantiationChain.map { assembleStatementModel(it) }
-            modificationChain += modelBefore.modificationsChain.map { assembleStatementModel(it) }
+            modelBefore.modificationsChain.map { assembleStatementModel(it) }
         }
     }
 
@@ -296,9 +301,21 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      * Assembles internal structure of [UtStatementModel].
      */
     private fun assembleStatementModel(statementModel: UtStatementModel): UtStatementModel = when (statementModel) {
-        is UtExecutableCallModel -> statementModel.copy(params = statementModel.params.map { assembleModel(it) })
-        is UtDirectSetFieldModel -> statementModel.copy(fieldModel = assembleModel(statementModel.fieldModel))
+        is UtExecutableCallModel -> assembleExecutableCallModel(statementModel)
+        is UtDirectSetFieldModel -> assembleDirectSetFieldModel(statementModel)
     }
+
+    private fun assembleDirectSetFieldModel(statementModel: UtDirectSetFieldModel) =
+        statementModel.copy(
+            instance = statementModel.instance.let { assembleModel(it) as UtReferenceModel },
+            fieldModel = assembleModel(statementModel.fieldModel)
+        )
+
+    private fun assembleExecutableCallModel(statementModel: UtExecutableCallModel) =
+        statementModel.copy(
+            instance = statementModel.instance?.let { assembleModel(it) as UtReferenceModel },
+            params = statementModel.params.map { assembleModel(it) }
+        )
 
     /**
      * Assembles internal structure of [UtCompositeModel] if it represents a mock.
@@ -332,7 +349,6 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
      */
     private fun constructorCall(
         compositeModel: UtCompositeModel,
-        instance: UtAssembleModel,
         constructorInfo: ConstructorAssembleInfo,
     ): UtExecutableCallModel {
         val constructorParams = constructorInfo.constructorId.parameters.withIndex()
@@ -345,13 +361,17 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
                 assembleModel(fieldModel)
             }
 
-        return UtExecutableCallModel(null, constructorInfo.constructorId, constructorParams, instance)
+        return UtExecutableCallModel(instance = null, constructorInfo.constructorId, constructorParams)
     }
 
     /**
      * Finds most appropriate constructor in class.
      *
-     * We prefer constructor that allows to set more fields than others
+     * If the [compositeModel].fields is empty, we don't care about affected fields, we would like to take an empty
+     * constructor if the declaring class is from [java.util] package or an appropriate constructor with the least
+     * number of arguments.
+     *
+     * Otherwise, we prefer constructor that allows to set more fields than others
      * and use only simple assignments like "this.a = a".
      *
      * Returns null if no one appropriate constructor is found.
@@ -360,11 +380,20 @@ class AssembleModelGenerator(private val methodUnderTest: UtMethod<*>) {
         val classId = compositeModel.classId
         if (!classId.isVisible || classId.isInner) return null
 
-        return classId.jClass.declaredConstructors
+        val constructorIds = classId.jClass.declaredConstructors
             .filter { it.isVisible }
-            .sortedByDescending { it.parameterCount }
             .map { it.executableId }
-            .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+
+        return if (compositeModel.fields.isEmpty()) {
+            val fromUtilPackage = classId.packageName.startsWith("java.util")
+            constructorIds
+                .sortedBy { it.parameters.size }
+                .firstOrNull { it.parameters.isEmpty() && fromUtilPackage || constructorAnalyzer.isAppropriate(it) }
+        } else {
+            constructorIds
+                .sortedByDescending { it.parameters.size }
+                .firstOrNull { constructorAnalyzer.isAppropriate(it) }
+        }
     }
 
     private val ClassId.isVisible : Boolean

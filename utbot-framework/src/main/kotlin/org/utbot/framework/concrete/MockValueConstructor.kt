@@ -44,7 +44,12 @@ import kotlin.reflect.KClass
 import org.mockito.Mockito
 import org.mockito.stubbing.Answer
 import org.objectweb.asm.Type
-import org.utbot.common.withAccessibility
+import org.utbot.engine.util.lambda.CapturedArgument
+import org.utbot.engine.util.lambda.constructLambda
+import org.utbot.engine.util.lambda.constructStaticLambda
+import org.utbot.framework.plugin.api.UtLambdaModel
+import org.utbot.framework.plugin.api.util.isStatic
+import org.utbot.instrumentation.process.runSandbox
 
 /**
  * Constructs values (including mocks) from models.
@@ -74,7 +79,6 @@ class MockValueConstructor(
 
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
     private val constructedObjects = HashMap<UtReferenceModel, Any>()
-    private val resultsCache = HashMap<UtReferenceModel, Any>()
     private val mockInfo = mutableListOf<MockInfo>()
     private var mockTarget: MockTarget? = null
     private var mockCounter = 0
@@ -126,6 +130,7 @@ class MockValueConstructor(
             is UtCompositeModel -> UtConcreteValue(constructObject(model), model.classId.jClass)
             is UtArrayModel -> UtConcreteValue(constructArray(model))
             is UtAssembleModel -> UtConcreteValue(constructFromAssembleModel(model), model.classId.jClass)
+            is UtLambdaModel -> UtConcreteValue(constructFromLambdaModel(model))
             is UtVoidModel -> UtConcreteValue(Unit)
         }
     }
@@ -353,25 +358,62 @@ class MockValueConstructor(
     private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any {
         constructedObjects[assembleModel]?.let { return it }
 
-        assembleModel.allStatementsChain.forEach { statementModel ->
+        val instantiationExecutableCall = assembleModel.instantiationCall
+        val result = updateWithExecutableCallModel(instantiationExecutableCall)
+        checkNotNull(result) {
+            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
+        }
+        constructedObjects[assembleModel] = result
+
+        assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
-                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel, assembleModel)
+                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel)
                 is UtDirectSetFieldModel -> updateWithDirectSetFieldModel(statementModel)
             }
         }
 
-        return resultsCache[assembleModel] ?: error("Can't assemble model: $assembleModel")
+        return constructedObjects[assembleModel] ?: error("Can't assemble model: $assembleModel")
+    }
+
+    private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
+        constructedObjects[lambdaModel]?.let { return it }
+        // A class representing a functional interface.
+        val samType: Class<*> = lambdaModel.samType.jClass
+        // A class where the lambda is declared.
+        val declaringClass: Class<*> = lambdaModel.declaringClass.jClass
+        // A name of the synthetic method that represents a lambda.
+        val lambdaName = lambdaModel.lambdaName
+
+        val lambda = if (lambdaModel.lambdaMethodId.isStatic) {
+            val capturedArguments = lambdaModel.capturedValues
+                .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
+                .toTypedArray()
+            constructStaticLambda(samType, declaringClass, lambdaName, *capturedArguments)
+        } else {
+            val capturedReceiverModel = lambdaModel.capturedValues.firstOrNull()
+                ?: error("Non-static lambda must capture `this` instance, so there must be at least one captured value")
+
+            // Values that the given lambda has captured.
+            val capturedReceiver = value(capturedReceiverModel)
+            val capturedArguments = lambdaModel.capturedValues.subList(1, lambdaModel.capturedValues.size)
+                .map { model -> CapturedArgument(type = model.classId.jClass, value = value(model)) }
+                .toTypedArray()
+            constructLambda(samType, declaringClass, lambdaName, capturedReceiver, *capturedArguments)
+        }
+        constructedObjects[lambdaModel] = lambda
+        return lambda
     }
 
     /**
-     * Updates instance state with [UtExecutableCallModel] invocation.
+     * Updates instance state with [callModel] invocation.
+     *
+     * @return the result of [callModel] invocation
      */
     private fun updateWithExecutableCallModel(
         callModel: UtExecutableCallModel,
-        assembleModel: UtAssembleModel,
-    ) {
+    ): Any? {
         val executable = callModel.executable
-        val instanceValue = resultsCache[callModel.instance]
+        val instanceValue = callModel.instance?.let { value(it) }
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {
@@ -379,16 +421,7 @@ class MockValueConstructor(
             is ConstructorId -> executable.call(params)
         }
 
-        // Ignore result if returnId is null. Otherwise add it to instance cache.
-        callModel.returnValue?.let {
-            checkNotNull(result) { "Tracked instance can't be null for call $executable in model $assembleModel" }
-            resultsCache[it] = result
-
-            //If statement is final instantiating, add result to constructed objects cache
-            if (callModel == assembleModel.finalInstantiationModel) {
-                constructedObjects[assembleModel] = result
-            }
-        }
+        return result
     }
 
     /**
@@ -396,7 +429,7 @@ class MockValueConstructor(
      */
     private fun updateWithDirectSetFieldModel(directSetterModel: UtDirectSetFieldModel) {
         val instanceModel = directSetterModel.instance
-        val instance = resultsCache[instanceModel] ?: error("Model $instanceModel is not instantiated")
+        val instance = value(instanceModel)
 
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel
@@ -441,17 +474,13 @@ class MockValueConstructor(
     }
 
     private fun MethodId.call(args: List<Any?>, instance: Any?): Any? =
-        method.run {
-            withAccessibility {
-                invokeCatching(obj = instance, args = args).getOrThrow()
-            }
+        method.runSandbox {
+            invokeCatching(obj = instance, args = args).getOrThrow()
         }
 
     private fun ConstructorId.call(args: List<Any?>): Any? =
-        constructor.run {
-            withAccessibility {
-                newInstance(*args.toTypedArray())
-            }
+        constructor.runSandbox {
+            newInstance(*args.toTypedArray())
         }
 
     /**

@@ -1,9 +1,9 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.appendHtmlLine
-import org.utbot.engine.displayName
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -14,6 +14,7 @@ import org.utbot.framework.codegen.model.tree.CgParameterDeclaration
 import org.utbot.framework.codegen.model.tree.CgRegion
 import org.utbot.framework.codegen.model.tree.CgSimpleRegion
 import org.utbot.framework.codegen.model.tree.CgStaticsRegion
+import org.utbot.framework.codegen.model.tree.CgTestClass
 import org.utbot.framework.codegen.model.tree.CgTestClassFile
 import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgTestMethodCluster
@@ -27,8 +28,12 @@ import org.utbot.framework.codegen.model.visitor.importUtilMethodDependencies
 import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtMethodTestSet
-import org.utbot.framework.plugin.api.UtSymbolicExecution
+import org.utbot.framework.codegen.model.constructor.TestClassModel
+import org.utbot.framework.codegen.model.tree.CgAuxiliaryClass
+import org.utbot.framework.codegen.model.tree.CgUtilEntity
+import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.util.description
+import org.utbot.framework.plugin.api.util.humanReadableName
 import org.utbot.framework.plugin.api.util.kClass
 import kotlin.reflect.KClass
 
@@ -38,57 +43,94 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
     private val methodConstructor = CgComponents.getMethodConstructorBy(context)
     private val nameGenerator = CgComponents.getNameGeneratorBy(context)
-
-    private val cgDataProviderMethods = mutableListOf<CgMethod>()
+    private val testFrameworkManager = CgComponents.getTestFrameworkManagerBy(context)
 
     private val testsGenerationReport: TestsGenerationReport = TestsGenerationReport()
 
     /**
-     * Given a list of test sets constructs CgTestClass
+     * Given a testClass model  constructs CgTestClass
      */
-    fun construct(testSets: Collection<CgMethodTestSet>): CgTestClassFile {
+    fun construct(testClassModel: TestClassModel): CgTestClassFile {
         return buildTestClassFile {
-            testClass = buildTestClass {
-                // TODO: obtain test class from plugin
-                id = currentTestClass
-                body = buildTestClassBody {
-                    cgDataProviderMethods.clear()
-                    for (testSet in testSets) {
-                        updateCurrentExecutable(testSet.executableId)
-                        val currentMethodUnderTestRegions = construct(testSet) ?: continue
-                        val executableUnderTestCluster = CgExecutableUnderTestCluster(
-                            "Test suites for executable $currentExecutable",
-                            currentMethodUnderTestRegions
-                        )
-                        testMethodRegions += executableUnderTestCluster
-                    }
-
-                    dataProvidersAndUtilMethodsRegion += CgStaticsRegion(
-                        "Data providers and utils methods",
-                        cgDataProviderMethods + createUtilMethods()
-                    )
-                }
-                // It is important that annotations, superclass and interfaces assignment is run after
-                // all methods are generated so that all necessary info is already present in the context
-                annotations += context.collectedTestClassAnnotations
-                superclass = context.testClassSuperclass
-                interfaces += context.collectedTestClassInterfaces
-            }
+            this.declaredClass = withTestClassScope { constructTestClass(testClassModel) }
             imports += context.collectedImports
             testsGenerationReport = this@CgTestClassConstructor.testsGenerationReport
         }
     }
 
-    private fun construct(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
+    private fun constructTestClass(testClassModel: TestClassModel): CgTestClass {
+        return buildTestClass {
+            id = currentTestClass
+
+            if (currentTestClass != outerMostTestClass) {
+                isNested = true
+                isStatic = testFramework.nestedClassesShouldBeStatic
+                testFrameworkManager.annotationForNestedClasses?.let {
+                    currentTestClassContext.collectedTestClassAnnotations += it
+                }
+            }
+            if (testClassModel.nestedClasses.isNotEmpty()) {
+                testFrameworkManager.annotationForOuterClasses?.let {
+                    currentTestClassContext.collectedTestClassAnnotations += it
+                }
+            }
+
+            body = buildTestClassBody {
+                for (nestedClass in testClassModel.nestedClasses) {
+                    nestedClassRegions += CgSimpleRegion(
+                        "Tests for ${nestedClass.classUnderTest.simpleName}",
+                        listOf(
+                            withNestedClassScope(nestedClass) { constructTestClass(nestedClass) }
+                        )
+                    )
+                }
+
+                for (testSet in testClassModel.methodTestSets) {
+                    updateCurrentExecutable(testSet.executableId)
+                    val currentMethodUnderTestRegions = constructTestSet(testSet) ?: continue
+                    val executableUnderTestCluster = CgExecutableUnderTestCluster(
+                        "Test suites for executable $currentExecutable",
+                        currentMethodUnderTestRegions
+                    )
+                    testMethodRegions += executableUnderTestCluster
+                }
+
+                val currentTestClassDataProviderMethods = currentTestClassContext.cgDataProviderMethods
+                if (currentTestClassDataProviderMethods.isNotEmpty()) {
+                    staticDeclarationRegions += CgStaticsRegion("Data providers", currentTestClassDataProviderMethods)
+                }
+
+                if (currentTestClass == outerMostTestClass) {
+                    val utilEntities = collectUtilEntities()
+                    // If utilMethodProvider is TestClassUtilMethodProvider, then util entities should be declared
+                    // in the test class. Otherwise, util entities will be located elsewhere (e.g. another class).
+                    if (utilMethodProvider is TestClassUtilMethodProvider && utilEntities.isNotEmpty()) {
+                        staticDeclarationRegions += CgStaticsRegion("Util methods", utilEntities)
+                    }
+                }
+            }
+            // It is important that annotations, superclass and interfaces assignment is run after
+            // all methods are generated so that all necessary info is already present in the context
+            with (currentTestClassContext) {
+                annotations += collectedTestClassAnnotations
+                superclass = testClassSuperclass
+                interfaces += collectedTestClassInterfaces
+            }
+        }
+    }
+
+    private fun constructTestSet(testSet: CgMethodTestSet): List<CgRegion<CgMethod>>? {
         if (testSet.executions.isEmpty()) {
             return null
         }
+
+        allExecutions = testSet.executions
 
         val (methodUnderTest, _, _, clustersInfo) = testSet
         val regions = mutableListOf<CgRegion<CgMethod>>()
         val requiredFields = mutableListOf<CgParameterDeclaration>()
 
-        when (context.parameterizedTestSource) {
+        when (context.parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
                 for ((clusterSummary, executionIndices) in clustersInfo) {
                     val currentTestCaseTestMethods = mutableListOf<CgTestMethod>()
@@ -150,43 +192,81 @@ internal class CgTestClassConstructor(val context: CgContext) :
 
             requiredFields += parameterizedTestMethod.requiredFields
 
-            cgDataProviderMethods +=
+            testFrameworkManager.addDataProvider(
                 methodConstructor.createParameterizedTestDataProvider(testSet, dataProviderMethodName)
+            )
 
             regions += CgSimpleRegion(
-                "Parameterized test for method ${methodUnderTest.displayName}",
+                "Parameterized test for method ${methodUnderTest.humanReadableName}",
                 listOf(parameterizedTestMethod),
             )
         }.onFailure { error -> processFailure(testSet, error) }
     }
 
-    // TODO: collect imports of util methods
-    private fun createUtilMethods(): List<CgUtilMethod> {
+    /**
+     * This method collects a list of util entities (methods and classes) needed by the class.
+     * By the end of the test method generation [requiredUtilMethods] may not contain all the needed.
+     * That's because some util methods may not be directly used in tests, but they may be used from other util methods.
+     * We define such method dependencies in [MethodId.methodDependencies].
+     *
+     * Once all dependencies are collected, required methods are added back to [requiredUtilMethods],
+     * because during the work of this method they are being removed from this list, so we have to put them back in.
+     *
+     * Also, some util methods may use some classes that also need to be generated.
+     * That is why we collect information about required classes using [MethodId.classDependencies].
+     *
+     * @return a list of [CgUtilEntity] representing required util methods and classes (including their own dependencies).
+     */
+    private fun collectUtilEntities(): List<CgUtilEntity> {
         val utilMethods = mutableListOf<CgUtilMethod>()
-        // some util methods depend on the others
-        // using this loop we make sure that all the
-        // util methods dependencies are taken into account
+        // Some util methods depend on other util methods or some auxiliary classes.
+        // Using this loop we make sure that all the util method dependencies are taken into account.
+        val requiredClasses = mutableSetOf<ClassId>()
         while (requiredUtilMethods.isNotEmpty()) {
             val method = requiredUtilMethods.first()
             requiredUtilMethods.remove(method)
             if (method.name !in existingMethodNames) {
                 utilMethods += CgUtilMethod(method)
-                importUtilMethodDependencies(method)
+                // we only need imports from util methods if these util methods are declared in the test class
+                if (utilMethodProvider is TestClassUtilMethodProvider) {
+                    importUtilMethodDependencies(method)
+                }
                 existingMethodNames += method.name
-                requiredUtilMethods += method.dependencies()
+                requiredUtilMethods += method.methodDependencies()
+                requiredClasses += method.classDependencies()
             }
         }
-        return utilMethods
+        // Collect all util methods back into requiredUtilMethods.
+        // Now there will also be util methods that weren't present in requiredUtilMethods at first,
+        // but were needed for the present util methods to work.
+        requiredUtilMethods += utilMethods.map { method -> method.id }
+
+        val auxiliaryClasses = requiredClasses.map { CgAuxiliaryClass(it) }
+
+        return utilMethods + auxiliaryClasses
     }
 
     /**
      * If @receiver is an util method, then returns a list of util method ids that @receiver depends on
      * Otherwise, an empty list is returned
      */
-    private fun MethodId.dependencies(): List<MethodId> = when (this) {
+    private fun MethodId.methodDependencies(): List<MethodId> = when (this) {
         createInstance -> listOf(getUnsafeInstance)
         deepEquals -> listOf(arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals, hasCustomEquals)
         arraysDeepEquals, iterablesDeepEquals, streamsDeepEquals, mapsDeepEquals -> listOf(deepEquals)
+        buildLambda, buildStaticLambda -> listOf(
+            getLookupIn, getSingleAbstractMethod, getLambdaMethod,
+            getLambdaCapturedArgumentTypes, getInstantiatedMethodType, getLambdaCapturedArgumentValues
+        )
+        else -> emptyList()
+    }
+
+    /**
+     * If @receiver is an util method, then returns a list of auxiliary class ids that @receiver depends on.
+     * Otherwise, an empty list is returned.
+     */
+    private fun MethodId.classDependencies(): List<ClassId> = when (this) {
+        buildLambda, buildStaticLambda -> listOf(capturedArgumentClass)
         else -> emptyList()
     }
 

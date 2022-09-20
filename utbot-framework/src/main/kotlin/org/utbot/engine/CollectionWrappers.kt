@@ -8,6 +8,7 @@ import org.utbot.engine.overrides.collections.UtGenericStorage
 import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
+import org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck
 import org.utbot.engine.pc.UtAddrExpression
 import org.utbot.engine.pc.UtExpression
 import org.utbot.engine.pc.select
@@ -118,22 +119,15 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
 
         val classId = chooseClassIdWithConstructor(wrapper.type.sootClass.id)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
+        val instantiationCall = UtExecutableCallModel(
+            instance = null,
+            executable = constructorId(classId),
+            params = emptyList()
+        )
 
-        UtAssembleModel(addr, classId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                instantiationChain += UtExecutableCallModel(
-                    instance = null,
-                    executable = constructorId(classId),
-                    params = emptyList(),
-                    returnValue = this
-                )
-
-                modificationsChain += parameterModels.map {
-                    UtExecutableCallModel(this, modificationMethodId, it)
-                }
-            }
+        UtAssembleModel(addr, classId, modelName, instantiationCall) {
+            parameterModels.map { UtExecutableCallModel(this, modificationMethodId, it) }
+        }
     }
 
     /**
@@ -195,24 +189,29 @@ abstract class BaseGenericStorageBasedContainerWrapper(containerClassName: Strin
  */
 enum class UtListClass {
     UT_ARRAY_LIST,
-    UT_LINKED_LIST;
+    UT_LINKED_LIST,
+    UT_LINKED_LIST_WITH_NULLABLE_CHECK;
 
     val className: String
         get() = when (this) {
             UT_ARRAY_LIST -> UtArrayList::class.java.canonicalName
             UT_LINKED_LIST -> UtLinkedList::class.java.canonicalName
+            UT_LINKED_LIST_WITH_NULLABLE_CHECK -> UtLinkedListWithNullableCheck::class.java.canonicalName
         }
 }
 
 /**
- * BaseCollectionWrapper that uses implementation of [UtArrayList] or [UtLinkedList]
+ * BaseCollectionWrapper that uses implementation of [UtArrayList], [UtLinkedList], or [UtLinkedListWithNullableCheck]
  * depending on specified [utListClass] parameter.
  *
- * At resolving stage ListWrapper is resolved to [UtAssembleModel].
- * This model is instantiated by [java.util.ArrayList] constructor if utListClass is [UtListClass.UT_ARRAY_LIST]
- * or by [java.util.LinkedList] constructor, if utListClass is [UtListClass.UT_LINKED_LIST]
+ * This class is also used for wrapping [java.util.Queue], because [UtLinkedList] and [UtLinkedListWithNullableCheck]
+ * both implement [java.util.Queue].
  *
- * Modification chain consists of consequent [java.util.List.add] methods
+ * At resolving stage ListWrapper is resolved to [UtAssembleModel].
+ * This model is instantiated by constructor which is taken from the type from the passed [ReferenceValue] in [value]
+ * function.
+ *
+ * Modification chain consists of consequent [java.util.Collection.add] methods
  * that are arranged to iterating order of list.
  */
 class ListWrapper(private val utListClass: UtListClass) : BaseGenericStorageBasedContainerWrapper(utListClass.className) {
@@ -227,7 +226,7 @@ class ListWrapper(private val utListClass: UtListClass) : BaseGenericStorageBase
     }
 
     override val modificationMethodId: MethodId = methodId(
-        classId = java.util.List::class.id,
+        classId = java.util.Collection::class.id,
         name = "add",
         returnType = booleanClassId,
         arguments = arrayOf(objectClassId),

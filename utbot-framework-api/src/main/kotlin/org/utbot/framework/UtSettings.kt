@@ -1,11 +1,7 @@
 package org.utbot.framework
 
 import mu.KotlinLogging
-import org.utbot.common.PathUtil.toPath
-import java.io.FileInputStream
-import java.io.IOException
-import java.util.Properties
-import kotlin.properties.PropertyDelegateProvider
+import org.utbot.common.AbstractSettings
 import kotlin.reflect.KProperty
 
 private val logger = KotlinLogging.logger {}
@@ -50,43 +46,9 @@ internal class SettingDelegate<T>(val property: KProperty<*>, val initializer: (
  */
 const val DEFAULT_CONCRETE_EXECUTION_TIMEOUT_IN_CHILD_PROCESS_MS = 1000L
 
-object UtSettings {
-    private val properties = Properties().also { props ->
-        val settingsPath = System.getProperty(defaultKeyForSettingsPath) ?: defaultSettingsPath
-        val settingsPathFile = settingsPath.toPath().toFile()
-        if (settingsPathFile.exists()) {
-            try {
-                FileInputStream(settingsPathFile).use { reader ->
-                    props.load(reader)
-                }
-            } catch (e: IOException) {
-                logger.info(e) { e.message }
-            }
-        }
-    }
-
-    private fun <T> getProperty(
-        defaultValue: T,
-        converter: (String) -> T
-    ): PropertyDelegateProvider<UtSettings, SettingDelegate<T>> {
-        return PropertyDelegateProvider { _, property ->
-            SettingDelegate(property) {
-                try {
-                    properties.getProperty(property.name)?.let(converter) ?: defaultValue
-                } catch (e: Throwable) {
-                    logger.info(e) { e.message }
-                    defaultValue
-                }
-            }
-        }
-    }
-
-    private fun getBooleanProperty(defaultValue: Boolean) = getProperty(defaultValue, String::toBoolean)
-    private fun getIntProperty(defaultValue: Int) = getProperty(defaultValue, String::toInt)
-    private fun getLongProperty(defaultValue: Long) = getProperty(defaultValue, String::toLong)
-    private fun getStringProperty(defaultValue: String) = getProperty(defaultValue) { it }
-    private inline fun <reified T : Enum<T>> getEnumProperty(defaultValue: T) =
-        getProperty(defaultValue) { enumValueOf(it) }
+object UtSettings : AbstractSettings(
+    logger, defaultKeyForSettingsPath, defaultSettingsPath
+) {
 
     /**
      * Setting to disable coroutines debug explicitly.
@@ -121,19 +83,19 @@ object UtSettings {
     var seedInPathSelector: Int? by getProperty<Int?>(42, String::toInt)
 
     /**
-     * Type of path selector
+     * Type of path selector.
      */
     var pathSelectorType: PathSelectorType by getEnumProperty(PathSelectorType.INHERITORS_SELECTOR)
 
     /**
-     * Type of nnRewardGuidedSelector
+     * Type of MLSelector recalculation.
      */
-    var nnRewardGuidedSelectorType: NNRewardGuidedSelectorType by getEnumProperty(NNRewardGuidedSelectorType.WITHOUT_RECALCULATION)
+    var mlSelectorRecalculationType: MLSelectorRecalculationType by getEnumProperty(MLSelectorRecalculationType.WITHOUT_RECALCULATION)
 
     /**
-     * Type of [StateRewardPredictor]
+     * Type of [MLPredictor].
      */
-    var stateRewardPredictorType: StateRewardPredictorType by getEnumProperty(StateRewardPredictorType.BASE)
+    var mlPredictorType: MLPredictorType by getEnumProperty(MLPredictorType.MLP)
 
     /**
      * Steps limit for path selector.
@@ -162,6 +124,13 @@ object UtSettings {
     val copyVisualizationPathToClipboard get() = useDebugVisualization
 
     /**
+     * Set the value to true to show library classes' graphs in visualization.
+     *
+     * False by default.
+     */
+    val showLibraryClassesInVisualization by getBooleanProperty(false)
+
+    /**
      * Method is paused after this timeout to give an opportunity other methods
      * to work
      */
@@ -182,6 +151,11 @@ object UtSettings {
     var testSummary by getBooleanProperty(true)
     var testName by getBooleanProperty(true)
     var testDisplayName by getBooleanProperty(true)
+
+    /**
+     * Generate summaries using plugin's custom JavaDoc tags.
+     */
+    var useCustomJavaDocTags by getBooleanProperty(true)
 
     /**
      * Enable the machine learning module to generate summaries for methods under test.
@@ -360,9 +334,19 @@ object UtSettings {
     var enableFeatureProcess by getBooleanProperty(false)
 
     /**
-     * Path to deserialized reward models
+     * Path to deserialized ML models
      */
-    var rewardModelPath by getStringProperty("../models/0")
+    var modelPath by getStringProperty("../models/0")
+
+    /**
+     * Full class name of the class containing the configuration for the ML models to solve path selection task.
+     */
+    var analyticsConfigurationClassPath by getStringProperty("org.utbot.AnalyticsConfiguration")
+
+    /**
+     * Full class name of the class containing the configuration for the ML models exported from the PyTorch to solve path selection task.
+     */
+    var analyticsTorchConfigurationClassPath by getStringProperty("org.utbot.AnalyticsTorchConfiguration")
 
     /**
      * Number of model iterations that will be used during ContestEstimator
@@ -389,12 +373,23 @@ object UtSettings {
      */
     var skipTestGenerationForSyntheticMethods by getBooleanProperty(true)
 
-    override fun toString(): String =
-        settingsValues
-            .mapKeys { it.key.name }
-            .entries
-            .sortedBy { it.key }
-            .joinToString(separator = System.lineSeparator()) { "\t${it.key}=${it.value}" }
+    /**
+     * Flag that indicates whether should we branch on and set static fields from trusted libraries or not.
+     *
+     * @see [org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES]
+     */
+    var ignoreStaticsFromTrustedLibraries by getBooleanProperty(true)
+
+    /**
+     * Use the sandbox in the concrete executor.
+     *
+     * If true (default), the sandbox will prevent potentially dangerous calls, e.g., file access, reading
+     * or modifying the environment, calls to `Unsafe` methods etc.
+     *
+     * If false, all these operations will be enabled and may lead to data loss during code analysis
+     * and test generation.
+     */
+    var useSandbox by getBooleanProperty(true)
 }
 
 /**
@@ -427,9 +422,14 @@ enum class PathSelectorType {
     FORK_DEPTH_SELECTOR,
 
     /**
-     * [NNRewardGuidedSelector]
+     * [MLSelector]
      */
-    NN_REWARD_GUIDED_SELECTOR,
+    ML_SELECTOR,
+
+    /**
+     * [TorchSelector]
+     */
+    TORCH_SELECTOR,
 
     /**
      * [RandomSelector]
@@ -448,36 +448,31 @@ enum class TestSelectionStrategyType {
 }
 
 /**
- * Enum to specify [NNRewardGuidedSelector], see implementations for more details
+ * Enum to specify [MLSelector], see implementations for more details
  */
-enum class NNRewardGuidedSelectorType {
+enum class MLSelectorRecalculationType {
     /**
-     * [NNRewardGuidedSelectorWithRecalculation]
+     * [MLSelectorWithRecalculation]
      */
     WITH_RECALCULATION,
 
     /**
-     * [NNRewardGuidedSelectorWithoutRecalculation]
+     * [MLSelectorWithoutRecalculation]
      */
     WITHOUT_RECALCULATION
 }
 
 /**
- * Enum to specify [StateRewardPredictor], see implementations for details
+ * Enum to specify [MLPredictor], see implementations for details
  */
-enum class StateRewardPredictorType {
+enum class MLPredictorType {
     /**
-     * [NNStateRewardPredictorBase]
+     * [MultilayerPerceptronPredictor]
      */
-    BASE,
+    MLP,
 
     /**
-     * [StateRewardPredictorTorch]
+     * [LinearRegressionPredictor]
      */
-    TORCH,
-
-    /**
-     * [NNStateRewardPredictorBase]
-     */
-    LINEAR
+    LINREG
 }

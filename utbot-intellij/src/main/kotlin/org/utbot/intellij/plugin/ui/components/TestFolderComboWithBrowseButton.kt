@@ -4,29 +4,34 @@ import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptor
 import com.intellij.openapi.project.guessProjectDir
+import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.ComponentWithBrowseButton
+import com.intellij.openapi.ui.FixedSizeButton
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.impl.FakeVirtualFile
 import com.intellij.ui.ColoredListCellRenderer
-import com.intellij.ui.ComboboxWithBrowseButton
 import com.intellij.ui.SimpleTextAttributes
 import com.intellij.util.ArrayUtil
+import com.intellij.util.ui.UIUtil
 import java.io.File
 import javax.swing.DefaultComboBoxModel
 import javax.swing.JList
+import org.jetbrains.kotlin.idea.util.projectStructure.allModules
 import org.utbot.common.PathUtil
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.ui.utils.addDedicatedTestRoot
-import org.utbot.intellij.plugin.ui.utils.isGradle
+import org.utbot.intellij.plugin.ui.utils.isBuildWithGradle
 import org.utbot.intellij.plugin.ui.utils.suitableTestSourceRoots
 
-class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : ComboboxWithBrowseButton() {
+class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) :
+    ComponentWithBrowseButton<ComboBox<Any>>(ComboBox(), null) {
 
     private val SET_TEST_FOLDER = "set test folder"
 
     init {
-        if (model.project.isGradle()) {
+        if (model.project.isBuildWithGradle) {
             setButtonEnabled(false)
-            button.toolTipText = "Please define custom test source root via Gradle"
+            UIUtil.findComponentOfType(this, FixedSizeButton::class.java)?.toolTipText = "Please define custom test source root via Gradle"
         }
         childComponent.isEditable = false
         childComponent.renderer = object : ColoredListCellRenderer<Any?>() {
@@ -50,8 +55,10 @@ class TestFolderComboWithBrowseButton(private val model: GenerateTestsModel) : C
             }
         }
 
-        val testRoots = model.potentialTestModules.flatMap { it.suitableTestSourceRoots().toMutableList() }.toMutableList()
+        val suggestedModules =
+            if (model.project.isBuildWithGradle) model.project.allModules() else model.potentialTestModules
 
+        val testRoots = suggestedModules.flatMap { it.suitableTestSourceRoots().toList() }.toMutableList()
         // this method is blocked for Gradle, where multiple test modules can exist
         model.testModule.addDedicatedTestRoot(testRoots)
 

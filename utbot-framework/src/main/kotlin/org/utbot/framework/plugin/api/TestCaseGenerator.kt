@@ -5,7 +5,6 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -35,10 +34,12 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intArrayClassId
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.plugin.api.util.withUtContext
+import org.utbot.framework.plugin.services.JdkInfo
+import org.utbot.framework.util.SootUtils
 import org.utbot.framework.util.jimpleBody
-import org.utbot.framework.util.runSoot
 import org.utbot.framework.util.toModel
 import org.utbot.instrumentation.ConcreteExecutor
+import org.utbot.instrumentation.warmup
 import org.utbot.instrumentation.warmup.Warmup
 import java.io.File
 import java.nio.file.Path
@@ -52,13 +53,19 @@ import kotlin.reflect.KCallable
  *
  * Note: the instantiating of [TestCaseGenerator] may take some time,
  * because it requires initializing Soot for the current [buildDir] and [classpath].
+ *
+ * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's code.
+ * @param forceSootReload forces to reinitialize Soot even if the previous buildDir equals to [buildDir] and previous
+ * classpath equals to [classpath]. This is the case for plugin scenario, as the source code may be modified.
  */
 open class TestCaseGenerator(
     private val buildDir: Path,
     private val classpath: String?,
     private val dependencyPaths: String,
+    private val jdkInfo: JdkInfo,
     val engineActions: MutableList<(UtBotSymbolicEngine) -> Unit> = mutableListOf(),
     val isCanceled: () -> Boolean = { false },
+    val forceSootReload: Boolean = true,
 ) {
     private val logger: KLogger = KotlinLogging.logger {}
     private val timeoutLogger: KLogger = KotlinLogging.logger(logger.name + ".timeout")
@@ -78,7 +85,7 @@ open class TestCaseGenerator(
             }
 
             timeoutLogger.trace().bracket("Soot initialization") {
-                runSoot(buildDir, classpath)
+                SootUtils.runSoot(buildDir, classpath, forceSootReload, jdkInfo)
             }
 
             //warmup
@@ -112,7 +119,7 @@ open class TestCaseGenerator(
     @Throws(CancellationException::class)
     fun generateAsync(
         controller: EngineController,
-        method: UtMethod<*>,
+        method: ExecutableId,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         executionTimeEstimator: ExecutionTimeEstimator = ExecutionTimeEstimator(utBotGenerationTimeoutInMillis, 1)
@@ -124,7 +131,7 @@ open class TestCaseGenerator(
     }
 
     fun generate(
-        methods: List<UtMethod<*>>,
+        methods: List<ExecutableId>,
         mockStrategy: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId> = Mocker.javaDefaultClasses.mapTo(mutableSetOf()) { it.id },
         methodsGenerationTimeout: Long = utBotGenerationTimeoutInMillis,
@@ -247,12 +254,11 @@ open class TestCaseGenerator(
 
     private fun createSymbolicEngine(
         controller: EngineController,
-        method: UtMethod<*>,
+        method: ExecutableId,
         mockStrategyApi: MockStrategyApi,
         chosenClassesToMockAlways: Set<ClassId>,
         executionTimeEstimator: ExecutionTimeEstimator
     ): UtBotSymbolicEngine {
-        // TODO: create classLoader from buildDir/classpath and migrate from UtMethod to MethodId?
         logger.debug("Starting symbolic execution for $method  --$mockStrategyApi--")
         return UtBotSymbolicEngine(
             controller,

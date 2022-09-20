@@ -7,15 +7,17 @@ dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
 
-    testImplementation("org.junit.jupiter:junit-jupiter:$junit5_version"){
-        force = true
+    testImplementation("org.junit.jupiter:junit-jupiter"){
+        version {
+            strictly junit5_version
+        }
     }
 }
 
 compileKotlin {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xinline-classes"]
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
         allWarningsAsErrors = false
     }
 }
@@ -23,7 +25,7 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8
-        freeCompilerArgs += ["-Xallow-result-return-type", "-Xinline-classes"]
+        freeCompilerArgs += ["-Xallow-result-return-type", "-Xsam-conversions=class"]
         allWarningsAsErrors = false
     }
 }
@@ -34,7 +36,7 @@ java {
 }
 
 compileJava {
-    options.compilerArgs << '-Werror' << '-Xlint:all'
+    options.compilerArgs << '-Xlint:all'
     options.encoding = 'UTF-8'
 }
 
@@ -46,7 +48,9 @@ compileTestJava {
 test {
     // set heap size for the test JVM(s)
     minHeapSize = "128m"
-    maxHeapSize = "2048m"
+    maxHeapSize = "3072m"
+
+    jvmArgs '-XX:MaxHeapSize=3072m'
 
     useJUnitPlatform() {
         excludeTags 'slow', 'IntegrationTest'

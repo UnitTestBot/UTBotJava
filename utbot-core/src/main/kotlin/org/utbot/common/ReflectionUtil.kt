@@ -1,11 +1,12 @@
 package org.utbot.common
 
 import org.utbot.common.Reflection.setModifiers
+import sun.misc.Unsafe
 import java.lang.reflect.AccessibleObject
 import java.lang.reflect.Field
-import java.lang.reflect.Modifier
-import sun.misc.Unsafe
+import java.lang.reflect.Member
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 
 object Reflection {
     val unsafe: Unsafe
@@ -73,3 +74,41 @@ inline fun <reified R> Field.withAccessibility(block: () -> R): R {
         setModifiers(this, prevModifiers)
     }
 }
+
+// utility properties
+
+val Member.isAbstract
+    get() = Modifier.isAbstract(modifiers)
+
+val Member.isStatic
+    get() = Modifier.isStatic(modifiers)
+
+val Member.isPrivate
+    get() = Modifier.isPrivate(modifiers)
+
+val Member.isPublic
+    get() = Modifier.isPublic(modifiers)
+
+val Member.isFinal
+    get() = Modifier.isFinal(modifiers)
+
+val Member.isProtected
+    get() = Modifier.isProtected(modifiers)
+
+val Class<*>.isAbstract
+    get() = Modifier.isAbstract(modifiers)
+
+val Class<*>.isStatic
+    get() = Modifier.isStatic(modifiers)
+
+val Class<*>.isPrivate
+    get() = Modifier.isPrivate(modifiers)
+
+val Class<*>.isPublic
+    get() = Modifier.isPublic(modifiers)
+
+val Class<*>.isFinal
+    get() = Modifier.isFinal(modifiers)
+
+val Class<*>.isProtected
+    get() = Modifier.isProtected(modifiers)

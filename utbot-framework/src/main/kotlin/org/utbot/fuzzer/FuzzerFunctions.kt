@@ -1,5 +1,6 @@
 package org.utbot.fuzzer
 
+import mu.KotlinLogging
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.util.booleanClassId
 import org.utbot.framework.plugin.api.util.byteClassId
@@ -10,7 +11,7 @@ import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.shortClassId
 import org.utbot.framework.plugin.api.util.stringClassId
-import mu.KotlinLogging
+import org.utbot.framework.util.executableId
 import soot.BooleanType
 import soot.ByteType
 import soot.CharType
@@ -35,10 +36,13 @@ import soot.jimple.internal.JEqExpr
 import soot.jimple.internal.JGeExpr
 import soot.jimple.internal.JGtExpr
 import soot.jimple.internal.JIfStmt
+import soot.jimple.internal.JInvokeStmt
 import soot.jimple.internal.JLeExpr
 import soot.jimple.internal.JLookupSwitchStmt
 import soot.jimple.internal.JLtExpr
 import soot.jimple.internal.JNeExpr
+import soot.jimple.internal.JSpecialInvokeExpr
+import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JTableSwitchStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.toolkits.graph.ExceptionalUnitGraph
@@ -50,7 +54,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteValue> {
     return graph.body.units.reversed().asSequence()
-        .filter { it is JIfStmt || it is JAssignStmt || it is AbstractSwitchStmt}
+        .filter { it is JIfStmt || it is JAssignStmt || it is AbstractSwitchStmt || it is JInvokeStmt }
         .flatMap { unit ->
             unit.useBoxes.map { unit to it.value }
         }
@@ -64,6 +68,8 @@ fun collectConstantsForFuzzer(graph: ExceptionalUnitGraph): Set<FuzzedConcreteVa
                 ConstantsFromSwitchCase,
                 BoundValuesForDoubleChecks,
                 StringConstant,
+                RegexByVarStringConstant,
+                DateFormatByVarStringConstant,
             ).flatMap { finder ->
                 try {
                     finder.find(graph, unit, value)
@@ -113,8 +119,8 @@ private object ConstantsFromIfStatement: ConstantsFinder {
             val exactValue = value.plainValue
             val local = useBoxes[(valueIndex + 1) % 2]
             var op = sootIfToFuzzedOp(ifStatement)
-            if (valueIndex == 0) {
-                op = op.reverseOrElse { it }
+            if (valueIndex == 0 && op is FuzzedContext.Comparison) {
+                op = op.reverse()
             }
             // Soot loads any integer type as an Int,
             // therefore we try to guess target type using second value
@@ -146,7 +152,7 @@ private object ConstantsFromCast: ConstantsFinder {
         if (next is JAssignStmt) {
             val const = next.useBoxes.findFirstInstanceOf<Constant>()
             if (const != null) {
-                val op = (nextDirectUnit(graph, next) as? JIfStmt)?.let(::sootIfToFuzzedOp) ?: FuzzedOp.NONE
+                val op = (nextDirectUnit(graph, next) as? JIfStmt)?.let(::sootIfToFuzzedOp) ?: FuzzedContext.Unknown
                 val exactValue = const.plainValue as Number
                 return listOfNotNull(
                     when (value.op.type) {
@@ -170,12 +176,12 @@ private object ConstantsFromSwitchCase: ConstantsFinder {
         val result = mutableListOf<FuzzedConcreteValue>()
         if (unit is JTableSwitchStmt) {
             for (i in unit.lowIndex..unit.highIndex) {
-                result.add(FuzzedConcreteValue(intClassId, i, FuzzedOp.EQ))
+                result.add(FuzzedConcreteValue(intClassId, i, FuzzedContext.Comparison.EQ))
             }
         }
         if (unit is JLookupSwitchStmt) {
             unit.lookupValues.asSequence().filterIsInstance<IntConstant>().forEach {
-                result.add(FuzzedConcreteValue(intClassId, it.value, FuzzedOp.EQ))
+                result.add(FuzzedConcreteValue(intClassId, it.value, FuzzedContext.Comparison.EQ))
             }
         }
         return result
@@ -204,8 +210,8 @@ private object StringConstant: ConstantsFinder {
         // if string constant is called from String class let's pass it as modification
         if (value.method.declaringClass.name == "java.lang.String") {
             val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
-            if (stringConstantWasPassedAsArg != null) {
-                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedOp.CH))
+            if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
+                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
             }
             val stringConstantWasPassedAsThis = graph.getPredsOf(unit)
                 ?.filterIsInstance<JAssignStmt>()
@@ -213,13 +219,48 @@ private object StringConstant: ConstantsFinder {
                 ?.useBoxes
                 ?.findFirstInstanceOf<Constant>()
                 ?.plainValue
-            if (stringConstantWasPassedAsThis != null) {
-                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsThis, FuzzedOp.CH))
+            if (stringConstantWasPassedAsThis != null && stringConstantWasPassedAsThis is String) {
+                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsThis, FuzzedContext.Call(value.method.executableId)))
             }
         }
         return emptyList()
     }
+}
 
+/**
+ * Finds strings that are used inside Pattern's methods.
+ *
+ * Due to compiler optimizations it should work when a string is assigned to a variable or static final field.
+ */
+private object RegexByVarStringConstant: ConstantsFinder {
+    override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
+        if (unit !is JAssignStmt || value !is JStaticInvokeExpr) return emptyList()
+        if (value.method.declaringClass.name == "java.util.regex.Pattern") {
+            val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
+            if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
+                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
+            }
+        }
+        return emptyList()
+    }
+}
+
+/**
+ * Finds strings that are used inside DateFormat's constructors.
+ *
+ * Due to compiler optimizations it should work when a string is assigned to a variable or static final field.
+ */
+private object DateFormatByVarStringConstant: ConstantsFinder {
+    override fun find(graph: ExceptionalUnitGraph, unit: Unit, value: Value): List<FuzzedConcreteValue> {
+        if (unit !is JInvokeStmt || value !is JSpecialInvokeExpr) return emptyList()
+        if (value.method.isConstructor && value.method.declaringClass.name == "java.text.SimpleDateFormat") {
+            val stringConstantWasPassedAsArg = unit.useBoxes.findFirstInstanceOf<Constant>()?.plainValue
+            if (stringConstantWasPassedAsArg != null && stringConstantWasPassedAsArg is String) {
+                return listOf(FuzzedConcreteValue(stringClassId, stringConstantWasPassedAsArg, FuzzedContext.Call(value.method.executableId)))
+            }
+        }
+        return emptyList()
+    }
 }
 
 private object ConstantsAsIs: ConstantsFinder {
@@ -241,13 +282,13 @@ private val Constant.plainValue
     get() = javaClass.getField("value")[this]
 
 private fun sootIfToFuzzedOp(unit: JIfStmt) = when (unit.condition) {
-    is JEqExpr -> FuzzedOp.NE
-    is JNeExpr -> FuzzedOp.EQ
-    is JGtExpr -> FuzzedOp.LE
-    is JGeExpr -> FuzzedOp.LT
-    is JLtExpr -> FuzzedOp.GE
-    is JLeExpr -> FuzzedOp.GT
-    else -> FuzzedOp.NONE
+    is JEqExpr -> FuzzedContext.Comparison.NE
+    is JNeExpr -> FuzzedContext.Comparison.EQ
+    is JGtExpr -> FuzzedContext.Comparison.LE
+    is JGeExpr -> FuzzedContext.Comparison.LT
+    is JLtExpr -> FuzzedContext.Comparison.GE
+    is JLeExpr -> FuzzedContext.Comparison.GT
+    else -> FuzzedContext.Unknown
 }
 
 private fun nextDirectUnit(graph: ExceptionalUnitGraph, unit: Unit): Unit? = graph.getSuccsOf(unit).takeIf { it.size == 1 }?.first()

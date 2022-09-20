@@ -10,6 +10,7 @@ import com.intellij.execution.executors.DefaultRunExecutor
 import com.intellij.execution.runners.ExecutionUtil
 import com.intellij.execution.runners.ProgramRunner
 import com.intellij.openapi.actionSystem.DataContext
+import com.intellij.openapi.actionSystem.DataKey
 import com.intellij.openapi.actionSystem.LangDataKeys
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Computable
@@ -20,15 +21,28 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.testFramework.MapDataContext
+import com.intellij.psi.SmartPsiElementPointer
 import mu.KotlinLogging
 import org.jetbrains.plugins.groovy.lang.psi.util.childrenOfType
 import org.utbot.intellij.plugin.models.GenerateTestsModel
 import org.utbot.intellij.plugin.util.IntelliJApiHelper.run
 
 class RunConfigurationHelper {
-    private class MyMapDataContext : MapDataContext(), UserDataHolder {
-        val holder = UserDataHolderBase()
+    class MyMapDataContext() : DataContext, UserDataHolder {
+        private val myMap: MutableMap<String, Any?> = HashMap()
+        private val holder = UserDataHolderBase()
+        override fun getData(dataId: String): Any? {
+            return myMap[dataId]
+        }
+
+        private fun put(dataId: String, data: Any?) {
+            myMap[dataId] = data
+        }
+
+        fun <T> put(dataKey: DataKey<T>, data: T) {
+            put(dataKey.name, data)
+        }
+
         override fun <T : Any?> getUserData(key: Key<T>): T? {
             return holder.getUserData(key)
         }
@@ -47,10 +61,10 @@ class RunConfigurationHelper {
 
         fun runTestsWithCoverage(
             model: GenerateTestsModel,
-            testFiles: MutableList<PsiFile>,
+            testFilesPointers: MutableList<SmartPsiElementPointer<PsiFile>>,
         ) {
             PsiDocumentManager.getInstance(model.project).commitAndRunReadAction() {
-                val testClasses = testFiles.map { file: PsiFile -> file.childrenOfType<PsiClass>().firstOrNull() }.filterNotNull()
+                val testClasses = testFilesPointers.map { smartPointer: SmartPsiElementPointer<PsiFile> -> smartPointer.containingFile?.childrenOfType<PsiClass>()?.firstOrNull() }.filterNotNull()
                 if (testClasses.isNotEmpty()) {
                     val locations =
                         testClasses.map { PsiLocation(model.project, model.testModule, it) }.toTypedArray()
@@ -83,14 +97,16 @@ class RunConfigurationHelper {
                                 //Fallback in case 'Code Coverage for Java' plugin is not enabled
                                 DefaultRunExecutor.getRunExecutorInstance()
                             }
-                            ExecutionUtil.runConfiguration(settings, executor)
-                            with(RunManagerEx.getInstanceEx(model.project)) {
-                                if (findSettings(settings.configuration) == null) {
-                                    settings.isTemporary = true
-                                    addConfiguration(settings)
+                            ApplicationManager.getApplication().invokeLater {
+                                ExecutionUtil.runConfiguration(settings, executor)
+                                with(RunManagerEx.getInstanceEx(model.project)) {
+                                    if (findSettings(settings.configuration) == null) {
+                                        settings.isTemporary = true
+                                        addConfiguration(settings)
+                                    }
+                                    //TODO check shouldSetRunConfigurationFromContext in API 2021.3+
+                                    selectedConfiguration = settings
                                 }
-                                //TODO check shouldSetRunConfigurationFromContext in API 2021.3+
-                                selectedConfiguration = settings
                             }
                         }
                     }

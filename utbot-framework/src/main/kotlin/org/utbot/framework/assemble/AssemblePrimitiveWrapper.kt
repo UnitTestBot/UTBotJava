@@ -37,14 +37,12 @@ fun assemble(model: UtPrimitiveModel): UtAssembleModel {
         instance = null,
         executable = constructorCall.executableId,
         params = listOf(model),
-        returnValue = null,
     )
 
     return UtAssembleModel(
         id = null,
         classId = assembledModelType,
         modelName = modelType.canonicalName,
-        instantiationChain = listOf(constructorCallModel),
-        modificationsChain = emptyList(),
+        instantiationCall = constructorCallModel,
     )
 }

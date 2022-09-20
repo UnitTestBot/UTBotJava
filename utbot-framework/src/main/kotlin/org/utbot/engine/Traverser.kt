@@ -1,13 +1,14 @@
 package org.utbot.engine
 
 import kotlinx.collections.immutable.persistentHashMapOf
+import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import org.utbot.common.WorkaroundReason.HACK
-import org.utbot.common.WorkaroundReason.REMOVE_ANONYMOUS_CLASSES
+import org.utbot.framework.UtSettings.ignoreStaticsFromTrustedLibraries
+import org.utbot.common.WorkaroundReason.IGNORE_STATICS_FROM_TRUSTED_LIBRARIES
 import org.utbot.common.unreachableBranch
 import org.utbot.common.withAccessibility
 import org.utbot.common.workaround
@@ -67,6 +68,9 @@ import org.utbot.engine.pc.store
 import org.utbot.engine.symbolic.HardConstraint
 import org.utbot.engine.symbolic.SoftConstraint
 import org.utbot.engine.symbolic.Assumption
+import org.utbot.engine.symbolic.emptyAssumption
+import org.utbot.engine.symbolic.emptyHardConstraint
+import org.utbot.engine.symbolic.emptySoftConstraint
 import org.utbot.engine.symbolic.SymbolicStateUpdate
 import org.utbot.engine.symbolic.asHardConstraint
 import org.utbot.engine.symbolic.asSoftConstraint
@@ -84,26 +88,25 @@ import org.utbot.framework.UtSettings.maximizeCoverageUsingReflection
 import org.utbot.framework.UtSettings.preferredCexOption
 import org.utbot.framework.UtSettings.substituteStaticsWithSymbolicVariable
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.FieldId
 import org.utbot.framework.plugin.api.MethodId
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.classId
 import org.utbot.framework.plugin.api.id
+import org.utbot.framework.plugin.api.util.executable
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.id
-import org.utbot.framework.plugin.api.util.signature
+import org.utbot.framework.plugin.api.util.isConstructor
 import org.utbot.framework.plugin.api.util.utContext
 import org.utbot.framework.util.executableId
 import org.utbot.framework.util.graph
+import org.utbot.framework.util.isInaccessibleViaReflection
 import java.lang.reflect.ParameterizedType
 import kotlin.collections.plus
 import kotlin.collections.plusAssign
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.reflect.full.instanceParameter
-import kotlin.reflect.full.valueParameters
-import kotlin.reflect.jvm.javaType
 import soot.ArrayType
 import soot.BooleanType
 import soot.ByteType
@@ -112,6 +115,7 @@ import soot.DoubleType
 import soot.FloatType
 import soot.IntType
 import soot.LongType
+import soot.Modifier
 import soot.PrimType
 import soot.RefLikeType
 import soot.RefType
@@ -188,17 +192,17 @@ import soot.jimple.internal.JThrowStmt
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.toolkits.graph.ExceptionalUnitGraph
-import sun.reflect.Reflection
-import sun.reflect.generics.reflectiveObjects.GenericArrayTypeImpl
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
-import sun.reflect.generics.reflectiveObjects.TypeVariableImpl
-import sun.reflect.generics.reflectiveObjects.WildcardTypeImpl
+import java.lang.reflect.GenericArrayType
+import java.lang.reflect.TypeVariable
+import java.lang.reflect.WildcardType
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaType
 
 private val CAUGHT_EXCEPTION = LocalVariable("@caughtexception")
 
 class Traverser(
-    private val methodUnderTest: UtMethod<*>,
+    private val methodUnderTest: ExecutableId,
     internal val typeRegistry: TypeRegistry,
     internal val hierarchy: Hierarchy,
     // TODO HACK violation of encapsulation
@@ -560,7 +564,7 @@ class Traverser(
         }
 
         val initializedStaticFieldsMemoryUpdate = MemoryUpdate(
-            initializedStaticFields = staticFields.associate { it.first.fieldId to it.second.single() }.toPersistentMap(),
+            initializedStaticFields = staticFields.map { it.first.fieldId }.toPersistentSet(),
             meaningfulStaticFields = meaningfulStaticFields.map { it.first.fieldId }.toPersistentSet(),
             symbolicEnumValues = enumConstantSymbolicValues.toPersistentList()
         )
@@ -596,7 +600,7 @@ class Traverser(
 
         // Collects memory updates
         val initializedFieldUpdate =
-            MemoryUpdate(initializedStaticFields = persistentHashMapOf(fieldId to concreteValue))
+            MemoryUpdate(initializedStaticFields = persistentHashSetOf(fieldId))
 
         val objectUpdate = objectUpdate(
             instance = findOrCreateStaticObject(declaringClass.type),
@@ -630,7 +634,7 @@ class Traverser(
 
         // so, we have to make an update for the local $r0
 
-        return if (stmt is JAssignStmt) {
+        return if (stmt is JAssignStmt && stmt.leftOp is JimpleLocal) {
             val local = stmt.leftOp as JimpleLocal
 
             localMemoryUpdate(local.variable to symbolicValue)
@@ -645,7 +649,8 @@ class Traverser(
     private fun extractConcreteValue(field: SootField): Any? =
         when (field.signature) {
             SECURITY_FIELD_SIGNATURE -> SecurityManager()
-            FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
+            // todo change to class loading
+            //FIELD_FILTER_MAP_FIELD_SIGNATURE -> mapOf(Reflection::class to arrayOf("fieldFilterMap", "methodFilterMap"))
             METHOD_FILTER_MAP_FIELD_SIGNATURE -> emptyMap<Class<*>, Array<String>>()
             else -> {
                 val fieldId = field.fieldId
@@ -823,7 +828,7 @@ class Traverser(
                 val staticFieldMemoryUpdate = StaticFieldMemoryUpdateInfo(fieldId, value)
                 val touchedStaticFields = persistentListOf(staticFieldMemoryUpdate)
                 queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
-                if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+                if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(left.field)) {
                     queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
                 }
             }
@@ -954,36 +959,38 @@ class Traverser(
      * Stores information about the generic types used in the parameters of the method under test.
      */
     private fun updateGenericTypeInfo(identityRef: IdentityRef, value: ReferenceValue) {
-        val callable = methodUnderTest.callable
+        val callable = methodUnderTest.executable
+        val kCallable = ::updateGenericTypeInfo
+        val test = kCallable.instanceParameter?.type?.javaType
         val type = if (identityRef is ThisRef) {
             // TODO: for ThisRef both methods don't return parameterized type
             if (methodUnderTest.isConstructor) {
-                methodUnderTest.javaConstructor?.annotatedReturnType?.type
+                callable.annotatedReturnType?.type
             } else {
-                callable.instanceParameter?.type?.javaType
-                    ?: error("No instanceParameter for ${callable.signature} found")
+                callable.declaringClass // same as it was, but it isn't parametrized type
+                    ?: error("No instanceParameter for ${callable} found")
             }
         } else {
             // Sometimes out of bound exception occurred here, e.g., com.alibaba.fescar.core.model.GlobalStatus.<init>
             workaround(HACK) {
                 val index = (identityRef as ParameterRef).index
-                val valueParameters = callable.valueParameters
+                val valueParameters = callable.genericParameterTypes
 
                 if (index > valueParameters.lastIndex) return
-                valueParameters[index].type.javaType
+                valueParameters[index]
             }
         }
 
         if (type is ParameterizedType) {
             val typeStorages = type.actualTypeArguments.map { actualTypeArgument ->
                 when (actualTypeArgument) {
-                    is WildcardTypeImpl -> {
+                    is WildcardType -> {
                         val upperBounds = actualTypeArgument.upperBounds
                         val lowerBounds = actualTypeArgument.lowerBounds
                         val allTypes = upperBounds + lowerBounds
 
-                        if (allTypes.any { it is GenericArrayTypeImpl }) {
-                            val errorTypes = allTypes.filterIsInstance<GenericArrayTypeImpl>()
+                        if (allTypes.any { it is GenericArrayType }) {
+                            val errorTypes = allTypes.filterIsInstance<GenericArrayType>()
                             TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
                         }
 
@@ -992,23 +999,23 @@ class Traverser(
 
                         typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes.intersect(lowerBoundsTypes))
                     }
-                    is TypeVariableImpl<*> -> { // it is a type variable for the whole class, not the function type variable
+                    is TypeVariable<*> -> { // it is a type variable for the whole class, not the function type variable
                         val upperBounds = actualTypeArgument.bounds
 
-                        if (upperBounds.any { it is GenericArrayTypeImpl }) {
-                            val errorTypes = upperBounds.filterIsInstance<GenericArrayTypeImpl>()
-                            TODO("we do not support GenericArrayTypeImpl yet, and $errorTypes found. SAT-1446")
+                        if (upperBounds.any { it is GenericArrayType }) {
+                            val errorTypes = upperBounds.filterIsInstance<GenericArrayType>()
+                            TODO("we do not support GenericArrayType yet, and $errorTypes found. SAT-1446")
                         }
 
                         val upperBoundsTypes = typeResolver.intersectInheritors(upperBounds)
 
                         typeResolver.constructTypeStorage(OBJECT_TYPE, upperBoundsTypes)
                     }
-                    is GenericArrayTypeImpl -> {
+                    is GenericArrayType -> {
                         // TODO bug with T[][], because there is no such time T JIRA:1446
                         typeResolver.constructTypeStorage(OBJECT_TYPE, useConcreteType = false)
                     }
-                    is ParameterizedTypeImpl, is Class<*> -> {
+                    is ParameterizedType, is Class<*> -> {
                         val sootType = Scene.v().getType(actualTypeArgument.rawType.typeName)
 
                         typeResolver.constructTypeStorage(sootType, useConcreteType = false)
@@ -1071,8 +1078,8 @@ class Traverser(
         }
 
         // Depending on existance of assumeExpr we have to add corresponding hardConstraints and assumptions
-        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else HardConstraint()
-        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else Assumption()
+        val hardConstraints = if (!isAssumeExpr) negativeCasePathConstraint.asHardConstraint() else emptyHardConstraint()
+        val assumption = if (isAssumeExpr) negativeCasePathConstraint.asAssumption() else emptyAssumption()
 
         val negativeCaseState = environment.state.updateQueued(
             negativeCaseEdge,
@@ -1780,12 +1787,28 @@ class Traverser(
         queuedSymbolicStateUpdates += MemoryUpdate(staticFieldsUpdates = touchedStaticFields)
 
         // TODO filter enum constant static fields JIRA:1681
-        if (!environment.method.isStaticInitializer && !fieldId.isSynthetic) {
+        if (!environment.method.isStaticInitializer && isStaticFieldMeaningful(field)) {
             queuedSymbolicStateUpdates += MemoryUpdate(meaningfulStaticFields = persistentSetOf(fieldId))
         }
 
         return createdField
     }
+
+    /**
+     * For now the field is `meaningful` if it is safe to set, that is, it is not an internal system field nor a
+     * synthetic field. This filter is needed to prohibit changing internal fields, which can break up our own
+     * code and which are useless for the user.
+     *
+     * @return `true` if the field is meaningful, `false` otherwise.
+     */
+    private fun isStaticFieldMeaningful(field: SootField) =
+        !Modifier.isSynthetic(field.modifiers) &&
+            // we don't want to set fields that cannot be set via reflection anyway
+            !field.fieldId.isInaccessibleViaReflection &&
+            // we don't want to set fields from library classes
+            !workaround(IGNORE_STATICS_FROM_TRUSTED_LIBRARIES) {
+                ignoreStaticsFromTrustedLibraries && field.declaringClass.isFromTrustedLibrary()
+            }
 
     /**
      * Locates object represents static fields of particular class.
@@ -2418,6 +2441,9 @@ class Traverser(
         val method = invokeExpr.retrieveMethod()
         val parameters = resolveParameters(invokeExpr.args, method.parameterTypes)
         val invocation = Invocation(instance, method, parameters, InvocationTarget(instance, method))
+
+        // Calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers
+        // TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
         return commonInvokePart(invocation)
     }
 
@@ -2436,7 +2462,23 @@ class Traverser(
      * Returns results of native calls cause other calls push changes directly to path selector.
      */
     private fun TraversalContext.commonInvokePart(invocation: Invocation): List<MethodResult> {
-        // First, check if there is override for the invocation itself, not for the targets
+        /**
+         * First, check if there is override for the invocation itself, not for the targets.
+         *
+         * Note that calls with super syntax are represented by invokeSpecial instruction, but we don't support them in wrappers,
+         * so here we resolve [invocation] to the inherited method invocation if it's something like:
+         *
+         * ```java
+         * public class InheritedWrapper extends BaseWrapper {
+         *     public void add(Object o) {
+         *         // some stuff
+         *         super.add(o); // this resolves to InheritedWrapper::add instead of BaseWrapper::add
+         *     }
+         * }
+         * ```
+         *
+         * TODO: https://github.com/UnitTestBot/UTBotJava/issues/819 -- Support super calls in inherited wrappers
+         */
         val artificialMethodOverride = overrideInvocation(invocation, target = null)
 
         // If so, return the result of the override
@@ -2918,8 +2960,9 @@ class Traverser(
         return when (expr) {
             is UtInstanceOfExpression -> { // for now only this type of expression produces deferred updates
                 val onlyMemoryUpdates = expr.symbolicStateUpdate.copy(
-                    hardConstraints = HardConstraint(),
-                    softConstraints = SoftConstraint()
+                    hardConstraints = emptyHardConstraint(),
+                    softConstraints = emptySoftConstraint(),
+                    assumptions = emptyAssumption()
                 )
                 SymbolicStateUpdateForResolvedCondition(onlyMemoryUpdates)
             }
@@ -3321,10 +3364,11 @@ class Traverser(
         val updatedFields = staticFieldsUpdates.mapTo(mutableSetOf()) { it.fieldId }
         val objectUpdates = mutableListOf<UtNamedStore>()
 
-        // we assign unbounded symbolic variables for every non-final field of the class
+        // we assign unbounded symbolic variables for every non-final meaningful field of the class
+        // fields from predefined library classes are excluded, because there are not meaningful
         typeResolver
             .findFields(declaringClass.type)
-            .filter { !it.isFinal && it.fieldId in updatedFields }
+            .filter { !it.isFinal && it.fieldId in updatedFields && isStaticFieldMeaningful(it) }
             .forEach {
                 // remove updates from clinit, because we'll replace those values
                 // with new unbounded symbolic variable
@@ -3363,13 +3407,6 @@ class Traverser(
         val returnValue = (symbolicResult as? SymbolicSuccess)?.value as? ObjectValue
         if (returnValue != null) {
             queuedSymbolicStateUpdates += constructConstraintForType(returnValue, returnValue.possibleConcreteTypes).asSoftConstraint()
-
-            workaround(REMOVE_ANONYMOUS_CLASSES) {
-                val sootClass = returnValue.type.sootClass
-                if (!environment.state.isInNestedMethod() && (sootClass.isAnonymous || sootClass.isArtificialEntity)) {
-                    return
-                }
-            }
         }
 
         //fill arrays with default 0/null and other stuff

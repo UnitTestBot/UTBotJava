@@ -2,13 +2,19 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
     implementation project(':utbot-framework-api')
+    implementation project(':utbot-rd')
 
     implementation group: 'org.ow2.asm', name: 'asm', version: asm_version
     implementation group: 'org.ow2.asm', name: 'asm-commons', version: asm_version
-    implementation group: 'com.esotericsoftware', name: 'kryo', version: kryo_version
+    implementation group: 'com.esotericsoftware.kryo', name: 'kryo5', version: kryo_version
     // this is necessary for serialization of some collections
     implementation group: 'de.javakaffee', name: 'kryo-serializers', version: kryo_serializers_version
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+
+    implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
+    implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
+    implementation group: 'net.java.dev.jna', name: 'jna-platform', version: '5.5.0'
+
 
     // TODO: this is necessary for inline classes mocking in UtExecutionInstrumentation
     implementation group: 'org.mockito', name: 'mockito-core', version: '4.2.0'
@@ -16,15 +22,25 @@ dependencies {
 }
 
 jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
     manifest {
         attributes (
                 'Main-Class': 'org.utbot.instrumentation.process.ChildProcessKt',
                 'Premain-Class': 'org.utbot.instrumentation.agent.Agent',
         )
     }
-    from { configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+
+    // we need only classes from implementation and utbot to execute child process
+    dependsOn configurations.compileClasspath
+    from {
+        configurations.compileClasspath
+                .findAll { it.isDirectory() || it.name.endsWith('jar') }
+                .collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }
 
+//noinspection GroovyAssignabilityCheck
 configurations {
     instrumentationArchive
 }

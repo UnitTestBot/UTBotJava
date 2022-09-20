@@ -9,6 +9,7 @@ import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtClassRefModel
 import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
@@ -28,6 +29,7 @@ import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.longClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.shortClassId
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.framework.util.valueToClassId
 import java.lang.reflect.Modifier
 import java.util.IdentityHashMap
@@ -52,7 +54,7 @@ internal interface UtModelConstructorInterface {
  * @param compositeModelStrategy decides whether we should construct a composite model for a certain value or not.
  * searches in [objectToModelCache] for [UtReferenceModel.id].
  */
-internal class UtModelConstructor(
+class UtModelConstructor(
     private val objectToModelCache: IdentityHashMap<Any, UtModel>,
     private val compositeModelStrategy: UtCompositeModelStrategy = AlwaysConstructStrategy
 ) : UtModelConstructorInterface {
@@ -81,8 +83,13 @@ internal class UtModelConstructor(
      *
      * Handles cache on stateBefore values.
      */
-    override fun construct(value: Any?, classId: ClassId): UtModel =
-        when (value) {
+    override fun construct(value: Any?, classId: ClassId): UtModel {
+        objectToModelCache[value]?.let { model ->
+            if (model is UtLambdaModel) {
+                return model
+            }
+        }
+        return when (value) {
             null -> UtNullModel(classId)
             is Unit -> UtVoidModel
             is Byte,
@@ -106,6 +113,7 @@ internal class UtModelConstructor(
             is Class<*> -> constructFromClass(value)
             else -> constructFromAny(value)
         }
+    }
 
     // Q: Is there a way to get rid of duplicated code?
 
@@ -281,7 +289,9 @@ internal class UtModelConstructor(
         generateSequence(javaClazz) { it.superclass }.forEach { clazz ->
             val allFields = clazz.declaredFields
             allFields
+                .asSequence()
                 .filter { !(Modifier.isFinal(it.modifiers) && Modifier.isStatic(it.modifiers)) } // TODO: what about static final fields?
+                .filterNot { it.fieldId.isInaccessibleViaReflection }
                 .forEach { it.withAccessibility { fields[it.fieldId] = construct(it.get(value), it.type.id) } }
         }
         return utModel
@@ -291,7 +301,7 @@ internal class UtModelConstructor(
 /**
  * Decides, should we construct a UtCompositeModel from a value or not.
  */
-internal interface UtCompositeModelStrategy {
+interface UtCompositeModelStrategy {
     fun shouldConstruct(value: Any, clazz: Class<*>): Boolean
 }
 

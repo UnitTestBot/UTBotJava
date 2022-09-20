@@ -9,6 +9,7 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.LocalVariablesSorter
+import org.utbot.instrumentation.process.logError
 
 sealed class InstructionData {
     abstract val line: Int
@@ -61,6 +62,7 @@ class ProcessingStorage {
     private val idToClassMethod = mutableMapOf<Int, ClassToMethod>()
 
     private val instructionsData = mutableMapOf<Long, InstructionData>()
+    private val classToInstructionsCount = mutableMapOf<String, Long>()
 
     fun addClass(className: String): Int {
         val id = classToId.getOrPut(className) { classToId.size }
@@ -86,8 +88,15 @@ class ProcessingStorage {
     }
 
     fun addInstruction(id: Long, instructionData: InstructionData) {
-        instructionsData.putIfAbsent(id, instructionData)
+        instructionsData.computeIfAbsent(id) {
+            val (className, _) = computeClassNameAndLocalId(id)
+            classToInstructionsCount.merge(className, 1, Long::plus)
+            instructionData
+        }
     }
+
+    fun getInstructionsCount(className: String): Long? =
+        classToInstructionsCount[className]
 
     fun getInstruction(id: Long): InstructionData {
         return instructionsData.getValue(id)
@@ -103,6 +112,8 @@ class ProcessingStorage {
  * Storage to which instrumented classes will write execution data.
  */
 object RuntimeTraceStorage {
+    internal var alreadyLoggedIncreaseStackSizeTip = false
+
     /**
      * Contains ids of instructions in the order of execution.
      */
@@ -143,7 +154,11 @@ object RuntimeTraceStorage {
             this.`$__trace__`[current] = id
             this.`$__counter__` = current + 1
         } else {
-            System.err.println("Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)")
+            val loggedTip = alreadyLoggedIncreaseStackSizeTip
+            if (!loggedTip) {
+                alreadyLoggedIncreaseStackSizeTip = true
+                logError { "Stack overflow (increase stack size Settings.TRACE_ARRAY_SIZE)" }
+            }
         }
     }
 }
@@ -177,7 +192,7 @@ class TraceInstructionBytecodeInserter {
 }
 
 class TraceHandler {
-    private val processingStorage = ProcessingStorage()
+    val processingStorage = ProcessingStorage()
     private val inserter = TraceInstructionBytecodeInserter()
 
     private var instructionsList: List<EtInstruction>? = null
@@ -281,5 +296,6 @@ class TraceHandler {
     fun resetTrace() {
         instructionsList = null
         RuntimeTraceStorage.`$__counter__` = 0
+        RuntimeTraceStorage.alreadyLoggedIncreaseStackSizeTip = false
     }
 }

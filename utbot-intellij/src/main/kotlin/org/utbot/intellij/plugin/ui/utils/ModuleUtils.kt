@@ -1,6 +1,5 @@
 package org.utbot.intellij.plugin.ui.utils
 
-import com.android.tools.idea.gradle.project.GradleProjectInfo
 import org.utbot.common.PathUtil.toPath
 import org.utbot.common.WorkaroundReason
 import org.utbot.common.workaround
@@ -8,6 +7,8 @@ import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.intellij.plugin.ui.CommonErrorNotifier
 import org.utbot.intellij.plugin.ui.UnsupportedJdkNotifier
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.externalSystem.model.ProjectSystemId
+import com.intellij.openapi.externalSystem.util.ExternalSystemApiUtil
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtilCore
@@ -148,12 +149,17 @@ private fun Module.suitableTestSourceFolders(codegenLanguage: CodegenLanguage): 
         // Heuristics: User is more likely to choose the shorter path
         .sortedBy { it.url.length }
 }
-fun Project.isGradle() = GradleProjectInfo.getInstance(this).isBuildWithGradle
+private val GRADLE_SYSTEM_ID = ProjectSystemId("GRADLE")
+
+val Project.isBuildWithGradle get() =
+         ModuleManager.getInstance(this).modules.any {
+             ExternalSystemApiUtil.isExternalSystemAwareModule(GRADLE_SYSTEM_ID, it)
+         }
 
 private const val dedicatedTestSourceRootName = "utbot_tests"
 fun Module.addDedicatedTestRoot(testSourceRoots: MutableList<VirtualFile>): VirtualFile? {
     // Don't suggest new test source roots for Gradle project where 'unexpected' test roots won't work
-    if (project.isGradle()) return null
+    if (project.isBuildWithGradle) return null
     // Dedicated test root already exists
     if (testSourceRoots.any { file -> file.name == dedicatedTestSourceRootName }) return null
 
@@ -183,7 +189,7 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
             }
             // taking the source folder that has the maximum common prefix
             // with `testSourceRoot`, which was selected by the user
-            .maxBy { sourceFolder ->
+            .maxByOrNull { sourceFolder ->
                 val sourceFolderPath = sourceFolder.file?.path ?: ""
                 val testSourceRootPath = testSourceRoot?.path ?: ""
                 sourceFolderPath.commonPrefixWith(testSourceRootPath).length
@@ -193,7 +199,7 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
         }
 
         val testFolder = sourceFolders.firstOrNull { it.rootType in testSourceRootTypes }
-        val contentEntry = testFolder?.contentEntry ?: rootModel.contentEntries.first()
+        val contentEntry = testFolder?.getModifiableContentEntry() ?: rootModel.contentEntries.first()
 
         val parentFolderUrl = testFolder?.let { getParentPath(testFolder.url) }
         val testResourcesUrl =
@@ -216,6 +222,9 @@ private fun getOrCreateTestResourcesUrl(module: Module, testSourceRoot: VirtualF
     } finally {
         if (!rootModel.isDisposed && rootModel.isWritable) rootModel.dispose()
     }
+}
+fun SourceFolder.getModifiableContentEntry() : ContentEntry? {
+    return ModuleRootManager.getInstance(contentEntry.rootModel.module).modifiableModel.contentEntries.find { entry -> entry.url == url }
 }
 
 fun ContentEntry.addSourceRootIfAbsent(

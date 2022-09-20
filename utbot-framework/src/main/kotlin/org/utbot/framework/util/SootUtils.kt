@@ -15,48 +15,87 @@ import org.utbot.engine.overrides.Short
 import org.utbot.engine.overrides.System
 import org.utbot.engine.overrides.UtArrayMock
 import org.utbot.engine.overrides.UtLogicMock
-import org.utbot.engine.overrides.strings.UtString
-import org.utbot.engine.overrides.strings.UtStringBuffer
-import org.utbot.engine.overrides.strings.UtStringBuilder
+import org.utbot.engine.overrides.UtOverrideMock
+import org.utbot.engine.overrides.collections.AbstractCollection
 import org.utbot.engine.overrides.collections.AssociativeArray
+import org.utbot.engine.overrides.collections.Collection
+import org.utbot.engine.overrides.collections.List
 import org.utbot.engine.overrides.collections.RangeModifiableUnlimitedArray
 import org.utbot.engine.overrides.collections.UtArrayList
 import org.utbot.engine.overrides.collections.UtGenericAssociative
+import org.utbot.engine.overrides.collections.UtGenericStorage
 import org.utbot.engine.overrides.collections.UtHashMap
 import org.utbot.engine.overrides.collections.UtHashSet
 import org.utbot.engine.overrides.collections.UtLinkedList
-import org.utbot.engine.overrides.UtOverrideMock
-import org.utbot.engine.overrides.collections.Collection
-import org.utbot.engine.overrides.collections.List
-import org.utbot.engine.overrides.collections.UtGenericStorage
+import org.utbot.engine.overrides.collections.UtLinkedListWithNullableCheck
 import org.utbot.engine.overrides.collections.UtOptional
 import org.utbot.engine.overrides.collections.UtOptionalDouble
 import org.utbot.engine.overrides.collections.UtOptionalInt
 import org.utbot.engine.overrides.collections.UtOptionalLong
-import org.utbot.engine.overrides.collections.AbstractCollection
 import org.utbot.engine.overrides.stream.Arrays
 import org.utbot.engine.overrides.stream.Stream
 import org.utbot.engine.overrides.stream.UtStream
+import org.utbot.engine.overrides.strings.UtString
+import org.utbot.engine.overrides.strings.UtStringBuffer
+import org.utbot.engine.overrides.strings.UtStringBuilder
 import org.utbot.engine.pureJavaSignature
-import org.utbot.framework.plugin.api.UtMethod
-import org.utbot.framework.plugin.api.util.signature
-import java.io.File
-import java.nio.file.Path
-import kotlin.reflect.KClass
+import org.utbot.framework.plugin.api.ExecutableId
+import org.utbot.framework.plugin.services.JdkInfo
 import soot.G
 import soot.PackManager
 import soot.Scene
 import soot.SootClass
+import soot.SootMethod
 import soot.jimple.JimpleBody
 import soot.options.Options
 import soot.toolkits.graph.ExceptionalUnitGraph
+import java.io.File
+import java.nio.file.Path
+
+object SootUtils {
+    /**
+     * Runs Soot in tests if it hasn't already been done.
+     *
+     * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
+     * code.
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to the class buildDir.
+     */
+    fun runSoot(clazz: java.lang.Class<*>, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
+        val buildDir = FileUtil.locateClassPath(clazz) ?: FileUtil.isolateClassFiles(clazz)
+        val buildDirPath = buildDir.toPath()
+
+        runSoot(buildDirPath, null, forceReload, jdkInfo)
+    }
+
+
+    /**
+     * @param jdkInfo specifies the JRE and the runtime library version used for analysing system classes and user's
+     * code.
+     * @param forceReload forces to reinitialize Soot even if the [previousBuildDir] equals to [buildDirPath] and
+     * [previousClassPath] equals to [classPath].
+     */
+    fun runSoot(buildDirPath: Path, classPath: String?, forceReload: kotlin.Boolean, jdkInfo: JdkInfo) {
+        synchronized(this) {
+            if (buildDirPath != previousBuildDir || classPath != previousClassPath || forceReload) {
+                initSoot(buildDirPath, classPath, jdkInfo)
+                previousBuildDir = buildDirPath
+                previousClassPath = classPath
+            }
+        }
+    }
+
+    private var previousBuildDir: Path? = null
+    private var previousClassPath: String? = null
+}
 
 /**
-Convert code to Jimple
+ * Convert code to Jimple
  */
-fun runSoot(buildDir: Path, classpath: String?) {
+private fun initSoot(buildDir: Path, classpath: String?, jdkInfo: JdkInfo) {
     G.reset()
     val options = Options.v()
+
+    G.v().initJdk(G.JreInfo(jdkInfo.path.toString(), jdkInfo.version)) // init Soot with the right jdk
 
     options.apply {
         set_prepend_classpath(true)
@@ -94,17 +133,19 @@ fun runSoot(buildDir: Path, classpath: String?) {
 
 fun JimpleBody.graph() = ExceptionalUnitGraph(this)
 
-fun jimpleBody(method: UtMethod<*>): JimpleBody {
-    val clazz = Scene.v().classes.single { it.name == method.clazz.java.name }
-    val signature = method.callable.signature
-    val sootMethod = clazz.methods.single { it.pureJavaSignature == signature }
+val ExecutableId.sootMethod: SootMethod
+    get() {
+        val clazz = Scene.v().getSootClass(classId.name)
+        return clazz.methods.single { it.pureJavaSignature == signature }
+    }
 
-    return sootMethod.jimpleBody()
-}
+fun jimpleBody(method: ExecutableId): JimpleBody =
+    method.sootMethod.jimpleBody()
 
-private fun addBasicClasses(vararg classes: KClass<*>) {
+
+private fun addBasicClasses(vararg classes: java.lang.Class<*>) {
     classes.forEach {
-        Scene.v().addBasicClass(it.qualifiedName, SootClass.BODIES)
+        Scene.v().addBasicClass(it.name, SootClass.BODIES)
     }
 }
 
@@ -129,6 +170,7 @@ private val classesToLoad = arrayOf(
     UtArrayList::class,
     UtArrayList.UtArrayListIterator::class,
     UtLinkedList::class,
+    UtLinkedListWithNullableCheck::class,
     UtLinkedList.UtLinkedListIterator::class,
     UtLinkedList.ReverseIteratorWrapper::class,
     UtHashSet::class,
@@ -157,4 +199,4 @@ private val classesToLoad = arrayOf(
     List::class,
     UtStream::class,
     UtStream.UtStreamIterator::class
-)
+).map { it.java }.toTypedArray()

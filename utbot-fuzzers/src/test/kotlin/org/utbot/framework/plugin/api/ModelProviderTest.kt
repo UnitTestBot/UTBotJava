@@ -15,7 +15,6 @@ import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.withUtContext
 import org.utbot.fuzzer.FuzzedConcreteValue
 import org.utbot.fuzzer.FuzzedMethodDescription
-import org.utbot.fuzzer.FuzzedOp
 import org.utbot.fuzzer.ModelProvider
 import org.utbot.fuzzer.providers.ConstantsModelProvider
 import org.utbot.fuzzer.providers.ObjectModelProvider
@@ -27,16 +26,21 @@ import org.utbot.framework.plugin.api.samples.FieldSetterClass
 import org.utbot.framework.plugin.api.samples.OuterClassWithEnums
 import org.utbot.framework.plugin.api.samples.PackagePrivateFieldAndClass
 import org.utbot.framework.plugin.api.samples.SampleEnum
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.plugin.api.util.primitiveByWrapper
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
+import org.utbot.fuzzer.FuzzedContext
+import org.utbot.fuzzer.FuzzedValue
 import org.utbot.fuzzer.ReferencePreservingIntIdGenerator
 import org.utbot.fuzzer.ModelProvider.Companion.yieldValue
 import org.utbot.fuzzer.defaultModelProviders
+import org.utbot.fuzzer.mutators.StringRandomMutator
 import org.utbot.fuzzer.providers.CharToStringModelProvider.fuzzed
 import org.utbot.fuzzer.providers.EnumModelProvider
 import org.utbot.fuzzer.providers.PrimitiveDefaultsModelProvider
 import java.util.Date
+import kotlin.random.Random
 
 class ModelProviderTest {
 
@@ -105,12 +109,12 @@ class ModelProviderTest {
         val models = collect(ConstantsModelProvider,
             parameters = listOf(intClassId),
             constants = listOf(
-                FuzzedConcreteValue(intClassId, 10, FuzzedOp.EQ),
-                FuzzedConcreteValue(intClassId, 20, FuzzedOp.NE),
-                FuzzedConcreteValue(intClassId, 30, FuzzedOp.LT),
-                FuzzedConcreteValue(intClassId, 40, FuzzedOp.LE),
-                FuzzedConcreteValue(intClassId, 50, FuzzedOp.GT),
-                FuzzedConcreteValue(intClassId, 60, FuzzedOp.GE),
+                FuzzedConcreteValue(intClassId, 10, FuzzedContext.Comparison.EQ),
+                FuzzedConcreteValue(intClassId, 20, FuzzedContext.Comparison.NE),
+                FuzzedConcreteValue(intClassId, 30, FuzzedContext.Comparison.LT),
+                FuzzedConcreteValue(intClassId, 40, FuzzedContext.Comparison.LE),
+                FuzzedConcreteValue(intClassId, 50, FuzzedContext.Comparison.GT),
+                FuzzedConcreteValue(intClassId, 60, FuzzedContext.Comparison.GE),
             )
         )
 
@@ -127,7 +131,7 @@ class ModelProviderTest {
         val models = collect(StringConstantModelProvider,
             parameters = listOf(stringClassId),
             constants = listOf(
-                FuzzedConcreteValue(stringClassId, "", FuzzedOp.CH),
+                FuzzedConcreteValue(stringClassId, ""),
             )
         )
 
@@ -141,7 +145,7 @@ class ModelProviderTest {
         val models = collect(StringConstantModelProvider,
             parameters = listOf(stringClassId),
             constants = listOf(
-                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedOp.NONE),
+                FuzzedConcreteValue(stringClassId, "nonemptystring"),
             )
         )
 
@@ -152,33 +156,31 @@ class ModelProviderTest {
 
     @Test
     fun `test non-empty string is mutated if modification operation is set`() {
-        val models = collect(StringConstantModelProvider,
-            parameters = listOf(stringClassId),
-            constants = listOf(
-                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedOp.CH),
+        val method = String::class.java.getDeclaredMethod("subSequence", Int::class.java, Int::class.java)
+
+        val description = FuzzedMethodDescription(
+            "method",
+            voidClassId,
+            listOf(stringClassId),
+            listOf(
+                FuzzedConcreteValue(stringClassId, "nonemptystring", FuzzedContext.Call(method.executableId))
             )
         )
 
-        assertEquals(1, models.size)
-        assertEquals(2, models[0]!!.size)
-        listOf("nonemptystring", "nonemptystr`ng").forEach {
-            assertTrue( models[0]!!.contains(UtPrimitiveModel(it))) { "Failed to find string $it in list ${models[0]}" }
-        }
-    }
-
-    @Test
-    fun `test mutation creates the same values between different runs`() {
-        repeat(10) {
-            val models = collect(StringConstantModelProvider,
-                parameters = listOf(stringClassId),
-                constants = listOf(
-                    FuzzedConcreteValue(stringClassId, "anotherstring", FuzzedOp.CH),
-                )
-            )
-            listOf("anotherstring", "anotherskring").forEach {
-                assertTrue( models[0]!!.contains(UtPrimitiveModel(it))) { "Failed to find string $it in list ${models[0]}" }
+        val models = mutableMapOf<Int, MutableList<FuzzedValue>>().apply {
+            StringConstantModelProvider.generate(description).forEach { (i, m) ->
+                computeIfAbsent(i) { mutableListOf() }.add(m)
             }
         }
+
+        assertEquals(1, models.size)
+        assertEquals(1, models[0]!!.size)
+
+        val mutate = StringRandomMutator.mutate(description, listOf(models[0]!![0]), Random(0))
+
+        assertEquals(1, mutate.size)
+        assertEquals(UtPrimitiveModel("nonemptystring"), models[0]!![0].model)
+        assertEquals(UtPrimitiveModel("nonemptstring"), mutate[0].value.model)
     }
 
     @Test
@@ -194,7 +196,7 @@ class ModelProviderTest {
             val classId = A::class.java.id
             val models = collect(
                 ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                    modelProvider = ModelProvider.of(PrimitiveDefaultsModelProvider)
+                    modelProviderForRecursiveCalls = ModelProvider.of(PrimitiveDefaultsModelProvider)
                 },
                 parameters = listOf(classId)
             )
@@ -204,10 +206,7 @@ class ModelProviderTest {
             assertTrue(models[0]!!.all { it is UtAssembleModel && it.classId == classId })
 
             models[0]!!.filterIsInstance<UtAssembleModel>().forEachIndexed { index, model ->
-                assertEquals(1, model.instantiationChain.size)
-                val stm = model.instantiationChain[0]
-                assertTrue(stm is UtExecutableCallModel)
-                stm as UtExecutableCallModel
+                val stm = model.instantiationCall
                 val paramCountInConstructorAsTheyListed = index + 1
                 assertEquals(paramCountInConstructorAsTheyListed, stm.params.size)
             }
@@ -247,10 +246,8 @@ class ModelProviderTest {
 
             assertEquals(1, models.size)
             assertTrue(models[0]!!.isNotEmpty())
-            val chain = (models[0]!![0] as UtAssembleModel).instantiationChain
-            assertEquals(1, chain.size)
-            assertTrue(chain[0] is UtExecutableCallModel)
-            (chain[0] as UtExecutableCallModel).params.forEach {
+            val chain = (models[0]!![0] as UtAssembleModel).instantiationCall
+            chain.params.forEach {
                 assertEquals(intClassId, it.classId)
             }
         }
@@ -367,15 +364,13 @@ class ModelProviderTest {
             assertEquals(1, result[0]!!.size)
             assertInstanceOf(UtAssembleModel::class.java, result[0]!![0])
             assertEquals(A::class.java.id, result[0]!![0].classId)
-            (result[0]!![0] as UtAssembleModel).instantiationChain.forEach {
-                assertTrue(it is UtExecutableCallModel)
-                assertEquals(1, (it as UtExecutableCallModel).params.size)
+            (result[0]!![0] as UtAssembleModel).instantiationCall.let {
+                assertEquals(1, it.params.size)
                 val objectParamInConstructor = it.params[0]
                 assertInstanceOf(UtAssembleModel::class.java, objectParamInConstructor)
                 val innerAssembledModel = objectParamInConstructor as UtAssembleModel
                 assertEquals(Any::class.java.id, innerAssembledModel.classId)
-                assertEquals(1, innerAssembledModel.instantiationChain.size)
-                val objectCreation = innerAssembledModel.instantiationChain.first() as UtExecutableCallModel
+                val objectCreation = innerAssembledModel.instantiationCall
                 assertEquals(0, objectCreation.params.size)
                 assertInstanceOf(ConstructorId::class.java, objectCreation.executable)
             }
@@ -397,13 +392,12 @@ class ModelProviderTest {
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             val outerModel = result[0]!![0] as UtAssembleModel
-            outerModel.instantiationChain.forEach {
-                val constructorParameters = (it as UtExecutableCallModel).params
+            outerModel.instantiationCall.let {
+                val constructorParameters = it.params
                 assertEquals(1, constructorParameters.size)
                 val innerModel = (constructorParameters[0] as UtAssembleModel)
                 assertEquals(MyA::class.java.id, innerModel.classId)
-                assertEquals(1, innerModel.instantiationChain.size)
-                val innerConstructorParameters = innerModel.instantiationChain[0] as UtExecutableCallModel
+                val innerConstructorParameters = innerModel.instantiationCall
                 assertEquals(1, innerConstructorParameters.params.size)
                 assertInstanceOf(UtNullModel::class.java, innerConstructorParameters.params[0])
             }
@@ -439,13 +433,12 @@ class ModelProviderTest {
             assertEquals(1, result.size)
             assertEquals(1, result[0]!!.size)
             val outerModel = result[0]!![0] as UtAssembleModel
-            outerModel.instantiationChain.forEach {
-                val constructorParameters = (it as UtExecutableCallModel).params
+            outerModel.instantiationCall.let {
+                val constructorParameters = it.params
                 assertEquals(1, constructorParameters.size)
                 val innerModel = (constructorParameters[0] as UtAssembleModel)
                 assertEquals(Inner::class.java.id, innerModel.classId)
-                assertEquals(1, innerModel.instantiationChain.size)
-                val innerConstructorParameters = innerModel.instantiationChain[0] as UtExecutableCallModel
+                val innerConstructorParameters = innerModel.instantiationCall
                 assertEquals(2, innerConstructorParameters.params.size)
                 assertTrue(innerConstructorParameters.params.all { param -> param is UtPrimitiveModel })
                 assertEquals(intClassId, innerConstructorParameters.params[0].classId)
@@ -480,7 +473,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                modelProvider = PrimitiveDefaultsModelProvider
+                modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(FieldSetterClass::class.java.id))
             assertEquals(1, result.size)
             assertEquals(2, result[0]!!.size)
@@ -508,7 +501,7 @@ class ModelProviderTest {
 
         withUtContext(UtContext(this::class.java.classLoader)) {
             val result = collect(ObjectModelProvider(ReferencePreservingIntIdGenerator(0)).apply {
-                modelProvider = PrimitiveDefaultsModelProvider
+                modelProviderForRecursiveCalls = PrimitiveDefaultsModelProvider
             }, parameters = listOf(PackagePrivateFieldAndClass::class.java.id)) {
                 packageName = PackagePrivateFieldAndClass::class.java.`package`.name
             }
@@ -541,7 +534,7 @@ class ModelProviderTest {
 
             for (model in models) {
                 val outerModel = (model as? UtAssembleModel)
-                    ?.finalInstantiationModel as? UtExecutableCallModel
+                    ?.instantiationCall
                     ?: fail("No final instantiation model found for the outer class")
                 for (param in outerModel.params) {
                     when (param) {
@@ -549,7 +542,7 @@ class ModelProviderTest {
                             assertEquals(expectedIds[param.value], param.id)
                         }
                         is UtAssembleModel -> {
-                            for (enumParam in (param.finalInstantiationModel as UtExecutableCallModel).params) {
+                            for (enumParam in param.instantiationCall.params) {
                                 enumParam as UtEnumConstantModel
                                 assertEquals(expectedIds[enumParam.value], enumParam.id)
                             }

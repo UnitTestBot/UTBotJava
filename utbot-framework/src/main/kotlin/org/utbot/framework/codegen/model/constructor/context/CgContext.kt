@@ -7,21 +7,6 @@ import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour
 import org.utbot.framework.codegen.StaticsMocking
 import org.utbot.framework.codegen.TestFramework
-import org.utbot.framework.codegen.model.constructor.builtin.arraysDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createArrayMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.createInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.deepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getArrayLengthMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getEnumConstantByNameMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getStaticFieldValueMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.getUnsafeInstanceMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.hasCustomEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.iterablesDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.mapsDeepEqualsMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.possibleUtilMethodIds
-import org.utbot.framework.codegen.model.constructor.builtin.setFieldMethodId
-import org.utbot.framework.codegen.model.constructor.builtin.setStaticFieldMethodId
 import org.utbot.framework.codegen.model.constructor.tree.Block
 import org.utbot.framework.codegen.model.constructor.util.EnvironmentFieldStateCache
 import org.utbot.framework.codegen.model.constructor.util.importIfNeeded
@@ -33,7 +18,6 @@ import org.utbot.framework.codegen.model.tree.CgTestMethod
 import org.utbot.framework.codegen.model.tree.CgThisInstance
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
-import org.utbot.framework.codegen.model.util.createTestClassName
 import java.util.IdentityHashMap
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.PersistentMap
@@ -42,7 +26,11 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
-import org.utbot.framework.codegen.model.constructor.builtin.streamsDeepEqualsMethodId
+import org.utbot.framework.codegen.model.constructor.builtin.TestClassUtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.UtilClassFileMethodProvider
+import org.utbot.framework.codegen.model.constructor.builtin.UtilMethodProvider
+import org.utbot.framework.codegen.model.constructor.TestClassContext
+import org.utbot.framework.codegen.model.constructor.TestClassModel
 import org.utbot.framework.codegen.model.tree.CgParameterKind
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
@@ -66,7 +54,7 @@ import org.utbot.framework.plugin.api.util.jClass
  * Although, some of the properties are declared as 'var' so that
  * they can be reassigned as well as modified
  *
- * For example, [currentTestClass] and [currentExecutable] can be reassigned
+ * For example, [outerMostTestClass] and [currentExecutable] can be reassigned
  * when we start generating another method or test class
  *
  * [existingVariableNames] is a 'var' property
@@ -78,20 +66,24 @@ internal interface CgContextOwner {
     // current class under test
     val classUnderTest: ClassId
 
-    // test class currently being generated
-    val currentTestClass: ClassId
+    // test class currently being generated (if series of nested classes is generated, it is the outermost one)
+    val outerMostTestClass: ClassId
+
+    // test class currently being generated (if series of nested classes is generated, it is the innermost one)
+    var currentTestClass: ClassId
+
+    // provider of util methods used for the test class currently being generated
+    val utilMethodProvider: UtilMethodProvider
 
     // current executable under test
     var currentExecutable: ExecutableId?
 
-    // test class superclass (if needed)
-    var testClassSuperclass: ClassId?
+    // ClassInfo for the outermost class currently being generated
+    val outerMostTestClassContext: TestClassContext
 
-    // list of interfaces that the test class must inherit
-    val collectedTestClassInterfaces: MutableSet<ClassId>
-
-    // list of annotations of the test class
-    val collectedTestClassAnnotations: MutableSet<CgAnnotation>
+    // If generating series of nested classes, it is ClassInfo for the innermost one,
+    // otherwise it should be equal to outerMostTestClassInfo
+    val currentTestClassContext: TestClassContext
 
     // exceptions that can be thrown inside of current method being built
     val collectedExceptions: MutableSet<ClassId>
@@ -107,6 +99,8 @@ internal interface CgContextOwner {
 
     // util methods required by the test class being built
     val requiredUtilMethods: MutableSet<MethodId>
+
+    val utilMethodsUsed: Boolean
 
     // test methods being generated
     val testMethods: MutableList<CgTestMethod>
@@ -137,9 +131,15 @@ internal interface CgContextOwner {
 
     val codegenLanguage: CodegenLanguage
 
-    val parameterizedTestSource: ParametrizedTestSource
+    val parametrizedTestSource: ParametrizedTestSource
 
-    // flag indicating whether a mock framework is used in the generated code
+    /**
+     * Flag indicating whether a mock framework is used in the generated code
+     * NOTE! This flag is not about whether a mock framework is present
+     * in the user's project dependencies or not.
+     * This flag is true if the generated test class contains at least one mock object,
+     * and false otherwise. See method [withMockFramework].
+     */
     var mockFrameworkUsed: Boolean
 
     // object that represents a set of information about JUnit of selected version
@@ -161,6 +161,9 @@ internal interface CgContextOwner {
     // declared in the current name scope.
     // java.lang.reflect.Executable is a superclass of both of these types.
     var declaredExecutableRefs: PersistentMap<ExecutableId, CgVariable>
+
+    // Variables of java.lang.reflect.Field type declared in the current name scope
+    var declaredFieldRefs: PersistentMap<FieldId, CgVariable>
 
     // generated this instance for method under test
     var thisInstance: CgValue?
@@ -211,6 +214,8 @@ internal interface CgContextOwner {
     val enableTestsTimeout: Boolean
 
     var statesCache: EnvironmentFieldStateCache
+
+    var allExecutions: List<UtExecution>
 
     fun block(init: () -> Unit): Block {
         val prevBlock = currentBlock
@@ -266,14 +271,23 @@ internal interface CgContextOwner {
         }
     }
 
-    fun <R> withClassScope(block: () -> R): R {
-        clearClassScope()
-        return try {
-            block()
-        } finally {
-            clearClassScope()
-        }
-    }
+    /**
+     * This method sets up context for a new test class file generation and executes the given [block].
+     * Afterwards, context is set back to the initial state.
+     */
+    fun <R> withTestClassFileScope(block: () -> R): R
+
+    /**
+     * This method sets up context for a new test class generation and executes the given [block].
+     * Afterwards, context is set back to the initial state.
+     */
+    fun <R> withTestClassScope(block: () -> R): R
+
+    /**
+     * This method does almost all the same as [withTestClassScope], but for nested test classes.
+     * The difference is that instead of working with [outerMostTestClassContext] it works with [currentTestClassContext].
+     */
+    fun <R> withNestedClassScope(testClassModel: TestClassModel, block: () -> R): R
 
     /**
      * Set [mockFrameworkUsed] flag to true if the block is successfully executed
@@ -297,6 +311,7 @@ internal interface CgContextOwner {
         val prevVariableNames = existingVariableNames
         val prevDeclaredClassRefs = declaredClassRefs
         val prevDeclaredExecutableRefs = declaredExecutableRefs
+        val prevDeclaredFieldRefs = declaredFieldRefs
         val prevValueByModel = IdentityHashMap(valueByModel)
         val prevValueByModelId = valueByModelId.toMutableMap()
         return try {
@@ -305,83 +320,102 @@ internal interface CgContextOwner {
             existingVariableNames = prevVariableNames
             declaredClassRefs = prevDeclaredClassRefs
             declaredExecutableRefs = prevDeclaredExecutableRefs
+            declaredFieldRefs = prevDeclaredFieldRefs
             valueByModel = prevValueByModel
             valueByModelId = prevValueByModelId
         }
     }
 
-    private fun clearClassScope() {
-        collectedImports.clear()
-        importedStaticMethods.clear()
-        importedClasses.clear()
-        testMethods.clear()
-        requiredUtilMethods.clear()
-        valueByModel.clear()
-        valueByModelId.clear()
-        mockFrameworkUsed = false
-    }
-
     /**
-     * Check whether a method is an util method of the current class
+     * [ClassId] of a class that contains util methods.
+     * For example, it can be the current test class, or it can be a generated separate `UtUtils` class.
      */
-    val MethodId.isUtil: Boolean
-        get() = this in currentTestClass.possibleUtilMethodIds
+    val utilsClassId: ClassId
+        get() = utilMethodProvider.utilClassId
 
     /**
      * Checks is it our util reflection field getter method.
      * When this method is used with type cast in Kotlin, this type cast have to be safety
      */
     val MethodId.isGetFieldUtilMethod: Boolean
-        get() = isUtil && (name == getFieldValue.name || name == getStaticFieldValue.name)
+        get() = this == utilMethodProvider.getFieldValueMethodId
+                || this == utilMethodProvider.getStaticFieldValueMethodId
 
     val testClassThisInstance: CgThisInstance
 
-    // util methods of current test class
+    // util methods and auxiliary classes of current test class
+
+    val capturedArgumentClass: ClassId
+        get() = utilMethodProvider.capturedArgumentClassId
 
     val getUnsafeInstance: MethodId
-        get() = currentTestClass.getUnsafeInstanceMethodId
+        get() = utilMethodProvider.getUnsafeInstanceMethodId
 
     val createInstance: MethodId
-        get() = currentTestClass.createInstanceMethodId
+        get() = utilMethodProvider.createInstanceMethodId
 
     val createArray: MethodId
-        get() = currentTestClass.createArrayMethodId
+        get() = utilMethodProvider.createArrayMethodId
 
     val setField: MethodId
-        get() = currentTestClass.setFieldMethodId
+        get() = utilMethodProvider.setFieldMethodId
 
     val setStaticField: MethodId
-        get() = currentTestClass.setStaticFieldMethodId
+        get() = utilMethodProvider.setStaticFieldMethodId
 
     val getFieldValue: MethodId
-        get() = currentTestClass.getFieldValueMethodId
+        get() = utilMethodProvider.getFieldValueMethodId
 
     val getStaticFieldValue: MethodId
-        get() = currentTestClass.getStaticFieldValueMethodId
+        get() = utilMethodProvider.getStaticFieldValueMethodId
 
     val getEnumConstantByName: MethodId
-        get() = currentTestClass.getEnumConstantByNameMethodId
+        get() = utilMethodProvider.getEnumConstantByNameMethodId
 
     val deepEquals: MethodId
-        get() = currentTestClass.deepEqualsMethodId
+        get() = utilMethodProvider.deepEqualsMethodId
 
     val arraysDeepEquals: MethodId
-        get() = currentTestClass.arraysDeepEqualsMethodId
+        get() = utilMethodProvider.arraysDeepEqualsMethodId
 
     val iterablesDeepEquals: MethodId
-        get() = currentTestClass.iterablesDeepEqualsMethodId
+        get() = utilMethodProvider.iterablesDeepEqualsMethodId
 
     val streamsDeepEquals: MethodId
-        get() = currentTestClass.streamsDeepEqualsMethodId
+        get() = utilMethodProvider.streamsDeepEqualsMethodId
 
     val mapsDeepEquals: MethodId
-        get() = currentTestClass.mapsDeepEqualsMethodId
+        get() = utilMethodProvider.mapsDeepEqualsMethodId
 
     val hasCustomEquals: MethodId
-        get() = currentTestClass.hasCustomEqualsMethodId
+        get() = utilMethodProvider.hasCustomEqualsMethodId
 
     val getArrayLength: MethodId
-        get() = currentTestClass.getArrayLengthMethodId
+        get() = utilMethodProvider.getArrayLengthMethodId
+
+    val buildStaticLambda: MethodId
+        get() = utilMethodProvider.buildStaticLambdaMethodId
+
+    val buildLambda: MethodId
+        get() = utilMethodProvider.buildLambdaMethodId
+
+    val getLookupIn: MethodId
+        get() = utilMethodProvider.getLookupInMethodId
+
+    val getSingleAbstractMethod: MethodId
+        get() = utilMethodProvider.getSingleAbstractMethodMethodId
+
+    val getLambdaCapturedArgumentTypes: MethodId
+        get() = utilMethodProvider.getLambdaCapturedArgumentTypesMethodId
+
+    val getLambdaCapturedArgumentValues: MethodId
+        get() = utilMethodProvider.getLambdaCapturedArgumentValuesMethodId
+
+    val getInstantiatedMethodType: MethodId
+        get() = utilMethodProvider.getInstantiatedMethodTypeMethodId
+
+    val getLambdaMethod: MethodId
+        get() = utilMethodProvider.getLambdaMethodMethodId
 }
 
 /**
@@ -389,9 +423,8 @@ internal interface CgContextOwner {
  */
 internal data class CgContext(
     override val classUnderTest: ClassId,
+    val generateUtilClassFile: Boolean,
     override var currentExecutable: ExecutableId? = null,
-    override val collectedTestClassInterfaces: MutableSet<ClassId> = mutableSetOf(),
-    override val collectedTestClassAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedExceptions: MutableSet<ClassId> = mutableSetOf(),
     override val collectedMethodAnnotations: MutableSet<CgAnnotation> = mutableSetOf(),
     override val collectedImports: MutableSet<Import> = mutableSetOf(),
@@ -409,12 +442,13 @@ internal data class CgContext(
     override val forceStaticMocking: ForceStaticMocking,
     override val generateWarningsForStaticMocking: Boolean,
     override val codegenLanguage: CodegenLanguage = CodegenLanguage.defaultItem,
-    override val parameterizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
+    override val parametrizedTestSource: ParametrizedTestSource = ParametrizedTestSource.DO_NOT_PARAMETRIZE,
     override var mockFrameworkUsed: Boolean = false,
     override var currentBlock: PersistentList<CgStatement> = persistentListOf(),
     override var existingVariableNames: PersistentSet<String> = persistentSetOf(),
     override var declaredClassRefs: PersistentMap<ClassId, CgVariable> = persistentMapOf(),
     override var declaredExecutableRefs: PersistentMap<ExecutableId, CgVariable> = persistentMapOf(),
+    override var declaredFieldRefs: PersistentMap<FieldId, CgVariable> = persistentMapOf(),
     override var thisInstance: CgValue? = null,
     override val methodArguments: MutableList<CgValue> = mutableListOf(),
     override val codeGenerationErrors: MutableMap<CgMethodTestSet, MutableMap<String, Int>> = mutableMapOf(),
@@ -429,10 +463,29 @@ internal data class CgContext(
 ) : CgContextOwner {
     override lateinit var statesCache: EnvironmentFieldStateCache
     override lateinit var actual: CgVariable
+    override lateinit var allExecutions: List<UtExecution>
 
-    override val currentTestClass: ClassId by lazy {
+    /**
+     * This property cannot be accessed outside of test class file scope
+     * (i.e. outside of [CgContextOwner.withTestClassFileScope]).
+     */
+    override val outerMostTestClassContext: TestClassContext
+        get() = _outerMostTestClassContext ?: error("Accessing outerMostTestClassInfo out of class file scope")
+
+    private var _outerMostTestClassContext: TestClassContext? = null
+
+    /**
+     * This property cannot be accessed outside of test class scope
+     * (i.e. outside of [CgContextOwner.withTestClassScope]).
+     */
+    override val currentTestClassContext: TestClassContext
+        get() = _currentTestClassContext ?: error("Accessing currentTestClassInfo out of class scope")
+
+    private var _currentTestClassContext: TestClassContext? = null
+
+    override val outerMostTestClass: ClassId by lazy {
         val packagePrefix = if (testClassPackageName.isNotEmpty()) "$testClassPackageName." else ""
-        val simpleName = testClassCustomName ?: "${createTestClassName(classUnderTest.name)}Test"
+        val simpleName = testClassCustomName ?: "${classUnderTest.simpleName}Test"
         val name = "$packagePrefix$simpleName"
         BuiltinClassId(
             name = name,
@@ -441,14 +494,75 @@ internal data class CgContext(
         )
     }
 
-    override var testClassSuperclass: ClassId? = null
-        set(value) {
-            // Assigning a value to the testClassSuperclass when it is already non-null
-            // means that we need the test class to have more than one superclass
-            // which is impossible in Java and Kotlin.
-            require(field == null) { "It is impossible for the test class to have more than one superclass" }
-            field = value
+    /**
+     * Determine where the util methods will come from.
+     * If we don't want to use a separately generated util class,
+     * util methods will be generated directly in the test class (see [TestClassUtilMethodProvider]).
+     * Otherwise, an util class will be generated separately and we will use util methods from it (see [UtilClassFileMethodProvider]).
+     */
+    override val utilMethodProvider: UtilMethodProvider
+        get() = if (generateUtilClassFile) {
+            UtilClassFileMethodProvider
+        } else {
+            TestClassUtilMethodProvider(outerMostTestClass)
         }
+
+    override lateinit var currentTestClass: ClassId
+
+    override fun <R> withTestClassFileScope(block: () -> R): R {
+        clearClassScope()
+        _outerMostTestClassContext = TestClassContext()
+        return try {
+            block()
+        } finally {
+            clearClassScope()
+        }
+    }
+
+    override fun <R> withTestClassScope(block: () -> R): R {
+        _currentTestClassContext = outerMostTestClassContext
+        currentTestClass = outerMostTestClass
+        return try {
+            block()
+        } finally {
+            _currentTestClassContext = null
+        }
+    }
+
+    override fun <R> withNestedClassScope(testClassModel: TestClassModel, block: () -> R): R {
+        val previousCurrentTestClassInfo = currentTestClassContext
+        val previousCurrentTestClass = currentTestClass
+        currentTestClass = createClassIdForNestedClass(testClassModel)
+        _currentTestClassContext = TestClassContext()
+        return try {
+            block()
+        } finally {
+            _currentTestClassContext = previousCurrentTestClassInfo
+            currentTestClass = previousCurrentTestClass
+        }
+    }
+
+    private fun createClassIdForNestedClass(testClassModel: TestClassModel): ClassId {
+        val simpleName = "${testClassModel.classUnderTest.simpleName}Test"
+        return BuiltinClassId(
+            name = currentTestClass.name + "$" + simpleName,
+            canonicalName = currentTestClass.canonicalName + "." + simpleName,
+            simpleName = simpleName
+        )
+    }
+
+    private fun clearClassScope() {
+        _outerMostTestClassContext = null
+        collectedImports.clear()
+        importedStaticMethods.clear()
+        importedClasses.clear()
+        testMethods.clear()
+        requiredUtilMethods.clear()
+        valueByModel.clear()
+        valueByModelId.clear()
+        mockFrameworkUsed = false
+    }
+
 
     override var valueByModel: IdentityHashMap<UtModel, CgValue> = IdentityHashMap()
 
@@ -456,5 +570,8 @@ internal data class CgContext(
 
     override val currentMethodParameters: MutableMap<CgParameterKind, CgVariable> = mutableMapOf()
 
-    override val testClassThisInstance: CgThisInstance = CgThisInstance(currentTestClass)
+    override val testClassThisInstance: CgThisInstance = CgThisInstance(outerMostTestClass)
+
+    override val utilMethodsUsed: Boolean
+        get() = requiredUtilMethods.isNotEmpty()
 }

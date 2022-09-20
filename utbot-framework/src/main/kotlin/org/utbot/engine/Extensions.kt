@@ -18,6 +18,7 @@ import org.utbot.engine.pc.UtSeqSort
 import org.utbot.engine.pc.UtShortSort
 import org.utbot.engine.pc.UtSolverStatusKind
 import org.utbot.engine.pc.UtSolverStatusSAT
+import org.utbot.engine.pc.UtSolverStatusUNDEFINED
 import org.utbot.engine.pc.UtSort
 import org.utbot.engine.pc.mkArrayWithConst
 import org.utbot.engine.pc.mkBool
@@ -33,21 +34,7 @@ import org.utbot.engine.pc.toSort
 import org.utbot.framework.UtSettings.checkNpeInNestedMethods
 import org.utbot.framework.UtSettings.checkNpeInNestedNotPrivateMethods
 import org.utbot.framework.plugin.api.FieldId
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.id
-import java.lang.reflect.Constructor
-import java.lang.reflect.Method
-import java.lang.reflect.Modifier
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KFunction
-import kotlin.reflect.KProperty
-import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaMethod
-import kotlinx.collections.immutable.PersistentMap
-import kotlinx.collections.immutable.persistentHashMapOf
-import org.utbot.engine.pc.UtSolverStatusUNDEFINED
-import org.utbot.framework.plugin.api.ExecutableId
-import org.utbot.framework.plugin.api.util.executableId
 import soot.ArrayType
 import soot.PrimType
 import soot.RefLikeType
@@ -73,7 +60,14 @@ import soot.jimple.internal.JStaticInvokeExpr
 import soot.jimple.internal.JVirtualInvokeExpr
 import soot.jimple.internal.JimpleLocal
 import soot.tagkit.ArtificialEntityTag
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
+import java.lang.reflect.ParameterizedType
+import java.util.ArrayDeque
+import java.util.Deque
+import java.util.LinkedList
+import java.util.Queue
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.persistentHashMapOf
 
 val JIdentityStmt.lines: String
     get() = tags.joinToString { "$it" }
@@ -113,7 +107,6 @@ fun SootMethod.canRetrieveBody() =
  */
 fun SootMethod.jimpleBody(): JimpleBody {
     declaringClass.adjustLevel(BODIES)
-    require(canRetrieveBody()) { "Can't retrieve body for $this"}
     return retrieveActiveBody() as JimpleBody
 }
 
@@ -199,6 +192,11 @@ private val isAnonymousRegex = ".*\\$\\d+$".toRegex()
 val SootClass.isAnonymous
     get() = name matches isAnonymousRegex
 
+private val isLambdaRegex = ".*(\\$)lambda_.*".toRegex()
+
+val SootClass.isLambda: Boolean
+    get() = this.isArtificialEntity && this.name matches isLambdaRegex
+
 val Type.numDimensions get() = if (this is ArrayType) numDimensions else 0
 
 /**
@@ -257,7 +255,9 @@ val libraryTargets: Map<String, List<String>> = mapOf(
     Collection::class.java.name to listOf(ArrayList::class.java.name, HashSet::class.java.name),
     List::class.java.name to listOf(ArrayList::class.java.name),
     Set::class.java.name to listOf(HashSet::class.java.name),
-    Map::class.java.name to listOf(HashMap::class.java.name)
+    Map::class.java.name to listOf(HashMap::class.java.name),
+    Queue::class.java.name to listOf(LinkedList::class.java.name, ArrayDeque::class.java.name),
+    Deque::class.java.name to listOf(LinkedList::class.java.name, ArrayDeque::class.java.name)
 )
 
 fun Collection<*>.prettify() = joinToString("\n", "\n", "\n")
@@ -265,33 +265,6 @@ fun Collection<*>.prettify() = joinToString("\n", "\n", "\n")
 fun Map<*, *>.prettify() = entries.joinToString("\n", "\n", "\n") { (key, value) ->
     "$key -> $value"
 }
-
-val Constructor<*>.isPublic: Boolean
-    get() = (this.modifiers and Modifier.PUBLIC) != 0
-
-val Constructor<*>.isPrivate: Boolean
-    get() = (this.modifiers and Modifier.PRIVATE) != 0
-
-val <R> UtMethod<R>.isStatic: Boolean
-    get() = when {
-        // TODO: here we consider constructor to be non-static for code generation to generate its arguments correctly
-        // TODO: may need to rewrite it in a more reasonable way
-        isConstructor -> false
-        isMethod -> {
-            val modifiers = javaMethod?.modifiers ?: error("$this was expected to be a method")
-            Modifier.isStatic(modifiers)
-        }
-        else -> error("$this is neither a constructor, nor a method")
-    }
-
-val UtMethod<*>.callerName: String
-    get() {
-        // TODO: add code generation error processing
-        require(!isStatic) { "Creating caller name for static method" }
-        require(!isConstructor) { "Creating caller name for a constructor" }
-        val typeName = clazz.simpleName?.decapitalize() ?: error("Can not find name for $clazz")
-        return "${typeName}Obj"
-    }
 
 /**
  * Extracts fqn for the class by its [signature].
@@ -304,54 +277,6 @@ fun classBytecodeSignatureToClassNameOrNull(signature: String?) =
         ?.replace("/", ".")
         ?.replace("$", ".")
         ?.let { it.substring(1, it.lastIndex) }
-
-val <R> UtMethod<R>.javaConstructor: Constructor<*>?
-    get() = (callable as? KFunction<*>)?.javaConstructor
-
-val <R> UtMethod<R>.javaMethod: Method?
-    get() = (callable as? KFunction<*>)?.javaMethod ?: (callable as? KProperty<*>)?.getter?.javaMethod
-
-val <R> UtMethod<R>.isConstructor: Boolean
-    get() = javaConstructor != null
-
-val <R> UtMethod<R>.isMethod: Boolean
-    get() = javaMethod != null
-
-val <R> UtMethod<R>.signature: String
-    get() {
-        val methodName = this.callable.name
-        val javaMethod = this.javaMethod ?: this.javaConstructor
-        if (javaMethod != null) {
-            val parameters = javaMethod.parameters.joinToString(separator = ", ") { "${it.type}" }
-            return "${methodName}($parameters)"
-        }
-        return "${methodName}()"
-    }
-
-val ExecutableId.displayName: String
-    get() {
-        val executableName = this.name
-        val parameters = this.parameters.joinToString(separator = ", ") { it.canonicalName }
-        return "$executableName($parameters)"
-    }
-
-val Constructor<*>.displayName: String
-    get() = executableId.displayName
-
-val Method.displayName: String
-    get() = executableId.displayName
-
-val <R> UtMethod<R>.displayName: String
-    get() {
-        val executableId = this.javaMethod?.executableId ?: this.javaConstructor?.executableId
-        return if (executableId != null) {
-            executableId.displayName
-        } else {
-            val methodName = this.callable.name
-            return "${methodName}()"
-        }
-    }
-
 
 val JimpleLocal.variable: LocalVariable
     get() = LocalVariable(this.name)
@@ -419,7 +344,7 @@ val Type.baseType: Type
     get() = if (this is ArrayType) this.baseType else this
 
 val java.lang.reflect.Type.rawType: java.lang.reflect.Type
-    get() = if (this is ParameterizedTypeImpl) rawType else this
+    get() = if (this is ParameterizedType) rawType else this
 
 /**
  * Returns true if the addr belongs to “this” value, false otherwise.

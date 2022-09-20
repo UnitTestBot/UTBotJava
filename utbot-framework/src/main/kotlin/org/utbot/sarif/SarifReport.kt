@@ -6,11 +6,11 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import org.utbot.common.PathUtil.fileExtension
 import org.utbot.common.PathUtil.toPath
 import org.utbot.framework.UtSettings
+import org.utbot.framework.plugin.api.ExecutableId
 import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionResult
 import org.utbot.framework.plugin.api.UtImplicitlyThrownException
-import org.utbot.framework.plugin.api.UtMethod
 import org.utbot.framework.plugin.api.UtMethodTestSet
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtOverflowFailure
@@ -128,7 +128,7 @@ class SarifReport(
     }
 
     private fun processUncheckedException(
-        method: UtMethod<*>,
+        method: ExecutableId,
         utExecution: UtExecution,
         uncheckedException: UtExecutionFailure
     ): Pair<SarifResult, SarifRule> {
@@ -136,8 +136,8 @@ class SarifReport(
         val exceptionName = uncheckedException.exception::class.java.simpleName
         val ruleId = "utbot.unchecked.$exceptionName"
 
-        val methodName = method.callable.name
-        val classFqn = method.clazz.qualifiedName
+        val methodName = method.name
+        val classFqn = method.classId.name
         val methodArguments = utExecution.stateBefore.parameters
             .joinToString(prefix = "", separator = ", ", postfix = "") { it.preview() }
 
@@ -203,7 +203,7 @@ class SarifReport(
     }
 
     private fun getCodeFlows(
-        method: UtMethod<*>,
+        method: ExecutableId,
         utExecution: UtExecution,
         uncheckedException: UtExecutionFailure
     ): List<SarifCodeFlow> {
@@ -218,7 +218,7 @@ class SarifReport(
         val stackTrace = uncheckedException.exception.stackTrace
 
         val lastMethodCallIndex = stackTrace.indexOfLast {
-            it.className == method.clazz.qualifiedName && it.methodName == method.callable.name
+            it.className == method.classId.name && it.methodName == method.name
         }
         if (lastMethodCallIndex == -1)
             return listOf()
@@ -233,7 +233,7 @@ class SarifReport(
 
         // prepending stack trace by `method` call in generated tests
         val methodCallLocation: SarifPhysicalLocation? =
-            findMethodCallInTestBody(utExecution.testMethodName, method.callable.name)
+            findMethodCallInTestBody(utExecution.testMethodName, method.name)
         if (methodCallLocation != null) {
             val methodCallLocationWrapper = SarifFlowLocationWrapper(
                 SarifFlowLocation(
@@ -273,18 +273,21 @@ class SarifReport(
         )
     }
 
+    private val testsBodyLines by lazy {
+        generatedTestsCode.split('\n')
+    }
+
     private fun findMethodCallInTestBody(testMethodName: String?, methodName: String): SarifPhysicalLocation? {
         if (testMethodName == null)
             return null
 
         // searching needed test
-        val testsBodyLines = generatedTestsCode.split('\n')
         val testMethodStartsAt = testsBodyLines.indexOfFirst { line ->
             line.contains(testMethodName)
         }
         if (testMethodStartsAt == -1)
             return null
-        /**
+        /*
          * ...
          * public void testMethodName() { // <- `testMethodStartsAt`
          *     ...
@@ -294,8 +297,10 @@ class SarifReport(
          */
 
         // searching needed method call
-        val publicMethodCallPattern = "$methodName("
-        val privateMethodCallPattern = Regex("""$methodName.*\.invoke\(""") // using reflection
+        // Regex("[^:]*") satisfies every character except ':'
+        // It is necessary to avoid strings from the stacktrace, such as "className.methodName(FileName.java:10)"
+        val publicMethodCallPattern = Regex("""$methodName\([^:]*\)""")
+        val privateMethodCallPattern = Regex("""$methodName.*\.invoke\([^:]*\)""") // using reflection
         val methodCallShiftInTestMethod = testsBodyLines
             .drop(testMethodStartsAt + 1) // for search after it
             .indexOfFirst { line ->

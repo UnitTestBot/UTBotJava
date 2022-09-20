@@ -2,13 +2,18 @@ apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
 
 dependencies {
     implementation "com.github.UnitTestBot:soot:${soot_commit_hash}"
-    api project(':utbot-framework-api')
-    api project(':utbot-fuzzers')
-    compile(project(':utbot-instrumentation'))
+    implementation project(':utbot-framework-api')
+    implementation project(':utbot-instrumentation')
+    implementation project(':utbot-fuzzers')
+
+    implementation group: 'com.github.haifengl', name: 'smile-kotlin', version: '2.6.0'
+    implementation group: 'com.github.haifengl', name: 'smile-core', version: '2.6.0'
 
     implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
 
     implementation group: 'com.github.javaparser', name: 'javaparser-core', version: '3.22.1'
+
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: mockito_version
 
     testImplementation("org.junit.jupiter:junit-jupiter:$junit5_version")
 }

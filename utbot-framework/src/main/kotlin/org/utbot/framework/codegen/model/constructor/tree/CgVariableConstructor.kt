@@ -1,5 +1,6 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
+import org.utbot.common.isStatic
 import org.utbot.framework.codegen.model.constructor.builtin.forName
 import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
@@ -15,16 +16,17 @@ import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
+import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
+import org.utbot.framework.codegen.model.tree.CgMethodCall
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.canBeSetIn
-import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.lessThan
@@ -41,11 +43,13 @@ import org.utbot.framework.plugin.api.UtCompositeModel
 import org.utbot.framework.plugin.api.UtDirectSetFieldModel
 import org.utbot.framework.plugin.api.UtEnumConstantModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.util.classClassId
 import org.utbot.framework.plugin.api.util.defaultValueModel
 import org.utbot.framework.plugin.api.util.jField
 import org.utbot.framework.plugin.api.util.findFieldByIdOrNull
@@ -53,10 +57,10 @@ import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
 import org.utbot.framework.plugin.api.util.isArray
 import org.utbot.framework.plugin.api.util.isPrimitiveWrapperOrString
+import org.utbot.framework.plugin.api.util.isStatic
 import org.utbot.framework.plugin.api.util.stringClassId
+import org.utbot.framework.plugin.api.util.supertypeOfAnonymousClass
 import org.utbot.framework.plugin.api.util.wrapperByPrimitive
-import java.lang.reflect.Field
-import java.lang.reflect.Modifier
 
 /**
  * Constructs CgValue or CgVariable given a UtModel
@@ -103,6 +107,7 @@ internal class CgVariableConstructor(val context: CgContext) :
                 is UtArrayModel -> constructArray(model, baseName)
                 is UtEnumConstantModel -> constructEnumConstant(model, baseName)
                 is UtClassRefModel -> constructClassRef(model, baseName)
+                is UtLambdaModel -> constructLambda(model, baseName)
             }
         } else valueByModel.getOrPut(model) {
             when (model) {
@@ -114,11 +119,54 @@ internal class CgVariableConstructor(val context: CgContext) :
         }
     }
 
+    private fun constructLambda(model: UtLambdaModel, baseName: String): CgVariable {
+        val lambdaMethodId = model.lambdaMethodId
+        val capturedValues = model.capturedValues
+        return newVar(model.samType, baseName) {
+            if (lambdaMethodId.isStatic) {
+                constructStaticLambda(model, capturedValues)
+            } else {
+                constructLambda(model, capturedValues)
+            }
+        }
+    }
+
+    private fun constructStaticLambda(model: UtLambdaModel, capturedValues: List<UtModel>): CgMethodCall {
+        val capturedArguments = capturedValues.map {
+            utilMethodProvider.capturedArgumentConstructorId(getClassOf(it.classId), getOrCreateVariable(it))
+        }
+        return utilsClassId[buildStaticLambda](
+            getClassOf(model.samType),
+            getClassOf(model.declaringClass),
+            model.lambdaName,
+            *capturedArguments.toTypedArray()
+        )
+    }
+
+    private fun constructLambda(model: UtLambdaModel, capturedValues: List<UtModel>): CgMethodCall {
+        require(capturedValues.isNotEmpty()) {
+            "Non-static lambda must capture `this` instance, so there must be at least one captured value"
+        }
+        val capturedThisInstance = getOrCreateVariable(capturedValues.first())
+        val capturedArguments = capturedValues
+            .subList(1, capturedValues.size)
+            .map { utilMethodProvider.capturedArgumentConstructorId(getClassOf(it.classId), getOrCreateVariable(it)) }
+        return utilsClassId[buildLambda](
+            getClassOf(model.samType),
+            getClassOf(model.declaringClass),
+            model.lambdaName,
+            capturedThisInstance,
+            *capturedArguments.toTypedArray()
+        )
+    }
+
     private fun constructComposite(model: UtCompositeModel, baseName: String): CgVariable {
         val obj = if (model.isMock) {
             mockFrameworkManager.createMockFor(model, baseName)
         } else {
-            newVar(model.classId, baseName) { testClassThisInstance[createInstance](model.classId.name) }
+            val modelType = model.classId
+            val variableType = if (modelType.isAnonymous) modelType.supertypeOfAnonymousClass else modelType
+            newVar(variableType, baseName) { utilsClassId[createInstance](model.classId.name) }
         }
 
         valueByModelId[model.id] = obj
@@ -146,14 +194,17 @@ internal class CgVariableConstructor(val context: CgContext) :
                 fieldAccess `=` variableForField
             } else {
                 // composite models must not have info about static fields, hence only non-static fields are set here
-                +testClassThisInstance[setField](obj, fieldId.name, variableForField)
+                +utilsClassId[setField](obj, fieldId.declaringClass.name, fieldId.name, variableForField)
             }
         }
         return obj
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        for (statementModel in model.allStatementsChain) {
+        val instantiationCall = model.instantiationCall
+        processInstantiationStatement(model, instantiationCall, baseName)
+
+        for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
                     val instance = declareOrGet(statementModel.instance)
@@ -161,40 +212,53 @@ internal class CgVariableConstructor(val context: CgContext) :
                     instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                 }
                 is UtExecutableCallModel -> {
-                    val executable = statementModel.executable
-                    val params = statementModel.params
-                    val cgCall = when (executable) {
-                        is MethodId -> {
-                            val caller = statementModel.instance?.let { declareOrGet(it) }
-                            val args = params.map { declareOrGet(it) }
-                            caller[executable](*args.toTypedArray())
-                        }
-                        is ConstructorId -> {
-                            val args = params.map { declareOrGet(it) }
-                            executable(*args.toTypedArray())
-                        }
-                    }
-
-                    // if call result is stored in a variable
-                    if (statementModel.returnValue == null) {
-                        +cgCall
-                    } else {
-                        val type = when (executable) {
-                            is MethodId -> executable.returnType
-                            is ConstructorId -> executable.classId
-                        }
-
-                        // Don't use redundant constructors for primitives and String
-                        val initExpr = if (isPrimitiveWrapperOrString(type)) cgLiteralForWrapper(params) else cgCall
-                        newVar(type, statementModel.returnValue, baseName) { initExpr }
-                            .takeIf { statementModel == model.finalInstantiationModel }
-                            ?.also { valueByModelId[model.id] = it }
-                    }
+                    +createCgExecutableCallFromUtExecutableCall(statementModel)
                 }
             }
         }
 
         return valueByModelId.getValue(model.id)
+    }
+
+    private fun processInstantiationStatement(
+        model: UtAssembleModel,
+        executableCall: UtExecutableCallModel,
+        baseName: String?
+    ) {
+        val executable = executableCall.executable
+        val params = executableCall.params
+
+        val type = when (executable) {
+            is MethodId -> executable.returnType
+            is ConstructorId -> executable.classId
+        }
+        // Don't use redundant constructors for primitives and String
+        val initExpr = if (isPrimitiveWrapperOrString(type)) {
+            cgLiteralForWrapper(params)
+        } else {
+            createCgExecutableCallFromUtExecutableCall(executableCall)
+        }
+        newVar(type, model, baseName) {
+            initExpr
+        }.also { valueByModelId[model.id] = it }
+    }
+
+
+    private fun createCgExecutableCallFromUtExecutableCall(statementModel: UtExecutableCallModel): CgExecutableCall {
+        val executable = statementModel.executable
+        val params = statementModel.params
+        val cgCall = when (executable) {
+            is MethodId -> {
+                val caller = statementModel.instance?.let { declareOrGet(it) }
+                val args = params.map { declareOrGet(it) }
+                caller[executable](*args.toTypedArray())
+            }
+            is ConstructorId -> {
+                val args = params.map { declareOrGet(it) }
+                executable(*args.toTypedArray())
+            }
+        }
+        return cgCall
     }
 
     /**
@@ -352,7 +416,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         val init = if (classId.isAccessibleFrom(testClassPackageName)) {
             CgGetJavaClass(classId)
         } else {
-            classId[forName](classId.name)
+            classClassId[forName](classId.name)
         }
 
         return newVar(Class::class.id, baseName) { init }
@@ -432,15 +496,3 @@ internal class CgVariableConstructor(val context: CgContext) :
     private fun String.toVarName(): String = nameGenerator.variableName(this)
 
 }
-
-private val Field.isPublic: Boolean
-    get() = Modifier.isPublic(modifiers)
-
-private val Field.isPrivate: Boolean
-    get() = Modifier.isPrivate(modifiers)
-
-val Field.isStatic: Boolean
-    get() = Modifier.isStatic(modifiers)
-
-private val Field.isFinal: Boolean
-    get() = Modifier.isFinal(modifiers)

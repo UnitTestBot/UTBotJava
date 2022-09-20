@@ -25,7 +25,7 @@ enum class MockStrategy {
 
     OTHER_CLASSES {
         override fun eligibleToMock(classToMock: ClassId, classUnderTest: ClassId): Boolean =
-                classToMock != classUnderTest && !isSystemPackage(classToMock.packageName)
+            classToMock != classUnderTest && !isSystemPackage(classToMock.packageName)
     };
 
     /**
@@ -45,6 +45,7 @@ private val systemPackages = setOf(
     "sun.reflect", // we cannot mock Reflection since mockers are using it during the execution
     "java.awt",
     "sun.misc",
+    "jdk.internal",
     "kotlin.jvm.internal",
     "kotlin.internal"
 )

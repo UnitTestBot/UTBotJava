@@ -1,13 +1,11 @@
 package org.utbot.framework.codegen.model.constructor.tree
 
 import org.utbot.common.PathUtil
+import org.utbot.common.isStatic
 import org.utbot.framework.assemble.assemble
 import org.utbot.framework.codegen.ForceStaticMocking
-import org.utbot.framework.codegen.Junit4
-import org.utbot.framework.codegen.Junit5
 import org.utbot.framework.codegen.ParametrizedTestSource
 import org.utbot.framework.codegen.RuntimeExceptionTestsBehaviour.PASS
-import org.utbot.framework.codegen.TestNg
 import org.utbot.framework.codegen.model.constructor.CgMethodTestSet
 import org.utbot.framework.codegen.model.constructor.builtin.closeMethodIdOrNull
 import org.utbot.framework.codegen.model.constructor.builtin.forName
@@ -15,7 +13,6 @@ import org.utbot.framework.codegen.model.constructor.builtin.getClass
 import org.utbot.framework.codegen.model.constructor.builtin.getTargetException
 import org.utbot.framework.codegen.model.constructor.builtin.invoke
 import org.utbot.framework.codegen.model.constructor.builtin.newInstance
-import org.utbot.framework.codegen.model.constructor.builtin.setArrayElement
 import org.utbot.framework.codegen.model.constructor.context.CgContext
 import org.utbot.framework.codegen.model.constructor.context.CgContextOwner
 import org.utbot.framework.codegen.model.constructor.util.CgComponents
@@ -26,9 +23,9 @@ import org.utbot.framework.codegen.model.constructor.util.classCgClassId
 import org.utbot.framework.codegen.model.constructor.util.needExpectedDeclaration
 import org.utbot.framework.codegen.model.constructor.util.overridesEquals
 import org.utbot.framework.codegen.model.constructor.util.plus
+import org.utbot.framework.codegen.model.constructor.util.setArgumentsArrayElement
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
-import org.utbot.framework.codegen.model.tree.CgAnnotation
 import org.utbot.framework.codegen.model.tree.CgArrayElementAccess
 import org.utbot.framework.codegen.model.tree.CgClassId
 import org.utbot.framework.codegen.model.tree.CgDeclaration
@@ -41,7 +38,6 @@ import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
-import org.utbot.framework.codegen.model.tree.CgIsInstance
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgMethod
 import org.utbot.framework.codegen.model.tree.CgMethodCall
@@ -70,18 +66,14 @@ import org.utbot.framework.codegen.model.tree.buildParameterizedTestDataProvider
 import org.utbot.framework.codegen.model.tree.buildTestMethod
 import org.utbot.framework.codegen.model.tree.convertDocToCg
 import org.utbot.framework.codegen.model.tree.toStatement
-import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.canBeSetIn
 import org.utbot.framework.codegen.model.util.equalTo
-import org.utbot.framework.codegen.model.util.get
 import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
-import org.utbot.framework.codegen.model.util.isInaccessible
 import org.utbot.framework.codegen.model.util.length
 import org.utbot.framework.codegen.model.util.lessThan
 import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
-import org.utbot.framework.codegen.model.util.stringLiteral
 import org.utbot.framework.fields.ExecutionStateAnalyzer
 import org.utbot.framework.fields.FieldPath
 import org.utbot.framework.plugin.api.BuiltinClassId
@@ -106,19 +98,21 @@ import org.utbot.framework.plugin.api.UtExecution
 import org.utbot.framework.plugin.api.UtExecutionFailure
 import org.utbot.framework.plugin.api.UtExecutionSuccess
 import org.utbot.framework.plugin.api.UtExplicitlyThrownException
+import org.utbot.framework.plugin.api.UtLambdaModel
 import org.utbot.framework.plugin.api.UtModel
 import org.utbot.framework.plugin.api.UtNewInstanceInstrumentation
 import org.utbot.framework.plugin.api.UtNullModel
 import org.utbot.framework.plugin.api.UtPrimitiveModel
 import org.utbot.framework.plugin.api.UtReferenceModel
+import org.utbot.framework.plugin.api.UtSandboxFailure
 import org.utbot.framework.plugin.api.UtStaticMethodInstrumentation
 import org.utbot.framework.plugin.api.UtSymbolicExecution
 import org.utbot.framework.plugin.api.UtTimeoutException
 import org.utbot.framework.plugin.api.UtVoidModel
+import org.utbot.framework.plugin.api.isNotNull
+import org.utbot.framework.plugin.api.isNull
 import org.utbot.framework.plugin.api.onFailure
 import org.utbot.framework.plugin.api.onSuccess
-import org.utbot.framework.plugin.api.util.booleanClassId
-import org.utbot.framework.plugin.api.util.builtinStaticMethodId
 import org.utbot.framework.plugin.api.util.doubleArrayClassId
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.doubleWrapperClassId
@@ -139,16 +133,17 @@ import org.utbot.framework.plugin.api.util.isPrimitiveWrapper
 import org.utbot.framework.plugin.api.util.isRefType
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.kClass
-import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectArrayClassId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.plugin.api.util.stringClassId
 import org.utbot.framework.plugin.api.util.voidClassId
 import org.utbot.framework.plugin.api.util.wrapIfPrimitive
+import org.utbot.framework.util.isInaccessibleViaReflection
 import org.utbot.framework.util.isUnit
 import org.utbot.summary.SummarySentenceConstants.TAB
-import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl
 import java.lang.reflect.InvocationTargetException
+import java.security.AccessControlException
+import java.lang.reflect.ParameterizedType
 
 private const val DEEP_EQUALS_MAX_DEPTH = 5 // TODO move it to plugin settings?
 
@@ -171,6 +166,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private lateinit var resultModel: UtModel
 
     private lateinit var methodType: CgTestMethodType
+
+    private val fieldsOfExecutionResults = mutableMapOf<Pair<FieldId, Int>, MutableList<UtModel>>()
 
     private fun setupInstrumentation() {
         if (currentExecution is UtSymbolicExecution) {
@@ -234,7 +231,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     val declaringClassVar = newVar(classCgClassId) {
                         Class::class.id[forName](declaringClass.name)
                     }
-                    testClassThisInstance[getStaticFieldValue](declaringClassVar, field.name)
+                    utilsClassId[getStaticFieldValue](declaringClassVar, field.name)
                 }
             }
             // remember the previous value of a static field to recover it at the end of the test
@@ -260,7 +257,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 val declaringClassVar = newVar(classCgClassId) {
                     Class::class.id[forName](declaringClass.name)
                 }
-                +testClassThisInstance[setStaticField](declaringClassVar, field.name, fieldValue)
+                +utilsClassId[setStaticField](declaringClassVar, field.name, fieldValue)
             }
         }
     }
@@ -271,23 +268,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
-                +testClassThisInstance[setStaticField](declaringClass, field.name, prevValue)
+                +utilsClassId[setStaticField](declaringClass, field.name, prevValue)
             }
         }
     }
 
-    private fun <E> Map<FieldId, E>.accessibleFields(): Map<FieldId, E> = filterKeys { !it.isInaccessible }
-
-    /**
-     * @return expression for [java.lang.Class] of the given [classId]
-     */
-    // TODO: move this method somewhere, because now it duplicates the identical method from MockFrameworkManager
-    private fun getClassOf(classId: ClassId): CgExpression =
-        if (classId isAccessibleFrom testClassPackageName) {
-            CgGetJavaClass(classId)
-        } else {
-            newVar(classCgClassId) { Class::class.id[forName](classId.name) }
-        }
+    private fun <E> Map<FieldId, E>.accessibleFields(): Map<FieldId, E> = filterKeys { !it.isInaccessibleViaReflection }
 
     /**
      * Generates result assertions for unit tests.
@@ -318,6 +304,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         processExecutionFailure(currentExecution, exception)
                     }
             }
+            else -> {} // TODO: check this specific case
         }
     }
 
@@ -327,6 +314,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 when (this) {
                     is MethodId -> thisInstance[this](*methodArguments.toTypedArray()).intercepted()
                     is ConstructorId -> this(*methodArguments.toTypedArray()).intercepted()
+                    else -> {} // TODO: check this specific case
                 }
             }
         }
@@ -355,6 +343,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 methodType = CRASH
                 writeWarningAboutCrash()
             }
+            is AccessControlException -> {
+                methodType = CRASH
+                writeWarningAboutFailureTest(exception)
+                return
+            }
             else -> {
                 methodType = FAILING
                 writeWarningAboutFailureTest(exception)
@@ -365,6 +358,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     }
 
     private fun shouldTestPassWithException(execution: UtExecution, exception: Throwable): Boolean {
+        if (exception is AccessControlException) return false
         // tests with timeout or crash should be processed differently
         if (exception is TimeoutException || exception is ConcreteExecutionFailureException) return false
 
@@ -441,11 +435,11 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                             val expectedExpression = CgNotNullAssertion(expectedVariable)
 
                             assertEquality(expectedExpression, actual)
-                            println()
                         }
                     }
                     .onFailure { thisInstance[method](*methodArguments.toTypedArray()).intercepted() }
             }
+            else -> {} // TODO: check this specific case
         }
     }
 
@@ -532,7 +526,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                                 doubleDelta
                             )
                         expectedModel.value is Boolean -> {
-                            when (parameterizedTestSource) {
+                            when (parametrizedTestSource) {
                                 ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
                                     if (expectedModel.value as Boolean) {
                                         assertions[assertTrue](actual)
@@ -701,6 +695,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         )
                     }
                 }
+                is UtLambdaModel -> Unit // we do not check equality of lambdas
                 is UtVoidModel -> {
                     // Unit result is considered in generateResultAssertions method
                     error("Unexpected UtVoidModel in deep equals")
@@ -716,12 +711,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val cgGetLengthDeclaration = CgDeclaration(
             intClassId,
             variableConstructor.constructVarName("${expected.name}Size"),
-            expected.length(this, testClassThisInstance, getArrayLength)
+            expected.length(this@CgMethodConstructor)
         )
         currentBlock += cgGetLengthDeclaration
         currentBlock += assertions[assertEquals](
             cgGetLengthDeclaration.variable,
-            actual.length(this, testClassThisInstance, getArrayLength)
+            actual.length(this@CgMethodConstructor)
         ).toStatement()
 
         return cgGetLengthDeclaration
@@ -783,7 +778,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                     ifStatement(
                         CgEqualTo(expectedNestedElement, nullLiteral()),
-                        trueBranch = { assertions[assertNull](actualNestedElement).toStatement() },
+                        trueBranch = { +assertions[assertNull](actualNestedElement).toStatement() },
                         falseBranch = {
                             floatingPointArraysDeepEquals(
                                 expectedArrayInfo.getNested(),
@@ -834,9 +829,29 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
         // if model is already processed, so we don't want to add new statements
         if (fieldModel in visitedModels) {
+            currentBlock += testFrameworkManager.getDeepEqualsAssertion(expected, actual).toStatement()
             return
         }
 
+        when (parametrizedTestSource) {
+            ParametrizedTestSource.DO_NOT_PARAMETRIZE -> {
+                traverseField(fieldId, fieldModel, expected, actual, depth, visitedModels)
+            }
+
+            ParametrizedTestSource.PARAMETRIZE -> {
+                traverseFieldForParametrizedTest(fieldId, fieldModel, expected, actual, depth, visitedModels)
+            }
+        }
+    }
+
+    private fun traverseField(
+        fieldId: FieldId,
+        fieldModel: UtModel,
+        expected: CgVariable,
+        actual: CgVariable,
+        depth: Int,
+        visitedModels: MutableSet<UtModel>
+    ) {
         // fieldModel is not visited and will be marked in assertDeepEquals call
         val fieldName = fieldId.name
         var expectedVariable: CgVariable? = null
@@ -859,6 +874,144 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             visitedModels,
         )
         emptyLineIfNeeded()
+    }
+
+    private fun traverseFieldForParametrizedTest(
+        fieldId: FieldId,
+        fieldModel: UtModel,
+        expected: CgVariable,
+        actual: CgVariable,
+        depth: Int,
+        visitedModels: MutableSet<UtModel>
+    ) {
+        val fieldResultModels = fieldsOfExecutionResults[fieldId to depth]
+        val nullResultModelInExecutions = fieldResultModels?.find { it.isNull() }
+        val notNullResultModelInExecutions = fieldResultModels?.find { it.isNotNull() }
+
+        val hasNullResultModel = nullResultModelInExecutions != null
+        val hasNotNullResultModel = notNullResultModelInExecutions != null
+
+        val needToSubstituteFieldModel = fieldModel is UtNullModel && hasNotNullResultModel
+
+        val fieldModelForAssert = if (needToSubstituteFieldModel) notNullResultModelInExecutions!! else fieldModel
+
+        // fieldModel is not visited and will be marked in assertDeepEquals call
+        val fieldName = fieldId.name
+        var expectedVariable: CgVariable? = null
+
+        val needExpectedDeclaration = needExpectedDeclaration(fieldModelForAssert)
+        if (needExpectedDeclaration) {
+            val expectedFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, expected, fieldName)
+
+            currentBlock += expectedFieldDeclaration
+            expectedVariable = expectedFieldDeclaration.variable
+        }
+
+        val actualFieldDeclaration = createDeclarationForFieldFromVariable(fieldId, actual, fieldName)
+        currentBlock += actualFieldDeclaration
+
+        if (needExpectedDeclaration && hasNullResultModel) {
+            ifStatement(
+                CgEqualTo(expectedVariable!!, nullLiteral()),
+                trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actualFieldDeclaration.variable).toStatement() },
+                falseBranch = {
+                    assertDeepEquals(
+                        fieldModelForAssert,
+                        expectedVariable,
+                        actualFieldDeclaration.variable,
+                        depth + 1,
+                        visitedModels,
+                    )
+                }
+            )
+        } else {
+            assertDeepEquals(
+                fieldModelForAssert,
+                expectedVariable,
+                actualFieldDeclaration.variable,
+                depth + 1,
+                visitedModels,
+            )
+        }
+        emptyLineIfNeeded()
+    }
+
+    private fun collectExecutionsResultFields() {
+        val successfulExecutionsModels = allExecutions
+            .filter {
+                it.result is UtExecutionSuccess
+            }.map {
+                (it.result as UtExecutionSuccess).model
+            }
+
+        for (model in successfulExecutionsModels) {
+            when (model) {
+                is UtCompositeModel -> {
+                    for ((fieldId, fieldModel) in model.fields) {
+                        collectExecutionsResultFieldsRecursively(fieldId, fieldModel, 0)
+                    }
+                }
+
+                is UtAssembleModel -> {
+                    model.origin?.let {
+                        for ((fieldId, fieldModel) in it.fields) {
+                            collectExecutionsResultFieldsRecursively(fieldId, fieldModel, 0)
+                        }
+                    }
+                }
+
+                // Lambdas do not have fields. They have captured values, but we do not consider them here.
+                is UtLambdaModel,
+                is UtNullModel,
+                is UtPrimitiveModel,
+                is UtArrayModel,
+                is UtClassRefModel,
+                is UtEnumConstantModel,
+                is UtVoidModel -> {
+                    // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
+                }
+            }
+        }
+    }
+
+    private fun collectExecutionsResultFieldsRecursively(
+        fieldId: FieldId,
+        fieldModel: UtModel,
+        depth: Int,
+    ) {
+        if (depth >= DEEP_EQUALS_MAX_DEPTH) {
+            return
+        }
+
+        val fieldKey = fieldId to depth
+        fieldsOfExecutionResults.getOrPut(fieldKey) { mutableListOf() } += fieldModel
+
+        when (fieldModel) {
+            is UtCompositeModel -> {
+                for ((id, model) in fieldModel.fields) {
+                    collectExecutionsResultFieldsRecursively(id, model, depth + 1)
+                }
+            }
+
+            is UtAssembleModel -> {
+                fieldModel.origin?.let {
+                    for ((id, model) in it.fields) {
+                        collectExecutionsResultFieldsRecursively(id, model, depth + 1)
+                    }
+                }
+            }
+
+            // Lambdas do not have fields. They have captured values, but we do not consider them here.
+            is UtLambdaModel,
+            is UtNullModel,
+            is UtPrimitiveModel,
+            is UtArrayModel,
+            is UtClassRefModel,
+            is UtEnumConstantModel,
+            is UtVoidModel -> {
+                // only [UtCompositeModel] and [UtAssembleModel] have fields to traverse
+            }
+        }
     }
 
     @Suppress("UNUSED_ANONYMOUS_PARAMETER")
@@ -889,7 +1042,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
-            testClassThisInstance[getFieldValue](variable, stringLiteral(name))
+            utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)
         }
 
     /**
@@ -994,7 +1147,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
                 expected == nullLiteral() -> testFrameworkManager.assertNull(actual)
                 expected is CgLiteral && expected.value is Boolean -> {
-                    when (parameterizedTestSource) {
+                    when (parametrizedTestSource) {
                         ParametrizedTestSource.DO_NOT_PARAMETRIZE ->
                             testFrameworkManager.assertBoolean(expected.value, actual)
                         ParametrizedTestSource.PARAMETRIZE ->
@@ -1049,15 +1202,19 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         expected: CgValue,
         actual: CgVariable,
     ) {
-        when (parameterizedTestSource) {
+        when (parametrizedTestSource) {
             ParametrizedTestSource.DO_NOT_PARAMETRIZE -> generateDeepEqualsAssertion(expected, actual)
-            ParametrizedTestSource.PARAMETRIZE -> when {
-                actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
-                else -> ifStatement(
-                    CgEqualTo(expected, nullLiteral()),
-                    trueBranch = { testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
-                    falseBranch = { generateDeepEqualsAssertion(expected, actual) }
-                )
+            ParametrizedTestSource.PARAMETRIZE -> {
+                collectExecutionsResultFields()
+
+                when {
+                    actual.type.isPrimitive -> generateDeepEqualsAssertion(expected, actual)
+                    else -> ifStatement(
+                        CgEqualTo(expected, nullLiteral()),
+                        trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
+                        falseBranch = { generateDeepEqualsAssertion(expected, actual) }
+                    )
+                }
             }
         }
     }
@@ -1100,6 +1257,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                         thisInstance[executable](*methodArguments.toTypedArray())
                     }
                 }
+                else -> {} // TODO: check this specific case
             }
         }
     }
@@ -1188,7 +1346,8 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         //may be a heuristic to select a model with minimal number of internal nulls should be used
         val genericExecution = testSet.executions
             .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
-            ?: testSet.executions.first()
+            ?: testSet.executions
+                .firstOrNull { it.result is UtExecutionSuccess } ?: testSet.executions.first()
 
         val statics = genericExecution.stateBefore.statics
 
@@ -1285,7 +1444,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
                 val argumentType = when {
                     paramType is Class<*> && paramType.isArray -> paramType.id
-                    paramType is ParameterizedTypeImpl -> paramType.rawType.id
+                    paramType is ParameterizedType -> paramType.id
                     else -> ClassId(paramType.typeName)
                 }
 
@@ -1368,7 +1527,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         return withDataProviderScope {
             dataProviderMethod(dataProviderMethodName) {
                 val argListLength = testSet.executions.size
-                val argListVariable = createArgList(argListLength)
+                val argListVariable = testFrameworkManager.createArgList(argListLength)
 
                 emptyLine()
 
@@ -1490,160 +1649,14 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
             CgAllocateArray(objectArrayClassId, objectClassId, arguments.size)
         }
         for ((i, argument) in arguments.withIndex()) {
-            setArgumentsArrayElement(argsArray, i, argument)
+            setArgumentsArrayElement(argsArray, i, argument, this)
         }
-        when (testFramework) {
-            Junit5 -> {
-                +argsVariable[addToListMethodId](
-                    argumentsClassId[argumentsMethodId](argsArray)
-                )
-            }
-            TestNg -> {
-                setArgumentsArrayElement(argsVariable, executionIndex, argsArray)
-            }
-            Junit4 -> error("Parameterized tests are not supported for JUnit4")
-        }
+        testFrameworkManager.passArgumentsToArgsVariable(argsVariable, argsArray, executionIndex)
     }
-
-    /**
-     * Sets an element of arguments array in parameterized test,
-     * if test framework represents arguments as array.
-     */
-    private fun setArgumentsArrayElement(array: CgVariable, index: Int, value: CgExpression) {
-        when (array.type) {
-            objectClassId -> {
-                +java.lang.reflect.Array::class.id[setArrayElement](array, index, value)
-            }
-            else -> array.at(index) `=` value
-        }
-    }
-
-    /**
-     * Creates annotations for data provider method in parameterized tests
-     * depending on test framework.
-     */
-    private fun createDataProviderAnnotations(dataProviderMethodName: String?): MutableList<CgAnnotation> =
-        when (testFramework) {
-            Junit5 -> mutableListOf()
-            TestNg -> mutableListOf(
-                annotation(
-                    testFramework.methodSourceAnnotationId,
-                    listOf("name" to CgLiteral(stringClassId, dataProviderMethodName))
-                ),
-            )
-            Junit4 -> error("Parameterized tests are not supported for JUnit4")
-        }
-
-    /**
-     * Creates declaration of argList collection in parameterized tests.
-     */
-    private fun createArgList(length: Int): CgVariable {
-        val argListName = "argList"
-        return when (testFramework) {
-            Junit5 ->
-                newVar(argListClassId, argListName) {
-                    val constructor = ConstructorId(argListClassId, emptyList())
-                    constructor.invoke()
-                }
-            TestNg ->
-                newVar(argListClassId, argListName) {
-                    CgAllocateArray(argListClassId, Array<Any>::class.java.id, length)
-                }
-            Junit4 -> error("Parameterized tests are not supported for JUnit4")
-        }
-    }
-
-    /**
-     * Creates a [ClassId] for arguments collection.
-     */
-    private val argListClassId: ClassId
-        get() = when (testFramework) {
-            Junit5 -> {
-                val arrayListId = java.util.ArrayList::class.id
-                BuiltinClassId(
-                    name = arrayListId.name,
-                    simpleName = arrayListId.simpleName,
-                    canonicalName = arrayListId.canonicalName,
-                    packageName = arrayListId.packageName,
-                    typeParameters = TypeParameters(listOf(argumentsClassId))
-                )
-            }
-            TestNg -> {
-                val outerArrayId = Array<Array<Any?>?>::class.id
-                val innerArrayId = BuiltinClassId(
-                    name = objectArrayClassId.name,
-                    simpleName = objectArrayClassId.simpleName,
-                    canonicalName = objectArrayClassId.canonicalName,
-                    packageName = objectArrayClassId.packageName,
-                    elementClassId = objectClassId,
-                    typeParameters = TypeParameters(listOf(objectClassId))
-                )
-
-                BuiltinClassId(
-                    name = outerArrayId.name,
-                    simpleName = outerArrayId.simpleName,
-                    canonicalName = outerArrayId.canonicalName,
-                    packageName = outerArrayId.packageName,
-                    elementClassId = innerArrayId,
-                    typeParameters = TypeParameters(listOf(innerArrayId))
-                )
-            }
-            Junit4 -> error("Parameterized tests are not supported for JUnit4")
-        }
-
-
-    /**
-     * A [MethodId] to add an item into [ArrayList].
-     */
-    private val addToListMethodId: MethodId
-        get() = methodId(
-            classId = ArrayList::class.id,
-            name = "add",
-            returnType = booleanClassId,
-            arguments = arrayOf(Object::class.id),
-        )
-
-    /**
-     * A [ClassId] of class `org.junit.jupiter.params.provider.Arguments`
-     */
-    private val argumentsClassId: BuiltinClassId
-        get() = BuiltinClassId(
-            name = "org.junit.jupiter.params.provider.Arguments",
-            simpleName = "Arguments",
-            canonicalName = "org.junit.jupiter.params.provider.Arguments",
-            packageName = "org.junit.jupiter.params.provider"
-        )
-
-    /**
-     * A [MethodId] to call JUnit Arguments method.
-     */
-    private val argumentsMethodId: BuiltinMethodId
-        get() = builtinStaticMethodId(
-            classId = argumentsClassId,
-            name = "arguments",
-            returnType = argumentsClassId,
-            // vararg of Objects
-            arguments = arrayOf(objectArrayClassId)
-        )
 
     private fun containsFailureExecution(testSet: CgMethodTestSet) =
         testSet.executions.any { it.result is UtExecutionFailure }
 
-
-    private fun collectParameterizedTestAnnotations(dataProviderMethodName: String?): Set<CgAnnotation> =
-        when (testFramework) {
-            Junit5 -> setOf(
-                annotation(testFramework.parameterizedTestAnnotationId),
-                annotation(testFramework.methodSourceAnnotationId, dataProviderMethodName),
-            )
-            TestNg -> setOf(
-                annotation(
-                    testFramework.parameterizedTestAnnotationId,
-                    listOf("dataProvider" to CgLiteral(stringClassId, dataProviderMethodName))
-                ),
-            )
-            Junit4 -> error("Parameterized tests are not supported for JUnit4")
-        }
 
     private fun testMethod(
         methodName: String,
@@ -1654,26 +1667,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         body: () -> Unit,
     ): CgTestMethod {
         collectedMethodAnnotations += if (parameterized) {
-            collectParameterizedTestAnnotations(dataProviderMethodName)
+            testFrameworkManager.collectParameterizedTestAnnotations(dataProviderMethodName)
         } else {
             setOf(annotation(testFramework.testAnnotationId))
         }
 
-        /* Add a short test's description depending on the test framework type:
-           DisplayName annotation in case of JUni5, and description argument to Test annotation in case of TestNG.
-         */
-        if (displayName != null) {
-            when (testFramework) {
-                is Junit5 -> {
-                    displayName.let { testFrameworkManager.addDisplayName(it) }
-                }
-                is TestNg -> {
-                    testFrameworkManager.addTestDescription(displayName)
-                }
-                else -> {
-                    // nothing
-                }
-            }
+        displayName?.let {
+            testFrameworkManager.addTestDescription(displayName)
         }
 
         val result = currentExecution!!.result
@@ -1690,6 +1690,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         if (result is UtConcreteExecutionFailure) {
             testFrameworkManager.disableTestMethod(
                 "Disabled due to possible JVM crash"
+            )
+        }
+
+        if (result is UtSandboxFailure) {
+            testFrameworkManager.disableTestMethod(
+                "Disabled due to sandbox"
             )
         }
 
@@ -1734,12 +1740,12 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun dataProviderMethod(dataProviderMethodName: String, body: () -> Unit): CgParameterizedTestDataProviderMethod {
         return buildParameterizedTestDataProviderMethod {
             name = dataProviderMethodName
-            returnType = argListClassId
+            returnType = testFramework.argListClassId
             statements = block(body)
             // Exceptions and annotations assignment must run after the statements block is build,
             // because we collect info about exceptions and required annotations while building the statements
             exceptions += collectedExceptions
-            annotations += createDataProviderAnnotations(dataProviderMethodName)
+            annotations += testFrameworkManager.createDataProviderAnnotations(dataProviderMethodName)
         }
     }
 

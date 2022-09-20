@@ -63,7 +63,7 @@ fun UtMethodTestSet.summarize(sourceFile: File?, searchDirectory: Path = Paths.g
             clustersInfo = clustersInfo
         ) // TODO: looks weird and don't create the real copy
     } catch (e: Throwable) {
-        logger.info(e) { "Summary generation error" }
+        logger.info(e) { "Summary generation error: ${e.message}" }
         this
     }
 }
@@ -153,30 +153,36 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         }
 
         // handles tests produced by symbolic engine, but with empty paths
-        val executionsWithEmptyPaths = getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet)
+        val testSetWithEmptyPaths = prepareTestSetWithEmptyPaths(testSet)
+
+        val executionsWithEmptyPaths = testSetWithEmptyPaths.executions
 
         if (executionsWithEmptyPaths.isNotEmpty()) {
             executionsWithEmptyPaths.forEach {
                 logger.info {
-                    "Test is created by Symbolic Execution Engine. The path for test ${it.testMethodName} " +
+                    "The path for test ${it.testMethodName} " +
                             "for method ${testSet.method.classId.name} is empty and summaries could not be generated."
                 }
             }
 
-            clustersToReturn.add(
-                UtExecutionCluster(
-                    UtClusterInfo(),
-                    executionsWithEmptyPaths
+            val clusteredExecutions = groupExecutionsWithEmptyPaths(testSetWithEmptyPaths)
+
+            clusteredExecutions.forEach {
+                clustersToReturn.add(
+                    UtExecutionCluster(
+                        UtClusterInfo(it.header),
+                        it.executions
+                    )
                 )
-            )
+            }
         }
 
-        val testSetForAnalysis = prepareTestSetForByteCodeAnalysis(testSet)
+        val testSetWithNonEmptyPaths = prepareTestSetForByteCodeAnalysis(testSet)
 
         // analyze
         if (jimpleBody != null && sootToAST != null) {
             val methodUnderTest = jimpleBody.method
-            val clusteredTags = tagGenerator.testSetToTags(testSetForAnalysis)
+            val clusteredTags = tagGenerator.testSetToTags(testSetWithNonEmptyPaths)
             jimpleBodyAnalysis.traceStructuralAnalysis(jimpleBody, clusteredTags, methodUnderTest, invokeDescriptions)
             val numberOfSuccessfulClusters = clusteredTags.filter { it.isSuccessful }.size
             for (clusterTraceTags in clusteredTags) {
@@ -196,7 +202,7 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
                             }
                         }
                 } else {
-                    null
+                    null // TODO: handle it correctly, something like common cluster or something else
                 }
 
                 for (traceTags in clusterTraceTags.traceTags) {
@@ -263,9 +269,11 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         return "$commentPrefix ${ExecutionGroup.EXPLICITLY_THROWN_UNCHECKED_EXCEPTIONS} $commentPostfix"
     }
 
+    /** Filter and copies executions with non-empty paths. */
     private fun prepareTestSetForByteCodeAnalysis(testSet: UtMethodTestSet): UtMethodTestSet {
         val executions =
-            testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isNotEmpty() }
+            testSet.executions.filterIsInstance<UtSymbolicExecution>()
+                .filter { it.path.isNotEmpty() }
 
         return UtMethodTestSet(
             method = testSet.method,
@@ -276,8 +284,20 @@ class Summarization(val sourceFile: File?, val invokeDescriptions: List<InvokeDe
         )
     }
 
-    private fun getExecutionsCreatedBySymbolicEngineWithEmptyPath(testSet: UtMethodTestSet) =
-        testSet.executions.filterIsInstance<UtSymbolicExecution>().filter { it.path.isEmpty() }
+    /** Filter and copies executions with non-empty paths. */
+    private fun prepareTestSetWithEmptyPaths(testSet: UtMethodTestSet): UtMethodTestSet {
+        val executions =
+            testSet.executions.filterIsInstance<UtSymbolicExecution>()
+                .filter { it.path.isEmpty() }
+
+        return UtMethodTestSet(
+            method = testSet.method,
+            executions = executions,
+            jimpleBody = testSet.jimpleBody,
+            errors = testSet.errors,
+            clustersInfo = testSet.clustersInfo
+        )
+    }
 
     /*
     * asts of invokes also included

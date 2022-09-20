@@ -112,7 +112,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
                 if (numDimensions == 0) baseType else baseType.makeArrayType(numDimensions)
             }
 
-        return TypeStorage(type, concretePossibleTypes).filterInappropriateClassesForCodeGeneration()
+        return TypeStorage(type, concretePossibleTypes).removeInappropriateTypes()
     }
 
     private fun isInappropriateOrArrayOfMocksOrLocals(numDimensions: Int, baseType: Type?): Boolean {
@@ -182,44 +182,40 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             else -> error("Unexpected type $type")
         }
 
-        return TypeStorage(type, possibleTypes).filterInappropriateClassesForCodeGeneration()
+        return TypeStorage(type, possibleTypes).removeInappropriateTypes()
     }
 
     /**
-     * Where possible, remove types that are not currently supported by code generation.
-     * For example, we filter out artificial entities (lambdas are an example of them)
-     * if the least common type is **not** artificial itself.
+     * Remove wrapper types and, if any other type is available, artificial entities.
      */
-    private fun TypeStorage.filterInappropriateClassesForCodeGeneration(): TypeStorage {
-        val unwantedTypes = mutableSetOf<Type>()
-        val concreteTypes = mutableSetOf<Type>()
-
+    private fun TypeStorage.removeInappropriateTypes(): TypeStorage {
         val leastCommonSootClass = (leastCommonType as? RefType)?.sootClass
         val keepArtificialEntities = leastCommonSootClass?.isArtificialEntity == true
 
-        possibleConcreteTypes.forEach {
-            val sootClass = (it.baseType as? RefType)?.sootClass ?: run {
-                // All not RefType should be included in the concreteTypes, e.g., arrays
-                concreteTypes += it
-                return@forEach
-            }
-            when {
-                sootClass.isUtMock -> unwantedTypes += it
-                sootClass.isArtificialEntity -> {
-                    if (keepArtificialEntities || sootClass.isLambda) {
-                        concreteTypes += it
-                    }
-                }
-                workaround(WorkaroundReason.HACK) { leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden } -> Unit
-                else -> concreteTypes += it
-            }
-        }
+        val appropriateTypes = possibleConcreteTypes.filter {
+            // All not RefType should be included in the concreteTypes, e.g., arrays
+            val sootClass = (it.baseType as? RefType)?.sootClass ?: return@filter true
 
-        return if (concreteTypes.isEmpty()) {
-            copy(possibleConcreteTypes = unwantedTypes)
-        } else {
-            copy(possibleConcreteTypes = concreteTypes)
-        }
+            // All artificial entities except anonymous functions should be filtered out if we have another types
+            if (sootClass.isArtificialEntity) {
+                if (sootClass.isLambda) {
+                    return@filter true
+                }
+
+                return@filter keepArtificialEntities
+            }
+
+            // All wrappers should filtered out because they could not be instantiated
+            workaround(WorkaroundReason.HACK) {
+                if (leastCommonSootClass == OBJECT_TYPE && sootClass.isOverridden) {
+                    return@filter false
+                }
+            }
+
+            return@filter true
+        }.toSet()
+
+        return copy(possibleConcreteTypes = appropriateTypes)
     }
 
     /**

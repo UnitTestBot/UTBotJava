@@ -10,7 +10,6 @@ import org.utbot.fuzzer.hex
 
 
 fun ModelProvider.assembleModel(id: Int, constructorId: ConstructorId, params: List<FuzzedValue>): FuzzedValue {
-    mutableListOf<UtStatementModel>()
     return UtAssembleModel(
         id,
         constructorId.classId,

@@ -227,17 +227,20 @@ internal class CgVariableConstructor(val context: CgContext) :
     ) {
         val executable = executableCall.executable
         val params = executableCall.params
-        val cgCall = createCgExecutableCallFromUtExecutableCall(executableCall)
 
         val type = when (executable) {
             is MethodId -> executable.returnType
             is ConstructorId -> executable.classId
         }
         // Don't use redundant constructors for primitives and String
-        val initExpr = if (isPrimitiveWrapperOrString(type)) cgLiteralForWrapper(params) else cgCall
-        newVar(type, model, baseName) { initExpr }
-            .takeIf { executableCall == model.instantiationCall }
-            ?.also { valueByModelId[model.id] = it }
+        val initExpr = if (isPrimitiveWrapperOrString(type)) {
+            cgLiteralForWrapper(params)
+        } else {
+            createCgExecutableCallFromUtExecutableCall(executableCall)
+        }
+        newVar(type, model, baseName) {
+            initExpr
+        }.also { valueByModelId[model.id] = it }
     }
 
 

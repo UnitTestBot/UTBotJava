@@ -206,9 +206,7 @@ class TypeResolver(private val typeRegistry: TypeRegistry, private val hierarchy
             when {
                 sootClass.isUtMock -> unwantedTypes += it
                 sootClass.isArtificialEntity -> {
-                    if (sootClass.isLambda) {
-                        unwantedTypes += it
-                    } else if (keepArtificialEntities) {
+                    if (keepArtificialEntities || sootClass.isLambda) {
                         concreteTypes += it
                     }
                 }

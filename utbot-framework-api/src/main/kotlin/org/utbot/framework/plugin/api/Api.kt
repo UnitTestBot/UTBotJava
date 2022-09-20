@@ -1175,14 +1175,17 @@ enum class TreatOverflowAsError(
 }
 
 enum class JavaDocCommentStyle(
+    override val id: String,
     override val displayName: String,
-    override val description: String
+    override val description: String,
 ) : CodeGenerationSettingItem {
     CUSTOM_JAVADOC_TAGS(
+        id = "Structured via custom Javadoc tags",
         displayName = "Structured via custom Javadoc tags",
         description = "Uses custom Javadoc tags to describe test's execution path."
     ),
     FULL_SENTENCE_WRITTEN(
+        id = "Plain text",
         displayName = "Plain text",
         description = "Uses plain text to describe test's execution path."
     );

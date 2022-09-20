@@ -90,15 +90,11 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = mutableListOf<UtStatementModel>()
-        return UtAssembleModel(addr, classId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                instantiationChain += instantiationFactoryCallModel(classId, wrapper, this)
-            }
+        val instantiationCall = instantiationFactoryCallModel(classId, wrapper)
+        return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
-    private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue, model: UtAssembleModel) : UtExecutableCallModel {
+    private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtExecutableCallModel {
         val valueField = FieldId(overriddenClass.id, "value")
         val isPresentFieldId = FieldId(overriddenClass.id, "isPresent")
         val values = collectFieldModels(wrapper.addr, overriddenClass.type)
@@ -110,21 +106,23 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         }
         return if (!isPresent) {
             UtExecutableCallModel(
-                null, MethodId(
+                instance = null,
+                MethodId(
                     classId,
                     "empty",
                     classId,
                     emptyList()
-                ), emptyList(), model
+                ), emptyList()
             )
         } else {
             UtExecutableCallModel(
-                null, MethodId(
+                instance = null,
+                MethodId(
                     classId,
                     "of",
                     classId,
                     listOf(utOptionalClass.elementClassId)
-                ), listOf(valueModel), model
+                ), listOf(valueModel)
             )
         }
     }

@@ -79,7 +79,6 @@ class MockValueConstructor(
 
     // TODO: JIRA:1379 -- replace UtReferenceModel with Int
     private val constructedObjects = HashMap<UtReferenceModel, Any>()
-    private val resultsCache = HashMap<UtReferenceModel, Any>()
     private val mockInfo = mutableListOf<MockInfo>()
     private var mockTarget: MockTarget? = null
     private var mockCounter = 0
@@ -359,14 +358,21 @@ class MockValueConstructor(
     private fun constructFromAssembleModel(assembleModel: UtAssembleModel): Any {
         constructedObjects[assembleModel]?.let { return it }
 
-        assembleModel.allStatementsChain.forEach { statementModel ->
+        val instantiationExecutableCall = assembleModel.instantiationCall
+        val result = updateWithExecutableCallModel(instantiationExecutableCall)
+        checkNotNull(result) {
+            "Tracked instance can't be null for call ${instantiationExecutableCall.executable} in model $assembleModel"
+        }
+        constructedObjects[assembleModel] = result
+
+        assembleModel.modificationsChain.forEach { statementModel ->
             when (statementModel) {
-                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel, assembleModel)
+                is UtExecutableCallModel -> updateWithExecutableCallModel(statementModel)
                 is UtDirectSetFieldModel -> updateWithDirectSetFieldModel(statementModel)
             }
         }
 
-        return resultsCache[assembleModel] ?: error("Can't assemble model: $assembleModel")
+        return constructedObjects[assembleModel] ?: error("Can't assemble model: $assembleModel")
     }
 
     private fun constructFromLambdaModel(lambdaModel: UtLambdaModel): Any {
@@ -399,14 +405,15 @@ class MockValueConstructor(
     }
 
     /**
-     * Updates instance state with [UtExecutableCallModel] invocation.
+     * Updates instance state with [callModel] invocation.
+     *
+     * @return the result of [callModel] invocation
      */
     private fun updateWithExecutableCallModel(
         callModel: UtExecutableCallModel,
-        assembleModel: UtAssembleModel,
-    ) {
+    ): Any? {
         val executable = callModel.executable
-        val instanceValue = resultsCache[callModel.instance]
+        val instanceValue = callModel.instance?.let { value(it) }
         val params = callModel.params.map { value(it) }
 
         val result = when (executable) {
@@ -414,16 +421,7 @@ class MockValueConstructor(
             is ConstructorId -> executable.call(params)
         }
 
-        // Ignore result if returnId is null. Otherwise add it to instance cache.
-        callModel.returnValue?.let {
-            checkNotNull(result) { "Tracked instance can't be null for call $executable in model $assembleModel" }
-            resultsCache[it] = result
-
-            //If statement is final instantiating, add result to constructed objects cache
-            if (callModel == assembleModel.finalInstantiationModel) {
-                constructedObjects[assembleModel] = result
-            }
-        }
+        return result
     }
 
     /**
@@ -431,7 +429,7 @@ class MockValueConstructor(
      */
     private fun updateWithDirectSetFieldModel(directSetterModel: UtDirectSetFieldModel) {
         val instanceModel = directSetterModel.instance
-        val instance = resultsCache[instanceModel] ?: error("Model $instanceModel is not instantiated")
+        val instance = value(instanceModel)
 
         val instanceClassId = instanceModel.classId
         val fieldModel = directSetterModel.fieldModel

@@ -241,18 +241,15 @@ data class ThrowableWrapper(val throwable: Throwable) : WrapperInterface {
         val addr = resolver.holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(throwable.javaClass.simpleName.decapitalize())
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        return UtAssembleModel(addr, classId, modelName, instantiationChain)
-            .apply {
-                instantiationChain += when (val message = throwable.message) {
-                    null -> UtExecutableCallModel(null, constructorId(classId), emptyList(), this)
-                    else -> UtExecutableCallModel(
-                        null,
-                        constructorId(classId, stringClassId),
-                        listOf(UtPrimitiveModel(message)),
-                        this,
-                    )
-                }
-            }
+        val instantiationCall = when (val message = throwable.message) {
+            null -> UtExecutableCallModel(instance = null, constructorId(classId), emptyList())
+            else -> UtExecutableCallModel(
+                instance = null,
+                constructorId(classId, stringClassId),
+                listOf(UtPrimitiveModel(message))
+            )
+        }
+
+        return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 }

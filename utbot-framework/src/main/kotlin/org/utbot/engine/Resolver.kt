@@ -550,11 +550,8 @@ class Resolver(
             val baseModelName = primitiveClassId.name
             val constructorId = constructorId(classId, primitiveClassId)
             val valueModel = fields[FieldId(classId, "value")] ?: primitiveClassId.defaultValueModel()
-            val instantiationChain = mutableListOf<UtExecutableCallModel>()
-            UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationChain)
-                .apply {
-                    instantiationChain += UtExecutableCallModel(null, constructorId, listOf(valueModel), this)
-                }
+            val instantiationCall = UtExecutableCallModel(instance = null, constructorId, listOf(valueModel))
+            UtAssembleModel(addr, classId, nextModelName(baseModelName), instantiationCall)
         }
     }
 

@@ -2,9 +2,10 @@ package org.utbot.engine
 
 import org.utbot.engine.overrides.security.UtSecurityManager
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.classId
+import org.utbot.framework.plugin.api.util.executableId
 import org.utbot.framework.util.nextModelName
 import soot.Scene
 import soot.SootClass
@@ -27,9 +28,13 @@ class SecurityManagerWrapper : BaseOverriddenWrapper(utSecurityManagerClass.name
         val addr = holder.concreteAddr(wrapper.addr)
         val modelName = nextModelName(baseModelName)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
-        return UtAssembleModel(addr, classId, modelName, instantiationChain, modificationChain)
+        val instantiationCall = UtExecutableCallModel(
+            instance = null,
+            System::getSecurityManager.executableId,
+            emptyList()
+        )
+
+        return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
     companion object {

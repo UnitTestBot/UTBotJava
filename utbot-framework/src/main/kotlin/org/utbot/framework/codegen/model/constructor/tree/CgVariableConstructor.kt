@@ -16,6 +16,7 @@ import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
+import org.utbot.framework.codegen.model.tree.CgExecutableCall
 import org.utbot.framework.codegen.model.tree.CgExpression
 import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
@@ -200,7 +201,10 @@ internal class CgVariableConstructor(val context: CgContext) :
     }
 
     private fun constructAssemble(model: UtAssembleModel, baseName: String?): CgValue {
-        for (statementModel in model.allStatementsChain) {
+        val instantiationCall = model.instantiationCall
+        processInstantiationStatement(model, instantiationCall, baseName)
+
+        for (statementModel in model.modificationsChain) {
             when (statementModel) {
                 is UtDirectSetFieldModel -> {
                     val instance = declareOrGet(statementModel.instance)
@@ -208,40 +212,53 @@ internal class CgVariableConstructor(val context: CgContext) :
                     instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                 }
                 is UtExecutableCallModel -> {
-                    val executable = statementModel.executable
-                    val params = statementModel.params
-                    val cgCall = when (executable) {
-                        is MethodId -> {
-                            val caller = statementModel.instance?.let { declareOrGet(it) }
-                            val args = params.map { declareOrGet(it) }
-                            caller[executable](*args.toTypedArray())
-                        }
-                        is ConstructorId -> {
-                            val args = params.map { declareOrGet(it) }
-                            executable(*args.toTypedArray())
-                        }
-                    }
-
-                    // if call result is stored in a variable
-                    if (statementModel.returnValue == null) {
-                        +cgCall
-                    } else {
-                        val type = when (executable) {
-                            is MethodId -> executable.returnType
-                            is ConstructorId -> executable.classId
-                        }
-
-                        // Don't use redundant constructors for primitives and String
-                        val initExpr = if (isPrimitiveWrapperOrString(type)) cgLiteralForWrapper(params) else cgCall
-                        newVar(type, statementModel.returnValue, baseName) { initExpr }
-                            .takeIf { statementModel == model.finalInstantiationModel }
-                            ?.also { valueByModelId[model.id] = it }
-                    }
+                    +createCgExecutableCallFromUtExecutableCall(statementModel)
                 }
             }
         }
 
         return valueByModelId.getValue(model.id)
+    }
+
+    private fun processInstantiationStatement(
+        model: UtAssembleModel,
+        executableCall: UtExecutableCallModel,
+        baseName: String?
+    ) {
+        val executable = executableCall.executable
+        val params = executableCall.params
+
+        val type = when (executable) {
+            is MethodId -> executable.returnType
+            is ConstructorId -> executable.classId
+        }
+        // Don't use redundant constructors for primitives and String
+        val initExpr = if (isPrimitiveWrapperOrString(type)) {
+            cgLiteralForWrapper(params)
+        } else {
+            createCgExecutableCallFromUtExecutableCall(executableCall)
+        }
+        newVar(type, model, baseName) {
+            initExpr
+        }.also { valueByModelId[model.id] = it }
+    }
+
+
+    private fun createCgExecutableCallFromUtExecutableCall(statementModel: UtExecutableCallModel): CgExecutableCall {
+        val executable = statementModel.executable
+        val params = statementModel.params
+        val cgCall = when (executable) {
+            is MethodId -> {
+                val caller = statementModel.instance?.let { declareOrGet(it) }
+                val args = params.map { declareOrGet(it) }
+                caller[executable](*args.toTypedArray())
+            }
+            is ConstructorId -> {
+                val args = params.map { declareOrGet(it) }
+                executable(*args.toTypedArray())
+            }
+        }
+        return cgCall
     }
 
     /**

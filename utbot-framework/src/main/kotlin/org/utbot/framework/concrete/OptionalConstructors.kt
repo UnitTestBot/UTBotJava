@@ -4,7 +4,6 @@ import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtAssembleModel
 import org.utbot.framework.plugin.api.UtExecutableCallModel
-import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.doubleClassId
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.intClassId
@@ -24,36 +23,37 @@ internal sealed class OptionalConstructorBase : UtAssembleModelConstructorBase()
 
     abstract val isPresent: KFunction1<*, Boolean>
     abstract val getter: KFunction1<*, Any>
-
-    private val emptyMethodId by lazy { MethodId(classId, "empty", classId, emptyList()) }
-    private val ofMethodId by lazy { MethodId(classId, "of", classId, listOf(elementClassId)) }
-
-    final override fun UtAssembleModel.modifyChains(
+    final override fun provideInstantiationCall(
         internalConstructor: UtModelConstructorInterface,
-        instantiationChain: MutableList<UtStatementModel>,
-        modificationChain: MutableList<UtStatementModel>,
-        valueToConstructFrom: Any
-    ) {
-        require(classId.jClass.isInstance(valueToConstructFrom)) {
-            "Can't cast $valueToConstructFrom to ${classId.jClass} in $this assemble constructor."
+        value: Any,
+        classId: ClassId
+    ): UtExecutableCallModel {
+        require(classId.jClass.isInstance(value)) {
+            "Can't cast $value to ${classId.jClass} in $this assemble constructor."
         }
 
-        modificationChain += if (!isPresent.call(valueToConstructFrom)) {
+        return if (!isPresent.call(value)) {
             UtExecutableCallModel(
                 instance = null,
                 emptyMethodId,
-                emptyList(),
-                this
+                emptyList()
             )
         } else {
             UtExecutableCallModel(
                 instance = null,
                 ofMethodId,
-                listOf(internalConstructor.construct(getter.call(valueToConstructFrom), elementClassId)),
-                this
+                listOf(internalConstructor.construct(getter.call(value), elementClassId))
             )
         }
     }
+
+    private val emptyMethodId by lazy { MethodId(classId, "empty", classId, emptyList()) }
+    private val ofMethodId by lazy { MethodId(classId, "of", classId, listOf(elementClassId)) }
+
+    final override fun UtAssembleModel.provideModificationChain(
+        internalConstructor: UtModelConstructorInterface,
+        value: Any
+    ): List<UtExecutableCallModel> = emptyList()
 }
 
 internal class OptionalConstructor : OptionalConstructorBase() {

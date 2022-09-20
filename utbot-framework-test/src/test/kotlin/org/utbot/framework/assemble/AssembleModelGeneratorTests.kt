@@ -184,7 +184,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(testClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${innerClassId.canonicalName}()")
+        statementsChain.add("${innerClassId.canonicalName}()")
         statementsChain.add("$v2." + addExpectedSetter("a", 2))
         statementsChain.add("$v2." + ("b" `=` 4))
         val secondExpectedRepresentation = printExpectedModel(innerClassId.simpleName, v2, statementsChain.toList())
@@ -238,7 +238,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("${listClassId.canonicalName}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain.toList())
 
@@ -268,13 +268,13 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("${listClassId.canonicalName}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         statementsChain.add("$v2." + addExpectedSetter("next", v3))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v3 = ${listClassId.canonicalName}()")
+        statementsChain.add("${listClassId.canonicalName}()")
         statementsChain.add("$v3." + addExpectedSetter("value", 3))
         statementsChain.add("$v3." + addExpectedSetter("next", v1))
         val thirdExpectedRepresentation = printExpectedModel(listClassId.simpleName, v3, statementsChain.toList())
@@ -989,7 +989,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("${listClassId.canonicalName}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain.toList())
 
@@ -1017,7 +1017,7 @@ class AssembleModelGeneratorTests {
         val firstExpectedRepresentation = printExpectedModel(listClassId.simpleName, v1, statementsChain.toList())
 
         statementsChain.clear()
-        statementsChain.add("val $v2 = ${listClassId.canonicalName}()")
+        statementsChain.add("${listClassId.canonicalName}()")
         statementsChain.add("$v2." + addExpectedSetter("value", 2))
         statementsChain.add("$v2." + addExpectedSetter("next", v1))
         val secondExpectedRepresentation = printExpectedModel(listClassId.simpleName, v2, statementsChain)
@@ -1140,7 +1140,7 @@ class AssembleModelGeneratorTests {
         statementsChain.add(
             "$v1." + ("array" `=` "[" +
                     "null, " +
-                    "UtAssembleModel(${innerClassId.simpleName} $v2) val $v2 = ${innerClassId.canonicalName}() $v2.setA(5), " +
+                    "UtAssembleModel(${innerClassId.simpleName} $v2) ${innerClassId.canonicalName}() $v2.setA(5), " +
                     "null" +
                     "]")
         )
@@ -1240,8 +1240,8 @@ class AssembleModelGeneratorTests {
         val v3 = createExpectedVariableName<PrimitiveFields>()
         statementsChain.add(
             "$v1." + ("array" `=` "[" +
-                    "[UtAssembleModel(${innerClassId.simpleName} $v2) val $v2 = ${innerClassId.canonicalName}() $v2.setA(5), ${null}], " +
-                    "[UtAssembleModel(${innerClassId.simpleName} $v3) val $v3 = ${innerClassId.canonicalName}() $v3.b = 4, ${null}]" +
+                    "[UtAssembleModel(${innerClassId.simpleName} $v2) ${innerClassId.canonicalName}() $v2.setA(5), ${null}], " +
+                    "[UtAssembleModel(${innerClassId.simpleName} $v3) ${innerClassId.canonicalName}() $v3.b = 4, ${null}]" +
                     "]")
         )
 
@@ -1480,7 +1480,7 @@ class AssembleModelGeneratorTests {
         val varName = createExpectedVariableName<T>()
 
         val paramString = if (params.any()) params.joinToString(", ") else ""
-        this.add("val $varName = $fqn($paramString)")
+        this.add("$fqn($paramString)")
 
         return varName
     }

@@ -61,24 +61,19 @@ abstract class StreamWrapper(
         val modelName = nextModelName(baseModelName)
         val parametersArrayModel = resolveElementsAsArrayModel(wrapper)
 
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationsChain = emptyList<UtStatementModel>()
+        val (builder, params) = if (parametersArrayModel == null || parametersArrayModel.length == 0) {
+            streamEmptyMethodId to emptyList()
+        } else {
+            streamOfMethodId to listOf(parametersArrayModel)
+        }
 
-        UtAssembleModel(addr, utStreamClass.overriddenStreamClassId, modelName, instantiationChain, modificationsChain)
-            .apply {
-                val (builder, params) = if (parametersArrayModel == null || parametersArrayModel.length == 0) {
-                    streamEmptyMethodId to emptyList()
-                } else {
-                    streamOfMethodId to listOf(parametersArrayModel)
-                }
+        val instantiationCall = UtExecutableCallModel(
+            instance = null,
+            executable = builder,
+            params = params
+        )
 
-                instantiationChain += UtExecutableCallModel(
-                    instance = null,
-                    executable = builder,
-                    params = params,
-                    returnValue = this
-                )
-            }
+        UtAssembleModel(addr, utStreamClass.overriddenStreamClassId, modelName, instantiationCall)
     }
 
     override fun chooseClassIdWithConstructor(classId: ClassId): ClassId = error("No constructor for Stream")

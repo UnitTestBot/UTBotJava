@@ -186,7 +186,7 @@ abstract class UtModelTestCaseChecker(
     protected fun UtModel.findField(fieldId: FieldId): UtModel = when (this) {
         is UtCompositeModel -> this.fields[fieldId]!!
         is UtAssembleModel -> {
-            val fieldAccess = this.allStatementsChain
+            val fieldAccess = this.modificationsChain
                 .filterIsInstance<UtDirectSetFieldModel>()
                 .singleOrNull { it.fieldId == fieldId }
             fieldAccess?.fieldModel ?: fieldId.type.defaultValueModel()

@@ -2,12 +2,12 @@ package org.utbot.framework.concrete
 
 import org.utbot.framework.plugin.api.ClassId
 import org.utbot.framework.plugin.api.UtAssembleModel
+import org.utbot.framework.plugin.api.UtExecutableCallModel
 import org.utbot.framework.plugin.api.UtStatementModel
 import org.utbot.framework.plugin.api.util.jClass
 import org.utbot.framework.plugin.api.util.primitiveWrappers
 import org.utbot.framework.plugin.api.util.voidWrapperClassId
 import org.utbot.framework.util.nextModelName
-import java.util.concurrent.CopyOnWriteArrayList
 
 private val predefinedConstructors = mutableMapOf<Class<*>, () -> UtAssembleModelConstructorBase>(
     /**
@@ -93,25 +93,29 @@ internal fun findUtAssembleModelConstructor(classId: ClassId): UtAssembleModelCo
 internal abstract class UtAssembleModelConstructorBase {
     fun constructAssembleModel(
         internalConstructor: UtModelConstructorInterface,
-        valueToConstructFrom: Any,
+        value: Any,
         valueClassId: ClassId,
         id: Int?,
         init: (UtAssembleModel) -> Unit
     ): UtAssembleModel {
-        val instantiationChain = mutableListOf<UtStatementModel>()
-        val modificationChain = mutableListOf<UtStatementModel>()
         val baseName = valueClassId.simpleName.decapitalize()
-        return UtAssembleModel(id, valueClassId, nextModelName(baseName), instantiationChain, modificationChain)
-            .also(init)
-            .apply { modifyChains(internalConstructor, instantiationChain, modificationChain, valueToConstructFrom) }
+        val instantiationCall = provideInstantiationCall(internalConstructor, value, valueClassId)
+        return UtAssembleModel(id, valueClassId, nextModelName(baseName), instantiationCall) {
+            init(this)
+            provideModificationChain(internalConstructor, value)
+        }
     }
 
-    protected abstract fun UtAssembleModel.modifyChains(
+    protected abstract fun provideInstantiationCall(
         internalConstructor: UtModelConstructorInterface,
-        instantiationChain: MutableList<UtStatementModel>,
-        modificationChain: MutableList<UtStatementModel>,
-        valueToConstructFrom: Any
-    )
+        value: Any,
+        classId: ClassId
+    ): UtExecutableCallModel
+
+    protected abstract fun UtAssembleModel.provideModificationChain(
+        internalConstructor: UtModelConstructorInterface,
+        value: Any
+    ): List<UtStatementModel>
 }
 
 internal fun UtAssembleModelConstructorBase.checkClassCast(expected: Class<*>, actual: Class<*>) {

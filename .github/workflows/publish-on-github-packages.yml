@@ -65,11 +65,12 @@ jobs:
     - name: PRINTENV
       run: printenv
 
+# images: ${{ env.REGISTRY }}/${{ github.repository }}/utbot_${{ github.event.inputs.image_name }}
     - name: Docker meta
       id: meta
       uses: docker/metadata-action@v3
       with:
-        images: ${{ env.REGISTRY }}/${{ github.repository }}/utbot_${{ github.event.inputs.image_name }}
+        images: ${{ env.REGISTRY }}/${{ github.repository }}/utbot_python_cli
         tags: |
           type=raw,value=${{ env.DOCKER_TAG }}
     - name: Docker Buildx (build and push)

@@ -13,6 +13,9 @@ on:
         - javascript_cli
         - go_cli
 
+env:
+  REGISTRY: ghcr.io
+
 jobs:
   publish-cli-image:
     if: ${{ github.actor == 'korifey' || github.actor == 'denis-fokin' || github.actor == 'victoriafomina' || github.actor == 'bissquit' }}

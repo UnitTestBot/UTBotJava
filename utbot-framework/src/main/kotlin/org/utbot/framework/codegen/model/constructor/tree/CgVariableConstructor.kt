@@ -14,6 +14,7 @@ import org.utbot.framework.codegen.model.constructor.util.isDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.isNotDefaultValueOf
 import org.utbot.framework.codegen.model.constructor.util.typeCast
 import org.utbot.framework.codegen.model.tree.CgAllocateArray
+import org.utbot.framework.codegen.model.tree.CgAssignment
 import org.utbot.framework.codegen.model.tree.CgDeclaration
 import org.utbot.framework.codegen.model.tree.CgEnumConstantAccess
 import org.utbot.framework.codegen.model.tree.CgExecutableCall
@@ -22,11 +23,14 @@ import org.utbot.framework.codegen.model.tree.CgFieldAccess
 import org.utbot.framework.codegen.model.tree.CgGetJavaClass
 import org.utbot.framework.codegen.model.tree.CgLiteral
 import org.utbot.framework.codegen.model.tree.CgMethodCall
+import org.utbot.framework.codegen.model.tree.CgStatement
 import org.utbot.framework.codegen.model.tree.CgStaticFieldAccess
 import org.utbot.framework.codegen.model.tree.CgValue
 import org.utbot.framework.codegen.model.tree.CgVariable
 import org.utbot.framework.codegen.model.util.at
 import org.utbot.framework.codegen.model.util.canBeSetIn
+import org.utbot.framework.codegen.model.util.fieldThisIsGetterFor
+import org.utbot.framework.codegen.model.util.fieldThisIsSetterFor
 import org.utbot.framework.codegen.model.util.inc
 import org.utbot.framework.codegen.model.util.isAccessibleFrom
 import org.utbot.framework.codegen.model.util.lessThan
@@ -34,6 +38,7 @@ import org.utbot.framework.codegen.model.util.nullLiteral
 import org.utbot.framework.codegen.model.util.resolve
 import org.utbot.framework.plugin.api.BuiltinClassId
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.CodegenLanguage
 import org.utbot.framework.plugin.api.ConstructorId
 import org.utbot.framework.plugin.api.MethodId
 import org.utbot.framework.plugin.api.UtArrayModel
@@ -188,7 +193,7 @@ internal class CgVariableConstructor(val context: CgContext) :
             // byteBuffer is field of type ByteBuffer and upper line is incorrect
             val canFieldBeDirectlySetByVariableAndFieldTypeRestrictions =
                 fieldFromVariableSpecifiedType != null && fieldFromVariableSpecifiedType.type.id == variableForField.type
-            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetIn(testClassPackageName)) {
+            if (canFieldBeDirectlySetByVariableAndFieldTypeRestrictions && fieldId.canBeSetIn(context)) {
                 // TODO: check if it is correct to use declaringClass of a field here
                 val fieldAccess = if (field.isStatic) CgStaticFieldAccess(fieldId) else CgFieldAccess(obj, fieldId)
                 fieldAccess `=` variableForField
@@ -212,7 +217,8 @@ internal class CgVariableConstructor(val context: CgContext) :
                     instance[statementModel.fieldId] `=` declareOrGet(statementModel.fieldModel)
                 }
                 is UtExecutableCallModel -> {
-                    +createCgExecutableCallFromUtExecutableCall(statementModel)
+                    val call = createCgExecutableCallFromUtExecutableCall(statementModel)
+                    +replaceCgExecutableCallWithFieldAccessIfNeeded(call)
                 }
             }
         }
@@ -236,6 +242,7 @@ internal class CgVariableConstructor(val context: CgContext) :
         val initExpr = if (isPrimitiveWrapperOrString(type)) {
             cgLiteralForWrapper(params)
         } else {
+            // TODO: if instantiation chain could be a setter call, we need to replace it in Kotlin
             createCgExecutableCallFromUtExecutableCall(executableCall)
         }
         newVar(type, model, baseName) {
@@ -259,6 +266,23 @@ internal class CgVariableConstructor(val context: CgContext) :
             }
         }
         return cgCall
+    }
+
+    private fun replaceCgExecutableCallWithFieldAccessIfNeeded(call: CgExecutableCall): CgStatement {
+        if (call !is CgMethodCall || context.codegenLanguage != CodegenLanguage.KOTLIN)
+            return call
+
+        val caller = call.caller ?: return call
+
+        caller.type.fieldThisIsSetterFor(call.executableId)?.let {
+            return CgAssignment(caller[it], call.arguments.single())
+        }
+        caller.type.fieldThisIsGetterFor(call.executableId)?.let {
+            require(call.arguments.isEmpty())
+            return caller[it]
+        }
+
+        return call
     }
 
     /**

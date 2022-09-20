@@ -293,7 +293,7 @@ internal class CgCallableAccessManagerImpl(val context: CgContext) : CgCallableA
 
     private fun FieldId.accessSuitability(accessor: CgExpression?): FieldAccessorSuitability {
         // Check field accessibility.
-        if (!isAccessibleFrom(testClassPackageName)) {
+        if (!isAccessibleFrom(context)) {
             return ReflectionOnly
         }
 

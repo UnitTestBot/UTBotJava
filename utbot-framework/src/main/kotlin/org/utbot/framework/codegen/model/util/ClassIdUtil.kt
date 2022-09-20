@@ -1,6 +1,9 @@
 package org.utbot.framework.codegen.model.util
 
 import org.utbot.framework.plugin.api.ClassId
+import org.utbot.framework.plugin.api.FieldId
+import org.utbot.framework.plugin.api.MethodId
+import org.utbot.framework.plugin.api.util.allDeclaredFieldIds
 import org.utbot.framework.plugin.api.util.id
 import org.utbot.framework.plugin.api.util.isArray
 
@@ -29,3 +32,15 @@ infix fun ClassId.isAccessibleFrom(packageName: String): Boolean {
         isPublic || (this.packageName == packageName && (isPackagePrivate || isProtected))
     }
 }
+
+/**
+ * Returns field of [this], such that [methodId] is a getter for it (or null if methodId doesn't represent a getter)
+ */
+internal fun ClassId.fieldThisIsGetterFor(methodId: MethodId): FieldId? =
+    allDeclaredFieldIds.firstOrNull { it.getter == methodId }
+
+/**
+ * Returns field of [this], such that [methodId] is a setter for it (or null if methodId doesn't represent a setter)
+ */
+internal fun ClassId.fieldThisIsSetterFor(methodId: MethodId): FieldId? =
+    allDeclaredFieldIds.firstOrNull { it.setter == methodId }

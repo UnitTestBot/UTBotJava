@@ -218,7 +218,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, _) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.isAccessibleFrom(testClassPackageName)
+            val fieldAccessible = field.isAccessibleFrom(context)
 
             // prevValue is nullable if not accessible because of getStaticFieldValue(..) : Any?
             val prevValue = newVar(
@@ -243,7 +243,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
         val accessibleStaticFields = statics.accessibleFields()
         for ((field, model) in accessibleStaticFields) {
             val declaringClass = field.declaringClass
-            val fieldAccessible = field.canBeSetIn(testClassPackageName)
+            val fieldAccessible = field.canBeSetIn(context)
 
             val fieldValue = if (isParametrized) {
                 currentMethodParameters[CgParameterKind.Statics(model)]
@@ -264,7 +264,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
 
     private fun recoverStaticFields() {
         for ((field, prevValue) in prevStaticFieldValues.accessibleFields()) {
-            if (field.canBeSetIn(testClassPackageName)) {
+            if (field.canBeSetIn(context)) {
                 field.declaringClass[field] `=` prevValue
             } else {
                 val declaringClass = getClassOf(field.declaringClass)
@@ -1039,7 +1039,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     private fun FieldId.getAccessExpression(variable: CgVariable): CgExpression =
         // Can directly access field only if it is declared in variable class (or in its ancestors)
         // and is accessible from current package
-        if (variable.type.hasField(this) && isAccessibleFrom(testClassPackageName)) {
+        if (variable.type.hasField(this) && isAccessibleFrom(context)) {
             if (jField.isStatic) CgStaticFieldAccess(this) else CgFieldAccess(variable, this)
         } else {
             utilsClassId[getFieldValue](variable, this.declaringClass.name, this.name)

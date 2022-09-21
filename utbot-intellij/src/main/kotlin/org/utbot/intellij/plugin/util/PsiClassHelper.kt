@@ -17,10 +17,24 @@ private fun Iterable<MemberInfo>.filterTestableMethods(): List<MemberInfo> = thi
     .filterWhen(UtSettings.skipTestGenerationForSyntheticMethods) { it.member !is SyntheticElement }
     .filterNot { it.isAbstract }
 
+private val PsiClass.isPrivateOrProtected: Boolean
+    get() = this.modifierList?.let {
+        hasModifierProperty(PsiModifier.PRIVATE) || hasModifierProperty(PsiModifier.PROTECTED)
+    } ?: false
+
+
 // TODO: maybe we need to delete [includeInherited] param here (always false when calling)?
-fun PsiClass.extractClassMethodsIncludingNested(includeInherited: Boolean): List<MemberInfo> =
-    TestIntegrationUtils.extractClassMethods(this, includeInherited)
-        .filterTestableMethods() + innerClasses.flatMap { it.extractClassMethodsIncludingNested(includeInherited) }
+fun PsiClass.extractClassMethodsIncludingNested(includeInherited: Boolean): List<MemberInfo> {
+    val ourMethods = TestIntegrationUtils.extractClassMethods(this, includeInherited)
+        .filterTestableMethods()
+
+    val methodsFromNestedClasses =
+        innerClasses
+            .filter { !it.isPrivateOrProtected }
+            .flatMap { it.extractClassMethodsIncludingNested(includeInherited) }
+
+    return ourMethods + methodsFromNestedClasses
+}
 
 fun PsiClass.extractFirstLevelMembers(includeInherited: Boolean): List<MemberInfo> {
     val methods = TestIntegrationUtils.extractClassMethods(this, includeInherited)
@@ -29,5 +43,8 @@ fun PsiClass.extractFirstLevelMembers(includeInherited: Boolean): List<MemberInf
         allInnerClasses
     else
         innerClasses
-    return methods + classes.map { MemberInfo(it) }
+    return methods + classes.filter { !it.isPrivateOrProtected }.map { MemberInfo(it) }
 }
+
+val PsiClass.isVisible: Boolean
+    get() = generateSequence(this) { it.containingClass }.none { it.isPrivateOrProtected }

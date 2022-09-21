@@ -2347,7 +2347,9 @@ class Traverser(
         // better than engine.
         val types = instanceOfConstraint?.typeStorage?.possibleConcreteTypes ?: instance.possibleConcreteTypes
 
-        val allPossibleConcreteTypes = typeRegistry.findInheritorsIncludingTypes(instance.type) { setOf(instance.type) }
+        val allPossibleConcreteTypes = typeResolver
+            .constructTypeStorage(instance.type, useConcreteType = false)
+            .possibleConcreteTypes
 
         val methodInvocationTargets = findLibraryTargets(instance.type, methodSubSignature)?.takeIf {
             // we have no specified types, so we can take only library targets (if present) for optimization purposes

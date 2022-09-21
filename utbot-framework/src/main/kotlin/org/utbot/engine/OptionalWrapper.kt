@@ -94,7 +94,7 @@ class OptionalWrapper(private val utOptionalClass: UtOptionalClass) : BaseOverri
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
         setOf(type)
 
     private fun Resolver.instantiationFactoryCallModel(classId: ClassId, wrapper: ObjectValue) : UtExecutableCallModel {

@@ -188,7 +188,7 @@ class StringWrapper : BaseOverriddenWrapper(utStringClass.name) {
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
         setOf(STRING_TYPE)
 }
 
@@ -286,7 +286,7 @@ class UtNativeStringWrapper : WrapperInterface {
 
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel = UtNullModel(STRING_TYPE.classId)
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
         setOf(STRING_TYPE)
 }
 
@@ -344,8 +344,8 @@ sealed class UtAbstractStringBuilderWrapper(className: String) : BaseOverriddenW
         return UtAssembleModel(addr, wrapper.type.classId, modelName, instantiationCall)
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
-        setOf(STRING_TYPE)
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(type)
 
     private val SootClass.valueField: SootField
         get() = getField("value", CharType.v().arrayType)

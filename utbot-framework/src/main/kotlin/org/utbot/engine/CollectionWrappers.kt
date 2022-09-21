@@ -34,7 +34,6 @@ import org.utbot.framework.plugin.api.util.methodId
 import org.utbot.framework.plugin.api.util.objectClassId
 import org.utbot.framework.util.graph
 import org.utbot.framework.util.nextModelName
-import soot.ArrayType
 import soot.IntType
 import soot.RefType
 import soot.Scene
@@ -132,8 +131,8 @@ abstract class BaseContainerWrapper(containerClassName: String) : BaseOverridden
         }
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
-        setOf(Scene.v().getSootClass(chooseClassIdWithConstructor(type.classId).canonicalName).type)
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(chooseClassIdWithConstructor(type.classId).sootType)
 
     /**
      * Method returns list of parameter models that will be passed to [modificationMethodId]
@@ -402,24 +401,6 @@ private val UT_GENERIC_ASSOCIATIVE_CLASS
 
 private val UT_GENERIC_ASSOCIATIVE_SET_EQUAL_GENERIC_TYPE_SIGNATURE =
     UT_GENERIC_ASSOCIATIVE_CLASS.getMethodByName(UtGenericAssociative<*, *>::setEqualGenericType.name).signature
-
-val ARRAY_OBJECT_TYPE: Type
-    get() = ArrayType.v(OBJECT_TYPE, 1)
-
-val ARRAY_LIST_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.ArrayList::class.java.canonicalName).type
-val LINKED_LIST_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.LinkedList::class.java.canonicalName).type
-
-val LINKED_HASH_SET_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.LinkedHashSet::class.java.canonicalName).type
-val HASH_SET_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.HashSet::class.java.canonicalName).type
-
-val LINKED_HASH_MAP_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.LinkedHashMap::class.java.canonicalName).type
-val HASH_MAP_TYPE: RefType
-    get() = Scene.v().getSootClass(java.util.HashMap::class.java.canonicalName).type
 
 val STREAM_TYPE: RefType
     get() = Scene.v().getSootClass(java.util.stream.Stream::class.java.canonicalName).type

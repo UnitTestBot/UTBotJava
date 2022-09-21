@@ -1,8 +1,7 @@
 package org.utbot.examples.casts;
 
+import java.util.*;
 import org.utbot.api.mock.UtMock;
-import java.util.HashMap;
-import java.util.Map;
 
 public class InstanceOfExample {
     public CastClassFirstSucc simpleInstanceOf(CastClass objectExample) {
@@ -323,9 +322,58 @@ public class InstanceOfExample {
         return array;
     }
 
-    public void instanceOfString(CharSequence cs) {
+    public CharSequence charSequenceInstanceOf(CharSequence cs) {
         if (cs instanceof String) {
-            throw new IllegalStateException("CharSequence must not be a String");
+            return cs;
         }
+        return cs;
     }
+
+    public List<Object> listInstanceOf(List<Object> list) {
+        if (list instanceof AbstractList) {
+            if (list instanceof ArrayList) {
+                return list;
+            }
+        }
+        return list;
+    }
+
+    public Deque<Object> dequeInstanceOf(Deque<Object> deque) {
+        if (deque instanceof LinkedList) {
+            return deque;
+        }
+        return deque;
+    }
+
+    public AbstractSequentialList<Object> abstractSequentialListInstanceOf(AbstractSequentialList<Object> list) {
+        if (list instanceof LinkedList) {
+            return list;
+        }
+        return list;
+    }
+
+    public Set<Object> setInstanceOf(Set<Object> set) {
+        if (set instanceof AbstractSet) {
+            if (set instanceof HashSet) {
+                if (set instanceof LinkedHashSet) {
+                    return set;
+                }
+                // TODO: we have wrapper of HashSet and this branch must be covered, but now it's not truth
+            }
+        }
+        return set;
+    }
+
+    public Map<Object, Object> mapInstanceOf(Map<Object, Object> map) {
+        if (map instanceof AbstractMap) {
+            if (map instanceof HashMap) {
+                if (map instanceof LinkedHashMap) {
+                    return map;
+                }
+                // TODO: we have wrapper of HashMap and this branch must be covered, but now it's not truth
+            }
+        }
+        return map;
+    }
+
 }

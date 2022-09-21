@@ -264,8 +264,12 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
         return resultModel
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
-        setOf(ARRAY_OBJECT_TYPE)
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> {
+        val possibleObjectTypes = Scene.v().classes.map { it.type }
+        return possibleObjectTypes.mapTo(mutableSetOf()) {
+            it.arrayType
+        }
+    }
 
     companion object {
         internal val rangeModifiableArrayClass: SootClass
@@ -280,7 +284,6 @@ class RangeModifiableUnlimitedArrayWrapper : WrapperInterface {
 }
 
 val associativeArrayId: ClassId = AssociativeArray::class.id
-val associativeArrayType: Type = Scene.v().getSootClass(AssociativeArray::class.java.canonicalName).type
 
 class AssociativeArrayWrapper : WrapperInterface {
 
@@ -419,8 +422,8 @@ class AssociativeArrayWrapper : WrapperInterface {
         return model
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
-        setOf(associativeArrayType)
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(associativeArrayClass.type)
 
     private fun Traverser.getStorageArrayField(addr: UtAddrExpression) =
         getArrayField(addr, associativeArrayClass, storageField)

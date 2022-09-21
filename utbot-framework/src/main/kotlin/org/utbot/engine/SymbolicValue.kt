@@ -180,7 +180,7 @@ fun SymbolicValue.toConcrete(): Any = when (this) {
 // TODO: one more constructor?
 fun objectValue(type: RefType, addr: UtAddrExpression, implementation: WrapperInterface) =
     ObjectValue(
-        TypeStorage(type, implementation.getPotentialPossibleTypes(type)),
+        TypeStorage(type, implementation.getPossibleConcreteTypes(type)),
         addr, Concrete(implementation)
     )
 

@@ -38,7 +38,7 @@ class SecurityManagerWrapper : BaseOverriddenWrapper(utSecurityManagerClass.name
         return UtAssembleModel(addr, classId, modelName, instantiationCall)
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
         setOf(type)
 
     companion object {

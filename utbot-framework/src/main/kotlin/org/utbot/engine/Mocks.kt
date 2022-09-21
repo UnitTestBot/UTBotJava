@@ -307,7 +307,7 @@ class UtMockWrapper(
     override fun value(resolver: Resolver, wrapper: ObjectValue): UtModel =
         TODO("value on mock called: $this")
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
         setOf(this.type)
 
     override fun toString() = "UtMock(type=$type, target=$mockInfo)"

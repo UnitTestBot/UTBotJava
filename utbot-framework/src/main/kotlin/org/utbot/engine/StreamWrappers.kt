@@ -77,8 +77,8 @@ abstract class StreamWrapper(
         UtAssembleModel(addr, utStreamClass.overriddenStreamClassId, modelName, instantiationCall)
     }
 
-    override fun getPotentialPossibleTypes(type: Type): Set<Type> =
-        setOf(STREAM_TYPE)
+    override fun getPossibleConcreteTypes(type: Type): Set<Type> =
+        setOf(utStreamClass.overriddenStreamClassId.sootType)
 
     override fun chooseClassIdWithConstructor(classId: ClassId): ClassId = error("No constructor for Stream")
 

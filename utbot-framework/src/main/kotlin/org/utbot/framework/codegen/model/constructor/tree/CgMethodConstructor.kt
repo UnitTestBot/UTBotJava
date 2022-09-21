@@ -1212,7 +1212,10 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                     else -> ifStatement(
                         CgEqualTo(expected, nullLiteral()),
                         trueBranch = { +testFrameworkManager.assertions[testFramework.assertNull](actual).toStatement() },
-                        falseBranch = { generateDeepEqualsAssertion(expected, actual) }
+                        falseBranch = {
+                            +testFrameworkManager.assertions[testFrameworkManager.assertNotNull](actual).toStatement()
+                            generateDeepEqualsAssertion(expected, actual)
+                        }
                     )
                 }
             }
@@ -1344,10 +1347,7 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
     fun createParameterizedTestMethod(testSet: CgMethodTestSet, dataProviderMethodName: String): CgTestMethod {
         //TODO: orientation on generic execution may be misleading, but what is the alternative?
         //may be a heuristic to select a model with minimal number of internal nulls should be used
-        val genericExecution = testSet.executions
-            .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
-            ?: testSet.executions
-                .firstOrNull { it.result is UtExecutionSuccess } ?: testSet.executions.first()
+        val genericExecution = chooseGenericExecution(testSet.executions)
 
         val statics = genericExecution.stateBefore.statics
 
@@ -1413,6 +1413,13 @@ internal class CgMethodConstructor(val context: CgContext) : CgContextOwner by c
                 }
             }
         }
+    }
+
+    private fun chooseGenericExecution(executions: List<UtExecution>): UtExecution {
+        return executions
+            .firstOrNull { it.result is UtExecutionSuccess && (it.result as UtExecutionSuccess).model !is UtNullModel }
+            ?: executions
+                .firstOrNull { it.result is UtExecutionSuccess } ?: executions.first()
     }
 
     private fun createParameterDeclarations(

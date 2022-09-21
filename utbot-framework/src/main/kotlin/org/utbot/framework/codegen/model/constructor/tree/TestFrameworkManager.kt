@@ -60,6 +60,7 @@ internal abstract class TestFrameworkManager(val context: CgContext)
     val assertDoubleEquals = context.testFramework.assertDoubleEquals
 
     val assertNull = context.testFramework.assertNull
+    val assertNotNull = context.testFramework.assertNotNull
     val assertTrue = context.testFramework.assertTrue
     val assertFalse = context.testFramework.assertFalse
 

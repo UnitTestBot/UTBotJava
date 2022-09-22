@@ -410,21 +410,16 @@ public class BaseStreamExample {
     }
 
     @SuppressWarnings({"ReplaceInefficientStreamCount", "ConstantConditions"})
+    // TODO wrong generic type for data field https://github.com/UnitTestBot/UTBotJava/issues/730
     long customCollectionStreamExample(CustomCollection<Integer> customCollection) {
         UtMock.assume(customCollection != null && customCollection.data != null);
 
+        final Stream<Integer> stream = customCollection.stream();
+
         if (customCollection.isEmpty()) {
-            return customCollection.stream().count();
-
-            // simplified example, does not generate branch too
-            /*customCollection.removeIf(Objects::isNull);
-            return customCollection.toArray().length;*/
+            return stream.count();
         } else {
-            return customCollection.stream().count();
-
-            // simplified example, does not generate branch too
-            /*customCollection.removeIf(Objects::isNull);
-            return customCollection.toArray().length;*/
+            return stream.count();
         }
     }
 

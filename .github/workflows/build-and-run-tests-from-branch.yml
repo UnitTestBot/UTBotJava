@@ -80,6 +80,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+      - name: Check cache
+        run: |
+          ls -lha ~/.gradle/caches
+          du -sh ~/.gradle/*
 
       - name: Run monitoring
         run: |
@@ -145,6 +149,10 @@ jobs:
         key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
+    - name: Check cache
+      run: |
+        ls -lha ~/.gradle/caches
+        du -sh ~/.gradle/*
 
     - name: Run monitoring
       run: |
@@ -211,6 +219,10 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+      - name: Check cache
+        run: |
+          ls -lha ~/.gradle/caches
+          du -sh ~/.gradle/*
 
       - name: Run monitoring
         run: |

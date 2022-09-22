@@ -77,7 +77,7 @@ jobs:
         with:
           path: |
             ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -142,7 +142,7 @@ jobs:
       with:
         path: |
           ~/.gradle/caches
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+        key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
 
@@ -208,7 +208,7 @@ jobs:
         with:
           path: |
             ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('*.gradle', '*.gradle.kts', './*.gradle', './*.gradle.kts') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 

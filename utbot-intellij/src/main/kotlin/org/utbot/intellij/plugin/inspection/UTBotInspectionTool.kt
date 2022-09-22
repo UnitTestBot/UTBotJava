@@ -14,12 +14,15 @@ import java.nio.file.Path
  */
 class UTBotInspectionTool : GlobalSimpleInspectionTool() {
 
-    private var sarifReports: MutableMap<Path, Sarif> = mutableMapOf()
+    /**
+     * Map from the path to the class under test to [Sarif] for it.
+     */
+    private var srcClassPathToSarifReport: MutableMap<Path, Sarif> = mutableMapOf()
 
     companion object {
-        fun getInstance(sarifReports: MutableMap<Path, Sarif>) =
+        fun getInstance(srcClassPathToSarifReport: MutableMap<Path, Sarif>) =
             UTBotInspectionTool().also {
-                it.sarifReports = sarifReports
+                it.srcClassPathToSarifReport = srcClassPathToSarifReport
             }
     }
 
@@ -29,6 +32,9 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
 
     override fun getGroupDisplayName() = "Errors detected by UTBot"
 
+    /**
+     * Appends all the errors from the SARIF report for [psiFile] to the [problemDescriptionsProcessor].
+     */
     override fun checkFile(
         psiFile: PsiFile,
         manager: InspectionManager,
@@ -36,7 +42,7 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
         globalContext: GlobalInspectionContext,
         problemDescriptionsProcessor: ProblemDescriptionsProcessor
     ) {
-        val sarifReport = sarifReports[psiFile.virtualFile.toNioPath()]
+        val sarifReport = srcClassPathToSarifReport[psiFile.virtualFile.toNioPath()]
             ?: return // no results for this file
 
         for (sarifResult in sarifReport.getAllResults()) {
@@ -73,6 +79,9 @@ class UTBotInspectionTool : GlobalSimpleInspectionTool() {
 
     // internal
 
+    /**
+     * Converts [SarifRegion] to the [TextRange] of the given [file].
+     */
     private fun getTextRange(project: Project, file: PsiFile, region: SarifRegion): TextRange {
         val documentManager = PsiDocumentManager.getInstance(project)
         val document = documentManager.getDocument(file.containingFile)

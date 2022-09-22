@@ -9,8 +9,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import org.utbot.common.PathUtil.toPath
 
 /**
- * Button with a link to the [testFileRelativePath].
- * Displayed as "quick fix".
+ * Button with a link to the [testFileRelativePath]. Displayed as a quick fix.
  *
  * @param testFileRelativePath path to the generated test file.
  *                             Should be relative to the project root

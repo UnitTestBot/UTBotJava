@@ -9,29 +9,31 @@ import org.utbot.sarif.Sarif
 import java.nio.file.Path
 
 /**
- * Creates [UTBotInspectionContext] with right arguments.
- *
- * Inheritance is needed to provide [UTBotInspectionContext] instead of [GlobalInspectionContextImpl].
- *
- * See [com.intellij.codeInspection.ex.InspectionManagerEx] for details.
+ * Overrides some methods of [InspectionManagerEx] to satisfy the logic of [UTBotInspectionTool].
  */
 class UTBotInspectionManager(project: Project) : InspectionManagerEx(project) {
 
+    private var srcClassPathToSarifReport: MutableMap<Path, Sarif> = mutableMapOf()
+
     companion object {
-        fun getInstance(project: Project, sarifReports: MutableMap<Path, Sarif>) =
+        fun getInstance(project: Project, srcClassPathToSarifReport: MutableMap<Path, Sarif>) =
             UTBotInspectionManager(project).also {
-                it.sarifReports = sarifReports
+                it.srcClassPathToSarifReport = srcClassPathToSarifReport
             }
     }
 
+    /**
+     * See [InspectionManagerEx.myContentManager] for more details.
+     */
     private val myContentManager: NotNullLazyValue<ContentManager> by lazy {
         NotNullLazyValue.createValue {
             getProblemsViewContentManager(project)
         }
     }
 
-    private var sarifReports: MutableMap<Path, Sarif> = mutableMapOf()
-
+    /**
+     * Overriding is needed to provide [UTBotInspectionContext] instead of [GlobalInspectionContextImpl].
+     */
     override fun createNewGlobalContext(): GlobalInspectionContextImpl =
-        UTBotInspectionContext(project, myContentManager, sarifReports)
+        UTBotInspectionContext(project, myContentManager, srcClassPathToSarifReport)
 }

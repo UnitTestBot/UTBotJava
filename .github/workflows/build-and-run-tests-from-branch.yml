@@ -66,21 +66,30 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
         run: |
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
       - name: Run monitoring
         run: |
           echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
           chmod +x ./scripts/project/monitoring.sh
           ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+
       - name: Run tests
         run: |
-          gradle --no-daemon :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
+          gradle --build-cache --no-daemon :utbot-framework-test:test ${{ matrix.project.TESTS_TO_RUN }}
       - name: Upload logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v3
@@ -122,7 +131,6 @@ jobs:
 
     - name: Checkout repository
       uses: actions/checkout@v3
-
     - name: Check out ${{ github.event.inputs.commit_sha }} commit
       if: github.event.inputs.commit_sha != ''
       run: |
@@ -130,21 +138,30 @@ jobs:
         git fetch
         git checkout ${{ github.event.inputs.commit_sha }}
 
+    - uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
     - name: Run monitoring
       run: |
         echo Find your Prometheus metrics using label {instance=\"${GITHUB_RUN_ID}-${HOSTNAME}\"}
         chmod +x ./scripts/project/monitoring.sh
         ./scripts/project/monitoring.sh ${{ secrets.PUSHGATEWAY_HOSTNAME }} ${{ secrets.PUSHGATEWAY_USER }} ${{ secrets.PUSHGATEWAY_PASSWORD }}
+
     - name: Build project ${{ matrix.projects.first }}
       id: first-project
       run: |
         cd ${{ matrix.projects.first }}
-        gradle build --no-daemon
+        gradle build --build-cache --no-daemon
     - name: Build project ${{ matrix.projects.second }}
       if: ${{ steps.first-project.outcome != 'cancelled' && steps.first-project.outcome != 'skipped' }}
       run: |
         cd ${{ matrix.projects.second }}
-        gradle build --no-daemon
+        gradle build --build-cache --no-daemon
     - name: Upload test report if tests have failed
       if: ${{ failure() }}
       uses: actions/upload-artifact@v3
@@ -180,13 +197,20 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Check out ${{ github.event.inputs.commit_sha }} commit
         if: github.event.inputs.commit_sha != ''
         run: |
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           git fetch
           git checkout ${{ github.event.inputs.commit_sha }}
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Run monitoring
         run: |
@@ -196,7 +220,7 @@ jobs:
       - name: Run tests
         run: |
           cd ${{ matrix.project }}
-          gradle build --no-daemon
+          gradle build --build-cache --no-daemon
       - name: Upload test report if tests have failed
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3

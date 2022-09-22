@@ -575,6 +575,8 @@ class UtLambdaModel(
             .singleOrNull { it.name == lambdaName }
             ?.executableId // synthetic lambda methods should not have overloads, so we always expect there to be only one method with the given name
             ?: error("More than one method with name $lambdaName found in class: ${declaringClass.canonicalName}")
+
+    override fun toString(): String = "Anonymous function $lambdaName implementing functional interface $declaringClass"
 }
 
 /**

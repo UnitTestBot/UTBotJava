@@ -4,8 +4,6 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
 configurations {
     fetchInstrumentationJar
 }
@@ -15,10 +13,10 @@ dependencies {
     shadow localGroovy()
 
     implementation project(":utbot-framework")
-    implementation "io.github.microutils:kotlin-logging:$kotlin_logging_version"
+    implementation "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
 
-    testImplementation "org.mockito:mockito-core:$mockito_version"
-    testImplementation "org.mockito:mockito-inline:$mockito_version"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "org.mockito:mockito-inline:$mockitoVersion"
 
     fetchInstrumentationJar project(path: ':utbot-instrumentation', configuration: 'instrumentationArchive')
 }

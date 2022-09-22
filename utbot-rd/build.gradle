@@ -5,9 +5,6 @@ plugins {
 import com.jetbrains.rd.generator.gradle.RdGenExtension
 import com.jetbrains.rd.generator.gradle.RdGenTask
 
-
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
 compileKotlin {
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_1_8
@@ -53,14 +50,14 @@ dependencies {
     implementation group: 'com.jetbrains.rd', name: 'rd-framework', version: '2022.3.1'
     implementation group: 'com.jetbrains.rd', name: 'rd-core', version: '2022.3.1'
 
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlin_logging_version
+    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: kotlinLoggingVersion
 
     processWithRdServerMockImplementation project(':utbot-rd')
 
     rdgenModelsCompileClasspath group: 'com.jetbrains.rd', name: 'rd-gen', version: '2022.3.1'
 }
 
-task lifetimedProcessMockJar (type: Jar) {
+task lifetimedProcessMockJar(type: Jar) {
     dependsOn lifetimedProcessMockClasses
     archiveAppendix.set("lifetimedProcessMock")
 
@@ -77,7 +74,7 @@ task lifetimedProcessMockJar (type: Jar) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 
-task processWithRdServerMockJar (type: Jar) {
+task processWithRdServerMockJar(type: Jar) {
     dependsOn processWithRdServerMockClasses
     archiveAppendix.set("processWithRdServerMock")
 

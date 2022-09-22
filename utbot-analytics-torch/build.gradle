@@ -1,5 +1,3 @@
-apply from: "${parent.projectDir}/gradle/include/jvm-project.gradle"
-
 configurations {
     torchmodels
 }
@@ -14,14 +12,14 @@ compileTestJava.dependsOn tasks.getByPath(':utbot-framework:testClasses')
 dependencies {
     api project(':utbot-analytics')
     testImplementation project(':utbot-sample')
-    testImplementation group: 'junit', name: 'junit', version: junit4_version
+    testImplementation group: 'junit', name: 'junit', version: junit4Version
 
-    implementation group: 'org.bytedeco', name: 'javacpp', version: javacpp_version, classifier: "$classifier"
-    implementation group: 'org.jsoup', name: 'jsoup', version: jsoup_version
+    implementation group: 'org.bytedeco', name: 'javacpp', version: javaCppVersion, classifier: "$classifier"
+    implementation group: 'org.jsoup', name: 'jsoup', version: jsoupVersion
 
-    implementation "ai.djl:api:$djl_api_version"
-    implementation "ai.djl.pytorch:pytorch-engine:$djl_api_version"
-    implementation "ai.djl.pytorch:pytorch-native-auto:$pytorch_native_version"
+    implementation "ai.djl:api:$djlApiVersion"
+    implementation "ai.djl.pytorch:pytorch-engine:$djlApiVersion"
+    implementation "ai.djl.pytorch:pytorch-native-auto:$pytorchNativeVersion"
 
     testImplementation project(':utbot-framework').sourceSets.test.output
 }

@@ -82,8 +82,9 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Check cache
         run: |
-          ls -lha ~/.gradle/caches
-          du -sh ~/.gradle/*
+          set -x
+          ls -lha ~/.gradle/caches || echo "directory doesn't exist"
+          du -sh ~/.gradle/* || echo "directory doesn't exist"
 
       - name: Run monitoring
         run: |
@@ -151,8 +152,9 @@ jobs:
           ${{ runner.os }}-gradle-
     - name: Check cache
       run: |
-        ls -lha ~/.gradle/caches
-        du -sh ~/.gradle/*
+        set -x
+        ls -lha ~/.gradle/caches || echo "directory doesn't exist"
+        du -sh ~/.gradle/* || echo "directory doesn't exist"
 
     - name: Run monitoring
       run: |
@@ -221,8 +223,9 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Check cache
         run: |
-          ls -lha ~/.gradle/caches
-          du -sh ~/.gradle/*
+          set -x
+          ls -lha ~/.gradle/caches || echo "directory doesn't exist"
+          du -sh ~/.gradle/* || echo "directory doesn't exist"
 
       - name: Run monitoring
         run: |
